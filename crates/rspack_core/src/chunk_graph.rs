@@ -341,40 +341,40 @@ impl ChunkGraph {
     &cgc.runtime_modules
   }
 
-  pub fn set_module_hashes(
-    &mut self,
-    module_identifier: ModuleIdentifier,
-    runtime: &RuntimeSpec,
-    hash: u64,
-  ) {
-    let cgm = self.get_chunk_graph_module_mut(module_identifier);
+  // pub fn set_module_hashes(
+  //   &mut self,
+  //   module_identifier: ModuleIdentifier,
+  //   runtime: &RuntimeSpec,
+  //   hash: u64,
+  // ) {
+  //   let cgm = self.get_chunk_graph_module_mut(module_identifier);
 
-    if let Some(runtime_spec_map) = &mut cgm.hashes {
-      if let Some(value) = runtime_spec_map.get(runtime) {
-        unreachable!("Hash for runtime already set: {}", value);
-      } else {
-        runtime_spec_map.set(runtime.clone(), hash);
-      }
-    } else {
-      let mut runtime_spec_map = RuntimeSpecMap::default();
-      runtime_spec_map.set(runtime.clone(), hash);
-      cgm.hashes = Some(runtime_spec_map);
-    }
-  }
+  //   if let Some(runtime_spec_map) = &mut cgm.hashes {
+  //     if let Some(value) = runtime_spec_map.get(runtime) {
+  //       unreachable!("Hash for runtime already set: {}", value);
+  //     } else {
+  //       runtime_spec_map.set(runtime.clone(), hash);
+  //     }
+  //   } else {
+  //     let mut runtime_spec_map = RuntimeSpecMap::default();
+  //     runtime_spec_map.set(runtime.clone(), hash);
+  //     cgm.hashes = Some(runtime_spec_map);
+  //   }
+  // }
 
-  pub fn get_module_hash(
-    &self,
-    module_identifier: ModuleIdentifier,
-    runtime: &RuntimeSpec,
-  ) -> Option<&u64> {
-    let cgm = self.get_chunk_graph_module(module_identifier);
-    if let Some(runtime_spec_map) = &cgm.hashes {
-      if let Some(value) = runtime_spec_map.get(runtime) {
-        return Some(value);
-      }
-    }
-    None
-  }
+  // pub fn get_module_hash(
+  //   &self,
+  //   module_identifier: ModuleIdentifier,
+  //   runtime: &RuntimeSpec,
+  // ) -> Option<&u64> {
+  //   let cgm = self.get_chunk_graph_module(module_identifier);
+  //   if let Some(runtime_spec_map) = &cgm.hashes {
+  //     if let Some(value) = runtime_spec_map.get(runtime) {
+  //       return Some(value);
+  //     }
+  //   }
+  //   None
+  // }
 
   pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &ChunkGraph, &ModuleGraph) -> bool>(
     &self,
@@ -454,7 +454,7 @@ pub struct ChunkGraphModule {
   pub(crate) chunks: HashSet<ChunkUkey>,
   pub(crate) runtime_requirements: Option<RuntimeSpecMap<HashSet<&'static str>>>,
   pub(crate) runtime_in_chunks: HashSet<ChunkUkey>,
-  pub(crate) hashes: Option<RuntimeSpecMap<u64>>,
+  // pub(crate) hashes: Option<RuntimeSpecMap<u64>>,
 }
 
 impl ChunkGraphModule {
@@ -465,7 +465,7 @@ impl ChunkGraphModule {
       chunks: Default::default(),
       runtime_requirements: None,
       runtime_in_chunks: Default::default(),
-      hashes: None,
+      // hashes: None,
     }
   }
 }

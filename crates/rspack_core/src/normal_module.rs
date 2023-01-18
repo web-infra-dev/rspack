@@ -90,6 +90,7 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
   pub used: bool,
+  pub hash: Option<u64>,
 }
 
 impl ModuleGraphModule {
@@ -114,6 +115,7 @@ impl ModuleGraphModule {
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
       used: default_used,
+      hash: None,
     }
   }
 

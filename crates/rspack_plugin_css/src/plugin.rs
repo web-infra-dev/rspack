@@ -590,10 +590,7 @@ impl Plugin for CssPlugin {
     );
     let mut hasher = Xxh3::default();
     for module_identifier in ordered_modules {
-      if let Some(hash) = compilation
-        .chunk_graph
-        .get_module_hash(module_identifier, &chunk.runtime)
-      {
+      if let Some(hash) = compilation.module_graph.get_module_hash(&module_identifier) {
         hash.hash(&mut hasher);
       }
     }
