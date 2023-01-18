@@ -1679,7 +1679,11 @@ fn validate_and_insert_replacement(
     (SymbolRef::Indirect(replace), SymbolRef::Indirect(_)) => {
       matches!(replace.ty, IndirectType::ReExport(_, _))
     }
-    (SymbolRef::Indirect(_), SymbolRef::Star(_)) => todo!(),
+    (SymbolRef::Indirect(_), SymbolRef::Star(_)) => {
+      // todo!()
+      // TODO:
+      false
+    }
     (SymbolRef::Star(_), SymbolRef::Direct(_)) => todo!(),
     (SymbolRef::Star(replace), SymbolRef::Indirect(_)) => {
       replace.ty == StarSymbolKind::ReExportAll
@@ -2036,6 +2040,17 @@ fn mark_symbol(
         used_export_module_identifiers,
         (*src).into(),
         ModuleUsedType::REEXPORT,
+      );
+    }
+    SymbolRef::Indirect(IndirectTopLevelSymbol {
+      ty: IndirectType::Default(_),
+      src,
+      ..
+    }) => {
+      merge_used_export_type(
+        used_export_module_identifiers,
+        (*src).into(),
+        ModuleUsedType::INDIRECT,
       );
     }
     _ => {}
@@ -2590,7 +2605,11 @@ fn finalize_symbol(
       };
       // let used = used_export_module_identifiers
       //   .get(&analyze_result.module_identifier)
-      //   .map(|value| value.contains(ModuleUsedType::DIRECT))
+      //   .map(|value| {
+      //     value.contains(ModuleUsedType::DIRECT)
+      //       || (!value.contains(ModuleUsedType::REEXPORT)
+      //         && value.contains(ModuleUsedType::INDIRECT))
+      //   })
       //   .unwrap_or(false);
       let used = used_export_module_identifiers.contains_key(&analyze_result.module_identifier);
 
