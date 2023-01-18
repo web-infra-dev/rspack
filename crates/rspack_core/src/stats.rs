@@ -42,22 +42,24 @@ impl Stats<'_> {
       }
     }
     let mut assets: HashMap<&String, StatsAsset> =
-      HashMap::from_iter(self.compilation.assets.iter().map(|(name, asset)| {
-        (
-          name,
-          StatsAsset {
-            r#type: "asset",
-            name: name.clone(),
-            size: asset.get_source().size() as f64,
-            chunks: Vec::new(),
-            chunk_names: Vec::new(),
-            info: StatsAssetInfo {
-              development: asset.info.development,
-              hot_module_replacement: asset.info.hot_module_replacement,
+      HashMap::from_iter(self.compilation.assets.iter().filter_map(|(name, asset)| {
+        asset.get_source().map(|source| {
+          (
+            name,
+            StatsAsset {
+              r#type: "asset",
+              name: name.clone(),
+              size: source.size() as f64,
+              chunks: Vec::new(),
+              chunk_names: Vec::new(),
+              info: StatsAssetInfo {
+                development: asset.info.development,
+                hot_module_replacement: asset.info.hot_module_replacement,
+              },
+              emitted: self.compilation.emitted_assets.contains(name),
             },
-            emitted: self.compilation.emitted_assets.contains(name),
-          },
-        )
+          )
+        })
       }));
     for asset in self.compilation.assets.values() {
       if let Some(source_map) = &asset.get_info().related.source_map {
@@ -249,7 +251,7 @@ impl Stats<'_> {
                 .get(file)
                 .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
                 .get_source()
-                .size() as f64,
+                .map_or(-1f64, |s| s.size() as f64),
             });
           }
           acc

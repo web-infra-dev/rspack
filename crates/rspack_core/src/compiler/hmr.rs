@@ -381,7 +381,7 @@ impl Compiler {
 
         for entry in render_manifest {
           let asset = CompilationAsset::new(
-            entry.source().clone(),
+            Some(entry.source().clone()),
             AssetInfo::default().with_hot_module_replacement(true),
           );
 
@@ -416,15 +416,17 @@ impl Compiler {
         &output_path,
         &content.filename,
         &CompilationAsset::new(
-          RawSource::Source(
-            serde_json::json!({
-              "c": c,
-              "r": r,
-              "m": m,
-            })
-            .to_string(),
-          )
-          .boxed(),
+          Some(
+            RawSource::Source(
+              serde_json::json!({
+                "c": c,
+                "r": r,
+                "m": m,
+              })
+              .to_string(),
+            )
+            .boxed(),
+          ),
           AssetInfo::default().with_hot_module_replacement(true),
         ),
       )?;

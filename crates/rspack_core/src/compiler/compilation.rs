@@ -165,14 +165,17 @@ impl Compilation {
   pub fn update_asset(
     self: Pin<&mut Self>,
     filename: &str,
-    updater: impl FnOnce(&mut CompilationAsset) -> Result<()>,
+    updater: impl FnOnce(&mut BoxSource, &mut AssetInfo) -> Result<()>,
   ) -> Result<()> {
     // Safety: we don't move anything from compilation
     let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();
 
     match assets.get_mut(filename) {
-      Some(asset) => updater(asset),
-      None => Err(Error::InternalError(internal_error!(format!(
+      Some(CompilationAsset {
+        source: Some(source),
+        info,
+      }) => updater(source, info),
+      _ => Err(Error::InternalError(internal_error!(format!(
         "Called Compilation.updateAsset for not existing filename {filename}"
       )))),
     }
@@ -180,8 +183,10 @@ impl Compilation {
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     tracing::trace!("Emit asset {}", filename);
-    if let Some(mut original) = self.assets.remove(&filename) {
-      let is_source_equal = is_source_equal(&original.source, &asset.source);
+    if let Some(mut original) = self.assets.remove(&filename)
+      && let Some(original_source) = &original.source
+      && let Some(asset_source) = asset.get_source() {
+      let is_source_equal = is_source_equal(original_source, asset_source);
       if !is_source_equal {
         tracing::error!(
           "Emit Duplicate Filename({}), is_source_equal: {:?}",
@@ -821,10 +826,7 @@ impl Compilation {
 
             self.emit_asset(
               file_manifest.filename().to_string(),
-              CompilationAsset::new(
-                CachedSource::new(file_manifest.source).boxed(),
-                AssetInfo::default(),
-              ),
+              CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
             );
           });
       })
@@ -1460,24 +1462,31 @@ pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
-  pub source: BoxSource,
+  pub source: Option<BoxSource>,
   pub info: AssetInfo,
 }
 
 impl CompilationAsset {
-  pub fn new(source: BoxSource, info: AssetInfo) -> Self {
+  pub fn new(source: Option<BoxSource>, info: AssetInfo) -> Self {
     Self { source, info }
   }
 
-  pub fn get_source(&self) -> &BoxSource {
-    &self.source
+  pub fn with_source(source: BoxSource) -> Self {
+    Self {
+      source: Some(source),
+      info: Default::default(),
+    }
   }
 
-  pub fn get_source_mut(&mut self) -> &mut BoxSource {
-    &mut self.source
+  pub fn get_source(&self) -> Option<&BoxSource> {
+    self.source.as_ref()
   }
 
-  pub fn set_source(&mut self, source: BoxSource) {
+  pub fn get_source_mut(&mut self) -> Option<&mut BoxSource> {
+    self.source.as_mut()
+  }
+
+  pub fn set_source(&mut self, source: Option<BoxSource>) {
     self.source = source;
   }
 

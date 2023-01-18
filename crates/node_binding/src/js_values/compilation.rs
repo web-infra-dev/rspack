@@ -30,9 +30,8 @@ impl JsCompilation {
     self
       .inner
       .as_mut()
-      .update_asset(&filename, |compilation_asset| {
+      .update_asset(&filename, |original_source, original_info| {
         {
-          let original_source = &mut compilation_asset.source;
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
@@ -56,8 +55,6 @@ impl JsCompilation {
         }
 
         {
-          let original_info = &mut compilation_asset.info;
-
           if let Some(asset_info_update_or_function) = asset_info_update_or_function {
             let asset_info = match asset_info_update_or_function {
               Either::A(asset_info) => asset_info,
@@ -79,7 +76,6 @@ impl JsCompilation {
             *original_info = asset_info.into();
           }
         }
-
         Ok(())
       })
       .map_err(|err| err.into())
@@ -92,7 +88,11 @@ impl JsCompilation {
     for (filename, asset) in self.inner.assets() {
       assets.push(JsAsset {
         name: filename.clone(),
-        source: asset.source.to_js_compat_source()?,
+        source: asset
+          .source
+          .as_ref()
+          .map(|s| s.to_js_compat_source())
+          .transpose()?,
         info: asset.info.clone().into(),
       });
     }
@@ -105,7 +105,11 @@ impl JsCompilation {
     match self.inner.assets.get(&name) {
       Some(asset) => Ok(Some(JsAsset {
         name,
-        source: asset.source.to_js_compat_source()?,
+        source: asset
+          .source
+          .as_ref()
+          .map(|s| s.to_js_compat_source())
+          .transpose()?,
         info: asset.info.clone().into(),
       })),
       None => Ok(None),
@@ -118,13 +122,39 @@ impl JsCompilation {
       .inner
       .assets
       .get(&name)
-      .map(|v| v.source.to_js_compat_source())
+      .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source()))
       .transpose()
   }
 
   #[napi]
+  pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
+    let source = CompatSource::from(source).boxed();
+    match unsafe { self.inner_mut() }.assets.entry(name) {
+      std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
+      std::collections::hash_map::Entry::Vacant(e) => {
+        e.insert(rspack_core::CompilationAsset::with_source(source));
+      }
+    };
+  }
+
+  #[napi]
+  pub fn delete_asset_source(&mut self, name: String) {
+    unsafe { self.inner_mut() }
+      .assets
+      .entry(name)
+      .and_modify(|a| a.set_source(None));
+  }
+
+  #[napi]
   pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
-    let filenames = self.inner.assets.keys().cloned().collect();
+    let filenames = self
+      .inner
+      .assets
+      .iter()
+      .filter(|(_, asset)| asset.get_source().is_some())
+      .map(|(filename, _)| filename)
+      .cloned()
+      .collect();
     Ok(filenames)
   }
 
@@ -146,10 +176,7 @@ impl JsCompilation {
     unsafe {
       self.inner.as_mut().get_unchecked_mut().emit_asset(
         filename,
-        rspack_core::CompilationAsset {
-          source: compat_source.boxed(),
-          info: asset_info.into(),
-        },
+        rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
       )
     };
 
@@ -160,24 +187,8 @@ impl JsCompilation {
   pub fn delete_asset(&mut self, filename: String) {
     // Safety: It is safe as modify for the asset will never move Compilation.
     unsafe {
-      self
-        .inner
-        .as_mut()
-        .get_unchecked_mut()
-        .delete_asset(&filename);
+      self.inner_mut().delete_asset(&filename);
     };
-  }
-
-  #[napi(getter)]
-  pub fn assets(&self) -> Result<HashMap<String, JsCompatSource>> {
-    let assets = self.inner.assets();
-    let mut js_source = HashMap::<String, JsCompatSource>::with_capacity(assets.len());
-
-    for (filename, asset) in assets {
-      js_source.insert(filename.clone(), asset.source.to_js_compat_source()?);
-    }
-
-    Ok(js_source)
   }
 
   #[napi(getter)]
@@ -246,11 +257,7 @@ impl JsCompilation {
       _ => rspack_error::Diagnostic::error(title, message, 0, 0),
     };
     unsafe {
-      self
-        .inner
-        .as_mut()
-        .get_unchecked_mut()
-        .push_diagnostic(diagnostic);
+      self.inner_mut().push_diagnostic(diagnostic);
     };
   }
 
@@ -265,9 +272,7 @@ impl JsCompilation {
   pub fn add_file_dependencies(&mut self, deps: Vec<String>) {
     unsafe {
       self
-        .inner
-        .as_mut()
-        .get_unchecked_mut()
+        .inner_mut()
         .file_dependencies
         .extend(deps.into_iter().map(|i| PathBuf::from(i)))
     };
@@ -277,9 +282,7 @@ impl JsCompilation {
   pub fn add_context_dependencies(&mut self, deps: Vec<String>) {
     unsafe {
       self
-        .inner
-        .as_mut()
-        .get_unchecked_mut()
+        .inner_mut()
         .context_dependencies
         .extend(deps.into_iter().map(|i| PathBuf::from(i)))
     };
@@ -289,9 +292,7 @@ impl JsCompilation {
   pub fn add_missing_dependencies(&mut self, deps: Vec<String>) {
     unsafe {
       self
-        .inner
-        .as_mut()
-        .get_unchecked_mut()
+        .inner_mut()
         .missing_dependencies
         .extend(deps.into_iter().map(|i| PathBuf::from(i)))
     };
@@ -301,9 +302,7 @@ impl JsCompilation {
   pub fn add_build_dependencies(&mut self, deps: Vec<String>) {
     unsafe {
       self
-        .inner
-        .as_mut()
-        .get_unchecked_mut()
+        .inner_mut()
         .build_dependencies
         .extend(deps.into_iter().map(|i| PathBuf::from(i)))
     };
@@ -313,5 +312,9 @@ impl JsCompilation {
 impl JsCompilation {
   pub fn from_compilation(inner: Pin<&'static mut rspack_core::Compilation>) -> Self {
     Self { inner }
+  }
+
+  pub unsafe fn inner_mut(&mut self) -> &mut rspack_core::Compilation {
+    self.inner.as_mut().get_unchecked_mut()
   }
 }

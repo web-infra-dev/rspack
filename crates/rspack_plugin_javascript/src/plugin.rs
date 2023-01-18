@@ -511,33 +511,35 @@ impl Plugin for JsPlugin {
           return Ok(());
         }
 
-        let input = original.get_source().source().to_string();
-        let input_source_map = original.get_source().map(&MapOptions::default());
-        let output = crate::ast::minify(&JsMinifyOptions {
-          compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
-            passes: minify.passes,
+        if let Some(original_source) = original.get_source() {
+          let input = original_source.source().to_string();
+          let input_source_map = original_source.map(&MapOptions::default());
+          let output = crate::ast::minify(&JsMinifyOptions {
+            compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
+              passes: minify.passes,
+              ..Default::default()
+            }),
+            source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
+            inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
+            emit_source_map_columns: !compilation.options.devtool.cheap(),
             ..Default::default()
-          }),
-          source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-          inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
-          emit_source_map_columns: !compilation.options.devtool.cheap(),
-          ..Default::default()
-        }, input, filename)?;
-        let source = if let Some(map) = &output.map {
-          SourceMapSource::new(SourceMapSourceOptions {
-            value: output.code,
-            name: filename,
-            source_map: SourceMap::from_json(map)
-              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
-            original_source: None,
-            inner_source_map: input_source_map,
-            remove_original_source: true,
-          })
-          .boxed()
-        } else {
-          RawSource::from(output.code).boxed()
-        };
-        original.set_source(source);
+          }, input, filename)?;
+          let source = if let Some(map) = &output.map {
+            SourceMapSource::new(SourceMapSourceOptions {
+              value: output.code,
+              name: filename,
+              source_map: SourceMap::from_json(map)
+                .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
+              original_source: None,
+              inner_source_map: input_source_map,
+              remove_original_source: true,
+            })
+            .boxed()
+          } else {
+            RawSource::from(output.code).boxed()
+          };
+          original.set_source(Some(source));
+        }
         original.get_info_mut().minimized = true;
         Ok(())
       })?;

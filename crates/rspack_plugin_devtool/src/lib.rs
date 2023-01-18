@@ -70,36 +70,34 @@ impl Plugin for DevtoolPlugin {
       .compilation
       .assets
       .par_iter()
-      .filter_map(|(filename, asset)| {
-        asset
-          .get_source()
-          .map(&MapOptions::new(self.columns))
-          .map(|mut map| {
-            map.set_file(Some(filename.clone()));
-            for source in map.sources_mut() {
-              let uri = normalize_custom_filename(source);
-              let resource_path =
-                if let Some(relative_path) = diff_paths(uri, &*args.compilation.options.context) {
-                  relative_path.to_string_lossy().to_string()
-                } else {
-                  uri.to_owned()
-                };
-              *source = self
-                .module_filename_template
-                .replace("[namespace]", &self.namespace)
-                .replace("[resourcePath]", &resource_path);
+      .filter_map(|(filename, asset)| asset.get_source().map(|s| (filename, s)))
+      .filter_map(|(filename, source)| {
+        source.map(&MapOptions::new(self.columns)).map(|mut map| {
+          map.set_file(Some(filename.clone()));
+          for source in map.sources_mut() {
+            let uri = normalize_custom_filename(source);
+            let resource_path =
+              if let Some(relative_path) = diff_paths(uri, &*args.compilation.options.context) {
+                relative_path.to_string_lossy().to_string()
+              } else {
+                uri.to_owned()
+              };
+            *source = self
+              .module_filename_template
+              .replace("[namespace]", &self.namespace)
+              .replace("[resourcePath]", &resource_path);
+          }
+          if self.no_sources {
+            for content in map.sources_content_mut() {
+              *content = String::default();
             }
-            if self.no_sources {
-              for content in map.sources_content_mut() {
-                *content = String::default();
-              }
-            }
-            let mut map_buffer = Vec::new();
-            map
-              .to_writer(&mut map_buffer)
-              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
-            Ok((filename.to_owned(), map_buffer))
-          })
+          }
+          let mut map_buffer = Vec::new();
+          map
+            .to_writer(&mut map_buffer)
+            .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+          Ok((filename.to_owned(), map_buffer))
+        })
       })
       .collect::<Result<_>>()?;
     for (filename, map_buffer) in maps {
@@ -116,15 +114,17 @@ impl Plugin for DevtoolPlugin {
           .expect("DevToolPlugin: append can't be false when inline is true.");
         let base64 = base64::encode(&map_buffer);
         let mut asset = args.compilation.assets.remove(&filename).expect("TODO:");
-        asset.source = ConcatSource::new([
-          asset.source,
-          RawSource::from(current_source_mapping_url_comment.replace(
-            "[url]",
-            &format!("data:application/json;charset=utf-8;base64,{base64}"),
-          ))
+        asset.source = Some(
+          ConcatSource::new([
+            asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
+            RawSource::from(current_source_mapping_url_comment.replace(
+              "[url]",
+              &format!("data:application/json;charset=utf-8;base64,{base64}"),
+            ))
+            .boxed(),
+          ])
           .boxed(),
-        ])
-        .boxed();
+        );
         args.compilation.emit_asset(filename, asset);
       } else {
         let source_map_filename = filename.clone() + ".map";
@@ -135,22 +135,22 @@ impl Plugin for DevtoolPlugin {
             source_map_filename.clone()
           };
           let mut asset = args.compilation.assets.remove(&filename).expect("TODO:");
-          asset.source = ConcatSource::new([
-            asset.source,
+          asset.source = Some(ConcatSource::new([
+            asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
             RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url))
               .boxed(),
           ])
-          .boxed();
+          .boxed());
           asset.info.related.source_map = Some(source_map_filename.clone());
           args.compilation.emit_asset(filename, asset);
         }
-        let source_map_asset_info = AssetInfo {
-          development: true,
-          ..Default::default()
-        };
+        let source_map_asset_info = AssetInfo::default().with_development(true);
         args.compilation.emit_asset(
           source_map_filename,
-          CompilationAsset::new(RawSource::from(map_buffer).boxed(), source_map_asset_info),
+          CompilationAsset::new(
+            Some(RawSource::from(map_buffer).boxed()),
+            source_map_asset_info,
+          ),
         );
       }
     }

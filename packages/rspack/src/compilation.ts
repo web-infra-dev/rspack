@@ -87,12 +87,48 @@ export class Compilation {
 	 *
 	 * Source: [assets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L1008-L1009)
 	 */
-	get assets(): Readonly<Record<string, Source>> {
-		const iterator = Object.entries(this.#inner.assets).map(
-			([filename, source]) => [filename, createSourceFromRaw(source)]
+	get assets(): Record<string, Source> {
+		return new Proxy(
+			{},
+			{
+				get: (_, property) => {
+					if (typeof property === "string") {
+						return this.__internal__getAssetSource(property);
+					}
+				},
+				set: (target, p, newValue, receiver) => {
+					if (typeof p === "string") {
+						this.__internal__setAssetSource(p, newValue);
+						return true;
+					}
+					return false;
+				},
+				deleteProperty: (target, p) => {
+					if (typeof p === "string") {
+						this.__internal__deleteAssetSource(p);
+						return true;
+					}
+					return false;
+				},
+				has: (_, property) => {
+					if (typeof property === "string") {
+						return this.__internal__hasAsset(property);
+					}
+					return false;
+				},
+				ownKeys: _ => {
+					return this.__internal__getAssetFilenames();
+				},
+				getOwnPropertyDescriptor() {
+					// To work with `Object.keys`, you should mark the property as enumerable.
+					// See: https://262.ecma-international.org/7.0/#sec-enumerableownnames
+					return {
+						enumerable: true,
+						configurable: true
+					};
+				}
+			}
 		);
-
-		return Object.fromEntries(iterator);
 	}
 
 	/**
@@ -446,6 +482,28 @@ export class Compilation {
 			return null;
 		}
 		return createSourceFromRaw(rawSource);
+	}
+
+	/**
+	 * Set the `Source` of an given asset filename.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__setAssetSource(filename: string, source: Source) {
+		this.#inner.setAssetSource(filename, createRawFromSource(source));
+	}
+
+	/**
+	 * Delete the `Source` of an given asset filename.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__deleteAssetSource(filename: string) {
+		this.#inner.deleteAssetSource(filename);
 	}
 
 	/**
