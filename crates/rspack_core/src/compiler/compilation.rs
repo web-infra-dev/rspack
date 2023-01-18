@@ -1308,7 +1308,8 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_hash", skip_all)]
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    self.create_module_hash();
+    // move to make, only hash changed module at hmr.
+    // self.create_module_hash();
 
     let mut compilation_hasher = Xxh3::new();
     let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
@@ -1318,10 +1319,7 @@ impl Compilation {
         .chunk_graph
         .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
       {
-        if let Some(hash) = self
-          .chunk_graph
-          .get_module_hash(mgm.module_identifier, &chunk.runtime)
-        {
+        if let Some(hash) = self.module_graph.get_module_hash(&mgm.module_identifier) {
           hash.hash(&mut chunk.hash);
         }
       }
@@ -1331,10 +1329,7 @@ impl Compilation {
         .chunk_graph
         .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
       {
-        if let Some(hash) = self
-          .chunk_graph
-          .get_module_hash(mgm.module_identifier, &chunk.runtime)
-        {
+        if let Some(hash) = self.module_graph.get_module_hash(&mgm.module_identifier) {
           hash.hash(&mut compilation_hasher);
         }
       }
@@ -1400,31 +1395,31 @@ impl Compilation {
     Ok(())
   }
 
-  #[instrument(name = "compilation:create_module_hash", skip_all)]
-  pub fn create_module_hash(&mut self) {
-    let module_hash_map: HashMap<ModuleIdentifier, u64> = self
-      .module_graph
-      .module_identifier_to_module
-      .par_iter()
-      .map(|(identifier, module)| {
-        let mut hasher = Xxh3::new();
-        module.hash(&mut hasher);
-        (*identifier, hasher.finish())
-      })
-      .collect();
+  // #[instrument(name = "compilation:create_module_hash", skip_all)]
+  // pub fn create_module_hash(&mut self) {
+  //   let module_hash_map: HashMap<ModuleIdentifier, u64> = self
+  //     .module_graph
+  //     .module_identifier_to_module
+  //     .par_iter()
+  //     .map(|(identifier, module)| {
+  //       let mut hasher = Xxh3::new();
+  //       module.hash(&mut hasher);
+  //       (*identifier, hasher.finish())
+  //     })
+  //     .collect();
 
-    for (identifier, hash) in module_hash_map {
-      for runtime in self
-        .chunk_graph
-        .get_module_runtimes(identifier, &self.chunk_by_ukey)
-        .values()
-      {
-        self
-          .chunk_graph
-          .set_module_hashes(identifier, runtime, hash);
-      }
-    }
-  }
+  //   for (identifier, hash) in module_hash_map {
+  //     for runtime in self
+  //       .chunk_graph
+  //       .get_module_runtimes(identifier, &self.chunk_by_ukey)
+  //       .values()
+  //     {
+  //       self
+  //         .chunk_graph
+  //         .set_module_hashes(identifier, runtime, hash);
+  //     }
+  //   }
+  // }
 
   #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
   pub fn create_runtime_module_hash(&mut self) {

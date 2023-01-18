@@ -410,8 +410,8 @@ impl Plugin for JsPlugin {
     ordered_modules.sort_by_key(|m| &m.module_identifier);
     for mgm in ordered_modules {
       if let Some(hash) = compilation
-        .chunk_graph
-        .get_module_hash(mgm.module_identifier, &chunk.runtime)
+        .module_graph
+        .get_module_hash(&mgm.module_identifier)
       {
         hash.hash(&mut hasher);
       }
