@@ -2352,6 +2352,7 @@ dependencies = [
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
+ "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_symbol",
  "rspack_test",
@@ -2665,6 +2666,14 @@ dependencies = [
  "indicatif",
  "rspack_core",
  "rspack_error",
+]
+
+[[package]]
+name = "rspack_plugin_remove_empty_chunks"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "tracing",
 ]
 
 [[package]]

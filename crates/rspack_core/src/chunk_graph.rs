@@ -445,6 +445,21 @@ impl ChunkGraph {
   ) {
     self.block_to_chunk_group_ukey.insert(block, chunk_group);
   }
+
+  pub fn disconnect_chunk(
+    &mut self,
+    chunk: &mut Chunk,
+    chunk_group_by_ukey: &mut ChunkGroupByUkey,
+  ) {
+    let chunk_ukey = &chunk.ukey;
+    let cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
+    let cgc_modules = std::mem::take(&mut cgc.modules);
+    for module in cgc_modules {
+      let cgm = self.get_chunk_graph_module_mut(module);
+      cgm.chunks.remove(chunk_ukey);
+    }
+    chunk.disconnect_from_groups(chunk_group_by_ukey)
+  }
 }
 
 #[derive(Debug, Default)]

@@ -138,6 +138,16 @@ impl ChunkGroup {
 
     false
   }
+
+  pub fn remove_chunk(&mut self, chunk: &ChunkUkey) -> bool {
+    let idx = self.chunks.iter().position(|ukey| ukey == chunk);
+    if let Some(idx) = idx {
+      self.chunks.remove(idx);
+      return true;
+    }
+
+    false
+  }
 }
 
 #[derive(Debug, PartialEq, Eq)]

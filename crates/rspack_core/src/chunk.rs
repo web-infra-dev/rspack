@@ -268,6 +268,16 @@ impl Chunk {
   pub fn is_in_group(&self, chunk_group: &ChunkGroupUkey) -> bool {
     self.groups.contains(chunk_group)
   }
+
+  pub fn disconnect_from_groups(&mut self, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
+    for group_ukey in self.groups.iter() {
+      let group = chunk_group_by_ukey
+        .get_mut(group_ukey)
+        .expect("Group should exist");
+      group.remove_chunk(&self.ukey);
+    }
+    self.groups.clear();
+  }
 }
 
 pub fn chunk_hash_js<'a>(
