@@ -154,8 +154,6 @@ impl Plugin for DevtoolPlugin {
         );
       }
     }
-    dbg!(&args.compilation.assets.keys().collect::<Vec<_>>());
-    dbg!(&args.compilation.assets.keys().collect::<Vec<_>>());
     Ok(())
   }
 }

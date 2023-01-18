@@ -1,4 +1,4 @@
-const { ConcatSource } = require("webpack-sources");
+const { ConcatSource, RawSource } = require("webpack-sources");
 
 /**
  * @type {import('@rspack/core').RspackOptions}
@@ -19,7 +19,16 @@ module.exports = {
 							stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
 						},
 						async assets => {
-							delete assets["main.js"];
+							const dup = "dup.txt";
+							assets[dup] = new RawSource(dup);
+							const beforeDelete = new RawSource(Object.keys(assets).join(","));
+							delete assets[dup];
+							const afterDelete = new RawSource(Object.keys(assets).join(","));
+							assets["assets-keys.txt"] = new ConcatSource(
+								beforeDelete,
+								"\n",
+								afterDelete
+							);
 						}
 					);
 				});
