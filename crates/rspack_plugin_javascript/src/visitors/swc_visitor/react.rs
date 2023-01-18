@@ -68,7 +68,8 @@ impl Visit for FoundReactRefreshVisitor {
   }
 }
 
-static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_require__('/react-refresh');
+// __webpack_require__.$ReactRefreshRuntime$ is injected by the react-refresh additional entry
+static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_require__.$ReactRefreshRuntime$;
 var prevRefreshReg;
 var prevRefreshSig;
 prevRefreshReg = globalThis.$RefreshReg$;
@@ -78,7 +79,7 @@ globalThis.$RefreshReg$ = (type, id) => {
 };
 globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
-static HMR_FOOTER: &str = r#"var RefreshRuntime = __webpack_require__('/react-refresh');
+static HMR_FOOTER: &str = r#"var RefreshRuntime = __webpack_require__.$ReactRefreshRuntime$;
 globalThis.$RefreshReg$ = prevRefreshReg;
 globalThis.$RefreshSig$ = prevRefreshSig;
 module.hot.accept();

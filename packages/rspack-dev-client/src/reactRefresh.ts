@@ -15,17 +15,11 @@ if (process.env.NODE_ENV !== "production") {
 
 	var queueUpdate = debounce(RefreshRuntime.performReactRefresh, 16);
 
-	var id = "/react-refresh";
 	// @ts-ignored
-	__webpack_require__.m[id] =
-		// @ts-ignored
-		__webpack_require__.m[id] ||
-		function (module, exports) {
-			module.exports = {
-				queueUpdate,
-				...RefreshRuntime
-			};
-		};
+	__webpack_require__.$ReactRefreshRuntime$ = {
+		queueUpdate,
+		...RefreshRuntime
+	};
 } else {
 	throw Error(
 		"React Refresh runtime should not be included in the production bundle."
