@@ -15,7 +15,8 @@ use rspack_test::read_test_config_and_normalize;
 async fn main() {
   let path_list = vec![
     // "examples/cjs-tree-shaking-basic",
-    "examples/export-star-chain",
+    "examples/basic",
+    // "examples/export-star-chain",
     // "examples/named-export-decl-with-src-eval",
     // "examples/side-effects-prune",
     // "examples/side-effects-two",

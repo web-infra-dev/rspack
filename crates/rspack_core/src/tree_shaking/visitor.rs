@@ -271,6 +271,24 @@ impl<'a> ModuleRefAnalyze<'a> {
     default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
     default_ident
   }
+
+  fn check_commonjs_feature(&mut self, obj: &Ident, prop: &str) {
+    if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
+      && ((&obj.sym == "module" && prop == "exports") || &obj.sym == "exports")
+    {
+      match self
+        .bail_out_module_identifiers
+        .entry(self.module_identifier)
+      {
+        Entry::Occupied(mut occ) => {
+          *occ.get_mut() |= BailoutFlog::COMMONJS_EXPORTS;
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(BailoutFlog::COMMONJS_EXPORTS);
+        }
+      }
+    }
+  }
 }
 
 impl<'a> Visit for ModuleRefAnalyze<'a> {
@@ -650,21 +668,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     match (&*node.obj, &node.prop) {
       // a.b
       (Expr::Ident(obj), MemberProp::Ident(prop)) => {
-        if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
-          && ((&obj.sym == "module" && &prop.sym == "exports") || &obj.sym == "exports")
-        {
-          match self
-            .bail_out_module_identifiers
-            .entry(self.module_identifier)
-          {
-            Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlog::COMMONJS_EXPORTS;
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(BailoutFlog::COMMONJS_EXPORTS);
-            }
-          }
-        }
+        self.check_commonjs_feature(obj, &prop.sym);
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
 
@@ -697,6 +701,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           ..
         }),
       ) => {
+        self.check_commonjs_feature(obj, value);
+
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
         if mark == self.top_level_mark {
