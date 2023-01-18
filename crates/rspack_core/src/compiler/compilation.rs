@@ -2,7 +2,7 @@ use std::{
   borrow::BorrowMut,
   collections::hash_map::Entry,
   collections::VecDeque,
-  fmt::Debug,
+  fmt::{Debug, DebugStruct},
   hash::{BuildHasherDefault, Hash, Hasher},
   marker::PhantomPinned,
   path::PathBuf,
@@ -1144,6 +1144,12 @@ impl Compilation {
 
     // dbg!(&direct_used);
 
+    let debug_graph = generate_debug_symbol_graph(
+      &symbol_graph,
+      self.options.context.as_ref().to_str().unwrap(),
+    );
+    println!("{:?}", Dot::new(&debug_graph));
+
     let dependency_replacement = update_dependency(
       &symbol_graph,
       &used_export_module_identifiers,
@@ -1152,19 +1158,40 @@ impl Compilation {
       &self.entry_module_identifiers,
     );
 
-    // dbg!(&dependency_replacement);
+    dbg!(&dependency_replacement);
 
-    let no_direct_used = used_export_module_identifiers
-      .iter()
-      .filter(|(k, v)| !v.contains(ModuleUsedType::DIRECT))
-      .collect::<HashSet<_>>();
-    dbg!(&no_direct_used);
+    // apply replacement start
+    // let mut module_item_map = IdentifierMap::default();
+    // for replace in dependency_replacement {
+    //   let DependencyReplacement {
+    //     original,
+    //     to,
+    //     replacement,
+    //     ..
+    //   } = replace;
+    //   symbol_graph.remove_edge(&original, &to);
+    //   symbol_graph.add_edge(&original, &replacement);
+    //   let replace_src_module_id = replacement.module_identifier();
+    //   let contextify_src = contextify(&self.options.context, &replace_src_module_id);
+    //   let module_item = match (original, to) {
+    //     (SymbolRef::Indirect(indirect), to) => {
+    //       let importer = indirect.importer();
+    //     }
+    //     _ => todo!(),
+    //   };
+    //   // match module_item_map.entry() {
+    //   //   Entry::Occupied(_) => todo!(),
+    //   //   Entry::Vacant(_) => todo!(),
+    //   // };
+    // }
+    // apply replacement end
 
-    // let debug_graph = generate_debug_symbol_graph(
-    //   &symbol_graph,
-    //   self.options.context.as_ref().to_str().unwrap(),
-    // );
-    // println!("{:?}", Dot::new(&debug_graph));
+    // let no_direct_used = used_export_module_identifiers
+    //   .iter()
+    //   .filter(|(k, v)| !v.contains(ModuleUsedType::DIRECT))
+    //   .collect::<HashSet<_>>();
+    // dbg!(&no_direct_used);
+
     finalize_symbol(
       self,
       side_effects_analyze,
@@ -1675,6 +1702,9 @@ fn validate_and_insert_replacement(
     (SymbolRef::Direct(replace), SymbolRef::Indirect(original)) => {
       // validate if we this path point to same symbol
       // we know that start must be has `SymbolType == Define`
+      if end - start > 1 {
+        dbg!(&&symbol_path[start..=end]);
+      }
       is_same_symbol(original, end, start, symbol_path, replace)
     }
     (SymbolRef::Direct(_), SymbolRef::Star(_)) => false,
@@ -1725,7 +1755,7 @@ fn is_same_symbol(
   symbol_path: &Vec<SymbolRef>,
   replace: &Symbol,
 ) -> bool {
-  let mut pre = original.id().clone();
+  let mut pre = original.indirect_id().clone();
   let mut i = end - 1;
   while i > start {
     let cur = &symbol_path[i];
@@ -1738,12 +1768,15 @@ fn is_same_symbol(
           }
           id.clone()
         }
-        IndirectType::ReExport(original, exported) => {
+        IndirectType::ReExport(original, _) => {
           // let exported = indirect.id();
           if &pre != indirect.id() {
             return false;
           }
           original.clone()
+        }
+        IndirectType::Import(..) => {
+          unreachable!()
         }
       },
       SymbolRef::Star(_) => pre,
@@ -1755,6 +1788,7 @@ fn is_same_symbol(
 }
 
 fn init_sliding_window(start: &mut usize, end: &mut usize, symbol_path: &Vec<SymbolRef>) {
+  println!("{start}, {end}");
   *start = *end;
   while *start < symbol_path.len() && !could_be_start_of_path(&symbol_path[*start]) {
     *start += 1;
@@ -2016,7 +2050,7 @@ fn mark_symbol(
   visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
-  // dbg!(&current_symbol_ref);
+  dbg!(&current_symbol_ref);
   if visited_symbol_ref.contains(&current_symbol_ref) {
     return;
   } else {
@@ -2046,7 +2080,7 @@ fn mark_symbol(
       );
     }
     SymbolRef::Indirect(IndirectTopLevelSymbol {
-      ty: IndirectType::Default(_),
+      ty: IndirectType::Default(_) | IndirectType::Import(_, _),
       src,
       ..
     }) => {
@@ -2094,9 +2128,8 @@ fn mark_symbol(
     }
     SymbolRef::Indirect(ref indirect_symbol) => {
       // dbg!(&current_symbol_ref);
-      let is_reexport = matches!(indirect_symbol.ty, IndirectType::ReExport(_, _));
       let importer = indirect_symbol.importer();
-      if is_reexport && !evaluated_module_identifiers.contains(&importer.into()) {
+      if indirect_symbol.is_reexport() && !evaluated_module_identifiers.contains(&importer.into()) {
         evaluated_module_identifiers.insert(importer.into());
         let module_result = analyze_map.get(&importer.into()).expect("TODO:");
         for used_symbol in module_result.used_symbol_refs.iter() {
@@ -2115,7 +2148,7 @@ fn mark_symbol(
         }
       };
 
-      match module_result.export_map.get(&indirect_symbol.id()) {
+      match module_result.export_map.get(&indirect_symbol.indirect_id()) {
         Some(symbol) => match symbol {
           SymbolRef::Indirect(IndirectTopLevelSymbol {
             ty: IndirectType::ReExport(_, _),
@@ -2130,7 +2163,7 @@ fn mark_symbol(
             // if a bailout module has reexport symbol
             if let Some(set) = module_result
               .reachable_import_of_export
-              .get(indirect_symbol.id())
+              .get(indirect_symbol.indirect_id())
             {
               for symbol_ref_ele in set.iter() {
                 graph.add_edge(symbol, symbol_ref_ele);
@@ -2151,7 +2184,8 @@ fn mark_symbol(
           let mut has_bailout_module_identifiers = false;
           let mut is_first_result = true;
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
-            if let Some(value) = extends_export_map.get(&indirect_symbol.id()) {
+            if let Some(value) = extends_export_map.get(&indirect_symbol.indirect_id()) {
+              dbg!(&value);
               ret.push((module_identifier, value));
               if is_first_result {
                 let mut final_node_of_path = vec![];
@@ -2189,17 +2223,20 @@ fn mark_symbol(
                         if i == 0 {
                           star_chain_start_end_pair.0 = to.clone();
                         }
+                        dbg!(&from);
+                        dbg!(&to);
                         graph.add_edge(&from, &to);
                         from = to;
                       }
                       graph.add_edge(&from, value);
+                      dbg!(&value);
                       star_chain_start_end_pair.1 = from;
                       final_node_of_path.push(star_chain_start_end_pair);
                       for mi in path.iter() {
                         merge_used_export_type(
                           used_export_module_identifiers,
                           *mi,
-                          ModuleUsedType::REEXPORT,
+                          ModuleUsedType::EXPORT_STAR,
                         );
                       }
                     }
@@ -2232,7 +2269,7 @@ fn mark_symbol(
                 let error_message = format!(
                   "{} did not export `{}`, imported by {}",
                   module_result.module_identifier,
-                  indirect_symbol.id(),
+                  indirect_symbol.indirect_id(),
                   indirect_symbol.importer()
                 );
                 errors.push(Error::InternalError(InternalError {
@@ -2254,7 +2291,7 @@ fn mark_symbol(
               // TODO: better traceable diagnostic
               let mut error_message = format!(
                 "Conflicting star exports for the name '{}' in ",
-                indirect_symbol.id()
+                indirect_symbol.indirect_id()
               );
               // let cwd = std::env::current_dir();
               let module_identifier_list = ret
@@ -2349,7 +2386,7 @@ fn mark_symbol(
                 merge_used_export_type(
                   used_export_module_identifiers,
                   *mi,
-                  ModuleUsedType::REEXPORT,
+                  ModuleUsedType::EXPORT_STAR,
                 );
               }
             }

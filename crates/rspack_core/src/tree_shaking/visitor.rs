@@ -76,7 +76,7 @@ impl SymbolRef {
 
   pub fn is_skipable_symbol(&self) -> bool {
     match self {
-      SymbolRef::Indirect(_) => true,
+      SymbolRef::Indirect(indirect) => !indirect.is_import(),
       SymbolRef::Star(StarSymbol {
         ty: StarSymbolKind::ReExportAll,
         ..
@@ -257,7 +257,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
               (*uri.src).into(),
               self.module_identifier.into(),
-              IndirectType::Default(property.clone()),
+              IndirectType::Import(property.clone(), None),
             )),
           })
         }
@@ -413,7 +413,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               .insert(SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                 (*uri.src).into(),
                 self.module_identifier.into(),
-                IndirectType::Default(property.clone()),
+                IndirectType::Import(property.clone(), None),
               )));
           }
           _ => {
@@ -471,18 +471,19 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .iter()
             .for_each(|specifier| match specifier {
               ImportSpecifier::Named(named) => {
-                let imported = match &named.imported {
-                  Some(imported) => match imported {
-                    ModuleExportName::Ident(ident) => ident.sym.clone(),
-                    ModuleExportName::Str(str) => str.value.clone(),
-                  },
-                  None => named.local.sym.clone(),
-                };
+                let imported = named.imported.as_ref().map(|imported| match imported {
+                  ModuleExportName::Ident(ident) => ident.sym.clone(),
+                  ModuleExportName::Str(str) => str.value.clone(),
+                });
+
+                let local = named.local.sym.clone();
+
                 let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                   resolved_uri_ukey.into(),
                   self.module_identifier.into(),
-                  IndirectType::Default(imported),
+                  IndirectType::Import(local, imported),
                 ));
+
                 self.add_import(named.local.to_id().into(), symbol_ref);
               }
               ImportSpecifier::Default(default) => {
@@ -491,7 +492,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                     resolved_uri_ukey.into(),
                     self.module_identifier.into(),
-                    IndirectType::Default("default".into()),
+                    IndirectType::Import("default".into(), None),
                   )),
                 );
               }

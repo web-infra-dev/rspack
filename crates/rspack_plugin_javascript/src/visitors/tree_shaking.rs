@@ -101,10 +101,52 @@ impl<'a> Fold for TreeShaker<'a> {
             .module_graph_module_by_identifier(&module_identifier)
             .expect("TODO:");
           if !mgm.used {
-            ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
-          } else {
-            ModuleItem::ModuleDecl(module_decl)
+            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
           }
+
+          // let specifiers = named
+          //   .specifiers
+          //   .into_iter()
+          //   .filter(|specifier| match specifier {
+          //     ExportSpecifier::Namespace(_) => {
+          //       // export * from 'xxx'
+          //       true
+          //     }
+          //     ExportSpecifier::Default(_) => {
+          //       unreachable!("`export v from ''` is a unrecoverable syntax error")
+          //     }
+
+          //     ExportSpecifier::Named(named_spec) => {
+          //       let original = match &named_spec.orig {
+          //         ModuleExportName::Ident(ref ident) => ident.sym.clone(),
+          //         ModuleExportName::Str(str) => str.value.clone(),
+          //       };
+          //       let exported = named_spec.exported.as_ref().map(|exported| match exported {
+          //         ModuleExportName::Ident(ident) => ident.sym.clone(),
+          //         ModuleExportName::Str(str) => str.value.clone(),
+          //       });
+          //       let symbol = IndirectTopLevelSymbol {
+          //         src: self.module_identifier.into(),
+          //         ty: rspack_symbol::IndirectType::ReExport(original, exported),
+          //         importer: self.module_identifier.into(),
+          //       };
+
+          //       let ret = self.used_indirect_symbol_set.contains(&symbol);
+          //       ret
+          //     }
+          //   })
+          //   .collect::<Vec<_>>();
+
+          // // try if we could remove this export declaration
+          // if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
+          //   return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+          // }
+          // let is_all_used = before_legnth == specifiers.len();
+          // named.specifiers = specifiers;
+          // if !is_all_used {
+          //   named.span = DUMMY_SP;
+          // }
+          ModuleItem::ModuleDecl(module_decl)
         }
         ModuleDecl::ExportDecl(decl) => match decl.decl {
           Decl::Class(mut class) => {

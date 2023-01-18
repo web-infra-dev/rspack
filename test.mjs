@@ -1,4 +1,4 @@
 export {} from "./a.mjs";
 
 function a() {}
-import { a } from "./a.mjs";
+import a as test,{ a } from "./a.mjs";
