@@ -109,16 +109,36 @@ export class Compilation {
 		context: CreateStatsOptionsContext = {}
 	): StatsOptionsObj {
 		optionsOrPreset = normalizeStatsPreset(optionsOrPreset);
+
+		let options: Partial<StatsOptionsObj> = {};
 		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
-			const options: Partial<StatsOptionsObj> = {};
 			for (const key in optionsOrPreset) {
 				options[key] = optionsOrPreset[key];
 			}
-			return options as StatsOptionsObj;
-		} else {
-			const options = {};
-			return options as StatsOptionsObj;
 		}
+
+		const all = options.all;
+		const optionOrLocalFallback = <V, D>(v: V, def: D) =>
+			v !== undefined ? v : all !== undefined ? all : def;
+
+		options.assets = optionOrLocalFallback(options.assets, true);
+		options.chunks = optionOrLocalFallback(
+			options.chunks,
+			!context.forToString
+		);
+		options.modules = optionOrLocalFallback(options.modules, true);
+		options.reasons = optionOrLocalFallback(
+			options.reasons,
+			!context.forToString
+		);
+		options.entrypoints = optionOrLocalFallback(options.entrypoints, true);
+		options.errors = optionOrLocalFallback(options.errors, true);
+		options.errorsCount = optionOrLocalFallback(options.errorsCount, true);
+		options.warnings = optionOrLocalFallback(options.warnings, true);
+		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
+		options.hash = optionOrLocalFallback(options.hash, true);
+
+		return options;
 	}
 
 	/**

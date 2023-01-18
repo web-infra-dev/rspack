@@ -12,6 +12,6 @@ export default class ConcurrentCompilationError extends Error {
 		super();
 		this.name = "ConcurrentCompilationError";
 		this.message =
-			"You ran Webpack twice. Each instance only supports a single concurrent compilation at a time.";
+			"You ran run rspack twice. Each instance only supports a single concurrent compilation at a time.";
 	}
 }
