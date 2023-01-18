@@ -30,7 +30,7 @@ export interface WatchFileSystem {
 		startTime: number,
 		options: WatchOptions,
 		callback: (
-			error: Error,
+			error: Error | null,
 			fileTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
 			contextTimeInfoEntries: Map<string, FileSystemInfoEntry | "ignore">,
 			changedFiles: Set<string>,

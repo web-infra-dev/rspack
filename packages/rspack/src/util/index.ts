@@ -22,3 +22,8 @@ export function isPromiseLike(value: unknown): value is Promise<any> {
 export function concatErrorMsgAndStack(err: Error): string {
 	return `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
 }
+
+export function indent(str, prefix) {
+	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
+	return prefix + rem;
+}

@@ -5,6 +5,8 @@ import { LogType } from "./logging/Logger";
 
 type StatsCompilationInner = Omit<binding.JsStatsCompilation, "entrypoints"> & {
 	entrypoints: Record<string, binding.JsStatsEntrypoint>;
+	children?: StatsCompilation[];
+	name?: string;
 };
 export type StatsCompilation = Partial<StatsCompilationInner> & {
 	filteredModules?: number;
@@ -32,55 +34,40 @@ export class Stats {
 	}
 
 	toJson(opts?: StatsOptions, forToString?: boolean) {
-		const options = normalizeStatsPreset(opts);
-		const all = options.all;
-		const optionOrLocalFallback = <V, D>(v: V, def: D) =>
-			v !== undefined ? v : all !== undefined ? all : def;
-
-		const showAssets = optionOrLocalFallback(options.assets, true);
-		const showChunks = optionOrLocalFallback(options.chunks, !forToString);
-		const showModules = optionOrLocalFallback(options.modules, true);
-		const showReasons = optionOrLocalFallback(options.reasons, !forToString);
-		const showEntrypoints = optionOrLocalFallback(options.entrypoints, true);
-		const showErrors = optionOrLocalFallback(options.errors, true);
-		const showErrorsCount = optionOrLocalFallback(options.errorsCount, true);
-		const showWarninigs = optionOrLocalFallback(options.warnings, true);
-		const showWarningsCount = optionOrLocalFallback(
-			options.warningsCount,
-			true
-		);
-		const showHash = optionOrLocalFallback(options.hash, true);
+		const options = this.compilation.createStatsOptions(opts, {
+			forToString
+		});
 
 		let obj: StatsCompilation = {};
 
-		if (showHash) {
+		if (options.hash) {
 			obj.hash = this.#inner.getHash();
 		}
-		if (showAssets) {
+		if (options.assets) {
 			obj.assets = this.#inner.getAssets();
 		}
-		if (showChunks) {
+		if (options.chunks) {
 			obj.chunks = this.#inner.getChunks();
 		}
-		if (showModules) {
-			obj.modules = this.#inner.getModules(showReasons);
+		if (options.modules) {
+			obj.modules = this.#inner.getModules(options.reasons);
 		}
-		if (showEntrypoints) {
+		if (options.entrypoints) {
 			obj.entrypoints = this.#inner.getEntrypoints().reduce((acc, cur) => {
 				acc[cur.name] = cur;
 				return acc;
 			}, {});
 		}
-		if (showErrors) {
+		if (options.errors) {
 			obj.errors = this.#inner.getErrors();
 		}
-		if (showErrorsCount) {
+		if (options.errorsCount) {
 			obj.errorsCount = (obj.errors ?? this.#inner.getErrors()).length;
 		}
-		if (showWarninigs) {
+		if (options.warnings) {
 			obj.warnings = this.#inner.getWarnings();
 		}
-		if (showWarningsCount) {
+		if (options.warningsCount) {
 			obj.warningsCount = (obj.warnings ?? this.#inner.getWarnings()).length;
 		}
 		if (obj.modules && forToString) {
@@ -91,7 +78,9 @@ export class Stats {
 	}
 
 	toString(opts?: StatsOptions) {
-		const options = normalizeStatsPreset(opts);
+		const options = this.compilation.createStatsOptions(opts, {
+			forToString: true
+		});
 		const useColors = optionsOrFallback(options.colors, false);
 		const obj: any = this.toJson(options, true);
 		return Stats.jsonToString(obj, useColors);

@@ -9,13 +9,12 @@ import {
 	JsAsset
 } from "@rspack/binding";
 
-import { RspackOptionsNormalized } from "./config";
+import { RspackOptionsNormalized, StatsOptions } from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { ResolvedOutput } from "./config/output";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
-import { Stats } from "./stats";
 import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
@@ -23,6 +22,8 @@ import {
 import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
+import { normalizeStatsPreset, Stats } from "./stats";
+import { StatsOptionsObj } from "./config/stats";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -36,6 +37,13 @@ export interface LogEntry {
 	trace?: string[];
 }
 
+export interface KnownCreateStatsOptionsContext {
+	forToString?: boolean;
+}
+
+type CreateStatsOptionsContext = KnownCreateStatsOptionsContext &
+	Record<string, any>;
+
 export class Compilation {
 	#inner: JsCompilation;
 
@@ -48,8 +56,10 @@ export class Compilation {
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
 	logging: Map<string, LogEntry[]>;
+	name: string;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
+		this.name = undefined;
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
 			log: new tapable.SyncBailHook(["origin", "logEntry"])
@@ -92,6 +102,43 @@ export class Compilation {
 				new ChunkGroup(e)
 			])
 		);
+	}
+
+	createStatsOptions(
+		optionsOrPreset: StatsOptions,
+		context: CreateStatsOptionsContext = {}
+	): StatsOptionsObj {
+		optionsOrPreset = normalizeStatsPreset(optionsOrPreset);
+
+		let options: Partial<StatsOptionsObj> = {};
+		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
+			for (const key in optionsOrPreset) {
+				options[key] = optionsOrPreset[key];
+			}
+		}
+
+		const all = options.all;
+		const optionOrLocalFallback = <V, D>(v: V, def: D) =>
+			v !== undefined ? v : all !== undefined ? all : def;
+
+		options.assets = optionOrLocalFallback(options.assets, true);
+		options.chunks = optionOrLocalFallback(
+			options.chunks,
+			!context.forToString
+		);
+		options.modules = optionOrLocalFallback(options.modules, true);
+		options.reasons = optionOrLocalFallback(
+			options.reasons,
+			!context.forToString
+		);
+		options.entrypoints = optionOrLocalFallback(options.entrypoints, true);
+		options.errors = optionOrLocalFallback(options.errors, true);
+		options.errorsCount = optionOrLocalFallback(options.errorsCount, true);
+		options.warnings = optionOrLocalFallback(options.warnings, true);
+		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
+		options.hash = optionOrLocalFallback(options.hash, true);
+
+		return options;
 	}
 
 	/**
