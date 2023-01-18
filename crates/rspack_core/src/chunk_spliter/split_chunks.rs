@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use rayon::prelude::*;
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tracing::instrument;
@@ -228,18 +229,18 @@ impl<'me> CodeSplitter<'me> {
       .compilation
       .chunk_by_ukey
       .values()
+      .par_bridge()
       .flat_map(|chunk| {
         self
           .compilation
           .chunk_graph
           .get_chunk_modules(&chunk.ukey, &self.compilation.module_graph)
-          .into_iter()
+          .into_par_iter()
           .filter_map(|module| {
             let belong_to_chunks = self
               .compilation
               .chunk_graph
-              .get_modules_chunks(module.module_identifier)
-              .clone();
+              .get_modules_chunks(module.module_identifier);
 
             let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
               self
@@ -252,22 +253,15 @@ impl<'me> CodeSplitter<'me> {
               None
             }
           })
+          .collect::<Vec<_>>()
       })
-      .fold(
-        HashMap::default() as HashMap<ChunkUkey, IdentifierSet>,
-        |mut map, (chunk_ukey, module)| {
-          map.entry(chunk_ukey).or_default().insert(module);
-          map
-        },
-      );
+      .collect::<Vec<_>>();
 
-    for (chunk, modules) in modules_to_be_removed_in_chunk {
-      for module in modules {
-        self
-          .compilation
-          .chunk_graph
-          .disconnect_chunk_and_module(&chunk, module);
-      }
+    for (chunk, module) in modules_to_be_removed_in_chunk {
+      self
+        .compilation
+        .chunk_graph
+        .disconnect_chunk_and_module(&chunk, module);
     }
   }
 
