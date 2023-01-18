@@ -220,11 +220,8 @@ impl NormalModuleFactory {
     }
 
     let resolved_module_rules = self.calculate_module_rules(&resource_data)?;
-    let resolved_module_type = self.calculate_module_type(
-      &resolved_module_rules,
-      &resource_data,
-      self.context.module_type,
-    )?;
+    let resolved_module_type =
+      self.calculate_module_type(&resolved_module_rules, self.context.module_type);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
@@ -329,29 +326,22 @@ impl NormalModuleFactory {
   pub fn calculate_module_type(
     &self,
     module_rules: &[&ModuleRule],
-    resource_data: &ResourceData,
     default_module_type: Option<ModuleType>,
-  ) -> Result<ModuleType> {
+  ) -> ModuleType {
     // Progressive module type resolution:
     // Stage 1: maintain the resolution logic via file extension
     // TODO: Stage 2:
     //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
     //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
-    let mut resolved_module_type = default_module_type;
+    let mut resolved_module_type = default_module_type.unwrap_or(ModuleType::Js);
 
     module_rules.iter().for_each(|module_rule| {
-      if module_rule.r#type.is_some() {
-        resolved_module_type = module_rule.r#type;
+      if let Some(module_type) = module_rule.r#type {
+        resolved_module_type = module_type;
       };
     });
 
-    resolved_module_type.ok_or_else(|| {
-        Error::InternalError(internal_error!(format!(
-          "Unable to determine the module type of {}. Make sure to specify the `type` property in the module rule.",
-          resource_data.resource
-        )))
-      },
-    )
+    resolved_module_type
   }
 
   #[instrument(name = "normal_module_factory:factorize", skip_all)]
