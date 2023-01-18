@@ -242,49 +242,7 @@ class Compiler {
 	async #processAssets(stage: number) {
 		await this.compilation
 			.__internal_getProcessAssetsHookByStage(stage)
-			.promise(
-				new Proxy(
-					{},
-					{
-						get: (_, property) => {
-							if (typeof property === "string") {
-								return this.compilation.__internal__getAssetSource(property);
-							}
-						},
-						set: (target, p, newValue, receiver) => {
-							if (typeof p === "string") {
-								this.compilation.emitAsset(p, newValue);
-								return true;
-							}
-							return false;
-						},
-						deleteProperty: (target, p) => {
-							if (typeof p === "string") {
-								this.compilation.deleteAsset(p);
-								return true;
-							}
-							return false;
-						},
-						has: (_, property) => {
-							if (typeof property === "string") {
-								return this.compilation.__internal__hasAsset(property);
-							}
-							return false;
-						},
-						ownKeys: _ => {
-							return this.compilation.__internal__getAssetFilenames();
-						},
-						getOwnPropertyDescriptor() {
-							// To work with `Object.keys`, you should mark the property as enumerable.
-							// See: https://262.ecma-international.org/7.0/#sec-enumerableownnames
-							return {
-								enumerable: true,
-								configurable: true
-							};
-						}
-					}
-				)
-			);
+			.promise(this.compilation.assets);
 	}
 
 	async #emit() {

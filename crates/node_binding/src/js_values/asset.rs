@@ -54,7 +54,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
 #[napi(object)]
 pub struct JsAsset {
   pub name: String,
-  pub source: JsCompatSource,
+  pub source: Option<JsCompatSource>,
   pub info: JsAssetInfo,
 }
 

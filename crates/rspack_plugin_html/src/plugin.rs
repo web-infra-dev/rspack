@@ -7,7 +7,7 @@ use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  AssetInfo, CompilationAsset, Plugin,
+  CompilationAsset, Plugin,
 };
 use serde::Deserialize;
 use swc_html::visit::VisitMutWith;
@@ -153,11 +153,13 @@ impl Plugin for HtmlPlugin {
     // if some plugin changes assets in the same stage after this plugin
     // both the name and the integrity may be inaccurate
     if let Some(hash_func) = &config.sri {
-      tags.par_iter_mut().for_each(|(tag, asset)| {
-        let asset = asset.get_source();
-        let sri_value = create_digest_from_asset(hash_func, asset);
-        add_sri(tag, &sri_value);
-      });
+      tags
+        .par_iter_mut()
+        .filter_map(|(tag, asset)| asset.get_source().map(|s| (tag, s)))
+        .for_each(|(tag, asset)| {
+          let sri_value = create_digest_from_asset(hash_func, asset);
+          add_sri(tag, &sri_value);
+        });
     }
 
     let tags = tags.into_iter().map(|(tag, _)| tag).collect::<Vec<_>>();
@@ -167,7 +169,7 @@ impl Plugin for HtmlPlugin {
     let source = parser.codegen(&mut current_ast)?;
     compilation.emit_asset(
       config.filename.clone(),
-      CompilationAsset::new(RawSource::from(source).boxed(), AssetInfo::default()),
+      CompilationAsset::with_source(RawSource::from(source).boxed()),
     );
 
     if let Some(favicon) = &self.config.favicon {
@@ -180,7 +182,7 @@ impl Plugin for HtmlPlugin {
       ))?;
       compilation.emit_asset(
         favicon.clone(),
-        CompilationAsset::new(RawSource::from(content).boxed(), AssetInfo::default()),
+        CompilationAsset::with_source(RawSource::from(content).boxed()),
       );
     }
 

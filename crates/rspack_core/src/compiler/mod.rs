@@ -201,14 +201,16 @@ impl Compiler {
 
   #[instrument(name = "emit_asset", skip_all)]
   fn emit_asset(&self, output_path: &Path, filename: &str, asset: &CompilationAsset) -> Result<()> {
-    let file_path = Path::new(&output_path).join(filename);
-    std::fs::create_dir_all(
-      file_path
-        .parent()
-        .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
-    )?;
-    std::fs::write(file_path, asset.get_source().buffer()).map_err(rspack_error::Error::from)?;
-    self.compilation.emitted_assets.insert(filename.to_string());
+    if let Some(source) = asset.get_source() {
+      let file_path = Path::new(&output_path).join(filename);
+      std::fs::create_dir_all(
+        file_path
+          .parent()
+          .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
+      )?;
+      std::fs::write(file_path, source.buffer()).map_err(rspack_error::Error::from)?;
+      self.compilation.emitted_assets.insert(filename.to_string());
+    }
     Ok(())
   }
 }

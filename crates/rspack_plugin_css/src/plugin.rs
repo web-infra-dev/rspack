@@ -733,19 +733,21 @@ impl Plugin for CssPlugin {
           return Ok(());
         }
 
-        let input = original.get_source().source().to_string();
-        let input_source_map = original.get_source().map(&MapOptions::default());
-        let minimized_source = SWC_COMPILER.minify(
-          filename,
-          input,
-          input_source_map,
-          crate::SwcCssSourceMapGenConfig {
-            enable: compilation.options.devtool.source_map(),
-            inline_sources_content: !compilation.options.devtool.no_sources(),
-            emit_columns: !compilation.options.devtool.cheap(),
-          },
-        )?;
-        original.set_source(minimized_source);
+        if let Some(original_source) = original.get_source() {
+          let input = original_source.source().to_string();
+          let input_source_map = original_source.map(&MapOptions::default());
+          let minimized_source = SWC_COMPILER.minify(
+            filename,
+            input,
+            input_source_map,
+            crate::SwcCssSourceMapGenConfig {
+              enable: compilation.options.devtool.source_map(),
+              inline_sources_content: !compilation.options.devtool.no_sources(),
+              emit_columns: !compilation.options.devtool.cheap(),
+            },
+          )?;
+          original.set_source(Some(minimized_source));
+        }
         original.get_info_mut().minimized = true;
         Ok(())
       })?;
