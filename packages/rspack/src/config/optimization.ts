@@ -5,11 +5,33 @@ import {
 } from "./splitChunks";
 import type { RawSplitChunksOptions } from "@rspack/binding";
 
+/**
+ * Create an additional chunk which contains only the webpack runtime and chunk hash maps.
+ */
+export type OptimizationRuntimeChunk =
+	| ("single" | "multiple")
+	| boolean
+	| {
+			/**
+			 * The name or name factory for the runtime chunks.
+			 */
+			name?: string | Function;
+	  };
+export type OptimizationRuntimeChunkNormalized =
+	| false
+	| {
+			/**
+			 * The name factory for the runtime chunks.
+			 */
+			name?: Function;
+	  };
+
 export interface Optimization {
 	moduleIds?: "named" | "deterministic";
 	minimize?: boolean;
 	minimizer?: ("..." | PluginInstance)[];
 	splitChunks?: OptimizationSplitChunksOptions;
+	runtimeChunk?: OptimizationRuntimeChunk;
 }
 
 export interface ResolvedOptimization {
@@ -17,6 +39,27 @@ export interface ResolvedOptimization {
 	minimize?: boolean;
 	minimizer?: ("..." | PluginInstance)[];
 	splitChunks?: RawSplitChunksOptions;
+}
+
+export function getNormalizedOptimizationRuntimeChunk(
+	runtimeChunk: OptimizationRuntimeChunk
+): OptimizationRuntimeChunkNormalized {
+	if (runtimeChunk === undefined) return undefined;
+	if (runtimeChunk === false) return false;
+	if (runtimeChunk === "single") {
+		return {
+			name: () => "runtime"
+		};
+	}
+	if (runtimeChunk === true || runtimeChunk === "multiple") {
+		return {
+			name: entrypoint => `runtime~${entrypoint.name}`
+		};
+	}
+	const { name } = runtimeChunk;
+	return {
+		name: typeof name === "function" ? name : () => name
+	};
 }
 
 export function resolveOptimizationOptions(

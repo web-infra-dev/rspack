@@ -338,6 +338,417 @@ error[internal]: Resolve error
 "
 `;
 
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 1`] = `
+{
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "e1.js",
+      ],
+      "id": "e1",
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": false,
+      "files": [
+        "e1~runtime.js",
+      ],
+      "id": "e1~runtime",
+      "initial": true,
+      "names": [
+        "e1~runtime",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+    {
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "id": "e2",
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": false,
+      "files": [
+        "e2~runtime.js",
+      ],
+      "id": "e2~runtime",
+      "initial": true,
+      "names": [
+        "e2~runtime",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "e1.js",
+          "size": 259,
+        },
+        {
+          "name": "e1~runtime.js",
+          "size": 1623,
+        },
+      ],
+      "assetsSize": 1882,
+      "chunks": [
+        "e1",
+        "e1~runtime",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "e2.js",
+          "size": 259,
+        },
+        {
+          "name": "e2~runtime.js",
+          "size": 1623,
+        },
+      ],
+      "assetsSize": 1882,
+      "chunks": [
+        "e2",
+        "e2~runtime",
+      ],
+      "name": "e2",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
+"Entrypoint e1 = e1.js e1~runtime.js
+Entrypoint e2 = e2.js e2~runtime.js"
+`;
+
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 1`] = `
+{
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "e1.js",
+      ],
+      "id": "e1",
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "id": "e2",
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": false,
+      "files": [
+        "runtime~e1.js",
+      ],
+      "id": "runtime~e1",
+      "initial": true,
+      "names": [
+        "runtime~e1",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+    {
+      "entry": false,
+      "files": [
+        "runtime~e2.js",
+      ],
+      "id": "runtime~e2",
+      "initial": true,
+      "names": [
+        "runtime~e2",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "e1.js",
+          "size": 253,
+        },
+        {
+          "name": "runtime~e1.js",
+          "size": 1623,
+        },
+      ],
+      "assetsSize": 1876,
+      "chunks": [
+        "e1",
+        "runtime~e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "e2.js",
+          "size": 253,
+        },
+        {
+          "name": "runtime~e2.js",
+          "size": 1623,
+        },
+      ],
+      "assetsSize": 1876,
+      "chunks": [
+        "e2",
+        "runtime~e2",
+      ],
+      "name": "e2",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
+"Entrypoint e1 = e1.js runtime~e1.js
+Entrypoint e2 = e2.js runtime~e2.js"
+`;
+
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 1`] = `
+{
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "e1.js",
+      ],
+      "id": "e1",
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "id": "e2",
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": false,
+      "files": [
+        "runtime.js",
+      ],
+      "id": "runtime",
+      "initial": true,
+      "names": [
+        "runtime",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "e1.js",
+          "size": 256,
+        },
+        {
+          "name": "runtime.js",
+          "size": 1620,
+        },
+      ],
+      "assetsSize": 1876,
+      "chunks": [
+        "e1",
+        "runtime",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "e2.js",
+          "size": 256,
+        },
+        {
+          "name": "runtime.js",
+          "size": 1620,
+        },
+      ],
+      "assetsSize": 1876,
+      "chunks": [
+        "e2",
+        "runtime",
+      ],
+      "name": "e2",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
+"Entrypoint e1 = e1.js runtime.js
+Entrypoint e2 = e2.js runtime.js"
+`;
+
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 1`] = `
+{
+  "chunks": [
+    {
+      "entry": true,
+      "files": [
+        "e1.js",
+      ],
+      "id": "e1",
+      "initial": true,
+      "names": [
+        "e1",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": true,
+      "files": [
+        "e2.js",
+      ],
+      "id": "e2",
+      "initial": true,
+      "names": [
+        "e2",
+      ],
+      "size": 27,
+      "type": "chunk",
+    },
+    {
+      "entry": false,
+      "files": [
+        "runtime~e1.js",
+      ],
+      "id": "runtime~e1",
+      "initial": true,
+      "names": [
+        "runtime~e1",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+    {
+      "entry": false,
+      "files": [
+        "runtime~e2.js",
+      ],
+      "id": "runtime~e2",
+      "initial": true,
+      "names": [
+        "runtime~e2",
+      ],
+      "size": 0,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "e1": {
+      "assets": [
+        {
+          "name": "e1.js",
+          "size": 253,
+        },
+        {
+          "name": "runtime~e1.js",
+          "size": 1623,
+        },
+      ],
+      "assetsSize": 1876,
+      "chunks": [
+        "e1",
+        "runtime~e1",
+      ],
+      "name": "e1",
+    },
+    "e2": {
+      "assets": [
+        {
+          "name": "e2.js",
+          "size": 253,
+        },
+        {
+          "name": "runtime~e2.js",
+          "size": 1623,
+        },
+      ],
+      "assetsSize": 1876,
+      "chunks": [
+        "e2",
+        "runtime~e2",
+      ],
+      "name": "e2",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
+"Entrypoint e1 = e1.js runtime~e1.js
+Entrypoint e2 = e2.js runtime~e2.js"
+`;
+
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 {
   "errors": [
