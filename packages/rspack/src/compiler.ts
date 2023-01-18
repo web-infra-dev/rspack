@@ -61,6 +61,10 @@ class Compiler {
 		failed: tapable.SyncHook<[Error]>;
 		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
 		watchClose: tapable.SyncHook<[]>;
+		environment: tapable.SyncHook<[]>;
+		afterEnvironment: tapable.SyncHook<[]>;
+		afterPlugins: tapable.SyncHook<[Compiler]>;
+		afterResolvers: tapable.SyncHook<[Compiler]>;
 	};
 	options: RspackOptionsNormalized;
 
@@ -104,7 +108,11 @@ class Compiler {
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
 			watchRun: new tapable.AsyncSeriesHook(["compiler"]),
-			watchClose: new tapable.SyncHook([])
+			watchClose: new tapable.SyncHook([]),
+			environment: new tapable.SyncHook([]),
+			afterEnvironment: new tapable.SyncHook([]),
+			afterPlugins: new tapable.SyncHook(["compiler"]),
+			afterResolvers: new tapable.SyncHook(["compiler"])
 		};
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
