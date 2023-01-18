@@ -50,8 +50,10 @@ impl Symbol {
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum IndirectType {
   Default(JsWord),
-  /// first argument is original, exported
+  /// first argument is original, second argument is exported
   ReExport(JsWord, Option<JsWord>),
+  /// first argument is local, second argument is imported
+  Import(JsWord, Option<JsWord>),
 }
 
 /// We have three kind of star symbol
@@ -144,6 +146,20 @@ impl IndirectTopLevelSymbol {
 
   /// if `self.ty == IndirectType::Rexport`, it return `exported` if it is [Some] else it return `original`.
   /// else it return binding
+  pub fn indirect_id(&self) -> &JsWord {
+    match self.ty {
+      IndirectType::Default(ref ident) => ident,
+      IndirectType::ReExport(ref original, ref exported) => match exported {
+        Some(exported) => exported,
+        None => original,
+      },
+      IndirectType::Import(ref local, ref imported) => match imported {
+        Some(imported) => imported,
+        None => local,
+      },
+    }
+  }
+
   pub fn id(&self) -> &JsWord {
     match self.ty {
       IndirectType::Default(ref ident) => ident,
@@ -151,6 +167,7 @@ impl IndirectTopLevelSymbol {
         Some(exported) => exported,
         None => original,
       },
+      IndirectType::Import(ref local, ref imported) => local,
     }
   }
 
@@ -173,6 +190,14 @@ impl IndirectTopLevelSymbol {
 
   pub fn is_reexport(&self) -> bool {
     matches!(&self.ty, IndirectType::ReExport(_, _))
+  }
+
+  pub fn is_default(&self) -> bool {
+    matches!(&self.ty, IndirectType::Default(_))
+  }
+
+  pub fn is_import(&self) -> bool {
+    matches!(&self.ty, IndirectType::Import(_, _))
   }
 }
 

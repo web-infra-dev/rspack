@@ -51,6 +51,29 @@ impl SymbolGraph {
     }
   }
 
+  pub fn remove_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {
+    let from_index = match self.get_node_index(from) {
+      Some(index) => *index,
+      None => {
+        eprintln!("Can't get node index for symbol {:?}", from);
+        return;
+      }
+    };
+    let to_index = match self.get_node_index(to) {
+      Some(index) => *index,
+      None => {
+        eprintln!("Can't get node index for symbol {:?}", to);
+        return;
+      }
+    };
+    match self.graph.find_edge(from_index, to_index) {
+      Some(index) => {
+        self.graph.remove_edge(index);
+      }
+      None => {}
+    };
+  }
+
   pub fn symbol_refs(&self) -> std::collections::hash_map::Keys<SymbolRef, NodeIndex> {
     self.symbol_to_index.keys()
   }

@@ -45,7 +45,7 @@ bitflags::bitflags! {
     const DIRECT = 1 << 0;
     const REEXPORT = 1 << 1;
     const EXPORT_STAR = 1 << 2;
-    const INDIRECT = 1 << 2;
+    const INDIRECT = 1 << 3;
   }
 }
 
