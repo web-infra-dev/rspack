@@ -500,15 +500,37 @@ describe("snapshots", () => {
 	`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: "single" } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-       "runtime": undefined,
+		+       "runtime": "runtime",
+	`)
 	);
 	test(
 		"single runtimeChunk",
 		{ optimization: { runtimeChunk: "multiple" } },
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-       "runtime": undefined,
+			+       "runtime": "runtime~main",
+		`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-       "runtime": undefined,
+		+       "runtime": "runtime~main",
+	`)
 	);
 	test("cache true", { cache: true }, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)

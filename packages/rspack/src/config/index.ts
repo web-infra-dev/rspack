@@ -103,9 +103,13 @@ export function getNormalizedRspackOptions(
 ): RspackOptionsNormalized {
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "production";
-	const entry = resolveEntryOptions(config.entry, {
-		context
-	});
+	const entry = resolveEntryOptions(
+		config.entry,
+		{
+			context
+		},
+		config.optimization?.runtimeChunk
+	);
 	const output = resolveOutputOptions(config.output);
 	const target = resolveTargetOptions(config.target);
 	const externals = config.externals ?? {};

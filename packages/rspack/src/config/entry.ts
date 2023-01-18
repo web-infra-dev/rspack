@@ -1,4 +1,9 @@
 import path from "path";
+import {
+	getNormalizedOptimizationRuntimeChunk,
+	OptimizationRuntimeChunk,
+	OptimizationRuntimeChunkNormalized
+} from "./optimization";
 
 export type EntryRuntime = false | string;
 export interface EntryDescription {
@@ -25,6 +30,36 @@ interface ResolveEntryContext {
 }
 
 export function resolveEntryOptions(
+	options: Entry,
+	context: ResolveEntryContext,
+	runtimeChunk: OptimizationRuntimeChunk
+): ResolvedEntry {
+	const normalized = normalizedEntry(options, context);
+	const normalizedRuntimeChunk =
+		getNormalizedOptimizationRuntimeChunk(runtimeChunk);
+	if (normalizedRuntimeChunk) {
+		Object.entries(normalized).forEach(([entryName, value]) => {
+			if (value.runtime === undefined) {
+				value.runtime = normalizedRuntimeChunk.name({ name: entryName });
+			}
+		});
+	}
+	return normalized;
+}
+
+function normalizeEntryItem(
+	entryName: string,
+	entryItem: EntryDescription
+): ResolvedEntryItem {
+	return {
+		import: Array.isArray(entryItem.import)
+			? entryItem.import
+			: [entryItem.import],
+		runtime: entryItem.runtime === false ? undefined : entryItem.runtime
+	};
+}
+
+function normalizedEntry(
 	options: Entry,
 	context: ResolveEntryContext
 ): ResolvedEntry {
@@ -71,16 +106,4 @@ export function resolveEntryOptions(
 	} else {
 		return {};
 	}
-}
-
-function normalizeEntryItem(
-	entryName: string,
-	entryItem: EntryDescription
-): ResolvedEntryItem {
-	return {
-		import: Array.isArray(entryItem.import)
-			? entryItem.import
-			: [entryItem.import],
-		runtime: entryItem.runtime === false ? undefined : entryItem.runtime
-	};
 }
