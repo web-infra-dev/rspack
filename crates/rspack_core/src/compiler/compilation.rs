@@ -7,7 +7,10 @@ use std::{
   marker::PhantomPinned,
   path::PathBuf,
   pin::Pin,
-  sync::Arc,
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
 };
 
 use dashmap::DashSet;
@@ -422,6 +425,7 @@ impl Compilation {
       .retain(|(mid, _, _)| !need_clean_visited_module_ids.contains(mid));
 
     let mut active_task_count = 0usize;
+    let is_expected_shutdown = Arc::new(AtomicBool::new(false));
     let mut running_dependencies: HashSet<Box<dyn ModuleDependency>> = HashSet::default();
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
     let mut factorize_queue = FactorizeQueue::new();
@@ -460,9 +464,13 @@ impl Compilation {
       while let Some(task) = factorize_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
+          let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
           running_dependencies.insert(task.dependencies[0].clone());
           async move {
+            if is_expected_shutdown.load(Ordering::SeqCst) {
+              return;
+            }
             let result = task.run().await;
             result_tx
               .send(result)
@@ -474,9 +482,13 @@ impl Compilation {
       while let Some(task) = build_queue.get_task() {
         tokio::spawn({
           let result_tx = result_tx.clone();
+          let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
 
           async move {
+            if is_expected_shutdown.load(Ordering::SeqCst) {
+              return;
+            }
             let result = task.run().await;
             result_tx.send(result).expect("Failed to send build result");
           }
@@ -635,6 +647,7 @@ impl Compilation {
             Err(err) => {
               // Severe internal error encountered, we should end the compiling here.
               errored = Some(err);
+              is_expected_shutdown.swap(true, Ordering::SeqCst);
               break;
             }
           }
@@ -642,10 +655,12 @@ impl Compilation {
           active_task_count -= 1;
         }
         Err(TryRecvError::Disconnected) => {
+          is_expected_shutdown.swap(true, Ordering::SeqCst);
           break;
         }
         Err(TryRecvError::Empty) => {
           if active_task_count == 0 {
+            is_expected_shutdown.swap(true, Ordering::SeqCst);
             break;
           }
         }
