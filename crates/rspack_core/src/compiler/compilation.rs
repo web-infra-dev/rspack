@@ -471,10 +471,14 @@ impl Compilation {
             if is_expected_shutdown.load(Ordering::SeqCst) {
               return;
             }
+
             let result = task.run().await;
-            result_tx
-              .send(result)
-              .expect("Failed to send factorize result");
+
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx
+                .send(result)
+                .expect("Failed to send factorize result");
+            }
           }
         });
       }
@@ -489,8 +493,12 @@ impl Compilation {
             if is_expected_shutdown.load(Ordering::SeqCst) {
               return;
             }
+
             let result = task.run().await;
-            result_tx.send(result).expect("Failed to send build result");
+
+            if !is_expected_shutdown.load(Ordering::SeqCst) {
+              result_tx.send(result).expect("Failed to send build result");
+            }
           }
         });
       }
@@ -647,7 +655,7 @@ impl Compilation {
             Err(err) => {
               // Severe internal error encountered, we should end the compiling here.
               errored = Some(err);
-              is_expected_shutdown.swap(true, Ordering::SeqCst);
+              is_expected_shutdown.store(true, Ordering::SeqCst);
               break;
             }
           }
@@ -655,12 +663,12 @@ impl Compilation {
           active_task_count -= 1;
         }
         Err(TryRecvError::Disconnected) => {
-          is_expected_shutdown.swap(true, Ordering::SeqCst);
+          is_expected_shutdown.store(true, Ordering::SeqCst);
           break;
         }
         Err(TryRecvError::Empty) => {
           if active_task_count == 0 {
-            is_expected_shutdown.swap(true, Ordering::SeqCst);
+            is_expected_shutdown.store(true, Ordering::SeqCst);
             break;
           }
         }
