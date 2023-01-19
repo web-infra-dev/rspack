@@ -524,7 +524,7 @@ mod test {
   impl_noop_trait_dep_type!(Edge);
 
   fn add_module_to_graph(mg: &mut ModuleGraph, m: Box<dyn Module>) {
-    let mgm = ModuleGraphModule::new(None, m.identifier(), ModuleType::Js, true);
+    let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, true);
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
   }
