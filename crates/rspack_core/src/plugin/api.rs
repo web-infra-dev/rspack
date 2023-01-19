@@ -7,7 +7,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  ContentHashArgs, DoneArgs, FactorizeArgs, FactorizeResult, Module, ModuleArgs, ModuleType,
+  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ThisCompilationArgs,
 };
@@ -19,7 +19,7 @@ pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
-pub type PluginFactorizeHookOutput = Result<Option<FactorizeResult>>;
+pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginContentHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
