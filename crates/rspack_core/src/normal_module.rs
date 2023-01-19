@@ -72,9 +72,6 @@ impl ModuleIssuer {
 
 #[derive(Debug)]
 pub struct ModuleGraphModule {
-  // Only user defined entry module has name for now.
-  pub name: Option<String>,
-
   // edges from module to module
   pub outgoing_connections: HashSet<usize>,
   pub incoming_connections: HashSet<usize>,
@@ -95,14 +92,11 @@ pub struct ModuleGraphModule {
 
 impl ModuleGraphModule {
   pub fn new(
-    name: Option<String>,
     module_identifier: ModuleIdentifier,
     module_type: ModuleType,
     default_used: bool,
   ) -> Self {
     Self {
-      name,
-
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
 

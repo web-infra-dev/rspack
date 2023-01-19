@@ -6,83 +6,16 @@ use std::{
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
-use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::Span;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions, BoxModule,
+  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions,
   CompilerOptions, Dependency, FactorizeArgs, Identifiable, MissingModule, ModuleArgs,
-  ModuleDependency, ModuleExt, ModuleIdentifier, ModuleRule, ModuleType, NormalModule, RawModule,
-  Resolve, ResolveArgs, ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
+  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  ModuleIdentifier, ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs,
+  ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
 };
-
-// #[derive(Debug, Hash, PartialEq, Eq, Clone)]
-// pub struct Dependency {
-//   /// Parent module identifier (Can be used to locate its parent module in module graph)
-//   pub parent_module_identifier: Option<ModuleIdentifier>,
-//   pub detail: ModuleDependency,
-// }
-
-// #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
-// pub enum ResolveKind {
-//   Entry,
-//   Import,
-//   Require,
-//   DynamicImport,
-//   AtImport,
-//   UrlToken,
-//   ModuleHotAccept,
-// }
-
-#[derive(Debug)]
-pub struct FactorizeResult {
-  pub module: BoxModule,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-}
-
-impl FactorizeResult {
-  pub fn new(module: BoxModule) -> Self {
-    Self {
-      module,
-      file_dependencies: Default::default(),
-      context_dependencies: Default::default(),
-      missing_dependencies: Default::default(),
-    }
-  }
-
-  pub fn file_dependency(mut self, file: PathBuf) -> Self {
-    self.file_dependencies.insert(file);
-    self
-  }
-
-  pub fn file_dependencies(mut self, files: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.file_dependencies.extend(files);
-    self
-  }
-
-  pub fn context_dependency(mut self, context: PathBuf) -> Self {
-    self.context_dependencies.insert(context);
-    self
-  }
-
-  pub fn context_dependencies(mut self, contexts: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.context_dependencies.extend(contexts);
-    self
-  }
-
-  pub fn missing_dependency(mut self, missing: PathBuf) -> Self {
-    self.missing_dependencies.insert(missing);
-    self
-  }
-
-  pub fn missing_dependencies(mut self, missings: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.missing_dependencies.extend(missings);
-    self
-  }
-}
 
 #[derive(Debug)]
 pub struct NormalModuleFactory {
@@ -91,6 +24,17 @@ pub struct NormalModuleFactory {
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
   diagnostics: Vec<Diagnostic>,
+}
+
+#[async_trait::async_trait]
+impl ModuleFactory for NormalModuleFactory {
+  #[instrument(name = "normal_module_factory:create", skip_all)]
+  async fn create(
+    mut self,
+    data: ModuleFactoryCreateData,
+  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    Ok((self.factorize(data.resolve_options).await?).with_diagnostic(self.diagnostics))
+  }
 }
 
 impl NormalModuleFactory {
@@ -109,15 +53,6 @@ impl NormalModuleFactory {
     }
   }
 
-  /// set `is_entry` true if you are trying to create a new module factory with a module identifier which is an entry
-  #[instrument(name = "normal_module_factory:create", skip_all)]
-  pub async fn create(
-    mut self,
-    resolve_options: Option<Resolve>,
-  ) -> Result<TWithDiagnosticArray<(FactorizeResult, NormalModuleFactoryContext)>> {
-    Ok((self.factorize(resolve_options).await?, self.context).with_diagnostic(self.diagnostics))
-  }
-
   pub fn calculate_module_type_by_resource(
     &self,
     resource_data: &ResourceData,
@@ -130,7 +65,7 @@ impl NormalModuleFactory {
   pub async fn factorize_normal_module(
     &mut self,
     resolve_options: Option<Resolve>,
-  ) -> Result<Option<FactorizeResult>> {
+  ) -> Result<Option<ModuleFactoryResult>> {
     let importer = self.context.original_resource_path.as_ref();
     let importer_with_context = if let Some(importer) = importer {
       Path::new(importer)
@@ -189,7 +124,7 @@ impl NormalModuleFactory {
         .boxed();
         self.context.module_type = Some(*raw_module.module_type());
 
-        return Ok(Some(FactorizeResult::new(raw_module)));
+        return Ok(Some(ModuleFactoryResult::new(raw_module)));
       }
       Err(ResolveError(runtime_error, internal_error)) => {
         let ident = format!("{}{specifier}", importer_with_context.display());
@@ -206,7 +141,7 @@ impl NormalModuleFactory {
         let diagnostics: Vec<Diagnostic> = internal_error.into();
         self.diagnostics.extend(diagnostics);
 
-        return Ok(Some(FactorizeResult::new(missing_module)));
+        return Ok(Some(ModuleFactoryResult::new(missing_module)));
       }
     };
 
@@ -270,7 +205,7 @@ impl NormalModuleFactory {
     };
 
     Ok(Some(
-      FactorizeResult::new(module)
+      ModuleFactoryResult::new(module)
         .file_dependency(file_dependency)
         .file_dependencies(file_dependencies)
         .missing_dependencies(missing_dependencies),
@@ -345,7 +280,10 @@ impl NormalModuleFactory {
   }
 
   #[instrument(name = "normal_module_factory:factorize", skip_all)]
-  pub async fn factorize(&mut self, resolve_options: Option<Resolve>) -> Result<FactorizeResult> {
+  pub async fn factorize(
+    &mut self,
+    resolve_options: Option<Resolve>,
+  ) -> Result<ModuleFactoryResult> {
     let result = self
       .plugin_driver
       .read()
@@ -391,38 +329,11 @@ pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
   pub original_resource_path: Option<PathBuf>,
-  pub module_name: Option<String>,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,
   pub lazy_visit_modules: std::collections::HashSet<String>,
 }
-
-// #[derive(Debug, Clone, Eq)]
-// pub struct ModuleDependency {
-//   pub specifier: String,
-//   /// `./a.js` in `import './a.js'` is specifier
-//   pub kind: ResolveKind,
-//   pub span: Option<ErrorSpan>,
-// }
-
-// /// # WARNING
-// /// Don't update the manual implementation of `Hash` of [ModuleDependency]
-// /// Current implementation strong rely on the field of `specifier` and `kind`
-// impl std::hash::Hash for ModuleDependency {
-//   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//     self.specifier.hash(state);
-//     self.kind.hash(state);
-//   }
-// }
-// /// # WARNING
-// /// Don't update the manual implementation of `PartialEq` of [ModuleDependency]
-// /// Current implementation strong rely on the field of `specifier` and `kind`
-// impl PartialEq for ModuleDependency {
-//   fn eq(&self, other: &Self) -> bool {
-//     self.specifier == other.specifier && self.kind == other.kind
-//   }
-// }
 
 /// Using `u32` instead of `usize` to reduce memory usage,
 /// `u32` is 4 bytes on 64bit machine, comare to `usize` which is 8 bytes.

@@ -1,12 +1,13 @@
 use std::{path::PathBuf, sync::Arc};
 
-use rspack_error::{internal_error, Diagnostic, Error, Result};
+use rspack_error::{Diagnostic, Result};
 
 use crate::{
   cache::Cache, module_rule_matcher, BoxModuleDependency, BuildContext, BuildResult, Compilation,
-  CompilerOptions, Dependency, FactorizeResult, LoaderRunnerRunner, Module, ModuleDependency,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory,
-  NormalModuleFactoryContext, Resolve, SharedPluginDriver, WorkerQueue,
+  CompilerOptions, Dependency, LoaderRunnerRunner, Module, ModuleDependency, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
+  SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -28,7 +29,6 @@ pub struct FactorizeTask {
   pub dependencies: Vec<BoxModuleDependency>,
 
   pub is_entry: bool,
-  pub module_name: Option<String>,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub resolve_options: Option<Resolve>,
@@ -41,7 +41,7 @@ pub struct FactorizeTask {
 #[derive(Debug)]
 pub struct FactorizeTaskResult {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub factory_result: FactorizeResult,
+  pub factory_result: ModuleFactoryResult,
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxModuleDependency>,
   pub diagnostics: Vec<Diagnostic>,
@@ -54,10 +54,9 @@ impl WorkerTask for FactorizeTask {
     let factory = NormalModuleFactory::new(
       NormalModuleFactoryContext {
         original_resource_path: self.original_resource_path,
-        module_name: self.module_name,
         module_type: self.module_type,
         side_effects: self.side_effects,
-        options: self.options,
+        options: self.options.clone(),
         lazy_visit_modules: self.lazy_visit_modules,
       },
       self.dependencies[0].clone(),
@@ -65,23 +64,20 @@ impl WorkerTask for FactorizeTask {
       self.cache,
     );
 
-    let ((result, context), diagnostics) = factory
-      .create(self.resolve_options)
+    let (result, diagnostics) = factory
+      .create(ModuleFactoryCreateData {
+        resolve_options: self.resolve_options,
+        context: None,
+      })
       .await?
       .split_into_parts();
 
     let mut mgm = ModuleGraphModule::new(
-      context.module_name.clone(),
       result.module.identifier(),
-      context.module_type.ok_or_else(|| {
-        Error::InternalError(internal_error!(format!(
-          "Unable to get the module type for module {}, did you forget to configure `Rule.type`? ",
-          result.module.identifier()
-        )))
-      })?,
+      *result.module.module_type(),
       // 1. if `tree_shaking` is false, then whatever `side_effects` is, all the module should be used by default.
       // 2. if `tree_shaking` is true, then only `side_effects` is false, `module.used` should be true.
-      !context.options.builtins.tree_shaking || !context.options.builtins.side_effects,
+      !self.options.builtins.tree_shaking || !self.options.builtins.side_effects,
     );
 
     mgm.set_issuer_if_unset(self.original_module_identifier);
