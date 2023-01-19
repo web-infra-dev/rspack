@@ -74,6 +74,11 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
 
   plugins.push(Box::new(rspack_ids::NamedChunkIdsPlugin::new(None, None)));
 
+  // Notice the plugin need to be placed after SplitChunksPlugin
+  plugins.push(Box::new(
+    rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin,
+  ));
+
   Compiler::new(options, plugins)
 }
 

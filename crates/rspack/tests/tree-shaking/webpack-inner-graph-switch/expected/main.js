@@ -19,7 +19,7 @@ function test() {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
     __webpack_require__("./import-module.js").test();
     return Promise.all([
-        __webpack_require__.e("0").then(__webpack_require__.bind(__webpack_require__, "./some-module.js")).then(__webpack_require__.ir),
+        Promise.all([]).then(__webpack_require__.bind(__webpack_require__, "./some-module.js")).then(__webpack_require__.ir),
         __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir)
     ]);
 });

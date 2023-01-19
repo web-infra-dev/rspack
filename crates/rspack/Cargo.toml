@@ -20,20 +20,21 @@ xshell                 = "0.2.2"
 mimalloc-rust = { version = "0.2" }
 
 [dependencies]
-crossbeam                = "0.8.1"
-dashmap                  = "5.0.0"
-rspack_core              = { path = "../rspack_core" }
-rspack_ids               = { path = "../rspack_ids" }
-rspack_loader_sass       = { path = "../rspack_loader_sass" }
-rspack_plugin_asset      = { path = "../rspack_plugin_asset" }
-rspack_plugin_css        = { path = "../rspack_plugin_css" }
-rspack_plugin_devtool    = { path = "../rspack_plugin_devtool" }
-rspack_plugin_externals  = { path = "../rspack_plugin_externals" }
-rspack_plugin_html       = { path = "../rspack_plugin_html" }
-rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
-rspack_plugin_json       = { path = "../rspack_plugin_json" }
-rspack_plugin_runtime    = { path = "../rspack_plugin_runtime" }
-rspack_symbol            = { path = "../rspack_symbol" }
+crossbeam                         = "0.8.1"
+dashmap                           = "5.0.0"
+rspack_core                       = { path = "../rspack_core" }
+rspack_ids                        = { path = "../rspack_ids" }
+rspack_loader_sass                = { path = "../rspack_loader_sass" }
+rspack_plugin_asset               = { path = "../rspack_plugin_asset" }
+rspack_plugin_css                 = { path = "../rspack_plugin_css" }
+rspack_plugin_devtool             = { path = "../rspack_plugin_devtool" }
+rspack_plugin_externals           = { path = "../rspack_plugin_externals" }
+rspack_plugin_html                = { path = "../rspack_plugin_html" }
+rspack_plugin_javascript          = { path = "../rspack_plugin_javascript" }
+rspack_plugin_json                = { path = "../rspack_plugin_json" }
+rspack_plugin_remove_empty_chunks = { path = "../rspack_plugin_remove_empty_chunks" }
+rspack_plugin_runtime             = { path = "../rspack_plugin_runtime" }
+rspack_symbol                     = { path = "../rspack_symbol" }
 # futures = "0.3.21"
 anyhow = "1"
 async-trait = "0.1.53"

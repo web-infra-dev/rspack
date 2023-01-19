@@ -21,10 +21,10 @@ napi              = { version = "=2.10.6" }
 napi-build        = { version = "=2.0.1" }
 napi-derive       = { version = "=2.9.4" }
 napi-sys          = { version = "=2.2.2" }
+preset_env_base   = { version = "0.4.0" }
+rustc-hash        = { version = "1.1.0" }
 swc_core          = { version = "0.55.2", default-features = false }
 swc_css           = { version = "0.149.0" }
 swc_html          = { version = "0.105.1" }
 swc_html_minifier = { version = "0.102.1" }
-
-preset_env_base = { version = "0.4.0" }
-rustc-hash      = { version = "1.1.0" }
+tracing           = "0.1.34"
