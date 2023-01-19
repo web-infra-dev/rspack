@@ -16,7 +16,7 @@ if (process.env.NODE_ENV !== "production") {
 	var queueUpdate = debounce(RefreshRuntime.performReactRefresh, 16);
 
 	// @ts-ignored
-	__webpack_require__.$ReactRefreshRuntime$ = {
+	__webpack_modules__.$ReactRefreshRuntime$ = {
 		queueUpdate,
 		...RefreshRuntime
 	};

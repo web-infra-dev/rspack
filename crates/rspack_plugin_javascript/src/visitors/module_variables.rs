@@ -12,6 +12,7 @@ use {
 pub static WEBPACK_HASH: &str = "__webpack_hash__";
 pub static WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub static DIR_NAME: &str = "__dirname";
+pub static WEBPACK_MODULES: &str = "__webpack_modules__";
 
 pub fn module_variables<'a>(
   module: &'a dyn Module,
@@ -56,6 +57,10 @@ pub fn module_variables<'a>(
       args: vec![],
       type_args: None,
     })),
+  ));
+  defs.push((
+    Box::new(Expr::Ident(quote_ident!(WEBPACK_MODULES))),
+    Box::new(Expr::Ident(quote_ident!(runtime_globals::MODULE_FACTORIES))),
   ));
   defs.push((
     Box::new(Expr::Ident(quote_ident!(WEBPACK_PUBLIC_PATH))),

@@ -6,7 +6,7 @@ use swc_core::ecma::transforms::base::helpers::HELPERS;
 use swc_core::ecma::utils::ExprFactory;
 use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
 
-use super::module_variables::WEBPACK_PUBLIC_PATH;
+use super::module_variables::{WEBPACK_MODULES, WEBPACK_PUBLIC_PATH};
 use crate::utils::is_dynamic_import_literal_expr;
 use crate::visitors::module_variables::WEBPACK_HASH;
 
@@ -42,6 +42,11 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
         self
           .runtime_requirements
           .insert(runtime_globals::PUBLIC_PATH);
+      }
+      if WEBPACK_MODULES.eq(&n.sym) {
+        self
+          .runtime_requirements
+          .insert(runtime_globals::MODULE_FACTORIES);
       }
     }
   }

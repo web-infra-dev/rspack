@@ -8,7 +8,7 @@ export interface Handler {
 }
 
 // @ts-ignore
-const __webpack_dev_server_client__ = __webpack_require__.$WsClient$;
+const __webpack_dev_server_client__ = __webpack_modules__.$WsClient$;
 const Client =
 	typeof __webpack_dev_server_client__ !== "undefined"
 		? typeof __webpack_dev_server_client__.default !== "undefined"
