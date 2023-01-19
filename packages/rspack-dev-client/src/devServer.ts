@@ -8,7 +8,9 @@ if (module.hot) {
 		// return lastHash.indexOf(__webpack_hash__) >= 0;
 		return false;
 	};
-	var log = require("./utils/log");
+	var log = function (_level, info) {
+		console.log(info);
+	};
 	var check = function check() {
 		module.hot
 			.check(true)
