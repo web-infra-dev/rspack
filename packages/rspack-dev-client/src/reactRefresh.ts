@@ -10,13 +10,13 @@ if (process.env.NODE_ENV !== "production") {
 	}
 
 	RefreshRuntime.injectIntoGlobalHook(globalThis);
-	globalThis.$RefreshReg$ = () => {};
+	globalThis.$RefreshReg$ = () => { };
 	globalThis.$RefreshSig$ = () => type => type;
 
 	var queueUpdate = debounce(RefreshRuntime.performReactRefresh, 16);
 
 	// @ts-ignored
-	__webpack_require__.$ReactRefreshRuntime$ = {
+	__webpack_modules__.$ReactRefreshRuntime$ = {
 		queueUpdate,
 		...RefreshRuntime
 	};
