@@ -5,7 +5,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tracing::instrument;
 
 use crate::{
-  ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, IdentifierSet,
+  ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, Identifier, IdentifierSet,
   ModuleIdentifier,
 };
 
@@ -78,7 +78,7 @@ impl<'me> CodeSplitter<'me> {
 
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::Entrypoint,
-        HashSet::from_iter([name.to_string()]),
+        HashSet::from_iter([Identifier::from(name.as_str())]),
         Some(name.to_string()),
       );
       if options.runtime.is_none() {

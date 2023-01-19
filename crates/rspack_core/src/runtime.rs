@@ -3,9 +3,9 @@ use std::{fmt::Debug, hash::Hash};
 use rspack_sources::{BoxSource, RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{ChunkUkey, Compilation};
+use crate::{ChunkUkey, Compilation, Identifier};
 
-pub type RuntimeSpec = HashSet<String>;
+pub type RuntimeSpec = HashSet<Identifier>;
 pub type RuntimeKey = String;
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -21,8 +21,8 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
     return false;
   }
 
-  let mut a: Vec<String> = Vec::from_iter(a.iter().cloned());
-  let mut b: Vec<String> = Vec::from_iter(b.iter().cloned());
+  let mut a: Vec<&str> = Vec::from_iter(a.iter().map(|s| s.as_str()));
+  let mut b: Vec<&str> = Vec::from_iter(b.iter().map(|s| s.as_str()));
 
   a.sort();
   b.sort();
@@ -31,7 +31,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
 }
 
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
-  let mut runtime: Vec<String> = Vec::from_iter(runtime.into_iter());
+  let mut runtime: Vec<&str> = Vec::from_iter(runtime.iter().map(|s| s.as_str()));
   runtime.sort();
   runtime.join("\n")
 }

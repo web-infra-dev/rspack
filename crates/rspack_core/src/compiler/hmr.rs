@@ -10,7 +10,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   fast_set, AssetInfo, CacheOptions, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler,
-  IdentifierMap, IdentifierSet, ModuleIdentifier, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
+  Identifier, IdentifierMap, IdentifierSet, ModuleIdentifier, RenderManifestArgs, RuntimeSpec,
+  SetupMakeParam,
 };
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
@@ -105,8 +106,8 @@ impl Compiler {
 
     let mut hot_update_main_content_by_runtime = all_old_runtime
       .iter()
-      .map(|id| (id.clone(), HotUpdateContent::new(id)))
-      .collect::<HashMap<String, HotUpdateContent>>();
+      .map(|id| (*id, HotUpdateContent::new(id)))
+      .collect::<HashMap<Identifier, HotUpdateContent>>();
 
     let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
     for (ukey, chunk) in &old.compilation.chunk_by_ukey {
@@ -271,7 +272,7 @@ impl Compiler {
         // intersectRuntime
         for old_runtime in &all_old_runtime {
           if current_chunk.runtime.contains(old_runtime) {
-            new_runtime.insert(old_runtime.clone());
+            new_runtime.insert(*old_runtime);
           }
         }
         // ------

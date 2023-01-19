@@ -44,7 +44,8 @@ use crate::{
   IdentifierLinkedSet, IdentifierMap, IdentifierSet, LoaderRunnerRunner, Module, ModuleDependency,
   ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs,
   ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
+  Resolve, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult,
+  VisitedModuleIdentity, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -1206,8 +1207,7 @@ impl Compilation {
           .get_number_of_module_chunks(module.identifier())
           > 0
         {
-          let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<&'static str>)> =
-            vec![];
+          let mut module_runtime_requirements: Vec<(RuntimeSpec, HashSet<&'static str>)> = vec![];
           for runtime in self
             .chunk_graph
             .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
