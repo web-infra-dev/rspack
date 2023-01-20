@@ -83,11 +83,7 @@ impl Rspack {
   }
 
   /// Build with the given option passed to the constructor
-  #[napi(
-    catch_unwind,
-    js_name = "unsafe_build",
-    ts_args_type = "callback: (err: null | Error) => void"
-  )]
+  #[napi(catch_unwind, ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(&mut self, env: Env, f: JsFunction) -> Result<()> {
     if self
       .lock
@@ -122,7 +118,6 @@ impl Rspack {
   /// Rebuild with the given option passed to the constructor
   #[napi(
     catch_unwind,
-    js_name = "unsafe_rebuild",
     ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
   )]
   pub fn rebuild(

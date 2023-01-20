@@ -318,8 +318,8 @@ class Compiler {
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
 	build(cb: (error?: Error) => void) {
-		const unsafe_build = this.#instance.unsafe_build;
-		const build_cb = unsafe_build.bind(this.#instance) as typeof unsafe_build;
+		const build = this.#instance.build;
+		const build_cb = build.bind(this.#instance) as typeof build;
 		build_cb(err => {
 			if (err) {
 				cb(err);
@@ -334,10 +334,8 @@ class Compiler {
 		removedFiles: ReadonlySet<string>,
 		cb: (error?: Error) => void
 	) {
-		const unsafe_rebuild = this.#instance.unsafe_rebuild;
-		const rebuild_cb = unsafe_rebuild.bind(
-			this.#instance
-		) as typeof unsafe_rebuild;
+		const rebuild = this.#instance.rebuild;
+		const rebuild_cb = rebuild.bind(this.#instance) as typeof rebuild;
 		rebuild_cb([...modifiedFiles], [...removedFiles], err => {
 			if (err) {
 				cb(err);
