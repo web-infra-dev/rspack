@@ -7,11 +7,10 @@ extern crate rspack_binding_macros;
 
 use std::collections::HashSet;
 use std::pin::Pin;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
-use dashmap::DashMap;
 use napi::bindgen_prelude::*;
-use once_cell::sync::Lazy;
 
 mod js_values;
 mod plugins;
@@ -26,96 +25,10 @@ use utils::*;
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 
-// **Note** that Node's main thread and the worker thread share the same binding context. Using `Mutex<HashMap>` would cause deadlocks if multiple compilers exist.
-struct SingleThreadedHashMap<K, V>(DashMap<K, V>);
-
-impl<K, V> SingleThreadedHashMap<K, V>
-where
-  K: Eq + std::hash::Hash + std::fmt::Display,
-{
-  /// Acquire a mutable reference to the inner hashmap.
-  ///
-  /// Safety: Mutable reference can almost let you do anything you want, this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn borrow_mut<F, R>(&self, key: &K, f: F) -> Result<R>
-  where
-    F: FnOnce(&mut V) -> Result<R>,
-  {
-    let mut inner = self.0.get_mut(key).ok_or_else(|| {
-      napi::Error::from_reason(format!(
-        "Failed to find key {key} for single-threaded hashmap",
-      ))
-    })?;
-
-    f(&mut *inner)
-  }
-
-  /// Acquire a shared reference to the inner hashmap.
-  ///
-  /// Safety: It's not thread-safe if a value is not safe to modify cross thread boundary, so this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn borrow<F, R>(&self, key: &K, f: F) -> Result<R>
-  where
-    F: FnOnce(&V) -> Result<R>,
-  {
-    let inner = self.0.get(key).ok_or_else(|| {
-      napi::Error::from_reason(format!(
-        "Failed to find key {key} for single-threaded hashmap",
-      ))
-    })?;
-
-    f(&*inner)
-  }
-
-  /// Insert a value into the map.
-  ///
-  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn insert_if_vacant(&self, key: K, value: V) -> Result<()> {
-    if let dashmap::mapref::entry::Entry::Vacant(vacant) = self.0.entry(key) {
-      vacant.insert(value);
-      Ok(())
-    } else {
-      Err(napi::Error::from_reason(
-        "Failed to insert on single-threaded hashmap as it's not vacant",
-      ))
-    }
-  }
-
-  /// Remove a value from the map.
-  ///
-  /// See: [DashMap::remove] for more details. https://docs.rs/dashmap/latest/dashmap/struct.DashMap.html#method.remove
-  ///
-  /// Safety: It's not thread-safe if a value has thread affinity, so this is intended to be used from the thread where the map was created.
-  #[allow(unused)]
-  unsafe fn remove(&self, key: &K) -> Option<V> {
-    self.0.remove(key).map(|(_, v)| v)
-  }
-}
-
-impl<K, V> Default for SingleThreadedHashMap<K, V>
-where
-  K: Eq + std::hash::Hash,
-{
-  fn default() -> Self {
-    Self(Default::default())
-  }
-}
-
-// Safety: Methods are already marked as unsafe.
-unsafe impl<K, V> Send for SingleThreadedHashMap<K, V> {}
-unsafe impl<K, V> Sync for SingleThreadedHashMap<K, V> {}
-
-static COMPILERS: Lazy<SingleThreadedHashMap<CompilerId, rspack::Compiler>> =
-  Lazy::new(Default::default);
-
-static COMPILER_ID: AtomicU32 = AtomicU32::new(1);
-
-type CompilerId = u32;
-
 #[napi]
 pub struct Rspack {
-  id: CompilerId,
+  compiler: rspack::Compiler,
+  lock: Arc<AtomicBool>,
 }
 
 #[napi]
@@ -163,63 +76,81 @@ impl Rspack {
 
     let rspack = rspack::rspack(compiler_options, vec![]);
 
-    let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
-    unsafe { COMPILERS.insert_if_vacant(id, rspack) }?;
-
-    Ok(Self { id })
+    Ok(Self {
+      compiler: rspack,
+      lock: Arc::new(AtomicBool::new(false)),
+    })
   }
 
   /// Build with the given option passed to the constructor
-  ///
-  /// Warning:
-  /// Calling this method recursively might cause a deadlock.
   #[napi(
     catch_unwind,
     js_name = "unsafe_build",
     ts_args_type = "callback: (err: null | Error) => void"
   )]
-  pub fn build(&self, env: Env, f: JsFunction) -> Result<()> {
-    let handle_build = |compiler: &mut _| {
-      // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
-      let compiler = unsafe {
-        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
-      };
+  pub fn build(&mut self, env: Env, f: JsFunction) -> Result<()> {
+    if self
+      .lock
+      .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+      .is_err()
+    {
+      return callbackify::<(), _>(env, f, async {
+        Err(Error::from_reason("ConcurrentCompilationError: You ran Rspack twice. Each instance only supports a single concurrent compilation at a time."))
+      });
+    }
 
-      callbackify(env, f, async move {
+    let compiler = unsafe {
+      std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(
+        &mut self.compiler,
+      )
+    };
+
+    callbackify(env, f, {
+      let lock = self.lock.clone();
+      async move {
         compiler
           .build()
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
         tracing::info!("build ok");
+        lock.store(false, Ordering::Release);
         Ok(())
-      })
-    };
-    unsafe { COMPILERS.borrow_mut(&self.id, handle_build) }
+      }
+    })
   }
 
   /// Rebuild with the given option passed to the constructor
-  ///
-  /// Warning:
-  /// Calling this method recursively will cause a deadlock.
   #[napi(
     catch_unwind,
     js_name = "unsafe_rebuild",
     ts_args_type = "changed_files: string[], removed_files: string[], callback: (err: null | Error) => void"
   )]
   pub fn rebuild(
-    &self,
+    &mut self,
     env: Env,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: JsFunction,
   ) -> Result<()> {
-    let handle_rebuild = |compiler: &mut _| {
-      // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
-      let compiler = unsafe {
-        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
-      };
+    if self
+      .lock
+      .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+      .is_err()
+    {
+      return callbackify::<(), _>(env, f, async {
+        Err(Error::from_reason("ConcurrentCompilationError: You ran Rspack twice. Each instance only supports a single concurrent compilation at a time."))
+      });
+    }
 
-      callbackify(env, f, async move {
+    let compiler = unsafe {
+      std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(
+        &mut self.compiler,
+      )
+    };
+
+    callbackify(env, f, {
+      let lock = self.lock.clone();
+      async move {
         compiler
           .rebuild(
             HashSet::from_iter(changed_files.into_iter()),
@@ -228,45 +159,31 @@ impl Rspack {
           .await
           .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e:?}")))?;
         tracing::info!("rebuild ok");
+        lock.store(false, Ordering::Release);
         Ok(())
-      })
-    };
-
-    unsafe { COMPILERS.borrow_mut(&self.id, handle_rebuild) }
+      }
+    })
   }
 
   /// Get the last compilation
   ///
   /// Warning:
   ///
-  /// Calling this method under the build or rebuild method might cause a deadlock.
-  ///
   /// **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
   #[napi(catch_unwind, js_name = "unsafe_last_compilation")]
-  pub fn unsafe_last_compilation<F: Fn(JsCompilation) -> Result<()>>(&self, f: F) -> Result<()> {
-    let handle_last_compilation = |compiler: &mut _| {
-      // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
-      let compiler = unsafe {
-        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
-      };
-      f(JsCompilation::from_compilation(unsafe {
-        Pin::new_unchecked(&mut compiler.compilation)
-      }))
+  pub fn unsafe_last_compilation<F: Fn(JsCompilation) -> Result<()>>(
+    &mut self,
+    f: F,
+  ) -> Result<()> {
+    let compiler = unsafe {
+      std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(
+        &mut self.compiler,
+      )
     };
 
-    unsafe { COMPILERS.borrow_mut(&self.id, handle_last_compilation) }
-  }
-
-  /// Destroy the compiler
-  ///
-  /// Warning:
-  ///
-  /// Anything related to this compiler will be invalidated after this method is called.
-  #[napi(catch_unwind, js_name = "unsafe_drop")]
-  pub fn drop(&self) -> Result<()> {
-    unsafe { COMPILERS.remove(&self.id) };
-
-    Ok(())
+    f(JsCompilation::from_compilation(unsafe {
+      Pin::new_unchecked(&mut compiler.compilation)
+    }))
   }
 }
 
