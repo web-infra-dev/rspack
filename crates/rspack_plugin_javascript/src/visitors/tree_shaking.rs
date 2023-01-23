@@ -1,6 +1,9 @@
+use std::collections::hash_map::Entry;
+
+use rspack_core::tree_shaking::debug_care_module_id;
 use rspack_core::{
-  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, IdentifierSet,
-  ModuleGraph, ModuleIdentifier,
+  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, IdentifierMap,
+  IdentifierSet, ModuleGraph, ModuleIdentifier,
 };
 // use swc_ecma_utils::
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};
@@ -18,6 +21,8 @@ pub fn tree_shaking_visitor<'a>(
   used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
   top_level_mark: Mark,
   side_effects_free_modules: &'a IdentifierSet,
+  module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
+  helper_mark: Mark,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
@@ -29,6 +34,9 @@ pub fn tree_shaking_visitor<'a>(
     module_item_index: 0,
     insert_item_tuple_list: Vec::new(),
     side_effects_free_modules,
+    last_module_item_index: 0,
+    module_item_map,
+    helper_mark,
   }
 }
 
@@ -54,6 +62,9 @@ struct TreeShaker<'a> {
   insert_item_tuple_list: Vec<(usize, ModuleItem)>,
   module_item_index: usize,
   side_effects_free_modules: &'a IdentifierSet,
+  last_module_item_index: usize,
+  module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
+  helper_mark: Mark,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -70,6 +81,9 @@ impl<'a> Fold for TreeShaker<'a> {
       .enumerate()
       .map(|(index, item)| {
         self.module_item_index = index;
+        if !matches!(item, ModuleItem::Stmt(_)) {
+          self.last_module_item_index = index;
+        }
         item.fold_with(self)
       })
       .collect();
@@ -79,12 +93,24 @@ impl<'a> Fold for TreeShaker<'a> {
     {
       node.body.insert(position, module_item);
     }
+
+    match self.module_item_map.get(&self.module_identifier) {
+      Some(occ) => {
+        for module_item in occ {
+          node
+            .body
+            .insert(self.last_module_item_index, module_item.clone());
+        }
+      }
+      None => {}
+    }
+
     node
   }
   fn fold_module_item(&mut self, node: ModuleItem) -> ModuleItem {
     match node {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
-        ModuleDecl::Import(ref import) => {
+        ModuleDecl::Import(mut import) => {
           let module_identifier = self
             .resolve_module_identifier(import.src.value.to_string())
             .unwrap_or_else(|| {
@@ -103,50 +129,80 @@ impl<'a> Fold for TreeShaker<'a> {
           if !mgm.used {
             return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
           }
+          // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));
+          let before_length = import.specifiers.len();
+          let specifiers = import
+            .specifiers
+            .into_iter()
+            .filter(|specifier| {
+              match mgm.module_type {
+                rspack_core::ModuleType::Js
+                | rspack_core::ModuleType::JsDynamic
+                | rspack_core::ModuleType::JsEsm
+                | rspack_core::ModuleType::Jsx
+                | rspack_core::ModuleType::JsxDynamic
+                | rspack_core::ModuleType::JsxEsm
+                | rspack_core::ModuleType::Tsx
+                | rspack_core::ModuleType::Ts => {}
+                _ => return true,
+              }
+              match specifier {
+                ImportSpecifier::Namespace(_) => {
+                  // import * as xxx  from 'xxx'
+                  // TODO:
+                  true
+                }
+                ImportSpecifier::Default(default) => {
+                  if default.local.to_id().1.outer() == self.helper_mark {
+                    return true;
+                  }
+                  let symbol = IndirectTopLevelSymbol {
+                    src: module_identifier.into(),
+                    ty: rspack_symbol::IndirectType::ImportDefault(default.local.sym.clone()),
+                    importer: self.module_identifier.into(),
+                  };
+                  let ret = self.used_indirect_symbol_set.contains(&symbol);
+                  if debug_care_module_id(module_identifier.as_str()) {
+                    // dbg!(&symbol);
+                    // dbg!(ret);
+                  }
+                  ret
+                  // unreachable!("`export v from ''` is a unrecoverable syntax error")
+                }
 
-          // let specifiers = named
-          //   .specifiers
-          //   .into_iter()
-          //   .filter(|specifier| match specifier {
-          //     ExportSpecifier::Namespace(_) => {
-          //       // export * from 'xxx'
-          //       true
-          //     }
-          //     ExportSpecifier::Default(_) => {
-          //       unreachable!("`export v from ''` is a unrecoverable syntax error")
-          //     }
+                ImportSpecifier::Named(named_import) => {
+                  let local = named_import.local.sym.clone();
+                  let imported = named_import
+                    .imported
+                    .as_ref()
+                    .map(|exported| match exported {
+                      ModuleExportName::Ident(ident) => ident.sym.clone(),
+                      ModuleExportName::Str(str) => str.value.clone(),
+                    });
+                  let symbol = IndirectTopLevelSymbol {
+                    src: module_identifier.into(),
+                    ty: rspack_symbol::IndirectType::Import(local, imported),
+                    importer: self.module_identifier.into(),
+                  };
 
-          //     ExportSpecifier::Named(named_spec) => {
-          //       let original = match &named_spec.orig {
-          //         ModuleExportName::Ident(ref ident) => ident.sym.clone(),
-          //         ModuleExportName::Str(str) => str.value.clone(),
-          //       };
-          //       let exported = named_spec.exported.as_ref().map(|exported| match exported {
-          //         ModuleExportName::Ident(ident) => ident.sym.clone(),
-          //         ModuleExportName::Str(str) => str.value.clone(),
-          //       });
-          //       let symbol = IndirectTopLevelSymbol {
-          //         src: self.module_identifier.into(),
-          //         ty: rspack_symbol::IndirectType::ReExport(original, exported),
-          //         importer: self.module_identifier.into(),
-          //       };
+                  // dbg!(&symbol);
+                  let ret = self.used_indirect_symbol_set.contains(&symbol);
+                  ret
+                }
+              }
+            })
+            .collect::<Vec<_>>();
 
-          //       let ret = self.used_indirect_symbol_set.contains(&symbol);
-          //       ret
-          //     }
-          //   })
-          //   .collect::<Vec<_>>();
-
-          // // try if we could remove this export declaration
-          // if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
-          //   return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
-          // }
-          // let is_all_used = before_legnth == specifiers.len();
-          // named.specifiers = specifiers;
-          // if !is_all_used {
-          //   named.span = DUMMY_SP;
-          // }
-          ModuleItem::ModuleDecl(module_decl)
+          // try if we could remove this export declaration
+          if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
+            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+          }
+          let is_all_used = before_length == specifiers.len();
+          import.specifiers = specifiers;
+          if !is_all_used {
+            import.span = DUMMY_SP;
+          }
+          ModuleItem::ModuleDecl(ModuleDecl::Import(import))
         }
         ModuleDecl::ExportDecl(decl) => match decl.decl {
           Decl::Class(mut class) => {

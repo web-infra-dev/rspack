@@ -39,7 +39,16 @@ use rspack_symbol::{
   IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol, SymbolType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::{
+  common::DUMMY_SP,
+  ecma::{
+    ast::{
+      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier, ModuleDecl,
+      ModuleItem, Str,
+    },
+    atoms::JsWord,
+  },
+};
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
@@ -125,6 +134,7 @@ pub struct Compilation {
   pub missing_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub build_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub side_effects_free_modules: IdentifierSet,
+  pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 }
 
 impl Compilation {
@@ -179,6 +189,7 @@ impl Compilation {
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
       side_effects_free_modules: IdentifierSet::default(),
+      module_item_map: IdentifierMap::default(),
     }
   }
 
@@ -1148,43 +1159,24 @@ impl Compilation {
       &symbol_graph,
       self.options.context.as_ref().to_str().unwrap(),
     );
-    println!("{:?}", Dot::new(&debug_graph));
+    // println!("{:?}", Dot::new(&debug_graph));
 
-    let dependency_replacement = update_dependency(
-      &symbol_graph,
-      &used_export_module_identifiers,
-      &bailout_module_identifiers,
-      &side_effects_free_modules,
-      &self.entry_module_identifiers,
-    );
+    // let dependency_replacement = update_dependency(
+    //   &symbol_graph,
+    //   &used_export_module_identifiers,
+    //   &bailout_module_identifiers,
+    //   &side_effects_free_modules,
+    //   &self.entry_module_identifiers,
+    // );
 
-    dbg!(&dependency_replacement);
+    // dbg!(&dependency_replacement);
 
     // apply replacement start
-    // let mut module_item_map = IdentifierMap::default();
-    // for replace in dependency_replacement {
-    //   let DependencyReplacement {
-    //     original,
-    //     to,
-    //     replacement,
-    //     ..
-    //   } = replace;
-    //   symbol_graph.remove_edge(&original, &to);
-    //   symbol_graph.add_edge(&original, &replacement);
-    //   let replace_src_module_id = replacement.module_identifier();
-    //   let contextify_src = contextify(&self.options.context, &replace_src_module_id);
-    //   let module_item = match (original, to) {
-    //     (SymbolRef::Indirect(indirect), to) => {
-    //       let importer = indirect.importer();
-    //     }
-    //     _ => todo!(),
-    //   };
-    //   // match module_item_map.entry() {
-    //   //   Entry::Occupied(_) => todo!(),
-    //   //   Entry::Vacant(_) => todo!(),
-    //   // };
-    // }
-    // apply replacement end
+    // let module_item_map =
+    //   self.apply_dependency_replacement(dependency_replacement, &mut symbol_graph);
+    // // apply replacement end
+
+    // dbg!(&module_item_map);
 
     // let no_direct_used = used_export_module_identifiers
     //   .iter()
@@ -1204,6 +1196,7 @@ impl Compilation {
       &mut used_indirect_symbol,
       visited_symbol_ref,
     );
+    dbg!(&used_indirect_symbol);
 
     Ok(
       OptimizeDependencyResult {
@@ -1212,9 +1205,94 @@ impl Compilation {
         bail_out_module_identifiers: bailout_module_identifiers,
         used_indirect_symbol,
         side_effects_free_modules,
+        module_item_map: IdentifierMap::default(),
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
+  }
+
+  fn apply_dependency_replacement(
+    &mut self,
+    dependency_replacement: Vec<DependencyReplacement>,
+    symbol_graph: &mut SymbolGraph,
+  ) -> IdentifierMap<Vec<ModuleItem>> {
+    let mut module_item_map: IdentifierMap<Vec<ModuleItem>> = IdentifierMap::default();
+    for replace in dependency_replacement {
+      let DependencyReplacement {
+        original,
+        to,
+        replacement,
+        ..
+      } = replace;
+      symbol_graph.remove_edge(&original, &to);
+      symbol_graph.add_edge(&original, &replacement);
+      let replace_src_module_id = replacement.module_identifier();
+      let contextify_src = contextify(&self.options.context, &replace_src_module_id);
+      // TODO: Consider multiple replacement points to same original [SymbolRef]
+      let (module_ident, module_decl) = match (original, to) {
+        (SymbolRef::Indirect(indirect), to) => {
+          let importer = indirect.importer();
+          let item = match indirect.ty {
+            IndirectType::Temp(_) => todo!(),
+            IndirectType::ReExport(_, _) => todo!(),
+            IndirectType::Import(local, imported) => {
+              let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
+                span: DUMMY_SP,
+                local: Ident::new(local, DUMMY_SP),
+                imported: imported.map(|imported| {
+                  // TODO: Consider ModuleExportName is `Str`
+                  swc_core::ecma::ast::ModuleExportName::Ident(Ident::new(imported, DUMMY_SP))
+                }),
+                is_type_only: false,
+              });
+              let import = ImportDecl {
+                span: DUMMY_SP,
+                specifiers: vec![specifier],
+                src: Box::new(Str {
+                  span: DUMMY_SP,
+                  value: contextify_src.into(),
+                  raw: None,
+                }),
+                type_only: false,
+                asserts: None,
+              };
+              ModuleDecl::Import(import)
+            }
+            IndirectType::ImportDefault(binding) => {
+              let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
+                span: DUMMY_SP,
+                local: Ident::new(binding, DUMMY_SP),
+              });
+              let import = ImportDecl {
+                span: DUMMY_SP,
+                specifiers: vec![specifier],
+                src: Box::new(Str {
+                  span: DUMMY_SP,
+                  value: contextify_src.into(),
+                  raw: None,
+                }),
+                type_only: false,
+                asserts: None,
+              };
+              ModuleDecl::Import(import)
+            }
+          };
+          (importer, item)
+        }
+        _ => todo!(),
+      };
+      match module_item_map.entry(module_ident.into()) {
+        Entry::Occupied(mut occ) => {
+          let module_item = ModuleItem::ModuleDecl(module_decl);
+          occ.borrow_mut().get_mut().push(module_item);
+        }
+        Entry::Vacant(occ) => {
+          let module_item = ModuleItem::ModuleDecl(module_decl);
+          occ.insert(vec![module_item]);
+        }
+      };
+    }
+    module_item_map
   }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -1660,7 +1738,7 @@ fn update_dependency(
     }
     // println!("end ----------------");
   }
-  dbg!(&exported_symbol_set);
+  // dbg!(&exported_symbol_set);
   dependency_replacement_list
 }
 
@@ -1703,7 +1781,7 @@ fn validate_and_insert_replacement(
       // validate if we this path point to same symbol
       // we know that start must be has `SymbolType == Define`
       if end - start > 1 {
-        dbg!(&&symbol_path[start..=end]);
+        // dbg!(&&symbol_path[start..=end]);
       }
       is_same_symbol(original, end, start, symbol_path, replace)
     }
@@ -1762,7 +1840,7 @@ fn is_same_symbol(
     let next_id = match cur {
       SymbolRef::Direct(_) => unreachable!(),
       SymbolRef::Indirect(indirect) => match &indirect.ty {
-        IndirectType::Default(ref id) => {
+        IndirectType::Temp(ref id) => {
           if id != &pre {
             return false;
           }
@@ -1776,6 +1854,9 @@ fn is_same_symbol(
           original.clone()
         }
         IndirectType::Import(..) => {
+          unreachable!()
+        }
+        IndirectType::ImportDefault(_) => {
           unreachable!()
         }
       },
@@ -2050,7 +2131,7 @@ fn mark_symbol(
   visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
-  dbg!(&current_symbol_ref);
+  // dbg!(&current_symbol_ref);
   if visited_symbol_ref.contains(&current_symbol_ref) {
     return;
   } else {
@@ -2080,7 +2161,7 @@ fn mark_symbol(
       );
     }
     SymbolRef::Indirect(IndirectTopLevelSymbol {
-      ty: IndirectType::Default(_) | IndirectType::Import(_, _),
+      ty: IndirectType::Temp(_) | IndirectType::Import(_, _) | IndirectType::ImportDefault(_),
       src,
       ..
     }) => {
@@ -2185,7 +2266,6 @@ fn mark_symbol(
           let mut is_first_result = true;
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
             if let Some(value) = extends_export_map.get(&indirect_symbol.indirect_id()) {
-              dbg!(&value);
               ret.push((module_identifier, value));
               if is_first_result {
                 let mut final_node_of_path = vec![];
@@ -2223,13 +2303,10 @@ fn mark_symbol(
                         if i == 0 {
                           star_chain_start_end_pair.0 = to.clone();
                         }
-                        dbg!(&from);
-                        dbg!(&to);
                         graph.add_edge(&from, &to);
                         from = to;
                       }
                       graph.add_edge(&from, value);
-                      dbg!(&value);
                       star_chain_start_end_pair.1 = from;
                       final_node_of_path.push(star_chain_start_end_pair);
                       for mi in path.iter() {
@@ -2255,7 +2332,7 @@ fn mark_symbol(
           if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.src.into())
           {
             for used_symbol_ref in module_result.used_symbol_refs.iter() {
-              graph.add_edge(&current_symbol_ref, used_symbol_ref);
+              // graph.add_edge(&current_symbol_ref, used_symbol_ref);
               symbol_queue.push_back(used_symbol_ref.clone());
             }
             evaluated_module_identifiers.insert(indirect_symbol.src().into());
@@ -2265,6 +2342,18 @@ fn mark_symbol(
               // TODO: Better diagnostic handle if source module does not have the export
               // let map = analyze_map.get(&module_result.module_identifier).expect("TODO:");
               // dbg!(&map);
+
+              graph.add_edge(&current_symbol_ref, &current_symbol_ref);
+              // match bailout_module_identifiers.get(&module_result.module_identifier) {
+              //   Some(flag)
+              //     if flag.contains(BailoutFlog::COMMONJS_EXPORTS)
+              //       // && indirect_symbol.indirect_id() == "default"
+              //       =>
+              //   {
+              //     graph.add_edge(&current_symbol_ref, &current_symbol_ref);
+              //   }
+              //   _ => {}
+              // }
               if !is_bailout_module_identifier && !has_bailout_module_identifiers {
                 let error_message = format!(
                   "{} did not export `{}`, imported by {}",
@@ -2676,6 +2765,7 @@ fn finalize_symbol(
         let node_index = *match symbol_graph.get_node_index(symbol_ref) {
           Some(node_index) => node_index,
           None => {
+            eprintln!("(used symbol) Can't get symbol for {:?}", symbol_ref);
             if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier())
               && is_js_like_uri(&symbol_ref.module_identifier())
             {

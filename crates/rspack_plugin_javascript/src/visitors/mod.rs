@@ -12,7 +12,7 @@ mod format;
 use format::*;
 mod module_variables;
 use module_variables::*;
-use rspack_core::{BuildInfo, Module, ModuleType};
+use rspack_core::{BuildInfo, Devtool, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
@@ -26,6 +26,8 @@ use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use tree_shaking::tree_shaking_visitor;
+
+use crate::ast::stringify;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
@@ -133,6 +135,9 @@ pub fn run_after_pass(
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
 
+  // dbg!(&module.identifier());
+  // let res = stringify(ast, &Devtool::default());
+  // println!("{}\n{}", module.identifier(), res.unwrap().code);
   ast
     .transform_with_handler(cm.clone(), |_, program, context| {
       let unresolved_mark = context.unresolved_mark;
@@ -182,7 +187,9 @@ pub fn run_after_pass(
             &generate_context.compilation.used_symbol,
             &generate_context.compilation.used_indirect_symbol,
             top_level_mark,
-            &generate_context.compilation.side_effects_free_modules
+            &generate_context.compilation.side_effects_free_modules,
+            &generate_context.compilation.module_item_map,
+            context.helpers.mark()
           ),
           builtin_tree_shaking && need_tree_shaking
         ),
