@@ -1,7 +1,7 @@
 use bitflags::bitflags;
-use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::Id;
 use swc_core::ecma::atoms::JsWord;
+use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
 use ustr::{ustr, Ustr};
 
 bitflags! {
@@ -49,13 +49,15 @@ impl Symbol {
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum IndirectType {
-  Default(JsWord),
+  Temp(JsWord),
   /// first argument is original, second argument is exported
   ReExport(JsWord, Option<JsWord>),
   /// first argument is local, second argument is imported
   Import(JsWord, Option<JsWord>),
+  ///
+  ImportDefault(JsWord),
 }
-
+pub static default_js_word: JsWord = js_word!("default");
 /// We have three kind of star symbol
 /// ## import with namespace
 /// ```js
@@ -115,20 +117,12 @@ impl StarSymbol {
   pub fn star_kind(&self) {}
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct IndirectTopLevelSymbol {
   pub src: Ustr,
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
   pub importer: Ustr,
-}
-
-impl std::hash::Hash for IndirectTopLevelSymbol {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.src.hash(state);
-    self.ty.hash(state);
-    self.importer.hash(state);
-  }
 }
 
 // impl std::cmp::PartialEq for IndirectTopLevelSymbol {
@@ -148,7 +142,7 @@ impl IndirectTopLevelSymbol {
   /// else it return binding
   pub fn indirect_id(&self) -> &JsWord {
     match self.ty {
-      IndirectType::Default(ref ident) => ident,
+      IndirectType::Temp(ref ident) => ident,
       IndirectType::ReExport(ref original, ref exported) => match exported {
         Some(exported) => exported,
         None => original,
@@ -157,17 +151,20 @@ impl IndirectTopLevelSymbol {
         Some(imported) => imported,
         None => local,
       },
+      // we store the binding just used for create [ModuleDecl], but it always to DefaultExport of some module
+      IndirectType::ImportDefault(_) => &default_js_word,
     }
   }
 
   pub fn id(&self) -> &JsWord {
     match self.ty {
-      IndirectType::Default(ref ident) => ident,
+      IndirectType::Temp(ref ident) => ident,
       IndirectType::ReExport(ref original, ref exported) => match exported {
         Some(exported) => exported,
         None => original,
       },
       IndirectType::Import(ref local, ref imported) => local,
+      IndirectType::ImportDefault(_) => &default_js_word,
     }
   }
 
@@ -192,8 +189,8 @@ impl IndirectTopLevelSymbol {
     matches!(&self.ty, IndirectType::ReExport(_, _))
   }
 
-  pub fn is_default(&self) -> bool {
-    matches!(&self.ty, IndirectType::Default(_))
+  pub fn is_temp(&self) -> bool {
+    matches!(&self.ty, IndirectType::Temp(_))
   }
 
   pub fn is_import(&self) -> bool {

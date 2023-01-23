@@ -89,14 +89,14 @@ async fn run(relative_path: &str) {
   }
 }
 
-fn main() {
-  prints_calling_location(); // would print `called from line: 2`
-  prints_calling_location(); // would print `called from line: 3`
-}
+// fn main() {
+//   prints_calling_location(); // would print `called from line: 2`
+//   prints_calling_location(); // would print `called from line: 3`
+// }
 
-#[track_caller]
-fn prints_calling_location() {
-  let caller_location = std::panic::Location::caller();
-  let caller_line_number = caller_location.line();
-  println!("called from line: {}", caller_line_number);
-}
+// #[track_caller]
+// fn prints_calling_location() {
+//   let caller_location = std::panic::Location::caller();
+//   let caller_line_number = caller_location.line();
+//   println!("called from line: {}", caller_line_number);
+// }

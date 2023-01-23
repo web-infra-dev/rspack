@@ -492,7 +492,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                     resolved_uri_ukey.into(),
                     self.module_identifier.into(),
-                    IndirectType::Import("default".into(), None),
+                    IndirectType::ImportDefault(default.local.sym.clone()),
                   )),
                 );
               }
@@ -1250,7 +1250,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                 resolved_uri_ukey.into(),
                 self.module_identifier.into(),
-                IndirectType::Default(original.clone()),
+                IndirectType::Temp(original.clone()),
               ))]),
             );
 

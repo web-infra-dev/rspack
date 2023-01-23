@@ -1,6 +1,7 @@
 use bitflags;
 use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 use rustc_hash::FxHashSet as HashSet;
+use swc_core::ecma::ast::{ModuleDecl, ModuleItem};
 
 use self::visitor::TreeShakingResult;
 use crate::{IdentifierMap, IdentifierSet};
@@ -15,9 +16,13 @@ pub struct OptimizeDependencyResult {
   pub analyze_results: IdentifierMap<TreeShakingResult>,
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub side_effects_free_modules: IdentifierSet,
+  pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 }
-const ANALYZE_LOGGING: bool = false;
-pub static CARED_MODULE_ID: &[&str] = &[];
+const ANALYZE_LOGGING: bool = true;
+pub static CARED_MODULE_ID: &[&str] = &[
+  "/Users/bytedance/Documents/rspack/rspack/node_modules/@arco-design/web-react/node_modules/react-transition-group/esm/CSSTransition.js",
+  "/Users/bytedance/Documents/rspack/rspack/node_modules/prop-types/index.js"
+];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {

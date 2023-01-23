@@ -23,6 +23,8 @@ module.exports = {
     sideEffects: true,
     noEmitAssets: false,
   },
+  stats: true,
+  cache: false,
   module: {
     rules:
       [

@@ -17,7 +17,6 @@ app.prototype.result = _libJs.result;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__("./app.js");
 __webpack_require__("./src/a.js");
 },
 "./lib.js": function (module, exports, __webpack_require__) {
