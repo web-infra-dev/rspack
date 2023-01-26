@@ -50,6 +50,13 @@ impl SymbolRef {
     }
   }
 
+  pub fn importer(&self) -> ModuleIdentifier {
+    match self {
+      SymbolRef::Direct(d) => d.uri().into(),
+      SymbolRef::Indirect(i) => i.importer.into(),
+      SymbolRef::Star(s) => s.module_ident.into(),
+    }
+  }
   /// Returns `true` if the symbol ref is [`Direct`].
   ///
   /// [`Direct`]: SymbolRef::Direct

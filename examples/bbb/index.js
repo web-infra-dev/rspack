@@ -1,2 +1,1 @@
-import {a} from './a.js'
-a;
+require('./a.js')

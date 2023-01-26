@@ -1,1 +1,1 @@
-export *  from './b.js'
+export {a as d}  from './b.js'

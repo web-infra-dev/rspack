@@ -194,7 +194,10 @@ impl IndirectTopLevelSymbol {
   }
 
   pub fn is_import(&self) -> bool {
-    matches!(&self.ty, IndirectType::Import(_, _))
+    matches!(
+      &self.ty,
+      IndirectType::Import(_, _) | IndirectType::ImportDefault(_)
+    )
   }
 }
 
