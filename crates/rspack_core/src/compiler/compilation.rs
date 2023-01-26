@@ -9,7 +9,7 @@ use std::{
   pin::Pin,
   sync::{
     atomic::{AtomicBool, Ordering},
-    vec, Arc,
+    Arc,
   },
 };
 

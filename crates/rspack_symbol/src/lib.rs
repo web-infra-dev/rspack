@@ -2,7 +2,7 @@ use bitflags::bitflags;
 use swc_core::ecma::ast::Id;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
-use ustr::{ustr, Ustr};
+use ustr::Ustr;
 
 bitflags! {
     pub struct SymbolFlag: u8 {
@@ -163,7 +163,7 @@ impl IndirectTopLevelSymbol {
         Some(exported) => exported,
         None => original,
       },
-      IndirectType::Import(ref local, ref imported) => local,
+      IndirectType::Import(ref local, ref _imported) => local,
       IndirectType::ImportDefault(_) => &default_js_word,
     }
   }
