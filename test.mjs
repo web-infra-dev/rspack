@@ -1,4 +1,4 @@
-export {} from "./a.mjs";
+export { test as default } from "./a.mjs";
 
 function a() {}
-import a as test,{ a } from "./a.mjs";
+import { default as a } from "./a.mjs";

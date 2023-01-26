@@ -1,3 +1,4 @@
 import { something, a } from "./app";
 
-something();
+// something();
+a;

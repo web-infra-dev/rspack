@@ -5,10 +5,12 @@ use std::{
   fmt::{Debug, DebugStruct},
   hash::{BuildHasherDefault, Hash, Hasher},
   marker::PhantomPinned,
+  ops::ControlFlow,
   path::PathBuf,
   pin::Pin,
   sync::{
     atomic::{AtomicBool, Ordering},
+    // time::Instant,
     Arc,
   },
 };
@@ -40,11 +42,12 @@ use rspack_symbol::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
-  common::DUMMY_SP,
+  common::{Mark, SyntaxContext, DUMMY_SP, GLOBALS},
   ecma::{
     ast::{
-      Ident, ImportDecl, ImportDefaultSpecifier, ImportNamedSpecifier, ImportSpecifier, ModuleDecl,
-      ModuleItem, Str,
+      ExportNamedSpecifier, ExportSpecifier, Ident, ImportDecl, ImportDefaultSpecifier,
+      ImportNamedSpecifier, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, NamedExport,
+      Str,
     },
     atoms::JsWord,
   },
@@ -68,12 +71,13 @@ use crate::{
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
   ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, DependencyId,
+  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, Context,
   EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
   FactorizeTaskResult, Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet,
-  LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
+  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
+  TaskResult, VisitedModuleIdentity, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -1161,28 +1165,43 @@ impl Compilation {
     );
     // println!("{:?}", Dot::new(&debug_graph));
 
-    // let dependency_replacement = update_dependency(
-    //   &symbol_graph,
-    //   &used_export_module_identifiers,
-    //   &bailout_module_identifiers,
-    //   &side_effects_free_modules,
-    //   &self.entry_module_identifiers,
-    // );
+    let mut dead_nodes_index = HashSet::default();
+    let module_item_map = if side_effects_analyze {
+      // let start = Instant::now();
+      // let dependency_replacement = update_dependency(
+      //   &symbol_graph,
+      //   &used_export_module_identifiers,
+      //   &bailout_module_identifiers,
+      //   &side_effects_free_modules,
+      //   &self.entry_module_identifiers,
+      // );
 
-    // dbg!(&dependency_replacement);
+      // // dbg!(&dependency_replacement);
 
-    // apply replacement start
-    // let module_item_map =
-    //   self.apply_dependency_replacement(dependency_replacement, &mut symbol_graph);
-    // // apply replacement end
+      // // apply replacement start
+      // // let mut module_item_map = IdentifierMap::default();
+      // let module_item_map = self.apply_dependency_replacement(
+      //   dependency_replacement,
+      //   &mut dead_nodes_index,
+      //   &mut symbol_graph,
+      // );
 
-    // dbg!(&module_item_map);
+      // // dbg!(&module_item_map);
+      // dbg!(&start.elapsed());
+      // module_item_map
+      IdentifierMap::default()
+    } else {
+      IdentifierMap::default()
+    };
 
-    // let no_direct_used = used_export_module_identifiers
-    //   .iter()
-    //   .filter(|(k, v)| !v.contains(ModuleUsedType::DIRECT))
-    //   .collect::<HashSet<_>>();
-    // dbg!(&no_direct_used);
+    let no_direct_used = used_export_module_identifiers
+      .iter()
+      .filter(|(k, v)| {
+        (v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT))
+          && !v.contains(ModuleUsedType::DIRECT)
+      })
+      .collect::<HashSet<_>>();
+    dbg!(&no_direct_used);
 
     finalize_symbol(
       self,
@@ -1195,8 +1214,10 @@ impl Compilation {
       &mut used_direct_symbol,
       &mut used_indirect_symbol,
       visited_symbol_ref,
+      &side_effects_free_modules,
+      &dead_nodes_index,
     );
-    dbg!(&used_indirect_symbol);
+    // dbg!(&used_indirect_symbol);
 
     Ok(
       OptimizeDependencyResult {
@@ -1205,7 +1226,7 @@ impl Compilation {
         bail_out_module_identifiers: bailout_module_identifiers,
         used_indirect_symbol,
         side_effects_free_modules,
-        module_item_map: IdentifierMap::default(),
+        module_item_map,
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
@@ -1214,85 +1235,199 @@ impl Compilation {
   fn apply_dependency_replacement(
     &mut self,
     dependency_replacement: Vec<DependencyReplacement>,
+    dead_nodes_index: &mut HashSet<NodeIndex>,
     symbol_graph: &mut SymbolGraph,
   ) -> IdentifierMap<Vec<ModuleItem>> {
     let mut module_item_map: IdentifierMap<Vec<ModuleItem>> = IdentifierMap::default();
-    for replace in dependency_replacement {
-      let DependencyReplacement {
-        original,
-        to,
-        replacement,
-        ..
-      } = replace;
-      symbol_graph.remove_edge(&original, &to);
-      symbol_graph.add_edge(&original, &replacement);
-      let replace_src_module_id = replacement.module_identifier();
-      let contextify_src = contextify(&self.options.context, &replace_src_module_id);
-      // TODO: Consider multiple replacement points to same original [SymbolRef]
-      let (module_ident, module_decl) = match (original, to) {
-        (SymbolRef::Indirect(indirect), to) => {
-          let importer = indirect.importer();
-          let item = match indirect.ty {
-            IndirectType::Temp(_) => todo!(),
-            IndirectType::ReExport(_, _) => todo!(),
-            IndirectType::Import(local, imported) => {
-              let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
-                span: DUMMY_SP,
-                local: Ident::new(local, DUMMY_SP),
-                imported: imported.map(|imported| {
-                  // TODO: Consider ModuleExportName is `Str`
-                  swc_core::ecma::ast::ModuleExportName::Ident(Ident::new(imported, DUMMY_SP))
-                }),
-                is_type_only: false,
-              });
-              let import = ImportDecl {
-                span: DUMMY_SP,
-                specifiers: vec![specifier],
-                src: Box::new(Str {
-                  span: DUMMY_SP,
-                  value: contextify_src.into(),
-                  raw: None,
-                }),
-                type_only: false,
-                asserts: None,
-              };
-              ModuleDecl::Import(import)
-            }
-            IndirectType::ImportDefault(binding) => {
-              let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
-                span: DUMMY_SP,
-                local: Ident::new(binding, DUMMY_SP),
-              });
-              let import = ImportDecl {
-                span: DUMMY_SP,
-                specifiers: vec![specifier],
-                src: Box::new(Str {
-                  span: DUMMY_SP,
-                  value: contextify_src.into(),
-                  raw: None,
-                }),
-                type_only: false,
-                asserts: None,
-              };
-              ModuleDecl::Import(import)
-            }
-          };
-          (importer, item)
-        }
-        _ => todo!(),
-      };
-      match module_item_map.entry(module_ident.into()) {
-        Entry::Occupied(mut occ) => {
-          let module_item = ModuleItem::ModuleDecl(module_decl);
-          occ.borrow_mut().get_mut().push(module_item);
-        }
-        Entry::Vacant(occ) => {
-          let module_item = ModuleItem::ModuleDecl(module_decl);
-          occ.insert(vec![module_item]);
-        }
-      };
-    }
-    module_item_map
+    // let mut dead_nodes: HashSet<NodeIndex> = HashSet::new();
+    let temp_global = Default::default();
+    GLOBALS.set(&temp_global, || {
+      let top_level_mark = Mark::new();
+      for replace in dependency_replacement {
+        let DependencyReplacement {
+          original,
+          to,
+          replacement,
+          ..
+        } = replace;
+        symbol_graph.remove_edge(&original, &to);
+        symbol_graph.add_edge(&original, &replacement);
+        let original_node_index = symbol_graph.get_node_index(&original).cloned().unwrap();
+        dead_nodes_index.insert(original_node_index);
+
+        let replace_src_module_id = replacement.module_identifier();
+        let contextify_src = contextify(&self.options.context, &replace_src_module_id);
+        // TODO: Consider multiple replacement points to same original [SymbolRef]
+        let (module_decl, module_ident) = match (original, to) {
+          (SymbolRef::Indirect(ref indirect), to) => {
+            let importer = indirect.importer();
+            let local_binding = match &indirect.ty {
+              IndirectType::Temp(_) => todo!(),
+              IndirectType::ReExport(original, exported) => match exported {
+                Some(exported) => exported,
+                None => original,
+              },
+              IndirectType::Import(local, imported) => local,
+              IndirectType::ImportDefault(binding) => binding,
+            };
+            let import_binding = match replacement {
+              SymbolRef::Direct(direct) => Some(direct.id().atom.clone()),
+              SymbolRef::Indirect(indirect) => Some(indirect.indirect_id().clone()),
+              SymbolRef::Star(_) => None,
+            };
+            let module_decl = match (import_binding, local_binding) {
+              (Some(import_binding), local_binding) => {
+                let is_reexport_all = matches!(indirect.ty, IndirectType::ReExport(_, _));
+                if is_reexport_all {
+                  let specifier = ExportSpecifier::Named(ExportNamedSpecifier {
+                    span: DUMMY_SP,
+                    exported: if local_binding == &import_binding {
+                      None
+                    } else {
+                      // TODO: Considering another export name type
+                      Some(ModuleExportName::Ident(Ident::new(
+                        local_binding.clone(),
+                        DUMMY_SP,
+                      )))
+                    },
+                    orig: ModuleExportName::Ident(Ident::new(import_binding.clone(), DUMMY_SP)),
+                    is_type_only: false,
+                  });
+                  let export = NamedExport {
+                    span: DUMMY_SP,
+                    specifiers: vec![specifier],
+                    src: Some(Box::new(Str {
+                      span: DUMMY_SP,
+                      value: contextify_src.into(),
+                      raw: None,
+                    })),
+                    type_only: false,
+                    asserts: None,
+                  };
+                  ModuleDecl::ExportNamed(export)
+                } else if &import_binding == "default" {
+                  let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
+                    span: DUMMY_SP,
+                    local: Ident::new(
+                      local_binding.clone(),
+                      DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+                    ),
+                  });
+                  let import = ImportDecl {
+                    span: DUMMY_SP,
+                    specifiers: vec![specifier],
+                    src: Box::new(Str {
+                      span: DUMMY_SP,
+                      value: contextify_src.into(),
+                      raw: None,
+                    }),
+                    type_only: false,
+                    asserts: None,
+                  };
+                  ModuleDecl::Import(import)
+                } else {
+                  let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
+                    span: DUMMY_SP,
+                    local: Ident::new(
+                      local_binding.clone(),
+                      DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+                    ),
+                    imported: if &import_binding == local_binding {
+                      None
+                    } else {
+                      // TODO: Consider ModuleExportName is `Str`
+                      Some(ModuleExportName::Ident(Ident::new(
+                        import_binding,
+                        DUMMY_SP,
+                      )))
+                    },
+                    is_type_only: false,
+                  });
+                  let import = ImportDecl {
+                    span: DUMMY_SP,
+                    specifiers: vec![specifier],
+                    src: Box::new(Str {
+                      span: DUMMY_SP,
+                      value: contextify_src.into(),
+                      raw: None,
+                    }),
+                    type_only: false,
+                    asserts: None,
+                  };
+                  ModuleDecl::Import(import)
+                }
+              }
+              (None, _) => {
+                match &indirect.ty {
+                  IndirectType::Temp(_) => todo!(),
+                  IndirectType::ReExport(_, _) => todo!(),
+                  IndirectType::Import(local, imported) => {
+                    let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
+                      span: DUMMY_SP,
+                      local: Ident::new(
+                        local.clone(),
+                        DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+                      ),
+                      imported: imported.as_ref().map(|imported| {
+                        // TODO: Consider ModuleExportName is `Str`
+                        ModuleExportName::Ident(Ident::new(imported.clone(), DUMMY_SP))
+                      }),
+                      is_type_only: false,
+                    });
+                    let import = ImportDecl {
+                      span: DUMMY_SP,
+                      specifiers: vec![specifier],
+                      src: Box::new(Str {
+                        span: DUMMY_SP,
+                        value: contextify_src.into(),
+                        raw: None,
+                      }),
+                      type_only: false,
+                      asserts: None,
+                    };
+                    ModuleDecl::Import(import)
+                  }
+                  IndirectType::ImportDefault(binding) => {
+                    let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
+                      span: DUMMY_SP,
+                      local: Ident::new(
+                        binding.clone(),
+                        DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+                      ),
+                    });
+                    let import = ImportDecl {
+                      span: DUMMY_SP,
+                      specifiers: vec![specifier],
+                      src: Box::new(Str {
+                        span: DUMMY_SP,
+                        value: contextify_src.into(),
+                        raw: None,
+                      }),
+                      type_only: false,
+                      asserts: None,
+                    };
+                    ModuleDecl::Import(import)
+                  }
+                }
+              }
+            };
+            (module_decl, importer)
+          }
+          _ => todo!(),
+        };
+        match module_item_map.entry(module_ident.into()) {
+          Entry::Occupied(mut occ) => {
+            let module_item = ModuleItem::ModuleDecl(module_decl);
+            occ.borrow_mut().get_mut().push(module_item);
+          }
+          Entry::Vacant(occ) => {
+            let module_item = ModuleItem::ModuleDecl(module_decl);
+            occ.insert(vec![module_item]);
+          }
+        };
+      }
+      module_item_map
+    })
   }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -1833,7 +1968,11 @@ fn is_same_symbol(
   symbol_path: &Vec<SymbolRef>,
   replace: &Symbol,
 ) -> bool {
-  let mut pre = original.indirect_id().clone();
+  // dbg!(&symbol_path);
+  let mut pre = match original.ty {
+    IndirectType::ReExport(ref original, ref exported) => original.clone(),
+    _ => original.indirect_id().clone(),
+  };
   let mut i = end - 1;
   while i > start {
     let cur = &symbol_path[i];
@@ -1869,7 +2008,7 @@ fn is_same_symbol(
 }
 
 fn init_sliding_window(start: &mut usize, end: &mut usize, symbol_path: &Vec<SymbolRef>) {
-  println!("{start}, {end}");
+  // println!("{start}, {end}");
   *start = *end;
   while *start < symbol_path.len() && !could_be_start_of_path(&symbol_path[*start]) {
     *start += 1;
@@ -2292,6 +2431,7 @@ fn mark_symbol(
                       let mut from = current_symbol_ref.clone();
                       let mut star_chain_start_end_pair = (from.clone(), from.clone());
                       for i in 0..path.len() - 1 {
+                        // dbg!(&path);
                         let star_symbol = StarSymbol {
                           src: path[i + 1].into(),
                           binding: Default::default(),
@@ -2309,7 +2449,7 @@ fn mark_symbol(
                       graph.add_edge(&from, value);
                       star_chain_start_end_pair.1 = from;
                       final_node_of_path.push(star_chain_start_end_pair);
-                      for mi in path.iter() {
+                      for mi in path.iter().take(path.len() - 1) {
                         merge_used_export_type(
                           used_export_module_identifiers,
                           *mi,
@@ -2458,6 +2598,7 @@ fn mark_symbol(
             );
 
             for path in paths.into_iter() {
+              // dbg!(&path);
               let mut from = current_symbol_ref.clone();
               for i in 0..path.len() - 1 {
                 let star_symbol = StarSymbol {
@@ -2471,7 +2612,7 @@ fn mark_symbol(
                 from = to;
               }
 
-              for mi in path.iter() {
+              for mi in path.iter().take(path.len() - 1) {
                 merge_used_export_type(
                   used_export_module_identifiers,
                   *mi,
@@ -2695,12 +2836,14 @@ fn finalize_symbol(
   side_effects_analyze: bool,
   bailout_entry_module_identifiers: IdentifierSet,
   analyze_results: &IdentifierMap<TreeShakingResult>,
-  used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
+  mut used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
   bail_out_module_identifiers: &mut IdentifierMap<BailoutFlog>,
   symbol_graph: SymbolGraph,
   used_direct_symbol: &mut HashSet<Symbol>,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
   visited_symbol_ref: HashSet<SymbolRef>,
+  side_effects_free_modules: &IdentifierSet,
+  dead_node_index: &HashSet<NodeIndex>,
 ) {
   if side_effects_analyze {
     // pruning
@@ -2753,6 +2896,8 @@ fn finalize_symbol(
       } else {
       }
 
+      let mut reachable_dependency_identifier = IdentifierSet::default();
+
       let mgm = compilation
         .module_graph
         .module_graph_module_by_identifier_mut(&module_identifier)
@@ -2761,7 +2906,6 @@ fn finalize_symbol(
       // dbg!(&module_identifier);
       // eval start
       for symbol_ref in analyze_result.used_symbol_refs.iter() {
-        // dbg!(&analyze_result.used_symbol_refs);
         let node_index = *match symbol_graph.get_node_index(symbol_ref) {
           Some(node_index) => node_index,
           None => {
@@ -2777,8 +2921,15 @@ fn finalize_symbol(
         // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
         if !visited_symbol_node_index.contains(&node_index) {
           let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
-          while let Some(node) = bfs.next(&symbol_graph.graph) {
-            visited_symbol_node_index.insert(node);
+          while let Some(node_index) = bfs.next(&symbol_graph.graph) {
+            update_reachable_symbol(
+              dead_node_index,
+              node_index,
+              &symbol_graph,
+              used_direct_symbol,
+              used_indirect_symbol,
+              &mut reachable_dependency_identifier,
+            )
           }
         }
       }
@@ -2803,8 +2954,15 @@ fn finalize_symbol(
           // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
           if !visited_symbol_node_index.contains(&node_index) {
             let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
-            while let Some(node) = bfs.next(&symbol_graph.graph) {
-              visited_symbol_node_index.insert(node);
+            while let Some(node_index) = bfs.next(&symbol_graph.graph) {
+              update_reachable_symbol(
+                dead_node_index,
+                node_index,
+                &symbol_graph,
+                used_direct_symbol,
+                used_indirect_symbol,
+                &mut reachable_dependency_identifier,
+              )
             }
           }
         }
@@ -2841,8 +2999,15 @@ fn finalize_symbol(
           // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
           if !visited_symbol_node_index.contains(&node_index) {
             let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
-            while let Some(node) = bfs.next(&symbol_graph.graph) {
-              visited_symbol_node_index.insert(node);
+            while let Some(node_index) = bfs.next(&symbol_graph.graph) {
+              update_reachable_symbol(
+                dead_node_index,
+                node_index,
+                &symbol_graph,
+                used_direct_symbol,
+                used_indirect_symbol,
+                &mut reachable_dependency_identifier,
+              )
             }
           }
         }
@@ -2856,6 +3021,7 @@ fn finalize_symbol(
         .unwrap_or_else(|| {
           panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
         });
+      // dbg!(&reachable_dependency_identifier);
       for dep in mgm.dependencies.iter() {
         let module_ident = match compilation.module_graph.module_by_dependency(dep) {
           Some(module) => module.module_identifier,
@@ -2880,20 +3046,28 @@ fn finalize_symbol(
             };
           }
         };
+        if side_effects_free_modules.contains(&module_ident)
+          && !reachable_dependency_identifier.contains(&module_ident)
+          && !bail_out_module_identifiers.contains_key(&module_ident)
+        {
+          continue;
+        }
+        q.push_back(module_ident);
+      }
+
+      for module_ident in reachable_dependency_identifier {
         q.push_back(module_ident);
       }
     }
-
-    for symbol_node_index in visited_symbol_node_index {
-      let s = symbol_graph.get_symbol(&symbol_node_index).unwrap();
-      match s {
-        SymbolRef::Direct(symbol) => {
-          used_direct_symbol.insert(symbol.clone());
+    for (k, v) in used_export_module_identifiers {
+      if v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT) {
+        let mgm = compilation
+          .module_graph
+          .module_graph_module_by_identifier(&k)
+          .unwrap_or_else(|| panic!("Failed to get ModuleGraphModule by module identifier {k}"));
+        if mgm.used {
+          dbg!(&k);
         }
-        SymbolRef::Indirect(indirect) => {
-          used_indirect_symbol.insert(indirect.clone());
-        }
-        SymbolRef::Star(_) => {}
       }
     }
   } else {
@@ -2908,6 +3082,31 @@ fn finalize_symbol(
         SymbolRef::Star(_) => {}
       }
     }
+  }
+}
+
+fn update_reachable_symbol(
+  dead_node_index: &HashSet<NodeIndex>,
+  symbol_node_index: NodeIndex,
+  symbol_graph: &SymbolGraph,
+  used_direct_symbol: &mut HashSet<Symbol>,
+  used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
+  reachable_dependency_identifier: &mut IdentifierSet,
+) {
+  // dbg!(&symbol_node_index);
+  if dead_node_index.contains(&symbol_node_index) {
+    return;
+  }
+  let symbol = symbol_graph.get_symbol(&symbol_node_index).unwrap();
+  reachable_dependency_identifier.insert(symbol.module_identifier());
+  match symbol {
+    SymbolRef::Direct(symbol) => {
+      used_direct_symbol.insert(symbol.clone());
+    }
+    SymbolRef::Indirect(indirect) => {
+      used_indirect_symbol.insert(indirect.clone());
+    }
+    SymbolRef::Star(_) => {}
   }
 }
 
