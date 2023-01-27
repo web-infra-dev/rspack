@@ -13,6 +13,7 @@ use std::{
     // time::Instant,
     Arc,
   },
+  time::Instant,
 };
 
 use dashmap::DashSet;
@@ -1186,9 +1187,9 @@ impl Compilation {
       //   &mut symbol_graph,
       // );
 
-      // // dbg!(&module_item_map);
+      // // dbg!(&module_item_map.keys().collect::<Vec<_>>());
       // dbg!(&start.elapsed());
-      // module_item_map
+      // // module_item_map
       IdentifierMap::default()
     } else {
       IdentifierMap::default()
@@ -1250,6 +1251,7 @@ impl Compilation {
           replacement,
           ..
         } = replace;
+        // dbg!(&t);
         symbol_graph.remove_edge(&original, &to);
         symbol_graph.add_edge(&original, &replacement);
         let original_node_index = symbol_graph.get_node_index(&original).cloned().unwrap();
@@ -2849,11 +2851,7 @@ fn finalize_symbol(
     // pruning
     let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
     let mut visited = IdentifierSet::default();
-    let mut q = VecDeque::from_iter(
-      compilation
-        .entry_modules()
-        .chain(bailout_entry_module_identifiers.iter().cloned()),
-    );
+    let mut q = VecDeque::from_iter(compilation.entry_modules());
     while let Some(module_identifier) = q.pop_front() {
       if visited.contains(&module_identifier) {
         continue;
@@ -3063,10 +3061,11 @@ fn finalize_symbol(
       if v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT) {
         let mgm = compilation
           .module_graph
-          .module_graph_module_by_identifier(&k)
+          .module_graph_module_by_identifier_mut(&k)
           .unwrap_or_else(|| panic!("Failed to get ModuleGraphModule by module identifier {k}"));
-        if mgm.used {
+        if !mgm.used {
           dbg!(&k);
+        } else {
         }
       }
     }
