@@ -201,6 +201,13 @@ export class RspackDevServer extends WebpackDevServer {
 					this.logger.info(
 						`Your Network (IPV4) http://${internalIPv4}:${port}`
 					);
+					if (this.options.historyApiFallback) {
+						this.logger.info(
+							`404s will fallback to '${
+								this.options.historyApiFallback.index || "/index.html"
+							}'`
+						);
+					}
 					resolve({});
 				}
 			)
@@ -283,15 +290,26 @@ export class RspackDevServer extends WebpackDevServer {
 			});
 		}
 
-		// Todo Add options
-		const connectHistoryApiFallback = require("connect-history-api-fallback");
-		middlewares.push({
-			name: "[connect-history-api-fallback]",
-			middleware: connectHistoryApiFallback({
-				verbose: true,
-				logger: console.log.bind(console)
-			})
-		});
+		if (this.options.historyApiFallback) {
+			const connectHistoryApiFallback = require("connect-history-api-fallback");
+			const { historyApiFallback } = this.options;
+
+			if (
+				typeof historyApiFallback.logger === "undefined" &&
+				!historyApiFallback.verbose
+			) {
+				(historyApiFallback as any).logger = this.logger.log.bind(
+					this.logger,
+					"[connect-history-api-fallback]"
+				);
+			}
+
+			middlewares.push({
+				name: "connect-history-api-fallback",
+				middleware: connectHistoryApiFallback(historyApiFallback)
+			});
+		}
+
 		/**
 		 * supports three kinds of proxy configuration
 		 * {context: 'xxxx', target: 'yyy}

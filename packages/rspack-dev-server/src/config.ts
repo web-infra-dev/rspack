@@ -1,5 +1,6 @@
 import type { Dev, RspackOptionsNormalized } from "@rspack/core";
 import type { WatchOptions } from "chokidar";
+import type { Options as ConnectHistoryApiFallbackOptions } from "connect-history-api-fallback";
 import path from "path";
 import { ProxyOptions, ClientOptions } from "@rspack/core/src/config/devServer";
 
@@ -30,6 +31,7 @@ export interface ResolvedDev {
 	webSocketServer: WebSocketServerConfiguration;
 	proxy: ProxyOptions;
 	client: ClientOptions;
+	historyApiFallback: false | ConnectHistoryApiFallbackOptions;
 }
 
 function resolveStaticWatchOptions(watch: WatchOptions = {}) {
@@ -155,6 +157,16 @@ export function resolveDevOptions(
 		};
 	}
 
+	let historyApiFallback: ResolvedDev["historyApiFallback"];
+	if (typeof options.historyApiFallback === "undefined") {
+		historyApiFallback = false;
+	} else if (
+		typeof options.historyApiFallback === "boolean" &&
+		options.historyApiFallback
+	) {
+		historyApiFallback = {};
+	}
+
 	return {
 		host: options.host,
 		port: options.port ? Number(options.port) : undefined,
@@ -168,6 +180,7 @@ export function resolveDevOptions(
 		liveReload,
 		webSocketServer,
 		proxy,
-		client: options.client
+		client: options.client,
+		historyApiFallback
 	};
 }
