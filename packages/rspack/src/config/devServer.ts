@@ -1,4 +1,5 @@
 import type { WatchOptions } from "chokidar";
+import type { Options as ConnectHistoryApiFallbackOptions } from "connect-history-api-fallback";
 import WebpackDevServer from "webpack-dev-server";
 
 export interface WebSocketServerOptions {
@@ -38,4 +39,5 @@ export interface Dev {
 		  }
 		| Function;
 	client?: ClientOptions;
+	historyApiFallback?: boolean | ConnectHistoryApiFallbackOptions;
 }
