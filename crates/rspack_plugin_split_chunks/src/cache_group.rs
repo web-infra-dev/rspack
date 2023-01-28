@@ -2,7 +2,7 @@
 
 use derivative::Derivative;
 
-use crate::{cache_group_source::SplitChunkSizes, ChunkFilter, GetName};
+use crate::{cache_group_source::SplitChunkSizes, ChunkFilterFn, SplitChunksNameFn};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -10,9 +10,9 @@ pub struct CacheGroup {
   pub key: String,
   pub priority: i32,
   #[derivative(Debug = "ignore")]
-  pub get_name: GetName,
+  pub get_name: SplitChunksNameFn,
   #[derivative(Debug = "ignore")]
-  pub chunks_filter: ChunkFilter,
+  pub chunks_filter: ChunkFilterFn,
   pub min_chunks: u32,
   pub max_async_requests: u32,
   pub max_initial_requests: u32,
@@ -30,4 +30,5 @@ pub struct CacheGroup {
   pub max_initial_size: SplitChunkSizes,
   pub(crate) validate_size: bool,
   pub(crate) min_size_for_max_size: SplitChunkSizes,
+  pub(crate) validate_remaining_size: bool,
 }

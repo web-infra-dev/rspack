@@ -1,10 +1,13 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, sync::Arc};
 
 use rspack_core::{Chunk, ChunkGroupByUkey, ModuleIdentifier, SourceType};
 use rspack_util::comparators::compare_ids;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{plugin::ChunksInfoItem, CacheGroupByKey, SizeType, SplitChunkSizes};
+use crate::{
+  CacheGroupByKey, ChunkFilterFn, ChunkType, ChunksInfoItem, SizeType, SplitChunkSizes,
+  SplitChunksSizes,
+};
 
 pub(crate) fn compare_entries(
   a: &ChunksInfoItem,
@@ -181,10 +184,22 @@ pub(crate) fn normalize_sizes<T: Clone>(
     .unwrap_or_default()
 }
 
-pub(crate) fn merge_sizes(
+pub(crate) fn merge_sizes2(
   mut a: HashMap<SizeType, f64>,
   b: HashMap<SizeType, f64>,
 ) -> HashMap<SizeType, f64> {
   a.extend(b);
   a
+}
+
+pub(crate) fn merge_sizes(sizes: Vec<SplitChunksSizes>) -> SplitChunkSizes {
+  let mut res: SplitChunkSizes = Default::default();
+  for size in sizes {
+    res.extend(size)
+  }
+  res
+}
+
+pub(crate) fn normalize_chunks_filter(chunk_type: ChunkType) -> ChunkFilterFn {
+  Arc::new(move |chunk, chunk_group_by_ukey| chunk_type.is_selected(chunk, chunk_group_by_ukey))
 }

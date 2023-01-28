@@ -4,7 +4,7 @@ use derivative::Derivative;
 use rspack_core::SourceType;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ChunkFilter, GetName};
+use crate::{ChunkFilterFn, SplitChunksNameFn};
 
 pub(crate) type SplitChunkSizes = HashMap<SourceType, f64>;
 #[derive(Derivative)]
@@ -14,9 +14,9 @@ pub struct CacheGroupSource {
   pub priority: Option<i32>,
 
   #[derivative(Debug = "ignore")]
-  pub get_name: Option<GetName>,
+  pub get_name: Option<SplitChunksNameFn>,
   #[derivative(Debug = "ignore")]
-  pub chunks_filter: Option<ChunkFilter>,
+  pub chunks_filter: Option<ChunkFilterFn>,
   pub enforce: Option<bool>,
   pub min_size: SplitChunkSizes,
   pub min_size_reduction: SplitChunkSizes,
