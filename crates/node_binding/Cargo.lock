@@ -2027,6 +2027,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_ast"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "rspack_error",
+ "swc_core",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_binding_macros"
 version = "0.1.0"
 dependencies = [
@@ -2082,6 +2092,7 @@ dependencies = [
  "petgraph",
  "rayon",
  "regex",
+ "rspack_ast",
  "rspack_error",
  "rspack_loader_runner",
  "rspack_regex",
@@ -2093,7 +2104,6 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
- "swc_css",
  "tokio",
  "tracing",
  "url",
@@ -2130,6 +2140,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "rspack_ast",
  "rspack_error",
  "rspack_sources",
  "rustc-hash",
@@ -2224,6 +2235,7 @@ dependencies = [
  "preset_env_base",
  "rayon",
  "regex",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rustc-hash",
@@ -2302,6 +2314,7 @@ dependencies = [
  "preset_env_base",
  "rayon",
  "regex",
+ "rspack_ast",
  "rspack_core",
  "rspack_error",
  "rspack_plugin_devtool",
@@ -2988,19 +3001,6 @@ dependencies = [
  "swc_ecma_utils",
  "swc_ecma_visit",
  "vergen",
-]
-
-[[package]]
-name = "swc_css"
-version = "0.149.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f05ae3a9f8ee6d9e53d37efda0fe7cba9074d0b456bcf66628e3eebea343b92d"
-dependencies = [
- "swc_css_ast",
- "swc_css_codegen",
- "swc_css_parser",
- "swc_css_utils",
- "swc_css_visit",
 ]
 
 [[package]]

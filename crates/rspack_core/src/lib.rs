@@ -8,7 +8,6 @@ use std::{fmt, sync::Arc};
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-pub mod ast;
 pub mod cache;
 mod missing_module;
 pub use missing_module::*;

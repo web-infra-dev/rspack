@@ -2,13 +2,14 @@ use std::hash::{Hash, Hasher};
 
 use async_trait::async_trait;
 use rayon::prelude::*;
+use rspack_ast::{javascript::Ast as JsAst, RspackAst};
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   SourceMapSourceOptions,
 };
 use rspack_core::{
   get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
+  GenerateContext, GenerationResult, Module, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestEntry,
   SourceType,
@@ -261,7 +262,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     ) {
       Ok(ast) => (ast, Vec::new()),
       Err(diagnostics) => (
-        rspack_core::ast::javascript::Ast::new(
+        JsAst::new(
           ast::Program::Module(ast::Module::dummy()),
           Default::default(),
         ),
@@ -286,7 +287,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
+        ast_or_source: AstOrSource::Ast(RspackAst::JavaScript(ast)),
         dependencies: dep_scanner
           .dependencies
           .into_iter()

@@ -18,7 +18,8 @@ use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 mod swc_visitor;
 mod tree_shaking;
-use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
+use rspack_ast::javascript::Ast as JsAst;
+use rspack_core::{CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::{Error, Result};
 use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
@@ -30,7 +31,7 @@ use tree_shaking::tree_shaking_visitor;
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
   resource_data: &ResourceData,
-  ast: &mut Ast,
+  ast: &mut JsAst,
   options: &CompilerOptions,
   syntax: Syntax,
   build_info: &mut BuildInfo,
@@ -127,7 +128,7 @@ pub fn run_before_pass(
 }
 
 pub fn run_after_pass(
-  ast: &mut Ast,
+  ast: &mut JsAst,
   module: &dyn Module,
   generate_context: &mut GenerateContext,
 ) -> Result<()> {

@@ -1,4 +1,5 @@
 mod runner;
+use rspack_ast::RspackAst;
 pub use runner::*;
 
 mod plugin;

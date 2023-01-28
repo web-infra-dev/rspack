@@ -21,6 +21,7 @@ paste = "1.0"
 petgraph = "0.6.0"
 rayon = "1.5.3"
 regex = "1.6.0"
+rspack_ast = { path = "../rspack_ast" }
 rspack_error = { path = "../rspack_error" }
 rspack_loader_runner = { path = "../loader_runner" }
 rspack_regex = { path = "../rspack_regex" }
@@ -57,7 +58,6 @@ swc_core = { workspace = true, features = [
   "css_compat",
   "css_modules",
 ] }
-swc_css = { workspace = true }
 tokio = { version = "1.21.0", features = [
   "rt",
   "rt-multi-thread",

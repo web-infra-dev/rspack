@@ -12,8 +12,8 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
+use rspack_ast::{css::Ast as CssAst, RspackAst};
 use rspack_core::{
-  ast::css::Ast as CssAst,
   get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -24,8 +24,7 @@ use rspack_core::{
   PathData, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, IdentifierSet, Mode, ModuleAst, ModuleDependency,
-  ModuleIdentifier,
+  CssImportDependency, Filename, IdentifierSet, Mode, ModuleDependency, ModuleIdentifier,
 };
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -454,7 +453,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     Ok(
       ParseResult {
         dependencies,
-        ast_or_source: AstOrSource::Ast(ModuleAst::Css(CssAst::new(stylesheet, cm))),
+        ast_or_source: RspackAst::Css(CssAst::new(stylesheet, cm)).into(),
       }
       .with_diagnostic(diagnostic),
     )

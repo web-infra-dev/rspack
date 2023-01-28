@@ -1,11 +1,8 @@
 use std::fmt::Debug;
 use std::path::PathBuf;
 
-use rspack_error::{internal_error, Error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::ast::css::Ast as CssAst;
-use crate::ast::javascript::Ast as JsAst;
 use crate::{
   Chunk, ChunkUkey, Compilation, CompilerOptions, DependencyCategory, DependencyType, ErrorSpan,
   ModuleDependency, ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
@@ -77,46 +74,6 @@ pub struct ResolveArgs<'a> {
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
 }
-
-/**
- *  AST used in first class Module
- */
-#[derive(Debug, Clone, Hash)]
-pub enum ModuleAst {
-  JavaScript(JsAst),
-  Css(CssAst),
-}
-
-impl ModuleAst {
-  pub fn try_into_javascript(self) -> Result<JsAst> {
-    match self {
-      ModuleAst::JavaScript(program) => Ok(program),
-      ModuleAst::Css(_) => Err(Error::InternalError(internal_error!("Failed".to_owned()))),
-    }
-  }
-
-  pub fn try_into_css(self) -> Result<CssAst> {
-    match self {
-      ModuleAst::Css(stylesheet) => Ok(stylesheet),
-      ModuleAst::JavaScript(_) => Err(Error::InternalError(internal_error!("Failed".to_owned()))),
-    }
-  }
-
-  pub fn as_javascript(&self) -> Option<&JsAst> {
-    match self {
-      ModuleAst::JavaScript(program) => Some(program),
-      ModuleAst::Css(_) => None,
-    }
-  }
-
-  pub fn as_css(&self) -> Option<&CssAst> {
-    match self {
-      ModuleAst::Css(stylesheet) => Some(stylesheet),
-      ModuleAst::JavaScript(_) => None,
-    }
-  }
-}
-
 #[derive(Debug)]
 pub struct OptimizeChunksArgs<'me> {
   pub compilation: &'me mut Compilation,

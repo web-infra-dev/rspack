@@ -12,6 +12,7 @@ use std::{
 
 use bitflags::bitflags;
 use dashmap::DashMap;
+use rspack_ast::RspackAst;
 use rspack_error::{
   internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
@@ -27,9 +28,9 @@ use serde_json::json;
 use crate::{
   contextify, identifier::Identifiable, AssetGeneratorOptions, AssetParserOptions, BoxModule,
   BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions,
-  Context, Dependency, DependencyType, GenerateContext, LibIdentOptions, Module, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Resolve, SourceType,
+  Context, Dependency, DependencyType, GenerateContext, LibIdentOptions, Module, ModuleDependency,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -225,7 +226,7 @@ impl ModuleGraphModule {
 
 #[derive(Debug, Clone, Hash)]
 pub enum AstOrSource {
-  Ast(ModuleAst),
+  Ast(RspackAst),
   Source(BoxSource),
 }
 
@@ -238,7 +239,7 @@ impl AstOrSource {
     matches!(self, AstOrSource::Source(_))
   }
 
-  pub fn as_ast(&self) -> Option<&ModuleAst> {
+  pub fn as_ast(&self) -> Option<&RspackAst> {
     match self {
       AstOrSource::Ast(ast) => Some(ast),
       _ => None,
@@ -252,7 +253,7 @@ impl AstOrSource {
     }
   }
 
-  pub fn try_into_ast(self) -> Result<ModuleAst> {
+  pub fn try_into_ast(self) -> Result<RspackAst> {
     match self {
       AstOrSource::Ast(ast) => Ok(ast),
       // TODO: change to user error
@@ -274,7 +275,7 @@ impl AstOrSource {
 
   pub fn map<F, G>(self, f: F, g: G) -> Self
   where
-    F: FnOnce(ModuleAst) -> ModuleAst,
+    F: FnOnce(RspackAst) -> RspackAst,
     G: FnOnce(BoxSource) -> BoxSource,
   {
     match self {
@@ -284,8 +285,8 @@ impl AstOrSource {
   }
 }
 
-impl From<ModuleAst> for AstOrSource {
-  fn from(ast: ModuleAst) -> Self {
+impl From<RspackAst> for AstOrSource {
+  fn from(ast: RspackAst) -> Self {
     AstOrSource::Ast(ast)
   }
 }
@@ -431,7 +432,7 @@ impl NormalModule {
     }
   }
 
-  pub fn ast(&self) -> Option<&ModuleAst> {
+  pub fn ast(&self) -> Option<&RspackAst> {
     match self.ast_or_source() {
       NormalModuleAstOrSource::BuiltSucceed(ast_or_source) => ast_or_source.as_ast(),
       _ => None,

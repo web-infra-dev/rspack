@@ -1,7 +1,8 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use rspack_core::{ast::javascript::Ast, ModuleType};
+use rspack_ast::javascript::Ast as JsAst;
+use rspack_core::ModuleType;
 use rspack_error::Error;
 use swc_core::base::config::IsModule;
 use swc_core::common::comments::Comments;
@@ -58,7 +59,7 @@ pub fn parse(
   syntax: Syntax,
   filename: &str,
   module_type: &ModuleType,
-) -> Result<Ast, Error> {
+) -> Result<JsAst, Error> {
   let source_code = if syntax.dts() {
     // dts build result must be empty
     "".to_string()
@@ -77,7 +78,7 @@ pub fn parse(
     IsModule::Bool(true),
     None,
   ) {
-    Ok(program) => Ok(Ast::new(program, cm)),
+    Ok(program) => Ok(JsAst::new(program, cm)),
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()

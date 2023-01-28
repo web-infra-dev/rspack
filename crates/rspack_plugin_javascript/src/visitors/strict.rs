@@ -1,4 +1,4 @@
-use rspack_core::ast::javascript::Context;
+use rspack_ast::javascript::Context;
 use rspack_core::BuildInfo;
 use swc_core::ecma::ast::{Expr, ExprStmt, Lit, ModuleItem, Stmt, Str};
 use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut};

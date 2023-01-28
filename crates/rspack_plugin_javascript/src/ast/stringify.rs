@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use rspack_core::{ast::javascript::Ast, Devtool};
+use rspack_ast::javascript::Ast as JsAst;
+use rspack_core::Devtool;
 use rspack_error::{internal_error, Result};
 use swc_core::{
   base::TransformOutput,
@@ -19,7 +20,7 @@ use swc_core::{
   },
 };
 
-pub fn stringify(ast: &Ast, devtool: &Devtool) -> Result<TransformOutput> {
+pub fn stringify(ast: &JsAst, devtool: &Devtool) -> Result<TransformOutput> {
   ast.visit(|program, context| {
     print(
       program.get_inner_program(),
