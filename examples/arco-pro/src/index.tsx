@@ -17,7 +17,7 @@ import rootReducer from './store'
 import changeTheme from './utils/changeTheme'
 import checkLogin from './utils/checkLogin'
 import useStorage from './utils/useStorage'
-;
+
 const store = createStore(rootReducer)
 
 function Index() {

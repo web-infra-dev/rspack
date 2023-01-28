@@ -4,13 +4,12 @@ const path = require('path');
  * @type {import('webpack').Configuration}
  */
 module.exports = {
-  stats: true,
+  stats: false,
   context: __dirname,
   entry: { main: './src/index.tsx' },
   devServer: {
     port: 5555,
-    webSocketServer: 'sockjs',
-    historyApiFallback: true,
+    webSocketServer: 'sockjs'
   },
   devtool: false,
   builtins: {
@@ -55,7 +54,6 @@ module.exports = {
     publicPath: '/'
   },
   infrastructureLogging: {
-    debug: false,
-    level: "verbose"
+    debug: false
   },
 }
