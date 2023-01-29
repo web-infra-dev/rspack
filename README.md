@@ -1,6 +1,6 @@
 # Rspack
 
-Maybe the next generation bundler.
+A Fast Rust-based Web Bundler.
 
 - [contributing](./CONTRIBUTING.md)
 - [glossary](./docs/glossary.md)
