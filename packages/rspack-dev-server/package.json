@@ -10,7 +10,7 @@
     "test": "rm -rf .test-temp && jest --verbose"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "tsm": "^2.2.2",
     "@rspack/core": "workspace:*",

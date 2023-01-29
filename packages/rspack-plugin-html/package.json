@@ -14,7 +14,7 @@
     "rspack",
     "html"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@rspack/core": "workspace:*",
     "@types/html-minifier-terser": "7.0.0",
