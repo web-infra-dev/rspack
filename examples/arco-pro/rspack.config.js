@@ -1,4 +1,7 @@
 const path = require('path');
+const { default: HtmlPlugin } = require('@rspack/plugin-html');
+
+const prod = process.env.NODE_ENV === 'production';
 
 /**
  * @type {import('webpack').Configuration}
@@ -11,19 +14,16 @@ module.exports = {
     port: 5555,
     webSocketServer: 'sockjs'
   },
-  devtool: false,
+  mode: prod ? 'production' : 'development',
+  devtool: prod ? false : 'source-map',
   builtins: {
-    html: [{
-      template: './index.html',
-      publicPath: '/'
-    }],
     react: {
-      development: true,
-      refresh: true,
+      development: !prod,
+      refresh: !prod,
     },
     progress: {},
-    treeShaking: true,
-    sideEffects: true,
+    treeShaking: prod,
+    sideEffects: prod,
     noEmitAssets: false
   },
   cache: false,
@@ -53,6 +53,13 @@ module.exports = {
   output: {
     publicPath: '/'
   },
+  plugins: [
+    new HtmlPlugin({
+      title: 'Arco Pro App',
+      template: path.join(__dirname, 'index.html'),
+      favicon: path.join(__dirname, 'public', 'favicon.ico'),
+    }),
+  ],
   infrastructureLogging: {
     debug: false
   },
