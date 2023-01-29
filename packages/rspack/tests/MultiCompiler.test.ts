@@ -215,20 +215,20 @@ describe("MultiCompiler", function () {
 				[
 					{
 						name: "a",
-						mode: "development",
+						mode: "development" as const,
 						context: path.join(__dirname, "fixtures"),
 						entry: "./a.js",
 						dependencies: ["b", "c"]
 					},
 					{
 						name: "b",
-						mode: "development",
+						mode: "development" as const,
 						context: path.join(__dirname, "fixtures"),
 						entry: "./b.js"
 					},
 					{
 						name: "c",
-						mode: "development",
+						mode: "development" as const,
 						context: path.join(__dirname, "fixtures"),
 						entry: "./a.js"
 					}

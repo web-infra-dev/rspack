@@ -1,6 +1,6 @@
 <h1 align="center">Rspack</h1>
 
-<p align="center">Maybe the next generation bundler.</p>
+<p align="center">A Fast Rust-based Web Bundler.</p>
 
 <p align="center">
   <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&color=007ec6" alt="npm version" />
