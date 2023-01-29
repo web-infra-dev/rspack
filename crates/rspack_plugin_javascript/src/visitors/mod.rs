@@ -205,7 +205,7 @@ pub fn run_after_pass(
           generate_context.compilation,
         ),
         finalize(module, generate_context.compilation, unresolved_mark),
-        swc_visitor::hygiene(false),
+        swc_visitor::hygiene(false, top_level_mark),
         swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       );
 
