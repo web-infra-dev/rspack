@@ -3,6 +3,7 @@ use std::{
   path::{Path, PathBuf},
 };
 
+use rspack_ast::RspackAst;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -65,6 +66,15 @@ pub struct LoaderResult {
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<String>,
+}
+
+///                                 v----mark? helper? global?-----v
+///           v-----build_source_map_with_config-----v
+/// (source, map) -----parse----> (ast, map) -----generate----> (source, map)
+///           ^--------------------------^
+pub trait LoaderResultResult {
+  fn into_source(self) -> (Content, Option<SourceMap>);
+  fn into_ast(self) -> (RspackAst, Option<SourceMap>);
 }
 
 impl LoaderResult {
