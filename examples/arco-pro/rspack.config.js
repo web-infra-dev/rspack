@@ -17,10 +17,6 @@ module.exports = {
   mode: prod ? 'production' : 'development',
   devtool: prod ? false : 'source-map',
   builtins: {
-    react: {
-      development: !prod,
-      refresh: !prod,
-    },
     progress: {},
     treeShaking: prod,
     sideEffects: prod,
