@@ -2,6 +2,7 @@
 
 mod options;
 pub use options::*;
+mod js_callback;
 
 #[cfg(feature = "node-api")]
 pub mod threadsafe_function;
