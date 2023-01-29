@@ -1,2 +1,3 @@
-export type Mode = string;
-export type ResolvedMode = string;
+export type Mode = "production" | "development" | "none";
+
+export type ResolvedMode = Mode;

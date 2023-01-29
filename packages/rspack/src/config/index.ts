@@ -56,6 +56,11 @@ export interface RspackOptions {
 	devServer?: Dev;
 	module?: Module;
 	target?: Target;
+
+	/**
+	 * Set the build mode to enable the default optimization strategies.
+	 * @default "production"
+	 */
 	mode?: Mode;
 	externals?: External;
 	externalsType?: ExternalType;
