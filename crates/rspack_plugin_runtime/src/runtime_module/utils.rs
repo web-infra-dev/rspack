@@ -1,6 +1,5 @@
-use itertools::Itertools;
 use rspack_core::{ChunkUkey, Compilation, SourceType};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashSet as HashSet;
 
 // pub fn condition_map_to_string(map: &HashMap<String, bool>, _value: String) -> String {
 //   let positive_items = map
@@ -93,19 +92,4 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
       &compilation.module_graph,
     )
     .is_empty()
-}
-
-pub fn stringify_map(map: &HashMap<String, String>) -> String {
-  format!(
-    r#"{{{}}}"#,
-    map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#""{}": "{}","#,
-          cur,
-          map.get(cur).expect("get key from map")
-        )
-        .as_str()
-    })
-  )
 }

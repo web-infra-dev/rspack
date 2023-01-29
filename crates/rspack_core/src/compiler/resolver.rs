@@ -8,8 +8,8 @@ use dashmap::DashMap;
 use rustc_hash::FxHasher;
 use tracing::instrument;
 
-use crate::AliasMap;
-use crate::Resolve;
+use crate::{AliasMap, DependencyType};
+use crate::{DependencyCategory, Resolve};
 
 #[derive(Debug, Clone)]
 pub enum ResolveResult {
@@ -34,7 +34,16 @@ impl ResolveInfo {
 pub struct ResolverFactory {
   cache: Arc<nodejs_resolver::Cache>,
   base_options: Resolve,
-  resolvers: DashMap<Resolve, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
+  pub resolver: Resolver,
+  resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
+}
+
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+pub struct ResolveOptionsWithDependencyType {
+  pub resolve_options: Option<Resolve>,
+  pub resolve_to_context: bool,
+  pub dependency_type: DependencyType,
+  pub dependency_category: DependencyCategory,
 }
 
 impl Default for ResolverFactory {
@@ -45,24 +54,61 @@ impl Default for ResolverFactory {
 
 impl ResolverFactory {
   pub fn new(base_options: Resolve) -> Self {
+    let cache = Arc::new(nodejs_resolver::Cache::default());
+    let resolver = Resolver(nodejs_resolver::Resolver::new(
+      base_options.clone().to_inner_options(cache.clone(), false),
+    ));
     Self {
-      cache: Arc::new(nodejs_resolver::Cache::default()),
+      cache,
       base_options,
       resolvers: Default::default(),
+      resolver,
     }
   }
 
-  pub fn get(&self, options: Resolve) -> Arc<Resolver> {
+  pub fn get(&self, options: ResolveOptionsWithDependencyType) -> Arc<Resolver> {
     if let Some(r) = self.resolvers.get(&options) {
       r.clone()
     } else {
-      let base = self
+      let base_options = self
         .base_options
         .clone()
-        .to_inner_options(self.cache.clone());
-      let merged_options = merge_resolver_options(base, options.clone());
+        .to_inner_options(self.cache.clone(), false);
+      let merged_options = match options.resolve_options.clone() {
+        Some(o) => merge_resolver_options(base_options, o),
+        None => match &self.base_options.condition_names {
+          None => {
+            let options = {
+              let is_esm = matches!(options.dependency_category, DependencyCategory::Esm);
+              let condition_names = if is_esm {
+                vec![
+                  String::from("import"),
+                  String::from("module"),
+                  String::from("webpack"),
+                  String::from("development"),
+                  String::from("browser"),
+                ]
+              } else {
+                vec![
+                  String::from("require"),
+                  String::from("module"),
+                  String::from("webpack"),
+                  String::from("development"),
+                  String::from("browser"),
+                ]
+              };
+              Resolve {
+                condition_names: Some(condition_names),
+                ..self.base_options.clone()
+              }
+            };
+            merge_resolver_options(base_options, options)
+          }
+          _ => self.base_options.clone(),
+        },
+      };
       let resolver = Arc::new(Resolver(nodejs_resolver::Resolver::new(
-        merged_options.to_inner_options(self.cache.clone()),
+        merged_options.to_inner_options(self.cache.clone(), options.resolve_to_context),
       )));
       self.resolvers.insert(options, resolver.clone());
       resolver
@@ -160,7 +206,7 @@ mod test {
       condition_names: Some(to_string(vec!["f", "..."])),
       ..Default::default()
     };
-    let options = merge_resolver_options(base.to_inner_options(Default::default()), another);
+    let options = merge_resolver_options(base.to_inner_options(Default::default(), false), another);
     assert_eq!(
       options.extensions.expect("should be Ok"),
       to_string(vec!["a1", "b1"])

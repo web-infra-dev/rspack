@@ -6,6 +6,11 @@ pub const EXPORT_STAR: &str = "es";
 /**
  * the internal module object
  */
+pub const MODULE: &str = "module";
+
+/**
+ * the internal module object
+ */
 pub const MODULE_ID: &str = "module.id";
 
 /**

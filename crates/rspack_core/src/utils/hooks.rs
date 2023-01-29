@@ -1,10 +1,10 @@
 use std::path::Path;
 
 use rspack_error::{internal_error, Error, TraceableError};
-use sugar_path::SugarPath;
+use sugar_path::{AsPath, SugarPath};
 use tracing::instrument;
 
-use crate::{DependencyCategory, Resolve, ResolveArgs, ResolveResult, SharedPluginDriver};
+use crate::{ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, SharedPluginDriver};
 
 /// Tuple used to represent a resolve error.
 /// The first element is the error message for runtime and the second element is the error used for stats and so on.
@@ -18,7 +18,9 @@ pub async fn resolve(
 ) -> Result<ResolveResult, ResolveError> {
   let plugin_driver = plugin_driver.read().await;
   let importer = args.importer.map(|i| i.display().to_string());
-  let base_dir = if let Some(i) = importer.as_ref() {
+  let base_dir = if let Some(context) = &args.context {
+    context.as_path()
+  } else if let Some(i) = importer.as_ref() {
     {
       // TODO: delete this fn after use `normalModule.context` rather than `importer`
       if let Some(index) = i.find('?') {
@@ -40,55 +42,18 @@ pub async fn resolve(
     args.specifier
   );
 
-  let result = if let Some(options) = args.resolve_options {
-    let resolver = plugin_driver.resolver_factory.get(options);
-    let res = resolver.resolve(base_dir, args.specifier);
-
-    let (file_dependencies, missing_dependencies) = resolver.dependencies();
-    args.file_dependencies.extend(file_dependencies);
-    args.missing_dependencies.extend(missing_dependencies);
-
-    res
-  } else if plugin_driver.options.resolve.condition_names.is_none() {
-    let is_esm = matches!(args.dependency_category, DependencyCategory::Esm);
-    let condition_names = if is_esm {
-      vec![
-        String::from("import"),
-        String::from("module"),
-        String::from("webpack"),
-        String::from("development"),
-        String::from("browser"),
-      ]
-    } else {
-      vec![
-        String::from("require"),
-        String::from("module"),
-        String::from("webpack"),
-        String::from("development"),
-        String::from("browser"),
-      ]
-    };
-    let options = Resolve {
-      condition_names: Some(condition_names),
-      ..plugin_driver.options.resolve.clone()
-    };
-    let resolver = plugin_driver.resolver_factory.get(options);
-    let res = resolver.resolve(base_dir, args.specifier);
-
-    let (file_dependencies, missing_dependencies) = resolver.dependencies();
-    args.file_dependencies.extend(file_dependencies);
-    args.missing_dependencies.extend(missing_dependencies);
-
-    res
-  } else {
-    let res = plugin_driver.resolver.resolve(base_dir, args.specifier);
-
-    let (file_dependencies, missing_dependencies) = plugin_driver.resolver.dependencies();
-    args.file_dependencies.extend(file_dependencies);
-    args.missing_dependencies.extend(missing_dependencies);
-
-    res
-  };
+  let resolver = plugin_driver
+    .resolver_factory
+    .get(ResolveOptionsWithDependencyType {
+      resolve_options: args.resolve_options,
+      resolve_to_context: args.resolve_to_context,
+      dependency_type: *args.dependency_type,
+      dependency_category: *args.dependency_category,
+    });
+  let result = resolver.resolve(base_dir, args.specifier);
+  let (file_dependencies, missing_dependencies) = resolver.dependencies();
+  args.file_dependencies.extend(file_dependencies);
+  args.missing_dependencies.extend(missing_dependencies);
 
   result.map_err(|error| match error {
     nodejs_resolver::Error::Io(error) => {

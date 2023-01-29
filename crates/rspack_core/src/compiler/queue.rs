@@ -4,10 +4,10 @@ use rspack_error::{Diagnostic, Result};
 
 use crate::{
   cache::Cache, module_rule_matcher, BoxModuleDependency, BuildContext, BuildResult, Compilation,
-  CompilerOptions, Dependency, LoaderRunnerRunner, Module, ModuleDependency, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ModuleRule, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
-  SharedPluginDriver, WorkerQueue,
+  CompilerOptions, ContextModuleFactory, Dependency, DependencyType, LoaderRunnerRunner, Module,
+  ModuleDependency, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph,
+  ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory,
+  NormalModuleFactoryContext, Resolve, SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -51,26 +51,43 @@ pub struct FactorizeTaskResult {
 #[async_trait::async_trait]
 impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
-    let factory = NormalModuleFactory::new(
-      NormalModuleFactoryContext {
-        original_resource_path: self.original_resource_path,
-        module_type: self.module_type,
-        side_effects: self.side_effects,
-        options: self.options.clone(),
-        lazy_visit_modules: self.lazy_visit_modules,
-      },
-      self.dependencies[0].clone(),
-      self.plugin_driver,
-      self.cache,
-    );
+    let dependency = self.dependencies[0].clone();
 
-    let (result, diagnostics) = factory
-      .create(ModuleFactoryCreateData {
-        resolve_options: self.resolve_options,
-        context: None,
-      })
-      .await?
-      .split_into_parts();
+    let (result, diagnostics) = match *dependency.dependency_type() {
+      DependencyType::ImportContext => {
+        let factory =
+          ContextModuleFactory::new(self.options.clone(), self.plugin_driver, self.cache);
+        factory
+          .create(ModuleFactoryCreateData {
+            resolve_options: self.resolve_options,
+            context: None,
+            dependencies: self.dependencies.clone(),
+          })
+          .await?
+          .split_into_parts()
+      }
+      _ => {
+        let factory = NormalModuleFactory::new(
+          NormalModuleFactoryContext {
+            original_resource_path: self.original_resource_path,
+            module_type: self.module_type,
+            side_effects: self.side_effects,
+            options: self.options.clone(),
+            lazy_visit_modules: self.lazy_visit_modules,
+          },
+          self.plugin_driver,
+          self.cache,
+        );
+        factory
+          .create(ModuleFactoryCreateData {
+            resolve_options: self.resolve_options,
+            context: dependency.get_context(),
+            dependencies: self.dependencies.clone(),
+          })
+          .await?
+          .split_into_parts()
+      }
+    };
 
     let mut mgm = ModuleGraphModule::new(
       result.module.identifier(),

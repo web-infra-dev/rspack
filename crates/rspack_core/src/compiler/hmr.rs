@@ -126,7 +126,7 @@ impl Compiler {
     // build without stats
     {
       self.cache.end_idle().await;
-      self.plugin_driver.read().await.resolver.clear();
+      // self.plugin_driver.read().await.resolver.clear();
 
       let mut new_compilation = Compilation::new(
         // TODO: use Arc<T> instead

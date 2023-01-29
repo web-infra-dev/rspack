@@ -20,7 +20,6 @@ use crate::{
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
-  dependency: Box<dyn ModuleDependency>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
   diagnostics: Vec<Diagnostic>,
@@ -33,20 +32,18 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    Ok((self.factorize(data.resolve_options).await?).with_diagnostic(self.diagnostics))
+    Ok((self.factorize(data).await?).with_diagnostic(self.diagnostics))
   }
 }
 
 impl NormalModuleFactory {
   pub fn new(
     context: NormalModuleFactoryContext,
-    dependency: Box<dyn ModuleDependency>,
     plugin_driver: SharedPluginDriver,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       context,
-      dependency,
       plugin_driver,
       cache,
       diagnostics: Default::default(),
@@ -64,7 +61,7 @@ impl NormalModuleFactory {
   // #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
   pub async fn factorize_normal_module(
     &mut self,
-    resolve_options: Option<Resolve>,
+    data: ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
     let importer = self.context.original_resource_path.as_ref();
     let importer_with_context = if let Some(importer) = importer {
@@ -75,8 +72,8 @@ impl NormalModuleFactory {
     } else {
       PathBuf::from(self.context.options.context.as_path())
     };
-
-    let specifier = self.dependency.request();
+    let dependency = data.dependencies[0].clone();
+    let specifier = dependency.request();
     if should_skip_resolve(specifier) {
       return Ok(None);
     }
@@ -86,12 +83,14 @@ impl NormalModuleFactory {
 
     let resolve_args = ResolveArgs {
       importer,
+      context: data.context,
       specifier,
-      dependency_type: self.dependency.dependency_type(),
-      dependency_category: self.dependency.category(),
-      span: self.dependency.span().cloned(),
+      dependency_type: dependency.dependency_type(),
+      dependency_category: dependency.category(),
+      span: dependency.span().cloned(),
       compiler_options: self.context.options.as_ref(),
-      resolve_options,
+      resolve_options: data.resolve_options,
+      resolve_to_context: false,
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
     };
@@ -178,7 +177,7 @@ impl NormalModuleFactory {
     let normal_module = NormalModule::new(
       uri.clone(),
       uri.clone(),
-      self.dependency.request().to_owned(),
+      dependency.request().to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,
       resolved_parser_options,
@@ -193,7 +192,7 @@ impl NormalModuleFactory {
       .read()
       .await
       .module(ModuleArgs {
-        dependency_type: *self.dependency.dependency_type(),
+        dependency_type: *dependency.dependency_type(),
         indentfiler: normal_module.identifier(),
         lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
@@ -280,17 +279,14 @@ impl NormalModuleFactory {
   }
 
   #[instrument(name = "normal_module_factory:factorize", skip_all)]
-  pub async fn factorize(
-    &mut self,
-    resolve_options: Option<Resolve>,
-  ) -> Result<ModuleFactoryResult> {
+  pub async fn factorize(&mut self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
     let result = self
       .plugin_driver
       .read()
       .await
       .factorize(
         FactorizeArgs {
-          dependency: &*self.dependency,
+          dependency: &*data.dependencies[0],
           plugin_driver: &self.plugin_driver,
         },
         &mut self.context,
@@ -302,7 +298,7 @@ impl NormalModuleFactory {
       return Ok(result);
     }
 
-    if let Some(result) = self.factorize_normal_module(resolve_options).await? {
+    if let Some(result) = self.factorize_normal_module(data).await? {
       return Ok(result);
     }
 

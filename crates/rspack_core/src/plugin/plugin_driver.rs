@@ -17,13 +17,12 @@ use crate::{
   PluginFactorizeHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderManifestHookOutput,
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs,
-  Resolver, ResolverFactory, Stats, ThisCompilationArgs,
+  ResolverFactory, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
   pub(crate) options: Arc<CompilerOptions>,
   pub plugins: Vec<Box<dyn Plugin>>,
-  pub resolver: Arc<Resolver>,
   pub resolver_factory: Arc<ResolverFactory>,
   // pub registered_parser: HashMap<ModuleType, BoxedParser>,
   pub registered_parser_and_generator_builder: HashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
@@ -36,7 +35,6 @@ impl std::fmt::Debug for PluginDriver {
     f.debug_struct("PluginDriver")
       .field("options", &self.options)
       .field("plugins", &self.plugins)
-      .field("resolver", &self.resolver)
       // field("registered_parser", &self.registered_parser)
       .field("registered_parser_and_generator_builder", &"{..}")
       .field("diagnostics", &self.diagnostics)
@@ -48,7 +46,6 @@ impl PluginDriver {
   pub fn new(
     options: Arc<CompilerOptions>,
     mut plugins: Vec<Box<dyn Plugin>>,
-    resolver: Arc<Resolver>,
     resolver_factory: Arc<ResolverFactory>,
   ) -> Self {
     let registered_parser_and_generator_builder = plugins
@@ -71,7 +68,6 @@ impl PluginDriver {
     Self {
       options,
       plugins,
-      resolver,
       resolver_factory,
       // registered_parser,
       registered_parser_and_generator_builder,

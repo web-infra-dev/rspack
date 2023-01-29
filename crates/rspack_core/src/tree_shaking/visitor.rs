@@ -23,7 +23,7 @@ use super::{
 };
 use crate::{
   module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, IdentifierLinkedMap,
-  IdentifierMap, ModuleGraph, ModuleIdentifier, ModuleSyntax, Resolver,
+  IdentifierMap, ModuleGraph, ModuleIdentifier, ModuleSyntax, ResolverFactory,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -86,7 +86,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
-  pub(crate) resolver: &'a Arc<Resolver>,
+  pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects_free: bool,
   pub(crate) options: &'a Arc<CompilerOptions>,
 }
@@ -98,7 +98,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     helper_mark: Mark,
     uri: ModuleIdentifier,
     dep_to_module_identifier: &'a ModuleGraph,
-    resolver: &'a Arc<Resolver>,
+    resolver_factory: &'a Arc<ResolverFactory>,
     options: &'a Arc<CompilerOptions>,
   ) -> Self {
     Self {
@@ -119,7 +119,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
-      resolver,
+      resolver_factory,
       side_effects_free: false,
       immediate_evaluate_reference_map: HashMap::default(),
       options,
@@ -930,6 +930,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     // self.resolver.0.resolve(path, request);
     let module_path = PathBuf::from(resource_path);
     let (mut package_json_path, side_effects) = self
+      .resolver_factory
       .resolver
       .0
       .load_side_effects(module_path.as_path())

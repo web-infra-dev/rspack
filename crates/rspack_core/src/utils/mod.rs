@@ -1,3 +1,5 @@
+use itertools::Itertools;
+use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 mod hooks;
@@ -117,4 +119,38 @@ pub fn find_module_graph_roots(
       roots.push(*from);
     });
   roots
+}
+
+pub fn stringify_map(map: &HashMap<String, String>) -> String {
+  format!(
+    r#"{{{}}}"#,
+    map.keys().sorted().fold(String::new(), |prev, cur| {
+      prev
+        + format!(
+          r#""{}": "{}","#,
+          cur,
+          map.get(cur).expect("get key from map")
+        )
+        .as_str()
+    })
+  )
+}
+
+pub fn stringify_value_vec_map(map: &HashMap<String, Vec<String>>) -> String {
+  format!(
+    r#"{{{}}}"#,
+    map.keys().sorted().fold(String::new(), |prev, cur| {
+      prev
+        + format!(
+          r#""{}": {},"#,
+          cur,
+          stringify_vec(map.get(cur).expect("get key from map"))
+        )
+        .as_str()
+    })
+  )
+}
+
+pub fn stringify_vec(vec: &[String]) -> String {
+  format!("[{}]", vec.iter().map(|s| format!("'{s}'")).join(",  "))
 }

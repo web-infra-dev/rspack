@@ -2,14 +2,20 @@ mod entry;
 pub use entry::*;
 mod code_generatable;
 pub use code_generatable::*;
-
+mod context_element_dependency;
+pub use context_element_dependency::*;
+mod import_context_dependency;
+pub use import_context_dependency::*;
 mod css;
 use std::{any::Any, fmt::Debug, hash::Hash};
 
 pub use css::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
-use crate::{AsAny, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleGraphModule, ModuleIdentifier};
+use crate::{
+  AsAny, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier,
+};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -38,6 +44,10 @@ pub enum DependencyType {
   CssUrl,
   // css @import
   CssImport,
+  // context element
+  ContextElement,
+  // import context
+  ImportContext,
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -64,6 +74,10 @@ pub trait Dependency:
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::Unknown
+  }
+
+  fn get_context(&self) -> Option<String> {
+    None
   }
 }
 
@@ -201,10 +215,14 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   }
 }
 
-pub trait ModuleDependency: Dependency {
+pub trait ModuleDependency: Dependency + CodeGeneratable {
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
+  // TODO should split to `ModuleDependency` and `ContextDependency`
+  fn options(&self) -> Option<&ContextOptions> {
+    None
+  }
 }
 
 impl ModuleDependency for Box<dyn ModuleDependency> {
@@ -218,6 +236,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 
   fn span(&self) -> Option<&ErrorSpan> {
     (**self).span()
+  }
+
+  fn options(&self) -> Option<&ContextOptions> {
+    (**self).options()
   }
 }
 
@@ -236,6 +258,10 @@ impl Dependency for Box<dyn ModuleDependency> {
 
   fn dependency_type(&self) -> &DependencyType {
     (**self).dependency_type()
+  }
+
+  fn get_context(&self) -> Option<String> {
+    (**self).get_context()
   }
 }
 

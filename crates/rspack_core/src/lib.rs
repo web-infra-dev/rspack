@@ -25,6 +25,11 @@ pub mod runtime_globals;
 pub use normal_module::*;
 mod plugin;
 pub use plugin::*;
+mod context_module;
+pub use context_module::*;
+mod context_module_factory;
+pub use context_module_factory::*;
+
 mod module_factory;
 pub use module_factory::*;
 mod normal_module_factory;
