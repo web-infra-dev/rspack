@@ -5,7 +5,7 @@
   "scripts": {},
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@iarna/toml": "2.2.5",
     "commander": "9.4.0",

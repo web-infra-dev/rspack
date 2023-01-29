@@ -23,7 +23,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@napi-rs/cli": "2.14.2",
     "why-is-node-running": "2.2.1",

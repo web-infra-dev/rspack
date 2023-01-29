@@ -11,7 +11,7 @@
   "scripts": {},
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@rspack/cli": "workspace:*",
     "react": "17.0.0",

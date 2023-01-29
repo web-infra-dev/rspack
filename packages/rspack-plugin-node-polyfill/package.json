@@ -9,7 +9,7 @@
   "access": "public",
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {},
   "dependencies": {
     "assert": "^2.0.0",

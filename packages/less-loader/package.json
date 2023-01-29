@@ -13,7 +13,7 @@
     "rspack",
     "less"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "@types/jest": "^27.0.1",
     "@types/less": "^3.0.3"
