@@ -309,7 +309,6 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
     return true;
   }
   if matches!(dep.dependency_type(), DependencyType::ContextElement) {
-    println!("is_async_dependency: {:#?}", dep);
     if let Some(options) = dep.options() {
       return matches!(
         options.mode,
