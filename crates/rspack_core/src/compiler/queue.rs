@@ -81,7 +81,7 @@ impl WorkerTask for FactorizeTask {
         factory
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
-            context: dependency.get_context(),
+            context: dependency.get_context().map(|x| x.to_string()),
             dependencies: self.dependencies.clone(),
           })
           .await?

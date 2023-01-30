@@ -26,8 +26,8 @@ impl Dependency for ContextElementDependency {
     &DependencyType::ContextElement
   }
 
-  fn get_context(&self) -> Option<String> {
-    Some(self.context.clone())
+  fn get_context(&self) -> Option<&str> {
+    Some(&self.context)
   }
 }
 

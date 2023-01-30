@@ -76,7 +76,7 @@ pub trait Dependency:
     &DependencyType::Unknown
   }
 
-  fn get_context(&self) -> Option<String> {
+  fn get_context(&self) -> Option<&str> {
     None
   }
 }
@@ -215,7 +215,7 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   }
 }
 
-pub trait ModuleDependency: Dependency + CodeGeneratable {
+pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
@@ -260,7 +260,7 @@ impl Dependency for Box<dyn ModuleDependency> {
     (**self).dependency_type()
   }
 
-  fn get_context(&self) -> Option<String> {
+  fn get_context(&self) -> Option<&str> {
     (**self).get_context()
   }
 }
