@@ -361,6 +361,7 @@ impl ContextModule {
                   user_request: path.to_string(),
                   category: options.context_options.category,
                   context: options.resource.clone(),
+                  options: options.context_options.clone(),
                 }));
               }
             }

@@ -25,11 +25,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 
 use crate::{
-  contextify, identifier::Identifiable, AssetGeneratorOptions, AssetParserOptions, BoxModule,
-  BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions,
-  Context, Dependency, DependencyType, GenerateContext, LibIdentOptions, Module, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Resolve, SourceType,
+  contextify, identifier::Identifiable, is_async_dependency, AssetGeneratorOptions,
+  AssetParserOptions, BoxModule, BuildContext, BuildResult, ChunkGraph, CodeGenerationResult,
+  Compilation, CompilerOptions, Context, Dependency, GenerateContext, LibIdentOptions, Module,
+  ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -184,12 +184,7 @@ impl ModuleGraphModule {
     self
       .dependencies
       .iter()
-      .filter(|dep| {
-        !matches!(
-          dep.dependency_type(),
-          &DependencyType::DynamicImport | &DependencyType::ContextElement
-        )
-      })
+      .filter(|dep| !is_async_dependency(dep))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
   }
@@ -201,12 +196,7 @@ impl ModuleGraphModule {
     self
       .dependencies
       .iter()
-      .filter(|dep| {
-        matches!(
-          dep.dependency_type(),
-          &DependencyType::DynamicImport | &DependencyType::ContextElement
-        )
-      })
+      .filter(|dep| is_async_dependency(dep))
       .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
   }

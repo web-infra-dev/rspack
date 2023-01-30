@@ -1,12 +1,14 @@
 use rspack_error::Result;
 
 use crate::{
-  CodeGeneratable, CodeGeneratableResult, Dependency, DependencyCategory, DependencyType,
-  ModuleDependency,
+  CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency, DependencyCategory,
+  DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
+  // TODO remove this async dependency mark
+  pub options: ContextOptions,
   pub request: String,
   pub user_request: String,
   pub category: DependencyCategory,
@@ -42,6 +44,10 @@ impl ModuleDependency for ContextElementDependency {
 
   fn span(&self) -> Option<&crate::ErrorSpan> {
     None
+  }
+
+  fn options(&self) -> Option<&ContextOptions> {
+    Some(&self.options)
   }
 }
 

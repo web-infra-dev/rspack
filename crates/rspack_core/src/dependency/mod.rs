@@ -13,7 +13,7 @@ pub use css::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  AsAny, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleGraphModule,
+  AsAny, ContextMode, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleGraphModule,
   ModuleIdentifier,
 };
 
@@ -303,3 +303,19 @@ clone_trait_object!(ModuleDependency);
 
 pub type BoxModuleDependency = Box<dyn ModuleDependency>;
 pub type BoxDependency = Box<dyn Dependency>;
+
+pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
+  if matches!(dep.dependency_type(), DependencyType::DynamicImport) {
+    return true;
+  }
+  if matches!(dep.dependency_type(), DependencyType::ContextElement) {
+    println!("is_async_dependency: {:#?}", dep);
+    if let Some(options) = dep.options() {
+      return matches!(
+        options.mode,
+        ContextMode::Lazy | ContextMode::LazyOnce | ContextMode::AsyncWeak
+      );
+    }
+  }
+  false
+}
