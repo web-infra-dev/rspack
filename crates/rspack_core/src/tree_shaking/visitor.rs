@@ -880,7 +880,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         }
       };
       let is_export = self.state.contains(AnalyzeState::EXPORT_DECL);
-      if is_export {
+      if is_export && lhs.ctxt.outer() == self.top_level_mark {
         self.add_export(
           lhs.atom.clone(),
           SymbolRef::Direct(Symbol::from_id_and_uri(
