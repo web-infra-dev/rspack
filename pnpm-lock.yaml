@@ -314,7 +314,7 @@ importers:
       babel-plugin-import: ^1.13.5
       browserslist: ^4.21.3
       chokidar: 3.5.3
-      enhanced-resolve: 5.10.0
+      enhanced-resolve: 5.12.0
       file-loader: ^6.2.0
       graceful-fs: 4.2.10
       jest-serializer-path: ^0.1.15
@@ -344,7 +344,7 @@ importers:
       '@rspack/dev-client': link:../rspack-dev-client
       '@swc/helpers': 0.4.13
       browserslist: 4.21.3
-      enhanced-resolve: 5.10.0
+      enhanced-resolve: 5.12.0
       graceful-fs: 4.2.10
       neo-async: 2.6.2
       react-refresh: 0.14.0
@@ -4960,7 +4960,7 @@ packages:
       webpack: 4.x.x || 5.x.x
       webpack-cli: 4.x.x
     dependencies:
-      webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
+      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
       webpack-cli: 4.10.0_webpack@5.74.0
     dev: true
 
@@ -6989,6 +6989,14 @@ packages:
     dependencies:
       graceful-fs: 4.2.10
       tapable: 2.2.1
+
+  /enhanced-resolve/5.12.0:
+    resolution: {integrity: sha512-QHTXI/sZQmko1cbDoNAa3mJ5qhWUUNAq3vR0/YiD379fWQrcfuoX1+HW2S0MTt7XmoPLapdaDKUtelUSPic7hQ==}
+    engines: {node: '>=10.13.0'}
+    dependencies:
+      graceful-fs: 4.2.10
+      tapable: 2.2.1
+    dev: false
 
   /enquirer/2.3.6:
     resolution: {integrity: sha512-yjNnPr315/FjS4zIsUxYguYUPP2e1NK4d7E7ZOLiyYCcbFBiTMyID+2wvm2w6+pZ/odMA7cRkjhsPbltwBOrLg==}
@@ -13305,7 +13313,7 @@ packages:
       import-local: 3.1.0
       interpret: 2.2.0
       rechoir: 0.7.1
-      webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
+      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
       webpack-merge: 5.8.0
     dev: true
 
