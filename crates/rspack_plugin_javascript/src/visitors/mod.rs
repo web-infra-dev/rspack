@@ -112,7 +112,7 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       swc_visitor::reserved_words(),
-      swc_visitor::inject_helpers(),
+      swc_visitor::inject_helpers(unresolved_mark),
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
@@ -205,7 +205,7 @@ pub fn run_after_pass(
           generate_context.compilation,
         ),
         finalize(module, generate_context.compilation, unresolved_mark),
-        swc_visitor::hygiene(false),
+        swc_visitor::hygiene(false, top_level_mark),
         swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       );
 
