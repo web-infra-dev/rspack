@@ -79,9 +79,19 @@ impl DependencyScanner {
             ));
           }
           if let Expr::Tpl(tpl) = dyn_imported.expr.as_ref() {
-            let prefix_raw = tpl.quasis.first().expect("TODO:").raw.to_string();
+            let prefix_raw = tpl
+              .quasis
+              .first()
+              .expect("should have one quasis")
+              .raw
+              .to_string();
             let post_raw = if tpl.quasis.len() > 1 {
-              tpl.quasis.last().expect("TODO:").raw.to_string()
+              tpl
+                .quasis
+                .last()
+                .expect("should have last quasis")
+                .raw
+                .to_string()
             } else {
               String::new()
             };
@@ -98,7 +108,7 @@ impl DependencyScanner {
               options: ContextOptions {
                 mode: ContextMode::Lazy, // lazy by default
                 recursive: false,
-                reg_exp: Regex::new(&reg).expect("TODO:"),
+                reg_exp: Regex::new(&reg).expect("reg failed"),
                 include: None,
                 exclude: None,
                 category: DependencyCategory::Esm,
