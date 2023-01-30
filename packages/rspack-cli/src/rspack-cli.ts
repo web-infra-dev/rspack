@@ -108,9 +108,9 @@ export class RspackCLI {
 		};
 
 		// no emit assets when run dev server, it will use node_binding api get file content
-		if (typeof item.builtins.noEmitAssets === "undefined") {
-			item.builtins.noEmitAssets = isEnvDevelopment;
-		}
+		// if (typeof item.builtins.noEmitAssets === "undefined") {
+		// 	item.builtins.noEmitAssets = isEnvDevelopment;
+		// }
 
 		// Tells webpack to set process.env.NODE_ENV to a given string value.
 		// optimization.nodeEnv uses DefinePlugin unless set to false.

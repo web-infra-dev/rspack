@@ -1,17 +1,23 @@
-import { extname } from "path";
+import { extname, relative } from "path";
 import type { Compiler } from "@rspack/core";
+import wdm from 'webpack-dev-middleware';
 import type { RequestHandler } from "express";
 import mime from "mime-types";
 
-export function getRspackMemoryAssets(compiler: Compiler): RequestHandler {
+export function getRspackMemoryAssets(compiler: Compiler, rdm: ReturnType<typeof wdm>): RequestHandler {
 	return function (req, res, next) {
 		const { method, path } = req;
 		if (method !== "GET") {
 			return next();
 		}
 
-		// asset name is not start with /, so path need to slice 1
-		let buffer = compiler.getAsset(path.slice(1));
+		const filename = rdm.getFilenameFromUrl(path);
+		if (!filename) {
+			return next();
+		}
+
+		const asset = relative(compiler.outputPath, filename);
+		let buffer = compiler.getAsset(asset);
 		if (!buffer) {
 			return next();
 		}

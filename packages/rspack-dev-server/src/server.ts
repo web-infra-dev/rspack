@@ -197,11 +197,13 @@ export class RspackDevServer extends WebpackDevServer {
 			this.options.static.forEach(staticOptions => {
 				staticOptions.publicPath.forEach(publicPath => {
 					compilers.forEach(compiler => {
-						middlewares.push({
-							name: "rspack-memory-assets",
-							path: publicPath,
-							middleware: getRspackMemoryAssets(compiler)
-						});
+						if (compiler.options.builtins.noEmitAssets) {
+							middlewares.push({
+								name: "rspack-memory-assets",
+								path: publicPath,
+								middleware: getRspackMemoryAssets(compiler, this.middleware)
+							});
+						}
 					})
 				});
 			});
