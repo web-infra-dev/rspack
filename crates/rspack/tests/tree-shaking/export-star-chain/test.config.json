@@ -12,6 +12,7 @@
         }
     },
     "debug": {
-        "treeshake": true
+        "treeshake": true,
+        "sideEffects": true
     }
 }
