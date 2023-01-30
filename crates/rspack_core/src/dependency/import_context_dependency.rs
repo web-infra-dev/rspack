@@ -9,15 +9,28 @@ use swc_core::{
 
 use crate::{
   create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableResult,
-  ContextOptions, Dependency, JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
+  ContextOptions, Dependency, ErrorSpan, JsAstPath, ModuleDependency, ModuleDependencyExt,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ImportContextDependency {
   pub parent_module_identifier: Option<ModuleIdentifier>,
   pub options: ContextOptions,
+  span: Option<ErrorSpan>,
   #[allow(unused)]
   pub ast_path: JsAstPath,
+}
+
+impl ImportContextDependency {
+  pub fn new(options: ContextOptions, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
+    Self {
+      parent_module_identifier: None,
+      options,
+      span,
+      ast_path,
+    }
+  }
 }
 
 impl Dependency for ImportContextDependency {

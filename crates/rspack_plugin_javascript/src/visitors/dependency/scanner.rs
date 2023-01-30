@@ -104,8 +104,8 @@ impl DependencyScanner {
               .collect::<Vec<&str>>()
               .join("");
             let reg = format!("^{prefix}{inner_reg}{post_raw}$");
-            self.add_dependency(box ImportContextDependency {
-              options: ContextOptions {
+            self.add_dependency(box ImportContextDependency::new(
+              ContextOptions {
                 mode: ContextMode::Lazy, // lazy by default
                 recursive: false,
                 reg_exp: Regex::new(&reg).expect("reg failed"),
@@ -114,9 +114,9 @@ impl DependencyScanner {
                 category: DependencyCategory::Esm,
                 request: context.to_string(),
               },
-              ast_path: as_parent_path(ast_path),
-              parent_module_identifier: None,
-            });
+              Some(node.span.into()),
+              as_parent_path(ast_path),
+            ));
           }
         }
       }
