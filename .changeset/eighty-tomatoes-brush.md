@@ -6,5 +6,5 @@
 ---
 
 fix: getRspackMemoryAssets middleware get filename and response content-type
-feat: change noEmitAsset default to false
+feat: change builtins.noEmitAssets default to false
 feat: extends webpack-dev-server
