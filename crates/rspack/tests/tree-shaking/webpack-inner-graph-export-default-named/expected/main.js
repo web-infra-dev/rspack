@@ -8,9 +8,9 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>abc
 });
-const _depJsa = __webpack_require__("./dep.jsa");
+const _depJsA = __webpack_require__("./dep.js?a");
 function abc() {
-    return _depJsa.x;
+    return _depJsA.x;
 }
 },
 "./b.js": function (module, exports, __webpack_require__) {
@@ -18,16 +18,16 @@ function abc() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depJsb = __webpack_require__("./dep.jsb");
+const _depJsB = __webpack_require__("./dep.js?b");
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depJsc = __webpack_require__("./dep.jsc");
+const _depJsC = __webpack_require__("./dep.js?c");
 function abc() {
-    return _depJsc.x;
+    return _depJsC.x;
 }
 abc();
 },
@@ -40,14 +40,14 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>def
 });
-const _depJsd = __webpack_require__("./dep.jsd");
+const _depJsD = __webpack_require__("./dep.js?d");
 class def {
     method() {
-        return _depJsd.x;
+        return _depJsD.x;
     }
 }
 },
-"./dep.jsa": function (module, exports, __webpack_require__) {
+"./dep.js?a": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -65,7 +65,7 @@ _export(exports, {
 const x = "x";
 const _default = __webpack_exports_info__.x.used;
 },
-"./dep.jsb": function (module, exports, __webpack_require__) {
+"./dep.js?b": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -76,7 +76,7 @@ Object.defineProperty(exports, "default", {
 });
 const _default = __webpack_exports_info__.x.used;
 },
-"./dep.jsc": function (module, exports, __webpack_require__) {
+"./dep.js?c": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -94,7 +94,7 @@ _export(exports, {
 const x = "x";
 const _default = __webpack_exports_info__.x.used;
 },
-"./dep.jsd": function (module, exports, __webpack_require__) {
+"./dep.js?d": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -112,7 +112,7 @@ _export(exports, {
 const x = "x";
 const _default = __webpack_exports_info__.x.used;
 },
-"./dep.jse": function (module, exports, __webpack_require__) {
+"./dep.js?e": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -123,7 +123,7 @@ Object.defineProperty(exports, "default", {
 });
 const _default = __webpack_exports_info__.x.used;
 },
-"./dep.jsf": function (module, exports, __webpack_require__) {
+"./dep.js?f": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -146,17 +146,17 @@ const _default = __webpack_exports_info__.x.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depJse = __webpack_require__("./dep.jse");
+const _depJsE = __webpack_require__("./dep.js?e");
 },
 "./f.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depJsf = __webpack_require__("./dep.jsf");
+const _depJsF = __webpack_require__("./dep.js?f");
 class def {
     method() {
-        return _depJsf.x;
+        return _depJsF.x;
     }
 }
 new def().method();
@@ -172,35 +172,35 @@ __webpack_require__("./c.js");
 const _dJs = __webpack_require__.ir(__webpack_require__("./d.js"));
 __webpack_require__("./e.js");
 __webpack_require__("./f.js");
-const _depJsa = __webpack_require__.ir(__webpack_require__("./dep.jsa"));
-const _depJsb = __webpack_require__.ir(__webpack_require__("./dep.jsb"));
-const _depJsc = __webpack_require__.ir(__webpack_require__("./dep.jsc"));
-const _depJsd = __webpack_require__.ir(__webpack_require__("./dep.jsd"));
-const _depJse = __webpack_require__.ir(__webpack_require__("./dep.jse"));
-const _depJsf = __webpack_require__.ir(__webpack_require__("./dep.jsf"));
+const _depJsA = __webpack_require__.ir(__webpack_require__("./dep.js?a"));
+const _depJsB = __webpack_require__.ir(__webpack_require__("./dep.js?b"));
+const _depJsC = __webpack_require__.ir(__webpack_require__("./dep.js?c"));
+const _depJsD = __webpack_require__.ir(__webpack_require__("./dep.js?d"));
+const _depJsE = __webpack_require__.ir(__webpack_require__("./dep.js?e"));
+const _depJsF = __webpack_require__.ir(__webpack_require__("./dep.js?f"));
 it("should generate valid code", ()=>{
     expect((0, _aJs.default)()).toBe("x");
     expect(new _dJs.default().method()).toBe("x");
 });
 it("a should be used", ()=>{
-    expect(_depJsa.default).toBe(true);
+    expect(_depJsA.default).toBe(true);
 });
 if (process.env.NODE_ENV === "production") it("b should be unused", ()=>{
-    expect(_depJsb.default).toBe(false);
+    expect(_depJsB.default).toBe(false);
 });
 it("c should be used", ()=>{
-    expect(_depJsc.default).toBe(true);
+    expect(_depJsC.default).toBe(true);
 });
 if (process.env.NODE_ENV === "production") {
     it("d should be used", ()=>{
-        expect(_depJsd.default).toBe(true);
+        expect(_depJsD.default).toBe(true);
     });
     it("e should be unused", ()=>{
-        expect(_depJse.default).toBe(false);
+        expect(_depJsE.default).toBe(false);
     });
 }
 it("f should be used", ()=>{
-    expect(_depJsf.default).toBe(true);
+    expect(_depJsF.default).toBe(true);
 });
 },
 
