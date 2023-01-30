@@ -9,7 +9,7 @@ use crate::{BoxModule, BoxModuleDependency, Resolve};
 pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Resolve>,
   pub context: Option<String>,
-  pub dependencies: Vec<BoxModuleDependency>,
+  pub dependency: BoxModuleDependency,
 }
 
 #[derive(Debug)]

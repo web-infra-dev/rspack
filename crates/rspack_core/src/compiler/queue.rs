@@ -55,13 +55,12 @@ impl WorkerTask for FactorizeTask {
 
     let (result, diagnostics) = match *dependency.dependency_type() {
       DependencyType::ImportContext => {
-        let factory =
-          ContextModuleFactory::new(self.options.clone(), self.plugin_driver, self.cache);
+        let factory = ContextModuleFactory::new(self.plugin_driver, self.cache);
         factory
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
             context: None,
-            dependencies: self.dependencies.clone(),
+            dependency,
           })
           .await?
           .split_into_parts()
@@ -82,7 +81,7 @@ impl WorkerTask for FactorizeTask {
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
             context: dependency.get_context().map(|x| x.to_string()),
-            dependencies: self.dependencies.clone(),
+            dependency,
           })
           .await?
           .split_into_parts()

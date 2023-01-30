@@ -62,7 +62,7 @@ pub async fn resolve(
     nodejs_resolver::Error::UnexpectedJson((json_path, error)) => ResolveError(
       format!(
         "{error:?} in {}",
-        json_path.relative(&args.compiler_options.context).display()
+        json_path.relative(&plugin_driver.options.context).display()
       ),
       Error::Anyhow {
         source: anyhow::Error::msg(format!("{error:?} in {json_path:?}")),
@@ -84,7 +84,7 @@ pub async fn resolve(
             format!(
               "Can't resolve {:?} in {} , maybe it had cycle alias",
               args.specifier,
-              importer.relative(&args.compiler_options.context).display()
+              importer.relative(&plugin_driver.options.context).display()
             ),
             format!(
               "Can't resolve {:?} in {} , maybe it had cycle alias",
@@ -97,7 +97,7 @@ pub async fn resolve(
             format!(
               "Failed to resolve {} in {}",
               args.specifier,
-              importer.relative(&args.compiler_options.context).display()
+              importer.relative(&plugin_driver.options.context).display()
             ),
             format!(
               "Failed to resolve {} in {}",
@@ -122,7 +122,7 @@ pub async fn resolve(
           Error::InternalError(internal_error!(format!(
             "Failed to resolve {} in {}",
             args.specifier,
-            args.compiler_options.context.display()
+            plugin_driver.options.context.display()
           ))),
         )
       }

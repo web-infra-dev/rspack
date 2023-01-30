@@ -22,7 +22,6 @@ pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
-  diagnostics: Vec<Diagnostic>,
 }
 
 #[async_trait::async_trait]
@@ -32,7 +31,7 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    Ok((self.factorize(data).await?).with_diagnostic(self.diagnostics))
+    Ok(self.factorize(data).await?)
   }
 }
 
@@ -46,7 +45,6 @@ impl NormalModuleFactory {
       context,
       plugin_driver,
       cache,
-      diagnostics: Default::default(),
     }
   }
 
@@ -62,7 +60,7 @@ impl NormalModuleFactory {
   pub async fn factorize_normal_module(
     &mut self,
     data: ModuleFactoryCreateData,
-  ) -> Result<Option<ModuleFactoryResult>> {
+  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let importer = self.context.original_resource_path.as_ref();
     let importer_with_context = if let Some(importer) = importer {
       Path::new(importer)
@@ -72,8 +70,7 @@ impl NormalModuleFactory {
     } else {
       PathBuf::from(self.context.options.context.as_path())
     };
-    let dependency = data.dependencies[0].clone();
-    let specifier = dependency.request();
+    let specifier = data.dependency.request();
     if should_skip_resolve(specifier) {
       return Ok(None);
     }
@@ -85,10 +82,9 @@ impl NormalModuleFactory {
       importer,
       context: data.context,
       specifier,
-      dependency_type: dependency.dependency_type(),
-      dependency_category: dependency.category(),
-      span: dependency.span().cloned(),
-      compiler_options: self.context.options.as_ref(),
+      dependency_type: data.dependency.dependency_type(),
+      dependency_category: data.dependency.category(),
+      span: data.dependency.span().cloned(),
       resolve_options: data.resolve_options,
       resolve_to_context: false,
       file_dependencies: &mut file_dependencies,
@@ -123,7 +119,9 @@ impl NormalModuleFactory {
         .boxed();
         self.context.module_type = Some(*raw_module.module_type());
 
-        return Ok(Some(ModuleFactoryResult::new(raw_module)));
+        return Ok(Some(
+          ModuleFactoryResult::new(raw_module).with_empty_diagnostic(),
+        ));
       }
       Err(ResolveError(runtime_error, internal_error)) => {
         let ident = format!("{}{specifier}", importer_with_context.display());
@@ -136,11 +134,9 @@ impl NormalModuleFactory {
         )
         .boxed();
         self.context.module_type = Some(*missing_module.module_type());
-
-        let diagnostics: Vec<Diagnostic> = internal_error.into();
-        self.diagnostics.extend(diagnostics);
-
-        return Ok(Some(ModuleFactoryResult::new(missing_module)));
+        return Ok(Some(
+          ModuleFactoryResult::new(missing_module).with_diagnostic(internal_error.into()),
+        ));
       }
     };
 
@@ -177,7 +173,7 @@ impl NormalModuleFactory {
     let normal_module = NormalModule::new(
       uri.clone(),
       uri.clone(),
-      dependency.request().to_owned(),
+      data.dependency.request().to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,
       resolved_parser_options,
@@ -192,7 +188,7 @@ impl NormalModuleFactory {
       .read()
       .await
       .module(ModuleArgs {
-        dependency_type: *dependency.dependency_type(),
+        dependency_type: *data.dependency.dependency_type(),
         indentfiler: normal_module.identifier(),
         lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
@@ -207,7 +203,8 @@ impl NormalModuleFactory {
       ModuleFactoryResult::new(module)
         .file_dependency(file_dependency)
         .file_dependencies(file_dependencies)
-        .missing_dependencies(missing_dependencies),
+        .missing_dependencies(missing_dependencies)
+        .with_empty_diagnostic(),
     ))
   }
 
@@ -279,14 +276,17 @@ impl NormalModuleFactory {
   }
 
   #[instrument(name = "normal_module_factory:factorize", skip_all)]
-  pub async fn factorize(&mut self, data: ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+  pub async fn factorize(
+    &mut self,
+    data: ModuleFactoryCreateData,
+  ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let result = self
       .plugin_driver
       .read()
       .await
       .factorize(
         FactorizeArgs {
-          dependency: &*data.dependencies[0],
+          dependency: &*data.dependency,
           plugin_driver: &self.plugin_driver,
         },
         &mut self.context,
@@ -295,7 +295,7 @@ impl NormalModuleFactory {
 
     if let Some(result) = result {
       self.context.module_type = Some(*result.module.module_type());
-      return Ok(result);
+      return Ok(result.with_empty_diagnostic());
     }
 
     if let Some(result) = self.factorize_normal_module(data).await? {
