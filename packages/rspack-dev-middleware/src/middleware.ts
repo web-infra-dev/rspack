@@ -1,7 +1,7 @@
 import { extname } from "path";
 import type { Compiler } from "@rspack/core";
 import type { RequestHandler } from "express";
-import { lookup } from "mime-types";
+import mime from "mime-types";
 
 export function getRspackMemoryAssets(compiler: Compiler): RequestHandler {
 	return function (req, res, next) {
@@ -16,7 +16,8 @@ export function getRspackMemoryAssets(compiler: Compiler): RequestHandler {
 			return next();
 		}
 
-		let contentType = lookup(extname(path)) || "text/plain";
+		let contentType =
+			mime.contentType(extname(path)) || "text/plain; charset=utf-8";
 		res.setHeader("Content-Type", contentType);
 		res.send(buffer);
 	};
