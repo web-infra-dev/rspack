@@ -205,13 +205,8 @@ class Watching {
 		}
 		this.compiler.modifiedFiles = changedFiles;
 		this.compiler.removedFiles = removedFiles;
-		const compile =
-			this.compiler.options.devServer && !this.#initial
-				? (changes, removals, cb) =>
-						this.compiler.rebuild(changes, removals, cb)
-				: (_a, _b, cb) => this.compiler.build(cb);
-		const begin = Date.now();
 
+		const begin = Date.now();
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {

@@ -1,11 +1,10 @@
-import type { Compiler, Dev } from "@rspack/core";
+import { Compiler, Dev, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
 import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
 import type { Server } from "http";
 import type { ResolvedDev } from "./config";
 import fs from "fs";
-import chokidar from "chokidar";
 import WebpackDevServer from "webpack-dev-server";
 
 export class RspackDevServer extends WebpackDevServer {
@@ -17,7 +16,7 @@ export class RspackDevServer extends WebpackDevServer {
 	sockets: Socket[];
 	server: Server;
 	// @ts-expect-error
-	public compiler: Compiler;
+	public compiler: Compiler | MultiCompiler;
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
 	constructor(compiler: Compiler) {
@@ -28,7 +27,7 @@ export class RspackDevServer extends WebpackDevServer {
 		this.sockets = [];
 	}
 
-	addAdditionEntires() {
+	addAdditionEntires(compiler: Compiler) {
 		const entries: string[] = [];
 
 		// TODO: should use providerPlugin
@@ -39,7 +38,7 @@ export class RspackDevServer extends WebpackDevServer {
 			);
 			entries.push(hotUpdateEntryPath);
 
-			if (this.compiler.options.builtins.react?.refresh) {
+			if (compiler.options.builtins.react?.refresh) {
 				const reactRefreshEntryPath = require.resolve(
 					"@rspack/dev-client/react-refresh"
 				);
@@ -49,17 +48,13 @@ export class RspackDevServer extends WebpackDevServer {
 
 		const devClientEntryPath = require.resolve("@rspack/dev-client");
 		entries.push(devClientEntryPath);
-		for (const key in this.compiler.options.entry) {
-			this.compiler.options.entry[key].import.unshift(...entries);
+		for (const key in compiler.options.entry) {
+			compiler.options.entry[key].import.unshift(...entries);
 		}
 	}
 
-	static findCacheDir(): string {
-		// TODO: we need remove the `webpack-dev-server` tag in WebpackDevServer;
-		return "";
-	}
-
 	watchFiles(watchPath: string | string[], watchOptions?: WatchOptions): void {
+		const chokidar = require('chokidar');
 		const watcher = chokidar.watch(watchPath, watchOptions);
 
 		// disabling refreshing on changing the content
@@ -152,7 +147,24 @@ export class RspackDevServer extends WebpackDevServer {
 
 	async initialize() {
 		if (this.options.webSocketServer) {
-			this.addAdditionEntires();
+			const compilers = this.compiler instanceof MultiCompiler ? this.compiler.compilers : [this.compiler];
+			compilers.forEach(compiler => {
+				this.addAdditionEntires(compiler);
+
+				if (!compiler.options.builtins.react) {
+					compiler.options.builtins.react = {};
+				}
+				compiler.options.builtins.react.development =
+					compiler.options.builtins.react.development ?? true;
+				if (this.options.hot) {
+					compiler.options.builtins.react.refresh =
+						compiler.options.builtins.react.refresh ?? true;
+				} else if (compiler.options.builtins.react.refresh) {
+					this.logger.warn(
+						"[Builtins] react.refresh need react.development and devServer.hot enabled."
+					);
+				}
+			})
 		}
 
 		this.setupHooks();
@@ -172,81 +184,6 @@ export class RspackDevServer extends WebpackDevServer {
 		this.createServer();
 	}
 
-	async start(): Promise<void> {
-		// @ts-expect-error: `normalizeOptions` is private function in base class.
-		await this.normalizeOptions();
-
-		if (!this.compiler.options.builtins.react) {
-			this.compiler.options.builtins.react = {};
-		}
-		this.compiler.options.builtins.react.development =
-			this.compiler.options.builtins.react.development ?? true;
-		if (this.options.hot) {
-			this.compiler.options.builtins.react.refresh =
-				this.compiler.options.builtins.react.refresh ?? true;
-		} else if (this.compiler.options.builtins.react.refresh) {
-			this.logger.warn(
-				"[Builtins] react.refresh need react.development and devServer.hot enabled."
-			);
-		}
-
-		if (this.options.ipc) {
-			await new Promise((resolve, reject) => {
-				const net = require("net");
-				const socket = new net.Socket();
-
-				socket.on("error", error => {
-					if (error.code === "ECONNREFUSED") {
-						fs.unlinkSync(this.options.ipc);
-						resolve(undefined);
-						return;
-					} else if (error.code === "ENOENT") {
-						resolve(undefined);
-						return;
-					}
-					reject(error);
-				});
-
-				socket.connect({ path: this.options.ipc }, () => {
-					throw new Error(`IPC "${this.options.ipc}" is already used`);
-				});
-			});
-		} else {
-			this.options.host = await RspackDevServer.getHostname(this.options.host);
-			this.options.port = await RspackDevServer.getFreePort(
-				this.options.port,
-				this.options.host
-			);
-		}
-
-		await this.initialize();
-
-		const listenOptions = this.options.ipc
-			? { path: this.options.ipc }
-			: { host: this.options.host, port: this.options.port };
-
-		await new Promise(resolve => {
-			this.server.listen(listenOptions, () => {
-				resolve(undefined);
-			});
-		});
-
-		if (this.options.ipc) {
-			// chmod 666 (rw rw rw)
-			const READ_WRITE = 438;
-
-			await fs.promises.chmod(this.options.ipc, READ_WRITE);
-		}
-
-		if (this.options.webSocketServer) {
-			// @ts-expect-error: private function
-			this.createWebSocketServer();
-		}
-
-		// @ts-expect-error: private function
-		this.logStatus();
-	}
-
 	private setupDevMiddleware() {
 		// @ts-ignored
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
@@ -254,38 +191,43 @@ export class RspackDevServer extends WebpackDevServer {
 
 	private setupMiddlewares() {
 		const middlewares: WebpackDevServer.Middleware[] = [];
+		const compilers = this.compiler instanceof MultiCompiler ? this.compiler.compilers : [this.compiler];
 
 		if (Array.isArray(this.options.static)) {
 			this.options.static.forEach(staticOptions => {
 				staticOptions.publicPath.forEach(publicPath => {
-					middlewares.push({
-						name: "rspack-memory-assets",
-						path: publicPath,
-						middleware: getRspackMemoryAssets(this.compiler)
-					});
+					compilers.forEach(compiler => {
+						middlewares.push({
+							name: "rspack-memory-assets",
+							path: publicPath,
+							middleware: getRspackMemoryAssets(compiler)
+						});
+					})
 				});
 			});
 		}
 
-		if (this.compiler.options.experiments.lazyCompilation) {
-			middlewares.push({
-				middleware: (req, res, next) => {
-					if (req.url.indexOf("/lazy-compilation-web/") > -1) {
-						const path = req.url.replace("/lazy-compilation-web/", "");
-						if (fs.existsSync(path)) {
-							this.compiler.rebuild(new Set([path]), new Set(), error => {
-								if (error) {
-									throw error;
-								}
-								res.write("");
-								res.end();
-								console.log("lazy compiler success");
-							});
+		compilers.forEach(compiler => {
+			if (compiler.options.experiments.lazyCompilation) {
+				middlewares.push({
+					middleware: (req, res, next) => {
+						if (req.url.indexOf("/lazy-compilation-web/") > -1) {
+							const path = req.url.replace("/lazy-compilation-web/", "");
+							if (fs.existsSync(path)) {
+								compiler.rebuild(new Set([path]), new Set(), error => {
+									if (error) {
+										throw error;
+									}
+									res.write("");
+									res.end();
+									console.log("lazy compiler success");
+								});
+							}
 						}
 					}
-				}
-			});
-		}
+				});
+			}
+		})
 
 		middlewares.forEach(middleware => {
 			if (typeof middleware === "function") {

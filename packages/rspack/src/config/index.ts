@@ -77,7 +77,6 @@ export interface RspackOptions {
 	experiments?: RawExperiments;
 	node?: NodeOptions;
 	dependencies?: string[];
-	watch?: WatchOptions;
 }
 export interface RspackOptionsNormalized {
 	name?: string;
@@ -102,7 +101,6 @@ export interface RspackOptionsNormalized {
 	experiments: RawExperiments;
 	node: RawNodeOption;
 	dependencies?: string[];
-	watch?: WatchOptions;
 }
 
 export function getNormalizedRspackOptions(
@@ -147,9 +145,6 @@ export function getNormalizedRspackOptions(
 	);
 	const experiments = resolveExperiments(config.experiments);
 	const node = resolveNode(config.node);
-	// FIXME: it won't work if your not invoke `watch`
-	// FIXME: maybe we should use `boolean | WatchOptions`
-	const watch = config.watch ?? {};
 
 	return {
 		...config,
@@ -173,7 +168,6 @@ export function getNormalizedRspackOptions(
 		optimization,
 		experiments,
 		node,
-		watch
 	};
 }
 
