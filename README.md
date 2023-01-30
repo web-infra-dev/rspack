@@ -28,7 +28,6 @@ Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack t
 ## Links
 
 - [Rspack Website](https://rspack-docs.vercel.app/)
-- [Rspack 1.0 Project](https://github.com/orgs/modern-js-dev/projects/3)
 
 ## Credits
 
