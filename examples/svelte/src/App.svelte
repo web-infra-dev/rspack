@@ -1,9 +1,11 @@
 <script lang="ts">
+	import Nested from './Nested.svelte';
 	export let name: string;
 </script>
 
 <main>
 	<h1>Hello {name}!</h1>
+	<Nested/>
 	<p>Visit <a href="https://svelte.dev/tutorial">Svelte Tutorial</a> to learn how to build Svelte apps.</p>
 </main>
 
