@@ -41,7 +41,7 @@ try {
     error_count += 1;
     MEMBER_PROPS_SHOULD_DO_NOT_CONVERTED.REGEXP.REGEXP;
     error_count += 1;
-} catch (err) {}
+} catch (err1) {}
 assert.deepStrictEqual(error_count, 2);
 assert.deepStrictEqual([
     300,
@@ -157,7 +157,7 @@ try {
     error_count += 1;
     P4.P1;
     error_count += 1;
-} catch (err) {}
+} catch (err2) {}
 assert.deepStrictEqual(error_count, 3);
 assert.deepStrictEqual("302".P1, undefined);
 assert.deepStrictEqual("302".P3, undefined);
@@ -176,7 +176,7 @@ try {
     error_count += 1;
     DO_NOT_CONVERTED4;
     error_count += 1;
-} catch (err) {}
+} catch (err3) {}
 assert.deepStrictEqual(error_count, 4);
 let DO_NOT_CONVERTED4 = 204;
 const USELESS = {
@@ -196,7 +196,7 @@ const USELESS = {
     error_count += 1;
     SHOULD_BE_CONVERTED_IN_UNDEFINED_BLOCK;
     error_count += 1;
-} catch (err) {}
+} catch (err4) {}
 assert.deepStrictEqual(error_count, 5);
 assert.deepStrictEqual(USELESS, {
     ZERO: 0
@@ -211,13 +211,13 @@ try {
     error_count += 1;
     M1;
     error_count += 1;
-} catch (err) {}
+} catch (err5) {}
 assert.deepStrictEqual(error_count, 6);
 try {
     error_count += 1;
     aa = 205;
     error_count += 1;
-} catch (err) {}
+} catch (err6) {}
 assert.deepStrictEqual(error_count, 7);
 assert.deepStrictEqual(true, true);
 assert.deepStrictEqual(false, false);
@@ -225,7 +225,7 @@ try {
     error_count += 1;
     A1.A2.A3;
     error_count += 1;
-} catch (err) {}
+} catch (err7) {}
 assert.deepStrictEqual(error_count, 8);
 console.log(console.log(console.log));
 },
