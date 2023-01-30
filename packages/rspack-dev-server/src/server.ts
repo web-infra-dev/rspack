@@ -54,7 +54,7 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 
 	watchFiles(watchPath: string | string[], watchOptions?: WatchOptions): void {
-		const chokidar = require('chokidar');
+		const chokidar = require("chokidar");
 		const watcher = chokidar.watch(watchPath, watchOptions);
 
 		// disabling refreshing on changing the content
@@ -147,7 +147,10 @@ export class RspackDevServer extends WebpackDevServer {
 
 	async initialize() {
 		if (this.options.webSocketServer) {
-			const compilers = this.compiler instanceof MultiCompiler ? this.compiler.compilers : [this.compiler];
+			const compilers =
+				this.compiler instanceof MultiCompiler
+					? this.compiler.compilers
+					: [this.compiler];
 			compilers.forEach(compiler => {
 				this.addAdditionEntires(compiler);
 
@@ -164,7 +167,7 @@ export class RspackDevServer extends WebpackDevServer {
 						"[Builtins] react.refresh need react.development and devServer.hot enabled."
 					);
 				}
-			})
+			});
 		}
 
 		this.setupHooks();
@@ -191,7 +194,10 @@ export class RspackDevServer extends WebpackDevServer {
 
 	private setupMiddlewares() {
 		const middlewares: WebpackDevServer.Middleware[] = [];
-		const compilers = this.compiler instanceof MultiCompiler ? this.compiler.compilers : [this.compiler];
+		const compilers =
+			this.compiler instanceof MultiCompiler
+				? this.compiler.compilers
+				: [this.compiler];
 
 		if (Array.isArray(this.options.static)) {
 			this.options.static.forEach(staticOptions => {
@@ -204,7 +210,7 @@ export class RspackDevServer extends WebpackDevServer {
 								middleware: getRspackMemoryAssets(compiler, this.middleware)
 							});
 						}
-					})
+					});
 				});
 			});
 		}
@@ -229,7 +235,7 @@ export class RspackDevServer extends WebpackDevServer {
 					}
 				});
 			}
-		})
+		});
 
 		middlewares.forEach(middleware => {
 			if (typeof middleware === "function") {

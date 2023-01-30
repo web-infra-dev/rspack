@@ -167,7 +167,7 @@ export function getNormalizedRspackOptions(
 		cache,
 		optimization,
 		experiments,
-		node,
+		node
 	};
 }
 

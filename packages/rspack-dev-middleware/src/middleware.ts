@@ -1,10 +1,13 @@
 import { extname, relative } from "path";
 import type { Compiler } from "@rspack/core";
-import wdm from 'webpack-dev-middleware';
+import wdm from "webpack-dev-middleware";
 import type { RequestHandler } from "express";
 import mime from "mime-types";
 
-export function getRspackMemoryAssets(compiler: Compiler, rdm: ReturnType<typeof wdm>): RequestHandler {
+export function getRspackMemoryAssets(
+	compiler: Compiler,
+	rdm: ReturnType<typeof wdm>
+): RequestHandler {
 	return function (req, res, next) {
 		const { method, path } = req;
 		if (method !== "GET") {
