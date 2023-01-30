@@ -16,7 +16,8 @@ export function getRspackMemoryAssets(compiler: Compiler): RequestHandler {
 			return next();
 		}
 
-		let contentType = mime.contentType(extname(path)) || "text/plain; charset=utf-8";
+		let contentType =
+			mime.contentType(extname(path)) || "text/plain; charset=utf-8";
 		res.setHeader("Content-Type", contentType);
 		res.send(buffer);
 	};
