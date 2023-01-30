@@ -4,6 +4,7 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use napi::{Env, NapiRaw, Result};
 use rspack_error::{internal_error, Error};
+use rspack_napi_utils::NapiResultIntoRspackResult;
 
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{JsCompilation, JsHooks};
@@ -47,7 +48,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
 
     self
       .compilation_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)?
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!("Failed to compilation: {err}",)))
@@ -68,7 +70,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
 
     self
       .this_compilation_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)?
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -85,7 +88,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   ) -> rspack_core::PluginProcessAssetsHookOutput {
     self
       .process_assets_stage_additional_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -102,7 +106,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   ) -> rspack_core::PluginProcessAssetsHookOutput {
     self
       .process_assets_stage_pre_process_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -119,7 +124,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   ) -> rspack_core::PluginProcessAssetsHookOutput {
     self
       .process_assets_stage_none_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -139,7 +145,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   ) -> rspack_core::PluginProcessAssetsHookOutput {
     self
       .process_assets_stage_optimize_inline_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -157,7 +164,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
     // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
       .process_assets_stage_summarize_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -175,7 +183,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
     // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
       .process_assets_stage_report_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(format!(
@@ -188,7 +197,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     self
       .emit_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| Error::InternalError(internal_error!(format!("Failed to call emit: {err}"))))?
   }
@@ -197,7 +207,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn after_emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     self
       .after_emit_tsfn
-      .call((), ThreadsafeFunctionCallMode::NonBlocking)?
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         Error::InternalError(internal_error!(

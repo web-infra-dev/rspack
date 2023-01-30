@@ -5,6 +5,7 @@ use std::pin::Pin;
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
 use rspack_core::rspack_sources::SourceExt;
+use rspack_napi_utils::NapiResultIntoRspackResult;
 
 use crate::{
   CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
@@ -31,7 +32,7 @@ impl JsCompilation {
       .inner
       .as_mut()
       .update_asset(&filename, |original_source, original_info| {
-        {
+        let napi_result: napi::Result<()> = try {
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
@@ -52,9 +53,10 @@ impl JsCompilation {
             }
           };
           *original_source = new_source;
-        }
+        };
+        napi_result.into_rspack_result()?;
 
-        {
+        let napi_result: napi::Result<()> = try {
           if let Some(asset_info_update_or_function) = asset_info_update_or_function {
             let asset_info = match asset_info_update_or_function {
               Either::A(asset_info) => asset_info,
@@ -75,10 +77,11 @@ impl JsCompilation {
 
             *original_info = asset_info.into();
           }
-        }
+        };
+        napi_result.into_rspack_result()?;
         Ok(())
       })
-      .map_err(|err| err.into())
+      .map_err(|err| napi::Error::from_reason(err.to_string()))
   }
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]

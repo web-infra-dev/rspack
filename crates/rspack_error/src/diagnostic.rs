@@ -89,6 +89,14 @@ impl From<Error> for Vec<Diagnostic> {
         severity: err.severity,
         ..Default::default()
       },
+      Error::Napi { status, reason } => Diagnostic {
+        message: format!("Napi Error: {status} - {reason}"),
+        source_info: None,
+        start: 0,
+        end: 0,
+        severity: Severity::Error,
+        ..Default::default()
+      },
       Error::TraceableError(TraceableError {
         path,
         start,

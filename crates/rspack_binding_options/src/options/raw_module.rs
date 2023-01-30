@@ -6,6 +6,7 @@ use rspack_core::{
   AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxedLoader,
   CompilerOptionsBuilder, ModuleOptions, ModuleRule, ParserOptions,
 };
+use rspack_napi_utils::NapiResultIntoRspackResult;
 use serde::Deserialize;
 #[cfg(feature = "node-api")]
 use {
@@ -320,7 +321,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     let loader_result = self
       .loader
       .call(loader_context, ThreadsafeFunctionCallMode::NonBlocking)
-      .map_err(rspack_error::Error::from)?
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         rspack_error::Error::InternalError(internal_error!(format!("Failed to call loader: {err}")))
