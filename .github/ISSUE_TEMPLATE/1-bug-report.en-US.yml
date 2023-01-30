@@ -12,12 +12,17 @@ body:
          - Make sure you've searched in the [Issues](https://github.com/modern-js-dev/rspack/issues) and haven't found the same issue.
          - If it's not bug report, please post on the [Discussions](https://github.com/modern-js-dev/rspack/discussions).
 
-  - type: input
-    id: versions
+
+  - type: textarea
+    id: system-info
     attributes:
-      label: Rspack Version
-      description: Run `npm ls @rspack/core` or `pnpm ls @rspack/core --depth Infinity`.
-      placeholder: "@rspack/core@1.0.0"
+      label: System Info
+      description: Output of `npx envinfo --system --npmPackages '@rspack/*' --binaries --browsers`
+      placeholder: |
+        System:
+        Binaries:
+        Browsers:
+        npmPackages:
     validations:
       required: true
 
@@ -33,7 +38,7 @@ body:
     id: reproduce
     attributes:
       label: Reproduce link
-      description: "Please provide a simple reproduction of the problem (minimal demo without redundant dependencies). You can create it on [CodeSandbox](https://codesandbox.io/), or provide the URL of the project:"
+      description: "Please provide a URL of the repository that reproduces the problem (minimal demo without redundant dependencies)."
       placeholder: paste link here
 
   - type: textarea
