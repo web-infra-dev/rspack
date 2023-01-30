@@ -1,7 +1,7 @@
 {
   "name": "@rspack/dev-client",
   "description": "",
-  "version": "0.0.21",
+  "version": "1.0.0",
   "scripts": {
     "build": "tsc",
     "dev": "tsc -w",

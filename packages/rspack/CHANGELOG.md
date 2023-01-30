@@ -1,5 +1,50 @@
 # @rspack/core
 
+## 1.0.0
+
+### Minor Changes
+
+- 4de9eea6: feat(close: #1654): support optimization.runtimeChunk
+
+### Patch Changes
+
+- 59edc2cb: fix watch options
+- b77074df: feat: support multiple configuration
+- c65ca69e: feat: environment, afterEnvironment, afterPlugins, and afterResolvers hooks
+- 8a4cb9a3: feat: more js api for webpack plugin compatibility
+- 9c90398a: feat(core): improve mode config typing
+- 290bf7fb: feat: add devServer.historyApiFallback options
+- 86ed1218: fix: add readonly type for compilation.assets and compilation.entrypoints
+- 792304dd: feat: support rule specific parser.dataUrlCondition.maxSize and generator.filename
+- 6d4f3e62: feat: missing module
+- 3fcfa746: use callback in close of watch
+- cb93bb42: fix: not show module reasons for default stats toString
+- 2f4db99e: feat: processAssets hook stage
+- 5e722adf: feat: add emit and afterEmit hooks
+- 70586d79: fix: `delete compilation.assets[filename]` should keep deleted asset info
+- Updated dependencies [e402226e]
+- Updated dependencies [59edc2cb]
+- Updated dependencies [549796ac]
+- Updated dependencies [51916f54]
+- Updated dependencies [da069320]
+- Updated dependencies [8a4cb9a3]
+- Updated dependencies [cd773637]
+- Updated dependencies [b5343d3f]
+- Updated dependencies [10db0a2d]
+- Updated dependencies [e845df7d]
+- Updated dependencies [cb93bb42]
+- Updated dependencies [faef6fc0]
+- Updated dependencies [2f4db99e]
+- Updated dependencies [820b5a79]
+- Updated dependencies [5e722adf]
+- Updated dependencies [278e89cc]
+- Updated dependencies [0269ff40]
+- Updated dependencies [8dc513ac]
+- Updated dependencies [58bef147]
+- Updated dependencies [70586d79]
+  - @rspack/binding@1.0.0
+  - @rspack/dev-client@1.0.0
+
 ## 0.0.21
 
 ### Patch Changes
