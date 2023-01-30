@@ -3,9 +3,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{
-  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::Span;
 use tracing::instrument;
 

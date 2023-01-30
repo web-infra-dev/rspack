@@ -7,8 +7,8 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, CompilerOptions, DependencyCategory, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, ModuleDependency,
+  ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
 };
 
 // #[derive(Debug)]
