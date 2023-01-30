@@ -1,4 +1,5 @@
 #![recursion_limit = "256"]
+#![feature(try_blocks)]
 #[macro_use]
 extern crate napi_derive;
 

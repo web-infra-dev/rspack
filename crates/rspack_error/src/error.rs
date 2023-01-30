@@ -95,16 +95,16 @@ pub enum Error {
   Io { source: io::Error },
   Anyhow { source: anyhow::Error },
   BatchErrors(Vec<Error>),
+  // for some reason, We could not just use `napi:Error` here
+  Napi { status: String, reason: String },
 }
 
 impl std::error::Error for Error {
   fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
     match self {
-      Error::InternalError { .. } => None,
-      Error::TraceableError { .. } => None,
       Error::Io { source, .. } => Some(source as &(dyn std::error::Error + 'static)),
       Error::Anyhow { source, .. } => Some(source.as_ref()),
-      Error::BatchErrors { .. } => None,
+      _ => None,
     }
   }
 }
@@ -125,6 +125,7 @@ impl fmt::Display for Error {
           .collect::<Vec<String>>()
           .join("\n")
       ),
+      Error::Napi { status, reason } => write!(f, "napi error: {status} - {reason}"),
     }
   }
 }
@@ -149,6 +150,7 @@ impl Error {
       Error::Io { .. } => DiagnosticKind::Io,
       Error::Anyhow { .. } => DiagnosticKind::Internal,
       Error::BatchErrors(_) => DiagnosticKind::Internal,
+      Error::Napi { .. } => DiagnosticKind::Internal,
     }
   }
   pub fn severity(&self) -> Severity {
@@ -158,6 +160,7 @@ impl Error {
       Error::Io { .. } => Severity::Error,
       Error::Anyhow { .. } => Severity::Error,
       Error::BatchErrors(_) => Severity::Error,
+      Error::Napi { .. } => Severity::Error,
     }
   }
 }
@@ -193,19 +196,5 @@ impl std::fmt::Display for DiagnosticKind {
       DiagnosticKind::Json => write!(f, "json"),
       DiagnosticKind::Html => write!(f, "html"),
     }
-  }
-}
-
-#[cfg(feature = "napi")]
-impl From<napi::Error> for Error {
-  fn from(err: napi::Error) -> Self {
-    Error::InternalError(internal_error!(err.to_string()))
-  }
-}
-
-#[cfg(feature = "napi")]
-impl From<Error> for napi::Error {
-  fn from(err: Error) -> Self {
-    Self::from_reason(format!("{err}"))
   }
 }

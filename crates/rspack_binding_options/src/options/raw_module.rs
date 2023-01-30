@@ -13,6 +13,7 @@ use {
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
   rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray},
+  rspack_napi_utils::NapiResultIntoRspackResult,
 };
 
 use crate::{RawOption, RawResolveOptions};
@@ -320,7 +321,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     let loader_result = self
       .loader
       .call(loader_context, ThreadsafeFunctionCallMode::NonBlocking)
-      .map_err(rspack_error::Error::from)?
+      .into_rspack_result()?
       .await
       .map_err(|err| {
         rspack_error::Error::InternalError(internal_error!(format!("Failed to call loader: {err}")))

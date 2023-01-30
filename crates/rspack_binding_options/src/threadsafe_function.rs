@@ -17,6 +17,7 @@ use napi::bindgen_prelude::{FromNapiValue, Promise, ToNapiValue};
 use napi::{check_status, sys, Env, JsUnknown, NapiRaw, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
 use rspack_error::{internal_error, InternalError};
+use rspack_napi_utils::NapiResultIntoRspackResult;
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
@@ -86,7 +87,8 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
           self
             .tx
             .send(r.or_else(|err| {
-              let napi_error = unsafe { ToNapiValue::to_napi_value(env.raw(), err) }?;
+              let napi_error =
+                unsafe { ToNapiValue::to_napi_value(env.raw(), err) }.into_rspack_result()?;
 
               let mut value_ptr = ptr::null_mut();
 
@@ -100,7 +102,8 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                   )
                 },
                 "failed to get the error message"
-              )?;
+              )
+              .into_rspack_result()?;
 
               let mut str_len = 0;
               check_status!(
@@ -114,7 +117,8 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                   )
                 },
                 "failed to get the error message"
-              )?;
+              )
+              .into_rspack_result()?;
 
               str_len += 1;
               let mut buf = Vec::with_capacity(str_len);
@@ -131,7 +135,8 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
                   )
                 },
                 "failed to get the error message"
-              )?;
+              )
+              .into_rspack_result()?;
 
               let mut buf = std::mem::ManuallyDrop::new(buf);
 
@@ -160,7 +165,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
     self
       .tx
-      .send(p.map_err(rspack_error::Error::from))
+      .send(p.into_rspack_result())
       .map_err(|_| napi::Error::from_reason("Failed to resolve".to_string()))
   }
 }
