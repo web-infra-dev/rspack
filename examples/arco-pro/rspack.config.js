@@ -47,7 +47,8 @@ module.exports = {
   },
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   output: {
-    publicPath: '/'
+    publicPath: '/',
+    filename: `artifacts/[name].[contenthash].js`,
   },
   plugins: [
     new HtmlPlugin({

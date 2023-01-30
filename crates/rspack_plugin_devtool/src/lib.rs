@@ -1,3 +1,7 @@
+#![feature(let_chains)]
+
+use std::path::Path;
+
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
@@ -131,6 +135,8 @@ impl Plugin for DevtoolPlugin {
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
           let source_map_url = if let Some(public_path) = &self.public_path {
             public_path.clone() + &source_map_filename
+          } else if let Some(dirname) = Path::new(&filename).parent() && let Some(relative) = diff_paths(&source_map_filename, dirname) {
+            relative.to_string_lossy().into_owned()
           } else {
             source_map_filename.clone()
           };
