@@ -50,6 +50,7 @@ module.exports = {
   ],
   devtool: prod ? 'hidden-source-map' : 'eval-source-map',
   devServer: {
-    hot: true
+    hot: true,
+    historyApiFallback:true
   }
 };
