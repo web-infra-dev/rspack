@@ -6,7 +6,6 @@ use rspack_core::{
   AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxedLoader,
   CompilerOptionsBuilder, ModuleOptions, ModuleRule, ParserOptions,
 };
-use rspack_napi_utils::NapiResultIntoRspackResult;
 use serde::Deserialize;
 #[cfg(feature = "node-api")]
 use {
@@ -14,6 +13,7 @@ use {
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
   rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray},
+  rspack_napi_utils::NapiResultIntoRspackResult,
 };
 
 use crate::{RawOption, RawResolveOptions};
