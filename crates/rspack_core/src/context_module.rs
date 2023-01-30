@@ -353,7 +353,7 @@ impl ContextModule {
           } else {
             let request = path.relative(options.resource.as_path());
             if let Some(request) = request.to_str() {
-              let path = format!("./{request}",);
+              let path = format!("./{request}");
               if options.context_options.reg_exp.is_match(&path) {
                 dependencies.push(Box::new(ContextElementDependency {
                   // TODO query

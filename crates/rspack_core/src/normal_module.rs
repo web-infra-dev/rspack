@@ -184,7 +184,12 @@ impl ModuleGraphModule {
     self
       .dependencies
       .iter()
-      .filter(|dep| !matches!(dep.dependency_type(), &DependencyType::DynamicImport))
+      .filter(|dep| {
+        !matches!(
+          dep.dependency_type(),
+          &DependencyType::DynamicImport | &DependencyType::ContextElement
+        )
+      })
       .filter_map(|dep| module_graph.module_by_dependency(dep))
       .collect()
   }
@@ -193,20 +198,17 @@ impl ModuleGraphModule {
     &self,
     module_graph: &'a ModuleGraph,
   ) -> Vec<&'a ModuleGraphModule> {
-    let mut modules = vec![];
-    for dep in self.dependencies.iter() {
-      if matches!(dep.dependency_type(), &DependencyType::DynamicImport) {
-        if let Some(module) = module_graph.module_by_dependency(dep) {
-          modules.push(module);
-        }
-      }
-      if matches!(dep.dependency_type(), &DependencyType::ImportContext) {
-        if let Some(module) = module_graph.module_by_dependency(dep) {
-          modules.extend(module.depended_modules(module_graph));
-        }
-      }
-    }
-    modules
+    self
+      .dependencies
+      .iter()
+      .filter(|dep| {
+        matches!(
+          dep.dependency_type(),
+          &DependencyType::DynamicImport | &DependencyType::ContextElement
+        )
+      })
+      .filter_map(|dep| module_graph.module_by_dependency(dep))
+      .collect()
   }
 
   pub fn all_depended_modules<'a>(
