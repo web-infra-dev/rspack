@@ -67,14 +67,7 @@ const _default = __webpack_exports_info__.x.used;
 },
 "./dep.js?b": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = __webpack_exports_info__.x.used;
+__webpack_exports_info__.x.used;
 },
 "./dep.js?c": function (module, exports, __webpack_require__) {
 "use strict";
@@ -99,29 +92,16 @@ const _default = __webpack_exports_info__.x.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    x: ()=>x,
-    default: ()=>_default
+Object.defineProperty(exports, "x", {
+    enumerable: true,
+    get: ()=>x
 });
 const x = "x";
-const _default = __webpack_exports_info__.x.used;
+__webpack_exports_info__.x.used;
 },
 "./dep.js?e": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = __webpack_exports_info__.x.used;
+__webpack_exports_info__.x.used;
 },
 "./dep.js?f": function (module, exports, __webpack_require__) {
 "use strict";
@@ -185,20 +165,9 @@ it("should generate valid code", ()=>{
 it("a should be used", ()=>{
     expect(_depJsA.default).toBe(true);
 });
-if (process.env.NODE_ENV === "production") it("b should be unused", ()=>{
-    expect(_depJsB.default).toBe(false);
-});
 it("c should be used", ()=>{
     expect(_depJsC.default).toBe(true);
 });
-if (process.env.NODE_ENV === "production") {
-    it("d should be used", ()=>{
-        expect(_depJsD.default).toBe(true);
-    });
-    it("e should be unused", ()=>{
-        expect(_depJsE.default).toBe(false);
-    });
-}
 it("f should be used", ()=>{
     expect(_depJsF.default).toBe(true);
 });

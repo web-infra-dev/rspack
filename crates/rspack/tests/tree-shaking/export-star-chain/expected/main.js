@@ -5,6 +5,10 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 __webpack_require__.es(__webpack_require__("./something/index.js"), exports);
+__webpack_require__.es(__webpack_require__("./c.js"), exports);
+},
+"./c.js": function (module, exports, __webpack_require__) {
+"use strict";
 },
 "./colors/a.js": function (module, exports, __webpack_require__) {
 "use strict";
