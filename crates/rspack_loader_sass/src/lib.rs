@@ -12,7 +12,8 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::SourceMap, CompilationContext, CompilerContext, Resolve, ResolveResult, Resolver,
+  rspack_sources::SourceMap, CompilationContext, CompilerContext, DependencyCategory,
+  DependencyType, Resolve, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
   ResolverFactory,
 };
 use rspack_error::{
@@ -116,80 +117,100 @@ struct RspackImporter {
 
 impl RspackImporter {
   pub fn new(include_paths: Vec<PathBuf>, factory: Arc<ResolverFactory>) -> Self {
-    let sass_module_resolve = factory.get(Resolve {
-      extensions: Some(vec![
-        ".sass".to_owned(),
-        ".scss".to_owned(),
-        ".css".to_owned(),
-      ]),
-      alias: Some(Vec::new()),
-      prefer_relative: Some(true),
-      main_files: Some(vec!["_index".to_owned(), "index".to_owned()]),
-      main_fields: Some(Vec::new()),
-      // TODO: add restrictions field when resolver supports it.
-      ..Default::default()
+    let sass_module_resolve = factory.get(ResolveOptionsWithDependencyType {
+      resolve_options: Some(Resolve {
+        extensions: Some(vec![
+          ".sass".to_owned(),
+          ".scss".to_owned(),
+          ".css".to_owned(),
+        ]),
+        alias: Some(Vec::new()),
+        prefer_relative: Some(true),
+        main_files: Some(vec!["_index".to_owned(), "index".to_owned()]),
+        main_fields: Some(Vec::new()),
+        // TODO: add restrictions field when resolver supports it.
+        ..Default::default()
+      }),
+      resolve_to_context: false,
+      dependency_type: DependencyType::Unknown,
+      dependency_category: DependencyCategory::Unknown,
     });
-    let sass_import_resolve = factory.get(Resolve {
-      extensions: Some(vec![
-        ".sass".to_owned(),
-        ".scss".to_owned(),
-        ".css".to_owned(),
-      ]),
-      alias: Some(Vec::new()),
-      prefer_relative: Some(true),
-      main_files: Some(vec![
-        "_index.import".to_owned(),
-        "_index".to_owned(),
-        "index.import".to_owned(),
-        "index".to_owned(),
-      ]),
-      main_fields: Some(Vec::new()),
-      ..Default::default()
+    let sass_import_resolve = factory.get(ResolveOptionsWithDependencyType {
+      resolve_options: Some(Resolve {
+        extensions: Some(vec![
+          ".sass".to_owned(),
+          ".scss".to_owned(),
+          ".css".to_owned(),
+        ]),
+        alias: Some(Vec::new()),
+        prefer_relative: Some(true),
+        main_files: Some(vec![
+          "_index.import".to_owned(),
+          "_index".to_owned(),
+          "index.import".to_owned(),
+          "index".to_owned(),
+        ]),
+        main_fields: Some(Vec::new()),
+        ..Default::default()
+      }),
+      resolve_to_context: false,
+      dependency_type: DependencyType::Unknown,
+      dependency_category: DependencyCategory::Unknown,
     });
-    let rspack_module_resolve = factory.get(Resolve {
-      // TODO: add dependencyType.
-      condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
-      main_fields: Some(vec![
-        "sass".to_owned(),
-        "style".to_owned(),
-        "main".to_owned(),
-        "...".to_owned(),
-      ]),
-      main_files: Some(vec![
-        "_index".to_owned(),
-        "index".to_owned(),
-        "...".to_owned(),
-      ]),
-      extensions: Some(vec![
-        ".sass".to_owned(),
-        ".scss".to_owned(),
-        ".css".to_owned(),
-      ]),
-      prefer_relative: Some(true),
-      ..Default::default()
+    let rspack_module_resolve = factory.get(ResolveOptionsWithDependencyType {
+      resolve_options: Some(Resolve {
+        // TODO: add dependencyType.
+        condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
+        main_fields: Some(vec![
+          "sass".to_owned(),
+          "style".to_owned(),
+          "main".to_owned(),
+          "...".to_owned(),
+        ]),
+        main_files: Some(vec![
+          "_index".to_owned(),
+          "index".to_owned(),
+          "...".to_owned(),
+        ]),
+        extensions: Some(vec![
+          ".sass".to_owned(),
+          ".scss".to_owned(),
+          ".css".to_owned(),
+        ]),
+        prefer_relative: Some(true),
+        ..Default::default()
+      }),
+      resolve_to_context: false,
+      dependency_type: DependencyType::Unknown,
+      dependency_category: DependencyCategory::Unknown,
     });
-    let rspack_import_resolve = factory.get(Resolve {
-      condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
-      main_fields: Some(vec![
-        "sass".to_owned(),
-        "style".to_owned(),
-        "main".to_owned(),
-        "...".to_owned(),
-      ]),
-      main_files: Some(vec![
-        "_index.import".to_owned(),
-        "_index".to_owned(),
-        "index.import".to_owned(),
-        "index".to_owned(),
-        "...".to_owned(),
-      ]),
-      extensions: Some(vec![
-        ".sass".to_owned(),
-        ".scss".to_owned(),
-        ".css".to_owned(),
-      ]),
-      prefer_relative: Some(true),
-      ..Default::default()
+    let rspack_import_resolve = factory.get(ResolveOptionsWithDependencyType {
+      resolve_options: Some(Resolve {
+        condition_names: Some(vec!["sass".to_owned(), "style".to_owned()]),
+        main_fields: Some(vec![
+          "sass".to_owned(),
+          "style".to_owned(),
+          "main".to_owned(),
+          "...".to_owned(),
+        ]),
+        main_files: Some(vec![
+          "_index.import".to_owned(),
+          "_index".to_owned(),
+          "index.import".to_owned(),
+          "index".to_owned(),
+          "...".to_owned(),
+        ]),
+        extensions: Some(vec![
+          ".sass".to_owned(),
+          ".scss".to_owned(),
+          ".css".to_owned(),
+        ]),
+        prefer_relative: Some(true),
+        ..Default::default()
+      }),
+      resolve_to_context: false,
+      dependency_type: DependencyType::Unknown,
+      dependency_category: DependencyCategory::Unknown,
     });
     Self {
       include_paths,

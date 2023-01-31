@@ -1,4 +1,7 @@
-use rspack_core::ModuleDependency;
+use regex::Regex;
+use rspack_core::{
+  ContextMode, ContextOptions, DependencyCategory, ImportContextDependency, ModuleDependency,
+};
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
@@ -71,6 +74,46 @@ impl DependencyScanner {
           if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
             self.add_dependency(box EsmDynamicImportDependency::new(
               imported.value.clone(),
+              Some(node.span.into()),
+              as_parent_path(ast_path),
+            ));
+          }
+          if let Expr::Tpl(tpl) = dyn_imported.expr.as_ref() {
+            let prefix_raw = tpl
+              .quasis
+              .first()
+              .expect("should have one quasis")
+              .raw
+              .to_string();
+            let post_raw = if tpl.quasis.len() > 1 {
+              tpl
+                .quasis
+                .last()
+                .expect("should have last quasis")
+                .raw
+                .to_string()
+            } else {
+              String::new()
+            };
+            let (context, prefix) = split_context_from_prefix(&prefix_raw);
+            let inner_reg = tpl
+              .quasis
+              .iter()
+              .skip(1)
+              .map(|_| ".*")
+              .collect::<Vec<&str>>()
+              .join("");
+            let reg = format!("^{prefix}{inner_reg}{post_raw}$");
+            self.add_dependency(box ImportContextDependency::new(
+              ContextOptions {
+                mode: ContextMode::Lazy, // lazy by default
+                recursive: false,
+                reg_exp: Regex::new(&reg).expect("reg failed"),
+                include: None,
+                exclude: None,
+                category: DependencyCategory::Esm,
+                request: context.to_string(),
+              },
               Some(node.span.into()),
               as_parent_path(ast_path),
             ));
@@ -214,6 +257,15 @@ impl DependencyScanner {
       unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
       dependencies: Default::default(),
     }
+  }
+}
+
+#[inline]
+fn split_context_from_prefix(prefix: &str) -> (&str, &str) {
+  if let Some(idx) = prefix.rfind('/') {
+    (&prefix[..idx], &prefix[idx + 1..])
+  } else {
+    (".", prefix)
   }
 }
 

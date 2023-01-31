@@ -862,7 +862,7 @@ impl Compilation {
   pub async fn optimize_dependency(
     &mut self,
   ) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let resolver = &self.plugin_driver.read().await.resolver;
+    let resolver_factory = &self.plugin_driver.read().await.resolver_factory;
     let mut analyze_results = self
       .module_graph
       .module_identifier_to_module_graph_module
@@ -903,7 +903,7 @@ impl Compilation {
             helper_mark,
             uri_key,
             &self.module_graph,
-            resolver,
+            resolver_factory,
             &self.options,
           );
           program.visit_with(&mut analyzer);

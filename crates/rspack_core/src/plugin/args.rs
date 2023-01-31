@@ -7,8 +7,8 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, CompilerOptions, DependencyCategory, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, ModuleDependency,
+  ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
 };
 
 // #[derive(Debug)]
@@ -63,12 +63,13 @@ pub struct ModuleArgs {
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {
   pub importer: Option<&'a PathBuf>,
+  pub context: Option<String>,
   pub specifier: &'a str,
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,
   pub span: Option<ErrorSpan>,
-  pub compiler_options: &'a CompilerOptions,
   pub resolve_options: Option<Resolve>,
+  pub resolve_to_context: bool,
   pub file_dependencies: &'a mut HashSet<PathBuf>,
   pub missing_dependencies: &'a mut HashSet<PathBuf>,
 }

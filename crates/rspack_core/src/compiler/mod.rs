@@ -35,11 +35,9 @@ impl Compiler {
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
-    let resolver = resolver_factory.get(options.resolve.clone());
     let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
-      resolver,
       resolver_factory.clone(),
     )));
     let loader_runner_runner = Arc::new(LoaderRunnerRunner::new(
@@ -76,7 +74,6 @@ impl Compiler {
     self.cache.end_idle().await;
     // TODO: clear the outdate cache entires in resolver,
     // TODO: maybe it's better to use external entries.
-    self.plugin_driver.read().await.resolver.clear();
 
     fast_set(
       &mut self.compilation,
