@@ -716,7 +716,7 @@ impl Plugin for CssPlugin {
     args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let minify = compilation.options.builtins.minify;
+    let minify = &compilation.options.builtins.minify;
     if !minify.enable {
       return Ok(());
     }
