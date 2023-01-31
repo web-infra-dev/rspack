@@ -149,6 +149,9 @@ describe("snapshots", () => {
 		    "mainFiles": [
 		      "index",
 		    ],
+		    "modules": [
+		      "node_modules",
+		    ],
 		    "preferRelative": false,
 		    "tsConfigPath": undefined,
 		  },

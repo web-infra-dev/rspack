@@ -36,7 +36,7 @@ import {
 	ResolvedDevtool
 } from "./devtool";
 import { ResolvedMode } from "./mode";
-import { Resolve, resolveResolveOptions } from "./resolve";
+import { Resolve, ResolvedResolve, resolveResolveOptions } from "./resolve";
 import { ResolvedTarget } from "./target";
 
 export type Condition = string | RegExp;
@@ -70,7 +70,7 @@ interface ResolvedModuleRule {
 	type?: RawModuleRule["type"];
 	parser?: RawModuleRule["parser"];
 	generator?: RawModuleRule["generator"];
-	resolve?: Resolve;
+	resolve?: ResolvedResolve;
 }
 
 export interface ResolvedModule {
