@@ -38,8 +38,10 @@ pub struct Builtins {
   pub no_emit_assets: bool,
 }
 
-#[derive(Debug, Clone, Default, Copy)]
+#[derive(Debug, Clone, Default)]
 pub struct Minification {
   pub enable: bool,
   pub passes: usize,
+  pub drop_console: bool,
+  pub pure_funcs: Vec<String>,
 }

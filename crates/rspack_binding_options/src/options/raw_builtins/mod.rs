@@ -27,6 +27,8 @@ use crate::RawOption;
 pub struct Minification {
   pub passes: Option<u32>,
   pub enable: Option<bool>,
+  pub drop_console: Option<bool>,
+  pub pure_funcs: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -103,6 +105,8 @@ pub(super) fn normalize_builtin(
       .unwrap_or(rspack_core::Minification {
         enable: matches!(options.mode, Some(Mode::Production)),
         passes: 1,
+        drop_console: false,
+        pure_funcs: vec![],
       }),
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
@@ -136,6 +140,8 @@ impl Into<rspack_core::Minification> for Minification {
       // this is used for production mode, turn off the minification
       enable: self.enable.unwrap_or(true),
       passes: self.passes.unwrap_or(1) as usize,
+      drop_console: self.drop_console.unwrap_or(false),
+      pure_funcs: self.pure_funcs.unwrap_or(vec![]),
     }
   }
 }

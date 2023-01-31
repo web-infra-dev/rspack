@@ -494,7 +494,7 @@ impl Plugin for JsPlugin {
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let minify = compilation.options.builtins.minify;
+    let minify = &compilation.options.builtins.minify;
     if !minify.enable {
       return Ok(());
     }
@@ -517,6 +517,8 @@ impl Plugin for JsPlugin {
           let output = crate::ast::minify(&JsMinifyOptions {
             compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
               passes: minify.passes,
+              drop_console: minify.drop_console,
+              pure_funcs: minify.pure_funcs.clone(),
               ..Default::default()
             }),
             source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
