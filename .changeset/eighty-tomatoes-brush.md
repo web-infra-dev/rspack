@@ -5,6 +5,5 @@
 "@rspack/dev-server": patch
 ---
 
-fix: getRspackMemoryAssets middleware get filename and response content-type
-feat: change builtins.noEmitAssets default to false
+fix: getRspackMemoryAssets failed to get index.html when request path is /
 feat: extends webpack-dev-server
