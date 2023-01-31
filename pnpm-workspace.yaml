@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "packages/rspack-dev-server/tests/e2e-fixtures/*"
   - "npm/*"
   - "crates/node_binding"
   - "examples/*"

@@ -1,3 +1,4 @@
+/** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
 	mode: "development",
 	entry: "./index.jsx",

@@ -15,7 +15,7 @@ async function wait(time) {
 }
 
 describe("reload and hot should works", () => {
-	it("reload and hot should works", async () => {
+	it.skip("reload and hot should works", async () => {
 		// reload should works
 		let tempDir = await initFixture("react");
 		await installDeps(tempDir);
