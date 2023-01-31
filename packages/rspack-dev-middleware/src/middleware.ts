@@ -16,11 +16,16 @@ export function getRspackMemoryAssets(
 
 		// asset name is not start with /, so path need to slice 1
 		const filename = path.slice(1);
-		let buffer = compiler.getAsset(filename) ?? (() => {
-			const { index } = rdm.context.options;
-			const indexValue = typeof index === "undefined" || typeof index === "boolean" ? "index.html" : index;
-			return compiler.getAsset(filename + '/' + indexValue)
-		})();
+		let buffer =
+			compiler.getAsset(filename) ??
+			(() => {
+				const { index } = rdm.context.options;
+				const indexValue =
+					typeof index === "undefined" || typeof index === "boolean"
+						? "index.html"
+						: index;
+				return compiler.getAsset(filename + "/" + indexValue);
+			})();
 		if (!buffer) {
 			return next();
 		}

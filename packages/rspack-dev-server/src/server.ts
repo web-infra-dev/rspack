@@ -183,6 +183,48 @@ export class RspackDevServer extends WebpackDevServer {
 		this.setupMiddlewares();
 		// @ts-expect-error: `createServer` is private function in base class.
 		this.createServer();
+
+		if (this.options.setupExitSignals) {
+			const signals = ["SIGINT", "SIGTERM"];
+
+			let needForceShutdown = false;
+
+			signals.forEach(signal => {
+				const listener = () => {
+					if (needForceShutdown) {
+						process.exit();
+					}
+
+					this.logger.info(
+						"Gracefully shutting down. To force exit, press ^C again. Please wait..."
+					);
+
+					needForceShutdown = true;
+
+					this.stopCallback(() => {
+						if (typeof this.compiler.close === "function") {
+							this.compiler.close(() => {
+								process.exit();
+							});
+						} else {
+							process.exit();
+						}
+					});
+				};
+
+				// @ts-expect-error: `listeners` is private function in base class.
+				this.listeners.push({ name: signal, listener });
+
+				process.on(signal, listener);
+			});
+		}
+
+		// Proxy WebSocket without the initial http request
+		// https://github.com/chimurai/http-proxy-middleware#external-websocket-upgrade
+		// @ts-expect-error: `webSocketProxies` is private function in base class.
+		this.webSocketProxies.forEach(webSocketProxy => {
+			this.server.on("upgrade", webSocketProxy.upgrade);
+		}, this);
 	}
 
 	private setupDevMiddleware() {
