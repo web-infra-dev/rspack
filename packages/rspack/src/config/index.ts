@@ -46,7 +46,7 @@ import { RawExperiments, RawNodeOption } from "@rspack/binding";
 import { resolveExperiments } from "./experiments";
 import { NodeOptions, resolveNode } from "./node";
 import type { ResolvedWatchOptions, WatchOptions } from "./watch";
-import type { DevServer } from './devServer'
+import type { DevServer } from "./devServer";
 
 export type Configuration = RspackOptions;
 export interface RspackOptions {
@@ -182,4 +182,4 @@ function cloneObject(value: Record<string, any> | undefined = {}) {
 }
 export type { PluginInstance as Plugin, LoaderContext, Loader, SourceMap };
 export type { StatsOptions } from "./stats";
-export type {DevServer} from './devServer';
+export type { DevServer } from "./devServer";

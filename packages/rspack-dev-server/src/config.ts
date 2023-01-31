@@ -1,7 +1,7 @@
 import WebpackDevServer from "webpack-dev-server";
-import type {DevServer} from '@rspack/core';
+import type { DevServer } from "@rspack/core";
 
-export type { DevServer }
+export type { DevServer };
 
 export interface ResolvedDevServer extends DevServer {
 	port: number | string;
