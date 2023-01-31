@@ -1,12 +1,12 @@
 use rspack_core::{runtime_globals, Compilation, Module};
 use sugar_path::SugarPath;
+use swc_core::common::sync::Lrc;
 use swc_core::{common::DUMMY_SP, ecma::utils::ExprFactory};
 use {
-  swc_core::common::Mark,
   swc_core::ecma::ast::*,
-  swc_core::ecma::minifier::globals_defs,
+  swc_core::ecma::transforms::optimization::inline_globals2,
   swc_core::ecma::utils::{quote_ident, quote_str},
-  swc_core::ecma::visit::{as_folder, Fold},
+  swc_core::ecma::visit::Fold,
 };
 
 pub static WEBPACK_HASH: &str = "__webpack_hash__";
@@ -16,8 +16,6 @@ pub static WEBPACK_MODULES: &str = "__webpack_modules__";
 
 pub fn module_variables<'a>(
   module: &'a dyn Module,
-  unresolved_mark: Mark,
-  top_level_mark: Mark,
   compilation: &'a Compilation,
 ) -> impl Fold + 'a {
   let mut defs = vec![];
@@ -25,16 +23,16 @@ pub fn module_variables<'a>(
     let resource_resolved_data = normal_module.resource_resolved_data();
     if let Some(resource_query) = &resource_resolved_data.resource_query {
       defs.push((
-        Box::new(Expr::Ident(quote_ident!("__resourceQuery"))),
-        Box::new(Expr::Lit(Lit::Str(quote_str!(resource_query.as_str())))),
+        Expr::Ident(quote_ident!("__resourceQuery")),
+        Expr::Lit(Lit::Str(quote_str!(resource_query.as_str()))),
       ));
     }
 
     let dirname = compilation.options.node.dirname.as_str();
     if dirname.eq("mock") || dirname.eq("warn-mock") || dirname.eq("true") {
       defs.push((
-        Box::new(Expr::Ident(quote_ident!(DIR_NAME))),
-        Box::new(Expr::Lit(Lit::Str(quote_str!(match dirname {
+        Expr::Ident(quote_ident!(DIR_NAME)),
+        Expr::Lit(Lit::Str(quote_str!(match dirname {
           "mock" => "/".to_string(),
           "warn-mock" => "/".to_string(),
           "true" => resource_resolved_data
@@ -45,26 +43,32 @@ pub fn module_variables<'a>(
             .to_string_lossy()
             .to_string(),
           _ => unreachable!("dirname should be one of mock, warn-mock, true"),
-        })))),
+        }))),
       ));
     }
   }
   defs.push((
-    Box::new(Expr::Ident(quote_ident!(WEBPACK_HASH))),
-    Box::new(Expr::Call(CallExpr {
+    Expr::Ident(quote_ident!(WEBPACK_HASH)),
+    Expr::Call(CallExpr {
       span: DUMMY_SP,
       callee: Expr::Ident(quote_ident!(runtime_globals::GET_FULL_HASH)).as_callee(),
       args: vec![],
       type_args: None,
-    })),
+    }),
   ));
   defs.push((
-    Box::new(Expr::Ident(quote_ident!(WEBPACK_MODULES))),
-    Box::new(Expr::Ident(quote_ident!(runtime_globals::MODULE_FACTORIES))),
+    Expr::Ident(quote_ident!(WEBPACK_MODULES)),
+    Expr::Ident(quote_ident!(runtime_globals::MODULE_FACTORIES)),
   ));
   defs.push((
-    Box::new(Expr::Ident(quote_ident!(WEBPACK_PUBLIC_PATH))),
-    Box::new(Expr::Ident(quote_ident!(runtime_globals::PUBLIC_PATH))),
+    Expr::Ident(quote_ident!(WEBPACK_PUBLIC_PATH)),
+    Expr::Ident(quote_ident!(runtime_globals::PUBLIC_PATH)),
   ));
-  as_folder(globals_defs(defs, unresolved_mark, top_level_mark))
+
+  inline_globals2(
+    Default::default(),
+    Default::default(),
+    Lrc::new(defs),
+    Default::default(),
+  )
 }
