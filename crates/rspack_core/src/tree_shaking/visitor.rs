@@ -89,6 +89,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects_free: bool,
   pub(crate) options: &'a Arc<CompilerOptions>,
+  pub(crate) has_side_effects_stmt: bool,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -123,6 +124,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       side_effects_free: false,
       immediate_evaluate_reference_map: HashMap::default(),
       options,
+      has_side_effects_stmt: false,
     }
   }
 
@@ -367,7 +369,35 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_module(&mut self, node: &Module) {
-    for ele in node.body {
+    for ele in &node.body {
+      if !self.has_side_effects_stmt {
+        match ele {
+          ModuleItem::Stmt(Stmt::If(stmt)) => {}
+          ModuleItem::Stmt(Stmt::While(stmt)) => {}
+          ModuleItem::Stmt(Stmt::DoWhile(stmt)) => {}
+          ModuleItem::Stmt(Stmt::For(stmt)) => {}
+          ModuleItem::Stmt(Stmt::Expr(stmt)) => {}
+          ModuleItem::Stmt(Stmt::Switch(stmt)) => {}
+          ModuleItem::Stmt(Stmt::Decl(stmt)) => {}
+          ModuleItem::Stmt(Stmt::Empty(stmt)) => {}
+          ModuleItem::Stmt(Stmt::Labeled(stmt)) => {}
+          ModuleItem::Stmt(Stmt::Block(stmt)) => {}
+          ModuleItem::ModuleDecl(module_decl) => match module_decl {
+            ModuleDecl::ExportDecl(decl) => {
+              todo!()
+            }
+            ModuleDecl::ExportDefaultDecl(_) => todo!(),
+            ModuleDecl::ExportDefaultExpr(_) => todo!(),
+            ModuleDecl::ExportAll(_)
+            | ModuleDecl::Import(_)
+            | ModuleDecl::ExportNamed(_)
+            | ModuleDecl::TsImportEquals(_)
+            | ModuleDecl::TsExportAssignment(_)
+            | ModuleDecl::TsNamespaceExport(_) => {}
+          },
+          _ => self.has_side_effects_stmt = true,
+        }
+      }
       ele.visit_with(self);
     }
   }
