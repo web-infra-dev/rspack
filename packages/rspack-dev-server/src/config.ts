@@ -1,10 +1,13 @@
-import type WebpackDevServer from "webpack-dev-server";
-import { Dev } from "@rspack/core/src/config/devServer";
+import WebpackDevServer from "webpack-dev-server";
 
-export interface ResolvedDev extends Dev {
+export interface Configuration extends WebpackDevServer.Configuration {
+	hot?: boolean;
+}
+
+export interface ResolvedConfiguration extends Configuration {
 	port: number | string;
 	static: false | Array<WebpackDevServer.NormalizedStatic>;
-	devMiddleware: WebpackDevServer.Configuration["devMiddleware"];
+	devMiddleware: Configuration["devMiddleware"];
 	// FIXME: hot should be `boolean | 'only'`
 	hot: boolean;
 	open: WebpackDevServer.Open[];

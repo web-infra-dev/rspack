@@ -1,17 +1,17 @@
-import { Compiler, Dev, MultiCompiler } from "@rspack/core";
+import { Compiler, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
 import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
 import type { Server } from "http";
-import type { ResolvedDev } from "./config";
 import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";
+import type { ResolvedConfiguration, Configuration } from "./config";
 
 export class RspackDevServer extends WebpackDevServer {
 	/**
 	 * resolved after `normalizedOptions`
 	 */
-	options: ResolvedDev;
+	options: ResolvedConfiguration;
 	staticWatchers: FSWatcher[];
 	sockets: Socket[];
 	server: Server;
@@ -19,12 +19,9 @@ export class RspackDevServer extends WebpackDevServer {
 	public compiler: Compiler | MultiCompiler;
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
-	constructor(compiler: Compiler) {
-		compiler.options.devServer = compiler.options.devServer ?? {};
+	constructor(options: Configuration, compiler: Compiler | MultiCompiler) {
 		// @ts-expect-error
-		super(compiler.options.devServer, compiler);
-		this.staticWatchers = [];
-		this.sockets = [];
+		super(options, compiler);
 	}
 
 	addAdditionEntires(compiler: Compiler) {
@@ -152,21 +149,22 @@ export class RspackDevServer extends WebpackDevServer {
 					? this.compiler.compilers
 					: [this.compiler];
 			compilers.forEach(compiler => {
-				this.addAdditionEntires(compiler);
+				const compilers =
+					compiler instanceof MultiCompiler ? compiler.compilers : [compiler];
+				compilers.forEach(compiler => {
+					compiler.options.devServer ??= {};
+					compiler.options.builtins.react ??= {};
+					if (this.options.hot) {
+						compiler.options.builtins.react.refresh ??= true;
+						compiler.options.builtins.react.development ??= true;
+					} else if (compiler.options.builtins.react.refresh) {
+						this.logger.warn(
+							"builtins.react.refresh needs builtins.react.development and devServer.hot enabled"
+						);
+					}
+				});
 
-				if (!compiler.options.builtins.react) {
-					compiler.options.builtins.react = {};
-				}
-				compiler.options.builtins.react.development =
-					compiler.options.builtins.react.development ?? true;
-				if (this.options.hot) {
-					compiler.options.builtins.react.refresh =
-						compiler.options.builtins.react.refresh ?? true;
-				} else if (compiler.options.builtins.react.refresh) {
-					this.logger.warn(
-						"[Builtins] react.refresh need react.development and devServer.hot enabled."
-					);
-				}
+				this.addAdditionEntires(compiler);
 			});
 		}
 
@@ -201,17 +199,19 @@ export class RspackDevServer extends WebpackDevServer {
 
 		if (Array.isArray(this.options.static)) {
 			this.options.static.forEach(staticOptions => {
-				staticOptions.publicPath.forEach(publicPath => {
-					compilers.forEach(compiler => {
-						if (compiler.options.builtins.noEmitAssets) {
-							middlewares.push({
-								name: "rspack-memory-assets",
-								path: publicPath,
-								middleware: getRspackMemoryAssets(compiler, this.middleware)
-							});
-						}
-					});
-				});
+				staticOptions.publicPath.forEach(
+					publicPath => {
+						compilers.forEach(compiler => {
+							if (compiler.options.builtins.noEmitAssets) {
+								middlewares.push({
+									name: "rspack-memory-assets",
+									path: publicPath,
+									middleware: getRspackMemoryAssets(compiler, this.middleware)
+								});
+							}
+						});
+					}
+				);
 			});
 		}
 
