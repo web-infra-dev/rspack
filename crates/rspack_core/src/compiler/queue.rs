@@ -53,6 +53,12 @@ impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
     let dependency = self.dependencies[0].clone();
 
+    let issuer = if let Some(issuer_identifier) = self.original_module_identifier {
+      issuer_identifier.to_string()
+    } else {
+      String::from("")
+    };
+
     let (result, diagnostics) = match *dependency.dependency_type() {
       DependencyType::ImportContext => {
         let factory = ContextModuleFactory::new(self.plugin_driver, self.cache);
@@ -73,6 +79,7 @@ impl WorkerTask for FactorizeTask {
             side_effects: self.side_effects,
             options: self.options.clone(),
             lazy_visit_modules: self.lazy_visit_modules,
+            issuer,
           },
           self.plugin_driver,
           self.cache,
@@ -232,13 +239,14 @@ impl WorkerTask for BuildTask {
       .use_cache(&mut module, |module| async {
         let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
           let resource_data = normal_module.resource_resolved_data();
+          let issuer = normal_module.issuer();
 
           compiler_options
             .module
             .rules
             .iter()
             .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-              match module_rule_matcher(module_rule, resource_data) {
+              match module_rule_matcher(module_rule, resource_data, issuer) {
                 Ok(val) => val.then_some(Ok(module_rule)),
                 Err(err) => Some(Err(err)),
               }

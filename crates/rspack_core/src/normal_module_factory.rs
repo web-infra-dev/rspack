@@ -179,6 +179,7 @@ impl NormalModuleFactory {
       resource_data,
       resolved_resolve_options,
       self.context.options.clone(),
+      self.context.issuer.clone(),
     );
 
     let module = if let Some(module) = self
@@ -214,7 +215,7 @@ impl NormalModuleFactory {
       .rules
       .iter()
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        match module_rule_matcher(module_rule, resource_data) {
+        match module_rule_matcher(module_rule, resource_data, &self.context.issuer) {
           Ok(val) => val.then_some(Ok(module_rule)),
           Err(err) => Some(Err(err)),
         }
@@ -327,6 +328,7 @@ pub struct NormalModuleFactoryContext {
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,
   pub lazy_visit_modules: std::collections::HashSet<String>,
+  pub issuer: String,
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,

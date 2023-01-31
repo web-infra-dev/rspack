@@ -333,6 +333,7 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<AssetGeneratorOptions>,
 
+  issuer: String,
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
@@ -382,6 +383,7 @@ impl NormalModule {
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
     options: Arc<CompilerOptions>,
+    issuer: String,
   ) -> Self {
     Self {
       id: ModuleIdentifier::from(request.as_ref()),
@@ -394,7 +396,7 @@ impl NormalModule {
       generator_options,
       resource_data,
       resolve_options,
-
+      issuer,
       original_source: None,
       ast_or_source: NormalModuleAstOrSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
@@ -408,6 +410,10 @@ impl NormalModule {
 
   pub fn resource_resolved_data(&self) -> &ResourceData {
     &self.resource_data
+  }
+
+  pub fn issuer(&self) -> &str {
+    &self.issuer
   }
 
   pub fn request(&self) -> &str {

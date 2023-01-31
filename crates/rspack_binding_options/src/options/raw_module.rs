@@ -4,7 +4,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxedLoader,
-  CompilerOptionsBuilder, ModuleOptions, ModuleRule, ParserOptions,
+  CompilerOptionsBuilder, IssuerOptions, ModuleOptions, ModuleRule, ParserOptions,
 };
 use serde::Deserialize;
 #[cfg(feature = "node-api")]
@@ -98,6 +98,13 @@ impl TryFrom<RawModuleRuleCondition> for rspack_core::ModuleRuleCondition {
   }
 }
 
+#[derive(Deserialize, Default, Debug)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawIssuerOptions {
+  pub not: Option<Vec<RawModuleRuleCondition>>,
+}
+
 #[derive(Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -123,6 +130,7 @@ pub struct RawModuleRule {
   pub parser: Option<RawModuleRuleParser>,
   pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
+  pub issuer: Option<RawIssuerOptions>,
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<JsFunction>,
@@ -201,6 +209,7 @@ impl Debug for RawModuleRule {
       .field("type", &self.r#type)
       .field("side_effects", &self.side_effects)
       .field("use", &self.r#use)
+      .field("issuer", &self.issuer)
       .finish()
   }
 }
@@ -466,6 +475,17 @@ impl RawOption<ModuleRule> for RawModuleRule {
 
     let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
 
+    let issuer = if let Some(issuer) = self.issuer {
+      Some(IssuerOptions {
+        not: issuer
+          .not
+          .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+          .transpose()?,
+      })
+    } else {
+      None
+    };
+
     Ok(ModuleRule {
       test: self.test.map(|raw| raw.try_into()).transpose()?,
       include: self
@@ -493,6 +513,7 @@ impl RawOption<ModuleRule> for RawModuleRule {
         .map(|raw| raw.to_compiler_option(options))
         .transpose()?,
       side_effects: self.side_effects,
+      issuer,
       // side_effects: raw.
       // Loader experimental
       func__: None,
