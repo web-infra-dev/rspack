@@ -173,7 +173,7 @@ export function getNormalizedRspackOptions(
 		node,
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
-		devServer: config.devServer,
+		devServer: config.devServer
 	};
 }
 

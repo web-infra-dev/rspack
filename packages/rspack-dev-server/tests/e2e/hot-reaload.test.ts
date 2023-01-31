@@ -15,7 +15,7 @@ async function wait(time) {
 }
 
 describe("reload and hot should works", () => {
-	it.skip("reload and hot should works", async () => {
+	it("reload and hot should works", async () => {
 		// reload should works
 		let tempDir = await initFixture("react");
 		await installDeps(tempDir);
@@ -28,7 +28,10 @@ describe("reload and hot should works", () => {
 				liveReload: true
 			}
 		});
-		let server = new RspackDevServer(compiler.options.devServer ?? {}, compiler);
+		let server = new RspackDevServer(
+			compiler.options.devServer ?? {},
+			compiler
+		);
 		await server.start();
 		await waitingForBuild(server.options.port);
 		console.log("=== before goto page ===");
