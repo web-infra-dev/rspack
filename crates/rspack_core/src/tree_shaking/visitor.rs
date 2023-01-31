@@ -361,8 +361,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
-    let side_effects = self.get_side_effects().unwrap_or(true);
+    // TODO: should return analyze_side_effects_result if we can't read it from configuration
+    let side_effects = self.get_side_effects_from_config().unwrap_or(true);
     self.side_effects_free = !side_effects;
+  }
+
+  fn visit_module(&mut self, node: &Module) {
+    for ele in node.body {
+      ele.visit_with(self);
+    }
   }
 
   fn visit_ident(&mut self, node: &Ident) {
@@ -921,7 +928,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
-  fn get_side_effects(&mut self) -> Option<bool> {
+  fn get_side_effects_from_config(&mut self) -> Option<bool> {
     let resource_path = self
       .module_graph
       .module_by_identifier(&self.module_identifier)
