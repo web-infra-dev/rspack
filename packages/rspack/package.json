@@ -14,7 +14,6 @@
   ],
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "workspace:*",
     "@rspack/less-loader": "workspace:^",
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
@@ -45,7 +44,8 @@
     "tsm": "^2.2.2",
     "typescript": "4.7.3",
     "util": "0.12.5",
-    "uvu": "0.5.6"
+    "uvu": "0.5.6",
+    "webpack-dev-server": "4.11.1"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*",

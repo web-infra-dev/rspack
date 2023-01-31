@@ -5,13 +5,13 @@ import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
 import type { Server } from "http";
 import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";
-import type { ResolvedConfiguration, Configuration } from "./config";
+import type { ResolvedDevServer, DevServer } from "./config";
 
 export class RspackDevServer extends WebpackDevServer {
 	/**
 	 * resolved after `normalizedOptions`
 	 */
-	options: ResolvedConfiguration;
+	options: ResolvedDevServer;
 	staticWatchers: FSWatcher[];
 	sockets: Socket[];
 	server: Server;
@@ -19,7 +19,7 @@ export class RspackDevServer extends WebpackDevServer {
 	public compiler: Compiler | MultiCompiler;
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
-	constructor(options: Configuration, compiler: Compiler | MultiCompiler) {
+	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
 		// @ts-expect-error
 		super(options, compiler);
 	}
