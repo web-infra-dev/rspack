@@ -8,6 +8,7 @@ module.exports = {
 			import: ["./index.js"]
 		}
 	},
+	// This isn't work
 	define: {
 		"process.env.NODE_ENV": "'development'"
 	},

@@ -2357,6 +2357,7 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_symbol",
  "rspack_test",
+ "rspack_test_utils",
  "rspack_tracing",
  "serde",
  "serde_json",
@@ -2458,6 +2459,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_test",
+ "rspack_test_utils",
  "rspack_tracing",
  "sugar_path",
  "termcolor",
@@ -2768,6 +2770,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_test_utils"
+version = "0.1.0"
+dependencies = [
+ "cargo-rst",
+ "colored",
+ "derive_builder",
+ "glob",
+ "quick-js",
+ "rayon",
+ "rspack",
+ "rspack_core",
+ "rspack_plugin_css",
+ "rspack_regex",
+ "rspack_tracing",
+ "schemars",
+ "serde",
+ "serde_json",
+ "similar",
+ "testing_macros",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_tracing"
 version = "0.1.0"
 dependencies = [
@@ -2863,6 +2888,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "schemars"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2a5fb6c61f29e723026dc8e923d94c694313212abbecbbe5f55a7748eec5b307"
+dependencies = [
+ "dyn-clone",
+ "schemars_derive",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "schemars_derive"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f188d036977451159430f3b8dc82ec76364a42b7e289c2b18a9a18f4470058e9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde_derive_internals",
+ "syn",
+]
+
+[[package]]
 name = "scoped-tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2939,6 +2988,17 @@ name = "serde_derive"
 version = "1.0.152"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af487d118eecd09402d70a5d72551860e788df87b464af30e5ea6a38c75c541e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "serde_derive_internals"
+version = "0.26.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85bf8229e7920a9f636479437026331ce11aa132b4dde37d121944a44d6e5f3c"
 dependencies = [
  "proc-macro2",
  "quote",

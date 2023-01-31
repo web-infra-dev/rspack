@@ -10,7 +10,7 @@ it("export should be unused when only unused functions use it", ()=>{
     expect((0, _moduleJs.y)("a")).toBe("okBAA");
     expect(_innerJs.exportAUsed).toBe(true);
     expect(_innerJs.exportBUsed).toBe(true);
-    if (process.env.NODE_ENV === "production") expect(_innerJs.exportCUsed).toBe(false);
+    expect(_innerJs.exportCUsed).toBe(false);
     return __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir);
 });
 },

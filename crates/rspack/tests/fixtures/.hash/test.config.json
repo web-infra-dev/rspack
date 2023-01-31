@@ -1,0 +1,14 @@
+{
+	"entry": {
+		"main": {
+			"import": [
+				"./index.js"
+			]
+		}
+	},
+	"output": {
+		"filename": "[name].[contenthash][ext]",
+		"cssFilename": "[name].[contenthash][ext]",
+		"cssChunkFilename": "[name].[contenthash][ext]"
+	}
+}
