@@ -1,6 +1,5 @@
 ---
 "@rspack/core": patch
-"@rspack/cli": patch
 "@rspack/dev-middleware": patch
 "@rspack/dev-server": patch
 ---
