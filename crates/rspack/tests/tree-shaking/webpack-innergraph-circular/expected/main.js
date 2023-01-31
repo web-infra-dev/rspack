@@ -10,6 +10,7 @@ it("export should be unused when only unused functions use it", ()=>{
     expect((0, _moduleJs.y)("a")).toBe("okBAA");
     expect(_innerJs.exportAUsed).toBe(true);
     expect(_innerJs.exportBUsed).toBe(true);
+    expect(_innerJs.exportCUsed).toBe(false);
     return __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir);
 });
 },
@@ -28,7 +29,8 @@ _export(exports, {
     A: ()=>A,
     B: ()=>B,
     exportAUsed: ()=>exportAUsed,
-    exportBUsed: ()=>exportBUsed
+    exportBUsed: ()=>exportBUsed,
+    exportCUsed: ()=>exportCUsed
 });
 function A(s) {
     return s + "A";
@@ -38,7 +40,7 @@ function B(s) {
 }
 const exportAUsed = __webpack_exports_info__.A.used;
 const exportBUsed = __webpack_exports_info__.B.used;
-__webpack_exports_info__.C.used;
+const exportCUsed = __webpack_exports_info__.C.used;
 },
 "./module.js": function (module, exports, __webpack_require__) {
 "use strict";
