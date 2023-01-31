@@ -18,10 +18,12 @@ module.exports = {
   devtool: prod ? false : 'source-map',
   builtins: {
     progress: {},
-    treeShaking: prod,
-    sideEffects: prod,
-    noEmitAssets: false
+    treeShaking: true,
+    sideEffects: true,
+    noEmitAssets: false,
+    stats: true
   },
+  stats: true,
   cache: false,
   module: {
     rules:
