@@ -2,8 +2,8 @@ use rspack_core::Plugin;
 use rspack_error::Result;
 
 use crate::id_helpers::{
-  assign_ascending_module_ids, assign_names, compare_modules_by_identifier, get_long_module_name,
-  get_short_module_name, get_used_module_ids_and_modules,
+  assign_ascending_module_ids, assign_names_par, compare_modules_by_identifier,
+  get_long_module_name, get_short_module_name, get_used_module_ids_and_modules,
 };
 
 #[derive(Debug)]
@@ -24,7 +24,7 @@ impl Plugin for NamedModuleIdsPlugin {
       .collect::<Vec<_>>();
     let chunk_graph = &mut compilation.chunk_graph;
 
-    let unnamed_modules = assign_names(
+    let unnamed_modules = assign_names_par(
       modules,
       |m| get_short_module_name(m, context),
       |module, short_name| get_long_module_name(short_name, module, context),

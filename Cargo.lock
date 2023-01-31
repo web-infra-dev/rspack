@@ -2467,6 +2467,7 @@ dependencies = [
 name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
+ "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
