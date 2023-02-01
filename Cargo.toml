@@ -21,12 +21,13 @@ napi              = { version = "=2.10.6" }
 napi-build        = { version = "=2.0.1" }
 napi-derive       = { version = "=2.9.4" }
 napi-sys          = { version = "=2.2.2" }
-preset_env_base   = { version = "0.4.0" }
+preset_env_base   = { git = "https://github.com/IWANABETHATGUY/swc", branch = "chore/better-string-cache", version = "0.4.0" }
 rustc-hash        = { version = "1.1.0" }
 serde             = "1.0.152"
 serde_json        = "1.0.91"
-swc_core          = { version = "0.59.6", default-features = false }
-swc_css           = { version = "0.149.2" }
-swc_html          = { version = "0.105.1" }
-swc_html_minifier = { version = "0.102.1" }
-tracing           = "0.1.34"
+swc_core          = { git = "https://github.com/IWANABETHATGUY/swc", branch = "chore/better-string-cache", default-features = false }
+swc_css           = { git = "https://github.com/IWANABETHATGUY/swc", branch = "chore/better-string-cache" }
+swc_html          = { git = "https://github.com/IWANABETHATGUY/swc", branch = "chore/better-string-cache", version = "0.109.10" }
+swc_html_minifier = { git = "https://github.com/IWANABETHATGUY/swc", branch = "chore/better-string-cache", version = "0.106.10" }
+
+tracing = "0.1.34"
