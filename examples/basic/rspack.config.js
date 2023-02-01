@@ -28,6 +28,9 @@ module.exports = (env) => {
     },
     output: {
       path: path.resolve(__dirname, 'dist')
+    },
+    builtins: {
+      minify: false
     }
   }
 };

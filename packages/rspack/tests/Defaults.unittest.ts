@@ -98,6 +98,7 @@ describe("snapshots", () => {
 		    "version": "",
 		  },
 		  "context": "<cwd>",
+		  "dependencies": undefined,
 		  "devServer": undefined,
 		  "devtool": "",
 		  "entry": {
@@ -120,6 +121,7 @@ describe("snapshots", () => {
 		    "parser": undefined,
 		    "rules": [],
 		  },
+		  "name": undefined,
 		  "node": {},
 		  "optimization": {
 		    "minimize": undefined,
@@ -179,6 +181,8 @@ describe("snapshots", () => {
 		  "target": [
 		    "web",
 		  ],
+		  "watch": undefined,
+		  "watchOptions": {},
 		}
 	`);
 	});
@@ -482,13 +486,7 @@ describe("snapshots", () => {
 	`)
 	);
 	test("records", { recordsPath: "some-path" }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		+   "recordsPath": "some-path",
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("ecmaVersion", { output: { ecmaVersion: 2020 } }, e =>
 		e.toMatchInlineSnapshot(`
@@ -578,8 +576,6 @@ describe("snapshots", () => {
 			- Expected
 			+ Received
 
-			@@ ... @@
-			+   "amd": false,
 			@@ ... @@
 			-     "type": "memory",
 			+     "type": "",
