@@ -174,7 +174,7 @@ export function getNormalizedRspackOptions(
 		node,
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
-		devServer: config.devServer
+		devServer: config.devServer ?? {} // must set to object so server.options and compiler.options.devServer could share the same config object
 	};
 }
 

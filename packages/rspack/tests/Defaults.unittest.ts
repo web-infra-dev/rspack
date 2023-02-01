@@ -99,7 +99,7 @@ describe("snapshots", () => {
 		  },
 		  "context": "<cwd>",
 		  "dependencies": undefined,
-		  "devServer": undefined,
+		  "devServer": {},
 		  "devtool": "",
 		  "entry": {
 		    "main": {
