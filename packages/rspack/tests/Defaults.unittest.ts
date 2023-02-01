@@ -143,6 +143,7 @@ describe("snapshots", () => {
 		      ".json",
 		      ".d.ts",
 		    ],
+		    "fallback": {},
 		    "mainFields": [
 		      "browser",
 		      "module",

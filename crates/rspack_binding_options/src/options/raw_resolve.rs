@@ -21,9 +21,41 @@ pub struct RawResolveOptions {
   #[serde(serialize_with = "ordered_map")]
   #[napi(ts_type = "Record<string, string | false>")]
   pub alias: Option<HashMap<String, AliasValue>>,
+  #[serde(serialize_with = "ordered_map")]
+  #[napi(ts_type = "Record<string, string | false>")]
+  pub fallback: Option<HashMap<String, AliasValue>>,
   pub symlinks: Option<bool>,
   pub ts_config_path: Option<String>,
   pub modules: Option<Vec<String>>,
+}
+
+fn normalize_alias(
+  alias: Option<HashMap<String, AliasValue>>,
+) -> anyhow::Result<Option<Vec<(String, AliasMap)>>> {
+  alias
+    .map(|alias| {
+      alias
+        .into_iter()
+        .map(|(key, value)| {
+          if let Some(s) = value.as_str() {
+            Ok((key, AliasMap::Target(s.to_string())))
+          } else if let Some(b) = value.as_bool() {
+            if b {
+              Err(anyhow::Error::msg(format!(
+                "Alias should not be true in {key}"
+              )))
+            } else {
+              Ok((key, AliasMap::Ignored))
+            }
+          } else {
+            Err(anyhow::Error::msg(format!(
+              "Alias should be false or string in {key}"
+            )))
+          }
+        })
+        .collect::<anyhow::Result<_>>()
+    })
+    .map_or(Ok(None), |v| v.map(Some))
 }
 
 impl RawOption<Resolve> for RawResolveOptions {
@@ -35,29 +67,8 @@ impl RawOption<Resolve> for RawResolveOptions {
     let main_fields = self.main_fields;
     let condition_names = self.condition_names;
     let symlinks = self.symlinks;
-    let alias = if let Some(alias) = self.alias {
-      let mut temp = vec![];
-      for (key, value) in alias {
-        if let Some(s) = value.as_str() {
-          temp.push((key, AliasMap::Target(s.to_string())))
-        } else if let Some(b) = value.as_bool() {
-          if b {
-            return Err(anyhow::Error::msg(format!(
-              "Alias should not be true in {key}"
-            )));
-          } else {
-            temp.push((key, AliasMap::Ignored))
-          }
-        } else {
-          return Err(anyhow::Error::msg(format!(
-            "Alias should be false or string in {key}"
-          )));
-        }
-      }
-      Some(temp)
-    } else {
-      None
-    };
+    let alias = normalize_alias(self.alias)?;
+    let fallback = normalize_alias(self.fallback)?;
     let modules = self.modules;
     let tsconfig = self.ts_config_path.map(std::path::PathBuf::from);
     Ok(Resolve {
@@ -71,6 +82,7 @@ impl RawOption<Resolve> for RawResolveOptions {
       alias,
       symlinks,
       tsconfig,
+      fallback,
     })
   }
 
