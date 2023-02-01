@@ -25,6 +25,7 @@ rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 sourcemap = "6.2.0"
+styled_jsx = "0.30.4"
 sugar_path = "0.0.9"
 swc_core = { workspace = true, features = [
   "__parser",

@@ -10,6 +10,9 @@ pub use typescript::typescript;
 mod react;
 pub use react::{fold_react_refresh, react};
 
+mod styled_jsx;
+pub use self::styled_jsx::styled_jsx;
+
 mod define;
 pub use define::define;
 

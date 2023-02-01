@@ -49,6 +49,7 @@ pub struct RawBuiltins {
   pub react: Option<RawReactOptions>,
   pub decorator: Option<RawDecoratorOptions>,
   pub no_emit_assets: Option<bool>,
+  pub styled_jsx: Option<bool>,
 }
 
 pub(super) fn normalize_builtin(
@@ -115,6 +116,7 @@ pub(super) fn normalize_builtin(
     react: RawOption::raw_to_compiler_option(builtins.react, options)?,
     decorator: transform_to_decorator_options(builtins.decorator),
     no_emit_assets: builtins.no_emit_assets.unwrap_or(false),
+    styled_jsx: builtins.styled_jsx.unwrap_or(false),
   };
   Ok(ret)
 }

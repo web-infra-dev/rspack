@@ -1,0 +1,21 @@
+{
+  "name": "example-react-styled-jsx",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "rspack serve -c ./rspack.config.js",
+    "build": "rspack build -c ./rspack.config.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@rspack/cli": "workspace:*",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-refresh": "0.14.0",
+    "styled-jsx": "^5.1.2"
+  }
+}

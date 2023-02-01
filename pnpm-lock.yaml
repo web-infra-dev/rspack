@@ -222,6 +222,20 @@ importers:
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
 
+  examples/react-with-styled-jsx:
+    specifiers:
+      '@rspack/cli': workspace:*
+      react: 18.2.0
+      react-dom: 18.2.0
+      react-refresh: 0.14.0
+      styled-jsx: ^5.1.2
+    dependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      react-refresh: 0.14.0
+      styled-jsx: 5.1.2_react@18.2.0
+
   examples/solid:
     specifiers:
       '@rspack/cli': workspace:*
@@ -368,6 +382,7 @@ importers:
       schema-utils: ^4.0.0
       sinon: 14.0.0
       source-map: ^0.7.4
+      styled-jsx: ^5.1.2
       tapable: 2.2.1
       ts-node: 10.9.1
       tsm: ^2.2.2
@@ -426,6 +441,7 @@ importers:
       sass-loader: 13.2.0_sass@1.56.2
       sinon: 14.0.0
       source-map: 0.7.4
+      styled-jsx: 5.1.2
       ts-node: 10.9.1_iqqktkndlpjcw7xba3ta44d6ve
       tsm: 2.2.2
       typescript: 4.7.3
@@ -6152,6 +6168,9 @@ packages:
       slice-ansi: 5.0.0
       string-width: 5.1.2
     dev: true
+
+  /client-only/0.0.1:
+    resolution: {integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==}
 
   /clipboardy/3.0.0:
     resolution: {integrity: sha512-Su+uU5sr1jkUy1sGRpLKjKrvEOVXgSgiSInwa/qeID6aJ07yh+5NWc3h2QfjHjBnfX4LhtFcuAWKUsJ3r+fjbg==}
@@ -12670,6 +12689,39 @@ packages:
     dependencies:
       webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
+
+  /styled-jsx/5.1.2:
+    resolution: {integrity: sha512-FI5r0a5ED2/+DSdG2ZRz3a4FtNQnKPLadauU5v76a9QsscwZrWggQKOmyxGGP5EWKbyY3bsuWAJYzyKaDAVAcw==}
+    engines: {node: '>= 12.0.0'}
+    peerDependencies:
+      '@babel/core': '*'
+      babel-plugin-macros: '*'
+      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0'
+    peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      babel-plugin-macros:
+        optional: true
+    dependencies:
+      client-only: 0.0.1
+    dev: true
+
+  /styled-jsx/5.1.2_react@18.2.0:
+    resolution: {integrity: sha512-FI5r0a5ED2/+DSdG2ZRz3a4FtNQnKPLadauU5v76a9QsscwZrWggQKOmyxGGP5EWKbyY3bsuWAJYzyKaDAVAcw==}
+    engines: {node: '>= 12.0.0'}
+    peerDependencies:
+      '@babel/core': '*'
+      babel-plugin-macros: '*'
+      react: '>= 16.8.0 || 17.x.x || ^18.0.0-0'
+    peerDependenciesMeta:
+      '@babel/core':
+        optional: true
+      babel-plugin-macros:
+        optional: true
+    dependencies:
+      client-only: 0.0.1
+      react: 18.2.0
+    dev: false
 
   /superstruct/1.0.3:
     resolution: {integrity: sha512-8iTn3oSS8nRGn+C2pgXSKPI3jmpm6FExNazNpjvqS6ZUJQCej3PUXEKM8NjHBOs54ExM+LPW/FBRhymrdcCiSg==}

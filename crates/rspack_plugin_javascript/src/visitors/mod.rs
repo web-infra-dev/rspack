@@ -69,6 +69,10 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       Optional::new(
+        swc_visitor::styled_jsx(&cm),
+        options.builtins.styled_jsx && should_transform_by_react
+      ),
+      Optional::new(
         swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
         should_transform_by_react
       ),

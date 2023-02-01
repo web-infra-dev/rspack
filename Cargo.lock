@@ -779,6 +779,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c9b0705efd4599c15a38151f4721f7bc388306f61084d3bfd50bd07fbca5cb60"
 
 [[package]]
+name = "easy-error"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04cc9717c61d2908f50d16ebb5677c7e82ea2bdf7cb52f66b30fe079f3212e16"
+
+[[package]]
 name = "either"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2651,6 +2657,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "sourcemap",
+ "styled_jsx",
  "sugar_path",
  "swc_core",
  "tracing",
@@ -3236,6 +3243,17 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "styled_jsx"
+version = "0.30.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61a86c4a4d6b61091379312f0d31a9929be758d87ae7aaf8e6a32e2174b941ae"
+dependencies = [
+ "easy-error",
+ "swc_core",
+ "tracing",
+]
 
 [[package]]
 name = "substring"

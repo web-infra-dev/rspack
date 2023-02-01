@@ -36,6 +36,7 @@ pub struct Builtins {
   pub react: ReactOptions,
   pub decorator: Option<DecoratorOptions>,
   pub no_emit_assets: bool,
+  pub styled_jsx: bool,
 }
 
 #[derive(Debug, Clone, Default)]
