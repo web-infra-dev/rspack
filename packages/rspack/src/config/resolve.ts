@@ -7,9 +7,10 @@ export type Resolve = {
 	mainFields?: string[];
 	browserField?: boolean;
 	conditionNames?: string[];
-	alias?: Record<string, string>;
+	alias?: Record<string, string | false>;
 	tsConfigPath?: string;
 	modules?: string | string[];
+	fallback?: Record<string, string | false>;
 };
 
 export type ResolvedResolve = {
@@ -19,7 +20,8 @@ export type ResolvedResolve = {
 	mainFields: string[];
 	browserField: boolean;
 	conditionNames: string[];
-	alias: Record<string, string>;
+	alias: Record<string, string | false>;
+	fallback: Record<string, string | false>;
 	tsConfigPath: string | undefined;
 	modules: string[];
 };
@@ -49,6 +51,7 @@ export function resolveResolveOptions(
 	const mainFiles = resolve.mainFiles ?? ["index"];
 	const browserField = resolve.browserField ?? true;
 	const alias = resolve.alias ?? {};
+	const fallback = resolve.fallback ?? {};
 	const conditionNames = resolve.conditionNames;
 	const tsConfigPath = resolve.tsConfigPath;
 	let modules: string[];
@@ -68,6 +71,7 @@ export function resolveResolveOptions(
 		browserField,
 		conditionNames,
 		alias,
-		tsConfigPath
+		tsConfigPath,
+		fallback
 	};
 }

@@ -129,6 +129,11 @@ fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Res
     let now: indexmap::IndexSet<(String, AliasMap)> = now.into_iter().collect();
     Some(now.into_iter().collect())
   });
+  let fallback = overwrite(base.fallback, other.fallback, |pre, mut now| {
+    now.extend(pre.into_iter());
+    let now: indexmap::IndexSet<(String, AliasMap)> = now.into_iter().collect();
+    Some(now.into_iter().collect())
+  });
   let prefer_relative = overwrite(base.prefer_relative, other.prefer_relative, |_, value| {
     Some(value)
   });
@@ -156,6 +161,7 @@ fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Res
   let tsconfig = other.tsconfig;
 
   Resolve {
+    fallback,
     modules,
     alias,
     prefer_relative,
@@ -268,9 +274,9 @@ impl Resolver {
       .resolve(path, request)
       .map(|inner_result| match inner_result {
         nodejs_resolver::ResolveResult::Info(info) => ResolveResult::Info(ResolveInfo {
-          path: info.path,
-          query: info.request.query().into(),
-          fragment: info.request.fragment().into(),
+          path: info.path().to_path_buf(),
+          query: info.request().query().into(),
+          fragment: info.request().fragment().into(),
         }),
         nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
       })

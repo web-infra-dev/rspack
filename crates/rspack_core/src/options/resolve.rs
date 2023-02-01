@@ -32,6 +32,9 @@ pub struct Resolve {
   /// A list of directories to resolve modules from, can be absolute path or folder name.
   /// Default is `["node_modules"]`
   pub modules: Option<Vec<String>>,
+  // Same as `alias`, but only used if default resolving fails
+  // Default is `[]`
+  pub fallback: Option<Vec<(String, AliasMap)>>,
 }
 
 impl Resolve {
@@ -68,8 +71,9 @@ impl Resolve {
     let modules = self
       .modules
       .unwrap_or_else(|| vec!["node_modules".to_string()]);
-
+    let fallback = self.fallback.unwrap_or_default();
     nodejs_resolver::Options {
+      fallback,
       modules,
       extensions,
       enforce_extension,
