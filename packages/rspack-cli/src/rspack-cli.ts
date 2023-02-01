@@ -109,7 +109,7 @@ export class RspackCLI {
 
 		// no emit assets when run dev server, it will use node_binding api get file content
 		if (typeof item.builtins.noEmitAssets === "undefined") {
-			item.builtins.noEmitAssets = isEnvDevelopment;
+			item.builtins.noEmitAssets = false; // @FIXME memory fs currently cause problems for outputFileSystem, so we disable it temporarily
 		}
 
 		// Tells webpack to set process.env.NODE_ENV to a given string value.
