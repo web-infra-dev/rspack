@@ -493,10 +493,14 @@ function composeJsUse(
 				let loader: Loader | undefined;
 				if (typeof use.loader === "string") {
 					try {
-						let loaderPath = require.resolve(use.loader, {
+						const loaderPath = require.resolve(use.loader, {
 							paths: [options.context]
 						});
-						loader = require(loaderPath);
+						const loaderModule = require(loaderPath);
+						loader =
+							typeof loaderModule === "function"
+								? loaderModule
+								: loaderModule.default;
 					} catch (err) {
 						reject(err);
 						return;
