@@ -37,11 +37,11 @@ Thanks to:
 
 - [The webpack team and community](https://webpack.js.org/) for creating a great bundler and ecosystem from which we draw a lot of inspiration.
 - [@sokra](https://github.com/sokra) for the great work on the [webpack](https://github.com/webpack/webpack) project.
-- [@kdy1](https://github.com/kdy1) for the [SWC](https://github.com/swc-project/swc) project, which powers Rspack's code compilation and minification.
-- [@evanw](https://github.com/evanw) for the [esbuild](https://github.com/evanw/esbuild) project, which inspired the concurrent architecture of Rspack.
 - [@ScriptedAlchemy](https://github.com/ScriptedAlchemy) for creating Module Federation and helping Rspack connect with the community.
-- [@Brooooooklyn](https://github.com/Brooooooklyn) for the [napi-rs](https://github.com/napi-rs/napi-rs) project, which powers Rspack's node-binding implementation.
-- [@jantimon](https://github.com/jantimon) for the [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project, which inspired `@rspack/html-plugin`.
+- The [SWC](https://github.com/swc-project/swc) project created by [@kdy1](https://github.com/kdy1), which powers Rspack's code compilation and minification.
+- The [esbuild] project created by [@evanw](https://github.com/evanw), which inspired the concurrent architecture of Rspack.
+- The [napi-rs](https://github.com/napi-rs/napi-rs) project created by [@Brooooooklyn](https://github.com/Brooooooklyn), which powers Rspack's node-binding implementation.
+- The [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project created by [@jantimon](https://github.com/jantimon), which inspired `@rspack/html-plugin`.
 
 ## License
 
