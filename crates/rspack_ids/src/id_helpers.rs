@@ -5,6 +5,7 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use rayon::prelude::*;
 use rspack_core::{
   BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
 };
@@ -106,37 +107,111 @@ pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::
   compare_ids(&a.identifier(), &b.identifier())
 }
 
-pub fn assign_names<T: Copy>(
+// pub fn assign_names<T: Copy>(
+//   items: Vec<T>,
+//   get_short_name: impl Fn(T) -> String,
+//   get_long_name: impl Fn(T, &str) -> String,
+//   comparator: impl Fn(&T, &T) -> Ordering,
+//   used_ids: &mut HashSet<String>,
+//   mut assign_name: impl FnMut(T, String),
+// ) -> Vec<T> {
+//   let mut name_to_items: HashMap<String, Vec<T>> = HashMap::default();
+//   for item in items {
+//     let name = get_short_name(item);
+//     name_to_items.entry(name).or_default().push(item);
+//   }
+//
+//   let mut name_to_items2: HashMap<String, Vec<T>> = HashMap::default();
+//
+//   for (name, items) in name_to_items {
+//     if items.len() > 1 || name.is_empty() {
+//       for item in items {
+//         let long_name = get_long_name(item, &name);
+//         name_to_items2.entry(long_name).or_default().push(item);
+//       }
+//     } else {
+//       name_to_items2.entry(name).or_default().push(items[0]);
+//     }
+//   }
+//
+//   let name_to_items2_keys = name_to_items2.keys().cloned().collect::<HashSet<_>>();
+//
+//   let mut unnamed_items = vec![];
+//   for (name, mut items) in name_to_items2 {
+//     if name.is_empty() {
+//       for item in items {
+//         unnamed_items.push(item)
+//       }
+//     } else if items.len() == 1 && !used_ids.contains(&name) {
+//       assign_name(items[0], name.clone());
+//       used_ids.insert(name.clone());
+//     } else {
+//       items.sort_by(&comparator);
+//       let mut i = 0;
+//       for item in items {
+//         let formated_name = format!("{name}{i}");
+//         while name_to_items2_keys.contains(&formated_name) && used_ids.contains(&formated_name) {
+//           i += 1;
+//         }
+//         assign_name(item, formated_name.clone());
+//         used_ids.insert(formated_name);
+//         i += 1;
+//       }
+//     }
+//   }
+//   unnamed_items.sort_by(comparator);
+//   unnamed_items
+// }
+
+pub fn assign_names_par<T: Copy + Send>(
   items: Vec<T>,
-  get_short_name: impl Fn(T) -> String,
-  get_long_name: impl Fn(T, &str) -> String,
+  get_short_name: impl Fn(T) -> String + std::marker::Sync,
+  get_long_name: impl Fn(T, &str) -> String + std::marker::Sync,
   comparator: impl Fn(&T, &T) -> Ordering,
   used_ids: &mut HashSet<String>,
   mut assign_name: impl FnMut(T, String),
 ) -> Vec<T> {
+  let item_name_pair = items
+    .into_par_iter()
+    .map(|item| {
+      let name = get_short_name(item);
+      (item, name)
+    })
+    .collect::<Vec<(T, String)>>();
   let mut name_to_items: HashMap<String, Vec<T>> = HashMap::default();
-  for item in items {
-    let name = get_short_name(item);
-    name_to_items.entry(name).or_default().push(item);
-  }
-
-  let mut name_to_items2: HashMap<String, Vec<T>> = HashMap::default();
-
-  for (name, items) in name_to_items {
-    if items.len() > 1 || name.is_empty() {
-      for item in items {
-        let long_name = get_long_name(item, &name);
-        name_to_items2.entry(long_name).or_default().push(item);
-      }
-    } else {
-      name_to_items2.entry(name).or_default().push(items[0]);
+  let mut invalid_and_repeat_names: HashSet<String> = HashSet::default();
+  invalid_and_repeat_names.insert(String::from(""));
+  for (item, name) in item_name_pair {
+    let items = name_to_items.entry(name.clone()).or_default();
+    items.push(item);
+    if items.len() > 1 {
+      invalid_and_repeat_names.insert(name);
     }
   }
 
-  let name_to_items2_keys = name_to_items2.keys().cloned().collect::<HashSet<_>>();
+  let item_name_pair = invalid_and_repeat_names
+    .iter()
+    .flat_map(|name| {
+      let mut res = vec![];
+      for item in name_to_items.remove(name).unwrap_or_default() {
+        res.push((name.clone(), item));
+      }
+      res
+    })
+    .par_bridge()
+    .map(|(name, item)| {
+      let long_name = get_long_name(item, name.as_str());
+      (item, long_name)
+    })
+    .collect::<Vec<(T, String)>>();
+  for (item, name) in item_name_pair {
+    name_to_items.entry(name).or_default().push(item);
+  }
+
+  let name_to_items_keys = name_to_items.keys().cloned().collect::<HashSet<_>>();
 
   let mut unnamed_items = vec![];
-  for (name, mut items) in name_to_items2 {
+  for (name, mut items) in name_to_items {
     if name.is_empty() {
       for item in items {
         unnamed_items.push(item)
@@ -149,7 +224,7 @@ pub fn assign_names<T: Copy>(
       let mut i = 0;
       for item in items {
         let formated_name = format!("{name}{i}");
-        while name_to_items2_keys.contains(&formated_name) && used_ids.contains(&formated_name) {
+        while name_to_items_keys.contains(&formated_name) && used_ids.contains(&formated_name) {
           i += 1;
         }
         assign_name(item, formated_name.clone());
