@@ -1,7 +1,7 @@
 {
   "name": "monorepo",
   "version": "1.0.0",
-  "description": "Maybe the next generation bundler",
+  "description": "A Fast Rust-based Web Bundler",
   "main": "index.js",
   "private": true,
   "scripts": {
