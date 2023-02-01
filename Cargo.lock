@@ -2767,6 +2767,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_storage"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "once_cell",
+]
+
+[[package]]
 name = "rspack_symbol"
 version = "0.1.0"
 dependencies = [
