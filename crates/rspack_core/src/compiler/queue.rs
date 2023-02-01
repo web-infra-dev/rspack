@@ -48,13 +48,21 @@ pub struct FactorizeTaskResult {
   pub is_entry: bool,
 }
 
+/** absolute path which should be used for condition matching */
+fn name_for_condition(resource: &str) -> &str {
+  match resource.find('?') {
+    Some(idx) => &resource[0..idx],
+    None => resource,
+  }
+}
+
 #[async_trait::async_trait]
 impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
     let dependency = self.dependencies[0].clone();
 
     let issuer = if let Some(issuer_identifier) = self.original_module_identifier {
-      issuer_identifier.to_string()
+      name_for_condition(&issuer_identifier).to_string()
     } else {
       String::from("")
     };
