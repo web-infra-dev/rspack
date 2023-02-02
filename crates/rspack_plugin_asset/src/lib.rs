@@ -320,7 +320,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             .data
             .insert("url".to_string(), encoded_source.clone());
 
-          encoded_source
+          format!("\"{encoded_source}\"")
         } else {
           generate_context
             .data
@@ -342,12 +342,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         };
 
         Ok(GenerationResult {
-          ast_or_source: RawSource::from(format!(
-            r#"module.exports = {};"#,
-            serde_json::to_string(&exported_content).expect("failed to serde_json::to_string")
-          ))
-          .boxed()
-          .into(),
+          ast_or_source: RawSource::from(format!(r#"module.exports = {exported_content};"#))
+            .boxed()
+            .into(),
         })
       }
       SourceType::Asset => {
