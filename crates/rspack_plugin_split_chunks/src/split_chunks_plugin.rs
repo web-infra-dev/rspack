@@ -193,7 +193,7 @@ impl SplitChunksPlugin {
     module: &dyn Module,
     chunks_info_map: &mut HashMap<String, ChunksInfoItem>,
     named_chunk: &HashMap<String, ChunkUkey>,
-    chunk_by_ukey: &HashMap<ChunkUkey, Chunk>,
+    chunk_by_ukey: &rspack_core::ChunkByUkey,
     chunk_group_by_ukey: &ChunkGroupByUkey,
     // compilation: &mut Compilation,
   ) {
@@ -266,7 +266,7 @@ impl SplitChunksPlugin {
         format!("chunk:{}", {
           let mut keys = selected_chunks
             .iter()
-            .map(|c| c.ukey.ukey().to_string())
+            .map(|c| c.ukey.as_usize().to_string())
             .collect::<Vec<_>>();
           keys.sort();
           keys.join("_")
@@ -632,6 +632,7 @@ impl SplitChunksPlugin {
     for used_chunk in used_chunks {
       let [new_chunk, used_chunk] = compilation
         .chunk_by_ukey
+        ._todo_should_remove_this_method_inner_mut()
         .get_many_mut([&new_chunk_ukey, used_chunk])
         .expect("TODO:");
       used_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);

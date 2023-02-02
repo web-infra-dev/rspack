@@ -3,6 +3,7 @@ use std::{
   hash::Hasher,
 };
 
+use rspack_database::DatabaseItem;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
@@ -32,6 +33,12 @@ pub struct Chunk {
   pub chunk_reasons: Vec<String>,
 }
 
+impl DatabaseItem for Chunk {
+  fn ukey(&self) -> rspack_database::Ukey<Self> {
+    self.ukey
+  }
+}
+
 impl Debug for Chunk {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
     f.debug_struct("Chunk")
@@ -50,7 +57,7 @@ impl Chunk {
   pub fn new(name: Option<String>, id: Option<String>, kind: ChunkKind) -> Self {
     Self {
       name,
-      ukey: ChunkUkey::with_debug_info("Chunk"),
+      ukey: ChunkUkey::new(),
       id,
       ids: vec![],
       id_name_hints: Default::default(),
@@ -217,8 +224,8 @@ impl Chunk {
 
     fn add_chunks(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      chunks: &mut HashSet<ChunkGroupUkey>,
-      initial_chunks: &HashSet<ChunkGroupUkey>,
+      chunks: &mut HashSet<ChunkUkey>,
+      initial_chunks: &HashSet<ChunkUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
     ) {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {

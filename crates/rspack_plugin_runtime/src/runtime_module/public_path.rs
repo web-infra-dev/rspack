@@ -7,7 +7,7 @@ use rspack_core::{
 
 #[derive(Debug, Default)]
 pub struct PublicPathRuntimeModule {
-  chunk: ChunkUkey,
+  chunk: Option<ChunkUkey>,
 }
 
 impl PublicPathRuntimeModule {
@@ -24,7 +24,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = chunk;
+    self.chunk = Some(chunk);
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -36,7 +36,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
       PublicPath::Auto => {
         let chunk = compilation
           .chunk_by_ukey
-          .get(&self.chunk)
+          .get(&self.chunk.expect("The chunk should be attached."))
           .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
         let filename = get_js_chunk_filename_template(
           chunk,

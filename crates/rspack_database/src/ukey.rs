@@ -19,7 +19,7 @@ impl<Item> Ukey<Item> {
     Self(id, std::marker::PhantomData)
   }
 
-  pub const fn stored_type() -> &'static str {
+  const fn stored_type() -> &'static str {
     std::any::type_name::<Item>()
   }
 
@@ -30,11 +30,27 @@ impl<Item> Ukey<Item> {
   pub fn as_mut<'db>(&self, db: &'db mut Storage<Item>) -> &'db mut Item {
     db.expect_mut(self)
   }
+
+  pub fn as_usize(&self) -> usize {
+    self.0
+  }
 }
 
 impl<Item> Clone for Ukey<Item> {
   fn clone(&self) -> Self {
     Self(self.0, std::marker::PhantomData)
+  }
+}
+
+impl<Item> PartialOrd for Ukey<Item> {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    self.0.partial_cmp(&other.0)
+  }
+}
+
+impl<Item> Ord for Ukey<Item> {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    self.0.cmp(&other.0)
   }
 }
 

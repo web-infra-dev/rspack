@@ -2453,6 +2453,7 @@ dependencies = [
  "petgraph",
  "rayon",
  "regex",
+ "rspack_database",
  "rspack_error",
  "rspack_loader_runner",
  "rspack_regex",
@@ -2470,6 +2471,15 @@ dependencies = [
  "url",
  "ustr",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_database"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "once_cell",
+ "rustc-hash",
 ]
 
 [[package]]
@@ -2764,14 +2774,6 @@ dependencies = [
  "serde_json",
  "smallvec",
  "substring",
-]
-
-[[package]]
-name = "rspack_storage"
-version = "0.1.0"
-dependencies = [
- "dashmap",
- "once_cell",
 ]
 
 [[package]]

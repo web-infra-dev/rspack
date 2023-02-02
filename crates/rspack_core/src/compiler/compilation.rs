@@ -18,6 +18,7 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use indexmap::IndexSet;
 use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
+use rspack_database::Database;
 use rspack_error::{
   errors_to_diagnostics, internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result,
   Severity, TWithDiagnosticArray,
@@ -74,7 +75,7 @@ pub struct Compilation {
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_hashes: IdentifierMap<u64>,
   pub chunk_graph: ChunkGraph,
-  pub chunk_by_ukey: HashMap<ChunkUkey, Chunk>,
+  pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
@@ -283,7 +284,7 @@ impl Compilation {
   pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> &mut Chunk {
     let chunk = Chunk::new(None, None, ChunkKind::Normal);
     let ukey = chunk.ukey;
-    chunk_by_ukey.insert(chunk.ukey, chunk);
+    chunk_by_ukey.add(chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
 
