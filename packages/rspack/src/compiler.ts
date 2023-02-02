@@ -339,16 +339,17 @@ class Compiler {
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	rebuild(
-		modifiedFiles: ReadonlySet<string>,
-		removedFiles: ReadonlySet<string>,
-		cb: (error?: Error) => void
+		modifiedFiles: ReadonlySet<string> | undefined,
+		removedFiles: ReadonlySet<string> | undefined,
+		cb: ((error?: Error) => void) | undefined
 	) {
 		const unsafe_rebuild = this.#instance.unsafe_rebuild;
 		const rebuild_cb = unsafe_rebuild.bind(
 			this.#instance
 		) as typeof unsafe_rebuild;
-		rebuild_cb([...modifiedFiles], [...removedFiles], err => {
+		rebuild_cb([...(modifiedFiles ?? [])], [...(removedFiles ?? [])], err => {
 			if (err) {
+				// @ts-expect-error
 				cb(err);
 			} else {
 				// @ts-expect-error
