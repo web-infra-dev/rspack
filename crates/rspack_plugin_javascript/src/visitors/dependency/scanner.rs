@@ -368,10 +368,9 @@ fn test_dependency_scanner() {
 }
 
 fn match_member_expr(mut expr: &Expr, value: &str) -> bool {
-  let mut parts: Vec<&str> = value.split('.').collect();
-  parts.reverse();
-  let last = parts.pop().expect("should have a last str");
-  for part in parts {
+  let mut parts = value.split('.');
+  let last = parts.next().expect("should have a last str");
+  for part in parts.rev() {
     if let Expr::Member(member_expr) = expr {
       if let MemberProp::Ident(ident) = &member_expr.prop {
         if ident.sym.eq(part) {
