@@ -25,6 +25,7 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
+  pub issuer: String,
   pub original_resource_path: Option<PathBuf>,
   pub dependencies: Vec<BoxModuleDependency>,
 
@@ -73,6 +74,7 @@ impl WorkerTask for FactorizeTask {
             side_effects: self.side_effects,
             options: self.options.clone(),
             lazy_visit_modules: self.lazy_visit_modules,
+            issuer: self.issuer,
           },
           self.plugin_driver,
           self.cache,
@@ -232,13 +234,14 @@ impl WorkerTask for BuildTask {
       .use_cache(&mut module, |module| async {
         let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
           let resource_data = normal_module.resource_resolved_data();
+          let issuer = normal_module.issuer();
 
           compiler_options
             .module
             .rules
             .iter()
             .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-              match module_rule_matcher(module_rule, resource_data) {
+              match module_rule_matcher(module_rule, resource_data, issuer) {
                 Ok(val) => val.then_some(Ok(module_rule)),
                 Err(err) => Some(Err(err)),
               }

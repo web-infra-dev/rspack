@@ -33,6 +33,11 @@ pub enum ModuleRuleCondition {
   // LogicalConditions
 }
 
+#[derive(Debug, Default)]
+pub struct IssuerOptions {
+  pub not: Option<Vec<ModuleRuleCondition>>,
+}
+
 #[derive(Default)]
 pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
@@ -54,6 +59,7 @@ pub struct ModuleRule {
   pub parser: Option<AssetParserOptions>,
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
+  pub issuer: Option<IssuerOptions>,
   /// Internal matching method, not intended to be used by the user. (Loader experimental)
   pub func__: Option<ModuleRuleFunc>,
 }
@@ -73,6 +79,7 @@ impl Debug for ModuleRule {
       .field("func__", &self.func__.as_ref().map(|_| ".."))
       .field("use", &self.r#use)
       .field("side_effects", &self.side_effects)
+      .field("issuer", &self.issuer)
       .finish()
   }
 }

@@ -12,7 +12,11 @@ pub fn module_rule_matcher_condition(condition: &ModuleRuleCondition, data: &str
 }
 
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
-pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceData) -> Result<bool> {
+pub fn module_rule_matcher(
+  module_rule: &ModuleRule,
+  resource_data: &ResourceData,
+  issuer: &str,
+) -> Result<bool> {
   // Internal function to match the condition against the given `data`.
   if let Some(func) = &module_rule.func__ {
     match func(resource_data) {
@@ -26,6 +30,7 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
     && module_rule.resource_query.is_none()
     && module_rule.include.is_none()
     && module_rule.exclude.is_none()
+    && module_rule.issuer.is_none()
   {
     return Err(rspack_error::Error::InternalError(internal_error!(
       "ModuleRule must have at least one condition".to_owned()
@@ -70,6 +75,17 @@ pub fn module_rule_matcher(module_rule: &ModuleRule, resource_data: &ResourceDat
       }
     } else {
       return Ok(false);
+    }
+  }
+
+  if let Some(issuer_options) = &module_rule.issuer {
+    if let Some(not_issuer) = &issuer_options.not {
+      if not_issuer
+        .iter()
+        .any(|i| module_rule_matcher_condition(i, issuer))
+      {
+        return Ok(false);
+      }
     }
   }
 

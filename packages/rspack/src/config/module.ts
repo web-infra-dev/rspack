@@ -50,6 +50,9 @@ export interface ModuleRule {
 	resourceQuery?: Condition;
 	use?: ModuleRuleUse[];
 	type?: RawModuleRule["type"];
+	issuer?: {
+		not?: Condition[];
+	};
 	parser?: RawModuleRule["parser"];
 	generator?: RawModuleRule["generator"];
 	resolve?: Resolve;
@@ -759,6 +762,13 @@ export function resolveModuleOptions(
 
 		return {
 			...rule,
+			issuer: isNil(rule.issuer)
+				? null
+				: {
+						not: isNil(rule.issuer.not)
+							? null
+							: resolveModuleRuleConditions(rule.issuer.not)
+				  },
 			test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
 			include: isNil(rule.include)
 				? null
