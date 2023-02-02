@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use rayon::prelude::*;
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tracing::instrument;
@@ -21,7 +20,6 @@ struct CodeSplitter<'me> {
   next_free_module_post_order_index: usize,
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
-  chunk_relation_graph: petgraph::graphmap::DiGraphMap<ChunkUkey, ()>,
   split_point_modules: IdentifierSet,
 }
 
@@ -33,7 +31,6 @@ impl<'me> CodeSplitter<'me> {
       next_free_module_post_order_index: 0,
       queue: Default::default(),
       queue_delayed: Default::default(),
-      chunk_relation_graph: Default::default(),
       split_point_modules: Default::default(),
     }
   }
@@ -203,8 +200,6 @@ impl<'me> CodeSplitter<'me> {
 
     // Optmize to remove duplicated module which is safe
 
-    self.remove_duplicated_modules();
-
     for chunk_group in self.compilation.chunk_group_by_ukey.values() {
       for chunk_ukey in chunk_group.chunks.iter() {
         self
@@ -218,51 +213,6 @@ impl<'me> CodeSplitter<'me> {
     }
 
     Ok(())
-  }
-
-  /// Entry(bar.js) -> Foo(foo.js, bar.js)
-  /// We could remove bar.js from Foo chunk, since
-  /// bar.js is already in Entry chunk.
-  #[tracing::instrument(skip_all)]
-  fn remove_duplicated_modules(&mut self) {
-    let modules_to_be_removed_in_chunk = self
-      .compilation
-      .chunk_by_ukey
-      .values()
-      .par_bridge()
-      .flat_map(|chunk| {
-        self
-          .compilation
-          .chunk_graph
-          .get_chunk_modules(&chunk.ukey, &self.compilation.module_graph)
-          .into_par_iter()
-          .filter_map(|module| {
-            let belong_to_chunks = self
-              .compilation
-              .chunk_graph
-              .get_modules_chunks(module.module_identifier);
-
-            let has_superior = belong_to_chunks.iter().any(|maybe_superior_chunk| {
-              self
-                .chunk_relation_graph
-                .contains_edge(chunk.ukey, *maybe_superior_chunk)
-            });
-            if has_superior {
-              Some((chunk.ukey, module.module_identifier))
-            } else {
-              None
-            }
-          })
-          .collect::<Vec<_>>()
-      })
-      .collect::<Vec<_>>();
-
-    for (chunk, module) in modules_to_be_removed_in_chunk {
-      self
-        .compilation
-        .chunk_graph
-        .disconnect_chunk_and_module(&chunk, module);
-    }
   }
 
   fn process_queue(&mut self) {
@@ -398,6 +348,7 @@ impl<'me> CodeSplitter<'me> {
       let is_already_split_module = self
         .split_point_modules
         .contains(&dyn_dep_mgm.module_identifier);
+
       if is_already_split_module {
         continue;
       } else {
@@ -408,9 +359,6 @@ impl<'me> CodeSplitter<'me> {
 
       let chunk = Compilation::add_chunk(&mut self.compilation.chunk_by_ukey);
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
-      self
-        .chunk_relation_graph
-        .add_edge(chunk.ukey, item.chunk, ());
 
       self
         .compilation
