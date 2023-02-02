@@ -19,11 +19,11 @@ use swc_core::ecma::visit::{
 /// Use this to avoid using `use swc_ecma_visit::*`
 /// and save changes in self
 #[derive(Debug, Clone, Hash)]
-pub struct Program(SwcProgram);
+pub struct Program(Box<SwcProgram>);
 
 impl Program {
   pub fn fold_with<V: ?Sized + Fold>(&mut self, v: &mut V) {
-    let p = std::mem::replace(&mut self.0, SwcProgram::Module(Module::dummy()));
+    let p = std::mem::replace(&mut self.0, box SwcProgram::Module(Module::dummy()));
     self.0 = p.fold_with(v);
   }
 
@@ -126,7 +126,7 @@ impl Ast {
       SwcProgram::Script(_) => false,
     };
     Self {
-      program: Program(program),
+      program: Program(box program),
       context: Arc::new(Context::new(is_esm, source_map)),
     }
   }

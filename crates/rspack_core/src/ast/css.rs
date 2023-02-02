@@ -21,7 +21,7 @@ impl fmt::Debug for Context {
 
 #[derive(Debug, Clone)]
 pub struct Ast {
-  root: SwcStylesheet,
+  root: Box<SwcStylesheet>,
   context: Arc<Context>,
 }
 
@@ -34,7 +34,7 @@ impl Hash for Ast {
 impl Ast {
   pub fn new(root: SwcStylesheet, source_map: Arc<SourceMap>) -> Self {
     Self {
-      root,
+      root: box root,
       context: Arc::new(Context::new(source_map)),
     }
   }
