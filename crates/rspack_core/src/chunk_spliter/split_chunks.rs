@@ -203,7 +203,7 @@ impl<'me> CodeSplitter<'me> {
 
     // Optmize to remove duplicated module which is safe
 
-    self.remove_duplicated_modules();
+    // self.remove_duplicated_modules();
 
     for chunk_group in self.compilation.chunk_group_by_ukey.values() {
       for chunk_ukey in chunk_group.chunks.iter() {
