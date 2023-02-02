@@ -369,7 +369,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
-    // TODO: should return analyze_side_effects_result if we can't read it from configuration
     self.side_effects = self
       .get_side_effects_from_config()
       .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
