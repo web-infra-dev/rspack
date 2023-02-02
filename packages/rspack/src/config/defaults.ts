@@ -30,6 +30,7 @@ const A = <T, P extends keyof T>(
 			if (item === "...") {
 				if (newArray === undefined) {
 					newArray = value.slice(0, i);
+					// @ts-expect-error
 					obj[prop] = newArray;
 				}
 				const items = factory();
@@ -55,6 +56,7 @@ export function applyRspackOptionsBaseDefaults(
  * @param {InfrastructureLogging} infrastructureLogging options
  * @returns {void}
  */
+// @ts-expect-error
 const applyInfrastructureLoggingDefaults = infrastructureLogging => {
 	F(infrastructureLogging, "stream", () => process.stderr);
 	const tty =
@@ -65,15 +67,17 @@ const applyInfrastructureLoggingDefaults = infrastructureLogging => {
 	D(infrastructureLogging, "colors", tty);
 	D(infrastructureLogging, "appendOnly", !tty);
 };
+// @ts-expect-error
 const applyOutputDefaults = (output: ResolvedOutput, context) => {
 	D(output, "hashFunction", "xxhash64");
 	F(output, "path", () => path.resolve(context, "dist"));
 	D(output, "publicPath", "auto");
 	return output;
 };
+
 const applyOptimizationDefaults = (
-	optimization,
-	{ production, development, css, records }
+	optimization: any,
+	{ production, development, css, records }: any
 ) => {
 	D(optimization, "removeAvailableModules", false);
 	D(optimization, "removeEmptyChunks", true);

@@ -226,10 +226,13 @@ function composeJsUse(
 				let isSync = true;
 				let isError = false; // internal error
 				let reportedError = false;
-
+				// @ts-expect-error
 				const fileDependencies = [];
+				// @ts-expect-error
 				const contextDependencies = [];
+				// @ts-expect-error
 				const missingDependencies = [];
+				// @ts-expect-error
 				const buildDependencies = [];
 
 				function callback(
@@ -256,9 +259,13 @@ function composeJsUse(
 						content,
 						sourceMap,
 						additionalData,
+						// @ts-expect-error
 						fileDependencies,
+						// @ts-expect-error
 						contextDependencies,
+						// @ts-expect-error
 						missingDependencies,
+						// @ts-expect-error
 						buildDependencies
 					});
 				}
@@ -267,16 +274,19 @@ function composeJsUse(
 					// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc.
 					return {
 						fileDependencies: {
+							// @ts-expect-error
 							add: d => {
 								// loaderContext.addDependency(d)
 							}
 						},
 						contextDependencies: {
+							// @ts-expect-error
 							add: d => {
 								// loaderContext.addContextDependency(d)
 							}
 						},
 						missingDependencies: {
+							// @ts-expect-error
 							add: d => {
 								// loaderContext.addMissingDependency(d)
 							}
@@ -297,16 +307,19 @@ function composeJsUse(
 					contextify.bindContextCache(moduleContext, compiler.root)
 				);
 				const utils = {
+					// @ts-expect-error
 					absolutify: (context, request) => {
 						return context === moduleContext
 							? getAbsolutifyInContext()(request)
 							: getAbsolutify()(context, request);
 					},
+					// @ts-expect-error
 					contextify: (context, request) => {
 						return context === moduleContext
 							? getContextifyInContext()(request)
 							: getContextify()(context, request);
 					},
+					// @ts-expect-error
 					createHash: type => {
 						return createHash(
 							type || compiler.compilation.outputOptions.hashFunction
@@ -365,6 +378,7 @@ function composeJsUse(
 							callback
 						);
 					},
+					// @ts-expect-error
 					getResolve(options) {
 						const child = options ? resolver.withOptions(options) : resolver;
 						return (context, request, callback) => {
@@ -400,6 +414,7 @@ function composeJsUse(
 					cacheable(value = true) {
 						cacheable = value;
 					},
+					// @ts-expect-error
 					async() {
 						if (isDone) {
 							if (reportedError) return; // ignore
@@ -447,7 +462,7 @@ function composeJsUse(
 								);
 							}
 
-							if (this.useSourceMap) {
+							if (this.sourceMap) {
 								source = new SourceMapSource(
 									content as any, // webpack-sources type declaration is wrong
 									name,
@@ -457,7 +472,7 @@ function composeJsUse(
 						} else {
 							source = new RawSource(content as any); // webpack-sources type declaration is wrong
 						}
-
+						// @ts-expect-error
 						compiler.compilation.emitAsset(name, source, assetInfo);
 					},
 					fs: compiler.inputFileSystem,
@@ -480,12 +495,15 @@ function composeJsUse(
 						missingDependencies.length = 0;
 					},
 					getDependencies() {
+						// @ts-expect-error
 						return fileDependencies.slice();
 					},
 					getContextDependencies() {
+						// @ts-expect-error
 						return contextDependencies.slice();
 					},
 					getMissingDependencies() {
+						// @ts-expect-error
 						return missingDependencies.slice();
 					}
 				};
@@ -515,7 +533,9 @@ function composeJsUse(
 				let result: Promise<string | Buffer> | string | Buffer | undefined =
 					undefined;
 				try {
+					// @ts-expect-error
 					result = loader.apply(loaderContext, [
+						// @ts-expect-error
 						loader.raw ? Buffer.from(content) : content.toString("utf-8"),
 						sourceMap,
 						additionalData
@@ -525,12 +545,16 @@ function composeJsUse(
 						if (result === undefined) {
 							resolve({
 								content,
+								// @ts-expect-error
 								buildDependencies,
 								sourceMap,
 								additionalData,
 								cacheable,
+								// @ts-expect-error
 								fileDependencies,
+								// @ts-expect-error
 								contextDependencies,
+								// @ts-expect-error
 								missingDependencies
 							});
 							return;
@@ -539,24 +563,32 @@ function composeJsUse(
 							return result.then(function (result) {
 								resolve({
 									content: result,
+									// @ts-expect-error
 									buildDependencies,
 									sourceMap,
 									additionalData,
 									cacheable,
+									// @ts-expect-error
 									fileDependencies,
+									// @ts-expect-error
 									contextDependencies,
+									// @ts-expect-error
 									missingDependencies
 								});
 							}, reject);
 						}
 						return resolve({
 							content: result,
+							// @ts-expect-error
 							buildDependencies,
 							sourceMap,
 							additionalData,
 							cacheable,
+							// @ts-expect-error
 							fileDependencies,
+							// @ts-expect-error
 							contextDependencies,
+							// @ts-expect-error
 							missingDependencies
 						});
 					}
@@ -568,6 +600,7 @@ function composeJsUse(
 					if (isDone) {
 						// loader is already "done", so we cannot use the callback function
 						// for better debugging we print the error on the console
+						// @ts-expect-error
 						if (typeof err === "object" && err.stack) console.error(err.stack);
 						else console.error(err);
 						reject(err);
@@ -685,6 +718,7 @@ function createRawModuleRuleUsesImpl(
 	}
 	const index = uses.findIndex(use => "builtinLoader" in use);
 	if (index < 0) {
+		// @ts-expect-error
 		return [composeJsUse(uses, options, allUses)];
 	}
 
@@ -794,6 +828,7 @@ export function resolveModuleOptions(
 	});
 	return {
 		parser: module.parser,
+		// @ts-expect-error
 		rules
 	};
 }

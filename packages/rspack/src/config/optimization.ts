@@ -44,6 +44,7 @@ export interface ResolvedOptimization {
 export function getNormalizedOptimizationRuntimeChunk(
 	runtimeChunk: OptimizationRuntimeChunk
 ): OptimizationRuntimeChunkNormalized {
+	// @ts-expect-error
 	if (runtimeChunk === undefined) return undefined;
 	if (runtimeChunk === false) return false;
 	if (runtimeChunk === "single") {
@@ -53,6 +54,7 @@ export function getNormalizedOptimizationRuntimeChunk(
 	}
 	if (runtimeChunk === true || runtimeChunk === "multiple") {
 		return {
+			// @ts-expect-error
 			name: entrypoint => `runtime~${entrypoint.name}`
 		};
 	}

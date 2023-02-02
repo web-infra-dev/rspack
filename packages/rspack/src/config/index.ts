@@ -114,6 +114,7 @@ export function getNormalizedRspackOptions(
 	const context = config.context ?? process.cwd();
 	const mode = config.mode ?? "production";
 	const entry = resolveEntryOptions(
+		// @ts-expect-error
 		config.entry,
 		{
 			context

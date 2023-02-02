@@ -69,6 +69,7 @@ export function resolveResolveOptions(
 		mainFiles,
 		mainFields,
 		browserField,
+		// @ts-expect-error
 		conditionNames,
 		alias,
 		tsConfigPath,

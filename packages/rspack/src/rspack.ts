@@ -21,6 +21,7 @@ function createMultiCompiler(options: MultiCompilerOptions): MultiCompiler {
 		 * Missing features: WebpackOptionsApply
 		 * `compiler.name` should be set by WebpackOptionsApply.
 		 */
+		// @ts-expect-error
 		compiler.name = option.name;
 		return compiler;
 	});
@@ -92,6 +93,7 @@ function rspack(options: any, callback?: Callback<any>) {
 	}
 
 	if (callback) {
+		// @ts-expect-error
 		compiler.run(callback);
 		return compiler;
 	} else {

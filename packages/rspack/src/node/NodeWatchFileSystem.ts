@@ -93,7 +93,9 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 				}
 			}
 			const { fileTimeInfoEntries, contextTimeInfoEntries } = fetchTimeInfo();
+
 			callback(
+				// @ts-expect-error
 				null,
 				fileTimeInfoEntries,
 				contextTimeInfoEntries,
@@ -111,6 +113,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 			close: () => {
 				if (this.watcher) {
 					this.watcher.close();
+					// @ts-expect-error
 					this.watcher = null;
 				}
 			},

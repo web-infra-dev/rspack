@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Callback } from "tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";

@@ -10,13 +10,14 @@
 
 const util = require("util");
 const truncateArgs = require("../logging/truncateArgs");
-
+// @ts-expect-error
 export = ({ colors, appendOnly, stream }) => {
+	// @ts-expect-error
 	let currentStatusMessage = undefined;
 	let hasStatusMessage = false;
 	let currentIndent = "";
 	let currentCollapsed = 0;
-
+	// @ts-expect-error
 	const indent = (str, prefix, colorPrefix, colorSuffix) => {
 		if (str === "") return str;
 		prefix = currentIndent + prefix;
@@ -40,18 +41,22 @@ export = ({ colors, appendOnly, stream }) => {
 	};
 
 	const writeStatusMessage = () => {
+		// @ts-expect-error
 		if (!currentStatusMessage) return;
 		const l = stream.columns;
 		const args = l
-			? truncateArgs(currentStatusMessage, l - 1)
-			: currentStatusMessage;
+			? // @ts-ignore
+			  truncateArgs(currentStatusMessage, l - 1)
+			: // @ts-ignore
+			  currentStatusMessage;
 		const str = args.join(" ");
 		const coloredStr = `\u001b[1m${str}\u001b[39m\u001b[22m`;
 		stream.write(`\x1b[2K\r${coloredStr}`);
 		hasStatusMessage = true;
 	};
-
+	// @ts-expect-error
 	const writeColored = (prefix, colorPrefix, colorSuffix) => {
+		// @ts-expect-error
 		return (...args) => {
 			if (currentCollapsed > 0) return;
 			clearStatusMessage();
@@ -90,6 +95,7 @@ export = ({ colors, appendOnly, stream }) => {
 			"\u001b[1m\u001b[35m",
 			"\u001b[39m\u001b[22m"
 		),
+		// @ts-expect-error
 		group: (...args) => {
 			writeGroupMessage(...args);
 			if (currentCollapsed > 0) {
@@ -98,6 +104,7 @@ export = ({ colors, appendOnly, stream }) => {
 				currentIndent += "  ";
 			}
 		},
+		// @ts-expect-error
 		groupCollapsed: (...args) => {
 			writeGroupCollapsedMessage(...args);
 			currentCollapsed++;
@@ -108,8 +115,10 @@ export = ({ colors, appendOnly, stream }) => {
 				currentIndent = currentIndent.slice(0, currentIndent.length - 2);
 		},
 		// eslint-disable-next-line node/no-unsupported-features/node-builtins
+		// @ts-expect-error
 		profile: console.profile && (name => console.profile(name)),
 		// eslint-disable-next-line node/no-unsupported-features/node-builtins
+		// @ts-expect-error
 		profileEnd: console.profileEnd && (name => console.profileEnd(name)),
 		clear:
 			!appendOnly &&
@@ -123,7 +132,8 @@ export = ({ colors, appendOnly, stream }) => {
 			}),
 		status: appendOnly
 			? writeColored("<s> ", "", "")
-			: (name, ...args) => {
+			: // @ts-expect-error
+			  (name, ...args) => {
 					args = args.filter(Boolean);
 					if (name === undefined && args.length === 0) {
 						clearStatusMessage();

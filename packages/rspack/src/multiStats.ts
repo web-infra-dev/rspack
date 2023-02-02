@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { KnownCreateStatsOptionsContext } from ".";
 import { StatsOptionsObj } from "./config/stats";
 import { Stats, StatsCompilation } from "./stats";
 import { indent } from "./util";
@@ -32,7 +33,10 @@ export default class MultiStats {
 		return this.stats.some(stat => stat.hasWarnings());
 	}
 
-	#createChildOptions(options, context): StatsOptionsObj {
+	#createChildOptions(
+		options: { [x: string]: any; children?: any },
+		context: (KnownCreateStatsOptionsContext & Record<string, any>) | undefined
+	): StatsOptionsObj {
 		if (!options) {
 			options = {};
 		}
@@ -85,7 +89,7 @@ export default class MultiStats {
 		if (options.hash) {
 			obj.hash = obj.children.map(j => j.hash).join("");
 		}
-		const mapError = (j, obj) => {
+		const mapError = (j: any, obj: any) => {
 			return {
 				...obj,
 				compilerPath: obj.compilerPath
@@ -124,7 +128,7 @@ export default class MultiStats {
 		return obj;
 	}
 
-	toString(options) {
+	toString(options: any) {
 		options = this.#createChildOptions(options, { forToString: true });
 		const results = this.stats.map((stat, idx) => {
 			const str = stat.toString(options.children[idx]);

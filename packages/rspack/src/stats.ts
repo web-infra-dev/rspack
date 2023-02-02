@@ -35,6 +35,7 @@ export class Stats {
 	}
 
 	toJson(opts?: StatsOptions, forToString?: boolean) {
+		// @ts-expect-error
 		const options = this.compilation.createStatsOptions(opts, {
 			forToString
 		});
@@ -51,10 +52,12 @@ export class Stats {
 			obj.chunks = this.#inner.getChunks();
 		}
 		if (options.modules) {
+			// @ts-expect-error
 			obj.modules = this.#inner.getModules(options.reasons);
 		}
 		if (options.entrypoints) {
 			obj.entrypoints = this.#inner.getEntrypoints().reduce((acc, cur) => {
+				// @ts-expect-error
 				acc[cur.name] = cur;
 				return acc;
 			}, {});
@@ -79,14 +82,16 @@ export class Stats {
 	}
 
 	toString(opts?: StatsOptions) {
+		// @ts-expect-error
 		const options = this.compilation.createStatsOptions(opts, {
 			forToString: true
 		});
 		const useColors = optionsOrFallback(options.colors, false);
 		const obj: any = this.toJson(options, true);
+		// @ts-expect-error
 		return Stats.jsonToString(obj, useColors);
 	}
-
+	// @ts-expect-error
 	static jsonToString(obj, useColors: boolean) {
 		const buf = [];
 
@@ -101,11 +106,13 @@ export class Stats {
 
 		const colors: any = Object.keys(defaultColors).reduce(
 			(obj, color) => {
+				// @ts-expect-error
 				obj[color] = str => {
 					if (useColors) {
 						buf.push(
 							useColors === true || useColors[color] === undefined
-								? defaultColors[color]
+								? // @ts-expect-error
+								  defaultColors[color]
 								: useColors[color]
 						);
 					}
@@ -117,11 +124,12 @@ export class Stats {
 				return obj;
 			},
 			{
+				// @ts-expect-error
 				normal: str => buf.push(str)
 			}
 		);
 
-		const coloredTime = time => {
+		const coloredTime = (time: number) => {
 			let times = [800, 400, 200, 100];
 			if (obj.time) {
 				times = [obj.time / 2, obj.time / 4, obj.time / 8, obj.time / 16];
@@ -135,11 +143,19 @@ export class Stats {
 
 		const newline = () => buf.push("\n");
 
-		const getText = (arr, row, col) => {
+		const getText = (
+			arr: { [x: string]: { [x: string]: { value: any } } },
+			row: number,
+			col: number
+		) => {
 			return arr[row][col].value;
 		};
 
-		const table = (array, align, splitter?: string) => {
+		const table = (
+			array: string | any[],
+			align: string | string[],
+			splitter?: string
+		) => {
 			const rows = array.length;
 			const cols = array[0].length;
 			const colSizes = new Array(cols);
@@ -148,6 +164,7 @@ export class Stats {
 			}
 			for (let row = 0; row < rows; row++) {
 				for (let col = 0; col < cols; col++) {
+					// @ts-expect-error
 					const value = `${getText(array, row, col)}`;
 					if (value.length > colSizes[col]) {
 						colSizes[col] = value.length;
@@ -157,6 +174,7 @@ export class Stats {
 			for (let row = 0; row < rows; row++) {
 				for (let col = 0; col < cols; col++) {
 					const format = array[row][col].color;
+					// @ts-expect-error
 					const value = `${getText(array, row, col)}`;
 					let l = value.length;
 					if (align[col] === "l") {
@@ -176,7 +194,10 @@ export class Stats {
 			}
 		};
 
-		const getAssetColor = (asset, defaultColor) => {
+		const getAssetColor = (
+			asset: { isOverSizeLimit: any },
+			defaultColor: any
+		) => {
 			if (asset.isOverSizeLimit) {
 				return colors.yellow;
 			}
@@ -310,7 +331,10 @@ export class Stats {
 			newline();
 		}
 
-		const processChunkGroups = (namedGroups, prefix) => {
+		const processChunkGroups = (
+			namedGroups: { [x: string]: any },
+			prefix: string
+		) => {
 			for (const name of Object.keys(namedGroups)) {
 				const cg = namedGroups[name];
 				colors.normal(`${prefix} `);
@@ -350,6 +374,7 @@ export class Stats {
 				outputChunkGroups = Object.keys(outputChunkGroups)
 					.filter(name => !obj.entrypoints[name])
 					.reduce((result, name) => {
+						// @ts-expect-error
 						result[name] = obj.namedChunkGroups[name];
 						return result;
 					}, {});
@@ -360,19 +385,33 @@ export class Stats {
 		const modulesByIdentifier = {};
 		if (obj.modules) {
 			for (const module of obj.modules) {
+				// @ts-expect-error
 				modulesByIdentifier[`$${module.identifier}`] = module;
 			}
 		} else if (obj.chunks) {
 			for (const chunk of obj.chunks) {
 				if (chunk.modules) {
 					for (const module of chunk.modules) {
+						// @ts-expect-error
 						modulesByIdentifier[`$${module.identifier}`] = module;
 					}
 				}
 			}
 		}
 
-		const processModuleAttributes = module => {
+		const processModuleAttributes = (module: {
+			size: any;
+			chunks: any;
+			depth: any;
+			cacheable: boolean;
+			optional: any;
+			built: any;
+			assets: string | any[];
+			prefetched: any;
+			failed: any;
+			warnings: number;
+			errors: number;
+		}) => {
 			colors.normal(" ");
 			colors.normal(SizeFormatHelpers.formatSize(module.size));
 			if (module.chunks) {
@@ -417,7 +456,18 @@ export class Stats {
 			}
 		};
 
-		const processModuleContent = (module, prefix) => {
+		const processModuleContent = (
+			module: {
+				providedExports: any[];
+				usedExports: boolean | any[] | null | undefined;
+				optimizationBailout: any;
+				reasons: any;
+				profile: { [x: string]: any };
+				issuerPath: any;
+				modules: any;
+			},
+			prefix: string
+		) => {
 			if (Array.isArray(module.providedExports)) {
 				colors.normal(prefix);
 				if (module.providedExports.length === 0) {
@@ -524,11 +574,15 @@ export class Stats {
 				newline();
 			}
 			if (module.modules) {
+				// @ts-expect-error
 				processModulesList(module, prefix + "| ");
 			}
 		};
 
-		const processModulesList = (obj, prefix) => {
+		const processModulesList = (
+			obj: { modules: string | any[]; filteredModules: number },
+			prefix: string
+		) => {
 			if (obj.modules) {
 				let maxModuleId = 0;
 				for (const module of obj.modules) {
@@ -659,6 +713,7 @@ export class Stats {
 							colors.normal("[");
 							colors.normal(origin.moduleId);
 							colors.normal("] ");
+							// @ts-expect-error
 							const module = modulesByIdentifier[`$${origin.module}`];
 							if (module) {
 								colors.bold(module.name);
@@ -789,6 +844,7 @@ export class Stats {
 		}
 		if (obj.children) {
 			for (const child of obj.children) {
+				// @ts-expect-error
 				const childString = Stats.jsonToString(child, useColors);
 				if (childString) {
 					if (child.name) {
@@ -819,7 +875,7 @@ export class Stats {
 }
 
 const SizeFormatHelpers = {
-	formatSize: size => {
+	formatSize: (size: unknown) => {
 		if (typeof size !== "number" || Number.isNaN(size) === true) {
 			return "unknown size";
 		}
@@ -841,7 +897,7 @@ const formatError = (e: binding.JsStatsError) => {
 	return e.formatted;
 };
 
-export const optionsOrFallback = (...args) => {
+export const optionsOrFallback = (...args: (boolean | undefined)[]) => {
 	let optionValues = [];
 	optionValues.push(...args);
 	return optionValues.find(optionValue => optionValue !== undefined);

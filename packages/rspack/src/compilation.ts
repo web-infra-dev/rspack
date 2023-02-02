@@ -60,6 +60,7 @@ export class Compilation {
 	name: string;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
+		// @ts-expect-error
 		this.name = undefined;
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
@@ -152,6 +153,7 @@ export class Compilation {
 		let options: Partial<StatsOptionsObj> = {};
 		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
 			for (const key in optionsOrPreset) {
+				// @ts-expect-error
 				options[key] = optionsOrPreset[key];
 			}
 		}
@@ -262,6 +264,7 @@ export class Compilation {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
+			// @ts-expect-error
 			const source = createSourceFromRaw(asset.source);
 			return {
 				...asset,
@@ -277,6 +280,7 @@ export class Compilation {
 		}
 		return {
 			...asset,
+			// @ts-expect-error
 			source: createSourceFromRaw(asset.source)
 		};
 	}
@@ -325,10 +329,11 @@ export class Compilation {
 	}
 
 	// TODO: full alignment
+	// @ts-expect-error
 	getAssetPath(filename, data) {
 		return filename;
 	}
-
+	// @ts-expect-error
 	getLogger(name: string | (() => string)) {
 		if (!name) {
 			throw new TypeError("Compilation.getLogger(name) called without a name");
@@ -357,7 +362,9 @@ export class Compilation {
 				const logEntry: LogEntry = {
 					time: Date.now(),
 					type,
+					// @ts-expect-error
 					args,
+					// @ts-expect-error
 					trace
 				};
 				if (this.hooks.log.call(name, logEntry) === undefined) {

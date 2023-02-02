@@ -40,6 +40,7 @@ export function resolveEntryOptions(
 	if (normalizedRuntimeChunk) {
 		Object.entries(normalized).forEach(([entryName, value]) => {
 			if (value.runtime === undefined) {
+				// @ts-expect-error
 				value.runtime = normalizedRuntimeChunk.name({ name: entryName });
 			}
 		});

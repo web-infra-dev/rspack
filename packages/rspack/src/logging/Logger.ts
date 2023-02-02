@@ -41,33 +41,35 @@ export type GetChildLogger = (name: string | (() => string)) => Logger;
 
 export class Logger {
 	getChildLogger: GetChildLogger;
-
+	[LOG_SYMBOL]: any;
+	[TIMERS_SYMBOL]: any;
+	[TIMERS_AGGREGATES_SYMBOL]: any;
 	constructor(log: LogFunction, getChildLogger: GetChildLogger) {
 		this[LOG_SYMBOL] = log;
 		this.getChildLogger = getChildLogger;
 	}
 
-	error(...args) {
+	error(...args: any[]) {
 		this[LOG_SYMBOL](LogType.error, args);
 	}
 
-	warn(...args) {
+	warn(...args: any[]) {
 		this[LOG_SYMBOL](LogType.warn, args);
 	}
 
-	info(...args) {
+	info(...args: any[]) {
 		this[LOG_SYMBOL](LogType.info, args);
 	}
 
-	log(...args) {
+	log(...args: any[]) {
 		this[LOG_SYMBOL](LogType.log, args);
 	}
 
-	debug(...args) {
+	debug(...args: string[]) {
 		this[LOG_SYMBOL](LogType.debug, args);
 	}
 
-	assert(assertion, ...args) {
+	assert(assertion: any, ...args: any[]) {
 		if (!assertion) {
 			this[LOG_SYMBOL](LogType.error, args);
 		}
@@ -81,36 +83,36 @@ export class Logger {
 		this[LOG_SYMBOL](LogType.clear);
 	}
 
-	status(...args) {
+	status(...args: any[]) {
 		this[LOG_SYMBOL](LogType.status, args);
 	}
 
-	group(...args) {
+	group(...args: any[]) {
 		this[LOG_SYMBOL](LogType.group, args);
 	}
 
-	groupCollapsed(...args) {
+	groupCollapsed(...args: any[]) {
 		this[LOG_SYMBOL](LogType.groupCollapsed, args);
 	}
 
-	groupEnd(...args) {
+	groupEnd(...args: any[]) {
 		this[LOG_SYMBOL](LogType.groupEnd, args);
 	}
 
-	profile(label) {
+	profile(label: any) {
 		this[LOG_SYMBOL](LogType.profile, [label]);
 	}
 
-	profileEnd(label) {
+	profileEnd(label: any) {
 		this[LOG_SYMBOL](LogType.profileEnd, [label]);
 	}
 
-	time(label) {
+	time(label: any) {
 		this[TIMERS_SYMBOL] = this[TIMERS_SYMBOL] || new Map();
 		this[TIMERS_SYMBOL].set(label, process.hrtime());
 	}
 
-	timeLog(label) {
+	timeLog(label: any) {
 		const prev = this[TIMERS_SYMBOL] && this[TIMERS_SYMBOL].get(label);
 		if (!prev) {
 			throw new Error(`No such label '${label}' for WebpackLogger.timeLog()`);
@@ -119,7 +121,7 @@ export class Logger {
 		this[LOG_SYMBOL](LogType.time, [label, ...time]);
 	}
 
-	timeEnd(label) {
+	timeEnd(label: any) {
 		const prev = this[TIMERS_SYMBOL] && this[TIMERS_SYMBOL].get(label);
 		if (!prev) {
 			throw new Error(`No such label '${label}' for WebpackLogger.timeEnd()`);
@@ -129,7 +131,7 @@ export class Logger {
 		this[LOG_SYMBOL](LogType.time, [label, ...time]);
 	}
 
-	timeAggregate(label) {
+	timeAggregate(label: any) {
 		const prev = this[TIMERS_SYMBOL] && this[TIMERS_SYMBOL].get(label);
 		if (!prev) {
 			throw new Error(
@@ -153,7 +155,7 @@ export class Logger {
 		this[TIMERS_AGGREGATES_SYMBOL].set(label, time);
 	}
 
-	timeAggregateEnd(label) {
+	timeAggregateEnd(label: any) {
 		if (this[TIMERS_AGGREGATES_SYMBOL] === undefined) return;
 		const time = this[TIMERS_AGGREGATES_SYMBOL].get(label);
 		if (time === undefined) return;
