@@ -59,11 +59,7 @@ Object.defineProperty(exports, "exportDefaultUsed", {
     enumerable: true,
     get: ()=>exportDefaultUsed
 });
-const _script3Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package1/script3.js"), exports));
 const exportDefaultUsed = __webpack_exports_info__.default.used;
-},
-"./package1/script3.js": function (module, exports, __webpack_require__) {
-"use strict";
 },
 "./package2/script.js": function (module, exports, __webpack_require__) {
 "use strict";

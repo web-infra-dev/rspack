@@ -36,7 +36,7 @@ use crate::{
   split_chunks::code_splitting,
   tree_shaking::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-    BailoutFlog, OptimizeDependencyResult,
+    BailoutFlog, OptimizeDependencyResult, SideEffect,
   },
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
@@ -44,10 +44,11 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
   CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, EntryDependency,
   EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  IdentifierLinkedSet, IdentifierMap, IdentifierSet, LoaderRunnerRunner, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
+  Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet, LoaderRunnerRunner, Module,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult,
+  VisitedModuleIdentity, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -943,15 +944,25 @@ impl Compilation {
     let mut used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut bail_out_module_identifiers = IdentifierMap::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
-    let side_effects_analyze = self.options.builtins.side_effects;
+    let side_effects_options = self.options.builtins.side_effects;
+    let mut side_effect_map: IdentifierMap<SideEffect> = IdentifierMap::default();
     for analyze_result in analyze_results.values() {
-      // if `side_effects` is false, then force every analyze_results is have side_effects
-      let forced_side_effects = !side_effects_analyze
+      side_effect_map.insert(
+        analyze_result.module_identifier,
+        analyze_result.side_effects,
+      );
+      // if `side_effects` is false, then force every module has side_effects
+      let forced_side_effects = !side_effects_options
         || self
           .entry_module_identifiers
           .contains(&analyze_result.module_identifier);
       // side_effects: true
-      if forced_side_effects || !analyze_result.side_effects_free {
+      if forced_side_effects
+        || !matches!(
+          analyze_result.side_effects,
+          SideEffect::Configuration(false)
+        )
+      {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
         used_symbol_ref.extend(analyze_result.used_symbol_ref.iter().cloned());
       }
@@ -968,6 +979,30 @@ impl Compilation {
       }
       // bail_out_module_identifiers.extend(analyze_result.bail_out_module_identifiers.clone());
     }
+
+    // normalize side_effects, there are two kinds of `side_effects` one from configuration and another from
+    for entry_module_ident in self.entry_module_identifiers.iter() {
+      normalize_side_effects(
+        *entry_module_ident,
+        &self.module_graph,
+        &mut IdentifierSet::default(),
+        &mut side_effect_map,
+      );
+    }
+    let side_effects_free_module_ident = side_effect_map
+      .iter()
+      .filter_map(|(k, v)| {
+        let side_effect = match v {
+          SideEffect::Configuration(value) => value,
+          SideEffect::Analyze(value) => value,
+        };
+        if !side_effect {
+          Some(*k)
+        } else {
+          None
+        }
+      })
+      .collect::<IdentifierSet>();
 
     // dbg!(&used_symbol_ref);
 
@@ -1081,7 +1116,7 @@ impl Compilation {
       };
     }
 
-    if side_effects_analyze {
+    if side_effects_options {
       // pruning
       let mut visited = self.entry_module_identifiers.clone();
       let mut q = VecDeque::from_iter(visited.iter().cloned());
@@ -1105,7 +1140,7 @@ impl Compilation {
 
         if !used
           && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
-          && analyze_result.side_effects_free
+          && side_effects_free_module_ident.contains(&analyze_result.module_identifier)
           && !self.entry_module_identifiers.contains(&module_identifier)
         {
           continue;
@@ -1141,7 +1176,7 @@ impl Compilation {
                   }
                 }
                 None => {
-                  panic!("Failed to get normal module of {module_identifier}");
+                  panic!("Failed to get normal module of {}", mgm.module_identifier);
                 }
               };
             }
@@ -2006,4 +2041,74 @@ fn create_inherit_graph(
     }
   }
   g
+}
+
+fn normalize_side_effects(
+  cur: Identifier,
+  module_graph: &ModuleGraph,
+  visited_module: &mut IdentifierSet,
+  side_effects_map: &mut IdentifierMap<SideEffect>,
+) {
+  if visited_module.contains(&cur) {
+    return;
+  }
+  visited_module.insert(cur);
+  let mgm = module_graph
+    .module_graph_module_by_identifier(&cur)
+    .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
+  let mut module_ident_list = vec![];
+  for dep in mgm.dependencies.iter() {
+    let module_ident = match module_graph.module_by_dependency(dep) {
+      Some(module) => module.module_identifier,
+      None => {
+        match module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .and_then(|module| module.as_normal_module())
+          .map(|normal_module| normal_module.ast_or_source())
+        {
+          Some(ast_or_source) => {
+            if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
+              // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+              continue;
+            } else {
+              panic!("Failed to resolve {dep:?}")
+            }
+          }
+          None => {
+            panic!("Failed to get normal module of {}", mgm.module_identifier);
+          }
+        };
+      }
+    };
+    module_ident_list.push(module_ident);
+    normalize_side_effects(module_ident, module_graph, visited_module, side_effects_map);
+  }
+  // visited_module.remove(&cur);
+
+  let should_transform_to_side_effect = match side_effects_map.entry(cur) {
+    Entry::Occupied(mut occ) => match occ.get_mut() {
+      SideEffect::Configuration(_) => false,
+      SideEffect::Analyze(value) => {
+        if *value {
+          false
+        } else {
+          let dep_has_side_effect =
+            module_ident_list
+              .into_iter()
+              .any(|ident| match side_effects_map.get(&ident) {
+                Some(SideEffect::Analyze(true)) => true,
+                Some(SideEffect::Configuration(true)) => true,
+                None => false,
+                _ => false,
+              });
+          dep_has_side_effect
+        }
+      }
+    },
+    Entry::Vacant(_) => false,
+  };
+
+  if should_transform_to_side_effect {
+    *side_effects_map.get_mut(&cur).unwrap() = SideEffect::Analyze(true);
+  }
 }

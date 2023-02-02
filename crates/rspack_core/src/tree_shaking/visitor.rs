@@ -15,6 +15,7 @@ use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
+use super::SideEffect;
 // use swc_atoms::JsWord;
 // use swc_common::{util::take::Take, Mark, GLOBALS};
 // use swc_ecma_ast::*;
@@ -89,7 +90,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
-  pub(crate) side_effects_free: bool,
+  pub(crate) side_effects: SideEffect,
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
@@ -124,7 +125,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver_factory,
-      side_effects_free: false,
+      side_effects: SideEffect::Analyze(false),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
@@ -371,10 +372,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // TODO: should return analyze_side_effects_result if we can't read it from configuration
     let side_effects = self.get_side_effects_from_config().unwrap_or_else(|| {
       // dbg!(&self.module_identifier, self.has_side_effects_stmt);
-      self.has_side_effects_stmt
+      SideEffect::Analyze(self.has_side_effects_stmt)
       // true
     });
-    self.side_effects_free = !side_effects;
+    self.side_effects = side_effects;
   }
 
   fn visit_module(&mut self, node: &Module) {
@@ -940,7 +941,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
-  fn get_side_effects_from_config(&mut self) -> Option<bool> {
+  fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
     let resource_path = self
       .module_graph
       .module_by_identifier(&self.module_identifier)
@@ -997,7 +998,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       side_effects = Some(module_side_effects);
       break;
     }
-    side_effects
+    side_effects.map(SideEffect::Configuration)
   }
 }
 
@@ -1282,7 +1283,7 @@ pub struct TreeShakingResult {
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
-  pub(crate) side_effects_free: bool,
+  pub(crate) side_effects: SideEffect,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -1300,7 +1301,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
-      side_effects_free: analyze.side_effects_free,
+      side_effects: analyze.side_effects,
     }
   }
 }
