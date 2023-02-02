@@ -13,14 +13,8 @@ use rspack_test::read_test_config_and_normalize;
 #[tokio::main]
 async fn main() {
   let path_list = vec![
-    // "examples/cjs-tree-shaking-basic",
+    "benchcases/three",
     // "examples/basic",
-    "examples/basic",
-    // "examples/export-star-chain",
-    // "examples/bbb",
-    /* "examples/named-export-decl-with-src-eval",
-     * "examples/side-effects-prune",
-     * "examples/side-effects-two", */
   ];
   for p in path_list {
     println_string_with_fg_color(p, termcolorful::Color::Red);
