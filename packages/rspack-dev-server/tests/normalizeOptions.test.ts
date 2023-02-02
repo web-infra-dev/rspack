@@ -55,6 +55,23 @@ describe("normalize options snapshot", () => {
 		// should pointed to the same memory.
 		expect(compiler.options.devServer === server.options).toBeTruthy();
 	});
+	it("compier.options.devServer should be equal to server.options when devServer is undefined", async () => {
+		const compiler = createCompiler({
+			stats: "none"
+		});
+		const server = new RspackDevServer(
+			compiler.options.devServer ?? {},
+			compiler
+		);
+		await server.start();
+		expect({
+			builtins: compiler.options.builtins,
+			devServer: compiler.options.devServer
+		}).toMatchSnapshot();
+		await server.stop();
+		// should pointed to the same memory.
+		expect(compiler.options.devServer === server.options).toBeTruthy();
+	});
 });
 
 async function match(config: RspackOptions) {

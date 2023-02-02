@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Callback } from "tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
@@ -12,6 +11,7 @@ class Watching {
 	handler: (error?: Error, stats?: Stats) => void;
 	callbacks: Callback<Error, void>[];
 	watchOptions: WatchOptions;
+	// @ts-expect-error
 	lastWatcherStartTime: number;
 	running: boolean;
 	blocked: boolean;
@@ -56,6 +56,7 @@ class Watching {
 		dirs: Iterable<string>,
 		missing: Iterable<string>
 	) {
+		// @ts-expect-error
 		this.pausedWatcher = null;
 		this.watcher = this.compiler.watchFileSystem.watch(
 			files,
@@ -81,6 +82,7 @@ class Watching {
 					changedFiles,
 					removedFiles
 				);
+				// @ts-expect-error
 				this.onChange();
 			},
 			(fileName, changeTime) => {
@@ -88,6 +90,7 @@ class Watching {
 					this.#invalidReported = true;
 					this.compiler.hooks.invalid.call(fileName, changeTime);
 				}
+				// @ts-expect-error
 				this.onInvalid();
 			}
 		);
@@ -104,6 +107,7 @@ class Watching {
 		const finalCallback = (err?: Error) => {
 			this.running = false;
 			this.compiler.running = false;
+			// @ts-expect-error
 			this.compiler.watching = undefined;
 			this.compiler.watchMode = false;
 			this.compiler.modifiedFiles = undefined;
@@ -115,6 +119,7 @@ class Watching {
 				this.compiler.hooks.watchClose.call();
 				const closeCallbacks = this.#closeCallbacks;
 				this.#closeCallbacks = undefined;
+				// @ts-expect-error
 				for (const cb of closeCallbacks) cb(err);
 			};
 			// TODO: compilation parameter support
@@ -131,18 +136,22 @@ class Watching {
 			// } else {
 			// 	shutdown(err);
 			// }
+			// @ts-expect-error
 			shutdown(err);
 		};
 
 		this.#closed = true;
 		if (this.watcher) {
 			this.watcher.close();
+			// @ts-expect-error
 			this.watcher = null;
 		}
 		if (this.pausedWatcher) {
 			this.pausedWatcher.close();
+			// @ts-expect-error
 			this.pausedWatcher = null;
 		}
+		// @ts-expect-error
 		this.compiler.watching = undefined;
 		this.compiler.watchMode = false;
 		this.#closeCallbacks = [];
@@ -166,6 +175,7 @@ class Watching {
 			this.#invalidReported = true;
 			this.compiler.hooks.invalid.call(null, Date.now());
 		}
+		// @ts-expect-error
 		this.onChange();
 		this.#invalidate();
 	}
@@ -176,12 +186,15 @@ class Watching {
 		changedFiles?: Set<string>,
 		removedFiles?: Set<string>
 	) {
+		// @ts-expect-error
 		if (this.isBlocked() && (this.blocked = true)) {
+			// @ts-expect-error
 			this.#mergeWithCollected(changedFiles, removedFiles);
 			return;
 		}
 
 		if (this.running) {
+			// @ts-expect-error
 			this.#mergeWithCollected(changedFiles, removedFiles);
 			this.invalid = true;
 			console.log("hit change but rebuild is not finished, pending files: ", [
@@ -200,6 +213,7 @@ class Watching {
 			this.pausedWatcher = this.watcher;
 			this.lastWatcherStartTime = Date.now();
 			this.watcher.pause();
+			// @ts-expect-error
 			this.watcher = null;
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
@@ -223,6 +237,7 @@ class Watching {
 			const onBuild = (err: Error) => {
 				if (err) return this._done(err);
 				// if (this.invalid) return this._done(null);
+				// @ts-expect-error
 				this._done(null);
 				if (!err && !this.#closed && !this.invalid) {
 					print();
@@ -230,8 +245,9 @@ class Watching {
 			};
 
 			if (isRebuild) {
-				this.compiler.rebuild(changedFiles, removedFiles, onBuild);
+				this.compiler.rebuild(changedFiles, removedFiles, onBuild as any);
 			} else {
+				// @ts-expect-error
 				this.compiler.build(onBuild);
 			}
 		});
@@ -245,14 +261,17 @@ class Watching {
 		this.running = false;
 		let stats: Stats | null = null;
 		const handleError = (err?: Error, cbs?: Callback<Error, void>[]) => {
+			// @ts-expect-error
 			this.compiler.hooks.failed.call(err);
 			// this.compiler.cache.beginIdle();
 			// this.compiler.idle = true;
+			// @ts-expect-error
 			this.handler(err, stats);
 			if (!cbs) {
 				cbs = this.callbacks;
 				this.callbacks = [];
 			}
+			// @ts-expect-error
 			for (const cb of cbs) cb(err);
 		};
 
@@ -275,6 +294,7 @@ class Watching {
 				this.#collectedRemovedFiles = undefined;
 				return this.#go(pendingChengedFiles, pendingRemovedFiles);
 			}
+			// @ts-expect-error
 			this.handler(null, stats);
 
 			process.nextTick(() => {
@@ -287,6 +307,7 @@ class Watching {
 				}
 			});
 			for (const cb of cbs) cb(null);
+			// @ts-expect-error
 			this.compiler.hooks.afterDone.call(stats);
 		});
 	}
@@ -302,10 +323,12 @@ class Watching {
 		} else {
 			for (const file of changedFiles) {
 				this.#collectedChangedFiles.add(file);
+				// @ts-expect-error
 				this.#collectedRemovedFiles.delete(file);
 			}
 			for (const file of removedFiles) {
 				this.#collectedChangedFiles.delete(file);
+				// @ts-expect-error
 				this.#collectedRemovedFiles.add(file);
 			}
 		}
