@@ -2562,6 +2562,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_test",
+ "serde_json",
  "sugar_path",
  "testing_macros",
  "tokio",
