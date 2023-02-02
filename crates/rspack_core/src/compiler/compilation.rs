@@ -2085,28 +2085,29 @@ fn normalize_side_effects(
   }
   // visited_module.remove(&cur);
 
-  let should_transform_to_side_effect = match side_effects_map.entry(cur) {
+  let side_effect_list = match side_effects_map.entry(cur) {
     Entry::Occupied(mut occ) => match occ.get_mut() {
-      SideEffect::Configuration(_) => false,
+      SideEffect::Configuration(_) => vec![],
       SideEffect::Analyze(value) => {
         if *value {
-          false
+          vec![]
         } else {
           module_ident_list
             .into_iter()
-            .any(|ident| match side_effects_map.get(&ident) {
-              Some(SideEffect::Analyze(true)) => true,
-              Some(SideEffect::Configuration(true)) => true,
-              None => false,
-              _ => false,
+            .filter_map(|ident| match side_effects_map.get(&ident) {
+              Some(SideEffect::Analyze(true)) => Some(ident),
+              Some(SideEffect::Configuration(true)) => Some(ident),
+              None => None,
+              _ => None,
             })
+            .collect::<Vec<_>>()
         }
       }
     },
-    Entry::Vacant(_) => false,
+    Entry::Vacant(_) => vec![],
   };
 
-  if should_transform_to_side_effect {
+  if side_effect_list.len() > 0 {
     if let Some(cur) = side_effects_map.get_mut(&cur) {
       *cur = SideEffect::Analyze(true);
     }

@@ -11,7 +11,7 @@ use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
@@ -1324,10 +1324,47 @@ impl Visit for FirstIdentVisitor {
 }
 
 fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+  if let Expr::Assign(assign) = expr {
+    // assign.left
+    if let box Expr::Call(ref right) = assign.right {
+      if is_module_exports(&assign.left, unresolved_ctxt)
+        && get_require_literal(right, unresolved_ctxt.outer()).is_some()
+      {
+        return true;
+      }
+    }
+  }
   !expr.may_have_side_effects(&ExprCtx {
     unresolved_ctxt,
     is_unresolved_ref_safe: false,
   })
+}
+
+fn is_module_exports(expr: &PatOrExpr, unresolved_ctxt: SyntaxContext) -> bool {
+  match expr {
+    PatOrExpr::Expr(box Expr::Member(MemberExpr { obj, prop, .. })) => {
+      match obj {
+        box Expr::Ident(
+          ident @ Ident {
+            sym: js_word!("module"),
+            ..
+          },
+        ) => {
+          if ident.span.ctxt != unresolved_ctxt {
+            return false;
+          }
+        }
+        _ => return false,
+      };
+
+      match prop {
+        MemberProp::Ident(Ident { sym, .. }) => sym == "exports",
+        _ => return false,
+      }
+    }
+    PatOrExpr::Pat(_) => false,
+    _ => false,
+  }
 }
 
 fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
@@ -1337,6 +1374,7 @@ fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
     Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt),
     Decl::TsInterface(_) => unreachable!(),
     Decl::TsTypeAlias(_) => unreachable!(),
+
     Decl::TsEnum(_) => unreachable!(),
     Decl::TsModule(_) => unreachable!(),
   }
