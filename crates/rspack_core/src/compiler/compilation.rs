@@ -2094,11 +2094,11 @@ fn normalize_side_effects(
         } else {
           module_ident_list
             .into_iter()
-            .filter_map(|ident| match side_effects_map.get(&ident) {
-              Some(SideEffect::Analyze(true)) => Some(ident),
-              Some(SideEffect::Configuration(true)) => Some(ident),
-              None => None,
-              _ => None,
+            .filter(|ident| {
+              matches!(
+                side_effects_map.get(ident),
+                Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
+              )
             })
             .collect::<Vec<_>>()
         }
@@ -2107,7 +2107,7 @@ fn normalize_side_effects(
     Entry::Vacant(_) => vec![],
   };
 
-  if side_effect_list.len() > 0 {
+  if !side_effect_list.is_empty() {
     if let Some(cur) = side_effects_map.get_mut(&cur) {
       *cur = SideEffect::Analyze(true);
     }

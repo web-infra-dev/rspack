@@ -1357,9 +1357,10 @@ fn is_module_exports(expr: &PatOrExpr, unresolved_ctxt: SyntaxContext) -> bool {
         _ => return false,
       };
 
-      match prop {
-        MemberProp::Ident(Ident { sym, .. }) => sym == "exports",
-        _ => return false,
+      if let MemberProp::Ident(Ident { sym, .. }) = prop {
+        sym == "exports"
+      } else {
+        false
       }
     }
     PatOrExpr::Pat(_) => false,
