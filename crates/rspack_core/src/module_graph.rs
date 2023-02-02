@@ -290,7 +290,7 @@ impl ModuleGraph {
     let mut removed = None;
 
     // if let Some(id) = self.dependency_to_dependency_id.get(dep).copied() {
-    if let Some(conn) = self.dependency_id_to_connection_id.remove(&id) {
+    if let Some(conn) = self.dependency_id_to_connection_id.remove(id) {
       self.connection_id_to_dependency_id.remove(&conn);
 
       if let Some(conn) = self.connection_id_to_connection.remove(&conn) {

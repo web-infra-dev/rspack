@@ -340,7 +340,7 @@ impl CleanTask {
     let dependent_module_identifiers: Vec<ModuleIdentifier> = mgm
       .all_depended_modules(&compilation.module_graph)
       .into_iter()
-      .map(|module_identifier| *module_identifier)
+      .copied()
       .collect();
     compilation.module_graph.revoke_module(&module_identifier);
     CleanTaskResult::ModuleIsCleaned {

@@ -430,7 +430,7 @@ impl Compilation {
         mgm
           .all_depended_modules(&self.module_graph)
           .into_iter()
-          .map(|module_identifier| *module_identifier)
+          .copied()
           .collect()
       } else {
         vec![]

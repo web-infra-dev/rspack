@@ -339,7 +339,7 @@ impl<'me> CodeSplitter<'me> {
       .into_iter()
       .rev()
     {
-      let is_already_split_module = self.split_point_modules.contains(&module_identifier);
+      let is_already_split_module = self.split_point_modules.contains(module_identifier);
 
       if is_already_split_module {
         continue;
