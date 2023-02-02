@@ -21,9 +21,7 @@ module.exports = {
     treeShaking: true,
     sideEffects: true,
     noEmitAssets: false,
-    stats: true
   },
-  stats: true,
   cache: false,
   module: {
     rules:
