@@ -25,6 +25,7 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
+  pub issuer: String,
   pub original_resource_path: Option<PathBuf>,
   pub dependencies: Vec<BoxModuleDependency>,
 
@@ -48,24 +49,10 @@ pub struct FactorizeTaskResult {
   pub is_entry: bool,
 }
 
-/** absolute path which should be used for condition matching */
-fn name_for_condition(resource: &str) -> &str {
-  match resource.find('?') {
-    Some(idx) => &resource[0..idx],
-    None => resource,
-  }
-}
-
 #[async_trait::async_trait]
 impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
     let dependency = self.dependencies[0].clone();
-
-    let issuer = if let Some(issuer_identifier) = self.original_module_identifier {
-      name_for_condition(&issuer_identifier).to_string()
-    } else {
-      String::from("")
-    };
 
     let (result, diagnostics) = match *dependency.dependency_type() {
       DependencyType::ImportContext => {
@@ -87,7 +74,7 @@ impl WorkerTask for FactorizeTask {
             side_effects: self.side_effects,
             options: self.options.clone(),
             lazy_visit_modules: self.lazy_visit_modules,
-            issuer,
+            issuer: self.issuer,
           },
           self.plugin_driver,
           self.cache,

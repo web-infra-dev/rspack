@@ -456,6 +456,11 @@ impl Compilation {
         None,
         parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
         self.lazy_visit_modules.clone(),
+        parent_module
+          .and_then(|m| m.as_normal_module())
+          .and_then(|module| module.name_for_condition())
+          .map(|issuer| issuer.to_string())
+          .unwrap_or_else(|| String::from("")),
       );
     });
 
@@ -532,6 +537,11 @@ impl Compilation {
             None,
             task.resolve_options.clone(),
             self.lazy_visit_modules.clone(),
+            module
+              .as_normal_module()
+              .and_then(|module| module.name_for_condition())
+              .map(|issuer| issuer.to_string())
+              .unwrap_or_else(|| String::from("")),
           );
         });
 
@@ -731,9 +741,11 @@ impl Compilation {
     side_effects: Option<bool>,
     resolve_options: Option<Resolve>,
     lazy_visit_modules: std::collections::HashSet<String>,
+    issuer: String,
   ) {
     queue.add_task(FactorizeTask {
       original_module_identifier,
+      issuer,
       original_resource_path,
       dependencies,
       is_entry,
