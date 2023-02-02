@@ -8,16 +8,15 @@ module.exports = {
 	module: {
 		rules: [
 			{
+				exclude: [/index\.js/],
 				use: [
 					{
 						loader: "./loader.js"
 					}
-				],
-				issuer: {
-					not: [/index\.css/]
-				}
+				]
 			},
 			{
+				exclude: [/index\.js/],
 				use: [
 					{
 						loader: "./loader1.js"
