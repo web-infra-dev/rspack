@@ -370,12 +370,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
 
     // TODO: should return analyze_side_effects_result if we can't read it from configuration
-    let side_effects = self.get_side_effects_from_config().unwrap_or_else(|| {
-      // dbg!(&self.module_identifier, self.has_side_effects_stmt);
-      SideEffect::Analyze(self.has_side_effects_stmt)
-      // true
-    });
-    self.side_effects = side_effects;
+    self.side_effects = self
+      .get_side_effects_from_config()
+      .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
   }
 
   fn visit_module(&mut self, node: &Module) {
@@ -1052,7 +1049,6 @@ impl<'a> ModuleRefAnalyze<'a> {
 
           if !pure_update {
             self.has_side_effects_stmt = true;
-            return;
           }
         }
         ModuleItem::Stmt(Stmt::Expr(stmt)) => {
@@ -1369,14 +1365,20 @@ fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
       ClassMember::ClassProp(prop) => {
         is_pure_key(&prop.key)
           && (!prop.is_static
-            || prop.value.is_none()
-            || is_pure_expression(prop.value.as_ref().unwrap(), unresolved_ctxt))
+            || if let Some(ref value) = prop.value {
+              is_pure_expression(value, unresolved_ctxt)
+            } else {
+              true
+            })
       }
       ClassMember::PrivateProp(prop) => {
         is_pure_expression(&Expr::PrivateName(prop.key.clone()), unresolved_ctxt)
           && (!prop.is_static
-            || prop.value.is_none()
-            || is_pure_expression(prop.value.as_ref().unwrap(), unresolved_ctxt))
+            || if let Some(ref value) = prop.value {
+              is_pure_expression(value, unresolved_ctxt)
+            } else {
+              true
+            })
       }
       ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => true,
@@ -1385,10 +1387,10 @@ fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
   })
 }
 
-fn is_pure_var_decl(var: &Box<VarDecl>, unresolved_ctxt: SyntaxContext) -> bool {
+fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
   var.decls.iter().all(|decl| {
     if let Some(ref init) = decl.init {
-      is_pure_expression(&init, unresolved_ctxt)
+      is_pure_expression(init, unresolved_ctxt)
     } else {
       true
     }

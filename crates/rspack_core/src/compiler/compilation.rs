@@ -2092,16 +2092,14 @@ fn normalize_side_effects(
         if *value {
           false
         } else {
-          let dep_has_side_effect =
-            module_ident_list
-              .into_iter()
-              .any(|ident| match side_effects_map.get(&ident) {
-                Some(SideEffect::Analyze(true)) => true,
-                Some(SideEffect::Configuration(true)) => true,
-                None => false,
-                _ => false,
-              });
-          dep_has_side_effect
+          module_ident_list
+            .into_iter()
+            .any(|ident| match side_effects_map.get(&ident) {
+              Some(SideEffect::Analyze(true)) => true,
+              Some(SideEffect::Configuration(true)) => true,
+              None => false,
+              _ => false,
+            })
         }
       }
     },
@@ -2109,6 +2107,8 @@ fn normalize_side_effects(
   };
 
   if should_transform_to_side_effect {
-    *side_effects_map.get_mut(&cur).unwrap() = SideEffect::Analyze(true);
+    if let Some(cur) = side_effects_map.get_mut(&cur) {
+      *cur = SideEffect::Analyze(true);
+    }
   }
 }
