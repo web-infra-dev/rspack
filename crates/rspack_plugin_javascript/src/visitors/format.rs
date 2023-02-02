@@ -1,10 +1,12 @@
+use std::collections::HashSet;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   runtime_globals, Compilation, Dependency, DependencyCategory, DependencyType, Module,
   ModuleDependency, ModuleGraphModule, ModuleIdentifier,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::utils::{member_expr, ExprFactory};
 use {
   swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
@@ -13,10 +15,7 @@ use {
   swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
 
-use super::{
-  is_import_meta_hot_accept_call, is_import_meta_hot_decline_call, is_module_hot_accept_call,
-  is_module_hot_decline_call,
-};
+use super::{is_import_meta_hot_accept_call, is_module_hot_accept_call};
 
 pub static SWC_HELPERS_REG: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
@@ -48,8 +47,15 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
         mgm
           .dependencies
           .iter()
-          .filter(|dep| DependencyCategory::Esm.eq(dep.category()))
-          .map(|dep| dep.user_request().to_string())
+          .filter_map(|id| {
+            let dependency = self.compilation.module_graph.dependency_by_id(id);
+            if let Some(dependency) = dependency {
+              if DependencyCategory::Esm.eq(dependency.category()) {
+                return Some(dependency.user_request().to_string());
+              }
+            }
+            None
+          })
           .collect::<HashSet<_>>()
       })
       .expect("Failed to get module graph module");
@@ -187,9 +193,17 @@ impl<'a> HmrApiRewrite<'a> {
       .module_graph
       .module_graph_module_by_identifier(module_identifier)
       .and_then(|mgm| {
-        mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == src && dep.dependency_type() == dependency_type {
-            self.compilation.module_graph.module_by_dependency(dep)
+        mgm.dependencies.iter().find_map(|id| {
+          let dependency = self
+            .compilation
+            .module_graph
+            .dependency_by_id(id)
+            .expect("should have dependency");
+          if dependency.request() == src && dependency.dependency_type() == dependency_type {
+            self
+              .compilation
+              .module_graph
+              .module_graph_module_by_dependency_id(dependency.id().expect("should have id"))
           } else {
             None
           }
@@ -332,22 +346,6 @@ impl<'a> HmrApiRewrite<'a> {
       }
     }
   }
-
-  fn rewrite_module_hot_decline(&mut self, n: &mut CallExpr, dependency_type: &DependencyType) {
-    if let Some(Lit::Str(str)) = n
-      .args
-      .get_mut(0)
-      .and_then(|first_arg| first_arg.expr.as_mut_lit())
-    {
-      if let Some(module) =
-        self.resolve_module_legacy(&self.module.identifier(), &str.value, dependency_type)
-      {
-        let module_id = module.id(&self.compilation.chunk_graph);
-        str.value = JsWord::from(module_id);
-        str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-      }
-    }
-  }
 }
 
 impl<'a> VisitMut for HmrApiRewrite<'a> {
@@ -357,14 +355,8 @@ impl<'a> VisitMut for HmrApiRewrite<'a> {
     if is_module_hot_accept_call(n) {
       self.rewrite_module_hot_accept(n, &DependencyType::ModuleHotAccept);
     }
-    if is_module_hot_decline_call(n) {
-      self.rewrite_module_hot_decline(n, &DependencyType::ModuleHotDecline);
-    }
     if is_import_meta_hot_accept_call(n) {
       self.rewrite_module_hot_accept(n, &DependencyType::ImportMetaHotAccept);
-    }
-    if is_import_meta_hot_decline_call(n) {
-      self.rewrite_module_hot_decline(n, &DependencyType::ImportMetaHotDecline);
     }
     n.visit_mut_children_with(self);
   }

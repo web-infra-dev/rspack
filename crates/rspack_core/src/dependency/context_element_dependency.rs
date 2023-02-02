@@ -2,11 +2,12 @@ use rspack_error::Result;
 
 use crate::{
   CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency, DependencyCategory,
-  DependencyType, ModuleDependency,
+  DependencyId, DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ContextElementDependency {
+  pub id: Option<DependencyId>,
   // TODO remove this async dependency mark
   pub options: ContextOptions,
   pub request: String,
@@ -16,6 +17,12 @@ pub struct ContextElementDependency {
 }
 
 impl Dependency for ContextElementDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&crate::ModuleIdentifier> {
     None
   }

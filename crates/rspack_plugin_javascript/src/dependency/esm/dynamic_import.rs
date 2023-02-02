@@ -1,6 +1,6 @@
 use rspack_core::{
   create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableDeclMappings, CodeGeneratableResult, Dependency, DependencyCategory,
+  CodeGeneratableDeclMappings, CodeGeneratableResult, Dependency, DependencyCategory, DependencyId,
   DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
 };
 use swc_core::{
@@ -14,6 +14,7 @@ use swc_core::{
 
 #[derive(Debug, Eq, Clone)]
 pub struct EsmDynamicImportDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   category: &'static DependencyCategory,
@@ -53,11 +54,18 @@ impl EsmDynamicImportDependency {
       dependency_type: &DependencyType::DynamicImport,
       span,
       ast_path,
+      id: None,
     }
   }
 }
 
 impl Dependency for EsmDynamicImportDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -102,123 +110,127 @@ impl CodeGeneratable for EsmDynamicImportDependency {
     let mut code_gen = CodeGeneratableResult::default();
     let mut decl_mappings = CodeGeneratableDeclMappings::default();
 
-    let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
-
-    if let Some(referenced_module) = referenced_module {
-      let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
+    if let Some(dependency_id) = self.id() {
+      if let Some(referenced_module) = compilation
+        .module_graph
+        .module_graph_module_by_dependency_id(dependency_id)
       {
-        let (id, val) = self.decl_mapping(&compilation.module_graph, module_id.clone());
-        decl_mappings.insert(id, val);
-      }
+        let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
 
-      let mut chunk_ids = {
-        let chunk_group = compilation.chunk_graph.get_block_chunk_group(
-          &referenced_module.module_identifier,
-          &compilation.chunk_group_by_ukey,
-        );
-        chunk_group
-          .chunks
-          .iter()
-          .map(|chunk_ukey| {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(chunk_ukey)
-              .unwrap_or_else(|| panic!("chunk should exist"));
-            chunk.expect_id().to_string()
-          })
-          .collect::<Vec<_>>()
-      };
-      chunk_ids.sort();
+        {
+          let (id, val) = self.decl_mapping(&compilation.module_graph, module_id.clone());
+          decl_mappings.insert(id, val);
+        }
 
-      // Add interop require to runtime requirements, as dynamic imports have been transformed so `inject_runtime_helper` will not be able to detect this.
-      runtime_requirements.insert(runtime_globals::INTEROP_REQUIRE);
+        let mut chunk_ids = {
+          let chunk_group = compilation.chunk_graph.get_block_chunk_group(
+            &referenced_module.module_identifier,
+            &compilation.chunk_group_by_ukey,
+          );
+          chunk_group
+            .chunks
+            .iter()
+            .map(|chunk_ukey| {
+              let chunk = compilation
+                .chunk_by_ukey
+                .get(chunk_ukey)
+                .unwrap_or_else(|| panic!("chunk should exist"));
+              chunk.expect_id().to_string()
+            })
+            .collect::<Vec<_>>()
+        };
+        chunk_ids.sort();
 
-      code_gen.visitors.push(
-        create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-          if let Some(import) = n.args.get_mut(0) {
-            if import.spread.is_none() && let Expr::Lit(Lit::Str(_)) = import.expr.as_mut() {
-                let call_expr = if chunk_ids.len() == 1 {
-                  CallExpr {
-                    span: DUMMY_SP,
-                    callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
-                    args: vec![Expr::Lit(Lit::Str(chunk_ids.first().expect("should have chunk id").to_string().into())).as_arg()],
-                    type_args: None,
-                  }
-                } else {
-                  CallExpr {
-                    span: DUMMY_SP,
-                    callee: quote_ident!("Promise.all").as_callee(),
-                    args: vec![ArrayLit {
+        // Add interop require to runtime requirements, as dynamic imports have been transformed so `inject_runtime_helper` will not be able to detect this.
+        runtime_requirements.insert(runtime_globals::INTEROP_REQUIRE);
+
+        code_gen.visitors.push(
+          create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+            if let Some(import) = n.args.get_mut(0) {
+              if import.spread.is_none() && let Expr::Lit(Lit::Str(_)) = import.expr.as_mut() {
+                  let call_expr = if chunk_ids.len() == 1 {
+                    CallExpr {
                       span: DUMMY_SP,
-                      elems: chunk_ids
-                        .iter()
-                        .map(|chunk_id| {
-                          Some(
-                            Expr::Call(CallExpr {
-                              span: DUMMY_SP,
-                              callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP)
-                                .as_callee(),
-                              args: vec![Expr::Lit(Lit::Str(chunk_id.to_string().into())).as_arg()],
-                              type_args: None,
-                            })
-                            .as_arg(),
-                          )
-                        })
-                        .collect(),
+                      callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP).as_callee(),
+                      args: vec![Expr::Lit(Lit::Str(chunk_ids.first().expect("should have chunk id").to_string().into())).as_arg()],
+                      type_args: None,
                     }
-                    .as_arg()],
-                    type_args: None,
-                  }
-                };
-                n.callee = MemberExpr {
-                  span: DUMMY_SP,
-                  obj: Box::new(Expr::Call(CallExpr {
-                    span: DUMMY_SP,
-                    callee: MemberExpr {
+                  } else {
+                    CallExpr {
                       span: DUMMY_SP,
-                      obj: Box::new(Expr::Call(call_expr)),
-                      prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+                      callee: quote_ident!("Promise.all").as_callee(),
+                      args: vec![ArrayLit {
+                        span: DUMMY_SP,
+                        elems: chunk_ids
+                          .iter()
+                          .map(|chunk_id| {
+                            Some(
+                              Expr::Call(CallExpr {
+                                span: DUMMY_SP,
+                                callee: Ident::new(runtime_globals::ENSURE_CHUNK.into(), DUMMY_SP)
+                                  .as_callee(),
+                                args: vec![Expr::Lit(Lit::Str(chunk_id.to_string().into())).as_arg()],
+                                type_args: None,
+                              })
+                              .as_arg(),
+                            )
+                          })
+                          .collect(),
+                      }
+                      .as_arg()],
+                      type_args: None,
                     }
-                    .as_callee(),
-                    args: vec![CallExpr {
+                  };
+                  n.callee = MemberExpr {
+                    span: DUMMY_SP,
+                    obj: Box::new(Expr::Call(CallExpr {
                       span: DUMMY_SP,
                       callee: MemberExpr {
                         span: DUMMY_SP,
-                        obj: Box::new(Expr::Ident(Ident::new(
-                          runtime_globals::REQUIRE.into(),
-                          DUMMY_SP,
-                        ))),
-                        prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
+                        obj: Box::new(Expr::Call(call_expr)),
+                        prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
                       }
                       .as_callee(),
-                      args: vec![
-                        Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
-                        Lit::Str(Atom::from(&*module_id).into()).as_arg(),
-                      ],
+                      args: vec![CallExpr {
+                        span: DUMMY_SP,
+                        callee: MemberExpr {
+                          span: DUMMY_SP,
+                          obj: Box::new(Expr::Ident(Ident::new(
+                            runtime_globals::REQUIRE.into(),
+                            DUMMY_SP,
+                          ))),
+                          prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
+                        }
+                        .as_callee(),
+                        args: vec![
+                          Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
+                          Lit::Str(Atom::from(&*module_id).into()).as_arg(),
+                        ],
+                        type_args: None,
+                      }
+                      .as_arg()],
                       type_args: None,
-                    }
-                    .as_arg()],
-                    type_args: None,
-                  })),
-                  prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
-                }
-                .as_callee();
-                n.args = vec![MemberExpr {
-                  span: DUMMY_SP,
-                  obj: Box::new(Expr::Ident(Ident::new(
-                    runtime_globals::REQUIRE.into(),
-                    DUMMY_SP,
-                  ))),
-                  prop: MemberProp::Ident(Ident::new(
-                    runtime_globals::INTEROP_REQUIRE.into(),
-                    DUMMY_SP,
-                  )),
-                }
-                .as_arg()];
-              };
-          }
-        }),
-      );
+                    })),
+                    prop: MemberProp::Ident(Ident::new("then".into(), DUMMY_SP)),
+                  }
+                  .as_callee();
+                  n.args = vec![MemberExpr {
+                    span: DUMMY_SP,
+                    obj: Box::new(Expr::Ident(Ident::new(
+                      runtime_globals::REQUIRE.into(),
+                      DUMMY_SP,
+                    ))),
+                    prop: MemberProp::Ident(Ident::new(
+                      runtime_globals::INTEROP_REQUIRE.into(),
+                      DUMMY_SP,
+                    )),
+                  }
+                  .as_arg()];
+                };
+            }
+          }),
+        );
+      }
     }
 
     Ok(code_gen.with_decl_mappings(decl_mappings))

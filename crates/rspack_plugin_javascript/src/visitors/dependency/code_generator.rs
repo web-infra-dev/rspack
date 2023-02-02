@@ -49,7 +49,13 @@ pub fn collect_dependency_code_generation_visitors(
 
   dependencies
     .iter()
-    .map(|dependency| dependency.generate(&mut context))
+    .map(|id| {
+      compilation
+        .module_graph
+        .dependency_by_id(id)
+        .expect("should have dependency")
+        .generate(&mut context)
+    })
     .collect::<Result<Vec<_>>>()?
     .into_iter()
     .for_each(|code_gen| {

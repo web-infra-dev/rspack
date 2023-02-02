@@ -52,12 +52,9 @@ impl<'me> CodeSplitter<'me> {
       let dependencies = &entry_data.dependencies;
       let module_identifiers = dependencies
         .iter()
-        .filter_map(|dep| {
-          module_graph
-            .module_by_dependency(dep)
-            .map(|module| module.module_identifier)
-        })
+        .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
         .collect::<Vec<_>>();
+
       let chunk = Compilation::add_named_chunk(
         name.to_string(),
         &mut compilation.chunk_by_ukey,
@@ -66,11 +63,11 @@ impl<'me> CodeSplitter<'me> {
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
-      for module_identifier in module_identifiers {
+      for module_identifier in module_identifiers.iter() {
         compilation
           .chunk_graph
           .split_point_module_identifier_to_chunk_ukey
-          .insert(module_identifier, chunk.ukey);
+          .insert(**module_identifier, chunk.ukey);
       }
 
       let mut entrypoint = ChunkGroup::new(
@@ -103,20 +100,17 @@ impl<'me> CodeSplitter<'me> {
           .ok_or_else(|| anyhow::format_err!("no chunk group found"))?
       };
 
-      for dep in dependencies.iter() {
-        let module = module_graph
-          .module_by_dependency(dep)
-          .ok_or_else(|| anyhow::format_err!("no module found: {:?}", &dep))?;
-        compilation.chunk_graph.add_module(module.module_identifier);
+      for module_identifier in module_identifiers {
+        compilation.chunk_graph.add_module(*module_identifier);
 
         input_entrypoints_and_modules
           .entry(entrypoint.ukey)
           .or_default()
-          .push(module.module_identifier);
+          .push(*module_identifier);
 
         compilation.chunk_graph.connect_chunk_and_entry_module(
           chunk.ukey,
-          module.module_identifier,
+          *module_identifier,
           entrypoint.ukey,
         );
       }
@@ -327,7 +321,7 @@ impl<'me> CodeSplitter<'me> {
       .module_graph_module_by_identifier(&item.module_identifier)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module_identifier));
 
-    for dep_mgm in mgm
+    for module_identifier in mgm
       .depended_modules(&self.compilation.module_graph)
       .into_iter()
       .rev()
@@ -336,25 +330,21 @@ impl<'me> CodeSplitter<'me> {
         action: QueueAction::AddAndEnter,
         chunk: item.chunk,
         chunk_group: item.chunk_group,
-        module_identifier: dep_mgm.module_identifier,
+        module_identifier: *module_identifier,
       });
     }
 
-    for dyn_dep_mgm in mgm
+    for module_identifier in mgm
       .dynamic_depended_modules(&self.compilation.module_graph)
       .into_iter()
       .rev()
     {
-      let is_already_split_module = self
-        .split_point_modules
-        .contains(&dyn_dep_mgm.module_identifier);
+      let is_already_split_module = self.split_point_modules.contains(&module_identifier);
 
       if is_already_split_module {
         continue;
       } else {
-        self
-          .split_point_modules
-          .insert(dyn_dep_mgm.module_identifier);
+        self.split_point_modules.insert(*module_identifier);
       }
 
       let chunk = Compilation::add_chunk(&mut self.compilation.chunk_by_ukey);
@@ -364,7 +354,7 @@ impl<'me> CodeSplitter<'me> {
         .compilation
         .chunk_graph
         .split_point_module_identifier_to_chunk_ukey
-        .insert(dyn_dep_mgm.module_identifier, chunk.ukey);
+        .insert(*module_identifier, chunk.ukey);
 
       let item_chunk_group = self
         .compilation
@@ -380,7 +370,7 @@ impl<'me> CodeSplitter<'me> {
       self
         .compilation
         .chunk_graph
-        .connect_block_and_chunk_group(dyn_dep_mgm.module_identifier, chunk_group.ukey);
+        .connect_block_and_chunk_group(*module_identifier, chunk_group.ukey);
 
       item_chunk_group.children.insert(chunk_group.ukey);
       chunk_group.parents.insert(item_chunk_group.ukey);
@@ -405,7 +395,7 @@ impl<'me> CodeSplitter<'me> {
         action: QueueAction::AddAndEnter,
         chunk: chunk.ukey,
         chunk_group: chunk_group.ukey,
-        module_identifier: dyn_dep_mgm.module_identifier,
+        module_identifier: *module_identifier,
       });
     }
   }

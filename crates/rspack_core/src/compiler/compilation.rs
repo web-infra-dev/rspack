@@ -45,32 +45,32 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
   CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, EntryDependency,
   EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet, LoaderRunnerRunner, Module,
-  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
-  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
-  RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult,
-  VisitedModuleIdentity, WorkerTask,
+  IdentifierLinkedSet, IdentifierMap, IdentifierSet, LoaderRunnerRunner, Module, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
 };
 
 #[derive(Debug)]
 pub struct EntryData {
   pub name: String,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<DependencyId>,
   pub options: EntryOptions,
 }
 
 #[derive(Debug)]
 pub enum SetupMakeParam {
   ModifiedFiles(HashSet<PathBuf>),
-  ForceBuildDeps(HashSet<BoxModuleDependency>),
+  ForceBuildDeps(HashSet<DependencyId>),
 }
 
 #[derive(Debug)]
 pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   entries: BundleEntries,
-  pub(crate) visited_module_id: VisitedModuleIdentity,
-  pub make_failed_dependencies: HashSet<Box<dyn ModuleDependency>>,
+  pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
+  // pub(crate) visited_module_id: VisitedModuleIdentity,
+  // pub make_failed_dependencies: HashSet<Box<dyn ModuleDependency>>,
   pub module_graph: ModuleGraph,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_hashes: IdentifierMap<u64>,
@@ -81,6 +81,8 @@ pub struct Compilation {
   pub assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
+  // record last make diagnostics
+  last_module_diagnostics: IdentifierMap<Vec<Diagnostic>>,
   pub plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub named_chunks: HashMap<String, ChunkUkey>,
@@ -115,7 +117,7 @@ impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
     entries: BundleEntries,
-    visited_module_id: VisitedModuleIdentity,
+    // visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
@@ -123,13 +125,14 @@ impl Compilation {
   ) -> Self {
     Self {
       options,
-      visited_module_id,
-      make_failed_dependencies: Default::default(),
+      // visited_module_id,
+      last_module_diagnostics: Default::default(),
       module_graph,
       runtime_modules: Default::default(),
       runtime_module_hashes: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
+      entry_dependencies: Default::default(),
       entries,
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
@@ -294,11 +297,11 @@ impl Compilation {
       .entries
       .iter()
       .map(|(name, item)| {
-        let dependencies = item
-          .import
-          .iter()
-          .map(|detail| box EntryDependency::new(detail.clone()) as Box<dyn ModuleDependency>)
-          .collect();
+        let dependencies = self
+          .entry_dependencies
+          .get(name)
+          .expect("should have dependencies")
+          .clone();
         (
           name.clone(),
           EntryData {
@@ -310,37 +313,37 @@ impl Compilation {
           },
         )
       })
-      .filter(|(_, item)| {
-        item
-          .dependencies
-          .iter()
-          .filter_map(|dep| {
-            self
-              .module_graph
-              .module_by_dependency(dep)
-              .map(|module| module.module_identifier)
-          })
-          .next()
-          .is_some()
-      })
+      // .filter(|(_, item)| {
+      //   item
+      //     .dependencies
+      //     .iter()
+      //     .filter_map(|dep| {
+      //       self
+      //         .module_graph
+      //         .module_by_dependency(dep.id().expect("should have id"))
+      //         .map(|module| module.module_identifier)
+      //     })
+      //     .next()
+      //     .is_some()
+      // })
       .collect()
   }
 
-  #[instrument(name = "entry_dependencies", skip(self))]
-  pub fn entry_dependencies(&self) -> HashMap<String, Vec<Box<dyn ModuleDependency>>> {
-    self
-      .entries
-      .iter()
-      .map(|(name, item)| {
-        let name = name.clone();
-        let dependencies = item
-          .import
-          .iter()
-          .map(|detail| box EntryDependency::new(detail.clone()) as Box<dyn ModuleDependency>)
-          .collect();
-        (name, dependencies)
-      })
-      .collect()
+  pub fn setup_entry_dependencies(&mut self) {
+    self.entries.iter().for_each(|(name, item)| {
+      let dependencies = item
+        .import
+        .iter()
+        .map(|detail| {
+          let dependency =
+            Box::new(EntryDependency::new(detail.to_string())) as BoxModuleDependency;
+          self.module_graph.add_dependency(dependency)
+        })
+        .collect::<Vec<_>>();
+      self
+        .entry_dependencies
+        .insert(name.to_string(), dependencies);
+    })
   }
 
   #[instrument(name = "compilation:make", skip_all)]
@@ -390,45 +393,58 @@ impl Compilation {
       );
     }
     if let SetupMakeParam::ForceBuildDeps(deps) = params {
-      force_build_deps.extend(deps);
+      force_build_deps.extend(
+        deps
+          .iter()
+          .filter_map(|d| self.module_graph.dependency_id_to_dependency.remove(d))
+          .collect::<Vec<_>>(),
+      );
     }
-    force_build_deps.extend(std::mem::take(&mut self.make_failed_dependencies));
+    // show last module build diagnostics, need exclude force_build_module
+    let mut last_module_diagnostics = std::mem::take(&mut self.last_module_diagnostics);
+    self.push_batch_diagnostic(
+      last_module_diagnostics
+        .iter_mut()
+        .filter_map(|(i, d)| {
+          if force_build_module.contains(i) {
+            Some(std::mem::take(d))
+          } else {
+            None
+          }
+        })
+        .flatten()
+        .collect::<Vec<_>>(),
+    );
     // move deps bindings module to force_build_module
-    for dep in &force_build_deps {
-      if let Some(mgm) = self.module_graph.module_by_dependency(dep) {
-        force_build_module.insert(mgm.module_identifier);
-      };
-    }
+    // for dependency_id in &force_build_deps {
+    //   if let Some(mgm) = self.module_graph.module_by_dependency(dependency_id) {
+    //     force_build_module.insert(mgm.module_identifier);
+    //   }
+    // }
 
     let mut need_check_isolated_module_ids = HashSet::default();
-    let mut need_clean_visited_module_ids = HashSet::default();
+    // let mut need_clean_visited_module_ids = HashSet::default();
     // handle force build module
     need_check_isolated_module_ids.extend(force_build_module.iter().flat_map(|id| {
       if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
         mgm
           .all_depended_modules(&self.module_graph)
-          .iter()
-          .map(|sub| sub.module_identifier)
+          .into_iter()
+          .map(|module_identifier| *module_identifier)
           .collect()
       } else {
         vec![]
       }
     }));
-    force_build_deps.extend(
-      force_build_module
-        .iter()
-        .flat_map(|id| self.module_graph.revoke_module(id)),
-    );
-    need_clean_visited_module_ids.extend(force_build_module);
+    // need_clean_visited_module_ids.extend(force_build_module);
 
     // clean visited_module_id
-    self
-      .visited_module_id
-      .retain(|(mid, _, _)| !need_clean_visited_module_ids.contains(mid));
+    // self
+    //   .visited_module_id
+    //   .retain(|(mid, _, _)| !need_clean_visited_module_ids.contains(mid));
 
     let mut active_task_count = 0usize;
     let is_expected_shutdown = Arc::new(AtomicBool::new(false));
-    let mut running_dependencies: HashSet<Box<dyn ModuleDependency>> = HashSet::default();
     let (result_tx, mut result_rx) = tokio::sync::mpsc::unbounded_channel::<Result<TaskResult>>();
     let mut factorize_queue = FactorizeQueue::new();
     let mut add_queue = AddQueue::new();
@@ -436,8 +452,14 @@ impl Compilation {
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
     let mut errored = None;
 
-    force_build_deps.into_iter().for_each(|dep| {
-      let parent_module_identifier = dep.parent_module_identifier().cloned();
+    force_build_deps.extend(
+      force_build_module
+        .iter()
+        .flat_map(|id| self.module_graph.revoke_module(id)),
+    );
+
+    force_build_deps.iter().for_each(|dependency| {
+      let parent_module_identifier = dependency.parent_module_identifier().cloned();
       let parent_module =
         parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
       if parent_module_identifier.is_some() && parent_module.is_none() {
@@ -452,7 +474,7 @@ impl Compilation {
             .and_then(|m| m.as_normal_module())
             .map(|module| module.resource_resolved_data().resource_path.clone())
         },
-        vec![dep],
+        vec![dependency.clone()],
         parent_module_identifier.is_none(),
         None,
         None,
@@ -472,7 +494,6 @@ impl Compilation {
           let result_tx = result_tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
-          running_dependencies.insert(task.dependencies[0].clone());
           async move {
             if is_expected_shutdown.load(Ordering::SeqCst) {
               return;
@@ -518,12 +539,16 @@ impl Compilation {
       while let Some(task) = process_dependencies_queue.get_task() {
         active_task_count += 1;
 
-        task.dependencies.into_iter().for_each(|dep| {
+        task.dependencies.into_iter().for_each(|id| {
           let original_module_identifier = &task.original_module_identifier;
           let module = self
             .module_graph
             .module_by_identifier(original_module_identifier)
             .expect("Module expected");
+          let dependency = self
+            .module_graph
+            .dependency_by_id(&id)
+            .expect("dependency expected");
 
           self.handle_module_creation(
             &mut factorize_queue,
@@ -533,7 +558,7 @@ impl Compilation {
                 .as_normal_module()
                 .map(|module| module.resource_resolved_data().resource_path.clone())
             },
-            vec![dep],
+            vec![dependency.clone()],
             false,
             None,
             None,
@@ -563,10 +588,10 @@ impl Compilation {
               let FactorizeTaskResult {
                 is_entry,
                 original_module_identifier,
-                dependencies,
                 factory_result,
                 module_graph_module,
                 diagnostics,
+                dependencies,
               } = task_result;
 
               tracing::trace!("Module created: {}", factory_result.module.identifier());
@@ -592,38 +617,33 @@ impl Compilation {
               });
             }
             Ok(TaskResult::Add(task_result)) => match task_result {
-              AddTaskResult::ModuleAdded {
-                module,
-                dependencies,
-              } => {
+              AddTaskResult::ModuleAdded { module } => {
                 tracing::trace!("Module added: {}", module.identifier());
                 build_queue.add_task(BuildTask {
                   module,
-                  dependencies,
                   loader_runner_runner: self.loader_runner_runner.clone(),
                   compiler_options: self.options.clone(),
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
                 });
               }
-              AddTaskResult::ModuleReused {
-                module,
-                dependencies,
-              } => {
+              AddTaskResult::ModuleReused { module } => {
                 tracing::trace!("Module reused: {}, skipping build", module.identifier());
-                running_dependencies.remove(&dependencies[0]);
               }
             },
             Ok(TaskResult::Build(task_result)) => {
               let BuildTaskResult {
                 module,
-                dependencies,
                 build_result,
                 diagnostics,
               } = task_result;
 
               tracing::trace!("Module built: {}", module.identifier());
-
+              if !diagnostics.is_empty() {
+                self
+                  .last_module_diagnostics
+                  .insert(module.identifier(), diagnostics.clone());
+              }
               self.push_batch_diagnostic(diagnostics);
 
               self
@@ -639,22 +659,25 @@ impl Compilation {
                 .build_dependencies
                 .extend(build_result.build_dependencies);
 
-              let result_dependencies = build_result.dependencies;
+              let mut dep_ids = vec![];
+              for dependency in build_result.dependencies {
+                let dep_id = self.module_graph.add_dependency(dependency);
+                dep_ids.push(dep_id);
+              }
 
               {
                 let mgm = self
                   .module_graph
                   .module_graph_module_by_identifier_mut(&module.identifier())
                   .expect("Failed to get mgm");
-                mgm.dependencies = result_dependencies.clone();
+                mgm.dependencies = dep_ids.clone();
               }
               process_dependencies_queue.add_task(ProcessDependenciesTask {
-                dependencies: result_dependencies,
+                dependencies: dep_ids.clone(),
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
               });
               self.module_graph.add_module(module);
-              running_dependencies.remove(&dependencies[0]);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
               tracing::trace!(
@@ -685,12 +708,10 @@ impl Compilation {
       }
     });
 
-    // dbg!(&self.module_graph.module_identifier_to_module_graph_module);
-    self.make_failed_dependencies = running_dependencies;
     tracing::debug!("All task is finished");
 
     // clean isolated module
-    let mut need_clean_visited_module_ids = HashSet::default();
+    // let mut need_clean_visited_module_ids = HashSet::default();
     let mut clean_queue = CleanQueue::new();
     clean_queue.add_tasks(
       need_check_isolated_module_ids
@@ -707,7 +728,7 @@ impl Compilation {
           module_identifier,
           dependent_module_identifiers,
         } => {
-          need_clean_visited_module_ids.insert(module_identifier);
+          // need_clean_visited_module_ids.insert(module_identifier);
           tracing::trace!("Module is cleaned: {}", module_identifier);
           clean_queue.add_tasks(
             dependent_module_identifiers
@@ -718,9 +739,9 @@ impl Compilation {
       };
     }
 
-    self
-      .visited_module_id
-      .retain(|(mid, _, _)| !need_clean_visited_module_ids.contains(mid));
+    // self
+    //   .visited_module_id
+    //   .retain(|(mid, _, _)| !need_clean_visited_module_ids.contains(mid));
 
     tracing::debug!("All clean task is finished");
 
@@ -737,7 +758,7 @@ impl Compilation {
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
     original_resource_path: Option<PathBuf>,
-    dependencies: Vec<Box<dyn ModuleDependency>>,
+    dependencies: Vec<BoxModuleDependency>,
     is_entry: bool,
     module_type: Option<ModuleType>,
     side_effects: Option<bool>,
@@ -765,13 +786,13 @@ impl Compilation {
   async fn code_generation(&mut self) -> Result<()> {
     fn run_iteration(
       compilation: &mut Compilation,
-      filter_op: impl Fn(&(&ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
+      filter_op: impl Fn(&ModuleIdentifier, &Box<dyn Module>, &ModuleGraph) -> bool + Sync + Send,
     ) -> Result<()> {
       let results = compilation
         .module_graph
         .module_identifier_to_module
         .par_iter()
-        .filter(filter_op)
+        .filter(|(i, m)| filter_op(i, m, &compilation.module_graph))
         .map(|(module_identifier, module)| {
           compilation
             .cache
@@ -803,12 +824,24 @@ impl Compilation {
       Ok(())
     }
 
-    run_iteration(self, |(_, module)| {
-      module.get_code_generation_dependencies().is_none()
+    fn module_has_dependencies(
+      module_graph: &ModuleGraph,
+      module_identifier: &ModuleIdentifier,
+    ) -> bool {
+      let dependencies = module_graph.dependencies_by_module_identifier(module_identifier);
+      if let Some(dependencies) = dependencies {
+        !dependencies.is_empty()
+      } else {
+        false
+      }
+    }
+
+    run_iteration(self, |module_identifier, _, module_graph| {
+      !module_has_dependencies(module_graph, module_identifier)
     })?;
 
-    run_iteration(self, |(_, module)| {
-      module.get_code_generation_dependencies().is_some()
+    run_iteration(self, |module_identifier, _, module_graph| {
+      module_has_dependencies(module_graph, module_identifier)
     })?;
 
     Ok(())
@@ -1159,8 +1192,8 @@ impl Compilation {
             panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
           });
         for dep in mgm.dependencies.iter() {
-          let module_ident = match self.module_graph.module_by_dependency(dep) {
-            Some(module) => module.module_identifier,
+          let module_ident = match self.module_graph.module_identifier_by_dependency_id(dep) {
+            Some(module_identifier) => *module_identifier,
             None => {
               match self
                 .module_graph

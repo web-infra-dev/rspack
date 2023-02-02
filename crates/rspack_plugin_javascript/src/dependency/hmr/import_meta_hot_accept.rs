@@ -1,11 +1,12 @@
 use rspack_core::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
+  DependencyId, DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
 };
 use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Eq, Clone)]
 pub struct ImportMetaModuleHotAcceptDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
@@ -46,11 +47,18 @@ impl ImportMetaModuleHotAcceptDependency {
       dependency_type: &DependencyType::ImportMetaHotAccept,
       span,
       ast_path,
+      id: None,
     }
   }
 }
 
 impl Dependency for ImportMetaModuleHotAcceptDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -87,7 +95,29 @@ impl CodeGeneratable for ImportMetaModuleHotAcceptDependency {
     &self,
     _code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
-    // The rewrite introduced to much hacks, we cannot do it in the dependency code generation right now. So a noop is returned.
-    Ok(CodeGeneratableResult::default())
+    // let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+
+    let code_gen = CodeGeneratableResult::default();
+
+    // if let Some(module_id) = compilation
+    //   .module_graph
+    //   .module_graph_module_by_dependency_id(self.id().expect("should have id"))
+    //   .map(|m| m.id(&compilation.chunk_graph).to_string())
+    // {
+    //   code_gen.visitors.push(
+    //     create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+    //       if let Some(Lit::Str(str)) = n
+    //         .args
+    //         .get_mut(0)
+    //         .and_then(|first_arg| first_arg.expr.as_mut_lit())
+    //       {
+    //         str.value = JsWord::from(&*module_id);
+    //         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+    //       }
+    //     }),
+    //   );
+    // }
+
+    Ok(code_gen)
   }
 }

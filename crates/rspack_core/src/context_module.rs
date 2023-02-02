@@ -95,11 +95,11 @@ impl ContextModule {
       .dependencies_by_module_identifier(&self.identifier)
     {
       for dependency in dependencies {
-        if let Some(module) = compilation.module_graph.module_by_dependency(dependency) {
-          if let Some(id) = compilation
-            .chunk_graph
-            .get_module_id(module.module_identifier)
-          {
+        if let Some(module_identifier) = compilation
+          .module_graph
+          .module_identifier_by_dependency_id(dependency)
+        {
+          if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
             map.insert(id.to_string(), "".to_string());
           }
         }
@@ -124,14 +124,14 @@ impl ContextModule {
       .dependencies_by_module_identifier(&self.identifier)
     {
       for dependency in dependencies {
-        if let Some(module) = compilation.module_graph.module_by_dependency(dependency) {
-          if let Some(id) = compilation
-            .chunk_graph
-            .get_module_id(module.module_identifier)
-          {
+        if let Some(module_identifier) = compilation
+          .module_graph
+          .module_identifier_by_dependency_id(dependency)
+        {
+          if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
             let chunk_group = compilation
               .chunk_graph
-              .get_block_chunk_group(&module.module_identifier, &compilation.chunk_group_by_ukey);
+              .get_block_chunk_group(module_identifier, &compilation.chunk_group_by_ukey);
 
             let chunk_ids = chunk_group
               .chunks
@@ -356,6 +356,7 @@ impl ContextModule {
               let path = format!("./{request}");
               if options.context_options.reg_exp.is_match(&path) {
                 dependencies.push(Box::new(ContextElementDependency {
+                  id: None,
                   // TODO query
                   request: path.to_string(),
                   user_request: path.to_string(),

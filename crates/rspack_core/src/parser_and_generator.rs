@@ -6,9 +6,8 @@ use rspack_sources::Source;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, CodeGenerationResults,
-  Compilation, CompilerOptions, GenerationResult, Module, ModuleDependency, ModuleIdentifier,
-  ModuleType, SourceType,
+  AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, Compilation, CompilerOptions,
+  GenerationResult, Module, ModuleDependency, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug)]
@@ -37,7 +36,6 @@ pub struct GenerateContext<'a> {
   pub runtime_requirements: &'a mut HashSet<&'static str>,
   pub data: &'a mut HashMap<String, String>,
   pub requested_source_type: SourceType,
-  pub code_generation_results: &'a CodeGenerationResults,
 }
 
 pub trait ParserAndGenerator: Send + Sync + Debug {

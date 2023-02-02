@@ -1,7 +1,7 @@
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath, ModuleDependency,
-  ModuleDependencyExt, ModuleIdentifier,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
+  ModuleDependency, ModuleIdentifier,
 };
 use swc_core::ecma::{
   ast::*,
@@ -10,6 +10,7 @@ use swc_core::ecma::{
 
 #[derive(Debug, Eq, Clone)]
 pub struct CommonJSRequireDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
@@ -43,6 +44,7 @@ impl std::hash::Hash for CommonJSRequireDependency {
 impl CommonJSRequireDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
+      id: None,
       parent_module_identifier: None,
       request,
       // user_request,
@@ -55,6 +57,12 @@ impl CommonJSRequireDependency {
 }
 
 impl Dependency for CommonJSRequireDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -94,25 +102,27 @@ impl CodeGeneratable for CommonJSRequireDependency {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
     let mut code_gen = CodeGeneratableResult::default();
 
-    let module_id = self
-      .referencing_module_graph_module(&compilation.module_graph)
-      .map(|m| m.id(&compilation.chunk_graph).to_string());
-
-    if let Some(module_id) = module_id {
-      code_gen.visitors.push(
-        create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-          if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
-            if let Some(ExprOrSpread {
-              spread: None,
-              expr: box Expr::Lit(Lit::Str(str)),
-            }) = n.args.first_mut()
-            {
-              str.value = JsWord::from(&*module_id);
-              str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-            };
-          }
-        }),
-      );
+    if let Some(id) = self.id() {
+      if let Some(module_id) = compilation
+        .module_graph
+        .module_graph_module_by_dependency_id(id)
+        .map(|m| m.id(&compilation.chunk_graph).to_string())
+      {
+        code_gen.visitors.push(
+          create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+            if let Callee::Expr(box Expr::Ident(_ident)) = &mut n.callee {
+              if let Some(ExprOrSpread {
+                spread: None,
+                expr: box Expr::Lit(Lit::Str(str)),
+              }) = n.args.first_mut()
+              {
+                str.value = JsWord::from(&*module_id);
+                str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+              };
+            }
+          }),
+        );
+      }
     }
 
     Ok(code_gen)

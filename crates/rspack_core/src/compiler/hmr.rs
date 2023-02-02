@@ -133,7 +133,6 @@ impl Compiler {
         self.options.clone(),
         self.options.entry.clone(),
         Default::default(),
-        Default::default(),
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
         self.cache.clone(),
@@ -143,10 +142,12 @@ impl Compiler {
         && !matches!(self.options.cache, CacheOptions::Disabled);
       if enable_changed_hmr {
         // copy field from old compilation
-        new_compilation.visited_module_id = std::mem::take(&mut self.compilation.visited_module_id);
+        // new_compilation.visited_module_id = std::mem::take(&mut self.compilation.visited_module_id);
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
-        new_compilation.make_failed_dependencies =
-          std::mem::take(&mut self.compilation.make_failed_dependencies);
+        new_compilation.entry_dependencies =
+          std::mem::take(&mut self.compilation.entry_dependencies);
+        new_compilation.lazy_visit_modules =
+          std::mem::take(&mut self.compilation.lazy_visit_modules);
         new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
         new_compilation.context_dependencies =
           std::mem::take(&mut self.compilation.context_dependencies);
@@ -154,6 +155,8 @@ impl Compiler {
           std::mem::take(&mut self.compilation.missing_dependencies);
         new_compilation.build_dependencies =
           std::mem::take(&mut self.compilation.build_dependencies);
+      } else {
+        new_compilation.setup_entry_dependencies();
       }
 
       fast_set(&mut self.compilation, new_compilation);
@@ -183,9 +186,9 @@ impl Compiler {
       } else {
         let deps = self
           .compilation
-          .entry_dependencies()
-          .into_iter()
-          .flat_map(|(_, deps)| deps)
+          .entry_dependencies
+          .iter()
+          .flat_map(|(_, deps)| deps.clone())
           .collect::<HashSet<_>>();
         SetupMakeParam::ForceBuildDeps(deps)
       };

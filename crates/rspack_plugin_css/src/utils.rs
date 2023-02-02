@@ -5,9 +5,7 @@ use std::{
 
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
-use rspack_core::{
-  runtime_globals::REQUIRE, Compilation, Dependency, DependencyType, ModuleDependency,
-};
+use rspack_core::{runtime_globals::REQUIRE, Compilation, ModuleDependency};
 use rspack_error::{internal_error, Result};
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::JsWord;
@@ -68,12 +66,17 @@ pub fn css_modules_exports_to_string(
             .module_graph
             .module_graph_module_by_identifier(&module.identifier())
             .and_then(|mgm| {
-              mgm.dependencies.iter().find_map(|dep| {
-                if dep.request() == from && dep.dependency_type() == &DependencyType::CssImport {
-                  compilation.module_graph.module_by_dependency(dep)
-                } else {
-                  None
+              // workaround
+              mgm.dependencies.iter().find_map(|id| {
+                let dependency = compilation.module_graph.dependency_by_id(id);
+                if let Some(dependency) = dependency {
+                  if dependency.request() == from {
+                    return compilation
+                      .module_graph
+                      .module_graph_module_by_dependency_id(id);
+                  }
                 }
+                None
               })
             })
             .expect("should have css from module");
