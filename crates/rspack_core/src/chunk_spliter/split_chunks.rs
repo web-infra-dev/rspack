@@ -224,7 +224,7 @@ impl<'me> CodeSplitter<'me> {
   /// We could remove bar.js from Foo chunk, since
   /// bar.js is already in Entry chunk.
   #[tracing::instrument(skip_all)]
-  fn remove_duplicated_modules(&mut self) {
+  fn _remove_duplicated_modules(&mut self) {
     let modules_to_be_removed_in_chunk = self
       .compilation
       .chunk_by_ukey
