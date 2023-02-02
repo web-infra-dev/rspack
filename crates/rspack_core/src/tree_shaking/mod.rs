@@ -37,3 +37,9 @@ bitflags::bitflags! {
       const DYNAMIC_IMPORT = 1 << 3;
   }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum SideEffect {
+  Configuration(bool),
+  Analyze(bool),
+}

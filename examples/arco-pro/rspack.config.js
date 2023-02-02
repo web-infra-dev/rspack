@@ -18,9 +18,9 @@ module.exports = {
   devtool: prod ? false : 'source-map',
   builtins: {
     progress: {},
-    treeShaking: prod,
-    sideEffects: prod,
-    noEmitAssets: false
+    treeShaking: true,
+    sideEffects: true,
+    noEmitAssets: false,
   },
   cache: false,
   module: {

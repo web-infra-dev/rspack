@@ -8,11 +8,14 @@ use hashlink::LinkedHashMap;
 use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
+use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::{js_word, JsWord};
+use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
+use super::SideEffect;
 // use swc_atoms::JsWord;
 // use swc_common::{util::take::Take, Mark, GLOBALS};
 // use swc_ecma_ast::*;
@@ -87,8 +90,10 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
-  pub(crate) side_effects_free: bool,
+  pub(crate) side_effects: SideEffect,
   pub(crate) options: &'a Arc<CompilerOptions>,
+  pub(crate) has_side_effects_stmt: bool,
+  unresolved_ctxt: SyntaxContext,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -120,9 +125,11 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver_factory,
-      side_effects_free: false,
+      side_effects: SideEffect::Analyze(false),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
+      has_side_effects_stmt: false,
+      unresolved_ctxt: SyntaxContext::empty(),
     }
   }
 
@@ -232,6 +239,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   noop_visit_type!();
   fn visit_program(&mut self, node: &Program) {
     assert!(GLOBALS.is_set());
+    self.unresolved_ctxt = self.unresolved_ctxt.apply_mark(self.unresolved_mark);
     node.visit_children_with(self);
     // calc reachable imports for each export symbol defined in current module
     for (key, symbol) in self.export_map.iter() {
@@ -361,8 +369,16 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
-    let side_effects = self.get_side_effects().unwrap_or(true);
-    self.side_effects_free = !side_effects;
+    self.side_effects = self
+      .get_side_effects_from_config()
+      .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
+  }
+
+  fn visit_module(&mut self, node: &Module) {
+    for ele in &node.body {
+      self.analyze_stmt_side_effects(ele);
+      ele.visit_with(self);
+    }
   }
 
   fn visit_ident(&mut self, node: &Ident) {
@@ -921,7 +937,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
-  fn get_side_effects(&mut self) -> Option<bool> {
+  fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
     let resource_path = self
       .module_graph
       .module_by_identifier(&self.module_identifier)
@@ -978,11 +994,113 @@ impl<'a> ModuleRefAnalyze<'a> {
       side_effects = Some(module_side_effects);
       break;
     }
-    side_effects
+    side_effects.map(SideEffect::Configuration)
   }
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
+  fn analyze_stmt_side_effects(&mut self, ele: &ModuleItem) {
+    if !self.has_side_effects_stmt {
+      match ele {
+        ModuleItem::Stmt(Stmt::If(stmt)) => {
+          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleItem::Stmt(Stmt::While(stmt)) => {
+          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleItem::Stmt(Stmt::DoWhile(stmt)) => {
+          if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleItem::Stmt(Stmt::For(stmt)) => {
+          let pure_init = match stmt.init {
+            Some(ref init) => match init {
+              VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(decl, self.unresolved_ctxt),
+              VarDeclOrExpr::Expr(expr) => is_pure_expression(expr, self.unresolved_ctxt),
+            },
+            None => true,
+          };
+
+          if !pure_init {
+            self.has_side_effects_stmt = true;
+            return;
+          }
+
+          let pure_test = match stmt.test {
+            Some(box ref test) => is_pure_expression(test, self.unresolved_ctxt),
+            None => true,
+          };
+
+          if !pure_test {
+            self.has_side_effects_stmt = true;
+            return;
+          }
+
+          let pure_update = match stmt.update {
+            Some(ref expr) => is_pure_expression(expr, self.unresolved_ctxt),
+            None => true,
+          };
+
+          if !pure_update {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleItem::Stmt(Stmt::Expr(stmt)) => {
+          if !is_pure_expression(&stmt.expr, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleItem::Stmt(Stmt::Switch(stmt)) => {
+          if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleItem::Stmt(Stmt::Decl(stmt)) => {
+          if !is_pure_decl(stmt, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleItem::ModuleDecl(module_decl) => match module_decl {
+          ModuleDecl::ExportDecl(decl) => {
+            if !is_pure_decl(&decl.decl, self.unresolved_ctxt) {
+              self.has_side_effects_stmt = true;
+            }
+          }
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            match decl.decl {
+              DefaultDecl::Class(ref class) => {
+                if !is_pure_class(&class.class, self.unresolved_ctxt) {
+                  self.has_side_effects_stmt = true;
+                }
+              }
+              DefaultDecl::Fn(_) => {}
+              DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
+            };
+          }
+          ModuleDecl::ExportDefaultExpr(expr) => {
+            if !is_pure_expression(&expr.expr, self.unresolved_ctxt) {
+              self.has_side_effects_stmt = true;
+            }
+          }
+          ModuleDecl::ExportAll(_)
+          | ModuleDecl::Import(_)
+          | ModuleDecl::ExportNamed(_)
+          | ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => {}
+        },
+        ModuleItem::Stmt(Stmt::Empty(_)) => {}
+        ModuleItem::Stmt(Stmt::Labeled(_)) => {}
+        ModuleItem::Stmt(Stmt::Block(_)) => {}
+        _ => self.has_side_effects_stmt = true,
+      };
+    }
+  }
   fn add_export(&mut self, id: JsWord, symbol: SymbolRef) {
     match self.export_map.entry(id) {
       Entry::Occupied(_) => {
@@ -1160,7 +1278,7 @@ pub struct TreeShakingResult {
   state: AnalyzeState,
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
-  pub(crate) side_effects_free: bool,
+  pub(crate) side_effects: SideEffect,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -1178,7 +1296,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       state: std::mem::take(&mut analyze.state),
       used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
-      side_effects_free: analyze.side_effects_free,
+      side_effects: analyze.side_effects,
     }
   }
 }
@@ -1202,4 +1320,117 @@ impl Visit for FirstIdentVisitor {
       self.id = Some(node.to_id());
     }
   }
+}
+
+fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+  if let Expr::Assign(assign) = expr {
+    // assign.left
+    if let box Expr::Call(ref right) = assign.right {
+      if is_module_exports(&assign.left, unresolved_ctxt)
+        && get_require_literal(right, unresolved_ctxt.outer()).is_some()
+      {
+        return true;
+      }
+    }
+  }
+  !expr.may_have_side_effects(&ExprCtx {
+    unresolved_ctxt,
+    is_unresolved_ref_safe: false,
+  })
+}
+
+fn is_module_exports(expr: &PatOrExpr, unresolved_ctxt: SyntaxContext) -> bool {
+  match expr {
+    PatOrExpr::Expr(box Expr::Member(MemberExpr { obj, prop, .. })) => {
+      match obj {
+        box Expr::Ident(
+          ident @ Ident {
+            sym: js_word!("module"),
+            ..
+          },
+        ) => {
+          if ident.span.ctxt != unresolved_ctxt {
+            return false;
+          }
+        }
+        _ => return false,
+      };
+
+      if let MemberProp::Ident(Ident { sym, .. }) = prop {
+        sym == "exports"
+      } else {
+        false
+      }
+    }
+    PatOrExpr::Pat(_) => false,
+    _ => false,
+  }
+}
+
+fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
+  match stmt {
+    Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt),
+    Decl::Fn(_) => true,
+    Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt),
+    Decl::TsInterface(_) => unreachable!(),
+    Decl::TsTypeAlias(_) => unreachable!(),
+
+    Decl::TsEnum(_) => unreachable!(),
+    Decl::TsModule(_) => unreachable!(),
+  }
+}
+
+fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
+  if let Some(ref super_class) = class.super_class {
+    if !is_pure_expression(super_class, unresolved_ctxt) {
+      return false;
+    }
+  }
+  let is_pure_key = |key: &PropName| -> bool {
+    match key {
+      PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
+      PropName::Computed(ref computed) => is_pure_expression(&computed.expr, unresolved_ctxt),
+    }
+  };
+
+  class.body.iter().all(|item| -> bool {
+    match item {
+      ClassMember::Constructor(cons) => is_pure_key(&cons.key),
+      ClassMember::Method(method) => is_pure_key(&method.key),
+      ClassMember::PrivateMethod(method) => {
+        is_pure_expression(&Expr::PrivateName(method.key.clone()), unresolved_ctxt)
+      }
+      ClassMember::ClassProp(prop) => {
+        is_pure_key(&prop.key)
+          && (!prop.is_static
+            || if let Some(ref value) = prop.value {
+              is_pure_expression(value, unresolved_ctxt)
+            } else {
+              true
+            })
+      }
+      ClassMember::PrivateProp(prop) => {
+        is_pure_expression(&Expr::PrivateName(prop.key.clone()), unresolved_ctxt)
+          && (!prop.is_static
+            || if let Some(ref value) = prop.value {
+              is_pure_expression(value, unresolved_ctxt)
+            } else {
+              true
+            })
+      }
+      ClassMember::TsIndexSignature(_) => unreachable!(),
+      ClassMember::Empty(_) => true,
+      ClassMember::StaticBlock(_) => true,
+    }
+  })
+}
+
+fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
+  var.decls.iter().all(|decl| {
+    if let Some(ref init) = decl.init {
+      is_pure_expression(init, unresolved_ctxt)
+    } else {
+      true
+    }
+  })
 }
