@@ -18,6 +18,7 @@ export interface StatsOptionsObj {
 	hash?: boolean;
 	reasons?: boolean;
 	children?: StatsOptionsObj[];
+	publicPath?: boolean;
 }
 
 export type StatsOptions = StatsOptionsObj | boolean | string;

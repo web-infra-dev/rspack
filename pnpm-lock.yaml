@@ -340,7 +340,6 @@ importers:
       '@tmp-sass-embedded/linux-x64': 1.54.4
       '@tmp-sass-embedded/win32-ia32': 1.54.4
       '@tmp-sass-embedded/win32-x64': 1.54.4
-      '@types/connect-history-api-fallback': 1.3.5
       '@types/jest': 29.0.2
       '@types/node': ^18.6.3
       '@types/rimraf': 3.0.2
@@ -404,7 +403,6 @@ importers:
       '@rspack/plugin-minify': link:../rspack-plugin-minify
       '@rspack/plugin-node-polyfill': link:../rspack-plugin-node-polyfill
       '@rspack/postcss-loader': link:../postcss-loader
-      '@types/connect-history-api-fallback': 1.3.5
       '@types/jest': 29.0.2
       '@types/node': 18.7.9
       '@types/rimraf': 3.0.2
@@ -536,6 +534,14 @@ importers:
       puppeteer: 19.4.0
       tsm: 2.2.2
       typescript: 4.7.4
+
+  packages/rspack-dev-server/tests/e2e-fixtures/react:
+    specifiers:
+      react: 18.2.0
+      react-dom: 18.2.0
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
 
   packages/rspack-plugin-html:
     specifiers:
@@ -5924,7 +5930,7 @@ packages:
     dev: true
 
   /bytes/3.0.0:
-    resolution: {integrity: sha512-pMhOfFDPiv9t5jjIXkHosWmkSyQbvsgEVNkz0ERHbuLh2T/7j4Mqqpz523Fe8MVY89KC6Sh/QfS2sM+SjgFDcw==}
+    resolution: {integrity: sha1-0ygVQE1olpn4Wk6k+odV3ROpYEg=}
     engines: {node: '>= 0.8'}
 
   /bytes/3.1.2:

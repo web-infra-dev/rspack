@@ -14,18 +14,11 @@ __webpack_require__.e("bar_js").then(__webpack_require__.bind(__webpack_require_
 const a = "a";
 exports.test = 30;
 },
-"./b.js": function (module, exports, __webpack_require__) {
-module.exports = a = "b";
-},
 "./foo.js": function (module, exports, __webpack_require__) {
-if (process.env.NODE_ENV !== "production") {
+{
     const res = __webpack_require__("./a.js");
     module.exports = res;
-} else {
-    const c = __webpack_require__("./b.js");
-    module.exports = c;
-}
-},
+}},
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {

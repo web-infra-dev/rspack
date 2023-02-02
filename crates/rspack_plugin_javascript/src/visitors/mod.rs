@@ -198,12 +198,7 @@ pub fn run_after_pass(
           generate_context.compilation.options.target.es_version
         ),
         inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
-        module_variables(
-          module,
-          unresolved_mark,
-          top_level_mark,
-          generate_context.compilation,
-        ),
+        module_variables(module, generate_context.compilation),
         finalize(module, generate_context.compilation, unresolved_mark),
         swc_visitor::hygiene(false, top_level_mark),
         swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),

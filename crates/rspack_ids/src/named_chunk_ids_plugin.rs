@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use rspack_core::{Chunk, Plugin};
 
 use crate::id_helpers::{
-  assign_ascending_chunk_ids, assign_names, get_long_chunk_name, get_short_chunk_name,
+  assign_ascending_chunk_ids, assign_names_par, get_long_chunk_name, get_short_chunk_name,
   get_used_chunk_ids,
 };
 
@@ -46,7 +46,7 @@ impl Plugin for NamedChunkIdsPlugin {
       .map(|chunk| chunk as &Chunk)
       .collect::<Vec<_>>();
     let mut chunk_id_to_name = HashMap::with_capacity(chunks.len());
-    let unnamed_chunks = assign_names(
+    let unnamed_chunks = assign_names_par(
       chunks,
       |chunk| get_short_chunk_name(chunk, chunk_graph, &context, &self.delimiter, module_graph),
       |chunk, _| get_long_chunk_name(chunk, chunk_graph, &context, &self.delimiter, module_graph),

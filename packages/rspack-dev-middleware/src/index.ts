@@ -1,11 +1,11 @@
 import wdm from "webpack-dev-middleware";
 
 const rdm: typeof wdm = (compiler, options) => {
-	if (!options) {
-		options = {};
-	}
-	options.writeToDisk = false;
-	return wdm(compiler, options);
+	return wdm(compiler, {
+		...options,
+		writeToDisk: false,
+		outputFileSystem: require("fs")
+	});
 };
 
 export default rdm;

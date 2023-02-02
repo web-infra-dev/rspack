@@ -23,6 +23,7 @@ pub struct RawResolveOptions {
   pub alias: Option<HashMap<String, AliasValue>>,
   pub symlinks: Option<bool>,
   pub ts_config_path: Option<String>,
+  pub modules: Option<Vec<String>>,
 }
 
 impl RawOption<Resolve> for RawResolveOptions {
@@ -57,8 +58,10 @@ impl RawOption<Resolve> for RawResolveOptions {
     } else {
       None
     };
+    let modules = self.modules;
     let tsconfig = self.ts_config_path.map(std::path::PathBuf::from);
     Ok(Resolve {
+      modules,
       prefer_relative,
       extensions,
       browser_field,

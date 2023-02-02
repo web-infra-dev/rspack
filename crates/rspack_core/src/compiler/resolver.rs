@@ -145,13 +145,18 @@ fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Res
   let main_fields = overwrite(base.main_fields, other.main_fields, |base, value| {
     Some(normalize_string_array(&base, value))
   });
+  let modules = overwrite(base.modules, other.modules, |base, value| {
+    Some(normalize_string_array(&base, value))
+  });
   let condition_names = overwrite(
     base.condition_names.into_iter().collect(),
     other.condition_names,
     |base, value| Some(normalize_string_array(&base, value)),
   );
   let tsconfig = other.tsconfig;
+
   Resolve {
+    modules,
     alias,
     prefer_relative,
     symlinks,
@@ -264,8 +269,8 @@ impl Resolver {
       .map(|inner_result| match inner_result {
         nodejs_resolver::ResolveResult::Info(info) => ResolveResult::Info(ResolveInfo {
           path: info.path,
-          query: info.request.query.into(),
-          fragment: info.request.fragment.into(),
+          query: info.request.query().into(),
+          fragment: info.request.fragment().into(),
         }),
         nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
       })

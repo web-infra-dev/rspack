@@ -1,5 +1,4 @@
 import type { Context, ResolvedContext } from "./context";
-import type { Dev } from "./devServer";
 import type { Entry, ResolvedEntry } from "./entry";
 import { resolveEntryOptions } from "./entry";
 import type {
@@ -46,6 +45,8 @@ import {
 import { RawExperiments, RawNodeOption } from "@rspack/binding";
 import { resolveExperiments } from "./experiments";
 import { NodeOptions, resolveNode } from "./node";
+import type { ResolvedWatchOptions, WatchOptions } from "./watch";
+import type { DevServer } from "./devServer";
 
 export type Configuration = RspackOptions;
 export interface RspackOptions {
@@ -53,7 +54,7 @@ export interface RspackOptions {
 	entry?: Entry;
 	context?: Context;
 	plugins?: PluginInstance[];
-	devServer?: Dev;
+	devServer?: DevServer;
 	module?: Module;
 	target?: Target;
 
@@ -76,13 +77,15 @@ export interface RspackOptions {
 	experiments?: RawExperiments;
 	node?: NodeOptions;
 	dependencies?: string[];
+	watch?: boolean;
+	watchOptions?: WatchOptions;
 }
 export interface RspackOptionsNormalized {
 	name?: string;
 	entry: ResolvedEntry;
 	context: ResolvedContext;
 	plugins: PluginInstance[];
-	devServer?: Dev;
+	devServer?: DevServer;
 	module: ResolvedModule;
 	target: ResolvedTarget;
 	mode: ResolvedMode;
@@ -100,6 +103,8 @@ export interface RspackOptionsNormalized {
 	experiments: RawExperiments;
 	node: RawNodeOption;
 	dependencies?: string[];
+	watch?: boolean;
+	watchOptions: ResolvedWatchOptions;
 }
 
 export function getNormalizedRspackOptions(
@@ -133,7 +138,6 @@ export function getNormalizedRspackOptions(
 		getCompiler
 	});
 	const stats = resolveStatsOptions(config.stats);
-	const devServer = config.devServer;
 	const snapshot = resolveSnapshotOptions(config.snapshot);
 	const cache = resolveCacheOptions(
 		config.cache ?? (mode === "production" ? false : true)
@@ -146,10 +150,10 @@ export function getNormalizedRspackOptions(
 	const node = resolveNode(config.node);
 
 	return {
-		...config,
+		name: config.name,
+		dependencies: config.dependencies,
 		context,
 		mode,
-		devServer,
 		entry,
 		output,
 		target,
@@ -166,13 +170,16 @@ export function getNormalizedRspackOptions(
 		cache,
 		optimization,
 		experiments,
-		node
+		node,
+		watch: config.watch,
+		watchOptions: cloneObject(config.watchOptions),
+		devServer: config.devServer
 	};
 }
 
-function cloneObject(value: Record<string, any> | undefined) {
+function cloneObject(value: Record<string, any> | undefined = {}) {
 	return { ...value };
 }
 export type { PluginInstance as Plugin, LoaderContext, Loader, SourceMap };
-export type { WebSocketServerOptions, Dev } from "./devServer";
 export type { StatsOptions } from "./stats";
+export type { DevServer } from "./devServer";

@@ -3,14 +3,15 @@ import { Compilation } from ".";
 import { StatsOptions, StatsOptionsObj } from "./config/stats";
 import { LogType } from "./logging/Logger";
 
-type StatsCompilationInner = Omit<binding.JsStatsCompilation, "entrypoints"> & {
-	entrypoints: Record<string, binding.JsStatsEntrypoint>;
-	children?: StatsCompilation[];
-	name?: string;
-};
-export type StatsCompilation = Partial<StatsCompilationInner> & {
-	filteredModules?: number;
-};
+export type StatsCompilation = Partial<
+	Omit<binding.JsStatsCompilation, "entrypoints"> & {
+		entrypoints: Record<string, binding.JsStatsEntrypoint>;
+		filteredModules?: number;
+		publicPath?: string;
+		children?: StatsCompilation[];
+		name?: string;
+	}
+>;
 
 export class Stats {
 	#inner: binding.JsStats;

@@ -29,6 +29,9 @@ pub struct Resolve {
   pub condition_names: Option<Vec<String>>,
   /// the path of tsconfig.
   pub tsconfig: Option<PathBuf>,
+  /// A list of directories to resolve modules from, can be absolute path or folder name.
+  /// Default is `["node_modules"]`
+  pub modules: Option<Vec<String>>,
 }
 
 impl Resolve {
@@ -62,8 +65,12 @@ impl Resolve {
         .condition_names
         .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]),
     );
+    let modules = self
+      .modules
+      .unwrap_or_else(|| vec!["node_modules".to_string()]);
 
     nodejs_resolver::Options {
+      modules,
       extensions,
       enforce_extension,
       alias,

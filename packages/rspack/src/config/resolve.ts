@@ -9,6 +9,7 @@ export type Resolve = {
 	conditionNames?: string[];
 	alias?: Record<string, string>;
 	tsConfigPath?: string;
+	modules?: string | string[];
 };
 
 export type ResolvedResolve = {
@@ -20,6 +21,7 @@ export type ResolvedResolve = {
 	conditionNames: string[];
 	alias: Record<string, string>;
 	tsConfigPath: string | undefined;
+	modules: string[];
 };
 
 interface ResolveContext {
@@ -49,7 +51,16 @@ export function resolveResolveOptions(
 	const alias = resolve.alias ?? {};
 	const conditionNames = resolve.conditionNames;
 	const tsConfigPath = resolve.tsConfigPath;
+	let modules: string[];
+	if (typeof resolve.modules === "undefined") {
+		modules = ["node_modules"];
+	} else if (!Array.isArray(resolve.modules)) {
+		modules = [resolve.modules];
+	} else {
+		modules = resolve.modules;
+	}
 	return {
+		modules,
 		preferRelative,
 		extensions,
 		mainFiles,

@@ -10,6 +10,12 @@ pub struct Context {
   inner: PathBuf,
 }
 
+impl Context {
+  pub fn new(inner: PathBuf) -> Self {
+    Self { inner }
+  }
+}
+
 impl AsRef<Path> for Context {
   fn as_ref(&self) -> &Path {
     &self.inner

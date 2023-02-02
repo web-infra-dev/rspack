@@ -185,20 +185,18 @@ it("should generate valid code", ()=>{
 it("a should be used", ()=>{
     expect(_depJsA.default).toBe(true);
 });
-if (process.env.NODE_ENV === "production") it("b should be unused", ()=>{
+it("b should be unused", ()=>{
     expect(_depJsB.default).toBe(false);
 });
 it("c should be used", ()=>{
     expect(_depJsC.default).toBe(true);
 });
-if (process.env.NODE_ENV === "production") {
-    it("d should be used", ()=>{
-        expect(_depJsD.default).toBe(true);
-    });
-    it("e should be unused", ()=>{
-        expect(_depJsE.default).toBe(false);
-    });
-}
+it("d should be used", ()=>{
+    expect(_depJsD.default).toBe(true);
+});
+it("e should be unused", ()=>{
+    expect(_depJsE.default).toBe(false);
+});
 it("f should be used", ()=>{
     expect(_depJsF.default).toBe(true);
 });

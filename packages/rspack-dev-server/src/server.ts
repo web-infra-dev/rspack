@@ -1,58 +1,30 @@
-import type { Compiler, Dev } from "@rspack/core";
+import { Compiler, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher, WatchOptions } from "chokidar";
 import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
 import type { Server } from "http";
-import type { ResolvedDev } from "./config";
 import fs from "fs";
-import chokidar from "chokidar";
-import http from "http";
 import WebpackDevServer from "webpack-dev-server";
-import express from "express";
-import { resolveDevOptions } from "./config";
+import type { ResolvedDevServer, DevServer } from "./config";
 
 export class RspackDevServer extends WebpackDevServer {
-	options: ResolvedDev;
+	/**
+	 * resolved after `normalizedOptions`
+	 */
+	options: ResolvedDevServer;
 	staticWatchers: FSWatcher[];
 	sockets: Socket[];
 	server: Server;
-	private middleware: ReturnType<typeof rdm>;
 	// @ts-expect-error
-	public compiler: Compiler;
+	public compiler: Compiler | MultiCompiler;
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
-	constructor(compiler: Compiler) {
+	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
 		// @ts-expect-error
-		super({}, compiler);
-		this.staticWatchers = [];
-		this.sockets = [];
-		this.options = this.normalizeOptions(compiler.options.devServer);
-		this.rewriteCompilerOptions();
-		this.addAdditionEntires();
+		super(options, compiler);
 	}
 
-	normalizeOptions(dev: Dev = {}) {
-		return resolveDevOptions(dev, this.compiler.options);
-	}
-
-	rewriteCompilerOptions() {
-		this.compiler.options.devServer = this.options;
-		if (!this.compiler.options.builtins.react) {
-			this.compiler.options.builtins.react = {};
-		}
-		this.compiler.options.builtins.react.development =
-			this.compiler.options.builtins.react.development ?? true;
-		if (this.options.hot) {
-			this.compiler.options.builtins.react.refresh =
-				this.compiler.options.builtins.react.refresh ?? true;
-		} else if (this.compiler.options.builtins.react.refresh) {
-			this.logger.warn(
-				"[Builtins] react.refresh need react.development and devServer.hot enabled."
-			);
-		}
-	}
-
-	addAdditionEntires() {
+	addAdditionEntires(compiler: Compiler) {
 		const entries: string[] = [];
 
 		// TODO: should use providerPlugin
@@ -63,7 +35,7 @@ export class RspackDevServer extends WebpackDevServer {
 			);
 			entries.push(hotUpdateEntryPath);
 
-			if (this.compiler.options.builtins.react?.refresh) {
+			if (compiler.options.builtins.react?.refresh) {
 				const reactRefreshEntryPath = require.resolve(
 					"@rspack/dev-client/react-refresh"
 				);
@@ -73,17 +45,13 @@ export class RspackDevServer extends WebpackDevServer {
 
 		const devClientEntryPath = require.resolve("@rspack/dev-client");
 		entries.push(devClientEntryPath);
-		for (const key in this.compiler.options.entry) {
-			this.compiler.options.entry[key].import.unshift(...entries);
+		for (const key in compiler.options.entry) {
+			compiler.options.entry[key].import.unshift(...entries);
 		}
 	}
 
-	static findCacheDir(): string {
-		// TODO: we need remove the `webpack-dev-server` tag in WebpackDevServer;
-		return "";
-	}
-
 	watchFiles(watchPath: string | string[], watchOptions?: WatchOptions): void {
+		const chokidar = require("chokidar");
 		const watcher = chokidar.watch(watchPath, watchOptions);
 
 		// disabling refreshing on changing the content
@@ -174,87 +142,89 @@ export class RspackDevServer extends WebpackDevServer {
 		return clientImplementation;
 	}
 
-	async start(): Promise<void> {
-		this.setupHooks();
-		this.setupApp();
-		this.createServer();
-		this.setupWatchStaticFiles();
+	async initialize() {
 		if (this.options.webSocketServer) {
-			// @ts-expect-error: it a private function defined in `WebpackDevServer`.
-			this.createWebSocketServer();
-		}
-		this.setupDevMiddleware();
-		this.setupMiddlewares();
-
-		const host = await RspackDevServer.getHostname(this.options.host);
-		const port = await RspackDevServer.getFreePort(this.options.port, host);
-		this.options.port = port;
-		await new Promise(resolve =>
-			this.server.listen(
-				{
-					port,
-					host
-				},
-				() => {
-					this.logger.info(`Loopback: http://localhost:${port}`);
-					let internalIPv4 = WebpackDevServer.internalIPSync("v4");
-					this.logger.info(
-						`Your Network (IPV4) http://${internalIPv4}:${port}`
-					);
-					if (this.options.historyApiFallback) {
-						this.logger.info(
-							`404s will fallback to '${
-								this.options.historyApiFallback.index || "/index.html"
-							}'`
+			const compilers =
+				this.compiler instanceof MultiCompiler
+					? this.compiler.compilers
+					: [this.compiler];
+			compilers.forEach(compiler => {
+				const compilers =
+					compiler instanceof MultiCompiler ? compiler.compilers : [compiler];
+				compilers.forEach(compiler => {
+					compiler.options.devServer ??= {};
+					compiler.options.builtins.react ??= {};
+					if (this.options.hot) {
+						compiler.options.builtins.react.refresh ??= true;
+						compiler.options.builtins.react.development ??= true;
+					} else if (compiler.options.builtins.react.refresh) {
+						this.logger.warn(
+							"builtins.react.refresh needs builtins.react.development and devServer.hot enabled"
 						);
 					}
-					resolve({});
-				}
-			)
-		);
-	}
+				});
 
-	async stop(): Promise<void> {
-		this.compiler.close(() => {});
-		await Promise.all(this.staticWatchers.map(watcher => watcher.close()));
-		this.staticWatchers = [];
+				this.addAdditionEntires(compiler);
+			});
+		}
 
-		if (this.middleware) {
-			await new Promise((resolve, reject) => {
-				this.middleware.close((error: Error) => {
-					if (error) {
-						reject(error);
-						return;
+		this.setupHooks();
+		// @ts-expect-error: `setupApp` is private function in base class.
+		this.setupApp();
+		// @ts-expect-error: `setupHostHeaderCheck` is private function in base class.
+		this.setupHostHeaderCheck();
+		this.setupDevMiddleware();
+		// @ts-expect-error: `setupBuiltInRoutes` is private function in base class.
+		this.setupBuiltInRoutes();
+		// @ts-expect-error: `setupWatchFiles` is private function in base class.
+		this.setupWatchFiles();
+		// @ts-expect-error: `setupWatchStaticFiles` is private function in base class.
+		this.setupWatchStaticFiles();
+		this.setupMiddlewares();
+		// @ts-expect-error: `createServer` is private function in base class.
+		this.createServer();
+
+		if (this.options.setupExitSignals) {
+			const signals = ["SIGINT", "SIGTERM"];
+
+			let needForceShutdown = false;
+
+			signals.forEach(signal => {
+				const listener = () => {
+					if (needForceShutdown) {
+						process.exit();
 					}
-					resolve(undefined);
-				});
+
+					this.logger.info(
+						"Gracefully shutting down. To force exit, press ^C again. Please wait..."
+					);
+
+					needForceShutdown = true;
+
+					this.stopCallback(() => {
+						if (typeof this.compiler.close === "function") {
+							this.compiler.close(() => {
+								process.exit();
+							});
+						} else {
+							process.exit();
+						}
+					});
+				};
+
+				// @ts-expect-error: `listeners` is private function in base class.
+				this.listeners.push({ name: signal, listener });
+
+				process.on(signal, listener);
 			});
 		}
-		this.middleware = null;
 
-		if (this.server) {
-			this.server.close();
-		}
-		if (this.webSocketServer) {
-			await new Promise(resolve => {
-				this.webSocketServer.implementation.close(() => {
-					this.webSocketServer = null;
-					resolve(void 0);
-				});
-				for (const client of this.webSocketServer.clients) client.terminate();
-			});
-		}
-	}
-
-	private setupApp() {
-		this.app = express();
-	}
-
-	private setupWatchStaticFiles() {
-		if (this.options.static.watch === false) {
-			return;
-		}
-		this.watchFiles(this.options.static.directory, this.options.static.watch);
+		// Proxy WebSocket without the initial http request
+		// https://github.com/chimurai/http-proxy-middleware#external-websocket-upgrade
+		// @ts-expect-error: `webSocketProxies` is private function in base class.
+		this.webSocketProxies.forEach(webSocketProxy => {
+			this.server.on("upgrade", webSocketProxy.upgrade);
+		}, this);
 	}
 
 	private setupDevMiddleware() {
@@ -263,152 +233,48 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 
 	private setupMiddlewares() {
-		const options = this.options;
 		const middlewares: WebpackDevServer.Middleware[] = [];
-		middlewares.push({
-			name: "rdm",
-			middleware: this.middleware
-		});
+		const compilers =
+			this.compiler instanceof MultiCompiler
+				? this.compiler.compilers
+				: [this.compiler];
 
-		if (this.compiler.options.experiments.lazyCompilation) {
-			middlewares.push({
-				middleware: (req, res, next) => {
-					if (req.url.indexOf("/lazy-compilation-web/") > -1) {
-						const path = req.url.replace("/lazy-compilation-web/", "");
-						if (fs.existsSync(path)) {
-							this.compiler.rebuild(new Set([path]), new Set(), error => {
-								if (error) {
-									throw error;
-								}
-								res.write("");
-								res.end();
-								console.log("lazy compiler success");
+		if (Array.isArray(this.options.static)) {
+			this.options.static.forEach(staticOptions => {
+				staticOptions.publicPath.forEach(publicPath => {
+					compilers.forEach(compiler => {
+						if (compiler.options.builtins.noEmitAssets) {
+							middlewares.push({
+								name: "rspack-memory-assets",
+								path: publicPath,
+								middleware: getRspackMemoryAssets(compiler, this.middleware)
 							});
 						}
-					}
-				}
-			});
-		}
-
-		if (this.options.historyApiFallback) {
-			const connectHistoryApiFallback = require("connect-history-api-fallback");
-			const { historyApiFallback } = this.options;
-
-			if (
-				typeof historyApiFallback.logger === "undefined" &&
-				!historyApiFallback.verbose
-			) {
-				(historyApiFallback as any).logger = this.logger.log.bind(
-					this.logger,
-					"[connect-history-api-fallback]"
-				);
-			}
-
-			middlewares.push({
-				name: "connect-history-api-fallback",
-				middleware: connectHistoryApiFallback(historyApiFallback)
-			});
-		}
-
-		/**
-		 * supports three kinds of proxy configuration
-		 * {context: 'xxxx', target: 'yyy}
-		 * {['xxx']: { target: 'yyy}}
-		 * [{context: 'xxx',target:'yyy'}, {context: 'aaa', target: 'zzzz'}]
-		 */
-		if (typeof options.proxy !== "undefined") {
-			const { createProxyMiddleware } = require("http-proxy-middleware");
-			function getProxyMiddleware(proxyConfig) {
-				if (proxyConfig.target) {
-					const context = proxyConfig.context || proxyConfig.path;
-					return createProxyMiddleware(context, proxyConfig);
-				}
-				if (proxyConfig.router) {
-					return createProxyMiddleware(proxyConfig);
-				}
-			}
-			if (!Array.isArray(options.proxy)) {
-				if (
-					Object.prototype.hasOwnProperty.call(options.proxy, "target") ||
-					Object.prototype.hasOwnProperty.call(options.proxy, "router")
-				) {
-					options.proxy = [options.proxy];
-				} else {
-					options.proxy = Object.keys(options.proxy).map(context => {
-						let proxyOptions;
-						// For backwards compatibility reasons.
-						const correctedContext = context
-							.replace(/^\*$/, "**")
-							.replace(/\/\*$/, "");
-
-						if (
-							typeof (/** @type {ProxyConfigMap} */ options.proxy[context]) ===
-							"string"
-						) {
-							proxyOptions = {
-								context: correctedContext,
-								target:
-									/** @type {ProxyConfigMap} */
-									options.proxy[context]
-							};
-						} else {
-							proxyOptions = {
-								// @ts-ignore
-								.../** @type {ProxyConfigMap} */ options.proxy[context]
-							};
-							proxyOptions.context = correctedContext;
-						}
-
-						return proxyOptions;
 					});
-				}
-			}
-			options.proxy.forEach(proxyConfigOrCallback => {
-				const proxyConfig =
-					typeof proxyConfigOrCallback === "function"
-						? proxyConfigOrCallback()
-						: proxyConfigOrCallback;
-
-				const handler = async (req, res, next) => {
-					let proxyMiddleware = getProxyMiddleware(proxyConfig);
-					const isByPassFuncDefined = typeof proxyConfig.bypass === "function";
-					const bypassUrl = isByPassFuncDefined
-						? await proxyConfig.bypass(req, res, proxyConfig)
-						: null;
-					if (typeof bypassUrl === "boolean") {
-						req.url = null;
-						next();
-					} else if (typeof bypassUrl === "string") {
-						req.url = bypassUrl;
-					} else if (proxyMiddleware) {
-						return proxyMiddleware(req, res, next);
-					} else {
-						next();
-					}
-				};
-				middlewares.push({
-					name: "http-proxy-middleware",
-					middleware: handler
-				});
-				middlewares.push({
-					name: "http-proxy-middleware-error-handler",
-					middleware: (error, req, res, next) => handler(req, res, next)
 				});
 			});
 		}
-		const publicPath =
-			this.compiler.options.output.publicPath === "auto"
-				? ""
-				: this.compiler.options.output.publicPath;
-		middlewares.push({
-			name: "rspack-memory-assets",
-			path: publicPath,
-			middleware: getRspackMemoryAssets(this.compiler)
-		});
-		middlewares.push({
-			name: "express-static",
-			path: publicPath,
-			middleware: express.static(this.options.static.directory)
+
+		compilers.forEach(compiler => {
+			if (compiler.options.experiments.lazyCompilation) {
+				middlewares.push({
+					middleware: (req, res, next) => {
+						if (req.url.indexOf("/lazy-compilation-web/") > -1) {
+							const path = req.url.replace("/lazy-compilation-web/", "");
+							if (fs.existsSync(path)) {
+								compiler.rebuild(new Set([path]), new Set(), error => {
+									if (error) {
+										throw error;
+									}
+									res.write("");
+									res.end();
+									console.log("lazy compiler success");
+								});
+							}
+						}
+					}
+				});
+			}
 		});
 
 		middlewares.forEach(middleware => {
@@ -420,10 +286,9 @@ export class RspackDevServer extends WebpackDevServer {
 				this.app.use(middleware.middleware);
 			}
 		});
-	}
 
-	private createServer() {
-		this.server = http.createServer(this.app);
+		// @ts-expect-error
+		super.setupMiddlewares();
 	}
 
 	private setupHooks() {
