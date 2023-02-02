@@ -1,6 +1,6 @@
 use std::{fmt::Debug, hash::Hash, sync::atomic::AtomicUsize};
 
-static NEXT_ID_MAP: Lazy<DashMap<&str, AtomicUsize>> = Lazy::new(|| Default::default());
+static NEXT_ID_MAP: Lazy<DashMap<&str, AtomicUsize>> = Lazy::new(Default::default);
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
@@ -11,6 +11,7 @@ use crate::Database as Storage;
 pub struct Ukey<Item>(usize, std::marker::PhantomData<Item>);
 
 impl<Item> Ukey<Item> {
+  #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
     let id = NEXT_ID_MAP
       .entry(Self::stored_type())

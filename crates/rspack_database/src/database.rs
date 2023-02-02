@@ -48,13 +48,13 @@ impl<Item> Database<Item> {
     self
       .inner
       .get(id)
-      .unwrap_or_else(|| panic!("Not found {:?}", id))
+      .unwrap_or_else(|| panic!("Not found {id:?}"))
   }
   pub fn expect_mut(&mut self, id: &Ukey<Item>) -> &mut Item {
     self
       .inner
       .get_mut(id)
-      .unwrap_or_else(|| panic!("Not found {:?}", id))
+      .unwrap_or_else(|| panic!("Not found {id:?}"))
   }
 
   pub fn values(&self) -> impl Iterator<Item = &Item> {
