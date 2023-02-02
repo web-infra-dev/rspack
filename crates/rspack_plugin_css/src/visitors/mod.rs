@@ -197,7 +197,15 @@ impl RewriteUrl<'_> {
       .module_generation_result_map
       .get(&from.module_identifier)
       .and_then(|result| result.data.get("filename"))
-      .map(|value| value.to_string())
+      .map(|value| {
+        let public_path = self
+          .compilation
+          .options
+          .output
+          .public_path
+          .render(self.compilation, value);
+        public_path + value
+      })
   }
 }
 

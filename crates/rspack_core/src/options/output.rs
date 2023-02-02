@@ -1,6 +1,12 @@
-use std::{path::PathBuf, str::FromStr, string::ParseError};
+use std::{
+  path::{Path, PathBuf},
+  str::FromStr,
+  string::ParseError,
+};
 
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind};
+use sugar_path::SugarPath;
+
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation};
 
 #[derive(Debug)]
 pub struct OutputOptions {
@@ -109,6 +115,26 @@ impl Filename {
 pub enum PublicPath {
   String(String),
   Auto,
+}
+
+impl PublicPath {
+  pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
+    match self {
+      Self::String(s) => s.clone(),
+      Self::Auto => match Path::new(filename).parent() {
+        None => "".to_string(),
+        Some(dirname) => compilation
+          .options
+          .output
+          .path
+          .join(dirname)
+          .resolve()
+          .relative(&compilation.options.output.path)
+          .to_string_lossy()
+          .to_string(),
+      },
+    }
+  }
 }
 
 impl Default for PublicPath {
