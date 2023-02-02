@@ -58,8 +58,10 @@ export type MultiCompilerOptions = {
 } & RspackOptions[];
 
 export class MultiCompiler {
+	// @ts-expect-error
 	context: string;
 	compilers: Compiler[];
+	// @ts-expect-error
 	compilation: Compilation;
 	dependencies: WeakMap<Compiler, string[]>;
 	hooks: {
@@ -70,13 +72,18 @@ export class MultiCompiler {
 		watchRun: MultiHook<Any>;
 		infrastructureLog: MultiHook<Any>;
 	};
+	// @ts-expect-error
 	name: string;
 	infrastructureLogger: Any;
 	_options: { parallelism?: number };
+	// @ts-expect-error
 	root: Compiler;
+	// @ts-expect-error
 	resolverFactory: ResolverFactory;
 	running: boolean;
+	// @ts-expect-error
 	watching: Watching;
+	// @ts-expect-error
 	watchMode: boolean;
 
 	constructor(
@@ -85,7 +92,9 @@ export class MultiCompiler {
 	) {
 		if (!Array.isArray(compilers)) {
 			compilers = Object.keys(compilers).map(name => {
+				// @ts-expect-error
 				compilers[name].name = name;
+				// @ts-expect-error
 				return compilers[name];
 			});
 		}
@@ -229,6 +238,7 @@ export class MultiCompiler {
 	validateDependencies(callback: Callback<Error, MultiStats>): boolean {
 		const edges = new Set<{ source: Compiler; target: Compiler }>();
 		const missing: string[] = [];
+		// @ts-expect-error
 		const targetFound = compiler => {
 			for (const edge of edges) {
 				if (edge.target === compiler) {
@@ -237,6 +247,7 @@ export class MultiCompiler {
 			}
 			return false;
 		};
+		// @ts-expect-error
 		const sortEdges = (e1, e2) => {
 			return (
 				e1.source.name.localeCompare(e2.source.name) ||
@@ -424,6 +435,7 @@ export class MultiCompiler {
 		 * @param {Node} node node
 		 * @returns {void}
 		 */
+		// @ts-expect-error
 		const nodeChange = node => {
 			nodeInvalid(node);
 			if (node.state === "pending") {
@@ -441,6 +453,7 @@ export class MultiCompiler {
 				(node.setupResult = setup(
 					node.compiler,
 					i,
+					// @ts-expect-error
 					nodeDone.bind(null, node),
 					() => node.state !== "starting" && node.state !== "running",
 					() => nodeChange(node),
@@ -464,6 +477,7 @@ export class MultiCompiler {
 				) {
 					running++;
 					node.state = "starting";
+					// @ts-expect-error
 					run(node.compiler, node.setupResult!, nodeDone.bind(null, node));
 					node.state = "running";
 				}
@@ -507,9 +521,12 @@ export class MultiCompiler {
 
 		if (this.validateDependencies(handler)) {
 			const watchings = this.#runGraph(
+				// @ts-expect-error
 				(compiler: Compiler, idx, done, isBlocked, setChanged, setInvalid) => {
 					const watching = compiler.watch(
+						// @ts-expect-error
 						Array.isArray(watchOptions) ? watchOptions[idx] : watchOptions,
+						// @ts-expect-error
 						done
 					);
 					if (watching) {
@@ -525,6 +542,7 @@ export class MultiCompiler {
 				},
 				handler
 			);
+			// @ts-expect-error
 			return new MultiWatching(watchings, this);
 		}
 
@@ -566,6 +584,7 @@ export class MultiCompiler {
 			(compiler, cb) => {
 				compiler.close(cb);
 			},
+			// @ts-expect-error
 			callback
 		);
 	}

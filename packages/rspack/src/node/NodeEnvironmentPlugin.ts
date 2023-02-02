@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-
+// @ts-expect-error
 import CachedInputFileSystem from "enhanced-resolve/lib/CachedInputFileSystem";
 import fs from "graceful-fs";
 import createConsoleLogger from "../logging/createConsoleLogger";

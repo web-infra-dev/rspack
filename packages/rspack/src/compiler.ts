@@ -22,21 +22,28 @@ class HotModuleReplacementPlugin {
 }
 
 class Compiler {
+	// @ts-expect-error
 	#_instance: binding.Rspack;
 
 	webpack: any;
+	// @ts-expect-error
 	compilation: Compilation;
 	root: Compiler;
 	running: boolean;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
+	// @ts-expect-error
 	watching: Watching;
+	// @ts-expect-error
 	outputPath: string;
+	// @ts-expect-error
 	name: string;
 	inputFileSystem: any;
 	outputFileSystem: any;
+	// @ts-expect-error
 	watchFileSystem: WatchFileSystem;
 	intermediateFileSystem: any;
+	// @ts-expect-error
 	watchMode: boolean;
 	context: string;
 	modifiedFiles?: ReadonlySet<string>;
@@ -181,6 +188,7 @@ class Compiler {
 					}
 				} else {
 					if (
+						// @ts-expect-error
 						this.hooks.infrastructureLog.call(name, type, args) === undefined
 					) {
 						if (this.infrastructureLogger !== undefined) {
@@ -189,9 +197,10 @@ class Compiler {
 					}
 				}
 			},
-			childName => {
+			(childName): any => {
 				if (typeof name === "function") {
 					if (typeof childName === "function") {
+						// @ts-expect-error
 						return this.getInfrastructureLogger(_ => {
 							if (typeof name === "function") {
 								name = name();
@@ -277,6 +286,7 @@ class Compiler {
 		}
 		this.running = true;
 		const doRun = () => {
+			// @ts-expect-error
 			const finalCallback = (err, stats?) => {
 				this.running = false;
 				if (err) {
@@ -322,6 +332,7 @@ class Compiler {
 			if (err) {
 				cb(err);
 			} else {
+				// @ts-expect-error
 				cb(null);
 			}
 		});
@@ -340,6 +351,7 @@ class Compiler {
 			if (err) {
 				cb(err);
 			} else {
+				// @ts-expect-error
 				cb(null);
 			}
 		});
@@ -352,11 +364,13 @@ class Compiler {
 		if (this.running) {
 			return handler(
 				new ConcurrentCompilationError(),
+				// @ts-expect-error
 				null
 			) as unknown as Watching;
 		}
 		this.running = true;
 		this.watchMode = true;
+		// @ts-expect-error
 		this.watching = new Watching(this, watchOptions, handler);
 		return this.watching;
 	}
@@ -370,7 +384,9 @@ class Compiler {
 	/**
 	 * @todo
 	 */
+	// @ts-expect-error
 	close(callback) {
+		// @ts-expect-error
 		this.#_instance = null;
 		if (this.watching) {
 			// When there is still an active watching, close this first
@@ -381,6 +397,7 @@ class Compiler {
 		}
 		callback();
 	}
+	// @ts-expect-error
 	emitAssets(compilation: Compilation, callback) {
 		const outputPath = compilation.getPath(this.outputPath, {});
 		fs.mkdirSync(outputPath, { recursive: true });
@@ -403,7 +420,7 @@ class Compiler {
 						}
 					}
 				};
-
+				// @ts-expect-error
 				const doWrite = content => {
 					this.outputFileSystem.writeFile(absPath, content, callback);
 				};

@@ -33,6 +33,7 @@ export function resolveStatsOptions(
 	const colors = optionsOrFallback(options.colors, false);
 	return {
 		...options,
+		// @ts-expect-error
 		colors
 	};
 }

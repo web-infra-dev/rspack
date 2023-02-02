@@ -6,6 +6,7 @@ export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 
 	const createFakeTap = (
 		options: FakeProcessAssetsOptions,
+		// @ts-expect-error
 		fn,
 		tap: string
 	) => {
@@ -13,6 +14,7 @@ export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 		const hook = compilation.__internal_getProcessAssetsHookByStage(
 			options.stage ?? 0
 		);
+		// @ts-expect-error
 		hook[tap](options.name, fn);
 	};
 	return {

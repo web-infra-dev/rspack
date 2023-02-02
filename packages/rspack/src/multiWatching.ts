@@ -35,7 +35,7 @@ class MultiWatching {
 		this.watchings = watchings;
 		this.compiler = compiler;
 	}
-
+	// @ts-expect-error
 	invalidate(callback) {
 		if (callback) {
 			asyncLib.each(
@@ -54,6 +54,7 @@ class MultiWatching {
 	 * @param {Callback<void>} callback signals when the watcher is closed
 	 * @returns {void}
 	 */
+	// @ts-expect-error
 	close(callback) {
 		asyncLib.forEach(
 			this.watchings,

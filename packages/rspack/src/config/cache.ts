@@ -41,6 +41,7 @@ export function resolveCacheOptions(cache: Cache): ResolvedCache {
 	}
 
 	if (cache.type === "memory") {
+		// @ts-expect-error
 		cache.maxGenerations = isFinite(cache.maxGenerations)
 			? cache.maxGenerations
 			: 0;

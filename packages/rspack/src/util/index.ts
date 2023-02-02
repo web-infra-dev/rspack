@@ -23,7 +23,7 @@ export function concatErrorMsgAndStack(err: Error): string {
 	return `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
 }
 
-export function indent(str, prefix) {
+export function indent(str: string, prefix: string) {
 	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
 	return prefix + rem;
 }
