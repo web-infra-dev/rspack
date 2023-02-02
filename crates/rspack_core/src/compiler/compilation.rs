@@ -43,12 +43,12 @@ use crate::{
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
   ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, EntryDependency,
-  EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult,
-  IdentifierLinkedSet, IdentifierMap, IdentifierSet, LoaderRunnerRunner, Module, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, VisitedModuleIdentity, WorkerTask,
+  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, DependencyId,
+  EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
+  FactorizeTaskResult, Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet,
+  LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -2092,8 +2092,8 @@ fn normalize_side_effects(
     .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
   let mut module_ident_list = vec![];
   for dep in mgm.dependencies.iter() {
-    let module_ident = match module_graph.module_by_dependency(dep) {
-      Some(module) => module.module_identifier,
+    let module_ident = match module_graph.module_identifier_by_dependency_id(dep) {
+      Some(module_identifier) => *module_identifier,
       None => {
         match module_graph
           .module_by_identifier(&mgm.module_identifier)
