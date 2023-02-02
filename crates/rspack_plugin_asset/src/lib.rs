@@ -294,18 +294,14 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       .module_id_to_filename
       .insert(module.identifier(), asset_filename.clone());
 
-    generate_context
-      .data
-      .insert("filename".to_string(), asset_filename.clone());
-
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let module = module.try_as_normal_module()?;
         let resource_path = &module.resource_resolved_data().resource_path;
 
         let exported_content = if parsed_asset_config.is_inline() {
-          format!(
-            r#""data:{};base64,{}""#,
+          let encoded_source = format!(
+            r#"data:{};base64,{}"#,
             mime_guess::MimeGuess::from_path(Path::new(resource_path))
               .first()
               .ok_or_else(|| anyhow::format_err!(
@@ -318,25 +314,40 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                 .expect("Expected source for asset generator, please file an issue.")
                 .buffer()
             )
-          )
-        } else if parsed_asset_config.is_external() {
-          self.generate_external_content(generate_context, asset_filename)?
-        } else if parsed_asset_config.is_source() {
-          format!(
-            r"{:?}",
-            ast_or_source
-              .as_source()
-              .expect("Expected source for asset generator, please file an issue.")
-              .source()
-          )
+          );
+
+          generate_context
+            .data
+            .insert("url".to_string(), encoded_source.clone());
+
+          encoded_source
         } else {
-          unreachable!()
+          generate_context
+            .data
+            .insert("filename".to_string(), asset_filename.clone());
+
+          if parsed_asset_config.is_external() {
+            self.generate_external_content(generate_context, asset_filename)?
+          } else if parsed_asset_config.is_source() {
+            format!(
+              r"{:?}",
+              ast_or_source
+                .as_source()
+                .expect("Expected source for asset generator, please file an issue.")
+                .source()
+            )
+          } else {
+            unreachable!()
+          }
         };
 
         Ok(GenerationResult {
-          ast_or_source: RawSource::from(format!(r#"module.exports = {exported_content};"#))
-            .boxed()
-            .into(),
+          ast_or_source: RawSource::from(format!(
+            r#"module.exports = {};"#,
+            serde_json::to_string(&exported_content).expect("failed to serde_json::to_string")
+          ))
+          .boxed()
+          .into(),
         })
       }
       SourceType::Asset => {

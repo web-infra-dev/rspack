@@ -2238,6 +2238,7 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "serde_json",
  "sugar_path",
  "tokio",
  "tracing",

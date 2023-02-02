@@ -191,21 +191,28 @@ impl RewriteUrl<'_> {
       &DependencyType::CssUrl,
     )?;
 
-    self
+    let module = self
       .compilation
       .code_generation_results
       .module_generation_result_map
-      .get(&from.module_identifier)
-      .and_then(|result| result.data.get("filename"))
-      .map(|value| {
+      .get(&from.module_identifier);
+    if let Some(module) = module {
+      if let Some(url) = module.data.get("url") {
+        Some(url.to_string())
+      } else if let Some(filename) = module.data.get("filename") {
         let public_path = self
           .compilation
           .options
           .output
           .public_path
-          .render(self.compilation, value);
-        public_path + value
-      })
+          .render(self.compilation, filename);
+        Some(public_path + filename)
+      } else {
+        None
+      }
+    } else {
+      Some("data:,".to_string())
+    }
   }
 }
 
