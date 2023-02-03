@@ -1,8 +1,9 @@
 [package]
-edition = "2021"
-license = "MIT"
-name    = "rspack_test_utils"
-version = "0.1.0"
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_test_utils"
+repository = "https://github.com/modern-js-dev/rspack"
+version    = "0.1.0"
 
 [[bin]]
 bench = false

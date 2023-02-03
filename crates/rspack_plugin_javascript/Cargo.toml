@@ -1,7 +1,9 @@
 [package]
-edition = "2021"
-name    = "rspack_plugin_javascript"
-version = "0.1.0"
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_javascript"
+repository = "https://github.com/modern-js-dev/rspack"
+version    = "0.1.0"
 
 [dev-dependencies]
 rspack_test = { path = "../rspack_test" }
