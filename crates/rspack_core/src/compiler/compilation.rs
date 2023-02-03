@@ -3010,7 +3010,7 @@ fn finalize_symbol(
         .unwrap_or_else(|| {
           panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
         });
-      // dbg!(&reachable_dependency_identifier);
+      reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
       for dep in mgm.dependencies.iter() {
         let module_ident = match compilation.module_graph.module_by_dependency(dep) {
           Some(module) => module.module_identifier,
@@ -3043,6 +3043,8 @@ fn finalize_symbol(
         }
         q.push_back(module_ident);
       }
+      dbg!(&module_identifier);
+      dbg!(&reachable_dependency_identifier);
 
       // for module_ident in reachable_dependency_identifier {
       //   q.push_back(module_ident);
@@ -3083,12 +3085,11 @@ fn update_reachable_symbol(
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
   reachable_dependency_identifier: &mut IdentifierSet,
 ) {
-  // dbg!(&symbol_node_index);
   if dead_node_index.contains(&symbol_node_index) {
     return;
   }
   let symbol = symbol_graph.get_symbol(&symbol_node_index).unwrap();
-  reachable_dependency_identifier.insert(symbol.module_identifier());
+  reachable_dependency_identifier.insert(symbol.importer());
   match symbol {
     SymbolRef::Direct(symbol) => {
       used_direct_symbol.insert(symbol.clone());

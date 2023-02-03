@@ -1,4 +1,17 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"../node_modules/pmodule/a.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "a", {
+    enumerable: true,
+    get: ()=>a
+});
+const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
+var a = "a";
+(0, _trackerJs.track)("a.js");
+},
 "../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -8,6 +21,7 @@ Object.defineProperty(exports, "default", {
     enumerable: true,
     get: ()=>_default
 });
+__webpack_require__.es(__webpack_require__("../node_modules/pmodule/a.js"), exports);
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 (0, _trackerJs.track)("index.js");
 const _default = "def";
