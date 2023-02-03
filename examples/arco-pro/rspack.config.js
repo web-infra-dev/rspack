@@ -59,4 +59,7 @@ module.exports = {
   infrastructureLogging: {
     debug: false
   },
+  experiments:{
+    changedHmr:true
+  }
 }
