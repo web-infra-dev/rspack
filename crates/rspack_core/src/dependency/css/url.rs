@@ -55,8 +55,8 @@ impl Dependency for CssUrlDependency {
   fn id(&self) -> Option<&DependencyId> {
     self.id.as_ref()
   }
-  fn set_id(&mut self, id: DependencyId) {
-    self.id = Some(id);
+  fn set_id(&mut self, id: Option<DependencyId>) {
+    self.id = id;
   }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
