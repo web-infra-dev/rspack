@@ -291,7 +291,7 @@ pub type BuildQueue = WorkerQueue<BuildTask>;
 
 pub struct ProcessDependenciesTask {
   pub original_module_identifier: ModuleIdentifier,
-  pub dependencies: Vec<usize>,
+  pub dependencies: Vec<DependencyId>,
   pub resolve_options: Option<Resolve>,
 }
 

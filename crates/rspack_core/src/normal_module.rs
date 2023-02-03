@@ -27,9 +27,9 @@ use serde_json::json;
 use crate::{
   contextify, identifier::Identifiable, is_async_dependency, AssetGeneratorOptions,
   AssetParserOptions, BoxModule, BuildContext, BuildResult, ChunkGraph, CodeGenerationResult,
-  Compilation, CompilerOptions, Context, Dependency, GenerateContext, LibIdentOptions, Module,
-  ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
+  Compilation, CompilerOptions, Context, Dependency, DependencyId, GenerateContext,
+  LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -82,7 +82,7 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  pub dependencies: Vec<usize>,
+  pub dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
