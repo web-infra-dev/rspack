@@ -1,68 +1,13 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"../node_modules/pmodule/a.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
-});
-const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-var a = "a";
-(0, _trackerJs.track)("a.js");
-},
-"../node_modules/pmodule/b.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    x: ()=>x,
-    z: ()=>_cJs.z
-});
-const _cJs = __webpack_require__("../node_modules/pmodule/c.js");
-const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-var x = "x";
-(0, _trackerJs.track)("b.js");
-},
-"../node_modules/pmodule/c.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "z", {
-    enumerable: true,
-    get: ()=>z
-});
-const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-var z = "z";
-(0, _trackerJs.track)("c.js");
-},
 "../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    x: ()=>_bJs.x,
-    z: ()=>_bJs.z,
-    default: ()=>_default
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: ()=>_default
 });
-__webpack_require__.es(__webpack_require__("../node_modules/pmodule/a.js"), exports);
-const _bJs = __webpack_require__("../node_modules/pmodule/b.js");
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 (0, _trackerJs.track)("index.js");
 const _default = "def";

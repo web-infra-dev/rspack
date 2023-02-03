@@ -3044,9 +3044,9 @@ fn finalize_symbol(
         q.push_back(module_ident);
       }
 
-      for module_ident in reachable_dependency_identifier {
-        q.push_back(module_ident);
-      }
+      // for module_ident in reachable_dependency_identifier {
+      //   q.push_back(module_ident);
+      // }
     }
     for (k, v) in used_export_module_identifiers {
       if v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT) {
