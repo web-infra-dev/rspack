@@ -3,7 +3,11 @@ use std::{
   sync::atomic::{AtomicUsize, Ordering},
 };
 
-pub type ChunkUkey = Ukey;
+use rspack_database::Ukey as DatabaseUkey;
+
+use crate::Chunk;
+
+pub type ChunkUkey = DatabaseUkey<Chunk>;
 pub type ChunkGroupUkey = Ukey;
 
 static NEXT_UNIQUE_KEY: AtomicUsize = AtomicUsize::new(0);

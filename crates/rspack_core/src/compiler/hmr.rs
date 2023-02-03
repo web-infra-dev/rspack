@@ -52,7 +52,7 @@ impl Compiler {
     ) {
       let mut all_modules = IdentifierMap::default();
       let mut module_id_map = IdentifierMap::default();
-      for (ukey, chunk) in &compilation.chunk_by_ukey {
+      for (ukey, chunk) in compilation.chunk_by_ukey.iter() {
         compilation
           .chunk_graph
           .get_chunk_modules(ukey, &compilation.module_graph)
@@ -109,7 +109,7 @@ impl Compiler {
       .collect::<HashMap<String, HotUpdateContent>>();
 
     let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
-    for (ukey, chunk) in &old.compilation.chunk_by_ukey {
+    for (ukey, chunk) in old.compilation.chunk_by_ukey.iter() {
       let modules = old
         .compilation
         .chunk_graph
@@ -347,10 +347,7 @@ impl Compiler {
           .content_hash
           .insert(crate::SourceType::Css, hash);
 
-        self
-          .compilation
-          .chunk_by_ukey
-          .insert(ukey, hot_update_chunk);
+        self.compilation.chunk_by_ukey.add(hot_update_chunk);
         self.compilation.chunk_graph.add_chunk(ukey);
 
         for module_identifier in new_modules.iter() {
