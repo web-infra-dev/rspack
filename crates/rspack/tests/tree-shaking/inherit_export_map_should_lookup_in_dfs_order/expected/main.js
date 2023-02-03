@@ -12,21 +12,6 @@ const c = 'a';
 },
 "./bar.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    a: ()=>a,
-    c: ()=>c
-});
-const a = 'bar';
-const c = 'bar';
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -46,18 +31,11 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    a: ()=>a,
-    b: ()=>b
+Object.defineProperty(exports, "b", {
+    enumerable: true,
+    get: ()=>b
 });
 __webpack_require__.es(__webpack_require__("./a.js"), exports);
-const a = 'foo';
 const b = 'foo';
 },
 "./index.js": function (module, exports, __webpack_require__) {
