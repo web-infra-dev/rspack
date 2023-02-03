@@ -347,7 +347,7 @@ impl ModuleGraph {
   }
 
   /// Remove a connection and return connection origin module identifier and dependency
-  fn revoke_connection(&mut self, cid: usize) -> Option<BoxModuleDependency> {
+  fn revoke_connection(&mut self, cid: usize) -> Option<DependencyId> {
     let connection = match self.connection_id_to_connection.remove(&cid) {
       Some(c) => c,
       None => return None,
@@ -366,7 +366,7 @@ impl ModuleGraph {
     self
       .dependency_id_to_module_identifier
       .remove(&dependency_id);
-    let dependency = self.dependency_id_to_dependency.remove(&dependency_id);
+    // let dependency = self.dependency_id_to_dependency.get(&dependency_id);
     // if let Some(dep) = &dependency {
     //   self.dependency_to_dependency_id.remove(dep);
     // }
@@ -390,14 +390,11 @@ impl ModuleGraph {
       mgm.incoming_connections.remove(&cid);
     }
 
-    dependency
+    Some(dependency_id)
   }
 
   /// Remove module from module graph and return parent module identifier and dependency pair
-  pub fn revoke_module(
-    &mut self,
-    module_identifier: &ModuleIdentifier,
-  ) -> Vec<BoxModuleDependency> {
+  pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<DependencyId> {
     self.module_identifier_to_module.remove(module_identifier);
     let mgm = self
       .module_identifier_to_module_graph_module

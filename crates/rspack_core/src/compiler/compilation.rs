@@ -393,12 +393,7 @@ impl Compilation {
       );
     }
     if let SetupMakeParam::ForceBuildDeps(deps) = params {
-      force_build_deps.extend(
-        deps
-          .iter()
-          .filter_map(|d| self.module_graph.dependency_id_to_dependency.remove(d))
-          .collect::<Vec<_>>(),
-      );
+      force_build_deps.extend(deps);
     }
     // show last module build diagnostics, need exclude force_build_module
     let mut last_module_diagnostics = std::mem::take(&mut self.last_module_diagnostics);
@@ -458,7 +453,11 @@ impl Compilation {
         .flat_map(|id| self.module_graph.revoke_module(id)),
     );
 
-    force_build_deps.iter().for_each(|dependency| {
+    force_build_deps.iter().for_each(|id| {
+      let dependency = self
+        .module_graph
+        .dependency_by_id(id)
+        .expect("dependency not found");
       let parent_module_identifier = dependency.parent_module_identifier().cloned();
       let parent_module =
         parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));

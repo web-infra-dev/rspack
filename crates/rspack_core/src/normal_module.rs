@@ -184,7 +184,12 @@ impl ModuleGraphModule {
     self
       .dependencies
       .iter()
-      .filter(|id| !is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
+      .filter(|id| {
+        if module_graph.dependency_by_id(id).is_none() {
+          println!("id: {:?} {:?} \n\n\n", id, self);
+        }
+        !is_async_dependency(module_graph.dependency_by_id(id).expect("should have id"))
+      })
       .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
   }
