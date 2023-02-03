@@ -69,8 +69,6 @@ pub struct Compilation {
   pub options: Arc<CompilerOptions>,
   entries: BundleEntries,
   pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
-  // pub(crate) visited_module_id: VisitedModuleIdentity,
-  // pub make_failed_dependencies: HashSet<Box<dyn ModuleDependency>>,
   pub module_graph: ModuleGraph,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_hashes: IdentifierMap<u64>,
@@ -313,19 +311,6 @@ impl Compilation {
           },
         )
       })
-      // .filter(|(_, item)| {
-      //   item
-      //     .dependencies
-      //     .iter()
-      //     .filter_map(|dep| {
-      //       self
-      //         .module_graph
-      //         .module_by_dependency(dep.id().expect("should have id"))
-      //         .map(|module| module.module_identifier)
-      //     })
-      //     .next()
-      //     .is_some()
-      // })
       .collect()
   }
 
@@ -396,17 +381,15 @@ impl Compilation {
       force_build_deps.extend(deps);
     }
     // show last module build diagnostics, need exclude force_build_module
-    let mut last_module_diagnostics = std::mem::take(&mut self.last_module_diagnostics);
+    for identifier in force_build_module.iter() {
+      self.last_module_diagnostics.remove(identifier);
+    }
+
     self.push_batch_diagnostic(
-      last_module_diagnostics
-        .iter_mut()
-        .filter_map(|(i, d)| {
-          if force_build_module.contains(i) {
-            Some(std::mem::take(d))
-          } else {
-            None
-          }
-        })
+      self
+        .last_module_diagnostics
+        .values()
+        .cloned()
         .flatten()
         .collect::<Vec<_>>(),
     );
@@ -431,12 +414,6 @@ impl Compilation {
         vec![]
       }
     }));
-    // need_clean_visited_module_ids.extend(force_build_module);
-
-    // clean visited_module_id
-    // self
-    //   .visited_module_id
-    //   .retain(|(mid, _, _)| !need_clean_visited_module_ids.contains(mid));
 
     let mut active_task_count = 0usize;
     let is_expected_shutdown = Arc::new(AtomicBool::new(false));
@@ -710,7 +687,6 @@ impl Compilation {
     tracing::debug!("All task is finished");
 
     // clean isolated module
-    // let mut need_clean_visited_module_ids = HashSet::default();
     let mut clean_queue = CleanQueue::new();
     clean_queue.add_tasks(
       need_check_isolated_module_ids
@@ -727,7 +703,6 @@ impl Compilation {
           module_identifier,
           dependent_module_identifiers,
         } => {
-          // need_clean_visited_module_ids.insert(module_identifier);
           tracing::trace!("Module is cleaned: {}", module_identifier);
           clean_queue.add_tasks(
             dependent_module_identifiers
@@ -737,10 +712,6 @@ impl Compilation {
         }
       };
     }
-
-    // self
-    //   .visited_module_id
-    //   .retain(|(mid, _, _)| !need_clean_visited_module_ids.contains(mid));
 
     tracing::debug!("All clean task is finished");
 

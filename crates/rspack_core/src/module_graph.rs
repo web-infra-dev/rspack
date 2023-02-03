@@ -72,7 +72,6 @@ pub struct ModuleGraph {
   dependency_id_to_connection_id: HashMap<usize, usize>,
   connection_id_to_dependency_id: HashMap<usize, usize>,
   pub dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
-  // dependency_to_dependency_id: HashMap<BoxModuleDependency, DependencyId>,
   /// The module graph connections
   connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
@@ -97,11 +96,7 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(
-    &mut self,
-    mut dep: BoxModuleDependency,
-    // module_identifier: ModuleIdentifier,
-  ) -> usize {
+  pub fn add_dependency(&mut self, mut dep: BoxModuleDependency) -> usize {
     static NEXT_DEPENDENCY_ID: AtomicUsize = AtomicUsize::new(0);
 
     if let Some(id) = dep.id() {
@@ -110,7 +105,6 @@ impl ModuleGraph {
     let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
     dep.set_id(id);
     self.dependency_id_to_dependency.insert(id, dep);
-    // self.dependency_to_dependency_id.insert(dep, id);
 
     id
   }
@@ -136,11 +130,6 @@ impl ModuleGraph {
   pub fn module_identifier_by_dependency_id(&self, id: &DependencyId) -> Option<&ModuleIdentifier> {
     self.dependency_id_to_module_identifier.get(id)
   }
-
-  /// Get the dependency id of a dependency
-  // pub fn dependency_id_by_dependency(&self, dep: &BoxModuleDependency) -> Option<&DependencyId> {
-  //   self.dependency_to_dependency_id.get(dep)
-  // }
 
   /// Return an unordered iterator of module graph modules
   pub fn module_graph_modules(&self) -> impl Iterator<Item = &ModuleGraphModule> {
@@ -289,7 +278,6 @@ impl ModuleGraph {
   ) -> Option<ModuleGraphConnection> {
     let mut removed = None;
 
-    // if let Some(id) = self.dependency_to_dependency_id.get(dep).copied() {
     if let Some(conn) = self.dependency_id_to_connection_id.remove(id) {
       self.connection_id_to_dependency_id.remove(&conn);
 
@@ -313,10 +301,6 @@ impl ModuleGraph {
     }
     self.dependency_id_to_module_identifier.remove(id);
     self.dependency_id_to_dependency.remove(id);
-    // self
-    //   .dependency_to_dependency_id
-    //   .remove(self.dependency_by_id(&id).expect("should have dependency"));
-    // }
 
     removed
   }
@@ -366,10 +350,6 @@ impl ModuleGraph {
     self
       .dependency_id_to_module_identifier
       .remove(&dependency_id);
-    // let dependency = self.dependency_id_to_dependency.get(&dependency_id);
-    // if let Some(dep) = &dependency {
-    //   self.dependency_to_dependency_id.remove(dep);
-    // }
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {

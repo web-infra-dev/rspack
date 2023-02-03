@@ -127,14 +127,8 @@ pub struct AddTask {
 
 #[derive(Debug)]
 pub enum AddTaskResult {
-  ModuleReused {
-    module: Box<dyn Module>,
-    // dependencies: Vec<BoxModuleDependency>,
-  },
-  ModuleAdded {
-    module: Box<dyn Module>,
-    // dependencies: Vec<BoxModuleDependency>,
-  },
+  ModuleReused { module: Box<dyn Module> },
+  ModuleAdded { module: Box<dyn Module> },
 }
 
 impl AddTask {
@@ -155,11 +149,8 @@ impl AddTask {
 
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused {
         module: self.module,
-        // dependencies: self.dependencies,
       }));
     }
-
-    // compilation.visited_module_id.insert(temporary_module_id);
 
     compilation
       .module_graph
@@ -180,7 +171,6 @@ impl AddTask {
 
     Ok(TaskResult::Add(AddTaskResult::ModuleAdded {
       module: self.module,
-      // dependencies: self.dependencies,
     }))
   }
 }
