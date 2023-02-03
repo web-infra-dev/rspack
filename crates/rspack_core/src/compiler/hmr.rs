@@ -230,10 +230,10 @@ impl Compiler {
       }
     }
 
-    println!(
-      "updated_modules: {:?}\n, remove modules {:?}",
-      updated_modules, completely_removed_modules
-    );
+    // println!(
+    //   "updated_modules: {:?}\n, remove modules {:?}",
+    //   updated_modules, completely_removed_modules
+    // );
 
     for (identifier, old_runtime_module_content) in &old_runtime_modules {
       if let Some(new_runtime_module_content) = now_runtime_modules.get(identifier) {
