@@ -65,6 +65,10 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
     None
   }
 
+  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+    None
+  }
+
   fn get_resolve_options(&self) -> Option<&Resolve> {
     None
   }
@@ -127,6 +131,10 @@ impl Module for Box<dyn Module> {
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
     (**self).lib_ident(options)
+  }
+
+  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+    (**self).get_code_generation_dependencies()
   }
 
   fn get_resolve_options(&self) -> Option<&Resolve> {

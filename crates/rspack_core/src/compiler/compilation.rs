@@ -785,13 +785,13 @@ impl Compilation {
   async fn code_generation(&mut self) -> Result<()> {
     fn run_iteration(
       compilation: &mut Compilation,
-      filter_op: impl Fn(&ModuleIdentifier, &Box<dyn Module>, &ModuleGraph) -> bool + Sync + Send,
+      filter_op: impl Fn(&(&ModuleIdentifier, &Box<dyn Module>)) -> bool + Sync + Send,
     ) -> Result<()> {
       let results = compilation
         .module_graph
         .module_identifier_to_module
         .par_iter()
-        .filter(|(i, m)| filter_op(i, m, &compilation.module_graph))
+        .filter(filter_op)
         .map(|(module_identifier, module)| {
           compilation
             .cache
@@ -823,24 +823,12 @@ impl Compilation {
       Ok(())
     }
 
-    fn module_has_dependencies(
-      module_graph: &ModuleGraph,
-      module_identifier: &ModuleIdentifier,
-    ) -> bool {
-      let dependencies = module_graph.dependencies_by_module_identifier(module_identifier);
-      if let Some(dependencies) = dependencies {
-        !dependencies.is_empty()
-      } else {
-        false
-      }
-    }
-
-    run_iteration(self, |module_identifier, _, module_graph| {
-      !module_has_dependencies(module_graph, module_identifier)
+    run_iteration(self, |(_, module)| {
+      module.get_code_generation_dependencies().is_none()
     })?;
 
-    run_iteration(self, |module_identifier, _, module_graph| {
-      module_has_dependencies(module_graph, module_identifier)
+    run_iteration(self, |(_, module)| {
+      module.get_code_generation_dependencies().is_some()
     })?;
 
     Ok(())

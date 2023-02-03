@@ -103,6 +103,7 @@ impl VisitAstPath for Analyzer<'_> {
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
       let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path));
+      // TODO avoid dependency clone
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
     }

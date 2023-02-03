@@ -648,6 +648,14 @@ impl Module for NormalModule {
     self.resolve_options.as_ref()
   }
 
+  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+    if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
+      Some(deps)
+    } else {
+      None
+    }
+  }
+
   fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
     for item in files {
       if self.build_info.file_dependencies.contains(item)
