@@ -12,6 +12,21 @@ const c = 'a';
 },
 "./bar.js": function (module, exports, __webpack_require__) {
 "use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    a: ()=>a,
+    c: ()=>c
+});
+const a = 'bar';
+const c = 'bar';
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";

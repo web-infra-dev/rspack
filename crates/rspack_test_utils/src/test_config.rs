@@ -31,6 +31,9 @@ fn default_entry() -> HashMap<String, EntryItem> {
   map
 }
 
+fn default_target() -> Vec<String> {
+  vec!["web".to_string(), "es2022".to_string()]
+}
 fn enable_runtime_by_default() -> Option<String> {
   Some("runtime".to_string())
 }
@@ -52,6 +55,8 @@ pub struct TestConfig {
   pub entry: HashMap<String, EntryItem>,
   #[serde(default)]
   pub builtins: Builtins,
+  #[serde(default = "default_target")]
+  pub target: Vec<String>,
   #[serde(default)]
   pub debug: Debug,
   #[serde(default)]
@@ -173,10 +178,7 @@ impl TestConfig {
         library: None,
         strict_module_error_handling: None,
       },
-      target: c::Target {
-        platform: c::TargetPlatform::Web,
-        es_version: Some(c::EsVersion::EsNext),
-      },
+      target: c::Target::new(&config.target).expect("Can't construct target"),
       resolve: Default::default(),
       builtins: c::Builtins {
         define: config.builtins.define,

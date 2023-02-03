@@ -1,5 +1,4 @@
 mod termcolorful;
-mod termcolorful;
 use std::{path::PathBuf, time::Instant};
 
 use mimalloc_rust::GlobalMiMalloc;
