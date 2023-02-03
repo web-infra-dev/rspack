@@ -1,7 +1,9 @@
 [package]
-edition = "2021"
-name    = "rspack_plugin_css"
-version = "0.1.0"
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_css"
+repository = "https://github.com/modern-js-dev/rspack"
+version    = "0.1.0"
 
 [dev-dependencies]
 insta       = "1.19.1"
