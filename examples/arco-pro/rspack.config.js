@@ -22,7 +22,6 @@ module.exports = {
     sideEffects: true,
     noEmitAssets: false,
   },
-  cache: false,
   module: {
     rules:
       [
@@ -58,8 +57,5 @@ module.exports = {
   ],
   infrastructureLogging: {
     debug: false
-  },
-  experiments:{
-    changedHmr:true
   }
 }
