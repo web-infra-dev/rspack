@@ -1,12 +1,13 @@
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableDeclMappings,
-  CodeGeneratableResult, Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath,
-  ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
+  CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
 };
 use swc_core::ecma::atoms::{Atom, JsWord};
 
 #[derive(Debug, Eq, Clone)]
 pub struct EsmImportDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
@@ -48,11 +49,18 @@ impl EsmImportDependency {
       dependency_type: &DependencyType::EsmImport,
       span,
       ast_path,
+      id: None,
     }
   }
 }
 
 impl Dependency for EsmImportDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -93,23 +101,25 @@ impl CodeGeneratable for EsmImportDependency {
     let mut code_gen = CodeGeneratableResult::default();
     let mut decl_mappings = CodeGeneratableDeclMappings::default();
 
-    let module_id = self
-      .referencing_module_graph_module(&compilation.module_graph)
-      .map(|m| m.id(&compilation.chunk_graph).to_string());
-
-    if let Some(module_id) = module_id {
+    if let Some(id) = self.id() {
+      if let Some(module_id) = compilation
+        .module_graph
+        .module_graph_module_by_dependency_id(id)
+        .map(|m| m.id(&compilation.chunk_graph).to_string())
       {
-        let (id, val) = self.decl_mapping(&compilation.module_graph, module_id.clone());
-        decl_mappings.insert(id, val);
-      }
+        {
+          let (id, val) = self.decl_mapping(&compilation.module_graph, module_id.clone());
+          decl_mappings.insert(id, val);
+        }
 
-      code_gen.visitors.push(
+        code_gen.visitors.push(
         create_javascript_visitor!(exact &self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {
           if let Some(import) = n.as_mut_import() {
             *import.src = Atom::from(&*module_id).into();
           }
         }),
       );
+      }
     }
 
     Ok(code_gen.with_decl_mappings(decl_mappings))

@@ -53,7 +53,6 @@ impl Compiler {
         options,
         Default::default(),
         Default::default(),
-        Default::default(),
         plugin_driver.clone(),
         loader_runner_runner.clone(),
         cache.clone(),
@@ -82,7 +81,6 @@ impl Compiler {
         self.options.clone(),
         self.options.entry.clone(),
         Default::default(),
-        Default::default(),
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
         self.cache.clone(),
@@ -104,11 +102,13 @@ impl Compiler {
       .compilation(&mut self.compilation)
       .await?;
 
+    self.compilation.setup_entry_dependencies();
+
     let deps = self
       .compilation
-      .entry_dependencies()
-      .into_iter()
-      .flat_map(|(_, deps)| deps)
+      .entry_dependencies
+      .iter()
+      .flat_map(|(_, deps)| deps.clone())
       .collect::<HashSet<_>>();
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
     self.cache.begin_idle().await;

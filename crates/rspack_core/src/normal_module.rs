@@ -27,9 +27,9 @@ use serde_json::json;
 use crate::{
   contextify, identifier::Identifiable, is_async_dependency, AssetGeneratorOptions,
   AssetParserOptions, BoxModule, BuildContext, BuildResult, ChunkGraph, CodeGenerationResult,
-  Compilation, CompilerOptions, Context, Dependency, GenerateContext, LibIdentOptions, Module,
-  ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
+  Compilation, CompilerOptions, Context, Dependency, DependencyId, GenerateContext,
+  LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -82,7 +82,7 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // TODO remove this since its included in module
   pub module_type: ModuleType,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
@@ -180,35 +180,35 @@ impl ModuleGraphModule {
   //     .collect()
   // }
 
-  pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleGraphModule> {
+  pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleIdentifier> {
     self
       .dependencies
       .iter()
-      .filter(|dep| !is_async_dependency(dep))
-      .filter_map(|dep| module_graph.module_by_dependency(dep))
+      .filter(|id| !is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
+      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
   }
 
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleGraphModule> {
+  ) -> Vec<&'a ModuleIdentifier> {
     self
       .dependencies
       .iter()
-      .filter(|dep| is_async_dependency(dep))
-      .filter_map(|dep| module_graph.module_by_dependency(dep))
+      .filter(|id| is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
+      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
   }
 
   pub fn all_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleGraphModule> {
+  ) -> Vec<&'a ModuleIdentifier> {
     self
       .dependencies
       .iter()
-      .filter_map(|dep| module_graph.module_by_dependency(dep))
+      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
   }
 
@@ -594,7 +594,6 @@ impl Module for NormalModule {
             runtime_requirements: &mut runtime_requirements,
             data: &mut data,
             requested_source_type: *source_type,
-            code_generation_results: &compilation.code_generation_results,
           },
         )?;
         generation_result.ast_or_source = generation_result
@@ -645,16 +644,16 @@ impl Module for NormalModule {
     Some(Cow::Owned(contextify(options.context, self.user_request())))
   }
 
+  fn get_resolve_options(&self) -> Option<&Resolve> {
+    self.resolve_options.as_ref()
+  }
+
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {
       None
     }
-  }
-
-  fn get_resolve_options(&self) -> Option<&Resolve> {
-    self.resolve_options.as_ref()
   }
 
   fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {

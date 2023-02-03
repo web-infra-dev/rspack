@@ -1,11 +1,12 @@
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath, Dependency,
-  DependencyCategory, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
 };
 
 // #[derive(Derivative)]
 #[derive(Debug, Eq, Clone)]
 pub struct CssUrlDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
   category: &'static DependencyCategory,
@@ -45,11 +46,18 @@ impl CssUrlDependency {
       dependency_type: &DependencyType::CssUrl,
       span,
       ast_path,
+      id: None,
     }
   }
 }
 
 impl Dependency for CssUrlDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -86,6 +94,6 @@ impl CodeGeneratable for CssUrlDependency {
     &self,
     _code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
+    Ok(CodeGeneratableResult::default())
   }
 }

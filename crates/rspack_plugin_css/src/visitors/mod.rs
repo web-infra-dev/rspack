@@ -103,6 +103,7 @@ impl VisitAstPath for Analyzer<'_> {
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
       let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path));
+      // TODO avoid dependency clone
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
     }
@@ -174,9 +175,17 @@ impl RewriteUrl<'_> {
       .module_graph
       .module_graph_module_by_identifier(module_identifier)
       .and_then(|mgm| {
-        mgm.dependencies.iter().find_map(|dep| {
-          if dep.request() == src && dep.dependency_type() == dependency_type {
-            self.compilation.module_graph.module_by_dependency(dep)
+        mgm.dependencies.iter().find_map(|id| {
+          let dependency = self
+            .compilation
+            .module_graph
+            .dependency_by_id(id)
+            .expect("should have dependency");
+          if dependency.request() == src && dependency.dependency_type() == dependency_type {
+            self
+              .compilation
+              .module_graph
+              .module_graph_module_by_dependency_id(id)
           } else {
             None
           }

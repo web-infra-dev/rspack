@@ -1,11 +1,16 @@
 use rspack_core::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
+  ModuleDependency, ModuleIdentifier,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::{
+  ast::Lit,
+  atoms::{Atom, JsWord},
+};
 
 #[derive(Debug, Eq, Clone)]
 pub struct ModuleHotDeclineDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
@@ -40,6 +45,7 @@ impl std::hash::Hash for ModuleHotDeclineDependency {
 impl ModuleHotDeclineDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
+      id: None,
       parent_module_identifier: None,
       request,
       category: &DependencyCategory::CommonJS,
@@ -51,6 +57,12 @@ impl ModuleHotDeclineDependency {
 }
 
 impl Dependency for ModuleHotDeclineDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -85,32 +97,33 @@ impl ModuleDependency for ModuleHotDeclineDependency {
 impl CodeGeneratable for ModuleHotDeclineDependency {
   fn generate(
     &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
-    // The rewrite introduced to much hacks, we cannot do it in the dependency code generation right now. So a noop is returned.
-    Ok(Default::default())
-    // let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-    // let mut code_gen = CodeGeneratableResult::default();
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
-    // let referenced_module = self.referencing_module_graph_module(&compilation.module_graph);
+    let mut code_gen = CodeGeneratableResult::default();
 
-    // if let Some(referenced_module) = referenced_module {
-    //   let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
+    if let Some(id) = self.id() {
+      if let Some(module_id) = compilation
+        .module_graph
+        .module_graph_module_by_dependency_id(id)
+        .map(|m| m.id(&compilation.chunk_graph).to_string())
+      {
+        code_gen.visitors.push(
+          create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
+            if let Some(Lit::Str(str)) = n
+              .args
+              .get_mut(0)
+              .and_then(|first_arg| first_arg.expr.as_mut_lit())
+            {
+              str.value = JsWord::from(&*module_id);
+              str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+            }
+          }),
+        );
+      }
+    }
 
-    //   code_gen.visitors.push(
-    //     create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-    //       if let Some(Lit::Str(str)) = n
-    //         .args
-    //         .get_mut(0)
-    //         .and_then(|first_arg| first_arg.expr.as_mut_lit())
-    //       {
-    //         str.value = JsWord::from(&*module_id);
-    //         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-    //       }
-    //     }),
-    //   );
-    // }
-
-    // Ok(code_gen)
+    Ok(code_gen)
   }
 }

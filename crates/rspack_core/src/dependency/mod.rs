@@ -13,8 +13,7 @@ pub use css::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::{
-  AsAny, ContextMode, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier,
+  AsAny, ContextMode, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleIdentifier,
 };
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
@@ -63,6 +62,10 @@ pub enum DependencyCategory {
 pub trait Dependency:
   CodeGeneratable + AsModuleDependency + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
 {
+  fn id(&self) -> Option<&DependencyId> {
+    None
+  }
+  fn set_id(&mut self, _id: usize) {}
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier>;
   fn set_parent_module_identifier(&mut self, _module_identifier: Option<ModuleIdentifier>) {
     // noop
@@ -100,11 +103,6 @@ impl Dependency for Box<dyn Dependency> {
 }
 
 pub trait ModuleDependencyExt {
-  fn referencing_module_graph_module<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Option<&'m ModuleGraphModule>;
-
   fn decl_mapping(
     &self,
     module_graph: &ModuleGraph,
@@ -116,23 +114,6 @@ pub trait ModuleDependencyExt {
 }
 
 impl ModuleDependencyExt for dyn ModuleDependency + '_ {
-  fn referencing_module_graph_module<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Option<&'m ModuleGraphModule> {
-    module_graph
-      .dependencies_by_module_identifier(self.parent_module_identifier()?)
-      .and_then(|deps| {
-        deps.iter().find_map(|dep| {
-          if dep.request() == self.request() && dep.dependency_type() == self.dependency_type() {
-            module_graph.module_by_dependency(dep)
-          } else {
-            None
-          }
-        })
-      })
-  }
-
   fn decl_mapping(
     &self,
     module_graph: &ModuleGraph,
@@ -144,23 +125,14 @@ impl ModuleDependencyExt for dyn ModuleDependency + '_ {
     let parent = self.parent_module_identifier().expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
     (
       (*parent, module_id, *self.category()),
-      self
-        .referencing_module_graph_module(module_graph)
-        .expect("Failed to resolve module graph module")
-        .module_identifier,
+      *module_graph
+        .module_identifier_by_dependency_id(self.id().expect("should have dependency"))
+        .expect("Failed to resolve module graph module"),
     )
   }
 }
 
 impl<T: ModuleDependency> ModuleDependencyExt for T {
-  fn referencing_module_graph_module<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Option<&'m ModuleGraphModule> {
-    let this = self as &dyn ModuleDependency;
-    this.referencing_module_graph_module(module_graph)
-  }
-
   fn decl_mapping(
     &self,
     module_graph: &ModuleGraph,
@@ -263,6 +235,13 @@ impl Dependency for Box<dyn ModuleDependency> {
   fn get_context(&self) -> Option<&str> {
     (**self).get_context()
   }
+
+  fn id(&self) -> Option<&DependencyId> {
+    (**self).id()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    (**self).set_id(id)
+  }
 }
 
 impl CodeGeneratable for Box<dyn ModuleDependency> {
@@ -318,3 +297,5 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
   }
   false
 }
+
+pub type DependencyId = usize;

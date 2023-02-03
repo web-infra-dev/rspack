@@ -8,7 +8,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  BoxModule, BoxModuleDependency, IdentifierMap, Module, ModuleGraphModule, ModuleIdentifier,
+  BoxModule, BoxModuleDependency, DependencyId, IdentifierMap, Module, ModuleGraphModule,
+  ModuleIdentifier,
 };
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
@@ -70,9 +71,7 @@ pub struct ModuleGraph {
 
   dependency_id_to_connection_id: HashMap<usize, usize>,
   connection_id_to_dependency_id: HashMap<usize, usize>,
-  dependency_id_to_dependency: HashMap<usize, BoxModuleDependency>,
-  dependency_to_dependency_id: HashMap<BoxModuleDependency, usize>,
-
+  pub dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
   /// The module graph connections
   connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
@@ -97,30 +96,30 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(
-    &mut self,
-    dep: BoxModuleDependency,
-    module_identifier: ModuleIdentifier,
-  ) -> usize {
+  pub fn add_dependency(&mut self, mut dep: BoxModuleDependency) -> usize {
     static NEXT_DEPENDENCY_ID: AtomicUsize = AtomicUsize::new(0);
 
+    if let Some(id) = dep.id() {
+      return *id;
+    }
     let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-    self.dependency_id_to_dependency.insert(id, dep.clone());
-    self.dependency_to_dependency_id.insert(dep, id);
-
-    self
-      .dependency_id_to_module_identifier
-      .insert(id, module_identifier);
+    dep.set_id(id);
+    self.dependency_id_to_dependency.insert(id, dep);
 
     id
   }
 
+  pub fn dependency_by_id(&self, id: &DependencyId) -> Option<&BoxModuleDependency> {
+    self.dependency_id_to_dependency.get(id)
+  }
+
   /// Uniquely identify a module by its dependency
-  pub fn module_by_dependency(&self, dep: &BoxModuleDependency) -> Option<&ModuleGraphModule> {
+  pub fn module_graph_module_by_dependency_id(
+    &self,
+    id: &DependencyId,
+  ) -> Option<&ModuleGraphModule> {
     self
-      .dependency_to_dependency_id
-      .get(dep)
-      .and_then(|id| self.dependency_id_to_module_identifier.get(id))
+      .module_identifier_by_dependency_id(id)
       .and_then(|module_identifier| {
         self
           .module_identifier_to_module_graph_module
@@ -128,9 +127,8 @@ impl ModuleGraph {
       })
   }
 
-  /// Get the dependency id of a dependency
-  pub fn dependency_id_by_dependency(&self, dep: &BoxModuleDependency) -> Option<usize> {
-    self.dependency_to_dependency_id.get(dep).cloned()
+  pub fn module_identifier_by_dependency_id(&self, id: &DependencyId) -> Option<&ModuleIdentifier> {
+    self.dependency_id_to_module_identifier.get(id)
   }
 
   /// Return an unordered iterator of module graph modules
@@ -150,6 +148,9 @@ impl ModuleGraph {
     dependency_id: usize,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
+    self
+      .dependency_id_to_module_identifier
+      .insert(dependency_id, module_identifier);
     let new_connection =
       ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
 
@@ -228,19 +229,15 @@ impl ModuleGraph {
   }
 
   /// Uniquely identify a connection by a given dependency
-  pub fn connection_by_dependency(
-    &self,
-    dep: &BoxModuleDependency,
-  ) -> Option<&ModuleGraphConnection> {
+  pub fn connection_by_dependency(&self, id: &usize) -> Option<&ModuleGraphConnection> {
     self
-      .dependency_to_dependency_id
-      .get(dep)
-      .and_then(|id| self.dependency_id_to_connection_id.get(id))
+      .dependency_id_to_connection_id
+      .get(id)
       .and_then(|id| self.connection_id_to_connection.get(id))
   }
 
   /// Get a list of all dependencies of a module by the module itself, if the module is not found, then None is returned
-  pub fn dependencies_by_module(&self, module: &dyn Module) -> Option<&[BoxModuleDependency]> {
+  pub fn dependencies_by_module(&self, module: &dyn Module) -> Option<&[DependencyId]> {
     self.dependencies_by_module_identifier(&module.identifier())
   }
 
@@ -248,7 +245,7 @@ impl ModuleGraph {
   pub fn dependencies_by_module_identifier(
     &self,
     module_identifier: &ModuleIdentifier,
-  ) -> Option<&[BoxModuleDependency]> {
+  ) -> Option<&[DependencyId]> {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|mgm| mgm.dependencies.as_slice())
@@ -277,36 +274,33 @@ impl ModuleGraph {
 
   pub fn remove_connection_by_dependency(
     &mut self,
-    dep: &BoxModuleDependency,
+    id: &DependencyId,
   ) -> Option<ModuleGraphConnection> {
     let mut removed = None;
 
-    if let Some(id) = self.dependency_to_dependency_id.get(dep).copied() {
-      if let Some(conn) = self.dependency_id_to_connection_id.remove(&id) {
-        self.connection_id_to_dependency_id.remove(&conn);
+    if let Some(conn) = self.dependency_id_to_connection_id.remove(id) {
+      self.connection_id_to_dependency_id.remove(&conn);
 
-        if let Some(conn) = self.connection_id_to_connection.remove(&conn) {
-          self.connections.remove(&conn);
+      if let Some(conn) = self.connection_id_to_connection.remove(&conn) {
+        self.connections.remove(&conn);
 
-          if let Some(mgm) = conn
-            .original_module_identifier
-            .as_ref()
-            .and_then(|ident| self.module_graph_module_by_identifier_mut(ident))
-          {
-            mgm.outgoing_connections.remove(&conn.id);
-          };
+        if let Some(mgm) = conn
+          .original_module_identifier
+          .as_ref()
+          .and_then(|ident| self.module_graph_module_by_identifier_mut(ident))
+        {
+          mgm.outgoing_connections.remove(&conn.id);
+        };
 
-          if let Some(mgm) = self.module_graph_module_by_identifier_mut(&conn.module_identifier) {
-            mgm.incoming_connections.remove(&conn.id);
-          }
-
-          removed = Some(conn);
+        if let Some(mgm) = self.module_graph_module_by_identifier_mut(&conn.module_identifier) {
+          mgm.incoming_connections.remove(&conn.id);
         }
+
+        removed = Some(conn);
       }
-      self.dependency_id_to_module_identifier.remove(&id);
-      self.dependency_id_to_dependency.remove(&id);
-      self.dependency_to_dependency_id.remove(dep);
     }
+    self.dependency_id_to_module_identifier.remove(id);
+    self.dependency_id_to_dependency.remove(id);
 
     removed
   }
@@ -337,7 +331,7 @@ impl ModuleGraph {
   }
 
   /// Remove a connection and return connection origin module identifier and dependency
-  fn revoke_connection(&mut self, cid: usize) -> Option<BoxModuleDependency> {
+  fn revoke_connection(&mut self, cid: usize) -> Option<DependencyId> {
     let connection = match self.connection_id_to_connection.remove(&cid) {
       Some(c) => c,
       None => return None,
@@ -356,10 +350,6 @@ impl ModuleGraph {
     self
       .dependency_id_to_module_identifier
       .remove(&dependency_id);
-    let dependency = self.dependency_id_to_dependency.remove(&dependency_id);
-    if let Some(dep) = &dependency {
-      self.dependency_to_dependency_id.remove(dep);
-    }
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {
@@ -380,14 +370,11 @@ impl ModuleGraph {
       mgm.incoming_connections.remove(&cid);
     }
 
-    dependency
+    Some(dependency_id)
   }
 
   /// Remove module from module graph and return parent module identifier and dependency pair
-  pub fn revoke_module(
-    &mut self,
-    module_identifier: &ModuleIdentifier,
-  ) -> Vec<BoxModuleDependency> {
+  pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<DependencyId> {
     self.module_identifier_to_module.remove(module_identifier);
     let mgm = self
       .module_identifier_to_module_graph_module
@@ -430,8 +417,8 @@ mod test {
 
   use crate::{
     BuildContext, BuildResult, CodeGeneratable, CodeGenerationResult, Compilation, Context,
-    Dependency, Identifiable, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, SourceType,
+    Dependency, DependencyId, Identifiable, Module, ModuleDependency, ModuleGraph,
+    ModuleGraphModule, ModuleIdentifier, ModuleType, SourceType,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -534,18 +521,23 @@ mod test {
     from: Option<&ModuleIdentifier>,
     to: &ModuleIdentifier,
     dep: Box<dyn ModuleDependency>,
-  ) {
-    let did = mg.add_dependency(dep.clone(), *to);
+  ) -> DependencyId {
+    let dependency_id = mg.add_dependency(dep);
+    mg.dependency_id_to_module_identifier
+      .insert(dependency_id, *to);
     if let Some(p_id) = from && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id) {
-      mgm.dependencies.push(dep);
+      mgm.dependencies.push(dependency_id);
     }
-    mg.set_resolved_module(from.copied(), did, *to)
+    mg.set_resolved_module(from.copied(), dependency_id, *to)
       .expect("failed to set resolved module");
 
     assert_eq!(
-      mg.dependency_id_to_module_identifier.get(&did).copied(),
+      mg.dependency_id_to_module_identifier
+        .get(&dependency_id)
+        .copied(),
       Some(*to)
     );
+    dependency_id
   }
 
   fn mgm<'m>(mg: &'m ModuleGraph, m_id: &ModuleIdentifier) -> &'m ModuleGraphModule {
@@ -578,7 +570,7 @@ mod test {
     let a_to_b = edge!(Some(a_id), b_id.as_str());
     add_module_to_graph(&mut mg, box a);
     add_module_to_graph(&mut mg, box b);
-    link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, box (a_to_b.clone()));
+    let a_to_b_id = link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, box (a_to_b));
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
@@ -590,7 +582,7 @@ mod test {
     let c_id = c.identifier();
     let b_to_c = edge!(Some(b_id), c_id.as_str());
     add_module_to_graph(&mut mg, box c);
-    link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, box (b_to_c.clone()));
+    let b_to_c_id = link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, box (b_to_c));
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);
@@ -598,14 +590,14 @@ mod test {
     let conn_c = mgm_c.incoming_connections.iter().collect::<Vec<_>>();
     assert_eq!(conn_c[0], conn_b[0]);
 
-    mg.remove_connection_by_dependency(&(box a_to_b as Box<dyn ModuleDependency>));
+    mg.remove_connection_by_dependency(&a_to_b_id);
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
     assert!(mgm_a.outgoing_connections.is_empty());
     assert!(mgm_b.incoming_connections.is_empty());
 
-    mg.remove_connection_by_dependency(&(box b_to_c as Box<dyn ModuleDependency>));
+    mg.remove_connection_by_dependency(&b_to_c_id);
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);

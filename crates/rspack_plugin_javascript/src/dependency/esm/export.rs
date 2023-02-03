@@ -1,7 +1,7 @@
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  Dependency, DependencyCategory, DependencyType, ErrorSpan, JsAstPath, ModuleDependency,
-  ModuleIdentifier,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
+  ModuleDependency, ModuleIdentifier,
 };
 use rspack_core::{CodeGeneratableDeclMappings, ModuleDependencyExt};
 use swc_core::ecma::ast::ModuleDecl;
@@ -10,6 +10,7 @@ use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Eq, Clone)]
 pub struct EsmExportDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   category: &'static DependencyCategory,
@@ -49,11 +50,18 @@ impl EsmExportDependency {
       dependency_type: &DependencyType::EsmExport,
       span,
       ast_path,
+      id: None,
     }
   }
 }
 
 impl Dependency for EsmExportDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
@@ -95,17 +103,18 @@ impl CodeGeneratable for EsmExportDependency {
     let mut code_gen = CodeGeneratableResult::default();
     let mut decl_mappings = CodeGeneratableDeclMappings::default();
 
-    let module_id = self
-      .referencing_module_graph_module(&compilation.module_graph)
-      .map(|m| m.id(&compilation.chunk_graph).to_string());
-
-    if let Some(module_id) = module_id {
+    if let Some(id) = self.id() {
+      if let Some(module_id) = compilation
+        .module_graph
+        .module_graph_module_by_dependency_id(id)
+        .map(|m| m.id(&compilation.chunk_graph).to_string())
       {
-        let (id, val) = self.decl_mapping(&compilation.module_graph, module_id.clone());
-        decl_mappings.insert(id, val);
-      }
+        {
+          let (id, val) = self.decl_mapping(&compilation.module_graph, module_id.clone());
+          decl_mappings.insert(id, val);
+        }
 
-      code_gen.visitors.push(
+        code_gen.visitors.push(
         create_javascript_visitor!(exact &self.ast_path, visit_mut_module_decl(n: &mut ModuleDecl) {
           match n {
             ModuleDecl::ExportAll(e) => {
@@ -122,6 +131,7 @@ impl CodeGeneratable for EsmExportDependency {
           }
         }),
       );
+      }
     }
 
     Ok(code_gen.with_decl_mappings(decl_mappings))

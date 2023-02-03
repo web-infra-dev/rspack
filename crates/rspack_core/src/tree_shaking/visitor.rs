@@ -1248,11 +1248,15 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
       .and_then(|mgm| {
-        mgm.dependencies.iter().find_map(|dep| {
+        mgm.dependencies.iter().find_map(|id| {
+          let dep = self
+            .module_graph
+            .dependency_by_id(id)
+            .expect("should have dependency");
           if dep.request() == src && dependency_type == dep.dependency_type() {
             self
               .module_graph
-              .module_by_dependency(dep)
+              .module_graph_module_by_dependency_id(dep.id().expect("should have id"))
               .map(|module| &module.module_identifier)
           } else {
             None

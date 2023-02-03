@@ -1,10 +1,11 @@
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath, Dependency,
-  DependencyCategory, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
 };
 
 #[derive(Debug, Eq, Clone)]
 pub struct CssImportDependency {
+  id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
   category: &'static DependencyCategory,
@@ -38,6 +39,7 @@ impl std::hash::Hash for CssImportDependency {
 impl CssImportDependency {
   pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
     Self {
+      id: None,
       parent_module_identifier: None,
       request,
       category: &DependencyCategory::CssImport,
@@ -49,6 +51,12 @@ impl CssImportDependency {
 }
 
 impl Dependency for CssImportDependency {
+  fn id(&self) -> Option<&DependencyId> {
+    self.id.as_ref()
+  }
+  fn set_id(&mut self, id: DependencyId) {
+    self.id = Some(id);
+  }
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
     self.parent_module_identifier.as_ref()
   }
