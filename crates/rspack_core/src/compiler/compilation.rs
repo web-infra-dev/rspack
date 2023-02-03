@@ -389,8 +389,8 @@ impl Compilation {
       self
         .last_module_diagnostics
         .values()
-        .cloned()
         .flatten()
+        .cloned()
         .collect::<Vec<_>>(),
     );
     // move deps bindings module to force_build_module
