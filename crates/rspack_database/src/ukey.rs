@@ -1,6 +1,11 @@
-use std::{fmt::Debug, hash::Hash, sync::atomic::AtomicUsize};
+use std::{
+  any::{Any, TypeId},
+  fmt::Debug,
+  hash::Hash,
+  sync::atomic::AtomicUsize,
+};
 
-static NEXT_ID_MAP: Lazy<DashMap<&str, AtomicUsize>> = Lazy::new(Default::default);
+static NEXT_ID_MAP: Lazy<DashMap<TypeId, AtomicUsize>> = Lazy::new(Default::default);
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
@@ -10,11 +15,11 @@ use crate::Database as Storage;
 /// Ukey stands for Unique key
 pub struct Ukey<Item>(usize, std::marker::PhantomData<Item>);
 
-impl<Item> Ukey<Item> {
+impl<Item: Any> Ukey<Item> {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
     let id = NEXT_ID_MAP
-      .entry(Self::stored_type())
+      .entry(TypeId::of::<Item>())
       .or_default()
       .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     Self(id, std::marker::PhantomData)
@@ -55,7 +60,7 @@ impl<Item> Ord for Ukey<Item> {
   }
 }
 
-impl<Item> Debug for Ukey<Item> {
+impl<Item: Any> Debug for Ukey<Item> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let item_type = Self::stored_type();
     f.debug_tuple(&format!("{item_type}Sid"))

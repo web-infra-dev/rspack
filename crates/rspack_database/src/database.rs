@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{any::Any, fmt::Debug};
 
 use rustc_hash::FxHashMap;
 
@@ -15,13 +15,13 @@ impl<Item> Debug for Database<Item> {
   }
 }
 
-impl<Item> Default for Database<Item> {
+impl<Item: Any> Default for Database<Item> {
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl<Item> Database<Item> {
+impl<Item: Any> Database<Item> {
   pub fn new() -> Self {
     Self {
       inner: Default::default(),
