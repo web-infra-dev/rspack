@@ -76,20 +76,8 @@ _export(exports, {
     default: ()=>_default,
     exportDefaultUsed: ()=>exportDefaultUsed
 });
-const _script1Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package2/script1.js"), exports));
-const _default = _script1Js.default;
+const _default = mod;
 const exportDefaultUsed = __webpack_exports_info__.default.used;
-},
-"./package2/script1.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = 1;
 },
 
 },function(__webpack_require__) {
