@@ -1,0 +1,14 @@
+{
+  "entry": {
+    "main": {
+      "import": ["./index.ts"]
+    }
+  },
+  "builtins": {
+    "define": {}
+  },
+  "debug": {
+    "treeshake": true,
+    "sideEffects": true
+  }
+}

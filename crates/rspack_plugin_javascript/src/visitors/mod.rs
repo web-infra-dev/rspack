@@ -143,7 +143,7 @@ pub fn run_after_pass(
       let unresolved_mark = context.unresolved_mark;
       let top_level_mark = context.top_level_mark;
       let builtin_tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
-      let minify = generate_context.compilation.options.builtins.minify;
+      let minify = &generate_context.compilation.options.builtins.minify;
       let comments = None;
       let dependency_visitors =
         collect_dependency_code_generation_visitors(module, generate_context)?;

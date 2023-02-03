@@ -1002,9 +1002,6 @@ impl Compilation {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
         used_symbol_ref.extend(analyze_result.used_symbol_refs.iter().cloned());
       }
-      if analyze_result.side_effects_free {
-        side_effects_free_modules.insert(analyze_result.module_identifier);
-      }
       // merge bailout module identifier
       for (k, &v) in analyze_result.bail_out_module_identifiers.iter() {
         match bailout_module_identifiers.entry(*k) {
@@ -1027,7 +1024,8 @@ impl Compilation {
         &mut side_effect_map,
       );
     }
-    let side_effects_free_module_ident = side_effect_map
+
+    let side_effects_free_modules = side_effect_map
       .iter()
       .filter_map(|(k, v)| {
         let side_effect = match v {
@@ -1167,7 +1165,7 @@ impl Compilation {
     // println!("{:?}", Dot::new(&debug_graph));
 
     let mut dead_nodes_index = HashSet::default();
-    let module_item_map = if side_effects_analyze {
+    let module_item_map = if side_effects_options {
       // let start = Instant::now();
       // let dependency_replacement = update_dependency(
       //   &symbol_graph,
@@ -1206,7 +1204,7 @@ impl Compilation {
 
     finalize_symbol(
       self,
-      side_effects_analyze,
+      side_effects_options,
       bailout_entry_module_identifiers,
       &analyze_results,
       used_export_module_identifiers,
@@ -2844,7 +2842,7 @@ fn finalize_symbol(
   used_direct_symbol: &mut HashSet<Symbol>,
   used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
   visited_symbol_ref: HashSet<SymbolRef>,
-  side_effects_free_modules: &IdentifierSet,
+  side_effects_free_module_ident: &IdentifierSet,
   dead_node_index: &HashSet<NodeIndex>,
 ) {
   if side_effects_analyze {
@@ -2863,6 +2861,7 @@ fn finalize_symbol(
         Some(result) => result,
         None => {
           // These are none js like module, we need to keep it.
+          // TODO: remove none js module that has no side_effects
           let mgm = compilation
             .module_graph
             .module_graph_module_by_identifier_mut(&module_identifier)
@@ -2873,19 +2872,11 @@ fn finalize_symbol(
           continue;
         }
       };
-      // let used = used_export_module_identifiers
-      //   .get(&analyze_result.module_identifier)
-      //   .map(|value| {
-      //     value.contains(ModuleUsedType::DIRECT)
-      //       || (!value.contains(ModuleUsedType::REEXPORT)
-      //         && value.contains(ModuleUsedType::INDIRECT))
-      //   })
-      //   .unwrap_or(false);
       let used = used_export_module_identifiers.contains_key(&analyze_result.module_identifier);
 
       if !used
         && !bail_out_module_identifiers.contains_key(&analyze_result.module_identifier)
-        && analyze_result.side_effects_free
+        && side_effects_free_module_ident.contains(&module_identifier)
         && !compilation
           .entry_module_identifiers
           .contains(&module_identifier)
@@ -3044,7 +3035,7 @@ fn finalize_symbol(
             };
           }
         };
-        if side_effects_free_modules.contains(&module_ident)
+        if side_effects_free_module_ident.contains(&module_ident)
           && !reachable_dependency_identifier.contains(&module_ident)
           && !bail_out_module_identifiers.contains_key(&module_ident)
         {
