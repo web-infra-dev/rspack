@@ -10,7 +10,7 @@ use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode}
 use crate::{JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
-  pub make_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub make_tsfn: ThreadsafeFunction<(), ()>,
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()>,
@@ -85,18 +85,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn make(
     &self,
     _ctx: rspack_core::PluginContext,
-    compilation: &rspack_core::Compilation,
+    _compilation: &rspack_core::Compilation,
   ) -> rspack_core::PluginMakeHookOutput {
-    let compilation = JsCompilation::from_compilation(unsafe {
-      Pin::new_unchecked(std::mem::transmute::<
-        &'_ rspack_core::Compilation,
-        &'static rspack_core::Compilation,
-      >(compilation))
-    });
-
+    // We don't need to expose `compilation` to Node as it's already been exposed via `compilation` hook
     self
       .make_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map_err(|err| {
@@ -306,7 +300,7 @@ impl JsHooksAdapter {
     let this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       create_hook_tsfn!(this_compilation);
     let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = create_hook_tsfn!(compilation);
-    let make_tsfn: ThreadsafeFunction<JsCompilation, ()> = create_hook_tsfn!(make);
+    let make_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(make);
 
     Ok(JsHooksAdapter {
       make_tsfn,
