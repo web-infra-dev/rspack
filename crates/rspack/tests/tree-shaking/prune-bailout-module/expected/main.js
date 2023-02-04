@@ -10,28 +10,6 @@ Object.defineProperty(exports, "default", {
 });
 const _default = 300;
 },
-"./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    app: ()=>app,
-    test: ()=>test
-});
-function app() {}
-function test() {}
-},
-"./b.js": function (module, exports, __webpack_require__) {
-"use strict";
-__webpack_require__("./app.js");
-},
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
