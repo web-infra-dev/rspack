@@ -2,10 +2,9 @@ use std::{
   borrow::BorrowMut,
   collections::hash_map::Entry,
   collections::VecDeque,
-  fmt::{Debug, DebugStruct},
+  fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
   marker::PhantomPinned,
-  ops::ControlFlow,
   path::PathBuf,
   pin::Pin,
   sync::{
@@ -994,7 +993,7 @@ impl Compilation {
       if forced_side_effects
         || !matches!(
           analyze_result.side_effects,
-          SideEffect::Configuration(false)
+          SideEffect::Configuration(false) | SideEffect::Analyze(false)
         )
       {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
@@ -1084,6 +1083,7 @@ impl Compilation {
     let mut traced_tuple = HashMap::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
+    dbg!(&used_symbol_ref);
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     mark_used_symbol_with(
       &analyze_results,
@@ -2268,6 +2268,19 @@ fn mark_symbol(
   } else {
     visited_symbol_ref.insert(current_symbol_ref.clone());
   }
+
+  if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
+    evaluated_module_identifiers.insert(current_symbol_ref.importer());
+    match analyze_map.get(&current_symbol_ref.importer().into()) {
+      Some(module_result) => {
+        for used_symbol in module_result.used_symbol_refs.iter() {
+          // graph.add_edge(&current_symbol_ref, used_symbol);
+          symbol_queue.push_back(used_symbol.clone());
+        }
+      }
+      None => {}
+    };
+  }
   graph.add_node(&current_symbol_ref);
   // We don't need mark the symbol usage if it is from a bailout module because
   // bailout module will skipping tree-shaking anyway
@@ -2303,6 +2316,17 @@ fn mark_symbol(
         ModuleUsedType::INDIRECT,
       );
     }
+    SymbolRef::Star(StarSymbol {
+      ty: StarSymbolKind::ReExportAll,
+      module_ident,
+      ..
+    }) => {
+      merge_used_export_type(
+        used_export_module_identifiers,
+        (*module_ident).into(),
+        ModuleUsedType::EXPORT_ALL,
+      );
+    }
     _ => {}
   };
   match current_symbol_ref {
@@ -2331,25 +2355,10 @@ fn mark_symbol(
         graph.add_edge(&current_symbol_ref, import_symbol_ref);
         symbol_queue.push_back(import_symbol_ref.clone());
       }
-      if !evaluated_module_identifiers.contains(&symbol.uri().into()) {
-        evaluated_module_identifiers.insert(symbol.uri().into());
-        for used_symbol_ref in module_result.used_symbol_refs.iter() {
-          // graph.add_edge(&current_symbol_ref, used_symbol_ref);
-          symbol_queue.push_back(used_symbol_ref.clone());
-        }
-      }
     }
     SymbolRef::Indirect(ref indirect_symbol) => {
       // dbg!(&current_symbol_ref);
       let importer = indirect_symbol.importer();
-      if indirect_symbol.is_reexport() && !evaluated_module_identifiers.contains(&importer.into()) {
-        evaluated_module_identifiers.insert(importer.into());
-        let module_result = analyze_map.get(&importer.into()).expect("TODO:");
-        for used_symbol in module_result.used_symbol_refs.iter() {
-          // graph.add_edge(&current_symbol_ref, used_symbol);
-          symbol_queue.push_back(used_symbol.clone());
-        }
-      }
       let module_result = match analyze_map.get(&indirect_symbol.src.into()) {
         Some(module_result) => module_result,
         None => {
@@ -2400,7 +2409,6 @@ fn mark_symbol(
             if let Some(value) = extends_export_map.get(&indirect_symbol.indirect_id()) {
               ret.push((module_identifier, value));
               if is_first_result {
-                println!("fuck");
                 let mut final_node_of_path = vec![];
                 let tuple = (indirect_symbol.src.into(), *module_identifier);
                 match traced_tuple.entry(tuple) {
@@ -2432,6 +2440,19 @@ fn mark_symbol(
                           module_ident: path[i].into(),
                           ty: StarSymbolKind::ReExportAll,
                         };
+                        if !evaluated_module_identifiers.contains(&star_symbol.module_ident.into())
+                        {
+                          evaluated_module_identifiers.insert(star_symbol.module_ident.into());
+                          match analyze_map.get(&star_symbol.module_ident.into()) {
+                            Some(module_result) => {
+                              for used_symbol in module_result.used_symbol_refs.iter() {
+                                // graph.add_edge(&current_symbol_ref, used_symbol);
+                                symbol_queue.push_back(used_symbol.clone());
+                              }
+                            }
+                            None => {}
+                          };
+                        }
 
                         let to = SymbolRef::Star(star_symbol);
                         visited_symbol_ref.insert(to.clone());
@@ -2449,7 +2470,7 @@ fn mark_symbol(
                         merge_used_export_type(
                           used_export_module_identifiers,
                           *mi,
-                          ModuleUsedType::EXPORT_STAR,
+                          ModuleUsedType::EXPORT_ALL,
                         );
                       }
                     }
@@ -2464,15 +2485,6 @@ fn mark_symbol(
               || bailout_module_identifiers.contains_key(module_identifier);
           }
 
-          // FIXME: this is just a workaround for dependency replacement
-          if !ret.is_empty() && !evaluated_module_identifiers.contains(&indirect_symbol.src.into())
-          {
-            for used_symbol_ref in module_result.used_symbol_refs.iter() {
-              // graph.add_edge(&current_symbol_ref, used_symbol_ref);
-              symbol_queue.push_back(used_symbol_ref.clone());
-            }
-            evaluated_module_identifiers.insert(indirect_symbol.src().into());
-          }
           let selected_symbol = match ret.len() {
             0 => {
               // TODO: Better diagnostic handle if source module does not have the export
@@ -2549,11 +2561,16 @@ fn mark_symbol(
       // then, all the exports in `test.js` including
       // export defined in `test.js` and all realted
       // reexport should be marked as used
-
-      let analyze_refsult = match analyze_map.get(&star_symbol.src.into()) {
+      let include_default_export = match star_symbol.ty {
+        StarSymbolKind::ReExportAllAs => false,
+        StarSymbolKind::ImportAllAs => true,
+        StarSymbolKind::ReExportAll => false,
+      };
+      let src_module_identifier: Identifier = star_symbol.src.into();
+      let analyze_refsult = match analyze_map.get(&src_module_identifier) {
         Some(analyze_result) => analyze_result,
         None => {
-          if is_js_like_uri(star_symbol.src.as_str()) {
+          if is_js_like_uri(&src_module_identifier) {
             let error_message = format!("Can't get analyze result of {0}", star_symbol.src);
             errors.push(Error::InternalError(
               internal_error!(error_message).with_severity(Severity::Warn),
@@ -2562,18 +2579,24 @@ fn mark_symbol(
           return;
         }
       };
-      evaluated_module_identifiers.insert(star_symbol.src.into());
-      if !analyze_refsult.export_map.is_empty() {
-        merge_used_export_type(
-          used_export_module_identifiers,
-          star_symbol.src.into(),
-          ModuleUsedType::DIRECT,
-        );
+
+      for (key, export_symbol_ref) in analyze_refsult.export_map.iter() {
+        if !include_default_export && key == "default" {
+        } else {
+          graph.add_edge(&current_symbol_ref, export_symbol_ref);
+          symbol_queue.push_back(export_symbol_ref.clone());
+        }
       }
 
-      for export_symbol_ref in analyze_refsult.export_map.values() {
-        graph.add_edge(&current_symbol_ref, export_symbol_ref);
-        symbol_queue.push_back(export_symbol_ref.clone());
+      for (key, _) in analyze_refsult.inherit_export_maps.iter() {
+        let export_all = SymbolRef::Star(StarSymbol {
+          src: key.clone().into(),
+          binding: Default::default(),
+          module_ident: src_module_identifier.into(),
+          ty: StarSymbolKind::ReExportAll,
+        });
+        graph.add_edge(&current_symbol_ref, &export_all);
+        symbol_queue.push_back(export_all.clone());
       }
 
       // for (_, extend_export_map) in analyze_refsult.inherit_export_maps.iter() {
@@ -3051,7 +3074,7 @@ fn finalize_symbol(
       // }
     }
     for (k, v) in used_export_module_identifiers {
-      if v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT) {
+      if v.contains(ModuleUsedType::EXPORT_ALL) || v.contains(ModuleUsedType::REEXPORT) {
         let mgm = compilation
           .module_graph
           .module_graph_module_by_identifier_mut(&k)
