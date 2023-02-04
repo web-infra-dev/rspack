@@ -198,6 +198,21 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
+      let optimizations = options
+        .optimizations
+        .get_or_insert_with(|| rspack_core::Optimizations {
+          remove_available_modules: options
+            .mode
+            .map_or(false, |mode| mode == rspack_core::Mode::Production),
+        });
+      if let Some(optimization) = raw_options.optimization.as_ref() {
+        optimizations.remove_available_modules = optimization
+          .remove_available_modules
+          .unwrap_or(optimizations.remove_available_modules);
+      }
+      Ok(options)
+    })?
+    .then(|mut options| {
       if let Some(optimization) = raw_options.optimization {
         let split_chunks = RawOption::raw_to_compiler_option(optimization.split_chunks, &options)?;
         options.plugins.get_or_insert_default().push(Box::new(

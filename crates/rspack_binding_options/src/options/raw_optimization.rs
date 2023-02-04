@@ -9,4 +9,5 @@ use crate::RawSplitChunksOptions;
 pub struct RawOptimizationOptions {
   pub split_chunks: Option<RawSplitChunksOptions>,
   pub module_ids: Option<String>,
+  pub remove_available_modules: Option<bool>,
 }

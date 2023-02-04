@@ -1,0 +1,5 @@
+{
+	"optimization": {
+		"removeAvailableModules": true
+	}
+}

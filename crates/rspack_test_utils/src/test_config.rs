@@ -39,6 +39,10 @@ fn default_chunk_filename() -> String {
   "[name][ext]".to_string()
 }
 
+fn true_by_default() -> bool {
+  true
+}
+
 /// The configuration is used to configure the test in Rust.
 /// The structure should be closed to the webpack configuration.
 #[derive(Debug, JsonSchema, Clone, Deserialize)]
@@ -54,6 +58,16 @@ pub struct TestConfig {
   pub output: Output,
   #[serde(default)]
   pub module: Module,
+  #[serde(default)]
+  pub optimization: Optimization,
+}
+
+#[derive(Debug, JsonSchema, Clone, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Optimization {
+  // True by default to reduce code in snapshots.
+  #[serde(default = "true_by_default")]
+  pub remove_available_modules: bool,
 }
 
 #[derive(Debug, JsonSchema, Clone, Deserialize)]
@@ -119,6 +133,7 @@ impl_serde_default!(Debug);
 impl_serde_default!(Builtins);
 impl_serde_default!(EntryItem);
 impl_serde_default!(Module);
+impl_serde_default!(Optimization);
 
 impl TestConfig {
   pub fn to_compiler_options(&self, context: PathBuf) -> CompilerOptions {
@@ -210,6 +225,9 @@ impl TestConfig {
       },
       __emit_error: false,
       module_ids: c::ModuleIds::Named,
+      optimizations: c::Optimizations {
+        remove_available_modules: config.optimization.remove_available_modules,
+      },
     }
   }
 

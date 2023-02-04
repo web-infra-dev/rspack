@@ -11,6 +11,12 @@ fn rspack(fixture_path: PathBuf) {
   test_fixture_rst(&fixture_path);
 }
 
+#[fixture("tests/samples/**/test.config.json")]
+fn samples(fixture_path: PathBuf) {
+  enable_tracing_by_env();
+  test_fixture_rst(fixture_path.parent().expect("should exist"));
+}
+
 #[tokio::main]
 async fn run(context: PathBuf) {
   let mut options = read_test_config_and_normalize(&context);

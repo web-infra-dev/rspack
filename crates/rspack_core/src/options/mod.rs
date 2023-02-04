@@ -5,8 +5,8 @@ mod devtool;
 pub use devtool::*;
 mod entry;
 pub use entry::*;
-mod optimization;
-pub use optimization::*;
+mod optimizations;
+pub use optimizations::*;
 mod dev_server;
 pub use dev_server::*;
 mod output;
@@ -59,6 +59,7 @@ pub struct CompilerOptionsBuilder {
   pub module_ids: Option<ModuleIds>,
   pub experiments: Option<Experiments>,
   pub node: Option<NodeOption>,
+  pub optimizations: Option<Optimizations>,
 }
 
 impl CompilerOptionsBuilder {
@@ -88,6 +89,9 @@ impl CompilerOptionsBuilder {
       node: self.node.expect("build options.node failed"),
       __emit_error: false,
       module_ids: self.module_ids.expect("build options.module_ids failed"),
+      optimizations: self
+        .optimizations
+        .expect("build options.optimizations failed"),
     }
   }
 

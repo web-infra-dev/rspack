@@ -1,26 +1,21 @@
 use anyhow::anyhow;
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use tracing::instrument;
 
+use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
   ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, IdentifierSet,
   ModuleIdentifier,
 };
 
-#[instrument(skip_all)]
-pub fn code_splitting(compilation: &mut Compilation) -> Result<()> {
-  CodeSplitter::new(compilation).split()?;
-  Ok(())
-}
-
-struct CodeSplitter<'me> {
-  compilation: &'me mut Compilation,
+pub(super) struct CodeSplitter<'me> {
+  pub(super) compilation: &'me mut Compilation,
   next_free_module_pre_order_index: usize,
   next_free_module_post_order_index: usize,
   queue: Vec<QueueItem>,
   queue_delayed: Vec<QueueItem>,
   split_point_modules: IdentifierSet,
+  pub(super) remove_parent_modules_context: RemoveParentModulesContext,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -32,6 +27,7 @@ impl<'me> CodeSplitter<'me> {
       queue: Default::default(),
       queue_delayed: Default::default(),
       split_point_modules: Default::default(),
+      remove_parent_modules_context: Default::default(),
     }
   }
 
@@ -60,6 +56,10 @@ impl<'me> CodeSplitter<'me> {
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
       );
+
+      self
+        .remove_parent_modules_context
+        .add_root_chunk(chunk.ukey);
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
@@ -192,8 +192,6 @@ impl<'me> CodeSplitter<'me> {
     }
     tracing::trace!("--- process_queue end ---");
 
-    // Optmize to remove duplicated module which is safe
-
     for chunk_group in self.compilation.chunk_group_by_ukey.values() {
       for chunk_ukey in chunk_group.chunks.iter() {
         self
@@ -204,6 +202,15 @@ impl<'me> CodeSplitter<'me> {
             chunk.runtime.extend(chunk_group.runtime.clone());
           });
       }
+    }
+
+    if self
+      .compilation
+      .options
+      .optimizations
+      .remove_available_modules
+    {
+      self.remove_parent_modules();
     }
 
     Ok(())
@@ -342,12 +349,24 @@ impl<'me> CodeSplitter<'me> {
       let is_already_split_module = self.split_point_modules.contains(module_identifier);
 
       if is_already_split_module {
+        let chunk = self
+          .compilation
+          .chunk_graph
+          .split_point_module_identifier_to_chunk_ukey
+          .get(module_identifier)
+          .expect("split point module not found");
+        self
+          .remove_parent_modules_context
+          .add_chunk_relation(item.chunk, *chunk);
         continue;
       } else {
         self.split_point_modules.insert(*module_identifier);
       }
 
       let chunk = Compilation::add_chunk(&mut self.compilation.chunk_by_ukey);
+      self
+        .remove_parent_modules_context
+        .add_chunk_relation(item.chunk, chunk.ukey);
       self.compilation.chunk_graph.add_chunk(chunk.ukey);
 
       self
