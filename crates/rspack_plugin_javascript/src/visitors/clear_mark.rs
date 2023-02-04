@@ -1,6 +1,10 @@
-use swc_common::SyntaxContext;
-use swc_ecma_ast::Ident;
-use swc_ecma_visit::{as_folder, noop_visit_mut_type, Fold, VisitMut};
+use swc_core::{
+  common::SyntaxContext,
+  ecma::{
+    ast::Ident,
+    visit::{as_folder, noop_visit_mut_type, Fold, VisitMut},
+  },
+};
 
 pub fn clear_mark() -> impl Fold {
   as_folder(ClearMark {})

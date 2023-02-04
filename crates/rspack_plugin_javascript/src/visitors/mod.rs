@@ -2,11 +2,12 @@ mod dependency;
 pub use dependency::*;
 mod finalize;
 use finalize::finalize;
-// mod clear_mark;
-// use clear_mark::clear_mark;
+mod clear_mark;
+use clear_mark::clear_mark;
 mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod strict;
+use rspack_core::tree_shaking::debug_care_module_id;
 use strict::strict_mode;
 mod format;
 use format::*;
@@ -124,6 +125,18 @@ pub fn run_before_pass(
 
     Ok(())
   })?;
+  // dbg!(&resource_data.resource_path);
+  // if debug_care_module_id(&resource_data.resource_path.to_str().unwrap()) {
+  //   // dbg!(&module.identifier());
+  //   dbg!(&ast);
+  //   let res = stringify(ast, &Devtool::default());
+  //   dbg!(&resource_data.resource_path.to_str().unwrap());
+  //   println!(
+  //     "{}\n{}",
+  //     &resource_data.resource_path.to_str().unwrap(),
+  //     res.unwrap().code
+  //   );
+  // }
 
   Ok(())
 }
@@ -135,9 +148,6 @@ pub fn run_after_pass(
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
 
-  // dbg!(&module.identifier());
-  // let res = stringify(ast, &Devtool::default());
-  // println!("{}\n{}", module.identifier(), res.unwrap().code);
   ast
     .transform_with_handler(cm.clone(), |_, program, context| {
       let unresolved_mark = context.unresolved_mark;

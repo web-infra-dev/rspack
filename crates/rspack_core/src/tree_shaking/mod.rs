@@ -1,4 +1,5 @@
 use bitflags;
+use once_cell::sync::Lazy;
 use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem};
@@ -18,21 +19,38 @@ pub struct OptimizeDependencyResult {
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 }
 const ANALYZE_LOGGING: bool = true;
+static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
+  let log = std::env::current_dir().unwrap();
+  dbg!(&log);
+  match &std::env::var("CARE_ID") {
+    Ok(relative_path) => {
+      let ab_path = log.join(relative_path);
+      let file = std::fs::read_to_string(ab_path).unwrap();
+      file
+        .lines()
+        .map(|line| line.to_string())
+        .collect::<Vec<_>>()
+    }
+    Err(_) => vec![],
+  }
+});
 pub static CARED_MODULE_ID: &[&str] = &[
-  "/Users/bytedance/Documents/rspack/rspack/node_modules/@arco-design/web-react/node_modules/react-transition-group/esm/CSSTransition.js",
-  "/Users/bytedance/Documents/rspack/rspack/node_modules/prop-types/index.js"
+  "/Users/bytedance/Documents/bytedance/shadow/packages/platform/src/containers/index/index.tsx",
+  // "/Users/bytedance/Documents/rspack/rspack/node_modules/prop-types/index.js",
 ];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {
     return false;
   }
-  if CARED_MODULE_ID.is_empty() {
-    return true;
-  }
+
+  // .chain()
   CARED_MODULE_ID
     .iter()
     .any(|module_id| id.as_ref().contains(module_id))
+    || CARE_MODULE_ID_FROM_ENV
+      .iter()
+      .any(|module_id| id.as_ref().contains(module_id))
 }
 
 bitflags::bitflags! {

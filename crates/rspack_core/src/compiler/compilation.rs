@@ -1083,7 +1083,7 @@ impl Compilation {
     let mut traced_tuple = HashMap::default();
     // Marking used symbol and all reachable export symbol from the used symbol for each module
 
-    dbg!(&used_symbol_ref);
+    // dbg!(&used_symbol_ref);
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     mark_used_symbol_with(
       &analyze_results,
@@ -1196,7 +1196,7 @@ impl Compilation {
     //   })
     //   .collect::<HashSet<_>>();
 
-    dbg!(&used_export_module_identifiers);
+    // dbg!(&used_export_module_identifiers);
     finalize_symbol(
       self,
       side_effects_options,
@@ -1210,7 +1210,7 @@ impl Compilation {
       &side_effects_free_modules,
       &dead_nodes_index,
     );
-    dbg!(&used_symbol);
+    // dbg!(&used_symbol);
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref: used_symbol,
@@ -2262,7 +2262,7 @@ fn mark_symbol(
   visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
-  dbg!(&current_symbol_ref);
+  // dbg!(&current_symbol_ref);
   if visited_symbol_ref.contains(&current_symbol_ref) {
     return;
   } else {
@@ -3066,8 +3066,8 @@ fn finalize_symbol(
         }
         q.push_back((module_ident, false));
       }
-      dbg!(&module_identifier);
-      dbg!(&reachable_dependency_identifier);
+      // dbg!(&module_identifier);
+      // dbg!(&reachable_dependency_identifier);
 
       // for module_ident in reachable_dependency_identifier {
       //   q.push_back(module_ident);
