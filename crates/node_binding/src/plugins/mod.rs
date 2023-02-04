@@ -81,6 +81,29 @@ impl rspack_core::Plugin for JsHooksAdapter {
       })?
   }
 
+  #[tracing::instrument(name = "js_hooks_adapter::make", skip_all)]
+  async fn make(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    compilation: &rspack_core::Compilation,
+  ) -> rspack_core::PluginThisCompilationHookOutput {
+    let compilation = JsCompilation::from_compilation(unsafe {
+      Pin::new_unchecked(std::mem::transmute::<
+        &'_ rspack_core::Compilation,
+        &'static rspack_core::Compilation,
+      >(compilation))
+    });
+
+    self
+      .make_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!("Failed to call make: {err}",)))
+      })?
+  }
+
   #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_additional", skip_all)]
   async fn process_assets_stage_additional(
     &mut self,

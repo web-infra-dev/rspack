@@ -333,7 +333,15 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, params: SetupMakeParam) -> Result<()> {
-    if let Some(e) = self.plugin_driver.clone().read().await.make(self).err() {
+    if let Some(e) = self
+      .plugin_driver
+      .clone()
+      .read()
+      .await
+      .make(self)
+      .await
+      .err()
+    {
       self.push_batch_diagnostic(e.into());
     }
 
