@@ -9,6 +9,6 @@
   },
   "debug": {
     "treeshake": true,
-    "sideEffects": false
+    "sideEffects": true
   }
 }

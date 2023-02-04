@@ -17,7 +17,6 @@ use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
-use ustr::ustr;
 
 use super::SideEffect;
 // use swc_atoms::JsWord;
@@ -171,7 +170,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver_factory,
-      side_effects: SideEffect::Analyze(false),
+      side_effects: SideEffect::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
@@ -431,9 +430,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
-    self.side_effects = self
-      .get_side_effects_from_config()
-      .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
+    if self.options.builtins.side_effects {
+      self.side_effects = self
+        .get_side_effects_from_config()
+        .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
+    }
   }
 
   fn visit_module(&mut self, node: &Module) {
