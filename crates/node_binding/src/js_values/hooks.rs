@@ -12,4 +12,5 @@ pub struct JsHooks {
   pub this_compilation: JsFunction,
   pub emit: JsFunction,
   pub after_emit: JsFunction,
+  pub make: JsFunction,
 }

@@ -70,6 +70,7 @@ class Compiler {
 		afterEnvironment: tapable.SyncHook<[]>;
 		afterPlugins: tapable.SyncHook<[Compiler]>;
 		afterResolvers: tapable.SyncHook<[Compiler]>;
+		make: tapable.AsyncParallelHook<[Compilation]>;
 	};
 	options: RspackOptionsNormalized;
 
@@ -117,7 +118,8 @@ class Compiler {
 			environment: new tapable.SyncHook([]),
 			afterEnvironment: new tapable.SyncHook([]),
 			afterPlugins: new tapable.SyncHook(["compiler"]),
-			afterResolvers: new tapable.SyncHook(["compiler"])
+			afterResolvers: new tapable.SyncHook(["compiler"]),
+			make: new tapable.AsyncParallelHook(["compilation"])
 		};
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
@@ -132,6 +134,7 @@ class Compiler {
 		this.#_instance =
 			this.#_instance ||
 			new binding.Rspack(options, {
+				make: this.#make.bind(this),
 				emit: this.#emit.bind(this),
 				afterEmit: this.#afterEmit.bind(this),
 				processAssetsStageAdditional: this.#processAssets.bind(
@@ -259,7 +262,9 @@ class Compiler {
 			.__internal_getProcessAssetsHookByStage(stage)
 			.promise(this.compilation.assets);
 	}
-
+	async #make() {
+		await this.hooks.make.promise(this.compilation);
+	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);
 	}
