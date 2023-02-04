@@ -86,7 +86,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     &self,
     _ctx: rspack_core::PluginContext,
     compilation: &rspack_core::Compilation,
-  ) -> rspack_core::PluginThisCompilationHookOutput {
+  ) -> rspack_core::PluginMakeHookOutput {
     let compilation = JsCompilation::from_compilation(unsafe {
       Pin::new_unchecked(std::mem::transmute::<
         &'_ rspack_core::Compilation,
