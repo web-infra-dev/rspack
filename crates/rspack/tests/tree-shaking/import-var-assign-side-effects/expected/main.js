@@ -1,4 +1,16 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./Something.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: ()=>Something
+});
+class Something {
+}
+},
 "./export.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -6,8 +18,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Sider", {
     enumerable: true,
-    get: ()=>Sider
+    get: ()=>_somethingJs.default
 });
+const _somethingJs = __webpack_require__.ir(__webpack_require__("./Something.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
