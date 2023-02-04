@@ -6,6 +6,55 @@ Object.defineProperty(exports, "__esModule", {
 });
 __webpack_require__.es(__webpack_require__("./something/index.js"), exports);
 },
+"./colors/a.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "red", {
+    enumerable: true,
+    get: ()=>red
+});
+const red = 'red';
+},
+"./colors/b.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "blue", {
+    enumerable: true,
+    get: ()=>blue
+});
+const blue = 'blue';
+},
+"./colors/c.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+__webpack_require__.es(__webpack_require__("./colors/result.js"), exports);
+},
+"./colors/index.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+__webpack_require__.es(__webpack_require__("./colors/a.js"), exports);
+__webpack_require__.es(__webpack_require__("./colors/b.js"), exports);
+__webpack_require__.es(__webpack_require__("./colors/c.js"), exports);
+},
+"./colors/result.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "result", {
+    enumerable: true,
+    get: ()=>result
+});
+const result = 'ssss';
+},
 "./export.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -41,8 +90,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Colors", {
     enumerable: true,
-    get: ()=>Colors
+    get: ()=>_indexJs
 });
+const _indexJs = __webpack_require__.ir(__webpack_require__("./colors/index.js"));
 __webpack_require__.es(__webpack_require__("./something/Something.js"), exports);
 },
 

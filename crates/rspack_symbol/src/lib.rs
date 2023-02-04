@@ -57,7 +57,7 @@ pub enum IndirectType {
   ///
   ImportDefault(JsWord),
 }
-pub static default_js_word: JsWord = js_word!("default");
+pub static DEFAULT_JS_WORD: JsWord = js_word!("default");
 /// We have three kind of star symbol
 /// ## import with namespace
 /// ```js
@@ -152,7 +152,7 @@ impl IndirectTopLevelSymbol {
         None => local,
       },
       // we store the binding just used for create [ModuleDecl], but it always to DefaultExport of some module
-      IndirectType::ImportDefault(_) => &default_js_word,
+      IndirectType::ImportDefault(_) => &DEFAULT_JS_WORD,
     }
   }
 
@@ -164,7 +164,7 @@ impl IndirectTopLevelSymbol {
         None => original,
       },
       IndirectType::Import(ref local, ref _imported) => local,
-      IndirectType::ImportDefault(_) => &default_js_word,
+      IndirectType::ImportDefault(_) => &DEFAULT_JS_WORD,
     }
   }
 
