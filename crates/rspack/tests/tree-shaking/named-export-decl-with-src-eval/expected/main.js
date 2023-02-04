@@ -21,13 +21,29 @@ Object.defineProperty(exports, "something", {
 });
 function something() {}
 },
+"./c.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "cccc", {
+    enumerable: true,
+    get: ()=>cccc
+});
+function cccc() {}
+},
 "./export.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+Object.defineProperty(exports, "cccc", {
+    enumerable: true,
+    get: ()=>_cJs.cccc
+});
 const _layoutJs = __webpack_require__.ir(__webpack_require__("./Layout.js"));
 const _somethingJs = __webpack_require__("./Something.js");
+const _cJs = __webpack_require__("./c.js");
 var L = _layoutJs.default;
 L.something = _somethingJs.something;
 },
