@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 try {
-	require("source-map-support").install({
-		handleUncaughtExceptions: false
-	});
+	if (process.env.NODE_ENV.SOURCE_MAP !== "false") {
+		require("source-map-support").install({
+			handleUncaughtExceptions: false
+		});
+	}
 } catch (err) {}
 const runCLI = require("../dist/bootstrap").runCLI;
 runCLI(process.argv);

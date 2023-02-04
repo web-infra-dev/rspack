@@ -1,0 +1,20 @@
+{
+  "name": "next",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "rspack serve"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "next": "13.1.6"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

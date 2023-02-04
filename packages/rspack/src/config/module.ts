@@ -328,6 +328,16 @@ function composeJsUse(
 				};
 
 				const loaderContext: LoaderContext = {
+					currentTraceSpan: {
+						traceChild() {
+							return {
+								setAttribute() {},
+								traceFn(fn: any) {
+									fn();
+								}
+							};
+						}
+					},
 					version: 2,
 					sourceMap: isUseSourceMap(options.devtool),
 					resourcePath: data.resourcePath,
