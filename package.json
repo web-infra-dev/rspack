@@ -5,6 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
+    "dev": "pnpm --filter @rspack/cli run dev",
+    "clean": "pnpm --filter @rspack/cli run clean",
     "init": "./x i",
     "setup": "./x i && ./x build binding",
     "build:cli:debug": "./x build cli:debug",
