@@ -1,6 +1,7 @@
 use std::collections::hash_map::Entry;
 
 use rspack_core::tree_shaking::debug_care_module_id;
+use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
   CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, IdentifierMap,
   IdentifierSet, ModuleGraph, ModuleIdentifier,
@@ -17,8 +18,7 @@ pub fn tree_shaking_visitor<'a>(
   decl_mappings: &'a CodeGeneratableDeclMappings,
   module_graph: &'a ModuleGraph,
   module_id: Identifier,
-  used_symbol_set: &'a HashSet<Symbol>,
-  used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
+  used_symbol_set: &'a HashSet<SymbolRef>,
   top_level_mark: Mark,
   side_effects_free_modules: &'a IdentifierSet,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
@@ -29,7 +29,6 @@ pub fn tree_shaking_visitor<'a>(
     decl_mappings,
     module_identifier: module_id,
     used_symbol_set,
-    used_indirect_symbol_set,
     top_level_mark,
     module_item_index: 0,
     insert_item_tuple_list: Vec::new(),
@@ -55,8 +54,7 @@ struct TreeShaker<'a> {
   module_graph: &'a ModuleGraph,
   decl_mappings: &'a CodeGeneratableDeclMappings,
   module_identifier: Identifier,
-  used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
-  used_symbol_set: &'a HashSet<Symbol>,
+  used_symbol_set: &'a HashSet<SymbolRef>,
   top_level_mark: Mark,
   /// First element of tuple is the position of body you want to insert with, the second element is the item you want to insert
   insert_item_tuple_list: Vec<(usize, ModuleItem)>,
@@ -156,12 +154,12 @@ impl<'a> Fold for TreeShaker<'a> {
                   if default.local.to_id().1.outer() == self.helper_mark {
                     return true;
                   }
-                  let symbol = IndirectTopLevelSymbol {
+                  let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
                     src: module_identifier.into(),
                     ty: rspack_symbol::IndirectType::ImportDefault(default.local.sym.clone()),
                     importer: self.module_identifier.into(),
-                  };
-                  let ret = self.used_indirect_symbol_set.contains(&symbol);
+                  });
+                  let ret = self.used_symbol_set.contains(&symbol);
                   if debug_care_module_id(module_identifier.as_str()) {
                     // dbg!(&symbol);
                     // dbg!(ret);
@@ -179,14 +177,14 @@ impl<'a> Fold for TreeShaker<'a> {
                       ModuleExportName::Ident(ident) => ident.sym.clone(),
                       ModuleExportName::Str(str) => str.value.clone(),
                     });
-                  let symbol = IndirectTopLevelSymbol {
+                  let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
                     src: module_identifier.into(),
                     ty: rspack_symbol::IndirectType::Import(local, imported),
                     importer: self.module_identifier.into(),
-                  };
+                  });
 
                   // dbg!(&symbol);
-                  let ret = self.used_indirect_symbol_set.contains(&symbol);
+                  let ret = self.used_symbol_set.contains(&symbol);
                   ret
                 }
               }
@@ -207,7 +205,11 @@ impl<'a> Fold for TreeShaker<'a> {
         ModuleDecl::ExportDecl(decl) => match decl.decl {
           Decl::Class(mut class) => {
             let id = class.ident.to_id();
-            let symbol = Symbol::new(self.module_identifier.into(), id.into(), SymbolType::Define);
+            let symbol = SymbolRef::Direct(Symbol::new(
+              self.module_identifier.into(),
+              id.into(),
+              SymbolType::Define,
+            ));
             if !self.used_symbol_set.contains(&symbol) {
               class.class.span = DUMMY_SP;
               ModuleItem::Stmt(Stmt::Decl(Decl::Class(class)))
@@ -220,7 +222,11 @@ impl<'a> Fold for TreeShaker<'a> {
           }
           Decl::Fn(mut func) => {
             let id = func.ident.to_id();
-            let symbol = Symbol::new(self.module_identifier.into(), id.into(), SymbolType::Define);
+            let symbol = SymbolRef::Direct(Symbol::new(
+              self.module_identifier.into(),
+              id.into(),
+              SymbolType::Define,
+            ));
             if !self.used_symbol_set.contains(&symbol) {
               func.function.span = DUMMY_SP;
               ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func)))
@@ -249,7 +255,11 @@ impl<'a> Fold for TreeShaker<'a> {
               .map(|decl| match decl.name {
                 Pat::Ident(ident) => {
                   let id: BetterId = ident.to_id().into();
-                  let symbol = Symbol::new(self.module_identifier.into(), id, SymbolType::Define);
+                  let symbol = SymbolRef::Direct(Symbol::new(
+                    self.module_identifier.into(),
+                    id,
+                    SymbolType::Define,
+                  ));
                   let used = self.used_symbol_set.contains(&symbol);
                   (
                     VarDeclarator {
@@ -332,13 +342,13 @@ impl<'a> Fold for TreeShaker<'a> {
                     ModuleExportName::Ident(ident) => ident.sym.clone(),
                     ModuleExportName::Str(str) => str.value.clone(),
                   });
-                  let symbol = IndirectTopLevelSymbol {
+                  let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
                     src: self.module_identifier.into(),
                     ty: rspack_symbol::IndirectType::ReExport(original, exported),
                     importer: self.module_identifier.into(),
-                  };
+                  });
 
-                  let ret = self.used_indirect_symbol_set.contains(&symbol);
+                  let ret = self.used_symbol_set.contains(&symbol);
                   ret
                 }
               })
@@ -374,7 +384,11 @@ impl<'a> Fold for TreeShaker<'a> {
                 ExportSpecifier::Named(named_spec) => match named_spec.orig {
                   ModuleExportName::Ident(ref ident) => {
                     let id: BetterId = ident.to_id().into();
-                    let symbol = Symbol::new(self.module_identifier.into(), id, SymbolType::Temp);
+                    let symbol = SymbolRef::Direct(Symbol::new(
+                      self.module_identifier.into(),
+                      id,
+                      SymbolType::Temp,
+                    ));
                     self.used_symbol_set.contains(&symbol)
                   }
                   ModuleExportName::Str(_) => {
@@ -395,8 +409,12 @@ impl<'a> Fold for TreeShaker<'a> {
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
           let default_symbol = self.crate_virtual_default_symbol();
+
           let ctxt = default_symbol.id().ctxt;
-          if self.used_symbol_set.contains(&default_symbol) {
+          if self
+            .used_symbol_set
+            .contains(&SymbolRef::Direct(default_symbol))
+          {
             ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(decl))
           } else {
             let decl = match decl.decl {
@@ -434,7 +452,7 @@ impl<'a> Fold for TreeShaker<'a> {
           }
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
-          let default_symbol = self.crate_virtual_default_symbol();
+          let default_symbol = SymbolRef::Direct(self.crate_virtual_default_symbol());
           if self.used_symbol_set.contains(&default_symbol) {
             ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(expr))
           } else {

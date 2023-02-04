@@ -117,8 +117,7 @@ pub struct Compilation {
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: IdentifierSet,
   /// Collecting all used export symbol
-  pub used_symbol: HashSet<Symbol>,
-  pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
+  pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlog>,
   #[cfg(debug_assertions)]
@@ -174,7 +173,7 @@ impl Compilation {
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
-      used_symbol: HashSet::default(),
+      used_symbol_ref: HashSet::default(),
       #[cfg(debug_assertions)]
       tree_shaking_result: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
@@ -185,7 +184,6 @@ impl Compilation {
       cache,
       hash: Default::default(),
       _pin: PhantomPinned,
-      used_indirect_symbol: HashSet::default(),
       lazy_visit_modules: Default::default(),
       used_chunk_ids: Default::default(),
 
@@ -1040,8 +1038,6 @@ impl Compilation {
       })
       .collect::<IdentifierSet>();
 
-    // dbg!(&used_symbol_ref);
-
     // calculate relation of module that has `export * from 'xxxx'`
     let mut symbol_graph = SymbolGraph::new();
     let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
@@ -1082,8 +1078,7 @@ impl Compilation {
         .inherit_export_maps = inherit_export_maps;
     }
     let mut errors = vec![];
-    let mut used_direct_symbol = HashSet::default();
-    let mut used_indirect_symbol: HashSet<IndirectTopLevelSymbol> = HashSet::default();
+    let mut used_symbol = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
       IdentifierMap::default();
     let mut traced_tuple = HashMap::default();
@@ -1193,15 +1188,15 @@ impl Compilation {
       IdentifierMap::default()
     };
 
-    let no_direct_used = used_export_module_identifiers
-      .iter()
-      .filter(|(k, v)| {
-        (v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT))
-          && !v.contains(ModuleUsedType::DIRECT)
-      })
-      .collect::<HashSet<_>>();
-    dbg!(&no_direct_used);
+    // let no_direct_used = used_export_module_identifiers
+    //   .iter()
+    //   .filter(|(k, v)| {
+    //     (v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT))
+    //       && !v.contains(ModuleUsedType::DIRECT)
+    //   })
+    //   .collect::<HashSet<_>>();
 
+    dbg!(&used_export_module_identifiers);
     finalize_symbol(
       self,
       side_effects_options,
@@ -1210,20 +1205,17 @@ impl Compilation {
       used_export_module_identifiers,
       &mut bailout_module_identifiers,
       symbol_graph,
-      &mut used_direct_symbol,
-      &mut used_indirect_symbol,
+      &mut used_symbol,
       visited_symbol_ref,
       &side_effects_free_modules,
       &dead_nodes_index,
     );
-    // dbg!(&used_indirect_symbol);
-
+    dbg!(&used_symbol);
     Ok(
       OptimizeDependencyResult {
-        used_direct_symbol,
+        used_symbol_ref: used_symbol,
         analyze_results,
         bail_out_module_identifiers: bailout_module_identifiers,
-        used_indirect_symbol,
         side_effects_free_modules,
         module_item_map,
       }
@@ -2270,7 +2262,7 @@ fn mark_symbol(
   visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
-  // dbg!(&current_symbol_ref);
+  dbg!(&current_symbol_ref);
   if visited_symbol_ref.contains(&current_symbol_ref) {
     return;
   } else {
@@ -2408,6 +2400,7 @@ fn mark_symbol(
             if let Some(value) = extends_export_map.get(&indirect_symbol.indirect_id()) {
               ret.push((module_identifier, value));
               if is_first_result {
+                println!("fuck");
                 let mut final_node_of_path = vec![];
                 let tuple = (indirect_symbol.src.into(), *module_identifier);
                 match traced_tuple.entry(tuple) {
@@ -2441,12 +2434,14 @@ fn mark_symbol(
                         };
 
                         let to = SymbolRef::Star(star_symbol);
+                        visited_symbol_ref.insert(to.clone());
                         if i == 0 {
                           star_chain_start_end_pair.0 = to.clone();
                         }
                         graph.add_edge(&from, &to);
                         from = to;
                       }
+                      // visited_symbol_ref.insert(value.clone());
                       graph.add_edge(&from, value);
                       star_chain_start_end_pair.1 = from;
                       final_node_of_path.push(star_chain_start_end_pair);
@@ -2581,51 +2576,51 @@ fn mark_symbol(
         symbol_queue.push_back(export_symbol_ref.clone());
       }
 
-      for (_, extend_export_map) in analyze_refsult.inherit_export_maps.iter() {
-        for export_symbol_ref in extend_export_map.values() {
-          graph.add_edge(&current_symbol_ref, export_symbol_ref);
-          symbol_queue.push_back(export_symbol_ref.clone());
-          let tuple = (
-            star_symbol.src.into(),
-            export_symbol_ref.module_identifier(),
-          );
-          if !traced_tuple.contains_key(&tuple) {
-            let paths = algo::all_simple_paths::<Vec<_>, _>(
-              &inherit_extend_graph,
-              star_symbol.src.into(),
-              export_symbol_ref.module_identifier(),
-              0,
-              None,
-            );
+      // for (_, extend_export_map) in analyze_refsult.inherit_export_maps.iter() {
+      //   for export_symbol_ref in extend_export_map.values() {
+      //     graph.add_edge(&current_symbol_ref, export_symbol_ref);
+      //     symbol_queue.push_back(export_symbol_ref.clone());
+      //     let tuple = (
+      //       star_symbol.src.into(),
+      //       export_symbol_ref.module_identifier(),
+      //     );
+      //     if !traced_tuple.contains_key(&tuple) {
+      //       let paths = algo::all_simple_paths::<Vec<_>, _>(
+      //         &inherit_extend_graph,
+      //         star_symbol.src.into(),
+      //         export_symbol_ref.module_identifier(),
+      //         0,
+      //         None,
+      //       );
 
-            for path in paths.into_iter() {
-              // dbg!(&path);
-              let mut from = current_symbol_ref.clone();
-              for i in 0..path.len() - 1 {
-                let star_symbol = StarSymbol {
-                  src: path[i + 1].into(),
-                  binding: Default::default(),
-                  module_ident: path[i].into(),
-                  ty: StarSymbolKind::ReExportAll,
-                };
-                let to = SymbolRef::Star(star_symbol);
-                graph.add_edge(&from, &to);
-                from = to;
-              }
+      //       for path in paths.into_iter() {
+      //         // dbg!(&path);
+      //         let mut from = current_symbol_ref.clone();
+      //         for i in 0..path.len() - 1 {
+      //           let star_symbol = StarSymbol {
+      //             src: path[i + 1].into(),
+      //             binding: Default::default(),
+      //             module_ident: path[i].into(),
+      //             ty: StarSymbolKind::ReExportAll,
+      //           };
+      //           let to = SymbolRef::Star(star_symbol);
+      //           graph.add_edge(&from, &to);
+      //           from = to;
+      //         }
 
-              for mi in path.iter().take(path.len() - 1) {
-                merge_used_export_type(
-                  used_export_module_identifiers,
-                  *mi,
-                  ModuleUsedType::EXPORT_STAR,
-                );
-              }
-            }
-            // TODO: handle related symbol connection
-            traced_tuple.insert(tuple, vec![]);
-          }
-        }
-      }
+      //         for mi in path.iter().take(path.len() - 1) {
+      //           merge_used_export_type(
+      //             used_export_module_identifiers,
+      //             *mi,
+      //             ModuleUsedType::EXPORT_STAR,
+      //           );
+      //         }
+      //       }
+      //       // TODO: handle related symbol connection
+      //       traced_tuple.insert(tuple, vec![]);
+      //     }
+      //   }
+      // }
     }
   }
 }
@@ -2840,8 +2835,7 @@ fn finalize_symbol(
   mut used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
   bail_out_module_identifiers: &mut IdentifierMap<BailoutFlog>,
   symbol_graph: SymbolGraph,
-  used_direct_symbol: &mut HashSet<Symbol>,
-  used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
+  used_symbol_ref: &mut HashSet<SymbolRef>,
   visited_symbol_ref: HashSet<SymbolRef>,
   side_effects_free_module_ident: &IdentifierSet,
   dead_node_index: &HashSet<NodeIndex>,
@@ -2911,20 +2905,19 @@ fn finalize_symbol(
       mgm.used = true;
       // dbg!(&module_identifier);
       // eval start
+      // dbg!(&module_visited_symbol_ref);
       if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
         for symbol_ref in symbol_ref_list {
+          update_reachable_dependency(
+            &symbol_ref,
+            &mut reachable_dependency_identifier,
+            &symbol_graph,
+          );
           let node_index = symbol_graph.get_node_index(symbol_ref).unwrap();
           if !visited_symbol_node_index.contains(node_index) {
             let mut bfs = Bfs::new(&symbol_graph.graph, *node_index);
             while let Some(node_index) = bfs.next(&symbol_graph.graph) {
-              update_reachable_symbol(
-                dead_node_index,
-                node_index,
-                &symbol_graph,
-                used_direct_symbol,
-                used_indirect_symbol,
-                &mut reachable_dependency_identifier,
-              )
+              update_reachable_symbol(dead_node_index, node_index, &symbol_graph, used_symbol_ref)
             }
           }
         }
@@ -3070,16 +3063,37 @@ fn finalize_symbol(
       }
     }
   } else {
-    for symbol_ref in visited_symbol_ref {
-      match symbol_ref {
-        SymbolRef::Direct(direct) => {
-          used_direct_symbol.insert(direct);
-        }
-        SymbolRef::Indirect(indirect) => {
-          used_indirect_symbol.insert(indirect);
-        }
-        SymbolRef::Star(_) => {}
+    *used_symbol_ref = visited_symbol_ref;
+  }
+}
+
+fn update_reachable_dependency(
+  symbol_ref: &&SymbolRef,
+  reachable_dependency_identifier: &mut IdentifierSet,
+  symbol_graph: &SymbolGraph,
+) {
+  let root_module_identifier = symbol_ref.importer();
+  let node_index = *symbol_graph.get_node_index(&symbol_ref).unwrap();
+  let mut q = VecDeque::from_iter([node_index]);
+  let mut visited = HashSet::default();
+  while let Some(cur) = q.pop_front() {
+    if visited.contains(&cur) {
+      continue;
+    } else {
+      visited.insert(cur);
+    }
+    let symbol = symbol_graph.get_symbol(&cur).unwrap();
+    let module_identifier = symbol.importer();
+    if module_identifier == root_module_identifier {
+      for ele in symbol_graph
+        .graph
+        .edges_directed(node_index, petgraph::Direction::Outgoing)
+      {
+        let target_node_index = ele.target();
+        q.push_back(target_node_index);
       }
+    } else {
+      reachable_dependency_identifier.insert(module_identifier);
     }
   }
 }
@@ -3088,24 +3102,13 @@ fn update_reachable_symbol(
   dead_node_index: &HashSet<NodeIndex>,
   symbol_node_index: NodeIndex,
   symbol_graph: &SymbolGraph,
-  used_direct_symbol: &mut HashSet<Symbol>,
-  used_indirect_symbol: &mut HashSet<IndirectTopLevelSymbol>,
-  reachable_dependency_identifier: &mut IdentifierSet,
+  used_symbol_ref: &mut HashSet<SymbolRef>,
 ) {
   if dead_node_index.contains(&symbol_node_index) {
     return;
   }
   let symbol = symbol_graph.get_symbol(&symbol_node_index).unwrap();
-  reachable_dependency_identifier.insert(symbol.importer());
-  match symbol {
-    SymbolRef::Direct(symbol) => {
-      used_direct_symbol.insert(symbol.clone());
-    }
-    SymbolRef::Indirect(indirect) => {
-      used_indirect_symbol.insert(indirect.clone());
-    }
-    SymbolRef::Star(_) => {}
-  }
+  used_symbol_ref.insert(symbol.clone());
 }
 
 fn is_js_like_uri(uri: &str) -> bool {

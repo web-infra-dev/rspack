@@ -139,9 +139,8 @@ impl Compiler {
       if !diagnostics.is_empty() {
         self.compilation.push_batch_diagnostic(diagnostics);
       }
-      self.compilation.used_symbol = analyze_result.used_direct_symbol;
+      self.compilation.used_symbol_ref = analyze_result.used_symbol_ref;
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
-      self.compilation.used_indirect_symbol = analyze_result.used_indirect_symbol;
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
 

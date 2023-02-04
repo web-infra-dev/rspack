@@ -4,19 +4,12 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    b: ()=>b,
-    bar: ()=>_fooJs
+Object.defineProperty(exports, "bar", {
+    enumerable: true,
+    get: ()=>_fooJs
 });
 const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 __webpack_require__.es(__webpack_require__("./result.js"), exports);
-function b() {}
 },
 "./foo.js": function (module, exports, __webpack_require__) {
 "use strict";

@@ -3,7 +3,7 @@ use rspack_symbol::{IndirectTopLevelSymbol, Symbol};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::ast::{ModuleDecl, ModuleItem};
 
-use self::visitor::TreeShakingResult;
+use self::visitor::{SymbolRef, TreeShakingResult};
 use crate::{IdentifierMap, IdentifierSet};
 
 pub mod symbol_graph;
@@ -11,8 +11,7 @@ pub mod utils;
 pub mod visitor;
 #[derive(Debug)]
 pub struct OptimizeDependencyResult {
-  pub used_direct_symbol: HashSet<Symbol>,
-  pub used_indirect_symbol: HashSet<IndirectTopLevelSymbol>,
+  pub used_symbol_ref: HashSet<SymbolRef>,
   pub analyze_results: IdentifierMap<TreeShakingResult>,
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub side_effects_free_modules: IdentifierSet,
