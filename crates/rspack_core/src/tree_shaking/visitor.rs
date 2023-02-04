@@ -139,6 +139,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
+  pub(crate) potential_top_mark: HashSet<Mark>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -175,6 +176,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       options,
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
+      // FIXME: just for swc react transform bug
+      potential_top_mark: HashSet::default(),
     }
   }
 
@@ -448,7 +451,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
 
-    if mark == self.top_level_mark {
+    if self.potential_top_mark.contains(&mark) {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
           self.add_reference(body_owner_symbol_ext.clone(), IdOrMemExpr::Id(id), false);
@@ -1194,6 +1197,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             }
           }
         }
+        self.potential_top_mark.insert(vac.key().ctxt.outer());
         vac.insert(symbol);
       }
     }
