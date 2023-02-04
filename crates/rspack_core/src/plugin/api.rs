@@ -48,7 +48,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
+  async fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
     Ok(())
   }
 

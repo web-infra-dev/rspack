@@ -52,7 +52,7 @@ impl Plugin for ProgressPlugin {
     "progress"
   }
 
-  fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
+  async fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
     self.progress_bar.reset();
     self.modules_count.store(0, SeqCst);
     self.modules_done.store(0, SeqCst);

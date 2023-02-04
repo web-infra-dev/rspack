@@ -10,6 +10,7 @@ use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode}
 use crate::{JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
+  pub make_tsfn: ThreadsafeFunction<(), ()>,
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()>,
@@ -77,6 +78,23 @@ impl rspack_core::Plugin for JsHooksAdapter {
         Error::InternalError(internal_error!(format!(
           "Failed to this_compilation: {err}",
         )))
+      })?
+  }
+
+  #[tracing::instrument(name = "js_hooks_adapter::make", skip_all)]
+  async fn make(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    _compilation: &rspack_core::Compilation,
+  ) -> rspack_core::PluginMakeHookOutput {
+    // We don't need to expose `compilation` to Node as it's already been exposed via `compilation` hook
+    self
+      .make_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| {
+        Error::InternalError(internal_error!(format!("Failed to call make: {err}",)))
       })?
   }
 
@@ -221,6 +239,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
 impl JsHooksAdapter {
   pub fn from_js_hooks(env: Env, js_hooks: JsHooks) -> Result<Self> {
     let JsHooks {
+      make,
       process_assets_stage_additional,
       process_assets_stage_pre_process,
       process_assets_stage_none,
@@ -281,8 +300,10 @@ impl JsHooksAdapter {
     let this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       create_hook_tsfn!(this_compilation);
     let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = create_hook_tsfn!(compilation);
+    let make_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(make);
 
     Ok(JsHooksAdapter {
+      make_tsfn,
       process_assets_stage_additional_tsfn,
       process_assets_stage_pre_process_tsfn,
       process_assets_stage_none_tsfn,
