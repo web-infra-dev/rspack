@@ -28,8 +28,9 @@ const onSocketMessage: Handler = {
 	}
 };
 
-// TODO: should change `location.search` to `__resourceQuery`.
-const parsedResourceQuery = parseURL(location.search);
+declare const __resourceQuery: string;
+
+const parsedResourceQuery = parseURL(__resourceQuery);
 const socketURL = createSocketURL(parsedResourceQuery as any);
 
 socket(socketURL, onSocketMessage);

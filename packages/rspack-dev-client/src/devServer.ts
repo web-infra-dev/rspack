@@ -11,6 +11,17 @@ if (module.hot) {
 	var log = function (_level, info) {
 		console.log(info);
 	};
+	log.formatError = function (err) {
+		var message = err.message;
+		var stack = err.stack;
+		if (!stack) {
+			return message;
+		} else if (stack.indexOf(message) < 0) {
+			return message + "\n" + stack;
+		} else {
+			return stack;
+		}
+	};
 	var check = function check() {
 		module.hot
 			.check(true)

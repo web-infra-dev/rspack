@@ -28,10 +28,7 @@ describe("reload and hot should works", () => {
 				liveReload: true
 			}
 		});
-		let server = new RspackDevServer(
-			compiler.options.devServer ?? {},
-			compiler
-		);
+		let server = new RspackDevServer(compiler.options.devServer, compiler);
 		await server.start();
 		await waitingForBuild(server.options.port);
 		console.log("=== before goto page ===");
@@ -69,7 +66,7 @@ describe("reload and hot should works", () => {
 			...config,
 			context: tempDir
 		});
-		server = new RspackDevServer(compiler.options.devServer ?? {}, compiler);
+		server = new RspackDevServer(compiler.options.devServer, compiler);
 		await server.start();
 		await waitingForBuild(server.options.port);
 		console.log("=== before goto page ===");

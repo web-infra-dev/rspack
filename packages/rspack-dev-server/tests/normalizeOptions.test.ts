@@ -42,10 +42,7 @@ describe("normalize options snapshot", () => {
 				hot: true
 			}
 		});
-		const server = new RspackDevServer(
-			compiler.options.devServer ?? {},
-			compiler
-		);
+		const server = new RspackDevServer(compiler.options.devServer, compiler);
 		await server.start();
 		expect({
 			builtins: compiler.options.builtins,
@@ -59,10 +56,7 @@ describe("normalize options snapshot", () => {
 		const compiler = createCompiler({
 			stats: "none"
 		});
-		const server = new RspackDevServer(
-			compiler.options.devServer ?? {},
-			compiler
-		);
+		const server = new RspackDevServer(compiler.options.devServer, compiler);
 		await server.start();
 		expect({
 			builtins: compiler.options.builtins,
@@ -86,10 +80,7 @@ async function match(config: RspackOptions) {
 			}
 		}
 	});
-	const server = new RspackDevServer(
-		compiler.options.devServer ?? {},
-		compiler
-	);
+	const server = new RspackDevServer(compiler.options.devServer, compiler);
 	await server.start();
 	expect(server.options).toMatchSnapshot();
 	await server.stop();
@@ -106,10 +97,7 @@ async function matchAdditionEntries(config: RspackOptions) {
 			}
 		}
 	});
-	const server = new RspackDevServer(
-		compiler.options.devServer ?? {},
-		compiler
-	);
+	const server = new RspackDevServer(compiler.options.devServer, compiler);
 	await server.start();
 	const entires = Object.entries(compiler.options.entry);
 	// some hack for snapshot
