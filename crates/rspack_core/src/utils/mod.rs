@@ -84,8 +84,9 @@ pub fn find_module_graph_roots(
   }
   let mut roots = vec![];
   let mut graph = petgraph::graphmap::DiGraphMap::new();
-  let mut queue = modules.into_iter().collect::<Vec<_>>();
+  let mut queue = modules;
   let mut visited = HashSet::default();
+  // First, we build a graph of all the modules
   while let Some(module) = queue.pop() {
     let module = module_graph
       .module_by_identifier(&module)

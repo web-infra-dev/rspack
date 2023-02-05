@@ -127,6 +127,7 @@ describe("snapshots", () => {
 		    "minimize": undefined,
 		    "minimizer": undefined,
 		    "moduleIds": "named",
+		    "removeAvailableModules": false,
 		    "splitChunks": undefined,
 		  },
 		  "output": {},
@@ -228,7 +229,9 @@ describe("snapshots", () => {
 		+   "mode": "production",
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "removeAvailableModules": false,
 		+     "moduleIds": "deterministic",
+		+     "removeAvailableModules": true,
 	`)
 	);
 	test("production", { mode: "production" }, e =>
@@ -247,7 +250,9 @@ describe("snapshots", () => {
 		+   "mode": "production",
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "removeAvailableModules": false,
 		+     "moduleIds": "deterministic",
+		+     "removeAvailableModules": true,
 	`)
 	);
 	test("development", { mode: "development" }, e =>

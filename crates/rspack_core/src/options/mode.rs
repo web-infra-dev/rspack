@@ -1,6 +1,6 @@
 use std::{env, str::FromStr};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Mode {
   Development,
   Production,

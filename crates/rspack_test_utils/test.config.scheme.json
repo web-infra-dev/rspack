@@ -19,6 +19,9 @@
     "module": {
       "$ref": "#/definitions/Module"
     },
+    "optimization": {
+      "$ref": "#/definitions/Optimization"
+    },
     "output": {
       "$ref": "#/definitions/Output"
     }
@@ -108,6 +111,16 @@
           "additionalProperties": false
         }
       ]
+    },
+    "Optimization": {
+      "type": "object",
+      "properties": {
+        "removeAvailableModules": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
     },
     "Output": {
       "type": "object",

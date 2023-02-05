@@ -32,9 +32,9 @@ use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
+  build_chunk_graph::build_chunk_graph,
   cache::Cache,
   contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
-  split_chunks::code_splitting,
   tree_shaking::{
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutFlog, OptimizeDependencyResult, SideEffect,
@@ -1224,7 +1224,7 @@ impl Compilation {
   }
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    code_splitting(self)?;
+    build_chunk_graph(self)?;
 
     plugin_driver.write().await.optimize_chunks(self)?;
 

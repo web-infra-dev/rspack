@@ -32,6 +32,7 @@ export interface Optimization {
 	minimizer?: ("..." | PluginInstance)[];
 	splitChunks?: OptimizationSplitChunksOptions;
 	runtimeChunk?: OptimizationRuntimeChunk;
+	removeAvailableModules?: boolean;
 }
 
 export interface ResolvedOptimization {
@@ -39,6 +40,7 @@ export interface ResolvedOptimization {
 	minimize?: boolean;
 	minimizer?: ("..." | PluginInstance)[];
 	splitChunks?: RawSplitChunksOptions;
+	removeAvailableModules?: boolean;
 }
 
 export function getNormalizedOptimizationRuntimeChunk(
@@ -73,6 +75,7 @@ export function resolveOptimizationOptions(
 			op.moduleIds ?? (mode === "production" ? "deterministic" : "named"),
 		minimize: op.minimize,
 		minimizer: op.minimizer,
-		splitChunks: resolveSplitChunksOptions(op.splitChunks)
+		splitChunks: resolveSplitChunksOptions(op.splitChunks),
+		removeAvailableModules: op.removeAvailableModules ?? mode === "production"
 	};
 }

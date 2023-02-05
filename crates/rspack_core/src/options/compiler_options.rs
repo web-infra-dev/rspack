@@ -1,7 +1,7 @@
 use crate::{
   Builtins, BundleEntries, CacheOptions, Context, DevServerOptions, Devtool, Experiments, External,
-  ExternalType, ModuleOptions, NodeOption, OutputOptions, Plugins, Resolve, SnapshotOptions,
-  StatsOptions, Target,
+  ExternalType, ModuleOptions, NodeOption, Optimizations, OutputOptions, Plugins, Resolve,
+  SnapshotOptions, StatsOptions, Target,
 };
 
 #[derive(Debug)]
@@ -25,6 +25,7 @@ pub struct CompilerOptions {
   pub node: NodeOption,
   pub __emit_error: bool,
   pub module_ids: ModuleIds,
+  pub optimizations: Optimizations,
 }
 
 #[derive(Debug)]

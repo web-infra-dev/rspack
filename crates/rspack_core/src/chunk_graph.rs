@@ -181,6 +181,11 @@ impl ChunkGraph {
       .collect()
   }
 
+  pub fn get_chunk_module_identifiers(&self, chunk: &ChunkUkey) -> &IdentifierSet {
+    let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
+    &chunk_graph_chunk.modules
+  }
+
   pub fn get_ordered_chunk_modules<'module>(
     &self,
     chunk: &ChunkUkey,
