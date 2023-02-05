@@ -38,7 +38,7 @@ use rspack_error::{
 };
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_symbol::{
-  IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol, SymbolType,
+  BetterId, IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol, SymbolType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
@@ -993,7 +993,7 @@ impl Compilation {
       if forced_side_effects
         || !matches!(
           analyze_result.side_effects,
-          SideEffect::Configuration(false) | SideEffect::Analyze(false)
+          SideEffect::Configuration(false)
         )
       {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
@@ -1157,7 +1157,7 @@ impl Compilation {
       &symbol_graph,
       self.options.context.as_ref().to_str().unwrap(),
     );
-    // println!("{:?}", Dot::new(&debug_graph));
+    println!("{:?}", Dot::new(&debug_graph));
 
     let mut dead_nodes_index = HashSet::default();
     let module_item_map = if side_effects_options {
@@ -2491,7 +2491,23 @@ fn mark_symbol(
               // let map = analyze_map.get(&module_result.module_identifier).expect("TODO:");
               // dbg!(&map);
 
-              graph.add_edge(&current_symbol_ref, &current_symbol_ref);
+              // TODO: only report when target module is a esm module
+              graph.add_edge(
+                &current_symbol_ref,
+                &SymbolRef::Direct(Symbol::new(
+                  module_result.module_identifier.into(),
+                  BetterId {
+                    ctxt: SyntaxContext::empty(),
+                    atom: indirect_symbol.indirect_id().clone(),
+                  },
+                  SymbolType::Temp,
+                )),
+              );
+              merge_used_export_type(
+                used_export_module_identifiers,
+                current_symbol_ref.module_identifier(),
+                ModuleUsedType::INDIRECT,
+              );
               // match bailout_module_identifiers.get(&module_result.module_identifier) {
               //   Some(flag)
               //     if flag.contains(BailoutFlog::COMMONJS_EXPORTS)
