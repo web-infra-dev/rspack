@@ -64,6 +64,8 @@ impl<'me> CodeSplitter<'me> {
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
       for module_identifier in module_identifiers.iter() {
+        // Entry modules are always split point modules
+        self.split_point_modules.insert(**module_identifier);
         compilation
           .chunk_graph
           .split_point_module_identifier_to_chunk_ukey

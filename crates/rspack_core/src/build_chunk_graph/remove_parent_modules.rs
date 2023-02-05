@@ -115,11 +115,6 @@ impl<'me> CodeSplitter<'me> {
     &mut self,
     loaded_modules_map: FxHashMap<ChunkUkey, DefinitelyLoadedModules>,
   ) -> Vec<(ChunkUkey, ModuleIdentifier)> {
-    println!(
-      "graph {:#?}",
-      Dot::new(&self.remove_parent_modules_context.chunk_relation_graph)
-    );
-    println!("loaded_modules_map: {loaded_modules_map:#?}");
     self
       .compilation
       .chunk_by_ukey
@@ -181,6 +176,7 @@ impl<'me> CodeSplitter<'me> {
   /// TODO: The current implementation has a lot of repeated computing.
   #[tracing::instrument(skip_all)]
   pub(super) fn remove_parent_modules(&mut self) {
+    println!("@@@remove_parent_modules");
     let loaded_modules_map = self.prepare_remove_parent_modules();
     let modules_should_be_removed = self.analyze_modules_should_be_removed(loaded_modules_map);
     self.remove_modules(modules_should_be_removed)

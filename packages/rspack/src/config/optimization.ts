@@ -12,19 +12,19 @@ export type OptimizationRuntimeChunk =
 	| ("single" | "multiple")
 	| boolean
 	| {
-			/**
-			 * The name or name factory for the runtime chunks.
-			 */
-			name?: string | Function;
-	  };
+		/**
+		 * The name or name factory for the runtime chunks.
+		 */
+		name?: string | Function;
+	};
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			/**
-			 * The name factory for the runtime chunks.
-			 */
-			name?: Function;
-	  };
+		/**
+		 * The name factory for the runtime chunks.
+		 */
+		name?: Function;
+	};
 
 export interface Optimization {
 	moduleIds?: "named" | "deterministic";
@@ -32,6 +32,7 @@ export interface Optimization {
 	minimizer?: ("..." | PluginInstance)[];
 	splitChunks?: OptimizationSplitChunksOptions;
 	runtimeChunk?: OptimizationRuntimeChunk;
+	removeAvailableModules?: boolean;
 }
 
 export interface ResolvedOptimization {
@@ -39,6 +40,7 @@ export interface ResolvedOptimization {
 	minimize?: boolean;
 	minimizer?: ("..." | PluginInstance)[];
 	splitChunks?: RawSplitChunksOptions;
+	removeAvailableModules?: boolean;
 }
 
 export function getNormalizedOptimizationRuntimeChunk(
@@ -73,6 +75,7 @@ export function resolveOptimizationOptions(
 			op.moduleIds ?? (mode === "production" ? "deterministic" : "named"),
 		minimize: op.minimize,
 		minimizer: op.minimizer,
-		splitChunks: resolveSplitChunksOptions(op.splitChunks)
+		splitChunks: resolveSplitChunksOptions(op.splitChunks),
+		removeAvailableModules: op.removeAvailableModules ?? mode === "production",
 	};
 }
