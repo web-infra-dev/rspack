@@ -298,7 +298,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         .clone()
         .map(|v| v.to_json())
         .transpose()
-        .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?
+        .map_err(|e| internal_error!(e.to_string()))?
         .map(|v| v.into_bytes().into()),
       resource: loader_context.resource.to_owned(),
       resource_path: loader_context.resource_path.to_string_lossy().to_string(),
@@ -332,16 +332,14 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       .call(loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| {
-        rspack_error::Error::InternalError(internal_error!(format!("Failed to call loader: {err}")))
-      })??;
+      .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
 
     let source_map = loader_result
       .as_ref()
       .and_then(|r| r.source_map.as_ref())
       .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
       .transpose()
-      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+      .map_err(|e| internal_error!(e.to_string()))?;
 
     Ok(loader_result.map(|loader_result| {
       rspack_core::LoaderResult {

@@ -21,20 +21,13 @@ impl RspackRegex {
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
     Regex::with_flags(expr, flags)
       .map(RspackRegex)
-      .map_err(|_| {
-        Error::InternalError(internal_error!(format!(
-          "Can't construct regex `/{expr}/{flags}`"
-        )))
-      })
+      .map_err(|_| internal_error!("Can't construct regex `/{expr}/{flags}`"))
   }
 
   pub fn new(expr: &str) -> Result<Self, Error> {
-    Regex::with_flags(expr, "").map(RspackRegex).map_err(|_| {
-      Error::InternalError(internal_error!(format!(
-        "Can't construct regex `/{}/{}`",
-        expr, ""
-      )))
-    })
+    Regex::with_flags(expr, "")
+      .map(RspackRegex)
+      .map_err(|_| internal_error!("Can't construct regex `/{}/{}`", expr, ""))
   }
 }
 

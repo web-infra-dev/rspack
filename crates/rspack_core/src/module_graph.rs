@@ -3,7 +3,7 @@ use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{internal_error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
@@ -175,9 +175,9 @@ impl ModuleGraph {
       let mgm = self
         .module_graph_module_by_identifier_mut(&module_identifier)
         .ok_or_else(|| {
-          Error::InternalError(internal_error!(format!(
+          internal_error!(
             "Failed to set resolved module: Module linked to module identifier {module_identifier} cannot be found"
-          )))
+          )
         })?;
 
       mgm.add_incoming_connection(connection_id);

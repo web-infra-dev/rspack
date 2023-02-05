@@ -13,7 +13,7 @@ use rspack_core::{
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestEntry,
   SourceType,
 };
-use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
@@ -243,9 +243,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } = parse_context;
 
     if !module_type.is_js_like() {
-      return Err(Error::InternalError(internal_error!(format!(
+      return Err(internal_error!(format!(
         "`module_type` {module_type:?} not supported for `JsParser`"
-      ))));
+      )));
     }
 
     let syntax = syntax_by_module_type(
@@ -324,8 +324,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         Ok(GenerationResult {
           ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
-            source_map: SourceMap::from_json(&map)
-              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
+            source_map: SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string()))?,
             name: module.try_as_normal_module()?.request().to_string(),
             original_source: {
               Some(
@@ -355,10 +354,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         })
       }
     } else {
-      Err(Error::InternalError(internal_error!(format!(
+      Err(internal_error!(
         "Unsupported source type {:?} for plugin JavaScript",
         generate_context.requested_source_type,
-      ))))
+      ))
     }
   }
 }
@@ -531,7 +530,7 @@ impl Plugin for JsPlugin {
               value: output.code,
               name: filename,
               source_map: SourceMap::from_json(map)
-                .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
+                .map_err(|e| internal_error!(e.to_string()))?,
               original_source: None,
               inner_source_map: input_source_map,
               remove_original_source: true,

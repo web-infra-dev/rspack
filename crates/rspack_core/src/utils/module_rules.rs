@@ -32,9 +32,9 @@ pub fn module_rule_matcher(
     && module_rule.exclude.is_none()
     && module_rule.issuer.is_none()
   {
-    return Err(rspack_error::Error::InternalError(internal_error!(
-      "ModuleRule must have at least one condition".to_owned()
-    )));
+    return Err(internal_error!(
+      "ModuleRule must have at least one condition"
+    ));
   }
 
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.

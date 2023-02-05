@@ -13,8 +13,7 @@ use std::{
 use bitflags::bitflags;
 use dashmap::DashMap;
 use rspack_error::{
-  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity,
-  TWithDiagnosticArray,
+  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{
@@ -140,9 +139,9 @@ impl ModuleGraphModule {
         module_graph
           .connection_by_connection_id(*connection_id)
           .ok_or_else(|| {
-            Error::InternalError(internal_error!(format!(
+            internal_error!(
               "connection_id_to_connection does not have connection_id: {connection_id}"
-            )))
+            )
           })
       })
       .collect::<Result<Vec<_>>>()?
@@ -162,9 +161,9 @@ impl ModuleGraphModule {
         module_graph
           .connection_by_connection_id(*connection_id)
           .ok_or_else(|| {
-            Error::InternalError(internal_error!(format!(
+            internal_error!(
               "connection_id_to_connection does not have connection_id: {connection_id}"
-            )))
+            )
           })
       })
       .collect::<Result<Vec<_>>>()?
@@ -256,9 +255,7 @@ impl AstOrSource {
     match self {
       AstOrSource::Ast(ast) => Ok(ast),
       // TODO: change to user error
-      _ => Err(Error::InternalError(internal_error!(
-        "Failed to convert to ast".into()
-      ))),
+      _ => Err(internal_error!("Failed to convert to ast")),
     }
   }
 
@@ -266,9 +263,7 @@ impl AstOrSource {
     match self {
       AstOrSource::Source(source) => Ok(source),
       // TODO: change to user error
-      _ => Err(Error::InternalError(internal_error!(
-        "Failed to convert to source".into()
-      ))),
+      _ => Err(internal_error!("Failed to convert to source")),
     }
   }
 
@@ -621,10 +616,10 @@ impl Module for NormalModule {
       }
       Ok(code_generation_result)
     } else {
-      Err(Error::InternalError(internal_error!(format!(
+      Err(internal_error!(
         "Failed to generate code because ast or source is not set for module {}",
         self.request
-      ))))
+      ))
     }
   }
 

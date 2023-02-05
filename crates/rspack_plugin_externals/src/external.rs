@@ -7,7 +7,7 @@ use rspack_core::{
   Identifiable, Identifier, LibIdentOptions, Module, ModuleType, SourceType, Target,
   TargetPlatform,
 };
-use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 
@@ -109,7 +109,7 @@ impl Module for ExternalModule {
     let source: AstOrSource = self
       .cached_source
       .as_ref()
-      .ok_or_else(|| Error::InternalError(internal_error!("Source should exist".to_owned())))?
+      .ok_or_else(|| internal_error!("Source should exist"))?
       .clone()
       .into();
     cgr.add(SourceType::JavaScript, source);

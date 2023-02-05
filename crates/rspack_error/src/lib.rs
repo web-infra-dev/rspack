@@ -6,6 +6,8 @@ pub use diagnostic::*;
 pub use error::*;
 pub mod emitter;
 
+mod macros;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// A helper struct for change logic from
@@ -71,4 +73,12 @@ impl<T: Sized + std::fmt::Debug> IntoTWithDiagnosticArray for T {
       diagnostic,
     }
   }
+}
+
+#[doc(hidden)]
+pub mod __private {
+  pub use core::result::Result::Err;
+
+  pub use crate::error::{Error, InternalError};
+  pub use crate::internal_error;
 }
