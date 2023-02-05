@@ -3,7 +3,6 @@
 
 use std::sync::Arc;
 
-use petgraph::dot::Dot;
 use rayon::prelude::ParallelBridge;
 use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -173,10 +172,9 @@ impl<'me> CodeSplitter<'me> {
     }
   }
 
-  /// TODO: The current implementation has a lot of repeated computing.
+  /// perf: The current implementation has a lot of repeated computing.
   #[tracing::instrument(skip_all)]
   pub(super) fn remove_parent_modules(&mut self) {
-    println!("@@@remove_parent_modules");
     let loaded_modules_map = self.prepare_remove_parent_modules();
     let modules_should_be_removed = self.analyze_modules_should_be_removed(loaded_modules_map);
     self.remove_modules(modules_should_be_removed)
