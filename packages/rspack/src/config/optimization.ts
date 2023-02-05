@@ -12,19 +12,19 @@ export type OptimizationRuntimeChunk =
 	| ("single" | "multiple")
 	| boolean
 	| {
-		/**
-		 * The name or name factory for the runtime chunks.
-		 */
-		name?: string | Function;
-	};
+			/**
+			 * The name or name factory for the runtime chunks.
+			 */
+			name?: string | Function;
+	  };
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-		/**
-		 * The name factory for the runtime chunks.
-		 */
-		name?: Function;
-	};
+			/**
+			 * The name factory for the runtime chunks.
+			 */
+			name?: Function;
+	  };
 
 export interface Optimization {
 	moduleIds?: "named" | "deterministic";
@@ -76,6 +76,6 @@ export function resolveOptimizationOptions(
 		minimize: op.minimize,
 		minimizer: op.minimizer,
 		splitChunks: resolveSplitChunksOptions(op.splitChunks),
-		removeAvailableModules: op.removeAvailableModules ?? mode === "production",
+		removeAvailableModules: op.removeAvailableModules ?? mode === "production"
 	};
 }
