@@ -14,7 +14,7 @@ export interface ResolvedDevServer extends DevServer {
 	liveReload: boolean;
 	webSocketServer: false | WebpackDevServer.WebSocketServerConfiguration;
 	proxy: WebpackDevServer.ProxyConfigArray;
-	client: WebpackDevServer.Configuration["client"];
+	client: WebpackDevServer.ClientConfiguration;
 	allowedHosts: "auto" | string[] | "all";
 	bonjour: false | Record<string, never> | WebpackDevServer.BonjourOptions;
 	compress: boolean;

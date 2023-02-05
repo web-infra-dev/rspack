@@ -25,28 +25,178 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 
 	addAdditionEntires(compiler: Compiler) {
-		const entries: string[] = [];
+		const additionalEntries: string[] = [];
+		// TODO: align with webpack-dev-server after options.target is aligned
+		const isWebTarget =
+			compiler.options.target.includes("web") ||
+			compiler.options.target.includes("webworker");
+		if (this.options.client && isWebTarget) {
+			let webSocketURLStr = "";
 
-		// TODO: should use providerPlugin
-		entries.push(this.getClientTransport());
+			if (this.options.webSocketServer) {
+				const webSocketURL = this.options.client
+					.webSocketURL as WebpackDevServer.WebSocketURL;
+				const webSocketServer = this.options.webSocketServer;
+				const searchParams = new URLSearchParams();
+
+				let protocol: string;
+
+				// We are proxying dev server and need to specify custom `hostname`
+				if (typeof webSocketURL.protocol !== "undefined") {
+					protocol = webSocketURL.protocol;
+				} else {
+					protocol = this.options.server.type === "http" ? "ws:" : "wss:";
+				}
+
+				searchParams.set("protocol", protocol);
+
+				if (typeof webSocketURL.username !== "undefined") {
+					searchParams.set("username", webSocketURL.username);
+				}
+
+				if (typeof webSocketURL.password !== "undefined") {
+					searchParams.set("password", webSocketURL.password);
+				}
+
+				let hostname: string;
+
+				// SockJS is not supported server mode, so `hostname` and `port` can't specified, let's ignore them
+				// TODO show warning about this
+				const isSockJSType = webSocketServer.type === "sockjs";
+
+				// We are proxying dev server and need to specify custom `hostname`
+				if (typeof webSocketURL.hostname !== "undefined") {
+					hostname = webSocketURL.hostname;
+				}
+				// Web socket server works on custom `hostname`, only for `ws` because `sock-js` is not support custom `hostname`
+				else if (
+					typeof webSocketServer.options.host !== "undefined" &&
+					!isSockJSType
+				) {
+					hostname = webSocketServer.options.host;
+				}
+				// The `host` option is specified
+				else if (typeof this.options.host !== "undefined") {
+					hostname = this.options.host;
+				}
+				// The `port` option is not specified
+				else {
+					hostname = "0.0.0.0";
+				}
+
+				searchParams.set("hostname", hostname);
+
+				let port: number | string;
+
+				// We are proxying dev server and need to specify custom `port`
+				if (typeof webSocketURL.port !== "undefined") {
+					port = webSocketURL.port;
+				}
+				// Web socket server works on custom `port`, only for `ws` because `sock-js` is not support custom `port`
+				else if (
+					typeof webSocketServer.options.port !== "undefined" &&
+					!isSockJSType
+				) {
+					port = webSocketServer.options.port;
+				}
+				// The `port` option is specified
+				else if (typeof this.options.port === "number") {
+					port = this.options.port;
+				}
+				// The `port` option is specified using `string`
+				else if (
+					typeof this.options.port === "string" &&
+					this.options.port !== "auto"
+				) {
+					port = Number(this.options.port);
+				}
+				// The `port` option is not specified or set to `auto`
+				else {
+					port = "0";
+				}
+
+				searchParams.set("port", String(port));
+
+				let pathname = "";
+
+				// We are proxying dev server and need to specify custom `pathname`
+				if (typeof webSocketURL.pathname !== "undefined") {
+					pathname = webSocketURL.pathname;
+				}
+				// Web socket server works on custom `path`
+				else if (
+					typeof webSocketServer.options.prefix !== "undefined" ||
+					typeof webSocketServer.options.path !== "undefined"
+				) {
+					pathname =
+						webSocketServer.options.prefix || webSocketServer.options.path;
+				}
+
+				searchParams.set("pathname", pathname);
+
+				const client = /** @type {ClientConfiguration} */ this.options.client;
+
+				if (typeof client.logging !== "undefined") {
+					searchParams.set("logging", client.logging);
+				}
+
+				if (typeof client.progress !== "undefined") {
+					searchParams.set("progress", String(client.progress));
+				}
+
+				if (typeof client.overlay !== "undefined") {
+					searchParams.set(
+						"overlay",
+						typeof client.overlay === "boolean"
+							? String(client.overlay)
+							: JSON.stringify(client.overlay)
+					);
+				}
+
+				if (typeof client.reconnect !== "undefined") {
+					searchParams.set(
+						"reconnect",
+						typeof client.reconnect === "number"
+							? String(client.reconnect)
+							: "10"
+					);
+				}
+
+				if (typeof this.options.hot !== "undefined") {
+					searchParams.set("hot", String(this.options.hot));
+				}
+
+				if (typeof this.options.liveReload !== "undefined") {
+					searchParams.set("live-reload", String(this.options.liveReload));
+				}
+
+				webSocketURLStr = searchParams.toString();
+			}
+
+			// TODO: should use providerPlugin
+			additionalEntries.push(this.getClientTransport());
+
+			additionalEntries.push(
+				`${require.resolve("@rspack/dev-client")}?${webSocketURLStr}`
+			);
+		}
+
 		if (this.options.hot) {
 			const hotUpdateEntryPath = require.resolve(
 				"@rspack/dev-client/devServer"
 			);
-			entries.push(hotUpdateEntryPath);
+			additionalEntries.push(hotUpdateEntryPath);
 
 			if (compiler.options.builtins.react?.refresh) {
 				const reactRefreshEntryPath = require.resolve(
 					"@rspack/dev-client/react-refresh"
 				);
-				entries.push(reactRefreshEntryPath);
+				additionalEntries.push(reactRefreshEntryPath);
 			}
 		}
 
-		const devClientEntryPath = require.resolve("@rspack/dev-client");
-		entries.push(devClientEntryPath);
 		for (const key in compiler.options.entry) {
-			compiler.options.entry[key].import.unshift(...entries);
+			compiler.options.entry[key].import.unshift(...additionalEntries);
 		}
 	}
 
@@ -143,27 +293,25 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 
 	async initialize() {
-		if (this.options.webSocketServer) {
-			const compilers =
-				this.compiler instanceof MultiCompiler
-					? this.compiler.compilers
-					: [this.compiler];
-			compilers.forEach(compiler => {
-				const compilers =
-					compiler instanceof MultiCompiler ? compiler.compilers : [compiler];
-				compilers.forEach(compiler => {
-					compiler.options.devServer ??= {};
-					compiler.options.builtins.react ??= {};
-					if (this.options.hot) {
-						compiler.options.builtins.react.refresh ??= true;
-						compiler.options.builtins.react.development ??= true;
-					} else if (compiler.options.builtins.react.refresh) {
-						this.logger.warn(
-							"builtins.react.refresh needs builtins.react.development and devServer.hot enabled"
-						);
-					}
-				});
+		const compilers =
+			this.compiler instanceof MultiCompiler
+				? this.compiler.compilers
+				: [this.compiler];
 
+		compilers.forEach(compiler => {
+			compiler.options.builtins.react ??= {};
+			if (this.options.hot) {
+				compiler.options.builtins.react.refresh ??= true;
+				compiler.options.builtins.react.development ??= true;
+			} else if (compiler.options.builtins.react.refresh) {
+				this.logger.warn(
+					"builtins.react.refresh needs builtins.react.development and devServer.hot enabled"
+				);
+			}
+		});
+
+		if (this.options.webSocketServer) {
+			compilers.forEach(compiler => {
 				this.addAdditionEntires(compiler);
 			});
 		}
