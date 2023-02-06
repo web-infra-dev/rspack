@@ -144,6 +144,8 @@ export interface LoaderContext
 	};
 	query: unknown;
 	data: unknown;
+	_compiler: Compiler;
+	_compilation: Compiler["compilation"];
 }
 
 const toBuffer = (bufLike: string | Buffer): Buffer => {
@@ -505,7 +507,9 @@ function composeJsUse(
 					getMissingDependencies() {
 						// @ts-expect-error
 						return missingDependencies.slice();
-					}
+					},
+					_compiler: compiler,
+					_compilation: compiler.compilation
 				};
 
 				/**
