@@ -1,5 +1,3 @@
-use std::collections::hash_map::Entry;
-
 use rspack_core::tree_shaking::debug_care_module_id;
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
@@ -14,6 +12,7 @@ use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
+#[allow(clippy::too_many_arguments)]
 pub fn tree_shaking_visitor<'a>(
   decl_mappings: &'a CodeGeneratableDeclMappings,
   module_graph: &'a ModuleGraph,
@@ -92,15 +91,12 @@ impl<'a> Fold for TreeShaker<'a> {
       node.body.insert(position, module_item);
     }
 
-    match self.module_item_map.get(&self.module_identifier) {
-      Some(occ) => {
-        for module_item in occ {
-          node
-            .body
-            .insert(self.last_module_item_index, module_item.clone());
-        }
+    if let Some(occ) = self.module_item_map.get(&self.module_identifier) {
+      for module_item in occ {
+        node
+          .body
+          .insert(self.last_module_item_index, module_item.clone());
       }
-      None => {}
     }
 
     node
@@ -184,8 +180,7 @@ impl<'a> Fold for TreeShaker<'a> {
                   });
 
                   // dbg!(&symbol);
-                  let ret = self.used_symbol_set.contains(&symbol);
-                  ret
+                  self.used_symbol_set.contains(&symbol)
                 }
               }
             })
@@ -348,8 +343,7 @@ impl<'a> Fold for TreeShaker<'a> {
                     importer: self.module_identifier.into(),
                   });
 
-                  let ret = self.used_symbol_set.contains(&symbol);
-                  ret
+                  self.used_symbol_set.contains(&symbol)
                 }
               })
               .collect::<Vec<_>>();

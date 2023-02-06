@@ -25,10 +25,10 @@ async fn run(context: PathBuf) {
   compiler.run().await.expect("TODO:");
 }
 
-// #[fixture("../../examples/*")]
-// fn example(fixture_path: PathBuf) {
-//   run(fixture_path);
-// }
+#[fixture("../../examples/*")]
+fn example(fixture_path: PathBuf) {
+  run(fixture_path);
+}
 
 #[fixture("tests/tree-shaking/*", exclude("node_modules"))]
 fn tree_shaking(fixture_path: PathBuf) {
