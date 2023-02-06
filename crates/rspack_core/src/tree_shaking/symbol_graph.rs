@@ -1,9 +1,9 @@
 use petgraph::stable_graph::{NodeIndex, StableDiGraph};
-use rspack_symbol::{IndirectTopLevelSymbol, IndirectType};
 use rustc_hash::FxHashMap;
 
-use super::{debug_care_module_id, visitor::SymbolRef};
+use super::visitor::SymbolRef;
 
+#[derive(Default)]
 pub struct SymbolGraph {
   pub(crate) graph: StableDiGraph<SymbolRef, ()>,
   pub(crate) symbol_to_index: FxHashMap<SymbolRef, NodeIndex>,
@@ -17,14 +17,6 @@ pub struct SymbolGraph {
 //   println!("called from line: {}", caller_line_number);
 // }
 impl SymbolGraph {
-  pub fn new() -> Self {
-    Self {
-      graph: StableDiGraph::new(),
-      symbol_to_index: FxHashMap::default(),
-      node_index_to_symbol: FxHashMap::default(),
-    }
-  }
-
   pub fn add_node(&mut self, symbol: &SymbolRef) -> NodeIndex {
     // if debug_care_module_id(symbol.module_identifier().as_str()) {
     //   dbg!(&symbol);
@@ -52,26 +44,6 @@ impl SymbolGraph {
 
   // #[track_caller]
   pub fn add_edge(&mut self, from: &SymbolRef, to: &SymbolRef) {
-    // let to_is_valid = match to {
-    //   SymbolRef::Indirect(IndirectTopLevelSymbol {
-    //     ty: IndirectType::Import(local, _),
-    //     ..
-    //   }) => local == "track",
-    //   _ => false,
-    // };
-    // let from_is_valid = match from {
-    //   SymbolRef::Indirect(IndirectTopLevelSymbol {
-    //     ty: IndirectType::Import(local, _),
-    //     ..
-    //   }) => local == "a",
-    //   _ => false,
-    // };
-
-    // if from_is_valid && to_is_valid {
-    //   let caller_location = std::panic::Location::caller();
-    //   let caller_line_number = caller_location.line();
-    //   println!("called from line: {}, ", caller_line_number,);
-    // }
     let from_index = self.add_node(from);
     let to_index = self.add_node(to);
     if !self.graph.contains_edge(from_index, to_index) {
@@ -83,22 +55,19 @@ impl SymbolGraph {
     let from_index = match self.get_node_index(from) {
       Some(index) => *index,
       None => {
-        eprintln!("Can't get node index for symbol {:?}", from);
+        eprintln!("Can't get node index for symbol {from:?}");
         return;
       }
     };
     let to_index = match self.get_node_index(to) {
       Some(index) => *index,
       None => {
-        eprintln!("Can't get node index for symbol {:?}", to);
+        eprintln!("Can't get node index for symbol {to:?}");
         return;
       }
     };
-    match self.graph.find_edge(from_index, to_index) {
-      Some(index) => {
-        self.graph.remove_edge(index);
-      }
-      None => {}
+    if let Some(index) = self.graph.find_edge(from_index, to_index) {
+      self.graph.remove_edge(index);
     };
   }
 

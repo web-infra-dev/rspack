@@ -3,17 +3,17 @@ pub use dependency::*;
 mod finalize;
 use finalize::finalize;
 mod clear_mark;
-use clear_mark::clear_mark;
+
 mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod strict;
-use rspack_core::tree_shaking::debug_care_module_id;
+
 use strict::strict_mode;
 mod format;
 use format::*;
 mod module_variables;
 use module_variables::*;
-use rspack_core::{BuildInfo, Devtool, Module, ModuleType};
+use rspack_core::{BuildInfo, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
@@ -27,8 +27,6 @@ use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use tree_shaking::tree_shaking_visitor;
-
-use crate::ast::stringify;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(

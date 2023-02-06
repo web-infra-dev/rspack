@@ -1251,8 +1251,8 @@ impl<'a> ModuleRefAnalyze<'a> {
               ModuleExportName::Str(str) => str.value.clone(),
             };
             let exported = named.exported.clone().map(|exported| match exported {
-              ModuleExportName::Ident(ident) => ident.sym.clone(),
-              ModuleExportName::Str(str) => str.value.clone(),
+              ModuleExportName::Ident(ident) => ident.sym,
+              ModuleExportName::Str(str) => str.value,
             });
 
             let exported_atom = exported.clone().unwrap_or_else(|| original.clone());

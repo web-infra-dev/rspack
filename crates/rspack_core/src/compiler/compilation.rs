@@ -12,7 +12,6 @@ use std::{
     // time::Instant,
     Arc,
   },
-  time::Instant,
 };
 
 use dashmap::DashSet;
@@ -20,17 +19,13 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use indexmap::IndexSet;
 use petgraph::{
   algo,
-  dot::{Config, Dot},
-  graph,
   graphmap::DiGraphMap,
   prelude::GraphMap,
   stable_graph::{NodeIndex, StableDiGraph},
-  visit::{depth_first_search, Bfs, Control, Dfs, EdgeRef, IntoEdgeReferences, IntoEdges},
+  visit::{Bfs, Dfs, EdgeRef},
   Directed,
 };
-use rayon::prelude::{
-  IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
-};
+use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_database::Database;
 use rspack_error::{
   errors_to_diagnostics, internal_error, Diagnostic, Error, InternalError,
@@ -42,15 +37,8 @@ use rspack_symbol::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::{
-  common::{Mark, SyntaxContext, DUMMY_SP, GLOBALS},
-  ecma::{
-    ast::{
-      ExportNamedSpecifier, ExportSpecifier, Ident, ImportDecl, ImportDefaultSpecifier,
-      ImportNamedSpecifier, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, NamedExport,
-      Str,
-    },
-    atoms::JsWord,
-  },
+  common::SyntaxContext,
+  ecma::{ast::ModuleItem, atoms::JsWord},
 };
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
@@ -59,9 +47,8 @@ use xxhash_rust::xxh3::Xxh3;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::Cache,
-  contextify, dependency, is_source_equal, join_string_component, resolve_module_type_by_uri,
+  contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
   tree_shaking::{
-    debug_care_module_id,
     symbol_graph::SymbolGraph,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutFlog, ModuleUsedType, OptimizeDependencyResult, SideEffect,
@@ -70,13 +57,12 @@ use crate::{
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
   ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, Context,
-  DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, Identifier, IdentifierLinkedSet, IdentifierMap,
-  IdentifierSet, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
-  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule,
-  SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, DependencyId,
+  EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
+  FactorizeTaskResult, Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet,
+  LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask,
+  RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -953,20 +939,20 @@ impl Compilation {
             program.visit_with(&mut analyzer);
             analyzer
           });
-          // Keep this debug info until we stabilize the tree-shaking
 
-          if debug_care_module_id(&uri_key.as_str()) {
-            dbg!(
-              &uri_key,
-              // &analyzer.export_all_list,
-              &analyzer.export_map,
-              &analyzer.import_map,
-              &analyzer.maybe_lazy_reference_map,
-              &analyzer.immediate_evaluate_reference_map,
-              &analyzer.reachable_import_and_export,
-              &analyzer.used_symbol_ref
-            );
-          }
+          // Keep this debug info until we stabilize the tree-shaking
+          // if debug_care_module_id(&uri_key.as_str()) {
+          //   dbg!(
+          //     &uri_key,
+          //     // &analyzer.export_all_list,
+          //     &analyzer.export_map,
+          //     &analyzer.import_map,
+          //     &analyzer.maybe_lazy_reference_map,
+          //     &analyzer.immediate_evaluate_reference_map,
+          //     &analyzer.reachable_import_and_export,
+          //     &analyzer.used_symbol_ref
+          //   );
+          // }
 
           Some((uri_key, analyzer.into()))
         })
@@ -1037,7 +1023,7 @@ impl Compilation {
       .collect::<IdentifierSet>();
 
     // calculate relation of module that has `export * from 'xxxx'`
-    let mut symbol_graph = SymbolGraph::new();
+    let mut symbol_graph = SymbolGraph::default();
     let inherit_export_ref_graph = create_inherit_graph(&analyze_results);
     // key is the module_id of module that potential have reexport all symbol from other module
     // value is the set which contains several module_id the key related module need to inherit
@@ -1146,56 +1132,42 @@ impl Compilation {
       };
     }
 
-    // dbg!(&used_export_module_identifiers);
+    // let debug_graph = generate_debug_symbol_graph(
+    //   &symbol_graph,
+    //   self.options.context.as_ref().to_str().unwrap(),
+    // );
+    // println!("{:?}", Dot::new(&debug_graph));
 
-    // println!("{}", used_export_module_identifiers.len());
+    let dead_nodes_index = HashSet::default();
+    // TODO: dep replacement
+    // let module_item_map = if side_effects_options {
+    //   // let start = Instant::now();
+    //   // let dependency_replacement = update_dependency(
+    //   //   &symbol_graph,
+    //   //   &used_export_module_identifiers,
+    //   //   &bailout_module_identifiers,
+    //   //   &side_effects_free_modules,
+    //   //   &self.entry_module_identifiers,
+    //   // );
 
-    // dbg!(&direct_used);
+    //   // // dbg!(&dependency_replacement);
 
-    let debug_graph = generate_debug_symbol_graph(
-      &symbol_graph,
-      self.options.context.as_ref().to_str().unwrap(),
-    );
-    println!("{:?}", Dot::new(&debug_graph));
+    //   // // apply replacement start
+    //   // // let mut module_item_map = IdentifierMap::default();
+    //   // let module_item_map = self.apply_dependency_replacement(
+    //   //   dependency_replacement,
+    //   //   &mut dead_nodes_index,
+    //   //   &mut symbol_graph,
+    //   // );
 
-    let mut dead_nodes_index = HashSet::default();
-    let module_item_map = if side_effects_options {
-      // let start = Instant::now();
-      // let dependency_replacement = update_dependency(
-      //   &symbol_graph,
-      //   &used_export_module_identifiers,
-      //   &bailout_module_identifiers,
-      //   &side_effects_free_modules,
-      //   &self.entry_module_identifiers,
-      // );
+    //   // // dbg!(&module_item_map.keys().collect::<Vec<_>>());
+    //   // dbg!(&start.elapsed());
+    //   // // module_item_map
+    //   IdentifierMap::default()
+    // } else {
+    //   IdentifierMap::default()
+    // };
 
-      // // dbg!(&dependency_replacement);
-
-      // // apply replacement start
-      // // let mut module_item_map = IdentifierMap::default();
-      // let module_item_map = self.apply_dependency_replacement(
-      //   dependency_replacement,
-      //   &mut dead_nodes_index,
-      //   &mut symbol_graph,
-      // );
-
-      // // dbg!(&module_item_map.keys().collect::<Vec<_>>());
-      // dbg!(&start.elapsed());
-      // // module_item_map
-      IdentifierMap::default()
-    } else {
-      IdentifierMap::default()
-    };
-
-    // let no_direct_used = used_export_module_identifiers
-    //   .iter()
-    //   .filter(|(k, v)| {
-    //     (v.contains(ModuleUsedType::EXPORT_STAR) || v.contains(ModuleUsedType::REEXPORT))
-    //       && !v.contains(ModuleUsedType::DIRECT)
-    //   })
-    //   .collect::<HashSet<_>>();
-
-    // dbg!(&used_export_module_identifiers);
     finalize_symbol(
       self,
       side_effects_options,
@@ -1216,210 +1188,211 @@ impl Compilation {
         analyze_results,
         bail_out_module_identifiers: bailout_module_identifiers,
         side_effects_free_modules,
-        module_item_map,
+        module_item_map: IdentifierMap::default(),
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
   }
 
-  fn apply_dependency_replacement(
-    &mut self,
-    dependency_replacement: Vec<DependencyReplacement>,
-    dead_nodes_index: &mut HashSet<NodeIndex>,
-    symbol_graph: &mut SymbolGraph,
-  ) -> IdentifierMap<Vec<ModuleItem>> {
-    let mut module_item_map: IdentifierMap<Vec<ModuleItem>> = IdentifierMap::default();
-    // let mut dead_nodes: HashSet<NodeIndex> = HashSet::new();
-    let temp_global = Default::default();
-    GLOBALS.set(&temp_global, || {
-      let top_level_mark = Mark::new();
-      for replace in dependency_replacement {
-        let DependencyReplacement {
-          original,
-          to,
-          replacement,
-          ..
-        } = replace;
-        // dbg!(&t);
-        symbol_graph.remove_edge(&original, &to);
-        symbol_graph.add_edge(&original, &replacement);
-        let original_node_index = symbol_graph.get_node_index(&original).cloned().unwrap();
-        dead_nodes_index.insert(original_node_index);
+  // TODO: dep replacement
+  // fn apply_dependency_replacement(
+  //   &mut self,
+  //   dependency_replacement: Vec<DependencyReplacement>,
+  //   dead_nodes_index: &mut HashSet<NodeIndex>,
+  //   symbol_graph: &mut SymbolGraph,
+  // ) -> IdentifierMap<Vec<ModuleItem>> {
+  //   let mut module_item_map: IdentifierMap<Vec<ModuleItem>> = IdentifierMap::default();
+  //   // let mut dead_nodes: HashSet<NodeIndex> = HashSet::new();
+  //   let temp_global = Default::default();
+  //   GLOBALS.set(&temp_global, || {
+  //     let top_level_mark = Mark::new();
+  //     for replace in dependency_replacement {
+  //       let DependencyReplacement {
+  //         original,
+  //         to,
+  //         replacement,
+  //         ..
+  //       } = replace;
+  //       // dbg!(&t);
+  //       symbol_graph.remove_edge(&original, &to);
+  //       symbol_graph.add_edge(&original, &replacement);
+  //       let original_node_index = symbol_graph.get_node_index(&original).cloned().unwrap();
+  //       dead_nodes_index.insert(original_node_index);
 
-        let replace_src_module_id = replacement.module_identifier();
-        let contextify_src = contextify(&self.options.context, &replace_src_module_id);
-        // TODO: Consider multiple replacement points to same original [SymbolRef]
-        let (module_decl, module_ident) = match (original, to) {
-          (SymbolRef::Indirect(ref indirect), to) => {
-            let importer = indirect.importer();
-            let local_binding = match &indirect.ty {
-              IndirectType::Temp(_) => todo!(),
-              IndirectType::ReExport(original, exported) => match exported {
-                Some(exported) => exported,
-                None => original,
-              },
-              IndirectType::Import(local, imported) => local,
-              IndirectType::ImportDefault(binding) => binding,
-            };
-            let import_binding = match replacement {
-              SymbolRef::Direct(direct) => Some(direct.id().atom.clone()),
-              SymbolRef::Indirect(indirect) => Some(indirect.indirect_id().clone()),
-              SymbolRef::Star(_) => None,
-            };
-            let module_decl = match (import_binding, local_binding) {
-              (Some(import_binding), local_binding) => {
-                let is_reexport_all = matches!(indirect.ty, IndirectType::ReExport(_, _));
-                if is_reexport_all {
-                  let specifier = ExportSpecifier::Named(ExportNamedSpecifier {
-                    span: DUMMY_SP,
-                    exported: if local_binding == &import_binding {
-                      None
-                    } else {
-                      // TODO: Considering another export name type
-                      Some(ModuleExportName::Ident(Ident::new(
-                        local_binding.clone(),
-                        DUMMY_SP,
-                      )))
-                    },
-                    orig: ModuleExportName::Ident(Ident::new(import_binding.clone(), DUMMY_SP)),
-                    is_type_only: false,
-                  });
-                  let export = NamedExport {
-                    span: DUMMY_SP,
-                    specifiers: vec![specifier],
-                    src: Some(Box::new(Str {
-                      span: DUMMY_SP,
-                      value: contextify_src.into(),
-                      raw: None,
-                    })),
-                    type_only: false,
-                    asserts: None,
-                  };
-                  ModuleDecl::ExportNamed(export)
-                } else if &import_binding == "default" {
-                  let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
-                    span: DUMMY_SP,
-                    local: Ident::new(
-                      local_binding.clone(),
-                      DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
-                    ),
-                  });
-                  let import = ImportDecl {
-                    span: DUMMY_SP,
-                    specifiers: vec![specifier],
-                    src: Box::new(Str {
-                      span: DUMMY_SP,
-                      value: contextify_src.into(),
-                      raw: None,
-                    }),
-                    type_only: false,
-                    asserts: None,
-                  };
-                  ModuleDecl::Import(import)
-                } else {
-                  let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
-                    span: DUMMY_SP,
-                    local: Ident::new(
-                      local_binding.clone(),
-                      DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
-                    ),
-                    imported: if &import_binding == local_binding {
-                      None
-                    } else {
-                      // TODO: Consider ModuleExportName is `Str`
-                      Some(ModuleExportName::Ident(Ident::new(
-                        import_binding,
-                        DUMMY_SP,
-                      )))
-                    },
-                    is_type_only: false,
-                  });
-                  let import = ImportDecl {
-                    span: DUMMY_SP,
-                    specifiers: vec![specifier],
-                    src: Box::new(Str {
-                      span: DUMMY_SP,
-                      value: contextify_src.into(),
-                      raw: None,
-                    }),
-                    type_only: false,
-                    asserts: None,
-                  };
-                  ModuleDecl::Import(import)
-                }
-              }
-              (None, _) => {
-                match &indirect.ty {
-                  IndirectType::Temp(_) => todo!(),
-                  IndirectType::ReExport(_, _) => todo!(),
-                  IndirectType::Import(local, imported) => {
-                    let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
-                      span: DUMMY_SP,
-                      local: Ident::new(
-                        local.clone(),
-                        DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
-                      ),
-                      imported: imported.as_ref().map(|imported| {
-                        // TODO: Consider ModuleExportName is `Str`
-                        ModuleExportName::Ident(Ident::new(imported.clone(), DUMMY_SP))
-                      }),
-                      is_type_only: false,
-                    });
-                    let import = ImportDecl {
-                      span: DUMMY_SP,
-                      specifiers: vec![specifier],
-                      src: Box::new(Str {
-                        span: DUMMY_SP,
-                        value: contextify_src.into(),
-                        raw: None,
-                      }),
-                      type_only: false,
-                      asserts: None,
-                    };
-                    ModuleDecl::Import(import)
-                  }
-                  IndirectType::ImportDefault(binding) => {
-                    let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
-                      span: DUMMY_SP,
-                      local: Ident::new(
-                        binding.clone(),
-                        DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
-                      ),
-                    });
-                    let import = ImportDecl {
-                      span: DUMMY_SP,
-                      specifiers: vec![specifier],
-                      src: Box::new(Str {
-                        span: DUMMY_SP,
-                        value: contextify_src.into(),
-                        raw: None,
-                      }),
-                      type_only: false,
-                      asserts: None,
-                    };
-                    ModuleDecl::Import(import)
-                  }
-                }
-              }
-            };
-            (module_decl, importer)
-          }
-          _ => todo!(),
-        };
-        match module_item_map.entry(module_ident.into()) {
-          Entry::Occupied(mut occ) => {
-            let module_item = ModuleItem::ModuleDecl(module_decl);
-            occ.borrow_mut().get_mut().push(module_item);
-          }
-          Entry::Vacant(occ) => {
-            let module_item = ModuleItem::ModuleDecl(module_decl);
-            occ.insert(vec![module_item]);
-          }
-        };
-      }
-      module_item_map
-    })
-  }
+  //       let replace_src_module_id = replacement.module_identifier();
+  //       let contextify_src = contextify(&self.options.context, &replace_src_module_id);
+  //       // TODO: Consider multiple replacement points to same original [SymbolRef]
+  //       let (module_decl, module_ident) = match (original, to) {
+  //         (SymbolRef::Indirect(ref indirect), to) => {
+  //           let importer = indirect.importer();
+  //           let local_binding = match &indirect.ty {
+  //             IndirectType::Temp(_) => todo!(),
+  //             IndirectType::ReExport(original, exported) => match exported {
+  //               Some(exported) => exported,
+  //               None => original,
+  //             },
+  //             IndirectType::Import(local, imported) => local,
+  //             IndirectType::ImportDefault(binding) => binding,
+  //           };
+  //           let import_binding = match replacement {
+  //             SymbolRef::Direct(direct) => Some(direct.id().atom.clone()),
+  //             SymbolRef::Indirect(indirect) => Some(indirect.indirect_id().clone()),
+  //             SymbolRef::Star(_) => None,
+  //           };
+  //           let module_decl = match (import_binding, local_binding) {
+  //             (Some(import_binding), local_binding) => {
+  //               let is_reexport_all = matches!(indirect.ty, IndirectType::ReExport(_, _));
+  //               if is_reexport_all {
+  //                 let specifier = ExportSpecifier::Named(ExportNamedSpecifier {
+  //                   span: DUMMY_SP,
+  //                   exported: if local_binding == &import_binding {
+  //                     None
+  //                   } else {
+  //                     // TODO: Considering another export name type
+  //                     Some(ModuleExportName::Ident(Ident::new(
+  //                       local_binding.clone(),
+  //                       DUMMY_SP,
+  //                     )))
+  //                   },
+  //                   orig: ModuleExportName::Ident(Ident::new(import_binding.clone(), DUMMY_SP)),
+  //                   is_type_only: false,
+  //                 });
+  //                 let export = NamedExport {
+  //                   span: DUMMY_SP,
+  //                   specifiers: vec![specifier],
+  //                   src: Some(Box::new(Str {
+  //                     span: DUMMY_SP,
+  //                     value: contextify_src.into(),
+  //                     raw: None,
+  //                   })),
+  //                   type_only: false,
+  //                   asserts: None,
+  //                 };
+  //                 ModuleDecl::ExportNamed(export)
+  //               } else if &import_binding == "default" {
+  //                 let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
+  //                   span: DUMMY_SP,
+  //                   local: Ident::new(
+  //                     local_binding.clone(),
+  //                     DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+  //                   ),
+  //                 });
+  //                 let import = ImportDecl {
+  //                   span: DUMMY_SP,
+  //                   specifiers: vec![specifier],
+  //                   src: Box::new(Str {
+  //                     span: DUMMY_SP,
+  //                     value: contextify_src.into(),
+  //                     raw: None,
+  //                   }),
+  //                   type_only: false,
+  //                   asserts: None,
+  //                 };
+  //                 ModuleDecl::Import(import)
+  //               } else {
+  //                 let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
+  //                   span: DUMMY_SP,
+  //                   local: Ident::new(
+  //                     local_binding.clone(),
+  //                     DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+  //                   ),
+  //                   imported: if &import_binding == local_binding {
+  //                     None
+  //                   } else {
+  //                     // TODO: Consider ModuleExportName is `Str`
+  //                     Some(ModuleExportName::Ident(Ident::new(
+  //                       import_binding,
+  //                       DUMMY_SP,
+  //                     )))
+  //                   },
+  //                   is_type_only: false,
+  //                 });
+  //                 let import = ImportDecl {
+  //                   span: DUMMY_SP,
+  //                   specifiers: vec![specifier],
+  //                   src: Box::new(Str {
+  //                     span: DUMMY_SP,
+  //                     value: contextify_src.into(),
+  //                     raw: None,
+  //                   }),
+  //                   type_only: false,
+  //                   asserts: None,
+  //                 };
+  //                 ModuleDecl::Import(import)
+  //               }
+  //             }
+  //             (None, _) => {
+  //               match &indirect.ty {
+  //                 IndirectType::Temp(_) => todo!(),
+  //                 IndirectType::ReExport(_, _) => todo!(),
+  //                 IndirectType::Import(local, imported) => {
+  //                   let specifier = ImportSpecifier::Named(ImportNamedSpecifier {
+  //                     span: DUMMY_SP,
+  //                     local: Ident::new(
+  //                       local.clone(),
+  //                       DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+  //                     ),
+  //                     imported: imported.as_ref().map(|imported| {
+  //                       // TODO: Consider ModuleExportName is `Str`
+  //                       ModuleExportName::Ident(Ident::new(imported.clone(), DUMMY_SP))
+  //                     }),
+  //                     is_type_only: false,
+  //                   });
+  //                   let import = ImportDecl {
+  //                     span: DUMMY_SP,
+  //                     specifiers: vec![specifier],
+  //                     src: Box::new(Str {
+  //                       span: DUMMY_SP,
+  //                       value: contextify_src.into(),
+  //                       raw: None,
+  //                     }),
+  //                     type_only: false,
+  //                     asserts: None,
+  //                   };
+  //                   ModuleDecl::Import(import)
+  //                 }
+  //                 IndirectType::ImportDefault(binding) => {
+  //                   let specifier = ImportSpecifier::Default(ImportDefaultSpecifier {
+  //                     span: DUMMY_SP,
+  //                     local: Ident::new(
+  //                       binding.clone(),
+  //                       DUMMY_SP.with_ctxt(SyntaxContext::empty().apply_mark(top_level_mark)),
+  //                     ),
+  //                   });
+  //                   let import = ImportDecl {
+  //                     span: DUMMY_SP,
+  //                     specifiers: vec![specifier],
+  //                     src: Box::new(Str {
+  //                       span: DUMMY_SP,
+  //                       value: contextify_src.into(),
+  //                       raw: None,
+  //                     }),
+  //                     type_only: false,
+  //                     asserts: None,
+  //                   };
+  //                   ModuleDecl::Import(import)
+  //                 }
+  //               }
+  //             }
+  //           };
+  //           (module_decl, importer)
+  //         }
+  //         _ => todo!(),
+  //       };
+  //       match module_item_map.entry(module_ident.into()) {
+  //         Entry::Occupied(mut occ) => {
+  //           let module_item = ModuleItem::ModuleDecl(module_decl);
+  //           occ.borrow_mut().get_mut().push(module_item);
+  //         }
+  //         Entry::Vacant(occ) => {
+  //           let module_item = ModuleItem::ModuleDecl(module_decl);
+  //           occ.insert(vec![module_item]);
+  //         }
+  //       };
+  //     }
+  //     module_item_map
+  //   })
+  // }
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let stats = &mut Stats::new(self);
@@ -1740,290 +1713,293 @@ impl Compilation {
   }
 }
 
-fn update_dependency(
-  symbol_graph: &SymbolGraph,
-  used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
-  bail_out_module_identifiers: &IdentifierMap<BailoutFlog>,
-  side_effects_free_modules: &IdentifierSet,
-  entry_modules_identifier: &IdentifierSet,
-) -> Vec<DependencyReplacement> {
-  // dbg!(&used_export_module_identifiers);
-  let mut exported_symbol_set = HashSet::default();
-  let mut dependency_replacement_list = vec![];
-  let directed_symbol_node_set = symbol_graph
-    .symbol_to_index
-    .iter()
-    .filter_map(|(k, v)| {
-      if matches!(k, SymbolRef::Direct(_)) {
-        Some(*v)
-      } else {
-        None
-      }
-    })
-    .collect::<HashSet<NodeIndex>>();
-  for (symbol_ref, node_index) in symbol_graph.symbol_to_index.iter() {
-    // println!("----------------");
-    if !matches!(symbol_ref, SymbolRef::Direct(_)) {
-      continue;
-    }
+// TODO: dep replacement
+// fn update_dependency(
+//   symbol_graph: &SymbolGraph,
+//   used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
+//   bail_out_module_identifiers: &IdentifierMap<BailoutFlog>,
+//   side_effects_free_modules: &IdentifierSet,
+//   entry_modules_identifier: &IdentifierSet,
+// ) -> Vec<DependencyReplacement> {
+//   // dbg!(&used_export_module_identifiers);
+//   let mut exported_symbol_set = HashSet::default();
+//   let mut dependency_replacement_list = vec![];
+//   let directed_symbol_node_set = symbol_graph
+//     .symbol_to_index
+//     .iter()
+//     .filter_map(|(k, v)| {
+//       if matches!(k, SymbolRef::Direct(_)) {
+//         Some(*v)
+//       } else {
+//         None
+//       }
+//     })
+//     .collect::<HashSet<NodeIndex>>();
+//   for (symbol_ref, node_index) in symbol_graph.symbol_to_index.iter() {
+//     // println!("----------------");
+//     if !matches!(symbol_ref, SymbolRef::Direct(_)) {
+//       continue;
+//     }
 
-    let mut paths = Vec::new();
-    recursive_visited(
-      symbol_graph,
-      &mut vec![],
-      &mut paths,
-      &mut HashSet::default(),
-      *node_index,
-      &directed_symbol_node_set,
-    );
-    let symbol_paths = paths
-      .into_par_iter()
-      .map(|path| {
-        path
-          .iter()
-          .map(|node_index| symbol_graph.get_symbol(node_index).unwrap().clone())
-          .collect::<Vec<_>>()
-      })
-      .collect::<Vec<_>>();
-    // dbg!(&symbol_paths);
-    // sliding window
-    for symbol_path in symbol_paths {
-      // dbg!(&symbol_path);
-      let mut start = 0;
-      let mut end = 0;
-      init_sliding_window(&mut start, &mut end, &symbol_path);
+//     let mut paths = Vec::new();
+//     recursive_visited(
+//       symbol_graph,
+//       &mut vec![],
+//       &mut paths,
+//       &mut HashSet::default(),
+//       *node_index,
+//       &directed_symbol_node_set,
+//     );
+//     let symbol_paths = paths
+//       .into_par_iter()
+//       .map(|path| {
+//         path
+//           .iter()
+//           .map(|node_index| symbol_graph.get_symbol(node_index).unwrap().clone())
+//           .collect::<Vec<_>>()
+//       })
+//       .collect::<Vec<_>>();
+//     // dbg!(&symbol_paths);
+//     // sliding window
+//     for symbol_path in symbol_paths {
+//       // dbg!(&symbol_path);
+//       let mut start = 0;
+//       let mut end = 0;
+//       init_sliding_window(&mut start, &mut end, &symbol_path);
 
-      while end < symbol_path.len() {
-        let end_symbol = &symbol_path[end];
-        // let is_reexport = end_symbol.is_star()
-        let owner_module_identifier = end_symbol.module_identifier();
-        // let is_owner_module_export_used = used_export_module_identifiers
-        //   .get(&owner_module_identifier)
-        //   .map(|flag| flag.contains(ModuleUsedType::DIRECT))
-        //   .unwrap_or(false);
+//       while end < symbol_path.len() {
+//         let end_symbol = &symbol_path[end];
+//         // let is_reexport = end_symbol.is_star()
+//         let owner_module_identifier = end_symbol.module_identifier();
+//         // let is_owner_module_export_used = used_export_module_identifiers
+//         //   .get(&owner_module_identifier)
+//         //   .map(|flag| flag.contains(ModuleUsedType::DIRECT))
+//         //   .unwrap_or(false);
 
-        // TODO: optimize export *
-        // safe to process
-        // if is_owner_module_export_used
-        //   || bail_out_module_identifiers.contains_key(&owner_module_identifier)
-        //   || !side_effects_free_modules.contains(&owner_module_identifier)
-        //   || entry_modules_identifier.contains(&owner_module_identifier)
-        // {
-        //   if end - start > 1 {
-        //     println!("cant removed: {start}, {end}");
-        //     validate_and_insert_replacement(
-        //       false,
-        //       &mut dependency_replacement_list,
-        //       &symbol_path,
-        //       end - 1,
-        //       start,
-        //       used_export_module_identifiers,
-        //     );
-        //     // dependency_replacement_list.push(DependencyReplacement {
-        //     //   from: symbol_path[end].clone(),
-        //     //   replacement: symbol_path[start].clone(),
-        //     // })
-        //   }
-        //   init_sliding_window(&mut start, &mut end, &symbol_path);
-        //   continue;
-        // }
+//         // TODO: optimize export *
+//         // safe to process
+//         // if is_owner_module_export_used
+//         //   || bail_out_module_identifiers.contains_key(&owner_module_identifier)
+//         //   || !side_effects_free_modules.contains(&owner_module_identifier)
+//         //   || entry_modules_identifier.contains(&owner_module_identifier)
+//         // {
+//         //   if end - start > 1 {
+//         //     println!("cant removed: {start}, {end}");
+//         //     validate_and_insert_replacement(
+//         //       false,
+//         //       &mut dependency_replacement_list,
+//         //       &symbol_path,
+//         //       end - 1,
+//         //       start,
+//         //       used_export_module_identifiers,
+//         //     );
+//         //     // dependency_replacement_list.push(DependencyReplacement {
+//         //     //   from: symbol_path[end].clone(),
+//         //     //   replacement: symbol_path[start].clone(),
+//         //     // })
+//         //   }
+//         //   init_sliding_window(&mut start, &mut end, &symbol_path);
+//         //   continue;
+//         // }
 
-        if !end_symbol.is_skipable_symbol() && end != symbol_path.len() - 1 {
-          if end - start > 1 {
-            // println!("none reexport: {start}, {end}");
-            validate_and_insert_replacement(
-              false,
-              &mut dependency_replacement_list,
-              &symbol_path,
-              end - if end_symbol.is_indirect() { 0 } else { 1 },
-              start,
-              used_export_module_identifiers,
-              &mut exported_symbol_set,
-            );
-          }
+//         if !end_symbol.is_skipable_symbol() && end != symbol_path.len() - 1 {
+//           if end - start > 1 {
+//             // println!("none reexport: {start}, {end}");
+//             validate_and_insert_replacement(
+//               false,
+//               &mut dependency_replacement_list,
+//               &symbol_path,
+//               end - if end_symbol.is_indirect() { 0 } else { 1 },
+//               start,
+//               used_export_module_identifiers,
+//               &mut exported_symbol_set,
+//             );
+//           }
 
-          init_sliding_window(&mut start, &mut end, &symbol_path);
+//           init_sliding_window(&mut start, &mut end, &symbol_path);
 
-          continue;
-        }
-        end += 1;
-      }
-      // because last window range is [start, end - 1]
-      if end - start > 1 {
-        // println!("end check: {start}, {end}");
-        validate_and_insert_replacement(
-          true,
-          &mut dependency_replacement_list,
-          &symbol_path,
-          end - 1,
-          start,
-          used_export_module_identifiers,
-          &mut exported_symbol_set,
-        );
-      }
-    }
-    // println!("end ----------------");
-  }
-  // dbg!(&exported_symbol_set);
-  dependency_replacement_list
-}
+//           continue;
+//         }
+//         end += 1;
+//       }
+//       // because last window range is [start, end - 1]
+//       if end - start > 1 {
+//         // println!("end check: {start}, {end}");
+//         validate_and_insert_replacement(
+//           true,
+//           &mut dependency_replacement_list,
+//           &symbol_path,
+//           end - 1,
+//           start,
+//           used_export_module_identifiers,
+//           &mut exported_symbol_set,
+//         );
+//       }
+//     }
+//     // println!("end ----------------");
+//   }
+//   // dbg!(&exported_symbol_set);
+//   dependency_replacement_list
+// }
 
-fn validate_and_insert_replacement(
-  end_check: bool,
-  dependency_replacement_list: &mut Vec<DependencyReplacement>,
-  symbol_path: &Vec<SymbolRef>,
-  end: usize,
-  start: usize,
-  used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
-  used_export_symbol_set: &mut HashSet<Identifier>,
-) {
-  enum CheckResult {
-    Valid,
-    Invalid,
-    Wrong,
-  }
-  // println!(
-  //   "{:#?}, \n{:#?}, {}",
-  //   &symbol_path[start], &symbol_path[end], end_check
-  // );
+// TODO: dep replacement
+// fn validate_and_insert_replacement(
+//   end_check: bool,
+//   dependency_replacement_list: &mut Vec<DependencyReplacement>,
+//   symbol_path: &Vec<SymbolRef>,
+//   end: usize,
+//   start: usize,
+//   used_export_module_identifiers: &IdentifierMap<ModuleUsedType>,
+//   used_export_symbol_set: &mut HashSet<Identifier>,
+// ) {
+//   enum CheckResult {
+//     Valid,
+//     Invalid,
+//     Wrong,
+//   }
+//   // println!(
+//   //   "{:#?}, \n{:#?}, {}",
+//   //   &symbol_path[start], &symbol_path[end], end_check
+//   // );
 
-  let unused_export_symbol = symbol_path[start..=end]
-    .iter()
-    .filter(|symbol| {
-      used_export_module_identifiers
-        .get(&symbol.module_identifier())
-        .map(|ty| !ty.contains(ModuleUsedType::DIRECT))
-        .unwrap_or(false)
-    })
-    .map(|s| s.module_identifier())
-    .collect::<HashSet<_>>();
+//   let unused_export_symbol = symbol_path[start..=end]
+//     .iter()
+//     .filter(|symbol| {
+//       used_export_module_identifiers
+//         .get(&symbol.module_identifier())
+//         .map(|ty| !ty.contains(ModuleUsedType::DIRECT))
+//         .unwrap_or(false)
+//     })
+//     .map(|s| s.module_identifier())
+//     .collect::<HashSet<_>>();
 
-  used_export_symbol_set.extend(unused_export_symbol.iter().cloned());
+//   used_export_symbol_set.extend(unused_export_symbol.iter().cloned());
 
-  // dbg!(&unused_export_symbol);
-  let is_valid_path = match (&symbol_path[start], &symbol_path[end]) {
-    (SymbolRef::Direct(_), SymbolRef::Direct(_)) => false,
-    (SymbolRef::Direct(replace), SymbolRef::Indirect(original)) => {
-      // validate if we this path point to same symbol
-      // we know that start must be has `SymbolType == Define`
-      if end - start > 1 {
-        // dbg!(&&symbol_path[start..=end]);
-      }
-      is_same_symbol(original, end, start, symbol_path, replace)
-    }
-    (SymbolRef::Direct(_), SymbolRef::Star(_)) => false,
-    (SymbolRef::Indirect(_), SymbolRef::Direct(_)) => false,
-    (SymbolRef::Indirect(replace), SymbolRef::Indirect(_)) => {
-      matches!(replace.ty, IndirectType::ReExport(_, _))
-    }
-    (SymbolRef::Indirect(_), SymbolRef::Star(_)) => {
-      // todo!()
-      // TODO:
-      false
-    }
-    (SymbolRef::Star(_), SymbolRef::Direct(_)) => todo!(),
-    (SymbolRef::Star(replace), SymbolRef::Indirect(_)) => {
-      replace.ty == StarSymbolKind::ReExportAll
-      // dbg!(&symbol_path[start]);
-      // dbg!(&symbol_path[end]);
-      // todo!()
-    }
-    (SymbolRef::Star(_), SymbolRef::Star(_)) => todo!(),
-  };
-  if unused_export_symbol.len() > 0 && is_valid_path && end - start > 1 {
-    if symbol_path[start..=end].len() > 3 {
-      // dbg!(&symbol_path[start..=end]);
-    }
-    dependency_replacement_list.push(DependencyReplacement {
-      original: symbol_path[end].clone(),
-      to: symbol_path[end - 1].clone(),
-      replacement: symbol_path[start].clone(),
-      unused_export_symbol_count: unused_export_symbol.len(),
-    })
-  } else {
-    if !is_valid_path && !end_check {
-      println!(
-        "{:#?}, \n{:#?}, {}",
-        &symbol_path[start], &symbol_path[end], end_check
-      );
-    }
-  }
-  // if has_unused_export_symbol {
-  // }
-}
+//   // dbg!(&unused_export_symbol);
+//   let is_valid_path = match (&symbol_path[start], &symbol_path[end]) {
+//     (SymbolRef::Direct(_), SymbolRef::Direct(_)) => false,
+//     (SymbolRef::Direct(replace), SymbolRef::Indirect(original)) => {
+//       // validate if we this path point to same symbol
+//       // we know that start must be has `SymbolType == Define`
+//       if end - start > 1 {
+//         // dbg!(&&symbol_path[start..=end]);
+//       }
+//       is_same_symbol(original, end, start, symbol_path, replace)
+//     }
+//     (SymbolRef::Direct(_), SymbolRef::Star(_)) => false,
+//     (SymbolRef::Indirect(_), SymbolRef::Direct(_)) => false,
+//     (SymbolRef::Indirect(replace), SymbolRef::Indirect(_)) => {
+//       matches!(replace.ty, IndirectType::ReExport(_, _))
+//     }
+//     (SymbolRef::Indirect(_), SymbolRef::Star(_)) => {
+//       // todo!()
+//       // TODO:
+//       false
+//     }
+//     (SymbolRef::Star(_), SymbolRef::Direct(_)) => todo!(),
+//     (SymbolRef::Star(replace), SymbolRef::Indirect(_)) => {
+//       replace.ty == StarSymbolKind::ReExportAll
+//       // dbg!(&symbol_path[start]);
+//       // dbg!(&symbol_path[end]);
+//       // todo!()
+//     }
+//     (SymbolRef::Star(_), SymbolRef::Star(_)) => todo!(),
+//   };
+//   if unused_export_symbol.len() > 0 && is_valid_path && end - start > 1 {
+//     if symbol_path[start..=end].len() > 3 {
+//       // dbg!(&symbol_path[start..=end]);
+//     }
+//     dependency_replacement_list.push(DependencyReplacement {
+//       original: symbol_path[end].clone(),
+//       to: symbol_path[end - 1].clone(),
+//       replacement: symbol_path[start].clone(),
+//       unused_export_symbol_count: unused_export_symbol.len(),
+//     })
+//   } else {
+//     if !is_valid_path && !end_check {
+//       println!(
+//         "{:#?}, \n{:#?}, {}",
+//         &symbol_path[start], &symbol_path[end], end_check
+//       );
+//     }
+//   }
+//   // if has_unused_export_symbol {
+//   // }
+// }
 
-fn is_same_symbol(
-  original: &IndirectTopLevelSymbol,
-  end: usize,
-  start: usize,
-  symbol_path: &Vec<SymbolRef>,
-  replace: &Symbol,
-) -> bool {
-  // dbg!(&symbol_path);
-  let mut pre = match original.ty {
-    IndirectType::ReExport(ref original, ref exported) => original.clone(),
-    _ => original.indirect_id().clone(),
-  };
-  let mut i = end - 1;
-  while i > start {
-    let cur = &symbol_path[i];
-    let next_id = match cur {
-      SymbolRef::Direct(_) => unreachable!(),
-      SymbolRef::Indirect(indirect) => match &indirect.ty {
-        IndirectType::Temp(ref id) => {
-          if id != &pre {
-            return false;
-          }
-          id.clone()
-        }
-        IndirectType::ReExport(original, _) => {
-          // let exported = indirect.id();
-          if &pre != indirect.id() {
-            return false;
-          }
-          original.clone()
-        }
-        IndirectType::Import(..) => {
-          unreachable!()
-        }
-        IndirectType::ImportDefault(_) => {
-          unreachable!()
-        }
-      },
-      SymbolRef::Star(_) => pre,
-    };
-    pre = next_id;
-    i -= 1;
-  }
-  pre == replace.id().atom
-}
+// TODO: dep replacement
+// fn is_same_symbol(
+//   original: &IndirectTopLevelSymbol,
+//   end: usize,
+//   start: usize,
+//   symbol_path: &Vec<SymbolRef>,
+//   replace: &Symbol,
+// ) -> bool {
+//   // dbg!(&symbol_path);
+//   let mut pre = match original.ty {
+//     IndirectType::ReExport(ref original, ref exported) => original.clone(),
+//     _ => original.indirect_id().clone(),
+//   };
+//   let mut i = end - 1;
+//   while i > start {
+//     let cur = &symbol_path[i];
+//     let next_id = match cur {
+//       SymbolRef::Direct(_) => unreachable!(),
+//       SymbolRef::Indirect(indirect) => match &indirect.ty {
+//         IndirectType::Temp(ref id) => {
+//           if id != &pre {
+//             return false;
+//           }
+//           id.clone()
+//         }
+//         IndirectType::ReExport(original, _) => {
+//           // let exported = indirect.id();
+//           if &pre != indirect.id() {
+//             return false;
+//           }
+//           original.clone()
+//         }
+//         IndirectType::Import(..) => {
+//           unreachable!()
+//         }
+//         IndirectType::ImportDefault(_) => {
+//           unreachable!()
+//         }
+//       },
+//       SymbolRef::Star(_) => pre,
+//     };
+//     pre = next_id;
+//     i -= 1;
+//   }
+//   pre == replace.id().atom
+// }
 
-fn init_sliding_window(start: &mut usize, end: &mut usize, symbol_path: &Vec<SymbolRef>) {
-  // println!("{start}, {end}");
-  *start = *end;
-  while *start < symbol_path.len() && !could_be_start_of_path(&symbol_path[*start]) {
-    *start += 1;
-  }
-  *end = *start + 1;
-  loop {
-    if *end >= symbol_path.len() {
-      break;
-    }
-    if symbol_path[*end].module_identifier() != symbol_path[*start].module_identifier() {
-      break;
-    }
-    *end += 1;
-  }
-}
+// fn init_sliding_window(start: &mut usize, end: &mut usize, symbol_path: &Vec<SymbolRef>) {
+//   // println!("{start}, {end}");
+//   *start = *end;
+//   while *start < symbol_path.len() && !could_be_start_of_path(&symbol_path[*start]) {
+//     *start += 1;
+//   }
+//   *end = *start + 1;
+//   loop {
+//     if *end >= symbol_path.len() {
+//       break;
+//     }
+//     if symbol_path[*end].module_identifier() != symbol_path[*start].module_identifier() {
+//       break;
+//     }
+//     *end += 1;
+//   }
+// }
 
-#[inline]
-pub fn could_be_start_of_path(symbol: &SymbolRef) -> bool {
-  match symbol {
-    SymbolRef::Direct(direct) => direct.ty() == &SymbolType::Define,
-    SymbolRef::Indirect(indirect) => matches!(indirect.ty, IndirectType::ReExport(_, _)),
-    SymbolRef::Star(star) => star.ty == StarSymbolKind::ReExportAll,
-  }
-}
+// #[inline]
+// pub fn could_be_start_of_path(symbol: &SymbolRef) -> bool {
+//   match symbol {
+//     SymbolRef::Direct(direct) => direct.ty() == &SymbolType::Define,
+//     SymbolRef::Indirect(indirect) => matches!(indirect.ty, IndirectType::ReExport(_, _)),
+//     SymbolRef::Star(star) => star.ty == StarSymbolKind::ReExportAll,
+//   }
+// }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
 
@@ -2270,14 +2246,11 @@ fn mark_symbol(
 
   if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
     evaluated_module_identifiers.insert(current_symbol_ref.importer());
-    match analyze_map.get(&current_symbol_ref.importer().into()) {
-      Some(module_result) => {
-        for used_symbol in module_result.used_symbol_refs.iter() {
-          // graph.add_edge(&current_symbol_ref, used_symbol);
-          symbol_queue.push_back(used_symbol.clone());
-        }
+    if let Some(module_result) = analyze_map.get(&current_symbol_ref.importer()) {
+      for used_symbol in module_result.used_symbol_refs.iter() {
+        // graph.add_edge(&current_symbol_ref, used_symbol);
+        symbol_queue.push_back(used_symbol.clone());
       }
-      None => {}
     };
   }
   graph.add_node(&current_symbol_ref);
@@ -2357,7 +2330,7 @@ fn mark_symbol(
     }
     SymbolRef::Indirect(ref indirect_symbol) => {
       // dbg!(&current_symbol_ref);
-      let importer = indirect_symbol.importer();
+      let _importer = indirect_symbol.importer();
       let module_result = match analyze_map.get(&indirect_symbol.src.into()) {
         Some(module_result) => module_result,
         None => {
@@ -2369,7 +2342,7 @@ fn mark_symbol(
         }
       };
 
-      match module_result.export_map.get(&indirect_symbol.indirect_id()) {
+      match module_result.export_map.get(indirect_symbol.indirect_id()) {
         Some(symbol) => match symbol {
           SymbolRef::Indirect(IndirectTopLevelSymbol {
             ty: IndirectType::ReExport(_, _),
@@ -2393,7 +2366,7 @@ fn mark_symbol(
             };
           }
           _ => {
-            graph.add_edge(&current_symbol_ref, &symbol);
+            graph.add_edge(&current_symbol_ref, symbol);
             symbol_queue.push_back(symbol.clone());
           }
         },
@@ -2405,7 +2378,7 @@ fn mark_symbol(
           let mut has_bailout_module_identifiers = false;
           let mut is_first_result = true;
           for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
-            if let Some(value) = extends_export_map.get(&indirect_symbol.indirect_id()) {
+            if let Some(value) = extends_export_map.get(indirect_symbol.indirect_id()) {
               ret.push((module_identifier, value));
               if is_first_result {
                 let mut final_node_of_path = vec![];
@@ -2416,7 +2389,7 @@ fn mark_symbol(
                     // dbg!(&final_node_path, indi);
                     for (start, end) in final_node_path {
                       graph.add_edge(&current_symbol_ref, start);
-                      graph.add_edge(&end, value);
+                      graph.add_edge(end, value);
                     }
                   }
                   Entry::Vacant(vac) => {
@@ -2426,9 +2399,7 @@ fn mark_symbol(
                       *module_identifier,
                       0,
                       None,
-                    )
-                    .into_iter()
-                    {
+                    ) {
                       let mut from = current_symbol_ref.clone();
                       let mut star_chain_start_end_pair = (from.clone(), from.clone());
                       for i in 0..path.len() - 1 {
@@ -2442,14 +2413,13 @@ fn mark_symbol(
                         if !evaluated_module_identifiers.contains(&star_symbol.module_ident.into())
                         {
                           evaluated_module_identifiers.insert(star_symbol.module_ident.into());
-                          match analyze_map.get(&star_symbol.module_ident.into()) {
-                            Some(module_result) => {
-                              for used_symbol in module_result.used_symbol_refs.iter() {
-                                // graph.add_edge(&current_symbol_ref, used_symbol);
-                                symbol_queue.push_back(used_symbol.clone());
-                              }
+                          if let Some(module_result) =
+                            analyze_map.get(&star_symbol.module_ident.into())
+                          {
+                            for used_symbol in module_result.used_symbol_refs.iter() {
+                              // graph.add_edge(&current_symbol_ref, used_symbol);
+                              symbol_queue.push_back(used_symbol.clone());
                             }
-                            None => {}
                           };
                         }
 
@@ -2606,7 +2576,7 @@ fn mark_symbol(
 
       for (key, _) in analyze_refsult.inherit_export_maps.iter() {
         let export_all = SymbolRef::Star(StarSymbol {
-          src: key.clone().into(),
+          src: (*key).into(),
           binding: Default::default(),
           module_ident: src_module_identifier.into(),
           ty: StarSymbolKind::ReExportAll,
@@ -2721,13 +2691,13 @@ pub fn merge_used_export_type(
 }
 
 pub fn generate_debug_symbol_graph(g: &SymbolGraph, context: &str) -> StableDiGraph<SymbolRef, ()> {
-  let mut debug_graph = SymbolGraph::new();
+  let mut debug_graph = SymbolGraph::default();
   for node_index in g.node_indexes() {
     for edge in g.graph.edges(*node_index) {
       let from = edge.source();
       let to = edge.target();
-      let from_symbol = simplify_symbol_ref(g.get_symbol(&from).unwrap(), context);
-      let to_symbol = simplify_symbol_ref(g.get_symbol(&to).unwrap(), context);
+      let from_symbol = simplify_symbol_ref(g.get_symbol(&from).expect(""), context);
+      let to_symbol = simplify_symbol_ref(g.get_symbol(&to).expect(""), context);
       debug_graph.add_edge(&from_symbol, &to_symbol);
     }
   }
@@ -2826,52 +2796,54 @@ fn normalize_side_effects(
   }
 }
 
-fn recursive_visited(
-  symbol_graph: &SymbolGraph,
-  cur_path: &mut Vec<NodeIndex>,
-  paths: &mut Vec<Vec<NodeIndex>>,
-  visited_node: &mut HashSet<NodeIndex>,
-  cur: NodeIndex,
-  directed_symbol_node_index: &HashSet<NodeIndex>,
-) {
-  if visited_node.contains(&cur) {
-    return;
-  }
-  let is_directed = directed_symbol_node_index.contains(&cur) && cur_path.len() > 0;
-  if is_directed {
-    paths.push(cur_path.clone());
-    return;
-  }
-  visited_node.insert(cur);
-  cur_path.push(cur);
-  let mut has_neighbor = false;
-  for ele in symbol_graph
-    .graph
-    .neighbors_directed(cur, petgraph::Direction::Incoming)
-  {
-    has_neighbor = true;
-    recursive_visited(
-      symbol_graph,
-      cur_path,
-      paths,
-      visited_node,
-      ele,
-      directed_symbol_node_index,
-    );
-  }
-  if !has_neighbor {
-    paths.push(cur_path.clone());
-  }
-  cur_path.pop();
-  visited_node.remove(&cur);
-}
+// TODO: dep replacement
+// fn recursive_visited(
+//   symbol_graph: &SymbolGraph,
+//   cur_path: &mut Vec<NodeIndex>,
+//   paths: &mut Vec<Vec<NodeIndex>>,
+//   visited_node: &mut HashSet<NodeIndex>,
+//   cur: NodeIndex,
+//   directed_symbol_node_index: &HashSet<NodeIndex>,
+// ) {
+//   if visited_node.contains(&cur) {
+//     return;
+//   }
+//   let is_directed = directed_symbol_node_index.contains(&cur) && !cur_path.is_empty();
+//   if is_directed {
+//     paths.push(cur_path.clone());
+//     return;
+//   }
+//   visited_node.insert(cur);
+//   cur_path.push(cur);
+//   let mut has_neighbor = false;
+//   for ele in symbol_graph
+//     .graph
+//     .neighbors_directed(cur, petgraph::Direction::Incoming)
+//   {
+//     has_neighbor = true;
+//     recursive_visited(
+//       symbol_graph,
+//       cur_path,
+//       paths,
+//       visited_node,
+//       ele,
+//       directed_symbol_node_index,
+//     );
+//   }
+//   if !has_neighbor {
+//     paths.push(cur_path.clone());
+//   }
+//   cur_path.pop();
+//   visited_node.remove(&cur);
+// }
 
+#[allow(clippy::too_many_arguments)]
 fn finalize_symbol(
   compilation: &mut Compilation,
   side_effects_analyze: bool,
-  bailout_entry_module_identifiers: IdentifierSet,
+  _bailout_entry_module_identifiers: IdentifierSet,
   analyze_results: &IdentifierMap<TreeShakingResult>,
-  mut used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
+  used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
   bail_out_module_identifiers: &mut IdentifierMap<BailoutFlog>,
   symbol_graph: SymbolGraph,
   used_symbol_ref: &mut HashSet<SymbolRef>,
@@ -2893,14 +2865,14 @@ fn finalize_symbol(
       }
     }
     // pruning
-    let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
+    let visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
     let mut visited = IdentifierSet::default();
     let mut q = VecDeque::from_iter(
       compilation
         .entry_modules()
         .map(|module_id| (module_id, true)),
     );
-    while let Some((module_identifier, is_entry)) = q.pop_front() {
+    while let Some((module_identifier, _is_entry)) = q.pop_front() {
       if visited.contains(&module_identifier) {
         continue;
       } else {
@@ -2952,7 +2924,9 @@ fn finalize_symbol(
             &mut reachable_dependency_identifier,
             &symbol_graph,
           );
-          let node_index = symbol_graph.get_node_index(symbol_ref).unwrap();
+          let node_index = symbol_graph
+            .get_node_index(symbol_ref)
+            .expect("Can't get NodeIndex of SymbolRef");
           if !visited_symbol_node_index.contains(node_index) {
             let mut bfs = Bfs::new(&symbol_graph.graph, *node_index);
             while let Some(node_index) = bfs.next(&symbol_graph.graph) {
@@ -3077,9 +3051,9 @@ fn finalize_symbol(
             };
           }
         };
-        if side_effects_free_module_ident.contains(&module_ident)
-          && !reachable_dependency_identifier.contains(&module_ident)
-          && !bail_out_module_identifiers.contains_key(&module_ident)
+        if side_effects_free_module_ident.contains(module_ident)
+          && !reachable_dependency_identifier.contains(module_ident)
+          && !bail_out_module_identifiers.contains_key(module_ident)
         {
           continue;
         }
@@ -3092,18 +3066,6 @@ fn finalize_symbol(
       //   q.push_back(module_ident);
       // }
     }
-    for (k, v) in used_export_module_identifiers {
-      if v.contains(ModuleUsedType::EXPORT_ALL) || v.contains(ModuleUsedType::REEXPORT) {
-        let mgm = compilation
-          .module_graph
-          .module_graph_module_by_identifier_mut(&k)
-          .unwrap_or_else(|| panic!("Failed to get ModuleGraphModule by module identifier {k}"));
-        if !mgm.used {
-          dbg!(&k);
-        } else {
-        }
-      }
-    }
   } else {
     *used_symbol_ref = visited_symbol_ref;
   }
@@ -3115,7 +3077,9 @@ fn update_reachable_dependency(
   symbol_graph: &SymbolGraph,
 ) {
   let root_module_identifier = symbol_ref.importer();
-  let node_index = *symbol_graph.get_node_index(&symbol_ref).unwrap();
+  let node_index = *symbol_graph
+    .get_node_index(symbol_ref)
+    .unwrap_or_else(|| panic!("Can't get NodeIndex of {symbol_ref:?}"));
   let mut q = VecDeque::from_iter([node_index]);
   let mut visited = HashSet::default();
   while let Some(cur) = q.pop_front() {
@@ -3124,7 +3088,9 @@ fn update_reachable_dependency(
     } else {
       visited.insert(cur);
     }
-    let symbol = symbol_graph.get_symbol(&cur).unwrap();
+    let symbol = symbol_graph
+      .get_symbol(&cur)
+      .expect("Can't get Symbol of NodeIndex");
     let module_identifier = symbol.importer();
     if module_identifier == root_module_identifier {
       for ele in symbol_graph
@@ -3149,47 +3115,50 @@ fn update_reachable_symbol(
   if dead_node_index.contains(&symbol_node_index) {
     return;
   }
-  let symbol = symbol_graph.get_symbol(&symbol_node_index).unwrap();
+  let symbol = symbol_graph
+    .get_symbol(&symbol_node_index)
+    .expect("Can't get Symbol of NodeIndex ");
   used_symbol_ref.insert(symbol.clone());
 }
 
 fn is_js_like_uri(uri: &str) -> bool {
   match resolve_module_type_by_uri(uri) {
-    Some(module_type) => match module_type {
+    Some(module_type) => matches!(
+      module_type,
       crate::ModuleType::Js
-      | crate::ModuleType::JsDynamic
-      | crate::ModuleType::JsEsm
-      | crate::ModuleType::Jsx
-      | crate::ModuleType::JsxDynamic
-      | crate::ModuleType::JsxEsm
-      | crate::ModuleType::Tsx
-      | crate::ModuleType::Ts => true,
-      _ => false,
-    },
+        | crate::ModuleType::JsDynamic
+        | crate::ModuleType::JsEsm
+        | crate::ModuleType::Jsx
+        | crate::ModuleType::JsxDynamic
+        | crate::ModuleType::JsxEsm
+        | crate::ModuleType::Tsx
+        | crate::ModuleType::Ts
+    ),
     None => false,
   }
 }
 
-#[derive(Debug, Clone)]
-struct DependencyReplacement {
-  original: SymbolRef,
-  to: SymbolRef,
-  replacement: SymbolRef,
-  unused_export_symbol_count: usize,
-}
+// TODO: dep replacement
+// #[derive(Debug, Clone)]
+// struct DependencyReplacement {
+//   original: SymbolRef,
+//   to: SymbolRef,
+//   replacement: SymbolRef,
+//   unused_export_symbol_count: usize,
+// }
 
-impl DependencyReplacement {
-  fn new(
-    from: SymbolRef,
-    to: SymbolRef,
-    replacement: SymbolRef,
-    unused_export_symbol_count: usize,
-  ) -> Self {
-    Self {
-      original: from,
-      to,
-      unused_export_symbol_count,
-      replacement,
-    }
-  }
-}
+// impl DependencyReplacement {
+//   fn new(
+//     from: SymbolRef,
+//     to: SymbolRef,
+//     replacement: SymbolRef,
+//     unused_export_symbol_count: usize,
+//   ) -> Self {
+//     Self {
+//       original: from,
+//       to,
+//       unused_export_symbol_count,
+//       replacement,
+//     }
+//   }
+// }
