@@ -7,6 +7,7 @@ use rspack_plugin_progress::{ProgressPlugin, ProgressPluginConfig};
 
 mod raw_css;
 mod raw_decorator;
+mod raw_emotion;
 mod raw_html;
 mod raw_postcss;
 mod raw_progress;
@@ -14,6 +15,7 @@ mod raw_react;
 
 pub use raw_css::*;
 pub use raw_decorator::*;
+pub use raw_emotion::*;
 pub use raw_html::*;
 pub use raw_postcss::*;
 pub use raw_progress::*;
@@ -49,6 +51,7 @@ pub struct RawBuiltins {
   pub react: Option<RawReactOptions>,
   pub decorator: Option<RawDecoratorOptions>,
   pub no_emit_assets: Option<bool>,
+  pub emotion: Option<String>,
 }
 
 pub(super) fn normalize_builtin(
@@ -115,6 +118,7 @@ pub(super) fn normalize_builtin(
     react: RawOption::raw_to_compiler_option(builtins.react, options)?,
     decorator: transform_to_decorator_options(builtins.decorator),
     no_emit_assets: builtins.no_emit_assets.unwrap_or(false),
+    emotion: transform_emotion(builtins.emotion)?,
   };
   Ok(ret)
 }
