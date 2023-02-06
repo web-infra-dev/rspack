@@ -82,7 +82,7 @@ impl<Item: Any> Database<Item> {
   }
 
   pub fn into_items(self) -> impl Iterator<Item = Item> {
-    self.inner.into_iter().map(|(_, item)| item)
+    self.inner.into_values()
   }
 }
 

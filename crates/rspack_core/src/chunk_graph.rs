@@ -427,7 +427,7 @@ impl ChunkGraph {
         let module = module_graph
           .module_by_identifier(&module)
           .expect("should exist");
-        for connection in module_graph.get_outgoing_connections(&module) {
+        for connection in module_graph.get_outgoing_connections(module) {
           // TODO: consider activeState
           // if (activeState === ModuleGraphConnection.TRANSITIVE_ONLY) {
           //   add_dependencies(connection.module_identifier, set, module_graph);

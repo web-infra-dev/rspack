@@ -5,6 +5,7 @@ use std::hash::Hash;
 use rspack_database::{Database, DatabaseItem, Ukey};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+#[allow(clippy::enum_variant_names)]
 enum Marker {
   NoMarker,
   InProgressMarker,
@@ -169,7 +170,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
                   if let Some(node_cycle) = node.as_ref(&db).cycle {
                     if node_cycle != cycle {
                       for cycle_node in node_cycle.as_ref(&cycle_db).nodes.clone() {
-                        cycle_node.as_mut(&mut db).cycle = Some(cycle.clone());
+                        cycle_node.as_mut(&mut db).cycle = Some(cycle);
                         cycle.as_mut(&mut cycle_db).nodes.insert(cycle_node);
                       }
                     }
@@ -178,10 +179,10 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
                       .nodes
                       .iter()
                       .for_each(|cycle_node| {
-                        cycle_node.as_mut(&mut db).cycle = Some(cycle.clone());
+                        cycle_node.as_mut(&mut db).cycle = Some(cycle);
                       });
                   } else {
-                    node.as_mut(&mut db).cycle = Some(cycle.clone());
+                    node.as_mut(&mut db).cycle = Some(cycle);
                     cycle.as_mut(&mut cycle_db).nodes.insert(node);
                   }
 
@@ -216,7 +217,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
         for node in cycle.as_mut(&mut cycle_db).nodes.iter() {
           node.as_mut(&mut db).marker = Marker::DoneMaybeRootCycleMarker;
         }
-        root_cycles.insert(cycle.clone());
+        root_cycles.insert(cycle);
       } else {
         select_node.as_mut(&mut db).marker = Marker::DoneAndRootMarker;
         roots.insert(select_node);
