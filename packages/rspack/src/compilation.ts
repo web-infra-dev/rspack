@@ -447,28 +447,28 @@ export class Compilation {
 	get fileDependencies() {
 		return createFakeCompilationDependencies(
 			this.#inner.getFileDependencies(),
-			this.#inner.addFileDependencies
+			d => this.#inner.addFileDependencies(d)
 		);
 	}
 
 	get contextDependencies() {
 		return createFakeCompilationDependencies(
 			this.#inner.getContextDependencies(),
-			this.#inner.addContextDependencies
+			d => this.#inner.addContextDependencies(d)
 		);
 	}
 
 	get missingDependencies() {
 		return createFakeCompilationDependencies(
 			this.#inner.getMissingDependencies(),
-			this.#inner.addMissingDependencies
+			d => this.#inner.addMissingDependencies(d)
 		);
 	}
 
 	get buildDependencies() {
 		return createFakeCompilationDependencies(
 			this.#inner.getBuildDependencies(),
-			this.#inner.addBuildDependencies
+			d => this.#inner.addBuildDependencies(d)
 		);
 	}
 

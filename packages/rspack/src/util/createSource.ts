@@ -1,6 +1,7 @@
 import type { JsCompatSource } from "@rspack/binding";
 
 import { RawSource, CompatSource, Source } from "webpack-sources";
+import { isNil } from "./index";
 
 function createSourceFromRaw(source: JsCompatSource): Source {
 	if (source.isRaw) {
@@ -29,7 +30,8 @@ function createSourceFromRaw(source: JsCompatSource): Source {
 }
 
 function createRawFromSource(source: Source): JsCompatSource {
-	const isBuffer = Buffer.isBuffer(source.source());
+	const sourceSource = source.source();
+	const isBuffer = Buffer.isBuffer(sourceSource);
 
 	if (source instanceof RawSource) {
 		return {
@@ -39,19 +41,34 @@ function createRawFromSource(source: Source): JsCompatSource {
 		};
 	}
 
-	const buffer = source.buffer();
+	const buffer =
+		source.buffer?.() ??
+		(isBuffer
+			? sourceSource
+			: sourceSource instanceof ArrayBuffer
+			? arrayBufferToBuffer(sourceSource)
+			: Buffer.from(sourceSource));
 	const map = JSON.stringify(
-		source.map({
+		source.map?.({
 			columns: true
 		})
 	);
 
 	return {
 		source: buffer,
-		map: Buffer.from(map),
+		map: isNil(map) ? map : Buffer.from(map),
 		isRaw: false,
 		isBuffer
 	};
+}
+
+function arrayBufferToBuffer(ab: ArrayBuffer) {
+	const buf = Buffer.alloc(ab.byteLength);
+	const view = new Uint8Array(ab);
+	for (let i = 0; i < buf.length; ++i) {
+		buf[i] = view[i];
+	}
+	return buf;
 }
 
 export { createSourceFromRaw, createRawFromSource };
