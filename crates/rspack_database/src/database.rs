@@ -80,6 +80,19 @@ impl<Item: Any> Database<Item> {
   pub fn _todo_should_remove_this_method_inner_mut(&mut self) -> &mut FxHashMap<Ukey<Item>, Item> {
     &mut self.inner
   }
+
+  pub fn into_items(self) -> impl Iterator<Item = Item> {
+    self.inner.into_iter().map(|(_, item)| item)
+  }
+}
+
+impl<Item: Default + DatabaseItem + 'static> Database<Item> {
+  pub fn create_default_item(&mut self) -> &mut Item {
+    let item = Item::default();
+    let ukey = item.ukey();
+    self.add(item);
+    self.expect_mut(&ukey)
+  }
 }
 
 impl<Item: DatabaseItem> Database<Item> {

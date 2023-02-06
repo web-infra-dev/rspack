@@ -1,9 +1,9 @@
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  find_module_graph_roots, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkUkey, IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph,
-  ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  find_graph_roots, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]
@@ -417,10 +417,29 @@ impl ChunkGraph {
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk);
 
-    let mut modules = find_module_graph_roots(
-      cgc.modules.iter().cloned().collect::<Vec<_>>(),
-      module_graph,
-    );
+    let mut modules = find_graph_roots(cgc.modules.iter().cloned().collect::<Vec<_>>(), |module| {
+      let mut set: IdentifierSet = Default::default();
+      fn add_dependencies(
+        module: ModuleIdentifier,
+        set: &mut IdentifierSet,
+        module_graph: &ModuleGraph,
+      ) {
+        let module = module_graph
+          .module_by_identifier(&module)
+          .expect("should exist");
+        for connection in module_graph.get_outgoing_connections(&module) {
+          // TODO: consider activeState
+          // if (activeState === ModuleGraphConnection.TRANSITIVE_ONLY) {
+          //   add_dependencies(connection.module_identifier, set, module_graph);
+          //   continue;
+          // }
+          set.insert(connection.module_identifier);
+        }
+      }
+
+      add_dependencies(module, &mut set, module_graph);
+      set.into_iter().collect()
+    });
 
     modules.sort();
 
