@@ -368,6 +368,7 @@ pub static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 impl NormalModule {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
+    id: ModuleIdentifier,
     request: String,
     user_request: String,
     raw_request: String,
@@ -381,7 +382,7 @@ impl NormalModule {
     issuer: String,
   ) -> Self {
     Self {
-      id: ModuleIdentifier::from(request.as_ref()),
+      id,
       request,
       user_request,
       raw_request,

@@ -129,16 +129,16 @@ impl fmt::Display for ModuleType {
       f,
       "{}",
       match self {
-        ModuleType::Js => "js",
-        ModuleType::JsEsm => "js/esm",
-        ModuleType::JsDynamic => "js/dynamic",
+        ModuleType::Js => "javascript/auto",
+        ModuleType::JsEsm => "javascript/esm",
+        ModuleType::JsDynamic => "javascript/dynamic",
 
-        ModuleType::Jsx => "jsx",
-        ModuleType::JsxEsm => "jsx/esm",
-        ModuleType::JsxDynamic => "jsx/dynamic",
+        ModuleType::Jsx => "javascriptx",
+        ModuleType::JsxEsm => "javascriptx/esm",
+        ModuleType::JsxDynamic => "javascriptx/dynamic",
 
-        ModuleType::Ts => "ts",
-        ModuleType::Tsx => "tsx",
+        ModuleType::Ts => "typescript",
+        ModuleType::Tsx => "typescriptx",
 
         ModuleType::Css => "css",
         ModuleType::CssModule => "css/module",
@@ -159,8 +159,7 @@ impl TryFrom<&str> for ModuleType {
 
   fn try_from(value: &str) -> Result<Self, Self::Error> {
     match value {
-      // TODO: change to esm
-      "mjs" => Ok(Self::Js),
+      "mjs" => Ok(Self::JsEsm),
       "js" | "javascript" | "js/auto" | "javascript/auto" => Ok(Self::Js),
       "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
       "js/esm" | "javascript/esm" => Ok(Self::JsEsm),

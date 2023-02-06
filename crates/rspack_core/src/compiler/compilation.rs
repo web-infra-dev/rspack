@@ -115,7 +115,6 @@ impl Compilation {
   pub fn new(
     options: Arc<CompilerOptions>,
     entries: BundleEntries,
-    // visited_module_id: VisitedModuleIdentity,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
@@ -123,7 +122,6 @@ impl Compilation {
   ) -> Self {
     Self {
       options,
-      // visited_module_id,
       last_module_diagnostics: Default::default(),
       module_graph,
       runtime_modules: Default::default(),
@@ -409,7 +407,6 @@ impl Compilation {
     // }
 
     let mut need_check_isolated_module_ids = HashSet::default();
-    // let mut need_clean_visited_module_ids = HashSet::default();
     // handle force build module
     need_check_isolated_module_ids.extend(force_build_module.iter().flat_map(|id| {
       if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
