@@ -1018,6 +1018,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fxhash"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
+dependencies = [
+ "byteorder",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2523,6 +2532,7 @@ dependencies = [
  "serde",
  "serde_json",
  "swc_core",
+ "swc_emotion",
  "tokio",
  "tracing",
 ]
@@ -2562,6 +2572,7 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "swc_css",
+ "swc_emotion",
  "tokio",
  "tracing",
  "url",
@@ -2786,6 +2797,7 @@ dependencies = [
  "sourcemap",
  "sugar_path",
  "swc_core",
+ "swc_emotion",
  "tracing",
  "xxhash-rust",
 ]
@@ -3586,6 +3598,7 @@ dependencies = [
  "swc_ecma_transforms_typescript",
  "swc_ecma_utils",
  "swc_ecma_visit",
+ "swc_trace_macro",
  "vergen",
 ]
 
@@ -4314,6 +4327,24 @@ dependencies = [
  "swc_common",
  "swc_ecma_ast",
  "swc_visit",
+ "tracing",
+]
+
+[[package]]
+name = "swc_emotion"
+version = "0.29.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4d22bb492857a5587f2f86fa62d899355f0b279e942542b6b7044002f55a7a03"
+dependencies = [
+ "base64",
+ "byteorder",
+ "fxhash",
+ "once_cell",
+ "radix_fmt",
+ "regex",
+ "serde",
+ "sourcemap",
+ "swc_core",
  "tracing",
 ]
 
