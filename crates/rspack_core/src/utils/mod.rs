@@ -26,6 +26,9 @@ pub use queue::*;
 mod ext;
 pub use ext::*;
 
+mod find_graph_roots;
+pub use find_graph_roots::*;
+
 use crate::{ModuleGraph, ModuleIdentifier};
 
 pub fn parse_to_url(url: &str) -> url::Url {
