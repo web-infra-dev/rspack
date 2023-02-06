@@ -11,9 +11,11 @@ use swc_core::{
   common::{pass::AstNodePath, util::take::Take},
   css::{
     ast::{AtRulePrelude, ImportHref, ImportPrelude, Rule, Stylesheet, Url, UrlValue},
-    visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitMut, VisitMutWith, VisitWithPath},
+    visit::{
+      AstKindPath, AstParentKind, AstParentNodeRef, VisitMut, VisitMutAstPath, VisitMutWith,
+      VisitMutWithPath,
+    },
   },
-  ecma::atoms::Atom,
 };
 
 static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").expect("TODO:"));
@@ -32,7 +34,7 @@ pub fn analyze_dependencies(
     code_generation_dependencies,
     diagnostics,
   };
-  ss.visit_with_path(&mut v, &mut Default::default());
+  ss.visit_mut_with_path(&mut v, &mut Default::default());
   // TODO: use dependency to remove at import
   ss.visit_mut_with(&mut RemoveAtImport);
 
@@ -46,68 +48,73 @@ struct Analyzer<'a> {
   diagnostics: &'a mut Vec<Diagnostic>,
 }
 
-fn replace_module_request_prefix(
-  specifier: String,
-  diagnostics: Option<&mut Vec<Diagnostic>>,
-) -> String {
+fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagnostic>) -> String {
   if IS_MODULE_REQUEST.is_match(&specifier) {
-    if let Some(diagnostics) = diagnostics {
-      diagnostics.push(
-        Diagnostic::warn(
-          "Deprecated '~'".to_string(),
-          "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
-          0,
-          0,
-        )
-        .with_kind(DiagnosticKind::Css),
-      );
-    }
+    diagnostics.push(
+      Diagnostic::warn(
+        "Deprecated '~'".to_string(),
+        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
+        0,
+        0,
+      )
+      .with_kind(DiagnosticKind::Css),
+    );
     IS_MODULE_REQUEST.replace(&specifier, "").to_string()
   } else {
     specifier
   }
 }
 
-impl VisitAstPath for Analyzer<'_> {
-  fn visit_import_prelude<'ast: 'r, 'r>(
-    &mut self,
-    n: &'ast ImportPrelude,
-    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
-  ) {
-    n.visit_children_with_path(self, ast_path);
+impl VisitMutAstPath for Analyzer<'_> {
+  fn visit_mut_import_prelude(&mut self, n: &mut ImportPrelude, ast_path: &mut AstKindPath) {
+    n.visit_mut_children_with_path(self, ast_path);
 
-    let specifier = match &*n.href {
-      ImportHref::Url(u) => u.value.as_ref().map(|box s| match s {
-        UrlValue::Str(s) => s.value.to_string(),
-        UrlValue::Raw(v) => v.value.to_string(),
+    let specifier = match &mut *n.href {
+      ImportHref::Url(u) => u.value.as_mut().map(|box s| match s {
+        UrlValue::Str(s) => {
+          let replaced = replace_module_request_prefix(s.value.to_string(), self.diagnostics);
+          s.value = replaced.into();
+          s.raw = None;
+          s.value.to_string()
+        }
+        UrlValue::Raw(s) => {
+          let replaced = replace_module_request_prefix(s.value.to_string(), self.diagnostics);
+          s.value = replaced.into();
+          s.raw = None;
+          s.value.to_string()
+        }
       }),
-      ImportHref::Str(s) => Some(s.value.to_string()),
+      ImportHref::Str(s) => {
+        let replaced = replace_module_request_prefix(s.value.to_string(), self.diagnostics);
+        s.value = replaced.into();
+        s.raw = None;
+        Some(s.value.to_string())
+      }
     };
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
-      let specifier = replace_module_request_prefix(specifier, Some(self.diagnostics));
-      self.deps.push(box CssImportDependency::new(specifier, Some(n.span.into()), as_parent_path(ast_path)));
-      // self.deps.push(ModuleDependency {
-      //   specifier,
-      //   kind: ResolveKind::AtImport,
-      //   span: Some(n.span.into()),
-      // });
+      self.deps.push(box CssImportDependency::new(specifier, Some(n.span.into()), ast_path.iter().map(|i| *i).collect()));
     }
   }
 
-  fn visit_url<'ast: 'r, 'r>(
-    &mut self,
-    u: &'ast Url,
-    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
-  ) {
-    u.visit_children_with_path(self, ast_path);
+  fn visit_mut_url(&mut self, u: &mut Url, ast_path: &mut AstKindPath) {
+    u.visit_mut_children_with_path(self, ast_path);
 
-    let specifier = u.value.as_ref().map(|box v| match v {
-      UrlValue::Str(s) => s.value.to_string(),
-      UrlValue::Raw(r) => r.value.to_string(),
+    let specifier = u.value.as_mut().map(|box v| match v {
+      UrlValue::Str(s) => {
+        let replaced = replace_module_request_prefix(s.value.to_string(), self.diagnostics);
+        s.value = replaced.into();
+        s.raw = None;
+        s.value.to_string()
+      }
+      UrlValue::Raw(s) => {
+        let replaced = replace_module_request_prefix(s.value.to_string(), self.diagnostics);
+        s.value = replaced.into();
+        s.raw = None;
+        s.value.to_string()
+      }
     });
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
-      let specifier = replace_module_request_prefix(specifier, Some(self.diagnostics));
-      let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path));
+      let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), ast_path.iter().map(|i| *i).collect());
       // TODO avoid dependency clone
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
@@ -199,7 +206,6 @@ impl RewriteUrl<'_> {
   }
 
   pub fn get_target_url(&mut self, specifier: String) -> Option<String> {
-    let specifier = replace_module_request_prefix(specifier, None);
     let from = self.resolve_module_legacy(
       &self.module.identifier(),
       &specifier,
@@ -239,7 +245,7 @@ impl VisitMut for RewriteUrl<'_> {
           return;
         }
         if let Some(target) = self.get_target_url(s.value.to_string()) {
-          s.raw = Some(Atom::from(target.clone()));
+          s.raw = None;
           s.value = target.into();
         }
       }
@@ -248,7 +254,7 @@ impl VisitMut for RewriteUrl<'_> {
           return;
         }
         if let Some(target) = self.get_target_url(s.value.to_string()) {
-          s.raw = Some(Atom::from(target.clone()));
+          s.raw = None;
           s.value = target.into();
         }
       }
