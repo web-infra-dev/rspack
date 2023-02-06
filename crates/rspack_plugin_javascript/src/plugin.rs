@@ -242,12 +242,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = parse_context;
 
-    if !module_type.is_js_like() {
-      return Err(internal_error!(format!(
-        "`module_type` {module_type:?} not supported for `JsParser`"
-      )));
-    }
-
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
       module_type,
