@@ -1,7 +1,7 @@
 use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
 
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{internal_error, Result};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
@@ -84,26 +84,24 @@ impl CodeGenerationResults {
             self.module_generation_result_map.get(m)
           })
           .ok_or_else(|| {
-            Error::InternalError(internal_error!(format!(
+            internal_error!(
               "Failed to code generation result for {module_identifier} with runtime {runtime:?} \n {entry:?}"
-            )))
+            )
           })
       } else {
         if entry.size() > 1 {
           let results = entry.get_values();
           if results.len() != 1 {
-            return Err(Error::InternalError(internal_error!(format!(
+            return Err(internal_error!(
               "No unique code generation entry for unspecified runtime for {module_identifier} ",
-            ))));
+            ));
           }
 
           return results
             .first()
             .copied()
             .and_then(|m| self.module_generation_result_map.get(m))
-            .ok_or_else(|| {
-              Error::InternalError(internal_error!("Expected value exists".to_string()))
-            });
+            .ok_or_else(|| internal_error!("Expected value exists"));
         }
 
         entry
@@ -111,14 +109,14 @@ impl CodeGenerationResults {
           .first()
           .copied()
           .and_then(|m| self.module_generation_result_map.get(m))
-          .ok_or_else(|| Error::InternalError(internal_error!("Expected value exists".to_string())))
+          .ok_or_else(|| internal_error!("Expected value exists"))
       }
     } else {
-      Err(Error::InternalError(internal_error!(format!(
+      Err(internal_error!(
         "No code generation entry for {} (existing entries: {:?})",
         module_identifier,
         self.map.keys().collect::<Vec<_>>()
-      ))))
+      ))
     }
   }
 

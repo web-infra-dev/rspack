@@ -143,13 +143,10 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
               let buf =
                 unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
 
-              let message = String::from_utf8(buf).map_err(|err| {
-                rspack_error::Error::InternalError(internal_error!(
-                  "Failed to convert error to UTF-8".to_owned()
-                ))
-              })?;
+              let message = String::from_utf8(buf)
+                .map_err(|err| internal_error!("Failed to convert error to UTF-8"))?;
 
-              Err(rspack_error::Error::InternalError(internal_error!(message)))
+              Err(internal_error!(message))
             }))
             .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
         },

@@ -3,7 +3,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{internal_error, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::Span;
 use tracing::instrument;
 
@@ -161,9 +161,9 @@ impl NormalModuleFactory {
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
-        Error::InternalError(internal_error!(format!(
+        internal_error!(
           "Parser and generator builder for module type {resolved_module_type:?} is not registered"
-        )))
+        )
       })?();
 
     self.context.module_type = Some(resolved_module_type);
@@ -301,9 +301,9 @@ impl NormalModuleFactory {
       return Ok(result);
     }
 
-    Err(Error::InternalError(internal_error!(
-      "Failed to factorize module, neither hook nor factorize method returns".to_owned()
-    )))
+    Err(internal_error!(
+      "Failed to factorize module, neither hook nor factorize method returns"
+    ))
   }
 }
 

@@ -59,7 +59,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           )
         }
         ExceededDepthLimit | WrongType(_) | FailedUtf8Parsing => {
-          Error::InternalError(internal_error!(format!("{e}")))
+          internal_error!(format!("{e}"))
         }
         UnexpectedEndOfJson => {
           // End offset of json file
@@ -115,10 +115,10 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         .boxed()
         .into(),
       }),
-      _ => Err(Error::InternalError(internal_error!(format!(
+      _ => Err(internal_error!(format!(
         "Unsupported source type {:?} for plugin Json",
         generate_context.requested_source_type,
-      )))),
+      ))),
     }
   }
 }

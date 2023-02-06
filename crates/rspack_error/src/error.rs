@@ -2,15 +2,6 @@ use std::{fmt, io};
 
 use crate::Severity;
 
-#[macro_export]
-macro_rules! internal_error {
-  ($str:expr) => {
-    $crate::InternalError {
-      error_message: $str,
-      ..Default::default()
-    }
-  };
-}
 #[derive(Debug, Default)]
 pub struct InternalError {
   pub error_message: String,

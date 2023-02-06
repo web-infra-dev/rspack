@@ -28,7 +28,7 @@ use rspack_core::{
   ModuleIdentifier,
 };
 use rspack_error::{
-  internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use sugar_path::SugarPath;
 use swc_core::{
@@ -494,7 +494,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             value: code,
             name: module.try_as_normal_module()?.request().to_string(),
             source_map: SourceMap::from_slice(&source_map)
-              .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?,
+              .map_err(|e| internal_error!(e.to_string()))?,
             // Safety: original source exists in code generation
             original_source: Some(
               module
@@ -531,10 +531,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
         })
         .boxed(),
       ),
-      _ => Err(Error::InternalError(internal_error!(format!(
+      _ => Err(internal_error!(
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
-      )))),
+      )),
     }?;
 
     Ok(GenerationResult {

@@ -119,11 +119,11 @@ pub async fn resolve(
       } else {
         ResolveError(
           "Failed to resolve {} in context".to_owned(),
-          Error::InternalError(internal_error!(format!(
+          internal_error!(
             "Failed to resolve {} in {}",
             args.specifier,
             plugin_driver.options.context.display()
-          ))),
+          ),
         )
       }
     }

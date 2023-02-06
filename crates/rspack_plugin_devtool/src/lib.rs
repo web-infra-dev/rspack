@@ -99,7 +99,7 @@ impl Plugin for DevtoolPlugin {
           let mut map_buffer = Vec::new();
           map
             .to_writer(&mut map_buffer)
-            .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+            .map_err(|e| internal_error!(e.to_string()))?;
           Ok((filename.to_owned(), map_buffer))
         })
       })
@@ -185,7 +185,7 @@ pub fn wrap_eval_source_map(
   let mut map_buffer = Vec::new();
   map
     .to_writer(&mut map_buffer)
-    .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+    .map_err(|e| internal_error!(e.to_string()))?;
   let base64 = base64::encode(&map_buffer);
   let footer =
     format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");

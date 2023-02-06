@@ -106,7 +106,7 @@ pub fn css_modules_exports_to_string(
         serde_json::to_string(&key).expect("TODO:"),
         content,
       )
-      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+      .map_err(|e| internal_error!(e.to_string()))?;
     }
     if locals_convention.camel_case() {
       writeln!(
@@ -115,7 +115,7 @@ pub fn css_modules_exports_to_string(
         serde_json::to_string(&key.to_lower_camel_case()).expect("TODO:"),
         content,
       )
-      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+      .map_err(|e| internal_error!(e.to_string()))?;
     }
     if locals_convention.dashes() {
       writeln!(
@@ -124,7 +124,7 @@ pub fn css_modules_exports_to_string(
         serde_json::to_string(&key.to_kebab_case()).expect("TODO:"),
         content,
       )
-      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+      .map_err(|e| internal_error!(e.to_string()))?;
     }
   }
   code += "};\n";

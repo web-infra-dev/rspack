@@ -20,8 +20,8 @@ use petgraph::{algo, prelude::GraphMap, Directed};
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_database::Database;
 use rspack_error::{
-  errors_to_diagnostics, internal_error, Diagnostic, Error, IntoTWithDiagnosticArray, Result,
-  Severity, TWithDiagnosticArray,
+  errors_to_diagnostics, internal_error, Diagnostic, Error, InternalError,
+  IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rspack_symbol::{IndirectTopLevelSymbol, IndirectType, Symbol};
@@ -181,9 +181,9 @@ impl Compilation {
         source: Some(source),
         info,
       }) => updater(source, info),
-      _ => Err(Error::InternalError(internal_error!(format!(
+      _ => Err(internal_error!(
         "Called Compilation.updateAsset for not existing filename {filename}"
-      )))),
+      )),
     }
   }
 
@@ -200,12 +200,12 @@ impl Compilation {
           is_source_equal
         );
         self.push_batch_diagnostic(
-          rspack_error::Error::InternalError(internal_error!(format!(
+          internal_error!(
             "Conflict: Multiple assets emit different content to the same filename {}{}",
             filename,
             // TODO: source file name
             ""
-          )))
+          )
           .into(),
         );
         self.assets.insert(filename, asset);
@@ -1889,9 +1889,10 @@ fn mark_symbol(
                   indirect_symbol.id,
                   indirect_symbol.importer()
                 );
-                errors.push(Error::InternalError(
-                  internal_error!(error_message).with_severity(Severity::Warn),
-                ));
+                errors.push(Error::InternalError(InternalError {
+                  error_message,
+                  severity: Severity::Warn,
+                }));
                 return;
               } else {
                 // TODO: This branch should be remove after we analyze module.exports
@@ -1917,9 +1918,10 @@ fn mark_symbol(
                 })
                 .collect::<Vec<_>>();
               error_message += &join_string_component(module_identifier_list);
-              errors.push(Error::InternalError(
-                internal_error!(error_message).with_severity(Severity::Warn),
-              ));
+              errors.push(Error::InternalError(InternalError {
+                error_message,
+                severity: Severity::Warn,
+              }));
               ret[0].1.clone()
             }
           }
@@ -1951,9 +1953,10 @@ fn mark_symbol(
               | crate::ModuleType::Tsx
               | crate::ModuleType::Ts => {
                 let error_message = format!("Can't get analyze result of {src}");
-                errors.push(Error::InternalError(
-                  internal_error!(error_message).with_severity(Severity::Warn),
-                ));
+                errors.push(Error::InternalError(InternalError {
+                  error_message,
+                  severity: Severity::Warn,
+                }));
               }
               _ => {
                 // Ignore result module type
@@ -1961,9 +1964,10 @@ fn mark_symbol(
             },
             None => {
               let error_message = format!("Can't get analyze result of {src}");
-              errors.push(Error::InternalError(
-                internal_error!(error_message).with_severity(Severity::Warn),
-              ));
+              errors.push(Error::InternalError(InternalError {
+                error_message,
+                severity: Severity::Warn,
+              }));
             }
           };
           return;

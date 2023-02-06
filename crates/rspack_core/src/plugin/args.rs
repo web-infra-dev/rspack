@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::path::PathBuf;
 
-use rspack_error::{internal_error, Error, Result};
+use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::ast::css::Ast as CssAst;
@@ -92,14 +92,14 @@ impl ModuleAst {
   pub fn try_into_javascript(self) -> Result<JsAst> {
     match self {
       ModuleAst::JavaScript(program) => Ok(program),
-      ModuleAst::Css(_) => Err(Error::InternalError(internal_error!("Failed".to_owned()))),
+      ModuleAst::Css(_) => Err(internal_error!("Failed")),
     }
   }
 
   pub fn try_into_css(self) -> Result<CssAst> {
     match self {
       ModuleAst::Css(stylesheet) => Ok(stylesheet),
-      ModuleAst::JavaScript(_) => Err(Error::InternalError(internal_error!("Failed".to_owned()))),
+      ModuleAst::JavaScript(_) => Err(internal_error!("Failed")),
     }
   }
 

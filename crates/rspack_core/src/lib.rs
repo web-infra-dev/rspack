@@ -192,9 +192,7 @@ impl TryFrom<&str> for ModuleType {
       "scss" | "sass" => Ok(Self::Css),
       _ => {
         use rspack_error::internal_error;
-        Err(rspack_error::Error::InternalError(internal_error!(
-          format!("invalid module type: {value}")
-        )))
+        Err(internal_error!("invalid module type: {value}"))
       }
     }
   }

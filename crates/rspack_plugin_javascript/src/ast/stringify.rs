@@ -91,7 +91,7 @@ pub fn print(
     source_map
       .build_source_map_with_config(&src_map_buf, None, source_map_config)
       .to_writer(&mut buf)
-      .map_err(|e| rspack_error::Error::InternalError(internal_error!(e.to_string())))?;
+      .map_err(|e| internal_error!(e.to_string()))?;
     // SAFETY: This buffer is already sanitized
     Some(unsafe { String::from_utf8_unchecked(buf) })
   } else {
