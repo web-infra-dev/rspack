@@ -60,7 +60,6 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::Cache,
   contextify, dependency, is_source_equal, join_string_component, resolve_module_type_by_uri,
-  split_chunks::code_splitting,
   tree_shaking::{
     debug_care_module_id,
     symbol_graph::SymbolGraph,
@@ -72,12 +71,12 @@ use crate::{
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
   ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
   CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, Context,
-  EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet,
-  LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
-  TaskResult, VisitedModuleIdentity, WorkerTask,
+  DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
+  FactorizeTask, FactorizeTaskResult, Identifier, IdentifierLinkedSet, IdentifierMap,
+  IdentifierSet, LoaderRunnerRunner, Module, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule,
+  SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -2588,9 +2587,10 @@ fn mark_symbol(
         None => {
           if is_js_like_uri(&src_module_identifier) {
             let error_message = format!("Can't get analyze result of {0}", star_symbol.src);
-            errors.push(Error::InternalError(
-              internal_error!(error_message).with_severity(Severity::Warn),
-            ));
+            errors.push(Error::InternalError(InternalError {
+              error_message,
+              severity: Severity::Warn,
+            }));
           }
           return;
         }
@@ -3051,8 +3051,11 @@ fn finalize_symbol(
         });
       // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
       for dep in mgm.dependencies.iter() {
-        let module_ident = match compilation.module_graph.module_by_dependency(dep) {
-          Some(module) => module.module_identifier,
+        let module_ident = match compilation
+          .module_graph
+          .module_identifier_by_dependency_id(dep)
+        {
+          Some(module_identifier) => module_identifier,
           None => {
             match compilation
               .module_graph
@@ -3080,7 +3083,7 @@ fn finalize_symbol(
         {
           continue;
         }
-        q.push_back((module_ident, false));
+        q.push_back((*module_ident, false));
       }
       // dbg!(&module_identifier);
       // dbg!(&reachable_dependency_identifier);
