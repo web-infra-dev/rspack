@@ -1,7 +1,7 @@
 import type { JsCompatSource } from "@rspack/binding";
 
 import { RawSource, CompatSource, Source } from "webpack-sources";
-import { isNil } from ".";
+import { isNil } from "./index";
 
 function createSourceFromRaw(source: JsCompatSource): Source {
 	if (source.isRaw) {
