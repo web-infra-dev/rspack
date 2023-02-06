@@ -41,7 +41,6 @@ swc_core = { workspace = true, features = [
   "ecma_minifier_concurrent",
   "ecma_quote",
 ] }
-swc_emotion = "0.29.4"
 # swc = { workspace = true }
 # swc_atoms = { workspace = true }
 # swc_common = { workspace = true, features = ["concurrent"] }

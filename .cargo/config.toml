@@ -13,7 +13,3 @@ rustflags = [
   "-Wclippy::dbg_macro",
   "-Wclippy::unwrap_used",      # https://rust-lang.github.io/rust-clippy/master/#unwrap_used
 ]
-[target.x86_64-apple-darwin]
-rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
-[target.aarch64-apple-darwin]
-rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]

@@ -21,7 +21,6 @@ exports[`normalize options snapshot compier.options.devServer should be equal to
       "legacy": true,
     },
     "define": {},
-    "emotion": undefined,
     "html": [],
     "minify": {
       "enable": true,
@@ -212,7 +211,6 @@ exports[`normalize options snapshot react.development and react.refresh should b
       "legacy": true,
     },
     "define": {},
-    "emotion": undefined,
     "html": [],
     "minify": {
       "enable": true,

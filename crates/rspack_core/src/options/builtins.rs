@@ -36,7 +36,6 @@ pub struct Builtins {
   pub react: ReactOptions,
   pub decorator: Option<DecoratorOptions>,
   pub no_emit_assets: bool,
-  pub emotion: Option<swc_emotion::EmotionOptions>,
 }
 
 #[derive(Debug, Clone, Default)]

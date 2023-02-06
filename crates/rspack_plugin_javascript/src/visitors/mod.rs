@@ -1,7 +1,6 @@
 mod dependency;
 pub use dependency::*;
 mod finalize;
-use either::Either;
 use finalize::finalize;
 // mod clear_mark;
 // use clear_mark::clear_mark;
@@ -24,7 +23,7 @@ use rspack_error::{Error, Result};
 use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
 use swc_core::ecma::parser::Syntax;
-use swc_core::ecma::transforms::base::pass::{noop, Optional};
+use swc_core::ecma::transforms::base::pass::Optional;
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use tree_shaking::tree_shaking_visitor;
 
@@ -81,18 +80,6 @@ pub fn run_before_pass(
         },
         should_transform_by_react
       ),
-      {
-        if let Some(emotion_options) = &options.builtins.emotion {
-          Either::Left(swc_emotion::emotion(
-            emotion_options.clone(),
-            &resource_data.resource_path,
-            cm.clone(),
-            comments,
-          ))
-        } else {
-          Either::Right(noop())
-        }
-      },
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(

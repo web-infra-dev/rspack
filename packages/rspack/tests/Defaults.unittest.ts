@@ -80,7 +80,6 @@ describe("snapshots", () => {
 		      "legacy": true,
 		    },
 		    "define": {},
-		    "emotion": undefined,
 		    "html": [],
 		    "minify": {
 		      "enable": false,
