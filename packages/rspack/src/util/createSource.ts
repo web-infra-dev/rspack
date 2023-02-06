@@ -1,6 +1,7 @@
 import type { JsCompatSource } from "@rspack/binding";
 
 import { RawSource, CompatSource, Source } from "webpack-sources";
+import { isNil } from ".";
 
 function createSourceFromRaw(source: JsCompatSource): Source {
 	if (source.isRaw) {
@@ -55,7 +56,7 @@ function createRawFromSource(source: Source): JsCompatSource {
 
 	return {
 		source: buffer,
-		map: Buffer.from(map),
+		map: isNil(map) ? map : Buffer.from(map),
 		isRaw: false,
 		isBuffer
 	};
