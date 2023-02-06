@@ -46,17 +46,22 @@ struct Analyzer<'a> {
   diagnostics: &'a mut Vec<Diagnostic>,
 }
 
-fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagnostic>) -> String {
+fn replace_module_request_prefix(
+  specifier: String,
+  diagnostics: Option<&mut Vec<Diagnostic>>,
+) -> String {
   if IS_MODULE_REQUEST.is_match(&specifier) {
-    diagnostics.push(
-      Diagnostic::warn(
-        "Deprecated '~'".to_string(),
-        "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
-        0,
-        0,
-      )
-      .with_kind(DiagnosticKind::Css),
-    );
+    if let Some(diagnostics) = diagnostics {
+      diagnostics.push(
+        Diagnostic::warn(
+          "Deprecated '~'".to_string(),
+          "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
+          0,
+          0,
+        )
+        .with_kind(DiagnosticKind::Css),
+      );
+    }
     IS_MODULE_REQUEST.replace(&specifier, "").to_string()
   } else {
     specifier
@@ -79,7 +84,7 @@ impl VisitAstPath for Analyzer<'_> {
       ImportHref::Str(s) => Some(s.value.to_string()),
     };
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
-      let specifier = replace_module_request_prefix(specifier, self.diagnostics);
+      let specifier = replace_module_request_prefix(specifier, Some(self.diagnostics));
       self.deps.push(box CssImportDependency::new(specifier, Some(n.span.into()), as_parent_path(ast_path)));
       // self.deps.push(ModuleDependency {
       //   specifier,
@@ -101,7 +106,7 @@ impl VisitAstPath for Analyzer<'_> {
       UrlValue::Raw(r) => r.value.to_string(),
     });
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
-      let specifier = replace_module_request_prefix(specifier, self.diagnostics);
+      let specifier = replace_module_request_prefix(specifier, Some(self.diagnostics));
       let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path));
       // TODO avoid dependency clone
       self.deps.push(dep.clone());
@@ -194,6 +199,7 @@ impl RewriteUrl<'_> {
   }
 
   pub fn get_target_url(&mut self, specifier: String) -> Option<String> {
+    let specifier = replace_module_request_prefix(specifier, None);
     let from = self.resolve_module_legacy(
       &self.module.identifier(),
       &specifier,
