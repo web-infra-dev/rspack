@@ -92,7 +92,7 @@ impl VisitMutAstPath for Analyzer<'_> {
       }
     };
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
-      self.deps.push(box CssImportDependency::new(specifier, Some(n.span.into()), ast_path.iter().map(|i| *i).collect()));
+      self.deps.push(box CssImportDependency::new(specifier, Some(n.span.into()), ast_path.iter().copied().collect()));
     }
   }
 
@@ -114,7 +114,7 @@ impl VisitMutAstPath for Analyzer<'_> {
       }
     });
     if let Some(specifier) = specifier && is_url_requestable(&specifier) {
-      let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), ast_path.iter().map(|i| *i).collect());
+      let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), ast_path.iter().copied().collect());
       // TODO avoid dependency clone
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
