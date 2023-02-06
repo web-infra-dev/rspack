@@ -374,6 +374,14 @@ impl Plugin for JsPlugin {
     ctx
       .context
       .register_parser_and_generator_builder(ModuleType::Js, Box::new(create_parser_and_generator));
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsEsm,
+      Box::new(create_parser_and_generator),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsDynamic,
+      Box::new(create_parser_and_generator),
+    );
     ctx
       .context
       .register_parser_and_generator_builder(ModuleType::Ts, Box::new(create_parser_and_generator));
@@ -383,6 +391,14 @@ impl Plugin for JsPlugin {
     );
     ctx.context.register_parser_and_generator_builder(
       ModuleType::Jsx,
+      Box::new(create_parser_and_generator),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsxEsm,
+      Box::new(create_parser_and_generator),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsxDynamic,
       Box::new(create_parser_and_generator),
     );
 

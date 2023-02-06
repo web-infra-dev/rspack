@@ -47,7 +47,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
-      "size": 1297,
+      "size": 1295,
       "type": "asset",
     },
     {
@@ -96,10 +96,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 1297,
+          "size": 1295,
         },
       ],
-      "assetsSize": 1297,
+      "assetsSize": 1295,
       "chunks": [
         "main",
       ],
@@ -114,10 +114,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "id": "2",
+      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/filename/index.js",
       "issuerPath": [],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "./index.js",
       "reasons": [
         {},
@@ -129,24 +129,24 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "chunks": [
         "dynamic_js",
       ],
-      "id": "426",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
-      "issuerId": "10",
+      "id": "471",
+      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/filename/dynamic.js",
+      "issuer": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+      "issuerId": "2",
       "issuerName": "./index.js",
       "issuerPath": [
         {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+          "id": "2",
+          "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/filename/index.js",
           "name": "./index.js",
         },
       ],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "./dynamic.js",
       "reasons": [
         {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+          "moduleId": "2",
+          "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/filename/index.js",
           "moduleName": "./index.js",
         },
       ],
@@ -162,15 +162,15 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 exports[`StatsTestCases should print correct stats for filename 2`] = `
 "Hash: cd028cdc92b7b18
              Asset       Size      Chunks             Chunk Names
-      main.xxxx.js   1.27 KiB        main  [emitted]  main
+      main.xxxx.js   1.26 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
 chunk {main} main.xxxx.js (main) 38 bytes [entry]
-[10] ./index.js 38 bytes {main}
+[2] ./index.js 38 bytes {main}
     
-[426] ./dynamic.js 32 bytes {dynamic_js}
-    [10]"
+[471] ./dynamic.js 32 bytes {dynamic_js}
+    [2]"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -189,7 +189,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 8975,
+      "size": 8973,
       "type": "asset",
     },
   ],
@@ -213,10 +213,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 8975,
+          "size": 8973,
         },
       ],
-      "assetsSize": 8975,
+      "assetsSize": 8973,
       "chunks": [
         "main",
       ],
@@ -231,10 +231,10 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
+      "id": "2",
+      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/hot+production/index.js",
       "issuerPath": [],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "./index.js",
       "reasons": [
         {},
@@ -254,7 +254,7 @@ exports[`StatsTestCases should print correct stats for hot+production 2`] = `
 bundle.js  8.76 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
-[10] ./index.js 25 bytes {main}
+[2] ./index.js 25 bytes {main}
     "
 `;
 
@@ -796,7 +796,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 365,
+      "size": 363,
       "type": "asset",
     },
   ],
@@ -820,10 +820,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 365,
+          "size": 363,
         },
       ],
-      "assetsSize": 365,
+      "assetsSize": 363,
       "chunks": [
         "main",
       ],
@@ -849,10 +849,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "id": "2",
+      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
       "issuerPath": [],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "./index.js",
       "reasons": [
         {},
@@ -866,22 +866,22 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       ],
       "id": "259",
       "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/acycle-alias/a",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
-      "issuerId": "10",
+      "issuer": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+      "issuerId": "2",
       "issuerName": "./index.js",
       "issuerPath": [
         {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "id": "2",
+          "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
           "name": "./index.js",
         },
       ],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing)",
       "reasons": [
         {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "moduleId": "2",
+          "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
           "moduleName": "./index.js",
         },
       ],
@@ -897,13 +897,13 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "Hash: 2cd6d5431067e030
     Asset       Size  Chunks             Chunk Names
-bundle.js  365 bytes    main  [emitted]  main
+bundle.js  363 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 211 bytes [entry]
-[10] ./index.js 51 bytes {main}
+[2] ./index.js 51 bytes {main}
     
 [259] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
-    [10]
+    [2]
 
 error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
@@ -930,7 +930,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 974,
+      "size": 972,
       "type": "asset",
     },
   ],
@@ -954,10 +954,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 974,
+          "size": 972,
         },
       ],
-      "assetsSize": 974,
+      "assetsSize": 972,
       "chunks": [
         "main",
       ],
@@ -978,10 +978,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "chunks": [
         "main",
       ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "id": "2",
+      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
       "issuerPath": [],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "./index.js",
       "reasons": [
         {},
@@ -995,22 +995,22 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       ],
       "id": "805",
       "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-apkg-a",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
-      "issuerId": "10",
+      "issuer": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+      "issuerId": "2",
       "issuerName": "./index.js",
       "issuerPath": [
         {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "id": "2",
+          "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
           "name": "./index.js",
         },
       ],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing)",
       "reasons": [
         {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "moduleId": "2",
+          "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
           "moduleName": "./index.js",
         },
       ],
@@ -1026,13 +1026,13 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
 "Hash: 62665733b395e13
     Asset       Size  Chunks             Chunk Names
-bundle.js  974 bytes    main  [emitted]  main
+bundle.js  972 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 199 bytes [entry]
-[10] ./index.js 39 bytes {main}
+[2] ./index.js 39 bytes {main}
     
 [805] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
-    [10]
+    [2]
 
 Export should be relative path and start with "./", but got ../../index.js
 "
@@ -1097,7 +1097,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 319,
+      "size": 317,
       "type": "asset",
     },
   ],
@@ -1121,10 +1121,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 319,
+          "size": 317,
         },
       ],
-      "assetsSize": 319,
+      "assetsSize": 317,
       "chunks": [
         "main",
       ],
@@ -1139,10 +1139,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple/index.js",
+      "id": "2",
+      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/simple/index.js",
       "issuerPath": [],
-      "moduleType": "js",
+      "moduleType": "javascript/auto",
       "name": "./index.js",
       "reasons": [
         {},
@@ -1159,9 +1159,9 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 exports[`StatsTestCases should print correct stats for simple 2`] = `
 "Hash: 77107cc3f22df218
     Asset       Size  Chunks             Chunk Names
-bundle.js  319 bytes    main  [emitted]  main
+bundle.js  317 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
-[10] ./index.js 26 bytes {main}
+[2] ./index.js 26 bytes {main}
     "
 `;

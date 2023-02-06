@@ -108,8 +108,8 @@ impl ModuleType {
   pub fn is_js_like(&self) -> bool {
     matches!(
       self,
-      ModuleType::Js | ModuleType::Ts | ModuleType::Tsx | ModuleType::Jsx
-    )
+      ModuleType::Js | ModuleType::JsEsm | ModuleType::JsDynamic | ModuleType::Ts
+    ) || self.is_jsx_like()
   }
 
   pub fn is_asset_like(&self) -> bool {
@@ -119,7 +119,10 @@ impl ModuleType {
     )
   }
   pub fn is_jsx_like(&self) -> bool {
-    matches!(self, ModuleType::Tsx | ModuleType::Jsx)
+    matches!(
+      self,
+      ModuleType::Tsx | ModuleType::Jsx | ModuleType::JsxEsm | ModuleType::JsxDynamic
+    )
   }
 }
 
@@ -158,8 +161,11 @@ impl TryFrom<&str> for ModuleType {
   type Error = rspack_error::Error;
 
   fn try_from(value: &str) -> Result<Self, Self::Error> {
+    // FIXME: Using a mixed version of Deserialize with extension and the name of ModuleType is definitely a not good idea.
+    // Change it in favor of default options apply.
     match value {
       "mjs" => Ok(Self::JsEsm),
+      "cjs" => Ok(Self::JsDynamic),
       "js" | "javascript" | "js/auto" | "javascript/auto" => Ok(Self::Js),
       "js/dynamic" | "javascript/dynamic" => Ok(Self::JsDynamic),
       "js/esm" | "javascript/esm" => Ok(Self::JsEsm),

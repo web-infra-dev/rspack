@@ -138,7 +138,7 @@ impl NormalModuleFactory {
       }
     };
 
-    let request = resource_data.resource;
+    let request = &resource_data.resource;
     tracing::trace!("resolved request {request}");
 
     let file_dependency = resource_data.resource_path.clone();
