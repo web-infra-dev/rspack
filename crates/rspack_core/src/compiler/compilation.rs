@@ -49,7 +49,6 @@ use crate::{
   cache::Cache,
   contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
   tree_shaking::{
-    debug_care_module_id,
     symbol_graph::SymbolGraph,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutFlog, ModuleUsedType, OptimizeDependencyResult, SideEffect,
