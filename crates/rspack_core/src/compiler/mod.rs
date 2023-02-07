@@ -130,26 +130,6 @@ impl Compiler {
   async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
-    if option.builtins.tree_shaking {
-      let (analyze_result, diagnostics) = self
-        .compilation
-        .optimize_dependency()
-        .await?
-        .split_into_parts();
-      if !diagnostics.is_empty() {
-        self.compilation.push_batch_diagnostic(diagnostics);
-      }
-      self.compilation.used_symbol_ref = analyze_result.used_symbol_ref;
-      self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
-      self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
-      self.compilation.module_item_map = analyze_result.module_item_map;
-
-      // This is only used when testing
-      #[cfg(debug_assertions)]
-      {
-        self.compilation.tree_shaking_result = analyze_result.analyze_results;
-      }
-    }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic

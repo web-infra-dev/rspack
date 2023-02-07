@@ -1,11 +1,11 @@
 use bitflags;
 use once_cell::sync::Lazy;
-use rustc_hash::FxHashSet as HashSet;
+use rspack_database::Ukey;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::ecma::ast::ModuleItem;
 
 use self::visitor::{SymbolRef, TreeShakingResult};
-use crate::{IdentifierMap, IdentifierSet};
-
+use crate::{Chunk, IdentifierMap, IdentifierSet};
 pub mod symbol_graph;
 pub mod utils;
 pub mod visitor;
@@ -16,6 +16,7 @@ pub struct OptimizeDependencyResult {
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
+  pub chunk_key_to_used_modules_map: HashMap<Ukey<Chunk>, IdentifierSet>,
 }
 const ANALYZE_LOGGING: bool = true;
 static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
