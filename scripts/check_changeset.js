@@ -2,9 +2,8 @@ const path = require("path");
 const readChangesets = require("@changesets/read").default;
 
 async function run() {
-	const cwd = process.cwd();
 	const changesets = await readChangesets(
-		path.join(cwd, "../"),
+		path.join(__dirname, "../"),
 		process.env.BASE_BRANCH
 	);
 
