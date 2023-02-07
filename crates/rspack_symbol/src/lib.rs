@@ -125,14 +125,6 @@ pub struct IndirectTopLevelSymbol {
   pub importer: Ustr,
 }
 
-// impl std::cmp::PartialEq for IndirectTopLevelSymbol {
-//   fn eq(&self, other: &Self) -> bool {
-//     self.uri == other.uri
-//       && self.id == other.id
-//       && (self.importer == other.importer || self.importer.is_empty())
-//   }
-// }
-
 impl IndirectTopLevelSymbol {
   pub fn new(src: Ustr, importer: Ustr, ty: IndirectType) -> Self {
     Self { src, importer, ty }
