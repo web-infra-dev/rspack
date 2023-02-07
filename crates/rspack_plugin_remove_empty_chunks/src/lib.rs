@@ -6,7 +6,6 @@ use rspack_core::{Compilation, Plugin};
 pub struct RemoveEmptyChunksPlugin;
 
 impl RemoveEmptyChunksPlugin {
-  #[tracing::instrument]
   fn remove_empty_chunks(&self, compilation: &mut Compilation) {
     let chunk_graph = &mut compilation.chunk_graph;
     let mut empty_chunks = compilation

@@ -82,7 +82,6 @@ fn compare_modules(a: &[&ModuleIdentifier], b: &[&ModuleIdentifier]) -> Ordering
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) fn check_min_size(sizes: &SplitChunkSizes, min_size: &SplitChunkSizes) -> bool {
   for key in sizes.keys() {
     let size = sizes.get(key).expect("key should exist");
@@ -96,7 +95,6 @@ pub(crate) fn check_min_size(sizes: &SplitChunkSizes, min_size: &SplitChunkSizes
   true
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) fn get_violating_min_sizes(
   sizes: &SplitChunkSizes,
   min_size: &SplitChunkSizes,

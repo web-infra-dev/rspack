@@ -35,7 +35,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
     "rspack_plugin_js_hooks_adapter"
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::compilation", skip_all)]
   async fn compilation(
     &mut self,
     args: rspack_core::CompilationArgs<'_>,
@@ -55,7 +54,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to compilation: {err}"))?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::this_compilation", skip_all)]
   async fn this_compilation(
     &mut self,
     args: rspack_core::ThisCompilationArgs<'_>,
@@ -90,7 +88,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call make: {err}",))?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_additional", skip_all)]
   async fn process_assets_stage_additional(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -104,7 +101,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage additional: {err}",))?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_pre_process", skip_all)]
   async fn process_assets_stage_pre_process(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -118,7 +114,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage pre-process: {err}",))?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_none", skip_all)]
   async fn process_assets_stage_none(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -132,10 +127,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets: {err}",))?
   }
 
-  #[tracing::instrument(
-    name = "js_hooks_adapter::process_assets_stage_optimize_inline",
-    skip_all
-  )]
   async fn process_assets_stage_optimize_inline(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -151,7 +142,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       })?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_summarize", skip_all)]
   async fn process_assets_stage_summarize(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -166,7 +156,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::process_assets_stage_report", skip_all)]
   async fn process_assets_stage_report(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -181,7 +170,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage report: {err}",))?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::emit", skip_all)]
   async fn emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     self
       .emit_tsfn
@@ -191,7 +179,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call emit: {err}"))?
   }
 
-  #[tracing::instrument(name = "js_hooks_adapter::after_emit", skip_all)]
   async fn after_emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     self
       .after_emit_tsfn

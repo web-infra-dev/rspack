@@ -14,7 +14,6 @@ use rspack_core::{
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
-use tracing::instrument;
 
 static IS_CSS_FILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\.css($|\?)").expect("TODO:"));
 
@@ -61,7 +60,6 @@ impl Plugin for DevtoolPlugin {
     "devtool"
   }
 
-  #[instrument(skip_all)]
   async fn process_assets_stage_dev_tooling(
     &mut self,
     _ctx: PluginContext,
