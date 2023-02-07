@@ -1,5 +1,39 @@
 # @rspack/cli
 
+## 0.0.22
+
+### Patch Changes
+
+- 59edc2cb4: fix watch options
+- Updated dependencies [361f9a539]
+- Updated dependencies [59edc2cb4]
+- Updated dependencies [b77074dfa]
+- Updated dependencies [c65ca69eb]
+- Updated dependencies [4de9eea6c]
+- Updated dependencies [0bc720c7e]
+- Updated dependencies [ac02a096e]
+- Updated dependencies [8a4cb9a38]
+- Updated dependencies [9c90398a8]
+- Updated dependencies [290bf7fb5]
+- Updated dependencies [86ed12184]
+- Updated dependencies [126b2160e]
+- Updated dependencies [792304dd9]
+- Updated dependencies [6d4f3e627]
+- Updated dependencies [d88ffa666]
+- Updated dependencies [3fcfa7462]
+- Updated dependencies [cb93bb421]
+- Updated dependencies [53acb67c7]
+- Updated dependencies [6b95cf27f]
+- Updated dependencies [2f4db99e0]
+- Updated dependencies [82ae10cad]
+- Updated dependencies [5e722adf1]
+- Updated dependencies [b6e9a1b5e]
+- Updated dependencies [6722de813]
+- Updated dependencies [58465b81b]
+- Updated dependencies [70586d79e]
+  - @rspack/core@0.0.22
+  - @rspack/dev-server@0.0.22
+
 ## 0.0.21
 
 ### Patch Changes

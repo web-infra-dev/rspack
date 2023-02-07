@@ -1,5 +1,13 @@
 # @rspack/dev-client
 
+## 0.0.22
+
+### Patch Changes
+
+- 59edc2cb4: fix watch options
+- d88ffa666: feat: support devServer.client.webSocketUrl
+- 0269ff40d: fix: avoid **webpack_require**.m not defined
+
 ## 0.0.21
 
 ### Patch Changes

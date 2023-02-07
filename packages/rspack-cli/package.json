@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.0.21",
+  "version": "0.0.22",
   "bin": {
     "rspack": "./bin/rspack"
   },

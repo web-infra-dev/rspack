@@ -1,5 +1,12 @@
 # @rspack/binding-darwin-x64
 
+## 0.0.22
+
+### Patch Changes
+
+- 59edc2cb4: fix watch options
+- faef6fc00: Should normalize SplitChunks options correctly
+
 ## 0.0.21
 
 ### Patch Changes

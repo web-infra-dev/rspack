@@ -1,5 +1,11 @@
 # create-rspack
 
+## 0.0.18
+
+### Patch Changes
+
+- 59edc2cb4: fix watch options
+
 ## 0.0.17
 
 ### Patch Changes
