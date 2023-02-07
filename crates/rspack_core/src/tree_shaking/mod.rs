@@ -32,10 +32,7 @@ static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
     Err(_) => vec![],
   }
 });
-pub static CARED_MODULE_ID: &[&str] = &[
-  "/Users/bytedance/Documents/bytedance/shadow/packages/platform/src/containers/index/index.tsx",
-  // "/Users/bytedance/Documents/rspack/rspack/node_modules/prop-types/index.js",
-];
+pub static CARED_MODULE_ID: &[&str] = &[];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {
