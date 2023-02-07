@@ -65,7 +65,7 @@ pub trait Dependency:
   fn id(&self) -> Option<&DependencyId> {
     None
   }
-  fn set_id(&mut self, _id: usize) {}
+  fn set_id(&mut self, _id: Option<DependencyId>) {}
   fn parent_module_identifier(&self) -> Option<&ModuleIdentifier>;
   fn set_parent_module_identifier(&mut self, _module_identifier: Option<ModuleIdentifier>) {
     // noop
@@ -239,7 +239,7 @@ impl Dependency for Box<dyn ModuleDependency> {
   fn id(&self) -> Option<&DependencyId> {
     (**self).id()
   }
-  fn set_id(&mut self, id: DependencyId) {
+  fn set_id(&mut self, id: Option<DependencyId>) {
     (**self).set_id(id)
   }
 }

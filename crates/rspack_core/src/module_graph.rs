@@ -103,7 +103,7 @@ impl ModuleGraph {
       return *id;
     }
     let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-    dep.set_id(id);
+    dep.set_id(Some(id));
     self.dependency_id_to_dependency.insert(id, dep);
 
     id

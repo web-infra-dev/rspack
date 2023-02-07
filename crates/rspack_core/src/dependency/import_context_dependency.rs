@@ -39,8 +39,8 @@ impl Dependency for ImportContextDependency {
   fn id(&self) -> Option<&DependencyId> {
     self.id.as_ref()
   }
-  fn set_id(&mut self, id: DependencyId) {
-    self.id = Some(id);
+  fn set_id(&mut self, id: Option<DependencyId>) {
+    self.id = id;
   }
   fn category(&self) -> &crate::DependencyCategory {
     &crate::DependencyCategory::Esm
