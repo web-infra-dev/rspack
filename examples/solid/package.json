@@ -10,6 +10,7 @@
     "babel-loader": "9.1.2",
     "solid-js": "1.6.9",
     "babel-preset-solid": "1.6.9",
+    "solid-refresh": "0.4.3",
     "@rspack/cli": "workspace:*"
   },
   "keywords": [],

@@ -21,6 +21,9 @@ module.exports = {
             options: {
               presets: [
                 ["solid"]
+              ],
+              plugins: [
+                "solid-refresh/babel"
               ]
             }
           }
