@@ -196,7 +196,6 @@ impl Compiler {
       .await
   }
 
-  #[instrument(name = "emit_asset", skip_all)]
   fn emit_asset(&self, output_path: &Path, filename: &str, asset: &CompilationAsset) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let file_path = Path::new(&output_path).join(filename);

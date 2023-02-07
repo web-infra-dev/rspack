@@ -277,7 +277,6 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     "js_loader_adapter"
   }
 
-  #[tracing::instrument(name = "js_loader_adapter::run", fields(name = &self.name, resource = &loader_context.resource), skip(self, loader_context))]
   async fn run(
     &self,
     loader_context: &rspack_core::LoaderContext<

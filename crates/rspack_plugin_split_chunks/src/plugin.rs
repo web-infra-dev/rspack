@@ -173,7 +173,6 @@ pub fn create_cache_group_source(
   }
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) fn remove_modules_with_source_type(
   info: &mut ChunksInfoItem,
   source_types: &[SourceType],
@@ -196,7 +195,6 @@ pub(crate) fn remove_modules_with_source_type(
   });
 }
 
-#[tracing::instrument(skip_all)]
 pub(crate) fn remove_min_size_violating_modules(
   info: &mut ChunksInfoItem,
   cache_group_by_key: &HashMap<String, CacheGroup>,

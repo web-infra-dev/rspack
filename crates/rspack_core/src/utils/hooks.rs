@@ -2,7 +2,6 @@ use std::path::Path;
 
 use rspack_error::{internal_error, Error, TraceableError};
 use sugar_path::{AsPath, SugarPath};
-use tracing::instrument;
 
 use crate::{ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, SharedPluginDriver};
 
@@ -10,7 +9,6 @@ use crate::{ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Shared
 /// The first element is the error message for runtime and the second element is the error used for stats and so on.
 pub struct ResolveError(pub String, pub Error);
 
-#[instrument(name = "resolve", skip_all)]
 pub async fn resolve(
   args: ResolveArgs<'_>,
   plugin_driver: &SharedPluginDriver,
