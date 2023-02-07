@@ -413,7 +413,8 @@ impl Plugin for JsPlugin {
       SourceType::JavaScript,
       &compilation.module_graph,
     );
-    ordered_modules.sort_by_key(|m| &m.module_identifier);
+    // SAFETY: module identifier is unique
+    ordered_modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
     for mgm in ordered_modules {
       if let Some(hash) = compilation
         .module_graph
