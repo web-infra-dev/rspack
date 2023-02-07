@@ -157,14 +157,19 @@ impl NormalModuleFactory {
       .into_iter()
       .flat_map(|module_rule| module_rule.r#use.iter().cloned().rev())
       .collect::<Vec<_>>();
-    let loader_names = loaders
-      .iter()
-      .map(|i| i.name())
-      .collect::<Vec<_>>()
-      .join("!");
 
+    let request = if !loaders.is_empty() {
+      loaders
+        .iter()
+        .map(|i| i.name())
+        .collect::<Vec<_>>()
+        .join("!")
+        + "!"
+        + &resource_data.resource
+    } else {
+      resource_data.resource.clone()
+    };
     let user_request = resource_data.resource.clone();
-    let request = [loader_names, resource_data.resource.clone()].join("!");
     tracing::trace!("resolved uri {:?}", request);
 
     let file_dependency = resource_data.resource_path.clone();
