@@ -38,8 +38,10 @@ pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {
     return false;
   }
+  if CARED_MODULE_ID.is_empty() {
+    return true;
+  }
 
-  // .chain()
   CARED_MODULE_ID
     .iter()
     .any(|module_id| id.as_ref().contains(module_id))

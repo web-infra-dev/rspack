@@ -1,4 +1,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./a.svg": function (module, exports, __webpack_require__) {
+"use strict";
+module.exports = "data:image/svg+xml;base64,";},
 "./a.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -10,9 +13,6 @@ Object.defineProperty(exports, "a", {
 });
 const a = 3;
 },
-"./a.svg": function (module, exports, __webpack_require__) {
-"use strict";
-module.exports = "data:image/svg+xml;base64,";},
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
