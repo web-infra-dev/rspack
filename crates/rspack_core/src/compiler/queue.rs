@@ -25,7 +25,7 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub issuer: String,
+  pub issuer: Option<String>,
   pub original_resource_path: Option<PathBuf>,
   pub dependencies: Vec<BoxModuleDependency>,
   pub is_entry: bool,
@@ -222,30 +222,6 @@ impl WorkerTask for BuildTask {
     let build_result = cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        let resolved_loaders = if let Some(normal_module) = module.as_normal_module() {
-          let resource_data = normal_module.resource_resolved_data();
-          let issuer = normal_module.issuer();
-
-          compiler_options
-            .module
-            .rules
-            .iter()
-            .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-              match module_rule_matcher(module_rule, resource_data, issuer) {
-                Ok(val) => val.then_some(Ok(module_rule)),
-                Err(err) => Some(Err(err)),
-              }
-            })
-            .collect::<Result<Vec<_>>>()?
-        } else {
-          vec![]
-        };
-
-        let resolved_loaders = resolved_loaders
-          .into_iter()
-          .flat_map(|module_rule| module_rule.r#use.iter().map(Box::as_ref).rev())
-          .collect::<Vec<_>>();
-
         plugin_driver
           .read()
           .await
@@ -254,7 +230,6 @@ impl WorkerTask for BuildTask {
 
         let result = module
           .build(BuildContext {
-            resolved_loaders,
             loader_runner_runner: &loader_runner_runner,
             compiler_options: &compiler_options,
           })

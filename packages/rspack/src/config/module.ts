@@ -217,7 +217,6 @@ function composeJsUse(
 
 		// Loader is executed from right to left
 		for (const use of uses) {
-			assert("loader" in use);
 			const loaderIndex = allUses.indexOf(use);
 
 			let loaderResult: LoaderResult;
@@ -652,27 +651,11 @@ function composeJsUse(
 		};
 	}
 
-	loader.displayName = `NodeLoaderAdapter(${uses
-		.map(item => {
-			assert("loader" in item);
-			let loader: Loader | null;
-			if (typeof item.loader === "string") {
-				try {
-					const path = require.resolve(item.loader, {
-						paths: [options.context]
-					});
-					loader = require(path);
-				} catch (e) {
-					loader = null;
-				}
-			} else {
-				loader = item.loader;
-			}
-			return loader?.displayName || loader?.name || "unknown-loader";
-		})
-		.join(" -> ")})`;
 	return {
-		loader
+		jsLoader: {
+			func: loader,
+			name: uses.map(use => use.loader).join("!")
+		}
 	};
 }
 
@@ -687,22 +670,16 @@ export interface Loader {
 	raw?: boolean;
 }
 
-type BuiltinLoader = string;
+const BUILTIN_LOADER_PREFIX = "builtin:";
 
-type ModuleRuleUse =
-	| {
-			builtinLoader: BuiltinLoader;
-			options?: unknown;
-			name?: string;
-	  }
-	| {
-			// String represents a path to the loader
-			loader: Loader | string;
-			options?: unknown;
-			name?: string;
-			query?: string;
-			data?: unknown;
-	  };
+type ModuleRuleUse = {
+	// String represents a path to the loader
+	loader: Loader | string;
+	options?: unknown;
+	name?: string;
+	query?: string;
+	data?: unknown;
+};
 
 export function createRawModuleRuleUses(
 	uses: ModuleRuleUse[],
@@ -720,7 +697,11 @@ function createRawModuleRuleUsesImpl(
 	if (!uses.length) {
 		return [];
 	}
-	const index = uses.findIndex(use => "builtinLoader" in use);
+	const index = uses.findIndex(
+		use =>
+			typeof use.loader === "string" &&
+			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
+	);
 	if (index < 0) {
 		// @ts-expect-error
 		return [composeJsUse(uses, options, allUses)];
@@ -730,15 +711,18 @@ function createRawModuleRuleUsesImpl(
 	const after = uses.slice(index + 1);
 	return [
 		composeJsUse(before, options, allUses),
-		createNativeUse(uses[index]),
+		createBuiltinUse(uses[index]),
 		...createRawModuleRuleUsesImpl(after, options, allUses)
 	].filter((item): item is RawModuleRuleUse => Boolean(item));
 }
 
-function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
-	assert("builtinLoader" in use);
+function createBuiltinUse(use: ModuleRuleUse): RawModuleRuleUse {
+	assert(
+		typeof use.loader === "string" &&
+			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
+	);
 
-	if (use.builtinLoader === "sass-loader") {
+	if (use.loader === `${BUILTIN_LOADER_PREFIX}sass-loader`) {
 		(use.options ??= {} as any).__exePath = require.resolve(
 			`@tmp-sass-embedded/${process.platform}-${
 				process.arch
@@ -749,7 +733,7 @@ function createNativeUse(use: ModuleRuleUse): RawModuleRuleUse {
 	}
 
 	return {
-		builtinLoader: use.builtinLoader,
+		builtinLoader: use.loader,
 		options: JSON.stringify(use.options)
 	};
 }

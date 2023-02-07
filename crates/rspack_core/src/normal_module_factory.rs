@@ -135,8 +135,37 @@ impl NormalModuleFactory {
       }
     };
 
-    let request = &resource_data.resource;
-    tracing::trace!("resolved request {request}");
+    let loaders = self
+      .context
+      .options
+      .module
+      .rules
+      .iter()
+      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
+        match module_rule_matcher(
+          module_rule,
+          &resource_data,
+          importer.map(|i| i.to_string_lossy()).as_deref(),
+        ) {
+          Ok(val) => val.then_some(Ok(module_rule)),
+          Err(err) => Some(Err(err)),
+        }
+      })
+      .collect::<Result<Vec<_>>>()?;
+
+    let loaders = loaders
+      .into_iter()
+      .flat_map(|module_rule| module_rule.r#use.iter().cloned().rev())
+      .collect::<Vec<_>>();
+    let loader_names = loaders
+      .iter()
+      .map(|i| i.name())
+      .collect::<Vec<_>>()
+      .join("!");
+
+    let user_request = resource_data.resource.clone();
+    let request = [loader_names, resource_data.resource.clone()].join("!");
+    tracing::trace!("resolved uri {:?}", request);
 
     let file_dependency = resource_data.resource_path.clone();
 
@@ -166,8 +195,8 @@ impl NormalModuleFactory {
     self.context.module_type = Some(resolved_module_type);
 
     let normal_module = NormalModule::new(
-      request.clone(),
-      request.clone(),
+      request,
+      user_request,
       data.dependency.request().to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,
@@ -175,8 +204,8 @@ impl NormalModuleFactory {
       resolved_generator_options,
       resource_data,
       resolved_resolve_options,
+      loaders,
       self.context.options.clone(),
-      self.context.issuer.clone(),
     );
 
     let module = if let Some(module) = self
@@ -212,7 +241,7 @@ impl NormalModuleFactory {
       .rules
       .iter()
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        match module_rule_matcher(module_rule, resource_data, &self.context.issuer) {
+        match module_rule_matcher(module_rule, resource_data, self.context.issuer.as_deref()) {
           Ok(val) => val.then_some(Ok(module_rule)),
           Err(err) => Some(Err(err)),
         }
@@ -324,7 +353,7 @@ pub struct NormalModuleFactoryContext {
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,
   pub lazy_visit_modules: std::collections::HashSet<String>,
-  pub issuer: String,
+  pub issuer: Option<String>,
 }
 
 /// Using `u32` instead of `usize` to reduce memory usage,

@@ -16,7 +16,6 @@ use crate::{
 
 pub struct BuildContext<'a> {
   pub loader_runner_runner: &'a LoaderRunnerRunner,
-  pub resolved_loaders: Vec<&'a dyn Loader<CompilerContext, CompilationContext>>,
   pub compiler_options: &'a CompilerOptions,
 }
 

@@ -481,8 +481,10 @@ impl SassLoader {
 #[async_trait::async_trait]
 impl Loader<CompilerContext, CompilationContext> for SassLoader {
   fn name(&self) -> &'static str {
-    "sass-loader"
+    "builtin:sass-loader"
   }
+
+  #[instrument("sass-loader", skip_self)]
   async fn run(
     &self,
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,

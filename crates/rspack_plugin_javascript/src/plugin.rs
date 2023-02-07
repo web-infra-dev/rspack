@@ -316,7 +316,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
             value: output.code,
             source_map: SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string()))?,
-            name: module.try_as_normal_module()?.request().to_string(),
+            name: module.try_as_normal_module()?.user_request().to_string(),
             original_source: {
               Some(
                 // Safety: you can sure that `build` is called before code generation, so that the `original_source` is exist

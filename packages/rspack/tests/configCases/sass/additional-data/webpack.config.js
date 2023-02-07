@@ -5,7 +5,7 @@ module.exports = {
 				test: /\.s[ac]ss$/i,
 				use: [
 					{
-						builtinLoader: "sass-loader",
+						loader: "builtin:sass-loader",
 						options: {
 							additionalData: "$prepended-data: hotpink;"
 						}

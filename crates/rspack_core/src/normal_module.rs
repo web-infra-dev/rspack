@@ -25,10 +25,11 @@ use serde_json::json;
 
 use crate::{
   contextify, identifier::Identifiable, is_async_dependency, AssetGeneratorOptions,
-  AssetParserOptions, BoxModule, BuildContext, BuildResult, ChunkGraph, CodeGenerationResult,
-  Compilation, CompilerOptions, Context, Dependency, DependencyId, GenerateContext,
-  LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
+  AssetParserOptions, BoxModule, BoxedLoader, BuildContext, BuildResult, ChunkGraph,
+  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, DependencyId,
+  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -315,6 +316,8 @@ pub struct NormalModule {
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource data (path, url, etc.)
   resource_data: ResourceData,
+  /// Loaders t
+  loaders: Vec<BoxedLoader>,
 
   /// Original content of this module, will be available after module build
   original_source: Option<Box<dyn Source>>,
@@ -328,7 +331,6 @@ pub struct NormalModule {
   /// Generator options derived from [Rule.generator]
   generator_options: Option<AssetGeneratorOptions>,
 
-  issuer: String,
   options: Arc<CompilerOptions>,
   #[allow(unused)]
   debug_id: usize,
@@ -377,8 +379,8 @@ impl NormalModule {
     generator_options: Option<AssetGeneratorOptions>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
+    loaders: Vec<BoxedLoader>,
     options: Arc<CompilerOptions>,
-    issuer: String,
   ) -> Self {
     let module_type = module_type.into();
     Self {
@@ -392,7 +394,7 @@ impl NormalModule {
       generator_options,
       resource_data,
       resolve_options,
-      issuer,
+      loaders,
       original_source: None,
       ast_or_source: NormalModuleAstOrSource::Unbuild,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
@@ -406,10 +408,6 @@ impl NormalModule {
 
   pub fn resource_resolved_data(&self) -> &ResourceData {
     &self.resource_data
-  }
-
-  pub fn issuer(&self) -> &str {
-    &self.issuer
   }
 
   pub fn request(&self) -> &str {
@@ -493,7 +491,10 @@ impl Module for NormalModule {
     let mut diagnostics = Vec::new();
     let loader_result = build_context
       .loader_runner_runner
-      .run(self.resource_data.clone(), build_context.resolved_loaders)
+      .run(
+        self.resource_data.clone(),
+        self.loaders.iter().map(|i| i.as_ref()).collect::<Vec<_>>(),
+      )
       .await;
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
@@ -504,11 +505,7 @@ impl Module for NormalModule {
     };
     diagnostics.extend(ds);
 
-    let original_source = self.create_source(
-      &self.resource_data.resource,
-      loader_result.content,
-      loader_result.source_map,
-    )?;
+    let original_source = self.create_source(loader_result.content, loader_result.source_map)?;
     let mut code_generation_dependencies: Vec<Box<dyn ModuleDependency>> = Vec::new();
 
     let (
@@ -675,25 +672,20 @@ impl PartialEq for NormalModule {
 impl Eq for NormalModule {}
 
 impl NormalModule {
-  fn create_source(
-    &self,
-    uri: &str,
-    content: Content,
-    source_map: Option<SourceMap>,
-  ) -> Result<BoxSource> {
+  fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
     if self.options.devtool.enabled() && let Some(source_map) = source_map {
       let content = content.try_into_string()?;
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
           value: content,
-          name: uri,
+          name: self.request(),
           source_map,
         })
         .boxed(),
       );
     }
     if self.options.devtool.source_map() && let Content::String(content) = content {
-      return Ok(OriginalSource::new(content, uri).boxed());
+      return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawSource::from(content.into_bytes()).boxed())
   }

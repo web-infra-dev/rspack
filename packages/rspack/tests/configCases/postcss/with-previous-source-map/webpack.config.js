@@ -12,9 +12,7 @@ module.exports = {
 							pxToRem: true
 						}
 					},
-					{
-						builtinLoader: "sass-loader"
-					}
+					{ loader: "builtin:sass-loader" }
 				],
 				type: "css"
 			}
