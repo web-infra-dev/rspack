@@ -1,7 +1,6 @@
 use std::{
   borrow::BorrowMut,
   collections::{hash_map::Entry, VecDeque},
-  sync::Arc,
 };
 
 use petgraph::{
@@ -28,8 +27,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, join_string_component, resolve_module_type_by_uri, Compilation, CompilerOptions,
-  Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet, ModuleGraph, ModuleIdentifier,
+  contextify, join_string_component, resolve_module_type_by_uri, Compilation, Identifier,
+  IdentifierLinkedSet, IdentifierMap, IdentifierSet, ModuleGraph, ModuleIdentifier,
   NormalModuleAstOrSource,
 };
 
@@ -168,6 +167,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     )
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn mark_bailout_module(
     &mut self,
     analyze_result_map: &IdentifierMap<TreeShakingResult>,
@@ -178,34 +178,40 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
-    for (module_id, reason) in self.bailout_modules.iter() {
-      if reason
-        .intersection(
-          BailoutFlag::DYNAMIC_IMPORT | BailoutFlag::HELPER | BailoutFlag::COMMONJS_REQUIRE,
-        )
-        .bits()
-        .count_ones()
-        >= 1
-      {
-        // bailout_entry_module_identifiers.insert(*module_id);
-        collect_from_entry_like(
-          analyze_result_map,
-          *module_id,
-          &self.bailout_modules,
-          &mut evaluated_module_identifiers,
-          used_export_module_identifiers,
-          &inherit_export_ref_graph,
-          &mut traced_tuple,
-          &self.compilation.options,
-          &mut self.symbol_graph,
-          false,
-          visited_symbol_ref,
-          errors,
-        );
-      };
+    let bailout_entry_modules = self
+      .bailout_modules
+      .iter()
+      .filter_map(|(module_id, reason)| {
+        if reason
+          .intersection(
+            BailoutFlag::DYNAMIC_IMPORT | BailoutFlag::HELPER | BailoutFlag::COMMONJS_REQUIRE,
+          )
+          .bits()
+          .count_ones()
+          >= 1
+        {
+          Some(*module_id)
+        } else {
+          None
+        }
+      })
+      .collect::<Vec<_>>();
+    for module_id in bailout_entry_modules {
+      self.collect_from_entry_like(
+        analyze_result_map,
+        module_id,
+        &mut evaluated_module_identifiers,
+        used_export_module_identifiers,
+        &inherit_export_ref_graph,
+        &mut traced_tuple,
+        false,
+        visited_symbol_ref,
+        errors,
+      );
     }
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn mark_entry_symbol(
     &mut self,
     analyze_result_map: &IdentifierMap<TreeShakingResult>,
@@ -217,16 +223,13 @@ impl<'a> CodeSizeOptimizer<'a> {
     errors: &mut Vec<Error>,
   ) {
     for entry in self.compilation.entry_modules() {
-      collect_from_entry_like(
+      self.collect_from_entry_like(
         analyze_result_map,
         entry,
-        &self.bailout_modules,
         evaluated_module_identifiers,
         used_export_module_identifiers,
         inherit_export_ref_graph,
         traced_tuple,
-        &self.compilation.options,
-        &mut self.symbol_graph,
         true,
         visited_symbol_ref,
         errors,
@@ -234,7 +237,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
   }
 
-  #[allow(clippy::too_many_arguments)]
   fn finalize_symbol(
     &mut self,
     side_effects_analyze: bool,
@@ -322,7 +324,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             update_reachable_dependency(
               &symbol_ref,
               &mut reachable_dependency_identifier,
-              &symbol_graph,
+              symbol_graph,
             );
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
@@ -336,87 +338,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
 
-        // if compilation
-        //   .entry_module_identifiers
-        //   .contains(&module_identifier)
-        //   || bailout_entry_module_identifiers.contains(&module_identifier)
-        // {
-        //   for symbol_ref in analyze_result.export_map.values() {
-        //     let node_index = *match symbol_graph.get_node_index(symbol_ref) {
-        //       Some(node_index) => node_index,
-        //       None => {
-        //         if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier())
-        //           && is_js_like_uri(&symbol_ref.module_identifier())
-        //         {
-        //           eprintln!("(entry_module_like) Can't get symbol for {:?}", symbol_ref);
-        //         }
-        //         continue;
-        //       }
-        //     };
-        //     // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
-        //     if !visited_symbol_node_index.contains(&node_index) {
-        //       let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
-        //       while let Some(node_index) = bfs.next(&symbol_graph.graph) {
-        //         update_reachable_symbol(
-        //           dead_node_index,
-        //           node_index,
-        //           &symbol_graph,
-        //           used_direct_symbol,
-        //           used_indirect_symbol,
-        //           &mut reachable_dependency_identifier,
-        //         )
-        //       }
-        //     }
-        //   }
-        // }
-
-        // let need_mark_inherit_export_as_used =
-        //   match bail_out_module_identifiers.entry(module_identifier) {
-        //     Entry::Occupied(occ) => {
-        //       let bailout_flag = occ.get();
-        //       bailout_flag
-        //         .intersection(
-        //           BailoutFlog::DYNAMIC_IMPORT | BailoutFlog::HELPER | BailoutFlog::COMMONJS_REQUIRE,
-        //         )
-        //         .bits()
-        //         .count_ones()
-        //         >= 1
-        //     }
-        //     Entry::Vacant(_) => false,
-        //   };
-        // if need_mark_inherit_export_as_used {
-        //   let inherit_symbol_refs = get_inherit_export_symbol_ref(analyze_result);
-        //   for symbol_ref in inherit_symbol_refs {
-        //     let node_index = *match symbol_graph.get_node_index(&symbol_ref) {
-        //       Some(node_index) => node_index,
-        //       None => {
-        //         if !bail_out_module_identifiers.contains_key(&symbol_ref.module_identifier())
-        //           && is_js_like_uri(&symbol_ref.module_identifier())
-        //         {
-        //           eprintln!("(inherit_symbol) Can't get symbol for {:?}", symbol_ref);
-        //         }
-        //         continue;
-        //       }
-        //     };
-        //     // .unwrap_or_else(|| panic!("Can't get node index of symbol {:?}", symbol_ref));
-        //     if !visited_symbol_node_index.contains(&node_index) {
-        //       let mut bfs = Bfs::new(&symbol_graph.graph, node_index);
-        //       while let Some(node_index) = bfs.next(&symbol_graph.graph) {
-        //         update_reachable_symbol(
-        //           dead_node_index,
-        //           node_index,
-        //           &symbol_graph,
-        //           used_direct_symbol,
-        //           used_indirect_symbol,
-        //           &mut reachable_dependency_identifier,
-        //         )
-        //       }
-        //     }
-        //   }
-        // }
-
-        // while let Some(a) = bfs.next(&symbol_graph.graph) {}
-        // eval end
         let mgm = self
           .compilation
           .module_graph
@@ -599,17 +520,491 @@ impl<'a> CodeSizeOptimizer<'a> {
     errors: &mut Vec<Error>,
   ) {
     while let Some(sym_ref) = init_queue.pop_front() {
-      mark_symbol(
+      self.mark_symbol(
         sym_ref,
         analyze_map,
         &mut init_queue,
-        &self.bailout_modules,
         evaluated_module_identifiers,
         used_export_module_identifiers,
         inherit_extend_graph,
         traced_tuple,
-        &self.compilation.options,
-        &mut self.symbol_graph,
+        visited_symbol_ref,
+        errors,
+      );
+    }
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  fn mark_symbol(
+    &mut self,
+    current_symbol_ref: SymbolRef,
+    analyze_map: &IdentifierMap<TreeShakingResult>,
+    symbol_queue: &mut VecDeque<SymbolRef>,
+    evaluated_module_identifiers: &mut IdentifierSet,
+    used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
+    inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
+    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    errors: &mut Vec<Error>,
+  ) {
+    // dbg!(&current_symbol_ref);
+    if visited_symbol_ref.contains(&current_symbol_ref) {
+      return;
+    } else {
+      visited_symbol_ref.insert(current_symbol_ref.clone());
+    }
+
+    if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
+      evaluated_module_identifiers.insert(current_symbol_ref.importer());
+      if let Some(module_result) = analyze_map.get(&current_symbol_ref.importer()) {
+        for used_symbol in module_result.used_symbol_refs.iter() {
+          // graph.add_edge(&current_symbol_ref, used_symbol);
+          symbol_queue.push_back(used_symbol.clone());
+        }
+      };
+    }
+    self.symbol_graph.add_node(&current_symbol_ref);
+    // We don't need mark the symbol usage if it is from a bailout module because
+    // bailout module will skipping tree-shaking anyway
+    let is_bailout_module_identifier = self
+      .bailout_modules
+      .contains_key(&current_symbol_ref.module_identifier());
+    match &current_symbol_ref {
+      SymbolRef::Direct(symbol) => {
+        merge_used_export_type(
+          used_export_module_identifiers,
+          symbol.uri().into(),
+          ModuleUsedType::DIRECT,
+        );
+      }
+      SymbolRef::Indirect(IndirectTopLevelSymbol {
+        ty: IndirectType::ReExport(_, _),
+        src,
+        ..
+      }) => {
+        merge_used_export_type(
+          used_export_module_identifiers,
+          (*src).into(),
+          ModuleUsedType::REEXPORT,
+        );
+      }
+      SymbolRef::Indirect(IndirectTopLevelSymbol {
+        ty: IndirectType::Temp(_) | IndirectType::Import(_, _) | IndirectType::ImportDefault(_),
+        src,
+        ..
+      }) => {
+        merge_used_export_type(
+          used_export_module_identifiers,
+          (*src).into(),
+          ModuleUsedType::INDIRECT,
+        );
+      }
+      SymbolRef::Star(StarSymbol {
+        ty: StarSymbolKind::ReExportAll,
+        module_ident,
+        ..
+      }) => {
+        merge_used_export_type(
+          used_export_module_identifiers,
+          (*module_ident).into(),
+          ModuleUsedType::EXPORT_ALL,
+        );
+      }
+      _ => {}
+    };
+    match current_symbol_ref {
+      SymbolRef::Direct(ref symbol) => {
+        let module_result = analyze_map.get(&symbol.uri().into()).expect("TODO:");
+        if let Some(set) = module_result
+          .reachable_import_of_export
+          .get(&symbol.id().atom)
+        {
+          for symbol_ref_ele in set.iter() {
+            self
+              .symbol_graph
+              .add_edge(&current_symbol_ref, symbol_ref_ele);
+            symbol_queue.push_back(symbol_ref_ele.clone());
+          }
+        };
+
+        // Assume the module name is app.js
+        // ```js
+        // import {myanswer, secret} from './lib'
+        // export {myanswer as m, secret as s}
+        // ```
+        // In such scenario there are two `myanswer` binding would create
+        // one for `app.js`, one for `lib.js`
+        // the binding in `app.js` used for shake the `export {xxx}`
+        // In other words, we need two binding for supporting indirect redirect.
+        if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
+          self
+            .symbol_graph
+            .add_edge(&current_symbol_ref, import_symbol_ref);
+          symbol_queue.push_back(import_symbol_ref.clone());
+        }
+      }
+      SymbolRef::Indirect(ref indirect_symbol) => {
+        // dbg!(&current_symbol_ref);
+        let _importer = indirect_symbol.importer();
+        let module_result = match analyze_map.get(&indirect_symbol.src.into()) {
+          Some(module_result) => module_result,
+          None => {
+            // eprintln!(
+            //   "Can't get optimize dep result for module {}",
+            //   indirect_symbol.uri,
+            // );
+            return;
+          }
+        };
+
+        match module_result.export_map.get(indirect_symbol.indirect_id()) {
+          Some(symbol) => match symbol {
+            SymbolRef::Indirect(IndirectTopLevelSymbol {
+              ty: IndirectType::ReExport(_, _),
+              ..
+            }) => {
+              // This only happen when a bailout module have reexport statement, e.g. crates/rspack/tests/tree-shaking/ts-target-es5
+              let is_same_symbol = &current_symbol_ref == symbol;
+              if !is_same_symbol {
+                self.symbol_graph.add_edge(&current_symbol_ref, symbol);
+              }
+              symbol_queue.push_back(symbol.clone());
+              // if a bailout module has reexport symbol
+              if let Some(set) = module_result
+                .reachable_import_of_export
+                .get(indirect_symbol.indirect_id())
+              {
+                for symbol_ref_ele in set.iter() {
+                  self.symbol_graph.add_edge(symbol, symbol_ref_ele);
+                  symbol_queue.push_back(symbol_ref_ele.clone());
+                }
+              };
+            }
+            _ => {
+              self.symbol_graph.add_edge(&current_symbol_ref, symbol);
+              symbol_queue.push_back(symbol.clone());
+            }
+          },
+
+          None => {
+            // TODO: better diagnostic and handle if multiple extends_map has export same symbol
+            let mut ret = vec![];
+            // Checking if any inherit export map is belong to a bailout module
+            let mut has_bailout_module_identifiers = false;
+            let mut is_first_result = true;
+            for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter()
+            {
+              if let Some(value) = extends_export_map.get(indirect_symbol.indirect_id()) {
+                ret.push((module_identifier, value));
+                if is_first_result {
+                  let mut final_node_of_path = vec![];
+                  let tuple = (indirect_symbol.src.into(), *module_identifier);
+                  match traced_tuple.entry(tuple) {
+                    Entry::Occupied(occ) => {
+                      let final_node_path = occ.get();
+                      // dbg!(&final_node_path, indi);
+                      for (start, end) in final_node_path {
+                        self.symbol_graph.add_edge(&current_symbol_ref, start);
+                        self.symbol_graph.add_edge(end, value);
+                      }
+                    }
+                    Entry::Vacant(vac) => {
+                      for path in algo::all_simple_paths::<Vec<_>, _>(
+                        &inherit_extend_graph,
+                        indirect_symbol.src.into(),
+                        *module_identifier,
+                        0,
+                        None,
+                      ) {
+                        let mut from = current_symbol_ref.clone();
+                        let mut star_chain_start_end_pair = (from.clone(), from.clone());
+                        for i in 0..path.len() - 1 {
+                          // dbg!(&path);
+                          let star_symbol = StarSymbol {
+                            src: path[i + 1].into(),
+                            binding: Default::default(),
+                            module_ident: path[i].into(),
+                            ty: StarSymbolKind::ReExportAll,
+                          };
+                          if !evaluated_module_identifiers
+                            .contains(&star_symbol.module_ident.into())
+                          {
+                            evaluated_module_identifiers.insert(star_symbol.module_ident.into());
+                            if let Some(module_result) =
+                              analyze_map.get(&star_symbol.module_ident.into())
+                            {
+                              for used_symbol in module_result.used_symbol_refs.iter() {
+                                // graph.add_edge(&current_symbol_ref, used_symbol);
+                                symbol_queue.push_back(used_symbol.clone());
+                              }
+                            };
+                          }
+
+                          let to = SymbolRef::Star(star_symbol);
+                          visited_symbol_ref.insert(to.clone());
+                          if i == 0 {
+                            star_chain_start_end_pair.0 = to.clone();
+                          }
+                          self.symbol_graph.add_edge(&from, &to);
+                          from = to;
+                        }
+                        // visited_symbol_ref.insert(value.clone());
+                        self.symbol_graph.add_edge(&from, value);
+                        star_chain_start_end_pair.1 = from;
+                        final_node_of_path.push(star_chain_start_end_pair);
+                        for mi in path.iter().take(path.len() - 1) {
+                          merge_used_export_type(
+                            used_export_module_identifiers,
+                            *mi,
+                            ModuleUsedType::EXPORT_ALL,
+                          );
+                        }
+                      }
+                      // used_export_module_identifiers.extend();
+                      vac.insert(final_node_of_path);
+                    }
+                  }
+                  is_first_result = false;
+                }
+              }
+              has_bailout_module_identifiers = has_bailout_module_identifiers
+                || self.bailout_modules.contains_key(module_identifier);
+            }
+
+            let selected_symbol = match ret.len() {
+              0 => {
+                // TODO: Better diagnostic handle if source module does not have the export
+                // let map = analyze_map.get(&module_result.module_identifier).expect("TODO:");
+                // dbg!(&map);
+
+                // TODO: only report when target module is a esm module
+                self.symbol_graph.add_edge(
+                  &current_symbol_ref,
+                  &SymbolRef::Direct(Symbol::new(
+                    module_result.module_identifier.into(),
+                    BetterId {
+                      ctxt: SyntaxContext::empty(),
+                      atom: indirect_symbol.indirect_id().clone(),
+                    },
+                    SymbolType::Temp,
+                  )),
+                );
+                merge_used_export_type(
+                  used_export_module_identifiers,
+                  current_symbol_ref.module_identifier(),
+                  ModuleUsedType::INDIRECT,
+                );
+                // match bailout_module_identifiers.get(&module_result.module_identifier) {
+                //   Some(flag)
+                //     if flag.contains(BailoutFlog::COMMONJS_EXPORTS)
+                //       // && indirect_symbol.indirect_id() == "default"
+                //       =>
+                //   {
+                //     graph.add_edge(&current_symbol_ref, &current_symbol_ref);
+                //   }
+                //   _ => {}
+                // }
+                if !is_bailout_module_identifier && !has_bailout_module_identifiers {
+                  let error_message = format!(
+                    "{} did not export `{}`, imported by {}",
+                    module_result.module_identifier,
+                    indirect_symbol.indirect_id(),
+                    indirect_symbol.importer()
+                  );
+                  errors.push(Error::InternalError(InternalError {
+                    error_message,
+                    severity: Severity::Warn,
+                  }));
+                  return;
+                } else {
+                  // TODO: This branch should be remove after we analyze module.exports
+                  // If one of inherit module is a bailout module, that most probably means that module has some common js export
+                  // which we don't analyze yet, we just pass it. It is alright because we don't modified the ast of bailout module
+                  return;
+                }
+              }
+              1 => ret[0].1.clone(),
+              // multiple export candidate in reexport
+              // mark the first symbol_ref as used, align to webpack
+              _ => {
+                // TODO: better traceable diagnostic
+                let mut error_message = format!(
+                  "Conflicting star exports for the name '{}' in ",
+                  indirect_symbol.indirect_id()
+                );
+                // let cwd = std::env::current_dir();
+                let module_identifier_list = ret
+                  .iter()
+                  .map(|(module_identifier, _)| {
+                    contextify(self.compilation.options.context.clone(), module_identifier)
+                  })
+                  .collect::<Vec<_>>();
+                error_message += &join_string_component(module_identifier_list);
+                errors.push(Error::InternalError(InternalError {
+                  error_message,
+                  severity: Severity::Warn,
+                }));
+                ret[0].1.clone()
+              }
+            };
+            symbol_queue.push_back(selected_symbol);
+          }
+        };
+        // graph.add_edge(&current_symbol_ref, &symbol);
+
+        // symbol_queue.push_back(symbol);
+      }
+      SymbolRef::Star(ref star_symbol) => {
+        // If a star ref is used. e.g.
+        // ```js
+        // import * as all from './test.js'
+        // all
+        // ```
+        // then, all the exports in `test.js` including
+        // export defined in `test.js` and all realted
+        // reexport should be marked as used
+        let include_default_export = match star_symbol.ty {
+          StarSymbolKind::ReExportAllAs => false,
+          StarSymbolKind::ImportAllAs => true,
+          StarSymbolKind::ReExportAll => false,
+        };
+        let src_module_identifier: Identifier = star_symbol.src.into();
+        let analyze_refsult = match analyze_map.get(&src_module_identifier) {
+          Some(analyze_result) => analyze_result,
+          None => {
+            if is_js_like_uri(&src_module_identifier) {
+              let error_message = format!("Can't get analyze result of {0}", star_symbol.src);
+              errors.push(Error::InternalError(InternalError {
+                error_message,
+                severity: Severity::Warn,
+              }));
+            }
+            return;
+          }
+        };
+
+        for (key, export_symbol_ref) in analyze_refsult.export_map.iter() {
+          if !include_default_export && key == "default" {
+          } else {
+            self
+              .symbol_graph
+              .add_edge(&current_symbol_ref, export_symbol_ref);
+            symbol_queue.push_back(export_symbol_ref.clone());
+          }
+        }
+
+        for (key, _) in analyze_refsult.inherit_export_maps.iter() {
+          let export_all = SymbolRef::Star(StarSymbol {
+            src: (*key).into(),
+            binding: Default::default(),
+            module_ident: src_module_identifier.into(),
+            ty: StarSymbolKind::ReExportAll,
+          });
+          self.symbol_graph.add_edge(&current_symbol_ref, &export_all);
+          symbol_queue.push_back(export_all.clone());
+        }
+
+        // for (_, extend_export_map) in analyze_refsult.inherit_export_maps.iter() {
+        //   for export_symbol_ref in extend_export_map.values() {
+        //     graph.add_edge(&current_symbol_ref, export_symbol_ref);
+        //     symbol_queue.push_back(export_symbol_ref.clone());
+        //     let tuple = (
+        //       star_symbol.src.into(),
+        //       export_symbol_ref.module_identifier(),
+        //     );
+        //     if !traced_tuple.contains_key(&tuple) {
+        //       let paths = algo::all_simple_paths::<Vec<_>, _>(
+        //         &inherit_extend_graph,
+        //         star_symbol.src.into(),
+        //         export_symbol_ref.module_identifier(),
+        //         0,
+        //         None,
+        //       );
+
+        //       for path in paths.into_iter() {
+        //         // dbg!(&path);
+        //         let mut from = current_symbol_ref.clone();
+        //         for i in 0..path.len() - 1 {
+        //           let star_symbol = StarSymbol {
+        //             src: path[i + 1].into(),
+        //             binding: Default::default(),
+        //             module_ident: path[i].into(),
+        //             ty: StarSymbolKind::ReExportAll,
+        //           };
+        //           let to = SymbolRef::Star(star_symbol);
+        //           graph.add_edge(&from, &to);
+        //           from = to;
+        //         }
+
+        //         for mi in path.iter().take(path.len() - 1) {
+        //           merge_used_export_type(
+        //             used_export_module_identifiers,
+        //             *mi,
+        //             ModuleUsedType::EXPORT_STAR,
+        //           );
+        //         }
+        //       }
+        //       // TODO: handle related symbol connection
+        //       traced_tuple.insert(tuple, vec![]);
+        //     }
+        //   }
+        // }
+      }
+    }
+  }
+  #[allow(clippy::too_many_arguments)]
+  fn collect_from_entry_like(
+    &mut self,
+    analyze_map: &IdentifierMap<TreeShakingResult>,
+    entry_identifier: ModuleIdentifier,
+    evaluated_module_identifiers: &mut IdentifierSet,
+    used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
+    inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
+    is_entry: bool,
+    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    errors: &mut Vec<Error>,
+  ) {
+    let mut q = VecDeque::new();
+    let entry_module_result = match analyze_map.get(&entry_identifier) {
+      Some(result) => result,
+      None => {
+        // TODO: checking if it is none js type
+        return;
+        // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
+      }
+    };
+
+    // by default webpack will not mark the `export *` as used in entry module
+    if !is_entry {
+      let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
+
+      q.extend(inherit_export_symbols);
+    }
+
+    for item in entry_module_result.export_map.values() {
+      self.mark_symbol(
+        item.clone(),
+        analyze_map,
+        &mut q,
+        evaluated_module_identifiers,
+        used_export_module_identifiers,
+        inherit_extend_graph,
+        traced_tuple,
+        visited_symbol_ref,
+        errors,
+      );
+    }
+
+    while let Some(sym_ref) = q.pop_front() {
+      self.mark_symbol(
+        sym_ref,
+        analyze_map,
+        &mut q,
+        evaluated_module_identifiers,
+        used_export_module_identifiers,
+        inherit_extend_graph,
+        traced_tuple,
         visited_symbol_ref,
         errors,
       );
@@ -883,485 +1278,6 @@ pub fn merge_used_export_type(
     Entry::Vacant(vac) => {
       vac.insert(ty);
     }
-  }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn mark_symbol(
-  current_symbol_ref: SymbolRef,
-  analyze_map: &IdentifierMap<TreeShakingResult>,
-  symbol_queue: &mut VecDeque<SymbolRef>,
-  bailout_module_identifiers: &IdentifierMap<BailoutFlag>,
-  evaluated_module_identifiers: &mut IdentifierSet,
-  used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
-  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
-  options: &Arc<CompilerOptions>,
-  graph: &mut SymbolGraph,
-  visited_symbol_ref: &mut HashSet<SymbolRef>,
-  errors: &mut Vec<Error>,
-) {
-  // dbg!(&current_symbol_ref);
-  if visited_symbol_ref.contains(&current_symbol_ref) {
-    return;
-  } else {
-    visited_symbol_ref.insert(current_symbol_ref.clone());
-  }
-
-  if !evaluated_module_identifiers.contains(&current_symbol_ref.importer()) {
-    evaluated_module_identifiers.insert(current_symbol_ref.importer());
-    if let Some(module_result) = analyze_map.get(&current_symbol_ref.importer()) {
-      for used_symbol in module_result.used_symbol_refs.iter() {
-        // graph.add_edge(&current_symbol_ref, used_symbol);
-        symbol_queue.push_back(used_symbol.clone());
-      }
-    };
-  }
-  graph.add_node(&current_symbol_ref);
-  // We don't need mark the symbol usage if it is from a bailout module because
-  // bailout module will skipping tree-shaking anyway
-  let is_bailout_module_identifier =
-    bailout_module_identifiers.contains_key(&current_symbol_ref.module_identifier());
-  match &current_symbol_ref {
-    SymbolRef::Direct(symbol) => {
-      merge_used_export_type(
-        used_export_module_identifiers,
-        symbol.uri().into(),
-        ModuleUsedType::DIRECT,
-      );
-    }
-    SymbolRef::Indirect(IndirectTopLevelSymbol {
-      ty: IndirectType::ReExport(_, _),
-      src,
-      ..
-    }) => {
-      merge_used_export_type(
-        used_export_module_identifiers,
-        (*src).into(),
-        ModuleUsedType::REEXPORT,
-      );
-    }
-    SymbolRef::Indirect(IndirectTopLevelSymbol {
-      ty: IndirectType::Temp(_) | IndirectType::Import(_, _) | IndirectType::ImportDefault(_),
-      src,
-      ..
-    }) => {
-      merge_used_export_type(
-        used_export_module_identifiers,
-        (*src).into(),
-        ModuleUsedType::INDIRECT,
-      );
-    }
-    SymbolRef::Star(StarSymbol {
-      ty: StarSymbolKind::ReExportAll,
-      module_ident,
-      ..
-    }) => {
-      merge_used_export_type(
-        used_export_module_identifiers,
-        (*module_ident).into(),
-        ModuleUsedType::EXPORT_ALL,
-      );
-    }
-    _ => {}
-  };
-  match current_symbol_ref {
-    SymbolRef::Direct(ref symbol) => {
-      let module_result = analyze_map.get(&symbol.uri().into()).expect("TODO:");
-      if let Some(set) = module_result
-        .reachable_import_of_export
-        .get(&symbol.id().atom)
-      {
-        for symbol_ref_ele in set.iter() {
-          graph.add_edge(&current_symbol_ref, symbol_ref_ele);
-          symbol_queue.push_back(symbol_ref_ele.clone());
-        }
-      };
-
-      // Assume the module name is app.js
-      // ```js
-      // import {myanswer, secret} from './lib'
-      // export {myanswer as m, secret as s}
-      // ```
-      // In such scenario there are two `myanswer` binding would create
-      // one for `app.js`, one for `lib.js`
-      // the binding in `app.js` used for shake the `export {xxx}`
-      // In other words, we need two binding for supporting indirect redirect.
-      if let Some(import_symbol_ref) = module_result.import_map.get(symbol.id()) {
-        graph.add_edge(&current_symbol_ref, import_symbol_ref);
-        symbol_queue.push_back(import_symbol_ref.clone());
-      }
-    }
-    SymbolRef::Indirect(ref indirect_symbol) => {
-      // dbg!(&current_symbol_ref);
-      let _importer = indirect_symbol.importer();
-      let module_result = match analyze_map.get(&indirect_symbol.src.into()) {
-        Some(module_result) => module_result,
-        None => {
-          // eprintln!(
-          //   "Can't get optimize dep result for module {}",
-          //   indirect_symbol.uri,
-          // );
-          return;
-        }
-      };
-
-      match module_result.export_map.get(indirect_symbol.indirect_id()) {
-        Some(symbol) => match symbol {
-          SymbolRef::Indirect(IndirectTopLevelSymbol {
-            ty: IndirectType::ReExport(_, _),
-            ..
-          }) => {
-            // This only happen when a bailout module have reexport statement, e.g. crates/rspack/tests/tree-shaking/ts-target-es5
-            let is_same_symbol = &current_symbol_ref == symbol;
-            if !is_same_symbol {
-              graph.add_edge(&current_symbol_ref, symbol);
-            }
-            symbol_queue.push_back(symbol.clone());
-            // if a bailout module has reexport symbol
-            if let Some(set) = module_result
-              .reachable_import_of_export
-              .get(indirect_symbol.indirect_id())
-            {
-              for symbol_ref_ele in set.iter() {
-                graph.add_edge(symbol, symbol_ref_ele);
-                symbol_queue.push_back(symbol_ref_ele.clone());
-              }
-            };
-          }
-          _ => {
-            graph.add_edge(&current_symbol_ref, symbol);
-            symbol_queue.push_back(symbol.clone());
-          }
-        },
-
-        None => {
-          // TODO: better diagnostic and handle if multiple extends_map has export same symbol
-          let mut ret = vec![];
-          // Checking if any inherit export map is belong to a bailout module
-          let mut has_bailout_module_identifiers = false;
-          let mut is_first_result = true;
-          for (module_identifier, extends_export_map) in module_result.inherit_export_maps.iter() {
-            if let Some(value) = extends_export_map.get(indirect_symbol.indirect_id()) {
-              ret.push((module_identifier, value));
-              if is_first_result {
-                let mut final_node_of_path = vec![];
-                let tuple = (indirect_symbol.src.into(), *module_identifier);
-                match traced_tuple.entry(tuple) {
-                  Entry::Occupied(occ) => {
-                    let final_node_path = occ.get();
-                    // dbg!(&final_node_path, indi);
-                    for (start, end) in final_node_path {
-                      graph.add_edge(&current_symbol_ref, start);
-                      graph.add_edge(end, value);
-                    }
-                  }
-                  Entry::Vacant(vac) => {
-                    for path in algo::all_simple_paths::<Vec<_>, _>(
-                      &inherit_extend_graph,
-                      indirect_symbol.src.into(),
-                      *module_identifier,
-                      0,
-                      None,
-                    ) {
-                      let mut from = current_symbol_ref.clone();
-                      let mut star_chain_start_end_pair = (from.clone(), from.clone());
-                      for i in 0..path.len() - 1 {
-                        // dbg!(&path);
-                        let star_symbol = StarSymbol {
-                          src: path[i + 1].into(),
-                          binding: Default::default(),
-                          module_ident: path[i].into(),
-                          ty: StarSymbolKind::ReExportAll,
-                        };
-                        if !evaluated_module_identifiers.contains(&star_symbol.module_ident.into())
-                        {
-                          evaluated_module_identifiers.insert(star_symbol.module_ident.into());
-                          if let Some(module_result) =
-                            analyze_map.get(&star_symbol.module_ident.into())
-                          {
-                            for used_symbol in module_result.used_symbol_refs.iter() {
-                              // graph.add_edge(&current_symbol_ref, used_symbol);
-                              symbol_queue.push_back(used_symbol.clone());
-                            }
-                          };
-                        }
-
-                        let to = SymbolRef::Star(star_symbol);
-                        visited_symbol_ref.insert(to.clone());
-                        if i == 0 {
-                          star_chain_start_end_pair.0 = to.clone();
-                        }
-                        graph.add_edge(&from, &to);
-                        from = to;
-                      }
-                      // visited_symbol_ref.insert(value.clone());
-                      graph.add_edge(&from, value);
-                      star_chain_start_end_pair.1 = from;
-                      final_node_of_path.push(star_chain_start_end_pair);
-                      for mi in path.iter().take(path.len() - 1) {
-                        merge_used_export_type(
-                          used_export_module_identifiers,
-                          *mi,
-                          ModuleUsedType::EXPORT_ALL,
-                        );
-                      }
-                    }
-                    // used_export_module_identifiers.extend();
-                    vac.insert(final_node_of_path);
-                  }
-                }
-                is_first_result = false;
-              }
-            }
-            has_bailout_module_identifiers = has_bailout_module_identifiers
-              || bailout_module_identifiers.contains_key(module_identifier);
-          }
-
-          let selected_symbol = match ret.len() {
-            0 => {
-              // TODO: Better diagnostic handle if source module does not have the export
-              // let map = analyze_map.get(&module_result.module_identifier).expect("TODO:");
-              // dbg!(&map);
-
-              // TODO: only report when target module is a esm module
-              graph.add_edge(
-                &current_symbol_ref,
-                &SymbolRef::Direct(Symbol::new(
-                  module_result.module_identifier.into(),
-                  BetterId {
-                    ctxt: SyntaxContext::empty(),
-                    atom: indirect_symbol.indirect_id().clone(),
-                  },
-                  SymbolType::Temp,
-                )),
-              );
-              merge_used_export_type(
-                used_export_module_identifiers,
-                current_symbol_ref.module_identifier(),
-                ModuleUsedType::INDIRECT,
-              );
-              // match bailout_module_identifiers.get(&module_result.module_identifier) {
-              //   Some(flag)
-              //     if flag.contains(BailoutFlog::COMMONJS_EXPORTS)
-              //       // && indirect_symbol.indirect_id() == "default"
-              //       =>
-              //   {
-              //     graph.add_edge(&current_symbol_ref, &current_symbol_ref);
-              //   }
-              //   _ => {}
-              // }
-              if !is_bailout_module_identifier && !has_bailout_module_identifiers {
-                let error_message = format!(
-                  "{} did not export `{}`, imported by {}",
-                  module_result.module_identifier,
-                  indirect_symbol.indirect_id(),
-                  indirect_symbol.importer()
-                );
-                errors.push(Error::InternalError(InternalError {
-                  error_message,
-                  severity: Severity::Warn,
-                }));
-                return;
-              } else {
-                // TODO: This branch should be remove after we analyze module.exports
-                // If one of inherit module is a bailout module, that most probably means that module has some common js export
-                // which we don't analyze yet, we just pass it. It is alright because we don't modified the ast of bailout module
-                return;
-              }
-            }
-            1 => ret[0].1.clone(),
-            // multiple export candidate in reexport
-            // mark the first symbol_ref as used, align to webpack
-            _ => {
-              // TODO: better traceable diagnostic
-              let mut error_message = format!(
-                "Conflicting star exports for the name '{}' in ",
-                indirect_symbol.indirect_id()
-              );
-              // let cwd = std::env::current_dir();
-              let module_identifier_list = ret
-                .iter()
-                .map(|(module_identifier, _)| {
-                  contextify(options.context.clone(), module_identifier)
-                })
-                .collect::<Vec<_>>();
-              error_message += &join_string_component(module_identifier_list);
-              errors.push(Error::InternalError(InternalError {
-                error_message,
-                severity: Severity::Warn,
-              }));
-              ret[0].1.clone()
-            }
-          };
-          symbol_queue.push_back(selected_symbol);
-        }
-      };
-      // graph.add_edge(&current_symbol_ref, &symbol);
-
-      // symbol_queue.push_back(symbol);
-    }
-    SymbolRef::Star(ref star_symbol) => {
-      // If a star ref is used. e.g.
-      // ```js
-      // import * as all from './test.js'
-      // all
-      // ```
-      // then, all the exports in `test.js` including
-      // export defined in `test.js` and all realted
-      // reexport should be marked as used
-      let include_default_export = match star_symbol.ty {
-        StarSymbolKind::ReExportAllAs => false,
-        StarSymbolKind::ImportAllAs => true,
-        StarSymbolKind::ReExportAll => false,
-      };
-      let src_module_identifier: Identifier = star_symbol.src.into();
-      let analyze_refsult = match analyze_map.get(&src_module_identifier) {
-        Some(analyze_result) => analyze_result,
-        None => {
-          if is_js_like_uri(&src_module_identifier) {
-            let error_message = format!("Can't get analyze result of {0}", star_symbol.src);
-            errors.push(Error::InternalError(InternalError {
-              error_message,
-              severity: Severity::Warn,
-            }));
-          }
-          return;
-        }
-      };
-
-      for (key, export_symbol_ref) in analyze_refsult.export_map.iter() {
-        if !include_default_export && key == "default" {
-        } else {
-          graph.add_edge(&current_symbol_ref, export_symbol_ref);
-          symbol_queue.push_back(export_symbol_ref.clone());
-        }
-      }
-
-      for (key, _) in analyze_refsult.inherit_export_maps.iter() {
-        let export_all = SymbolRef::Star(StarSymbol {
-          src: (*key).into(),
-          binding: Default::default(),
-          module_ident: src_module_identifier.into(),
-          ty: StarSymbolKind::ReExportAll,
-        });
-        graph.add_edge(&current_symbol_ref, &export_all);
-        symbol_queue.push_back(export_all.clone());
-      }
-
-      // for (_, extend_export_map) in analyze_refsult.inherit_export_maps.iter() {
-      //   for export_symbol_ref in extend_export_map.values() {
-      //     graph.add_edge(&current_symbol_ref, export_symbol_ref);
-      //     symbol_queue.push_back(export_symbol_ref.clone());
-      //     let tuple = (
-      //       star_symbol.src.into(),
-      //       export_symbol_ref.module_identifier(),
-      //     );
-      //     if !traced_tuple.contains_key(&tuple) {
-      //       let paths = algo::all_simple_paths::<Vec<_>, _>(
-      //         &inherit_extend_graph,
-      //         star_symbol.src.into(),
-      //         export_symbol_ref.module_identifier(),
-      //         0,
-      //         None,
-      //       );
-
-      //       for path in paths.into_iter() {
-      //         // dbg!(&path);
-      //         let mut from = current_symbol_ref.clone();
-      //         for i in 0..path.len() - 1 {
-      //           let star_symbol = StarSymbol {
-      //             src: path[i + 1].into(),
-      //             binding: Default::default(),
-      //             module_ident: path[i].into(),
-      //             ty: StarSymbolKind::ReExportAll,
-      //           };
-      //           let to = SymbolRef::Star(star_symbol);
-      //           graph.add_edge(&from, &to);
-      //           from = to;
-      //         }
-
-      //         for mi in path.iter().take(path.len() - 1) {
-      //           merge_used_export_type(
-      //             used_export_module_identifiers,
-      //             *mi,
-      //             ModuleUsedType::EXPORT_STAR,
-      //           );
-      //         }
-      //       }
-      //       // TODO: handle related symbol connection
-      //       traced_tuple.insert(tuple, vec![]);
-      //     }
-      //   }
-      // }
-    }
-  }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn collect_from_entry_like(
-  analyze_map: &IdentifierMap<TreeShakingResult>,
-  entry_identifier: ModuleIdentifier,
-  bailout_module_identifiers: &IdentifierMap<BailoutFlag>,
-  evaluated_module_identifiers: &mut IdentifierSet,
-  used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
-  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
-  options: &Arc<CompilerOptions>,
-  graph: &mut SymbolGraph,
-  is_entry: bool,
-  visited_symbol_ref: &mut HashSet<SymbolRef>,
-  errors: &mut Vec<Error>,
-) {
-  let mut q = VecDeque::new();
-  let entry_module_result = match analyze_map.get(&entry_identifier) {
-    Some(result) => result,
-    None => {
-      // TODO: checking if it is none js type
-      return;
-      // panic!("Can't get analyze result from entry_identifier {}", entry_identifier);
-    }
-  };
-
-  // by default webpack will not mark the `export *` as used in entry module
-  if !is_entry {
-    let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
-
-    q.extend(inherit_export_symbols);
-  }
-
-  for item in entry_module_result.export_map.values() {
-    mark_symbol(
-      item.clone(),
-      analyze_map,
-      &mut q,
-      bailout_module_identifiers,
-      evaluated_module_identifiers,
-      used_export_module_identifiers,
-      inherit_extend_graph,
-      traced_tuple,
-      options,
-      graph,
-      visited_symbol_ref,
-      errors,
-    );
-  }
-
-  while let Some(sym_ref) = q.pop_front() {
-    mark_symbol(
-      sym_ref,
-      analyze_map,
-      &mut q,
-      bailout_module_identifiers,
-      evaluated_module_identifiers,
-      used_export_module_identifiers,
-      inherit_extend_graph,
-      traced_tuple,
-      options,
-      graph,
-      visited_symbol_ref,
-      errors,
-    );
   }
 }
 
