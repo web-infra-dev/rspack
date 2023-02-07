@@ -3,7 +3,6 @@
  */
 module.exports = {
   context: __dirname,
-  mode: 'development',
   builtins: {
     html: [{
       template: './index.html'
@@ -11,7 +10,6 @@ module.exports = {
     treeShaking: true,
     sideEffects: true
   },
-  target: ['web', 'es5'],
   context: __dirname,
   entry: {
     main: {
