@@ -143,7 +143,7 @@ impl IndirectTopLevelSymbol {
         Some(imported) => imported,
         None => local,
       },
-      // we store the binding just used for create [ModuleDecl], but it always to DefaultExport of some module
+      // we store the binding just used for create [ModuleDecl], but it is always `default` when as `exported` or `imported`
       IndirectType::ImportDefault(_) => &DEFAULT_JS_WORD,
     }
   }
@@ -159,15 +159,6 @@ impl IndirectTopLevelSymbol {
       IndirectType::ImportDefault(_) => &DEFAULT_JS_WORD,
     }
   }
-
-  // pub fn fast_create(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
-  //   IndirectTopLevelSymbol {
-  //     uri,
-  //     id,
-  //     importer: ustr(""),
-  //     ty: Default::default(),
-  //   }
-  // }
 
   pub fn src(&self) -> Ustr {
     self.src
