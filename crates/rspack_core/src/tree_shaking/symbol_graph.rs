@@ -10,17 +10,8 @@ pub struct SymbolGraph {
   pub(crate) node_index_to_symbol: FxHashMap<NodeIndex, SymbolRef>,
 }
 
-// #[track_caller]
-// fn prints_calling_location() {
-//   let caller_location = std::panic::Location::caller();
-//   let caller_line_number = caller_location.line();
-//   println!("called from line: {}", caller_line_number);
-// }
 impl SymbolGraph {
   pub fn add_node(&mut self, symbol: &SymbolRef) -> NodeIndex {
-    // if debug_care_module_id(symbol.module_identifier().as_str()) {
-    //   dbg!(&symbol);
-    // }
     if let Some(index) = self.symbol_to_index.get(symbol) {
       *index
     } else {
