@@ -15,7 +15,7 @@ exports[`normalize options snapshot additional entires should added 1`] = `
 exports[`normalize options snapshot compier.options.devServer should be equal to server.options when devServer is undefined 1`] = `
 {
   "builtins": {
-    "browserslist": [],
+    "browserslist": undefined,
     "decorator": {
       "emitMetadata": true,
       "legacy": true,
@@ -206,7 +206,7 @@ exports[`normalize options snapshot port string 1`] = `
 exports[`normalize options snapshot react.development and react.refresh should be true in default when hot enabled 1`] = `
 {
   "builtins": {
-    "browserslist": [],
+    "browserslist": undefined,
     "decorator": {
       "emitMetadata": true,
       "legacy": true,
