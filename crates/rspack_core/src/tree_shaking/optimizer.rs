@@ -316,9 +316,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
         mgm.used = true;
-        // dbg!(&module_identifier);
-        // eval start
-        // dbg!(&module_visited_symbol_ref);
         if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
             update_reachable_dependency(
@@ -385,10 +382,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
         // dbg!(&module_identifier);
         // dbg!(&reachable_dependency_identifier);
-
-        // for module_ident in reachable_dependency_identifier {
-        //   q.push_back(module_ident);
-        // }
       }
 
       for node_index in visited_symbol_node_index {
