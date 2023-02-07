@@ -3,11 +3,11 @@ use std::{path::PathBuf, sync::Arc};
 use rspack_error::{Diagnostic, Result};
 
 use crate::{
-  cache::Cache, module_rule_matcher, BoxModuleDependency, BuildContext, BuildResult, Compilation,
-  CompilerOptions, ContextModuleFactory, Dependency, DependencyId, DependencyType,
-  LoaderRunnerRunner, Module, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleGraph, ModuleGraphModule, ModuleIdentifier, ModuleRule, ModuleType, NormalModuleFactory,
-  NormalModuleFactoryContext, Resolve, SharedPluginDriver, WorkerQueue,
+  cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerOptions,
+  ContextModuleFactory, Dependency, DependencyId, DependencyType, LoaderRunnerRunner, Module,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
+  SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]

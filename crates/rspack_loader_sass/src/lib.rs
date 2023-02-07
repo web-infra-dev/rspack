@@ -31,6 +31,7 @@ use sass_embedded::{
 use serde::Deserialize;
 use str_indices::utf16;
 use tokio::sync::Mutex;
+use tracing::instrument;
 
 static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^~[^/]+$").expect("TODO:"));

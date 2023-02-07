@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use rspack_error::{internal_error, Result};
 use rspack_loader_runner::ResourceData;
 
