@@ -1164,7 +1164,6 @@ impl Compilation {
     // } else {
     //   IdentifierMap::default()
     // };
-
     finalize_symbol(
       self,
       side_effects_options,
@@ -2862,7 +2861,7 @@ fn finalize_symbol(
       }
     }
     // pruning
-    let visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
+    let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
     let mut visited = IdentifierSet::default();
     let mut q = VecDeque::from_iter(
       compilation
@@ -2927,7 +2926,7 @@ fn finalize_symbol(
           if !visited_symbol_node_index.contains(node_index) {
             let mut bfs = Bfs::new(&symbol_graph.graph, *node_index);
             while let Some(node_index) = bfs.next(&symbol_graph.graph) {
-              update_reachable_symbol(dead_node_index, node_index, &symbol_graph, used_symbol_ref)
+              update_reachable_symbol(dead_node_index, node_index, &mut visited_symbol_node_index)
             }
           }
         }
@@ -3063,6 +3062,15 @@ fn finalize_symbol(
       //   q.push_back(module_ident);
       // }
     }
+
+    for node_index in visited_symbol_node_index {
+      used_symbol_ref.insert(
+        symbol_graph
+          .get_symbol(&node_index)
+          .expect("Can't get SymbolRef of NodeIndex")
+          .clone(),
+      );
+    }
   } else {
     *used_symbol_ref = visited_symbol_ref;
   }
@@ -3106,16 +3114,12 @@ fn update_reachable_dependency(
 fn update_reachable_symbol(
   dead_node_index: &HashSet<NodeIndex>,
   symbol_node_index: NodeIndex,
-  symbol_graph: &SymbolGraph,
-  used_symbol_ref: &mut HashSet<SymbolRef>,
+  visited_symbol_node_index: &mut HashSet<NodeIndex>,
 ) {
   if dead_node_index.contains(&symbol_node_index) {
     return;
   }
-  let symbol = symbol_graph
-    .get_symbol(&symbol_node_index)
-    .expect("Can't get Symbol of NodeIndex ");
-  used_symbol_ref.insert(symbol.clone());
+  visited_symbol_node_index.insert(symbol_node_index);
 }
 
 fn is_js_like_uri(uri: &str) -> bool {
