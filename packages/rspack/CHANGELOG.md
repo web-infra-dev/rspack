@@ -1,5 +1,64 @@
 # @rspack/core
 
+## 0.0.22
+
+### Patch Changes
+
+- 361f9a539: fix: relative source map url path
+- 59edc2cb4: fix watch options
+- b77074dfa: feat: support multiple configuration
+- c65ca69eb: feat: environment, afterEnvironment, afterPlugins, and afterResolvers hooks
+- 4de9eea6c: feat(close: #1654): support optimization.runtimeChunk
+- 0bc720c7e: chore: add minify pureFuncs & dropConsole options
+- ac02a096e: fix: getRspackMemoryAssets failed to get index.html when request path is /
+  feat: extends webpack-dev-server
+- 8a4cb9a38: feat: more js api for webpack plugin compatibility
+- 9c90398a8: feat(core): improve mode config typing
+- 290bf7fb5: feat: add devServer.historyApiFallback options
+- 86ed12184: fix: add readonly type for compilation.assets and compilation.entrypoints
+- 126b2160e: fix: failed to apply loader when loader is esModule
+- 792304dd9: feat: support rule specific parser.dataUrlCondition.maxSize and generator.filename
+- 6d4f3e627: feat: missing module
+- d88ffa666: feat: support devServer.client.webSocketUrl
+- 3fcfa7462: use callback in close of watch
+- cb93bb421: fix: not show module reasons for default stats toString
+- 53acb67c7: feat: support copy-webpack-plugin@5
+- 6b95cf27f: feat: support rule.issuer.not
+- 2f4db99e0: feat: processAssets hook stage
+- 82ae10cad: fix: css url rewrite with output.cssFilename
+  fix: css url rewrite with data url
+- 5e722adf1: feat: add emit and afterEmit hooks
+- b6e9a1b5e: Supports `optimization.removeAvailableModules`
+- 6722de813: fix: css url rewrite with ~
+- 58465b81b: feat(packages/rspack): loader context support compiler and compilation
+- 70586d79e: fix: `delete compilation.assets[filename]` should keep deleted asset info
+- Updated dependencies [e402226e5]
+- Updated dependencies [59edc2cb4]
+- Updated dependencies [549796acc]
+- Updated dependencies [51916f548]
+- Updated dependencies [da069320e]
+- Updated dependencies [8a4cb9a38]
+- Updated dependencies [cd7736377]
+- Updated dependencies [97eaa8208]
+- Updated dependencies [d88ffa666]
+- Updated dependencies [b5343d3f4]
+- Updated dependencies [10db0a2d8]
+- Updated dependencies [e845df7da]
+- Updated dependencies [cb93bb421]
+- Updated dependencies [faef6fc00]
+- Updated dependencies [2f4db99e0]
+- Updated dependencies [820b5a79b]
+- Updated dependencies [5e722adf1]
+- Updated dependencies [278e89cc1]
+- Updated dependencies [b6e9a1b5e]
+- Updated dependencies [0e1a42d46]
+- Updated dependencies [0269ff40d]
+- Updated dependencies [8dc513ac3]
+- Updated dependencies [58bef147b]
+- Updated dependencies [70586d79e]
+  - @rspack/binding@0.0.22
+  - @rspack/dev-client@0.0.22
+
 ## 0.0.21
 
 ### Patch Changes

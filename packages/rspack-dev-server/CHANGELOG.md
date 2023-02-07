@@ -1,5 +1,24 @@
 # rspack-dev-server
 
+## 0.0.22
+
+### Patch Changes
+
+- 59edc2cb4: fix watch options
+- ac02a096e: fix: getRspackMemoryAssets failed to get index.html when request path is /
+  feat: extends webpack-dev-server
+- 290bf7fb5: feat: add devServer.historyApiFallback options
+- d88ffa666: feat: support devServer.client.webSocketUrl
+- Updated dependencies [ce31cd029]
+- Updated dependencies [59edc2cb4]
+- Updated dependencies [ac02a096e]
+- Updated dependencies [290bf7fb5]
+- Updated dependencies [d88ffa666]
+- Updated dependencies [0269ff40d]
+  - @rspack/dev-middleware@0.0.22
+  - @rspack/dev-client@0.0.22
+  - @rspack/dev-server@0.0.22
+
 ## 0.0.21
 
 ### Patch Changes

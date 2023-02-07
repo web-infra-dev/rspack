@@ -1,5 +1,11 @@
 # @rspack/plugin-node-polyfill
 
+## 0.0.22
+
+### Patch Changes
+
+- 59edc2cb4: fix watch options
+
 ## 0.0.21
 
 ### Patch Changes

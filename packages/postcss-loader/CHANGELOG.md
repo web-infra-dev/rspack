@@ -1,5 +1,35 @@
 # rspack-plugin-postcss
 
+## 0.0.22
+
+### Patch Changes
+
+- 59edc2cb4: fix watch options
+- Updated dependencies [e402226e5]
+- Updated dependencies [59edc2cb4]
+- Updated dependencies [549796acc]
+- Updated dependencies [51916f548]
+- Updated dependencies [da069320e]
+- Updated dependencies [8a4cb9a38]
+- Updated dependencies [cd7736377]
+- Updated dependencies [97eaa8208]
+- Updated dependencies [b5343d3f4]
+- Updated dependencies [10db0a2d8]
+- Updated dependencies [e845df7da]
+- Updated dependencies [cb93bb421]
+- Updated dependencies [faef6fc00]
+- Updated dependencies [2f4db99e0]
+- Updated dependencies [820b5a79b]
+- Updated dependencies [5e722adf1]
+- Updated dependencies [278e89cc1]
+- Updated dependencies [b6e9a1b5e]
+- Updated dependencies [0e1a42d46]
+- Updated dependencies [0269ff40d]
+- Updated dependencies [8dc513ac3]
+- Updated dependencies [58bef147b]
+- Updated dependencies [70586d79e]
+  - @rspack/binding@0.0.22
+
 ## 0.0.21
 
 ### Patch Changes
