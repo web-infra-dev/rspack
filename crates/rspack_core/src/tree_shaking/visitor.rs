@@ -25,7 +25,7 @@ use super::SideEffect;
 // use swc_ecma_visit::{noop_visit_type, Visit, VisitWith};
 use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
-  BailoutFlog,
+  BailoutFlag,
 };
 use crate::{
   module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, IdentifierLinkedMap,
@@ -133,7 +133,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
   module_syntax: ModuleSyntax,
-  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
+  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects: SideEffect,
   pub(crate) options: &'a Arc<CompilerOptions>,
@@ -290,10 +290,10 @@ impl<'a> ModuleRefAnalyze<'a> {
         .entry(self.module_identifier)
       {
         Entry::Occupied(mut occ) => {
-          *occ.get_mut() |= BailoutFlog::COMMONJS_EXPORTS;
+          *occ.get_mut() |= BailoutFlag::COMMONJS_EXPORTS;
         }
         Entry::Vacant(vac) => {
-          vac.insert(BailoutFlog::COMMONJS_EXPORTS);
+          vac.insert(BailoutFlag::COMMONJS_EXPORTS);
         }
       }
     }
@@ -817,10 +817,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Some(module_identifier) => {
           match self.bail_out_module_identifiers.entry(module_identifier) {
             Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlog::COMMONJS_REQUIRE;
+              *occ.get_mut() |= BailoutFlag::COMMONJS_REQUIRE;
             }
             Entry::Vacant(vac) => {
-              vac.insert(BailoutFlog::COMMONJS_REQUIRE);
+              vac.insert(BailoutFlag::COMMONJS_REQUIRE);
             }
           }
         }
@@ -840,10 +840,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Some(module_identifier) => {
           match self.bail_out_module_identifiers.entry(module_identifier) {
             Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlog::DYNAMIC_IMPORT;
+              *occ.get_mut() |= BailoutFlag::DYNAMIC_IMPORT;
             }
             Entry::Vacant(vac) => {
-              vac.insert(BailoutFlog::DYNAMIC_IMPORT);
+              vac.insert(BailoutFlag::DYNAMIC_IMPORT);
             }
           }
         }
@@ -1190,10 +1190,10 @@ impl<'a> ModuleRefAnalyze<'a> {
             .entry(symbol.module_identifier())
           {
             Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlog::HELPER;
+              *occ.get_mut() |= BailoutFlag::HELPER;
             }
             Entry::Vacant(vac) => {
-              vac.insert(BailoutFlog::HELPER);
+              vac.insert(BailoutFlag::HELPER);
             }
           }
         }
@@ -1362,7 +1362,7 @@ pub struct TreeShakingResult {
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
-  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
+  pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) side_effects: SideEffect,
 }
 

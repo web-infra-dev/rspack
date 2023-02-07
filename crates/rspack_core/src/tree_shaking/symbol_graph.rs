@@ -1,7 +1,12 @@
-use petgraph::stable_graph::{NodeIndex, StableDiGraph};
+use petgraph::{
+  stable_graph::{NodeIndex, StableDiGraph},
+  visit::EdgeRef,
+};
+use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use rustc_hash::FxHashMap;
 
 use super::visitor::SymbolRef;
+use crate::contextify;
 
 #[derive(Default)]
 pub struct SymbolGraph {
@@ -68,5 +73,40 @@ impl SymbolGraph {
 
   pub fn node_indexes(&self) -> std::collections::hash_map::Keys<NodeIndex, SymbolRef> {
     self.node_index_to_symbol.keys()
+  }
+}
+
+pub fn generate_debug_symbol_graph(g: &SymbolGraph, context: &str) -> StableDiGraph<SymbolRef, ()> {
+  let mut debug_graph = SymbolGraph::default();
+  for node_index in g.node_indexes() {
+    for edge in g.graph.edges(*node_index) {
+      let from = edge.source();
+      let to = edge.target();
+      let from_symbol = simplify_symbol_ref(g.get_symbol(&from).expect(""), context);
+      let to_symbol = simplify_symbol_ref(g.get_symbol(&to).expect(""), context);
+      debug_graph.add_edge(&from_symbol, &to_symbol);
+    }
+  }
+  debug_graph.graph
+}
+
+pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
+  match symbol_ref {
+    SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
+      contextify(context, direct.uri().as_str()).into(),
+      direct.id().clone(),
+      *direct.ty(),
+    )),
+    SymbolRef::Indirect(indirect) => SymbolRef::Indirect(IndirectTopLevelSymbol {
+      src: contextify(context, indirect.src.as_str()).into(),
+      importer: contextify(context, indirect.importer().as_str()).into(),
+      ..indirect.clone()
+    }),
+    SymbolRef::Star(star) => SymbolRef::Star(StarSymbol {
+      src: contextify(context, star.src.as_str()).into(),
+      binding: star.binding.clone(),
+      module_ident: star.module_ident,
+      ty: star.ty,
+    }),
   }
 }
