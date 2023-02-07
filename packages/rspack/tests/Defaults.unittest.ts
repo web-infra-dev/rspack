@@ -74,7 +74,7 @@ describe("snapshots", () => {
 		expect(baseConfig).toMatchInlineSnapshot(`
 		{
 		  "builtins": {
-		    "browserslist": [],
+		    "browserslist": undefined,
 		    "decorator": {
 		      "emitMetadata": true,
 		      "legacy": true,
@@ -637,7 +637,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "browserslist": Array [],
+			-     "browserslist": undefined,
 			+     "browserslist": Array [
 			+       "ie >= 9",
 			+     ],

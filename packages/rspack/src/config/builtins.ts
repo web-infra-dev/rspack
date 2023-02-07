@@ -117,7 +117,7 @@ export function resolveBuiltinsOptions(
 	builtins: Builtins,
 	{ contextPath, isProduction }: { contextPath: string; isProduction: boolean }
 ): ResolvedBuiltins {
-	const browserslist = loadConfig({ path: contextPath }) || [];
+	const browserslist = loadConfig({ path: contextPath });
 	return {
 		...builtins,
 		define: resolveDefine(builtins.define || {}),
