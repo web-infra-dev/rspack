@@ -13,3 +13,4 @@ regex        = "1.7.0"
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_util  = { path = "../rspack_util" }
+rustc-hash   = { workspace = true }

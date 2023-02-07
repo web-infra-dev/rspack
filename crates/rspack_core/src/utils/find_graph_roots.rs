@@ -67,7 +67,7 @@ struct StackEntry<T> {
   open_edges: Vec<T>,
 }
 
-pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'static>(
+pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord + 'static>(
   items: Vec<Item>,
   get_dependencies: impl Sync + Fn(Item) -> Vec<Item>,
 ) -> Vec<Item> {
@@ -105,17 +105,23 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
   // items will be removed if a new reference to it has been found
   let mut roots: FxHashSet<Ukey<Node<Item>>> = FxHashSet::default();
 
+  // Set of current cycles without references to it
+  // cycles will be removed if a new reference to it has been found
+  // that is not part of the cycle
   let mut root_cycles: FxHashSet<Ukey<Cycle<Ukey<Node<Item>>>>> = FxHashSet::default();
 
+  let mut select_nodes = db.keys().cloned().collect::<Vec<_>>();
+  select_nodes.sort_by_key(|node| &node.as_ref(&db).item);
   // For all non-marked nodes
   for select_node in db.keys().cloned().collect::<Vec<_>>() {
-    // deep-walk all referenced modules
-    // in a non-recursive way
-
-    // start by entering the selected node
     if matches!(select_node.as_ref(&db).marker, Marker::NoMarker) {
+      // deep-walk all referenced modules
+      // in a non-recursive way
+
+      // start by entering the selected node
       select_node.as_mut(&mut db).marker = Marker::InProgressMarker;
 
+      // keep a stack to avoid recursive walk
       let mut stack = vec![StackEntry {
         node: select_node,
         open_edges: select_node
@@ -126,16 +132,21 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
           .collect(),
       }];
 
+      // process the top item until stack is empty
       while !stack.is_empty() {
         let top_of_stack_idx = stack.len() - 1;
 
+        // Are there still edges unprocessed in the current node?
         if !stack[top_of_stack_idx].open_edges.is_empty() {
+          // Process one dependency
           let dependency = stack[top_of_stack_idx]
             .open_edges
             .pop()
             .expect("Should exist");
           match dependency.as_ref(&db).marker {
             Marker::NoMarker => {
+              // dependency has not be visited yet
+              // mark it as in-progress and recurse
               stack.push(StackEntry {
                 node: dependency,
                 open_edges: dependency
@@ -148,6 +159,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
               dependency.as_mut(&mut db).marker = Marker::InProgressMarker;
             }
             Marker::InProgressMarker => {
+              // It's a in-progress cycle
               let cycle = &dependency.as_ref(&db).cycle;
               if cycle.is_none() {
                 let cycle = cycle_db.create_default_item();
@@ -193,6 +205,8 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
                   }
                 }
               }
+              // don't recurse into dependencies
+              // these are already on the stack
             }
             Marker::DoneAndRootMarker => {
               dependency.as_mut(&mut db).marker = Marker::DoneMarker;
@@ -233,7 +247,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
     let mut max = 0;
 
     let mut cycle_roots: FxHashSet<Ukey<Node<Item>>> = Default::default();
-    let nodes = cycle.as_ref(&cycle_db).nodes.clone();
+    let nodes = &cycle.as_ref(&cycle_db).nodes;
     for node in nodes.iter() {
       for dep in node.as_ref(&db).dependencies.clone().into_iter() {
         if nodes.contains(&dep) {
@@ -249,8 +263,8 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + 'sta
         cycle_roots.insert(dep);
       }
     }
-    for cycle_node in cycle_roots {
-      roots.insert(cycle_node);
+    for cycle_root in cycle_roots {
+      roots.insert(cycle_root);
     }
   }
 

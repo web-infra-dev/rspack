@@ -19,6 +19,10 @@ pub enum ChunkKind {
 }
 
 pub struct Chunk {
+  // - If the chunk is create by entry, the name is the entry name
+  // - (Rspack doesn't support it yet)If the chunk is create by dynamic import, the name
+  // is the valid in MagicComment `import(/* webpackChunkName: "someChunk" * / './someModule.js')`.
+  // - TODO: HMR chunk will have name. Not sure this is expected. Need to discuss with underfin
   pub name: Option<String>,
   pub ukey: ChunkUkey,
   pub id: Option<String>,
