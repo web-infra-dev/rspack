@@ -49,6 +49,7 @@ use crate::{
   cache::Cache,
   contextify, is_source_equal, join_string_component, resolve_module_type_by_uri,
   tree_shaking::{
+    debug_care_module_id,
     symbol_graph::SymbolGraph,
     visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
     BailoutFlog, ModuleUsedType, OptimizeDependencyResult, SideEffect,
@@ -896,27 +897,25 @@ impl Compilation {
         .par_iter()
         .filter_map(|(module_identifier, mgm)| {
           let uri_key = *module_identifier;
-          let ast = match mgm.module_type {
-          crate::ModuleType::Js | crate::ModuleType::Jsx | crate::ModuleType::Tsx
-          | crate::ModuleType::Ts => match self
-                      .module_graph
-                      .module_by_identifier(&mgm.module_identifier)
-                      .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
-                      // A module can missing its AST if the module is failed to build
-                      .and_then(|ast|ast.as_javascript()) {
-              Some(ast) => {ast},
+          let ast = if mgm.module_type.is_js_like() {
+            match self
+              .module_graph
+              .module_by_identifier(&mgm.module_identifier)
+              .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
+              // A module can missing its AST if the module is failed to build
+              .and_then(|ast| ast.as_javascript())
+            {
+              Some(ast) => ast,
               None => {
                 // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
                 return None;
-              },
-          }
-            ,
-          // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
-          _ => {
+              }
+            }
+          } else {
+            // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
             // Ignore analyzing other module for now
-                return None;
-          }
-        };
+            return None;
+          };
           // let normal_module = self.module_graph.module_by_identifier(&m.module_identifier);
           //        let ast = ast.as_javascript().expect("TODO:");
           let analyzer = ast.visit(|program, context| {
@@ -2233,7 +2232,6 @@ fn mark_symbol(
   visited_symbol_ref: &mut HashSet<SymbolRef>,
   errors: &mut Vec<Error>,
 ) {
-  // dbg!(&current_symbol_ref);
   if visited_symbol_ref.contains(&current_symbol_ref) {
     return;
   } else {
@@ -3011,8 +3009,6 @@ fn finalize_symbol(
       //   }
       // }
 
-      // while let Some(a) = bfs.next(&symbol_graph.graph) {}
-      // eval end
       let mgm = compilation
         .module_graph
         .module_graph_module_by_identifier(&module_identifier)
@@ -3055,12 +3051,6 @@ fn finalize_symbol(
         }
         q.push_back((*module_ident, false));
       }
-      // dbg!(&module_identifier);
-      // dbg!(&reachable_dependency_identifier);
-
-      // for module_ident in reachable_dependency_identifier {
-      //   q.push_back(module_ident);
-      // }
     }
 
     for node_index in visited_symbol_node_index {
