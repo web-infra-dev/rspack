@@ -168,10 +168,7 @@ impl NormalModuleFactory {
 
     self.context.module_type = Some(resolved_module_type);
 
-    let module_identifier = ustr::ustr(&format!("{resolved_module_type}|{request}"));
-
     let normal_module = NormalModule::new(
-      module_identifier.into(),
       request.clone(),
       request.clone(),
       data.dependency.request().to_owned(),

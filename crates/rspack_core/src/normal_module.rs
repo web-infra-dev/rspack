@@ -368,7 +368,6 @@ pub static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 impl NormalModule {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    id: ModuleIdentifier,
     request: String,
     user_request: String,
     raw_request: String,
@@ -381,12 +380,13 @@ impl NormalModule {
     options: Arc<CompilerOptions>,
     issuer: String,
   ) -> Self {
+    let module_type = module_type.into();
     Self {
-      id,
+      id: ModuleIdentifier::from(format!("{module_type}|{request}")),
       request,
       user_request,
       raw_request,
-      module_type: module_type.into(),
+      module_type,
       parser_and_generator,
       parser_options,
       generator_options,
