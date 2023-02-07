@@ -8,7 +8,7 @@
 </p>
 
 English | [简体中文](./README.zh-CN.md)
-
+0.0
 ## ✨ Features
 
 - 🚀 **Fast**: Based on Rust, the build speed is extremely fast, bringing you the ultimate development experience.
