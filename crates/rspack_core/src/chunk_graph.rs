@@ -181,7 +181,8 @@ impl ChunkGraph {
     module_graph: &'module ModuleGraph,
   ) -> Vec<&'module ModuleGraphModule> {
     let mut modules = self.get_chunk_modules(chunk, module_graph);
-    modules.sort_by_key(|m| m.module_identifier.as_str());
+    // SAFETY: module identifier is unique
+    modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
     modules
   }
 

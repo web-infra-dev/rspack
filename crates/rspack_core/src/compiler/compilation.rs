@@ -910,15 +910,14 @@ impl Compilation {
   }
 
   pub fn get_chunk_graph_entries(&self) -> HashSet<ChunkUkey> {
-    let mut entries: HashSet<ChunkUkey> = HashSet::default();
-    for entrypoint_ukey in self.entrypoints.values() {
+    let entries = self.entrypoints.values().map(|entrypoint_ukey| {
       let entrypoint = self
         .chunk_group_by_ukey
         .get(entrypoint_ukey)
         .expect("chunk group not found");
-      entries.insert(entrypoint.get_runtime_chunk());
-    }
-    entries
+      entrypoint.get_runtime_chunk()
+    });
+    HashSet::from_iter(entries)
   }
 
   #[instrument(name = "compilation:process_runtime_requirements", skip_all)]
@@ -1045,41 +1044,35 @@ impl Compilation {
 
     let mut compilation_hasher = Xxh3::new();
     let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
-    chunks.sort_by_key(|chunk| chunk.ukey);
-    chunks.par_iter_mut().for_each(|chunk| {
-      for mgm in self
-        .chunk_graph
-        .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
-      {
-        if let Some(hash) = self.module_graph.get_module_hash(&mgm.module_identifier) {
-          hash.hash(&mut chunk.hash);
-        }
-      }
-    });
-    for chunk in chunks {
-      for mgm in self
-        .chunk_graph
-        .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
-      {
-        if let Some(hash) = self.module_graph.get_module_hash(&mgm.module_identifier) {
-          hash.hash(&mut compilation_hasher);
-        }
-      }
-    }
+    chunks.sort_unstable_by_key(|chunk| chunk.ukey);
+    chunks
+      .par_iter_mut()
+      .flat_map_iter(|chunk| {
+        self
+          .chunk_graph
+          .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
+          .into_iter()
+          .filter_map(|mgm| self.module_graph.get_module_hash(&mgm.module_identifier))
+          .inspect(|hash| hash.hash(&mut chunk.hash))
+      })
+      .collect::<Vec<_>>()
+      .iter()
+      .for_each(|hash| {
+        hash.hash(&mut compilation_hasher);
+      });
+
     tracing::trace!("hash chunks");
 
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
-    let content_hash_chunks = {
-      // runtime chunks should be hashed after all other chunks
-      let mut chunks = self
-        .chunk_by_ukey
-        .keys()
-        .filter(|key| !runtime_chunk_ukeys.contains(key))
-        .copied()
-        .collect::<Vec<_>>();
-      chunks.extend(runtime_chunk_ukeys.clone());
-      chunks
-    };
+    // runtime chunks should be hashed after all other chunks
+    let content_hash_chunks = self
+      .chunk_by_ukey
+      .keys()
+      .filter(|key| !runtime_chunk_ukeys.contains(key))
+      .copied()
+      .chain(runtime_chunk_ukeys.clone())
+      .collect::<Vec<_>>();
+
     for chunk_ukey in content_hash_chunks {
       plugin_driver
         .read()
@@ -1094,34 +1087,30 @@ impl Compilation {
 
     self.create_runtime_module_hash();
 
+    tracing::trace!("hash runtime chunks");
+
     let mut entry_chunks = self
       .chunk_by_ukey
       .values_mut()
       .filter(|chunk| runtime_chunk_ukeys.contains(&chunk.ukey))
       .collect::<Vec<_>>();
-    entry_chunks.sort_by_key(|chunk| chunk.ukey);
-    entry_chunks.par_iter_mut().for_each(|chunk| {
-      for identifier in self
-        .chunk_graph
-        .get_chunk_runtime_modules_in_order(&chunk.ukey)
-      {
-        if let Some(hash) = self.runtime_module_hashes.get(identifier) {
-          hash.hash(&mut chunk.hash);
-        }
-      }
-    });
-    tracing::trace!("hash runtime chunks");
+    entry_chunks.sort_unstable_by_key(|chunk| chunk.ukey);
+    entry_chunks
+      .par_iter_mut()
+      .flat_map_iter(|chunk| {
+        self
+          .chunk_graph
+          .get_chunk_runtime_modules_in_order(&chunk.ukey)
+          .iter()
+          .filter_map(|identifier| self.runtime_module_hashes.get(identifier))
+          .inspect(|hash| hash.hash(&mut chunk.hash))
+      })
+      .collect::<Vec<_>>()
+      .iter()
+      .for_each(|hash| {
+        hash.hash(&mut compilation_hasher);
+      });
 
-    entry_chunks.iter().for_each(|chunk| {
-      for identifier in self
-        .chunk_graph
-        .get_chunk_runtime_modules_in_order(&chunk.ukey)
-      {
-        if let Some(hash) = self.runtime_module_hashes.get(identifier) {
-          hash.hash(&mut compilation_hasher);
-        }
-      }
-    });
     self.hash = format!("{:x}", compilation_hasher.finish());
     tracing::trace!("compilation hash");
     Ok(())
