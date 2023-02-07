@@ -131,7 +131,7 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
 #[async_trait::async_trait]
 pub trait Loader<T, U>: Sync + Send + Debug {
   /// Loader name for module identifier
-  fn name(&self) -> &'static str;
+  fn name(&self) -> &str;
 
   /// Each loader should expose a `run` fn, which will be called by the loader runner.
   ///

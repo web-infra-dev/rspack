@@ -316,7 +316,7 @@ pub struct NormalModule {
   parser_and_generator: Box<dyn ParserAndGenerator>,
   /// Resource data (path, url, etc.)
   resource_data: ResourceData,
-  /// Loaders t
+  /// Loaders for the module
   loaders: Vec<BoxedLoader>,
 
   /// Original content of this module, will be available after module build

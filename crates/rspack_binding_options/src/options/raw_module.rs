@@ -325,8 +325,8 @@ impl Debug for JsLoaderAdapter {
 impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationContext>
   for JsLoaderAdapter
 {
-  fn name(&self) -> &'static str {
-    "js_loader_adapter"
+  fn name(&self) -> &str {
+    &self.name
   }
 
   async fn run(
