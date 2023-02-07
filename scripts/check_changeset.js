@@ -1,5 +1,5 @@
-import path from "path";
-import readChangesets from "@changesets/read";
+const path = require("path");
+const readChangesets = require("@changesets/read").default;
 
 async function run() {
 	const cwd = process.cwd();
