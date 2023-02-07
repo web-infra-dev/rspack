@@ -240,12 +240,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       ..
     } = parse_context;
 
-    if !module_type.is_js_like() {
-      return Err(internal_error!(format!(
-        "`module_type` {module_type:?} not supported for `JsParser`"
-      )));
-    }
-
     let syntax = syntax_by_module_type(
       &resource_data.resource_path,
       module_type,
@@ -371,6 +365,14 @@ impl Plugin for JsPlugin {
     ctx
       .context
       .register_parser_and_generator_builder(ModuleType::Js, Box::new(create_parser_and_generator));
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsEsm,
+      Box::new(create_parser_and_generator),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsDynamic,
+      Box::new(create_parser_and_generator),
+    );
     ctx
       .context
       .register_parser_and_generator_builder(ModuleType::Ts, Box::new(create_parser_and_generator));
@@ -380,6 +382,14 @@ impl Plugin for JsPlugin {
     );
     ctx.context.register_parser_and_generator_builder(
       ModuleType::Jsx,
+      Box::new(create_parser_and_generator),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsxEsm,
+      Box::new(create_parser_and_generator),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      ModuleType::JsxDynamic,
       Box::new(create_parser_and_generator),
     );
 

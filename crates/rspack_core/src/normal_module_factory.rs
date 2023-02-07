@@ -135,8 +135,8 @@ impl NormalModuleFactory {
       }
     };
 
-    let uri = resource_data.resource.clone();
-    tracing::trace!("resolved uri {:?}", uri);
+    let request = &resource_data.resource;
+    tracing::trace!("resolved request {request}");
 
     let file_dependency = resource_data.resource_path.clone();
 
@@ -166,8 +166,8 @@ impl NormalModuleFactory {
     self.context.module_type = Some(resolved_module_type);
 
     let normal_module = NormalModule::new(
-      uri.clone(),
-      uri.clone(),
+      request.clone(),
+      request.clone(),
       data.dependency.request().to_owned(),
       resolved_module_type,
       resolved_parser_and_generator,

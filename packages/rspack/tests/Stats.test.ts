@@ -76,10 +76,10 @@ describe("Stats", () => {
 		      "chunks": [
 		        "main",
 		      ],
-		      "id": "876",
-		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "id": "777",
+		      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/a.js",
 		      "issuerPath": [],
-		      "moduleType": "js",
+		      "moduleType": "javascript/auto",
 		      "name": "./fixtures/a.js",
 		      "reasons": [
 		        {},
@@ -98,7 +98,7 @@ describe("Stats", () => {
 		main.js  215 bytes    main  [emitted]  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
-		[876] ./fixtures/a.js 55 bytes {main}
+		[777] ./fixtures/a.js 55 bytes {main}
 		    "
 	`);
 	});
@@ -125,10 +125,10 @@ describe("Stats", () => {
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main
 		Entrypoint main = main.js
-		[876] ./fixtures/a.js 55 bytes {main}
-		[211] ./fixtures/b.js 94 bytes {main}
-		[537] ./fixtures/c.js 72 bytes {main}
-		[222] ./fixtures/abc.js 83 bytes {main}
+		[777] ./fixtures/a.js 55 bytes {main}
+		[510] ./fixtures/b.js 94 bytes {main}
+		[906] ./fixtures/c.js 72 bytes {main}
+		[492] ./fixtures/abc.js 83 bytes {main}
 
 		error[javascript]: JavaScript parsing error
 		  ┌─ tests/fixtures/b.js:6:1

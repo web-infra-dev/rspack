@@ -10,17 +10,6 @@ Object.defineProperty(exports, "a", {
 });
 const a = 3;
 },
-"./b.jsx": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
-});
-const a = 3;
-},
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -31,6 +20,17 @@ const _bJsX = __webpack_require__("./b.js?x");
 _bJsX.a;
 _bJsx.a;
 console.log("hello, world");
+},
+"./b.jsx": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "a", {
+    enumerable: true,
+    get: ()=>a
+});
+const a = 3;
 },
 
 },function(__webpack_require__) {

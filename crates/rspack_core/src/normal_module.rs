@@ -380,12 +380,13 @@ impl NormalModule {
     options: Arc<CompilerOptions>,
     issuer: String,
   ) -> Self {
+    let module_type = module_type.into();
     Self {
-      id: ModuleIdentifier::from(request.as_ref()),
+      id: ModuleIdentifier::from(format!("{module_type}|{request}")),
       request,
       user_request,
       raw_request,
-      module_type: module_type.into(),
+      module_type,
       parser_and_generator,
       parser_options,
       generator_options,
