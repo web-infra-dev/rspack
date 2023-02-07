@@ -6,7 +6,6 @@ use std::{
 
 use dashmap::DashMap;
 use rustc_hash::FxHasher;
-use tracing::instrument;
 
 use crate::{AliasMap, DependencyType};
 use crate::{DependencyCategory, Resolve};
@@ -267,7 +266,6 @@ impl Resolver {
     self.0.clear_entries();
   }
 
-  #[instrument(name = "nodejs_resolver", skip_all)]
   pub fn resolve(&self, path: &Path, request: &str) -> nodejs_resolver::RResult<ResolveResult> {
     self
       .0

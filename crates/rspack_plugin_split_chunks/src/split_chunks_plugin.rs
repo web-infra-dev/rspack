@@ -183,7 +183,6 @@ impl SplitChunksPlugin {
 
   #[allow(clippy::format_in_format_args)]
   #[allow(clippy::too_many_arguments)]
-  #[tracing::instrument(skip_all)]
   fn add_module_to_chunks_info_map(
     &self,
     cache_group: &CacheGroup,
@@ -303,7 +302,6 @@ impl SplitChunksPlugin {
     );
   }
 
-  #[tracing::instrument(skip_all)]
   fn create_chunks_info_map(
     &self,
     compilation: &mut Compilation,
@@ -376,7 +374,6 @@ impl SplitChunksPlugin {
     chunks_info_map
   }
 
-  #[tracing::instrument(skip_all)]
   fn find_best_entry(&self, chunks_info_map: &mut ChunksInfoMap) -> (String, ChunksInfoItem) {
     let mut chunks_info_map_iter = chunks_info_map.iter();
     let (best_entry_key, mut best_entry) = chunks_info_map_iter.next().expect("item should exist");
@@ -398,7 +395,6 @@ impl SplitChunksPlugin {
 
   #[allow(clippy::unwrap_in_result)]
   #[allow(clippy::if_same_then_else)]
-  #[tracing::instrument(skip_all)]
   fn find_reusable_chunk(
     &self,
     compilation: &Compilation,
@@ -454,7 +450,6 @@ impl SplitChunksPlugin {
     new_chunk
   }
 
-  #[tracing::instrument(skip_all)]
   fn remove_unrelated_chunk(
     &self,
     compilation: &Compilation,
@@ -472,7 +467,6 @@ impl SplitChunksPlugin {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   fn filter_items_lesser_than_min_size(
     &self,
     chunks_info_map: &mut ChunksInfoMap,
@@ -506,7 +500,6 @@ impl SplitChunksPlugin {
     });
   }
 
-  #[tracing::instrument(skip_all)]
   fn remove_all_modules_from_other_entries_and_update_size(
     &self,
     item: &mut ChunksInfoItem,
@@ -572,7 +565,6 @@ impl SplitChunksPlugin {
     });
   }
 
-  #[tracing::instrument(skip_all)]
   fn link_module_new_chunk_and_remove_in_old_chunks(
     &self,
     is_reused_with_all_modules: bool,
@@ -620,7 +612,6 @@ impl SplitChunksPlugin {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   fn split_used_chunks(
     &self,
     item: &ChunksInfoItem,

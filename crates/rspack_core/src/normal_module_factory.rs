@@ -5,7 +5,6 @@ use std::{
 
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::Span;
-use tracing::instrument;
 
 use crate::{
   cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions,
@@ -24,7 +23,6 @@ pub struct NormalModuleFactory {
 
 #[async_trait::async_trait]
 impl ModuleFactory for NormalModuleFactory {
-  #[instrument(name = "normal_module_factory:create", skip_all)]
   async fn create(
     mut self,
     data: ModuleFactoryCreateData,
@@ -54,7 +52,6 @@ impl NormalModuleFactory {
     resolve_module_type_by_uri(&resource_data.resource_path)
   }
 
-  // #[instrument(name = "normal_module_factory:factory_normal_module", skip_all)]
   pub async fn factorize_normal_module(
     &mut self,
     data: ModuleFactoryCreateData,
@@ -274,7 +271,6 @@ impl NormalModuleFactory {
     resolved_module_type
   }
 
-  #[instrument(name = "normal_module_factory:factorize", skip_all)]
   pub async fn factorize(
     &mut self,
     data: ModuleFactoryCreateData,

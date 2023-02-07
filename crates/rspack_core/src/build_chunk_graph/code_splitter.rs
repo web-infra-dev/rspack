@@ -31,7 +31,6 @@ impl<'me> CodeSplitter<'me> {
     }
   }
 
-  #[tracing::instrument(skip_all)]
   fn prepare_input_entrypoints_and_modules(
     &mut self,
   ) -> Result<HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {

@@ -85,7 +85,6 @@ impl PluginDriver {
   /// Warning:
   /// Webpack does not expose this as the documented API, even though you can reach this with `NormalModule.getCompilationHooks(compilation)`.
   /// For the most of time, you would not need this.
-  #[instrument(name = "plugin:read_resource", skip_all)]
   pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
     for plugin in &self.plugins {
       let result = plugin.read_resource(resource_data).await?;
@@ -147,7 +146,6 @@ impl PluginDriver {
   /// Executed while initializing the compilation, right before emitting the compilation event. This hook is not copied to child compilers.
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-  #[instrument(name = "plugin:this_compilation", skip_all)]
   pub async fn this_compilation(
     &mut self,
     compilation: &mut Compilation,
@@ -163,7 +161,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:this_compilation", skip_all)]
   pub async fn content_hash(&self, args: &mut ContentHashArgs<'_>) -> PluginContentHashHookOutput {
     for plugin in &self.plugins {
       plugin.content_hash(PluginContext::new(), args).await?;
@@ -171,7 +168,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:render_manifest", skip_all)]
   pub async fn render_manifest(
     &self,
     args: RenderManifestArgs<'_>,
@@ -204,7 +200,6 @@ impl PluginDriver {
     Ok(None)
   }
 
-  #[instrument(name = "plugin:factorize", skip_all)]
   pub async fn factorize(
     &self,
     args: FactorizeArgs<'_>,
@@ -221,7 +216,6 @@ impl PluginDriver {
     Ok(None)
   }
 
-  #[instrument(name = "plugin:module", skip_all)]
   pub async fn module(&self, args: ModuleArgs) -> PluginModuleHookOutput {
     for plugin in &self.plugins {
       tracing::trace!("running render runtime:{}", plugin.name());
@@ -317,7 +311,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:build_module", skip_all)]
   pub async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.build_module(module).await?;
@@ -325,7 +318,6 @@ impl PluginDriver {
     Ok(())
   }
 
-  #[instrument(name = "plugin:succeed_module", skip_all)]
   pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.succeed_module(module).await?;
