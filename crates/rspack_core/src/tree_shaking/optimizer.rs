@@ -53,10 +53,9 @@ impl<'a> CodeSizeOptimizer<'a> {
   pub async fn run(&mut self) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
     let mut analyze_result_map = par_analyze_module(self.compilation).await;
 
-    let compilation = &self.compilation;
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
-    let side_effects_options = compilation.options.builtins.side_effects;
+    let side_effects_options = self.compilation.options.builtins.side_effects;
     let mut side_effect_map: IdentifierMap<SideEffect> = IdentifierMap::default();
     for analyze_result in analyze_result_map.values() {
       side_effect_map.insert(
@@ -65,7 +64,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       );
       // if `side_effects` is disabled, then force every module has side_effects
       let forced_side_effects = !side_effects_options
-        || compilation
+        || self
+          .compilation
           .entry_module_identifiers
           .contains(&analyze_result.module_identifier);
       // side_effects: true
@@ -103,67 +103,41 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     // dbg!(&used_symbol_ref);
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
-    mark_used_symbol_with(
+
+    self.mark_used_symbol_with(
       &analyze_result_map,
       VecDeque::from_iter(evaluated_used_symbol_ref.into_iter()),
-      &self.bailout_modules,
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
       &mut traced_tuple,
-      &compilation.options,
-      &mut self.symbol_graph,
       &mut visited_symbol_ref,
       &mut errors,
     );
 
     // We considering all export symbol in each entry module as used for now
-    for entry in compilation.entry_modules() {
-      collect_from_entry_like(
-        &analyze_result_map,
-        entry,
-        &self.bailout_modules,
-        &mut evaluated_module_identifiers,
-        &mut used_export_module_identifiers,
-        &inherit_export_ref_graph,
-        &mut traced_tuple,
-        &compilation.options,
-        &mut self.symbol_graph,
-        true,
-        &mut visited_symbol_ref,
-        &mut errors,
-      );
-    }
+    self.mark_entry_symbol(
+      &analyze_result_map,
+      &mut evaluated_module_identifiers,
+      &mut used_export_module_identifiers,
+      &inherit_export_ref_graph,
+      &mut traced_tuple,
+      &mut visited_symbol_ref,
+      &mut errors,
+    );
 
     // All lazy imported module will be treadted as entry module, which means
     // Its export symbol will be marked as used
-    let mut bailout_entry_module_identifiers = IdentifierSet::default();
-    for (module_id, reason) in self.bailout_modules.iter() {
-      if reason
-        .intersection(
-          BailoutFlag::DYNAMIC_IMPORT | BailoutFlag::HELPER | BailoutFlag::COMMONJS_REQUIRE,
-        )
-        .bits()
-        .count_ones()
-        >= 1
-      {
-        bailout_entry_module_identifiers.insert(*module_id);
-        collect_from_entry_like(
-          &analyze_result_map,
-          *module_id,
-          &self.bailout_modules,
-          &mut evaluated_module_identifiers,
-          &mut used_export_module_identifiers,
-          &inherit_export_ref_graph,
-          &mut traced_tuple,
-          &compilation.options,
-          &mut self.symbol_graph,
-          false,
-          &mut visited_symbol_ref,
-          &mut errors,
-        );
-      };
-    }
+    // let mut bailout_entry_module_identifiers = IdentifierSet::default();
+    self.mark_bailout_module(
+      &analyze_result_map,
+      evaluated_module_identifiers,
+      &mut used_export_module_identifiers,
+      inherit_export_ref_graph,
+      traced_tuple,
+      &mut visited_symbol_ref,
+      &mut errors,
+    );
 
     // let debug_graph = generate_debug_symbol_graph(
     //   &symbol_graph,
@@ -192,6 +166,72 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
+  }
+
+  fn mark_bailout_module(
+    &mut self,
+    analyze_result_map: &IdentifierMap<TreeShakingResult>,
+    mut evaluated_module_identifiers: IdentifierSet,
+    used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
+    inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
+    mut traced_tuple: HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
+    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    errors: &mut Vec<Error>,
+  ) {
+    for (module_id, reason) in self.bailout_modules.iter() {
+      if reason
+        .intersection(
+          BailoutFlag::DYNAMIC_IMPORT | BailoutFlag::HELPER | BailoutFlag::COMMONJS_REQUIRE,
+        )
+        .bits()
+        .count_ones()
+        >= 1
+      {
+        // bailout_entry_module_identifiers.insert(*module_id);
+        collect_from_entry_like(
+          analyze_result_map,
+          *module_id,
+          &self.bailout_modules,
+          &mut evaluated_module_identifiers,
+          used_export_module_identifiers,
+          &inherit_export_ref_graph,
+          &mut traced_tuple,
+          &self.compilation.options,
+          &mut self.symbol_graph,
+          false,
+          visited_symbol_ref,
+          errors,
+        );
+      };
+    }
+  }
+
+  fn mark_entry_symbol(
+    &mut self,
+    analyze_result_map: &IdentifierMap<TreeShakingResult>,
+    evaluated_module_identifiers: &mut IdentifierSet,
+    used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
+    inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
+    traced_tuple: &mut HashMap<(Identifier, Identifier), Vec<(SymbolRef, SymbolRef)>>,
+    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    errors: &mut Vec<Error>,
+  ) {
+    for entry in self.compilation.entry_modules() {
+      collect_from_entry_like(
+        analyze_result_map,
+        entry,
+        &self.bailout_modules,
+        evaluated_module_identifiers,
+        used_export_module_identifiers,
+        inherit_export_ref_graph,
+        traced_tuple,
+        &self.compilation.options,
+        &mut self.symbol_graph,
+        true,
+        visited_symbol_ref,
+        errors,
+      );
+    }
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -545,38 +585,68 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
     }
   }
+
+  #[allow(clippy::too_many_arguments)]
+  fn mark_used_symbol_with(
+    &mut self,
+    analyze_map: &IdentifierMap<TreeShakingResult>,
+    mut init_queue: VecDeque<SymbolRef>,
+    evaluated_module_identifiers: &mut IdentifierSet,
+    used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
+    inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
+    traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
+    visited_symbol_ref: &mut HashSet<SymbolRef>,
+    errors: &mut Vec<Error>,
+  ) {
+    while let Some(sym_ref) = init_queue.pop_front() {
+      mark_symbol(
+        sym_ref,
+        analyze_map,
+        &mut init_queue,
+        &self.bailout_modules,
+        evaluated_module_identifiers,
+        used_export_module_identifiers,
+        inherit_extend_graph,
+        traced_tuple,
+        &self.compilation.options,
+        &mut self.symbol_graph,
+        visited_symbol_ref,
+        errors,
+      );
+    }
+  }
 }
 
-fn dependency_replacement() {
-  // TODO: dep replacement
-  // let module_item_map = if side_effects_options {
-  //   // let start = Instant::now();
-  //   // let dependency_replacement = update_dependency(
-  //   //   &symbol_graph,
-  //   //   &used_export_module_identifiers,
-  //   //   &bailout_module_identifiers,
-  //   //   &side_effects_free_modules,
-  //   //   &compilation.entry_module_identifiers,
-  //   // );
+// TODO: dep replacement
+// fn dependency_replacement() {
+// let module_item_map = if side_effects_options {
+//   // let start = Instant::now();
+//   // let dependency_replacement = update_dependency(
+//   //   &symbol_graph,
+//   //   &used_export_module_identifiers,
+//   //   &bailout_module_identifiers,
+//   //   &side_effects_free_modules,
+//   //   &compilation.entry_module_identifiers,
+//   // );
 
-  //   // // dbg!(&dependency_replacement);
+//   // // dbg!(&dependency_replacement);
 
-  //   // // apply replacement start
-  //   // // let mut module_item_map = IdentifierMap::default();
-  //   // let module_item_map = compilation.apply_dependency_replacement(
-  //   //   dependency_replacement,
-  //   //   &mut dead_nodes_index,
-  //   //   &mut symbol_graph,
-  //   // );
+//   // // apply replacement start
+//   // // let mut module_item_map = IdentifierMap::default();
+//   // let module_item_map = compilation.apply_dependency_replacement(
+//   //   dependency_replacement,
+//   //   &mut dead_nodes_index,
+//   //   &mut symbol_graph,
+//   // );
 
-  //   // // dbg!(&module_item_map.keys().collect::<Vec<_>>());
-  //   // dbg!(&start.elapsed());
-  //   // // module_item_map
-  //   IdentifierMap::default()
-  // } else {
-  //   IdentifierMap::default()
-  // };
-}
+//   // // dbg!(&module_item_map.keys().collect::<Vec<_>>());
+//   // dbg!(&start.elapsed());
+//   // // module_item_map
+//   IdentifierMap::default()
+// } else {
+//   IdentifierMap::default()
+// };
+// }
 
 fn get_inherit_export_ref_graph(
   analyze_result_map: &mut std::collections::HashMap<
@@ -639,29 +709,25 @@ async fn par_analyze_module(
       .par_iter()
       .filter_map(|(module_identifier, mgm)| {
         let uri_key = *module_identifier;
-        let ast = match mgm.module_type {
-            crate::ModuleType::Js | crate::ModuleType::Jsx | crate::ModuleType::Tsx
-            | crate::ModuleType::Ts => match compilation
-                        .module_graph
-                        .module_by_identifier(&mgm.module_identifier)
-                        .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
-                        // A module can missing its AST if the module is failed to build
-                        .and_then(|ast|ast.as_javascript()) {
-                Some(ast) => {ast},
-                None => {
-                  // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
-                  return None;
-                },
+        let ast = if mgm.module_type.is_js_like() {
+          match compilation
+            .module_graph
+            .module_by_identifier(&mgm.module_identifier)
+            .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
+            // A module can missing its AST if the module is failed to build
+            .and_then(|ast| ast.as_javascript())
+          {
+            Some(ast) => ast,
+            None => {
+              // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
+              return None;
             }
-              ,
-            // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
-            _ => {
-              // Ignore analyzing other module for now
-                  return None;
-            }
-          };
-        // let normal_module = compilation.module_graph.module_by_identifier(&m.module_identifier);
-        //        let ast = ast.as_javascript().expect("TODO:");
+          }
+        } else {
+          // Ignore analyzing other module for now
+          // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
+          return None;
+        };
         let analyzer = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
@@ -1315,38 +1381,6 @@ fn get_inherit_export_symbol_ref(entry_module_result: &TreeShakingResult) -> Vec
     }
   }
   inherit_export_symbols
-}
-
-#[allow(clippy::too_many_arguments)]
-fn mark_used_symbol_with(
-  analyze_map: &IdentifierMap<TreeShakingResult>,
-  mut init_queue: VecDeque<SymbolRef>,
-  bailout_module_identifiers: &IdentifierMap<BailoutFlag>,
-  evaluated_module_identifiers: &mut IdentifierSet,
-  used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
-  inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
-  traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
-  options: &Arc<CompilerOptions>,
-  graph: &mut SymbolGraph,
-  visited_symbol_ref: &mut HashSet<SymbolRef>,
-  errors: &mut Vec<Error>,
-) {
-  while let Some(sym_ref) = init_queue.pop_front() {
-    mark_symbol(
-      sym_ref,
-      analyze_map,
-      &mut init_queue,
-      bailout_module_identifiers,
-      evaluated_module_identifiers,
-      used_export_module_identifiers,
-      inherit_extend_graph,
-      traced_tuple,
-      options,
-      graph,
-      visited_symbol_ref,
-      errors,
-    );
-  }
 }
 
 // TODO: dep replacement
