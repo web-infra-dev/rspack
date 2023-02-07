@@ -2,6 +2,11 @@ module.exports = {
 	output: {
 		cssFilename: "css/[name].css"
 	},
+	resolve: {
+		alias: {
+			"@": __dirname
+		}
+	},
 	module: {
 		rules: [
 			{
