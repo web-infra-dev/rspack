@@ -8,7 +8,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ChunkGraph {
-  pub(crate) split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
+  pub split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
 
   /// If a module is imported dynamically, it will be assigned to a unique ChunkGroup
   pub(crate) block_to_chunk_group_ukey: IdentifierMap<ChunkGroupUkey>,
@@ -29,17 +29,6 @@ impl ChunkGraph {
       .chunk_graph_module_by_module_identifier
       .entry(module_identifier)
       .or_insert_with(ChunkGraphModule::new);
-  }
-
-  pub fn chunk_by_split_point_module_identifier<'a>(
-    &self,
-    module_identifier: ModuleIdentifier,
-    chunk_by_ukey: &'a ChunkByUkey,
-  ) -> Option<&'a Chunk> {
-    let ukey = self
-      .split_point_module_identifier_to_chunk_ukey
-      .get(&module_identifier)?;
-    chunk_by_ukey.get(ukey)
   }
 
   pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> Vec<ModuleIdentifier> {
@@ -416,8 +405,9 @@ impl ChunkGraph {
     module_graph: &ModuleGraph,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk);
-
-    let mut modules = find_graph_roots(cgc.modules.iter().cloned().collect::<Vec<_>>(), |module| {
+    let mut input = cgc.modules.iter().cloned().collect::<Vec<_>>();
+    input.sort();
+    let mut modules = find_graph_roots(input, |module| {
       let mut set: IdentifierSet = Default::default();
       fn add_dependencies(
         module: ModuleIdentifier,

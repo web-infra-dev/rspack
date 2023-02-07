@@ -350,7 +350,7 @@ pub fn get_short_chunk_name(
   shorten_long_string(chunk_name, delimiter)
 }
 
-fn shorten_long_string(string: String, delimiter: &str) -> String {
+pub fn shorten_long_string(string: String, delimiter: &str) -> String {
   if string.len() < 100 {
     string
   } else {
@@ -401,7 +401,7 @@ pub fn get_long_chunk_name(
   shorten_long_string(chunk_name, delimiter)
 }
 
-fn request_to_id(request: &str) -> String {
+pub fn request_to_id(request: &str) -> String {
   let regex1 = regex::Regex::new(r"^(\.\.?/)+").expect("Invalid regex");
   let regex2 = regex::Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex");
 

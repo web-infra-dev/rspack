@@ -55,7 +55,7 @@ impl<'me> CodeSplitter<'me> {
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
       );
-
+      chunk.chunk_reasons.push(format!("Entrypoint({name})",));
       self
         .remove_parent_modules_context
         .add_root_chunk(chunk.ukey);
@@ -365,6 +365,9 @@ impl<'me> CodeSplitter<'me> {
       }
 
       let chunk = Compilation::add_chunk(&mut self.compilation.chunk_by_ukey);
+      chunk
+        .chunk_reasons
+        .push(format!("DynamicImport({module_identifier})"));
       self
         .remove_parent_modules_context
         .add_chunk_relation(item.chunk, chunk.ukey);
