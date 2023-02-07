@@ -480,8 +480,7 @@ impl Compilation {
         parent_module
           .and_then(|m| m.as_normal_module())
           .and_then(|module| module.name_for_condition())
-          .map(|issuer| issuer.to_string())
-          .unwrap_or_else(|| String::from("")),
+          .map(|issuer| issuer.to_string()),
       );
     });
 
@@ -564,8 +563,7 @@ impl Compilation {
             module
               .as_normal_module()
               .and_then(|module| module.name_for_condition())
-              .map(|issuer| issuer.to_string())
-              .unwrap_or_else(|| String::from("")),
+              .map(|issuer| issuer.to_string()),
           );
         });
 
@@ -755,7 +753,7 @@ impl Compilation {
     side_effects: Option<bool>,
     resolve_options: Option<Resolve>,
     lazy_visit_modules: std::collections::HashSet<String>,
-    issuer: String,
+    issuer: Option<String>,
   ) {
     queue.add_task(FactorizeTask {
       original_module_identifier,

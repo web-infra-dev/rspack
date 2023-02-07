@@ -31,6 +31,7 @@ use sass_embedded::{
 use serde::Deserialize;
 use str_indices::utf16;
 use tokio::sync::Mutex;
+use tracing::instrument;
 
 static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^~[^/]+$").expect("TODO:"));
@@ -481,8 +482,10 @@ impl SassLoader {
 #[async_trait::async_trait]
 impl Loader<CompilerContext, CompilationContext> for SassLoader {
   fn name(&self) -> &'static str {
-    "sass-loader"
+    "builtin:sass-loader"
   }
+
+  #[instrument("sass-loader", skip_self)]
   async fn run(
     &self,
     loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,

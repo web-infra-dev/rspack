@@ -122,10 +122,10 @@ pub struct Rspack {
 #[napi]
 impl Rspack {
   #[napi(constructor)]
-  pub fn new(env: Env, mut options: RawOptions, js_hooks: Option<JsHooks>) -> Result<Self> {
+  pub fn new(env: Env, options: RawOptions, js_hooks: Option<JsHooks>) -> Result<Self> {
     init_custom_trace_subscriber(env)?;
     // rspack_tracing::enable_tracing_by_env();
-    Self::prepare_environment(&env, &mut options);
+    Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
     let compiler_options = {
@@ -140,22 +140,6 @@ impl Rspack {
           .plugins
           .push(Box::new(hooks_adapter) as Box<dyn rspack_core::Plugin>);
       };
-
-      options
-        .module
-        .rules
-        .iter_mut()
-        .try_for_each(|rule| {
-          rule.r#use.iter_mut().try_for_each(|loader| {
-            let casted = loader.as_any_mut();
-            if let Some(adapter) = casted.downcast_mut::<JsLoaderAdapter>() {
-              adapter.unref(&env)
-            } else {
-              Ok(())
-            }
-          })
-        })
-        .map_err(|e| Error::from_reason(format!("failed to unref tsfn {e:?}")))?;
 
       options
     };
@@ -272,26 +256,8 @@ impl Rspack {
 }
 
 impl Rspack {
-  fn prepare_environment(env: &Env, options: &mut RawOptions) {
+  fn prepare_environment(env: &Env) {
     NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
-
-    if let Some(module) = options.module.as_mut() {
-      for rule in &mut module.rules {
-        if let Some(uses) = rule.r#use.as_mut() {
-          for item in uses {
-            if let Some(loader) = item.loader.as_ref() {
-              // let (env_ptr, loader_ptr) = unsafe { (env.raw(), loader.raw()) };
-              if let Ok(display_name) = get_named_property_value_string(*env, loader, "displayName")
-              {
-                item.__loader_name = Some(display_name);
-              } else if let Ok(name) = get_named_property_value_string(*env, loader, "name") {
-                item.__loader_name = Some(name);
-              }
-            }
-          }
-        }
-      }
-    }
   }
 }
 

@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -18,14 +18,11 @@ use {
 
 use crate::{RawOption, RawResolveOptions};
 
-#[cfg(feature = "node-api")]
-type JsLoader<R> = ThreadsafeFunction<JsLoaderContext, R>;
-
 fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
   match builtin {
-    "sass-loader" => Box::new(rspack_loader_sass::SassLoader::new(
+    "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
-        panic!("Could not parse sass-loader options: {options:?}, error: {e:?}")
+        panic!("Could not parse builtin:sass-loader options: {options:?}, error: {e:?}")
       }),
     )),
     loader => panic!("{loader} is not supported yet."),
@@ -41,21 +38,27 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
 ///   - a `Some(string)` on rust side, deserialized by `serde_json::from_str`
 /// and passed to rust side loader in [get_builtin_loader] when using with
 /// `builtin_loader`.
-#[derive(Deserialize, Default)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRuleUse {
   #[serde(skip_deserializing)]
-  pub loader: Option<JsFunction>,
+  pub js_loader: Option<JsLoader>,
   pub builtin_loader: Option<String>,
   pub options: Option<String>,
-  pub __loader_name: Option<String>,
+}
+
+#[napi(object)]
+pub struct JsLoader {
+  /// composed loader name, xx-loader!yy-loader!zz-loader
+  pub name: String,
+  pub func: JsFunction,
 }
 
 impl Debug for RawModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawModuleRuleUse")
-      .field("loader", &self.__loader_name)
+      .field("loader", &self.js_loader.as_ref().map(|i| &i.name))
       .field("builtin_loader", &self.builtin_loader)
       .field("options", &self.options)
       .finish()
@@ -245,15 +248,64 @@ pub struct RawModuleOptions {
 
 #[cfg(feature = "node-api")]
 pub struct JsLoaderAdapter {
-  pub loader: JsLoader<LoaderThreadsafeLoaderResult>,
+  pub func: ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>,
   pub name: String,
+}
+
+#[cfg(feature = "node-api")]
+impl TryFrom<JsLoader> for JsLoaderAdapter {
+  type Error = anyhow::Error;
+  fn try_from(js_loader: JsLoader) -> anyhow::Result<Self> {
+    let js_loader_func = unsafe { js_loader.func.raw() };
+
+    let func = crate::NAPI_ENV.with(|env| -> anyhow::Result<_> {
+      let env = env
+        .borrow()
+        .expect("Failed to get env, did you forget to call it from node?");
+      let mut func = ThreadsafeFunction::<JsLoaderContext, LoaderThreadsafeLoaderResult>::create(
+        env,
+        js_loader_func,
+        0,
+        |ctx| {
+          let (ctx, resolver) = ctx.split_into_parts();
+
+          let env = ctx.env;
+          let cb = ctx.callback;
+          let resource = ctx.value.resource.clone();
+
+          let result = tracing::span!(
+            tracing::Level::INFO,
+            "loader_sync_call",
+            resource = &resource
+          )
+          .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) })?;
+
+          let resolve_start = std::time::Instant::now();
+          resolver.resolve::<Option<JsLoaderResult>>(result, move |r| {
+            tracing::trace!(
+              "Finish resolving loader result for {}, took {}ms",
+              resource,
+              resolve_start.elapsed().as_millis()
+            );
+            Ok(r)
+          })
+        },
+      )?;
+      func.unref(&Env::from(env))?;
+      Ok(func)
+    })?;
+    Ok(JsLoaderAdapter {
+      func,
+      name: js_loader.name,
+    })
+  }
 }
 
 #[cfg(feature = "node-api")]
 impl JsLoaderAdapter {
   pub fn unref(&mut self, env: &napi::Env) -> anyhow::Result<()> {
     self
-      .loader
+      .func
       .unref(env)
       .map_err(|e| anyhow::format_err!("failed to unref tsfn: {}", e))
   }
@@ -273,8 +325,8 @@ impl Debug for JsLoaderAdapter {
 impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationContext>
   for JsLoaderAdapter
 {
-  fn name(&self) -> &'static str {
-    "js_loader_adapter"
+  fn name(&self) -> &str {
+    &self.name
   }
 
   async fn run(
@@ -327,7 +379,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
     };
 
     let loader_result = self
-      .loader
+      .func
       .call(loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
@@ -426,38 +478,8 @@ impl RawOption<ModuleRule> for RawModuleRule {
           .map(|rule_use| {
             #[cfg(feature = "node-api")]
             {
-              if let Some(raw_js_loader) = rule_use.loader {
-                let js_loader = unsafe { raw_js_loader.raw() };
-
-
-                let loader = crate::NAPI_ENV.with(|env| {
-                  let env = env.borrow().expect("Failed to get env, did you forget to call it from node?");
-                    ThreadsafeFunction::<JsLoaderContext,LoaderThreadsafeLoaderResult>::create(
-                    env,
-                    js_loader,
-                    0,
-                    |ctx| {
-                      let (ctx, resolver) = ctx.split_into_parts();
-
-                      let env = ctx.env;
-                      let cb = ctx.callback;
-                      let resource = ctx.value.resource.clone();
-
-                      let result = tracing::span!(tracing::Level::INFO, "loader_sync_call", resource = &resource).in_scope(|| {
-                        unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }
-                      })?;
-
-                      let resolve_start = std::time::Instant::now();
-                      resolver.resolve::<Option<JsLoaderResult>>(result, move |r| {
-                        tracing::trace!("Finish resolving loader result for {}, took {}ms", resource, resolve_start.elapsed().as_millis());
-                        Ok(r)
-                      })
-                    })
-                  })?;
-                return Ok(Box::new(JsLoaderAdapter {
-                    loader,
-                    name: rule_use.__loader_name.unwrap_or_else(|| "unknown-loaders".to_owned())
-                  }) as BoxedLoader);
+              if let Some(raw_js_loader) = rule_use.js_loader {
+                return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxedLoader);
               }
             }
             if let Some(builtin_loader) = rule_use.builtin_loader {

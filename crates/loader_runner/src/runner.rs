@@ -1,6 +1,7 @@
 use std::{
   fmt::Debug,
   path::{Path, PathBuf},
+  sync::Arc,
 };
 
 use rspack_error::{Result, TWithDiagnosticArray};
@@ -129,10 +130,8 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
 
 #[async_trait::async_trait]
 pub trait Loader<T, U>: Sync + Send + Debug {
-  /// Loader name for debugging
-  fn name(&self) -> &'static str {
-    "unknown-loader"
-  }
+  /// Loader name for module identifier
+  fn name(&self) -> &str;
 
   /// Each loader should expose a `run` fn, which will be called by the loader runner.
   ///
@@ -148,7 +147,7 @@ pub trait Loader<T, U>: Sync + Send + Debug {
   fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
-pub type BoxedLoader<T, U> = Box<dyn Loader<T, U>>;
+pub type BoxedLoader<T, U> = Arc<dyn Loader<T, U>>;
 pub type BoxedRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
 
 pub type LoaderRunnerResult = Result<TWithDiagnosticArray<LoaderResult>>;
