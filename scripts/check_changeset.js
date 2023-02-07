@@ -2,10 +2,7 @@ const path = require("path");
 const readChangesets = require("@changesets/read").default;
 
 async function run() {
-	const changesets = await readChangesets(
-		path.join(__dirname, "../"),
-		process.env.BASE_BRANCH
-	);
+	const changesets = await readChangesets(path.join(__dirname, "../"));
 
 	const errors = [];
 	for (const changeset of changesets) {
@@ -33,5 +30,7 @@ run().then(errors => {
 		];
 		console.log(messages.join("\n"));
 		process.exit(1);
+	} else {
+		console.log("Check changeset succeed.");
 	}
 });
