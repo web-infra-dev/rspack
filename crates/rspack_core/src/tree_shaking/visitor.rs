@@ -5,7 +5,10 @@ use std::{
 use bitflags::bitflags;
 use globset::{Glob, GlobSetBuilder};
 use hashlink::LinkedHashMap;
-use rspack_symbol::{BetterId, IdOrMemExpr, IndirectTopLevelSymbol, Symbol, SymbolExt, SymbolFlag};
+use rspack_symbol::{
+  BetterId, IdOrMemExpr, IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol,
+  SymbolExt, SymbolFlag, SymbolType,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
@@ -34,15 +37,57 @@ pub enum SymbolRef {
   Direct(Symbol),
   Indirect(IndirectTopLevelSymbol),
   /// uri
-  Star(ModuleIdentifier),
+  Star(StarSymbol),
 }
 
 impl SymbolRef {
   pub fn module_identifier(&self) -> ModuleIdentifier {
     match self {
       SymbolRef::Direct(d) => d.uri().into(),
-      SymbolRef::Indirect(i) => i.uri.into(),
-      SymbolRef::Star(s) => *s,
+      SymbolRef::Indirect(i) => i.src.into(),
+      SymbolRef::Star(s) => s.src.into(),
+    }
+  }
+
+  pub fn importer(&self) -> ModuleIdentifier {
+    match self {
+      SymbolRef::Direct(d) => d.uri().into(),
+      SymbolRef::Indirect(i) => i.importer.into(),
+      SymbolRef::Star(s) => s.module_ident.into(),
+    }
+  }
+  /// Returns `true` if the symbol ref is [`Direct`].
+  ///
+  /// [`Direct`]: SymbolRef::Direct
+  #[must_use]
+  pub fn is_direct(&self) -> bool {
+    matches!(self, Self::Direct(..))
+  }
+
+  /// Returns `true` if the symbol ref is [`Indirect`].
+  ///
+  /// [`Indirect`]: SymbolRef::Indirect
+  #[must_use]
+  pub fn is_indirect(&self) -> bool {
+    matches!(self, Self::Indirect(..))
+  }
+
+  /// Returns `true` if the symbol ref is [`Star`].
+  ///
+  /// [`Star`]: SymbolRef::Star
+  #[must_use]
+  pub fn is_star(&self) -> bool {
+    matches!(self, Self::Star(..))
+  }
+
+  pub fn is_skipable_symbol(&self) -> bool {
+    match self {
+      SymbolRef::Indirect(indirect) => !indirect.is_import(),
+      SymbolRef::Star(StarSymbol {
+        ty: StarSymbolKind::ReExportAll,
+        ..
+      }) => true,
+      _ => false,
     }
   }
 }
@@ -94,6 +139,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
+  pub(crate) potential_top_mark: HashSet<Mark>,
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
@@ -125,11 +171,13 @@ impl<'a> ModuleRefAnalyze<'a> {
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver_factory,
-      side_effects: SideEffect::Analyze(false),
+      side_effects: SideEffect::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
+      // FIXME: just for swc react transform bug
+      potential_top_mark: HashSet::default(),
     }
   }
 
@@ -216,10 +264,9 @@ impl<'a> ModuleRefAnalyze<'a> {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
             SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
             SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-              (*uri).into(),
-              property.clone(),
+              (*uri.src).into(),
               self.module_identifier.into(),
-              rspack_symbol::IndirectType::Default,
+              IndirectType::Import(property.clone(), None),
             )),
           })
         }
@@ -232,6 +279,24 @@ impl<'a> ModuleRefAnalyze<'a> {
     default_ident.sym = "default".into();
     default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
     default_ident
+  }
+
+  fn check_commonjs_feature(&mut self, obj: &Ident, prop: &str) {
+    if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
+      && ((&obj.sym == "module" && prop == "exports") || &obj.sym == "exports")
+    {
+      match self
+        .bail_out_module_identifiers
+        .entry(self.module_identifier)
+      {
+        Entry::Occupied(mut occ) => {
+          *occ.get_mut() |= BailoutFlog::COMMONJS_EXPORTS;
+        }
+        Entry::Vacant(vac) => {
+          vac.insert(BailoutFlog::COMMONJS_EXPORTS);
+        }
+      }
+    }
   }
 }
 
@@ -355,10 +420,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self
               .used_symbol_ref
               .insert(SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                (*uri).into(),
-                property.clone(),
+                (*uri.src).into(),
                 self.module_identifier.into(),
-                rspack_symbol::IndirectType::Default,
+                IndirectType::Import(property.clone(), None),
               )));
           }
           _ => {
@@ -369,9 +433,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
-    self.side_effects = self
-      .get_side_effects_from_config()
-      .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
+    if self.options.builtins.side_effects {
+      self.side_effects = self
+        .get_side_effects_from_config()
+        .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
+    }
   }
 
   fn visit_module(&mut self, node: &Module) {
@@ -385,7 +451,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     let id: BetterId = node.to_id().into();
     let mark = id.ctxt.outer();
 
-    if mark == self.top_level_mark {
+    if self.potential_top_mark.contains(&mark) {
       match self.current_body_owner_symbol_ext {
         Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
           self.add_reference(body_owner_symbol_ext.clone(), IdOrMemExpr::Id(id), false);
@@ -416,19 +482,19 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .iter()
             .for_each(|specifier| match specifier {
               ImportSpecifier::Named(named) => {
-                let imported = match &named.imported {
-                  Some(imported) => match imported {
-                    ModuleExportName::Ident(ident) => ident.sym.clone(),
-                    ModuleExportName::Str(str) => str.value.clone(),
-                  },
-                  None => named.local.sym.clone(),
-                };
+                let imported = named.imported.as_ref().map(|imported| match imported {
+                  ModuleExportName::Ident(ident) => ident.sym.clone(),
+                  ModuleExportName::Str(str) => str.value.clone(),
+                });
+
+                let local = named.local.sym.clone();
+
                 let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                   resolved_uri_ukey.into(),
-                  imported,
                   self.module_identifier.into(),
-                  rspack_symbol::IndirectType::Default,
+                  IndirectType::Import(local, imported),
                 ));
+
                 self.add_import(named.local.to_id().into(), symbol_ref);
               }
               ImportSpecifier::Default(default) => {
@@ -436,16 +502,20 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   default.local.to_id().into(),
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(
                     resolved_uri_ukey.into(),
-                    "default".into(),
                     self.module_identifier.into(),
-                    rspack_symbol::IndirectType::Default,
+                    IndirectType::ImportDefault(default.local.sym.clone()),
                   )),
                 );
               }
               ImportSpecifier::Namespace(namespace) => {
                 self.add_import(
                   namespace.local.to_id().into(),
-                  SymbolRef::Star(resolved_uri_ukey),
+                  SymbolRef::Star(StarSymbol {
+                    src: resolved_uri_ukey.into(),
+                    binding: namespace.local.sym.clone(),
+                    module_ident: self.module_identifier.into(),
+                    ty: StarSymbolKind::ImportAllAs,
+                  }),
                 );
               }
             });
@@ -455,9 +525,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             class.visit_with(self);
             self.add_export(
               class.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::from_id_and_uri(
-                class.ident.to_id().into(),
+              SymbolRef::Direct(Symbol::new(
                 self.module_identifier.into(),
+                class.ident.to_id().into(),
+                SymbolType::Define,
               )),
             );
           }
@@ -465,9 +536,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             function.visit_with(self);
             self.add_export(
               function.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::from_id_and_uri(
-                function.ident.to_id().into(),
+              SymbolRef::Direct(Symbol::new(
                 self.module_identifier.into(),
+                function.ident.to_id().into(),
+                SymbolType::Define,
               )),
             );
           }
@@ -523,9 +595,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
     self.add_export(
       default_ident.atom.clone(),
-      SymbolRef::Direct(Symbol::from_id_and_uri(
-        default_ident.clone(),
+      SymbolRef::Direct(Symbol::new(
         self.module_identifier.into(),
+        default_ident.clone(),
+        SymbolType::Define,
       )),
     );
     match self.export_default_name {
@@ -607,22 +680,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     match (&*node.obj, &node.prop) {
       // a.b
       (Expr::Ident(obj), MemberProp::Ident(prop)) => {
-        if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
-          && (&obj.sym == "module" && &prop.sym == "exports")
-          || &obj.sym == "exports"
-        {
-          match self
-            .bail_out_module_identifiers
-            .entry(self.module_identifier)
-          {
-            Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlog::COMMONJS_EXPORTS;
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(BailoutFlog::COMMONJS_EXPORTS);
-            }
-          }
-        }
+        self.check_commonjs_feature(obj, &prop.sym);
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
 
@@ -655,6 +713,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           ..
         }),
       ) => {
+        self.check_commonjs_feature(obj, value);
+
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
         if mark == self.top_level_mark {
@@ -699,9 +759,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let default_ident = self.generate_default_ident();
       self.add_export(
         default_ident.sym.clone(),
-        SymbolRef::Direct(Symbol::from_id_and_uri(
-          default_ident.to_id().into(),
+        SymbolRef::Direct(Symbol::new(
           self.module_identifier.into(),
+          default_ident.to_id().into(),
+          SymbolType::Define,
         )),
       );
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
@@ -804,9 +865,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let default_ident = self.generate_default_ident();
       self.add_export(
         default_ident.sym.clone(),
-        SymbolRef::Direct(Symbol::from_id_and_uri(
-          default_ident.to_id().into(),
+        SymbolRef::Direct(Symbol::new(
           self.module_identifier.into(),
+          default_ident.to_id().into(),
+          SymbolType::Define,
         )),
       );
       let body_owner_extend_symbol: SymbolExt = match self.export_default_name {
@@ -899,9 +961,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       if is_export && lhs.ctxt.outer() == self.top_level_mark {
         self.add_export(
           lhs.atom.clone(),
-          SymbolRef::Direct(Symbol::from_id_and_uri(
-            lhs.clone(),
+          SymbolRef::Direct(Symbol::new(
             self.module_identifier.into(),
+            lhs.clone(),
+            SymbolType::Define,
           )),
         );
       }
@@ -1134,6 +1197,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             }
           }
         }
+        self.potential_top_mark.insert(vac.key().ctxt.outer());
         vac.insert(symbol);
       }
     }
@@ -1164,7 +1228,15 @@ impl<'a> ModuleRefAnalyze<'a> {
               ModuleExportName::Ident(ref ident) => ident.sym.clone(),
               ModuleExportName::Str(ref str) => str.value.clone(),
             };
-            self.add_export(atom, SymbolRef::Star(resolved_uri_ukey));
+            self.add_export(
+              atom.clone(),
+              SymbolRef::Star(StarSymbol {
+                src: resolved_uri_ukey.into(),
+                binding: atom,
+                module_ident: self.module_identifier.into(),
+                ty: StarSymbolKind::ReExportAllAs,
+              }),
+            );
           }
           ExportSpecifier::Default(_) => {
             // Currently swc does not support syntax like `export v from 'xxx';
@@ -1176,24 +1248,30 @@ impl<'a> ModuleRefAnalyze<'a> {
             // TODO: handle `as xxx`
             let original = match &named.orig {
               ModuleExportName::Ident(ident) => ident.sym.clone(),
-              ModuleExportName::Str(_) => {
-                todo!()
-              }
+              ModuleExportName::Str(str) => str.value.clone(),
             };
-            let exported = match &named.exported {
-              Some(exported) => match exported {
-                ModuleExportName::Ident(ident) => ident.sym.clone(),
-                ModuleExportName::Str(str) => str.value.clone(),
-              },
-              None => original.clone(),
-            };
-            let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-              resolved_uri_ukey.into(),
-              original,
+            let exported = named.exported.clone().map(|exported| match exported {
+              ModuleExportName::Ident(ident) => ident.sym,
+              ModuleExportName::Str(str) => str.value,
+            });
+
+            let exported_atom = exported.clone().unwrap_or_else(|| original.clone());
+
+            self.reachable_import_and_export.insert(
+              exported_atom.clone(),
+              HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                resolved_uri_ukey.into(),
+                self.module_identifier.into(),
+                IndirectType::Temp(original.clone()),
+              ))]),
+            );
+
+            let exported_symbol = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
               self.module_identifier.into(),
-              rspack_symbol::IndirectType::ReExport,
+              self.module_identifier.into(),
+              IndirectType::ReExport(original, exported),
             ));
-            self.add_export(exported, symbol_ref);
+            self.add_export(exported_atom, exported_symbol);
           }
         });
     } else {
@@ -1226,8 +1304,11 @@ impl<'a> ModuleRefAnalyze<'a> {
               },
               None => id.atom.clone(),
             };
-            let symbol_ref =
-              SymbolRef::Direct(Symbol::from_id_and_uri(id, self.module_identifier.into()));
+            let symbol_ref = SymbolRef::Direct(Symbol::new(
+              self.module_identifier.into(),
+              id,
+              SymbolType::Temp,
+            ));
 
             self.add_export(exported_atom, symbol_ref);
           }
@@ -1280,7 +1361,7 @@ pub struct TreeShakingResult {
   // pub(crate) reference_map: HashMap<BetterId, HashSet<BetterId>>,
   pub(crate) reachable_import_of_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
-  pub(crate) used_symbol_ref: HashSet<SymbolRef>,
+  pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
   pub(crate) side_effects: SideEffect,
 }
@@ -1298,7 +1379,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       // reference_map: std::mem::take(&mut analyze.reference_map),
       reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
       state: std::mem::take(&mut analyze.state),
-      used_symbol_ref: std::mem::take(&mut analyze.used_symbol_ref),
+      used_symbol_refs: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
       side_effects: analyze.side_effects,
     }

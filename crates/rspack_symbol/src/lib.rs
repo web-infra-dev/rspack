@@ -1,8 +1,8 @@
 use bitflags::bitflags;
-use swc_core::common::SyntaxContext;
 use swc_core::ecma::ast::Id;
 use swc_core::ecma::atoms::JsWord;
-use ustr::{ustr, Ustr};
+use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
+use ustr::Ustr;
 
 bitflags! {
     pub struct SymbolFlag: u8 {
@@ -20,11 +20,18 @@ bitflags! {
 pub struct Symbol {
   pub(crate) uri: Ustr,
   pub(crate) id: BetterId,
+  pub(crate) ty: SymbolType,
+}
+
+#[derive(Debug, Hash, Clone, PartialEq, Eq, Copy)]
+pub enum SymbolType {
+  Define,
+  Temp,
 }
 
 impl Symbol {
-  pub fn from_id_and_uri(id: BetterId, uri: Ustr) -> Self {
-    Self { uri, id }
+  pub fn new(uri: Ustr, id: BetterId, ty: SymbolType) -> Self {
+    Self { uri, id, ty }
   }
 
   pub fn uri(&self) -> Ustr {
@@ -34,66 +41,146 @@ impl Symbol {
   pub fn id(&self) -> &BetterId {
     &self.id
   }
+
+  pub fn ty(&self) -> &SymbolType {
+    &self.ty
+  }
 }
 
-#[derive(Debug, Clone, Default, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum IndirectType {
-  #[default]
-  Default,
-  ReExport,
+  Temp(JsWord),
+  /// first argument is original, second argument is exported
+  ReExport(JsWord, Option<JsWord>),
+  /// first argument is local, second argument is imported
+  Import(JsWord, Option<JsWord>),
+  ///
+  ImportDefault(JsWord),
+}
+pub static DEFAULT_JS_WORD: JsWord = js_word!("default");
+/// We have three kind of star symbol
+/// ## import with namespace
+/// ```js
+/// // a.js
+/// import * as xx './b.js'
+/// // this generate a a `StarSymbol` like
+/// ```
+/// ```rs,no_run
+/// StarSymbol {
+///   src: "./b.js",
+///   binding: "xx",
+///   reexporter: ""
+/// }
+/// ```
+/// ##  reexport all
+/// ```js
+/// // a.js
+/// export * from './b.js'
+/// // this generate a a `StarSymbol` like
+/// ```
+/// ```rs,no_run
+/// StarSymbol {
+///   src: "./b.js",
+///   binding: "",
+///   reexporter: "a.js"
+/// }
+/// ```
+/// ##  reexport * with a binding
+/// ```js
+/// // a.js
+/// export * as something from './b.js'
+/// // this generate a a `StarSymbol` like
+/// ```
+/// ```rs,no_run
+/// StarSymbol {
+///   src: "./b.js",
+///   binding: "something",
+///   reexporter: "a.js"
+/// }
+/// ```
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct StarSymbol {
+  pub src: Ustr,
+  pub binding: JsWord,
+  pub module_ident: Ustr,
+  pub ty: StarSymbolKind,
 }
 
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum StarSymbolKind {
+  ReExportAllAs,
+  ImportAllAs,
+  ReExportAll,
+}
+
+impl StarSymbol {
+  pub fn star_kind(&self) {}
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct IndirectTopLevelSymbol {
-  pub uri: Ustr,
-  pub id: JsWord,
+  pub src: Ustr,
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
-  importer: Ustr,
-}
-
-impl std::hash::Hash for IndirectTopLevelSymbol {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.uri.hash(state);
-    self.id.hash(state);
-  }
-}
-impl std::cmp::PartialEq for IndirectTopLevelSymbol {
-  fn eq(&self, other: &Self) -> bool {
-    self.uri == other.uri && self.id == other.id
-  }
+  pub importer: Ustr,
 }
 
 impl IndirectTopLevelSymbol {
-  pub fn new(uri: Ustr, id: JsWord, importer: Ustr, ty: IndirectType) -> Self {
-    Self {
-      uri,
-      id,
-      importer,
-      ty,
+  pub fn new(src: Ustr, importer: Ustr, ty: IndirectType) -> Self {
+    Self { src, importer, ty }
+  }
+
+  /// if `self.ty == IndirectType::Rexport`, it return `exported` if it is [Some] else it return `original`.
+  /// else it return binding
+  pub fn indirect_id(&self) -> &JsWord {
+    match self.ty {
+      IndirectType::Temp(ref ident) => ident,
+      IndirectType::ReExport(ref original, ref exported) => match exported {
+        Some(exported) => exported,
+        None => original,
+      },
+      IndirectType::Import(ref local, ref imported) => match imported {
+        Some(imported) => imported,
+        None => local,
+      },
+      // we store the binding just used for create [ModuleDecl], but it is always `default` when as `exported` or `imported`
+      IndirectType::ImportDefault(_) => &DEFAULT_JS_WORD,
     }
   }
 
-  pub fn from_uri_and_id(uri: Ustr, id: JsWord) -> IndirectTopLevelSymbol {
-    // Because importer don't affect hash result so empty `Ustr` is alright here.
-    IndirectTopLevelSymbol {
-      uri,
-      id,
-      importer: ustr(""),
-      ty: Default::default(),
+  pub fn id(&self) -> &JsWord {
+    match self.ty {
+      IndirectType::Temp(ref ident) => ident,
+      IndirectType::ReExport(ref original, ref exported) => match exported {
+        Some(exported) => exported,
+        None => original,
+      },
+      IndirectType::Import(ref local, ref _imported) => local,
+      IndirectType::ImportDefault(_) => &DEFAULT_JS_WORD,
     }
   }
 
-  pub fn uri(&self) -> Ustr {
-    self.uri
-  }
-
-  pub fn id(&self) -> &str {
-    self.id.as_ref()
+  pub fn src(&self) -> Ustr {
+    self.src
   }
 
   pub fn importer(&self) -> Ustr {
     self.importer
+  }
+
+  pub fn is_reexport(&self) -> bool {
+    matches!(&self.ty, IndirectType::ReExport(_, _))
+  }
+
+  pub fn is_temp(&self) -> bool {
+    matches!(&self.ty, IndirectType::Temp(_))
+  }
+
+  pub fn is_import(&self) -> bool {
+    matches!(
+      &self.ty,
+      IndirectType::Import(_, _) | IndirectType::ImportDefault(_)
+    )
   }
 }
 
@@ -101,7 +188,7 @@ impl IndirectTopLevelSymbol {
 /// `BetterId.debug()` -> `xxxxxxx|#10`
 /// debug of [swc_ecma_ast::Id] -> `(#1, atom: Atom('b' type=static))`
 /// We don't care the kind of inter of the [JsWord]
-#[derive(Hash, Clone, PartialEq, Eq)]
+#[derive(Hash, Clone, PartialEq, Eq, Default)]
 pub struct BetterId {
   pub ctxt: SyntaxContext,
   pub atom: JsWord,

@@ -1,3 +1,3 @@
 import Provider from "./lib";
-
-export { Provider };
+import useSelector from "./selector.js";
+export { Provider, useSelector };

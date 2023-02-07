@@ -1,4 +1,4 @@
-import {Something, Colors}  from './export'
+import { Something, Colors } from "./export";
 
-Colors.result
-Something
+Colors;
+Something;

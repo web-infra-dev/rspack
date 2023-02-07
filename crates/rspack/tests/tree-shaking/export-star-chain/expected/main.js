@@ -68,7 +68,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 const _exportJs = __webpack_require__("./export.js");
-_exportJs.Colors.result;
+_exportJs.Colors;
 _exportJs.Something;
 },
 "./something/Something.js": function (module, exports, __webpack_require__) {

@@ -3,11 +3,12 @@ pub use dependency::*;
 mod finalize;
 use either::Either;
 use finalize::finalize;
-// mod clear_mark;
-// use clear_mark::clear_mark;
+mod clear_mark;
+
 mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
 mod strict;
+
 use strict::strict_mode;
 mod format;
 use format::*;
@@ -150,12 +151,18 @@ pub fn run_after_pass(
     .transform_with_handler(cm.clone(), |_, program, context| {
       let unresolved_mark = context.unresolved_mark;
       let top_level_mark = context.top_level_mark;
-      let tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
+      let builtin_tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
       let minify = &generate_context.compilation.options.builtins.minify;
       let comments = None;
       let dependency_visitors =
         collect_dependency_code_generation_visitors(module, generate_context)?;
 
+      let need_tree_shaking = generate_context
+        .compilation
+        .module_graph
+        .module_graph_module_by_identifier(&module.identifier())
+        .map(|module| module.used)
+        .unwrap_or(false);
       let DependencyCodeGenerationVisitors {
         visitors,
         root_visitors,
@@ -186,16 +193,18 @@ pub fn run_after_pass(
             &decl_mappings,
             &generate_context.compilation.module_graph,
             module.identifier(),
-            &generate_context.compilation.used_symbol,
-            &generate_context.compilation.used_indirect_symbol,
+            &generate_context.compilation.used_symbol_ref,
             top_level_mark,
+            &generate_context.compilation.side_effects_free_modules,
+            &generate_context.compilation.module_item_map,
+            context.helpers.mark()
           ),
-          tree_shaking,
+          builtin_tree_shaking && need_tree_shaking
         ),
         Optional::new(
           Repeat::new(dce(Config::default(), unresolved_mark)),
           // extra branch to avoid doing dce twice, (minify will exec dce)
-          tree_shaking && !minify.enable,
+          need_tree_shaking && builtin_tree_shaking && !minify.enable,
         ),
         swc_visitor::build_module(
           &cm,

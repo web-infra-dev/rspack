@@ -4,7 +4,8 @@
 module.exports = {
 	mode: "development",
 	builtins: {
-		treeShaking: true
+		treeShaking: true,
+		sideEffects: true
 	},
 	context: __dirname,
 	entry: {

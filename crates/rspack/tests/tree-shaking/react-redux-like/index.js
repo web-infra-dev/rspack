@@ -1,2 +1,3 @@
-import { Provider } from "./foo";
+import { Provider, useSelector } from "./foo";
 Provider;
+useSelector;

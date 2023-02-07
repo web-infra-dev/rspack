@@ -18,7 +18,7 @@ function abc() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depJsB = __webpack_require__("./dep.js?b");
+__webpack_require__("./dep.js?b");
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -146,7 +146,7 @@ const _default = __webpack_exports_info__.x.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _depJsE = __webpack_require__("./dep.js?e");
+__webpack_require__("./dep.js?e");
 },
 "./f.js": function (module, exports, __webpack_require__) {
 "use strict";

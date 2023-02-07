@@ -19,7 +19,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 const _aJs = __webpack_require__("./a.js");
-const _cJs = __webpack_require__("./c.js");
+__webpack_require__("./c.js");
 _aJs.a;
 },
 

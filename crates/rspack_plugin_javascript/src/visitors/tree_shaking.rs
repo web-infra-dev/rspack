@@ -1,32 +1,40 @@
+use rspack_core::tree_shaking::debug_care_module_id;
+use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, ModuleGraph,
-  ModuleIdentifier,
+  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, IdentifierMap,
+  IdentifierSet, ModuleGraph, ModuleIdentifier,
 };
 // use swc_ecma_utils::
-use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol};
+use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::utils::quote_ident;
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
+#[allow(clippy::too_many_arguments)]
 pub fn tree_shaking_visitor<'a>(
   decl_mappings: &'a CodeGeneratableDeclMappings,
   module_graph: &'a ModuleGraph,
   module_id: Identifier,
-  used_symbol_set: &'a HashSet<Symbol>,
-  used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
+  used_symbol_set: &'a HashSet<SymbolRef>,
   top_level_mark: Mark,
+  side_effects_free_modules: &'a IdentifierSet,
+  module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
+  helper_mark: Mark,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
     decl_mappings,
     module_identifier: module_id,
     used_symbol_set,
-    used_indirect_symbol_set,
     top_level_mark,
     module_item_index: 0,
     insert_item_tuple_list: Vec::new(),
+    side_effects_free_modules,
+    last_module_item_index: 0,
+    module_item_map,
+    helper_mark,
   }
 }
 
@@ -45,12 +53,15 @@ struct TreeShaker<'a> {
   module_graph: &'a ModuleGraph,
   decl_mappings: &'a CodeGeneratableDeclMappings,
   module_identifier: Identifier,
-  used_indirect_symbol_set: &'a HashSet<IndirectTopLevelSymbol>,
-  used_symbol_set: &'a HashSet<Symbol>,
+  used_symbol_set: &'a HashSet<SymbolRef>,
   top_level_mark: Mark,
   /// First element of tuple is the position of body you want to insert with, the second element is the item you want to insert
   insert_item_tuple_list: Vec<(usize, ModuleItem)>,
   module_item_index: usize,
+  side_effects_free_modules: &'a IdentifierSet,
+  last_module_item_index: usize,
+  module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
+  helper_mark: Mark,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -67,6 +78,9 @@ impl<'a> Fold for TreeShaker<'a> {
       .enumerate()
       .map(|(index, item)| {
         self.module_item_index = index;
+        if !matches!(item, ModuleItem::Stmt(_)) {
+          self.last_module_item_index = index;
+        }
         item.fold_with(self)
       })
       .collect();
@@ -76,12 +90,21 @@ impl<'a> Fold for TreeShaker<'a> {
     {
       node.body.insert(position, module_item);
     }
+
+    if let Some(occ) = self.module_item_map.get(&self.module_identifier) {
+      for module_item in occ {
+        node
+          .body
+          .insert(self.last_module_item_index, module_item.clone());
+      }
+    }
+
     node
   }
   fn fold_module_item(&mut self, node: ModuleItem) -> ModuleItem {
     match node {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
-        ModuleDecl::Import(ref import) => {
+        ModuleDecl::Import(mut import) => {
           let module_identifier = self
             .resolve_module_identifier(import.src.value.to_string())
             .unwrap_or_else(|| {
@@ -98,15 +121,90 @@ impl<'a> Fold for TreeShaker<'a> {
             .module_graph_module_by_identifier(&module_identifier)
             .expect("TODO:");
           if !mgm.used {
-            ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
-          } else {
-            ModuleItem::ModuleDecl(module_decl)
+            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
           }
+          // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));
+          let before_length = import.specifiers.len();
+          let specifiers = import
+            .specifiers
+            .into_iter()
+            .filter(|specifier| {
+              match mgm.module_type {
+                rspack_core::ModuleType::Js
+                | rspack_core::ModuleType::JsDynamic
+                | rspack_core::ModuleType::JsEsm
+                | rspack_core::ModuleType::Jsx
+                | rspack_core::ModuleType::JsxDynamic
+                | rspack_core::ModuleType::JsxEsm
+                | rspack_core::ModuleType::Tsx
+                | rspack_core::ModuleType::Ts => {}
+                _ => return true,
+              }
+              match specifier {
+                ImportSpecifier::Namespace(_) => {
+                  // import * as xxx  from 'xxx'
+                  // TODO:
+                  true
+                }
+                ImportSpecifier::Default(default) => {
+                  if default.local.to_id().1.outer() == self.helper_mark {
+                    return true;
+                  }
+                  let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
+                    src: module_identifier.into(),
+                    ty: rspack_symbol::IndirectType::ImportDefault(default.local.sym.clone()),
+                    importer: self.module_identifier.into(),
+                  });
+                  let ret = self.used_symbol_set.contains(&symbol);
+                  if debug_care_module_id(module_identifier.as_str()) {
+                    // dbg!(&symbol);
+                    // dbg!(ret);
+                  }
+                  ret
+                  // unreachable!("`export v from ''` is a unrecoverable syntax error")
+                }
+
+                ImportSpecifier::Named(named_import) => {
+                  let local = named_import.local.sym.clone();
+                  let imported = named_import
+                    .imported
+                    .as_ref()
+                    .map(|exported| match exported {
+                      ModuleExportName::Ident(ident) => ident.sym.clone(),
+                      ModuleExportName::Str(str) => str.value.clone(),
+                    });
+                  let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
+                    src: module_identifier.into(),
+                    ty: rspack_symbol::IndirectType::Import(local, imported),
+                    importer: self.module_identifier.into(),
+                  });
+
+                  // dbg!(&symbol);
+                  self.used_symbol_set.contains(&symbol)
+                }
+              }
+            })
+            .collect::<Vec<_>>();
+
+          // try if we could remove this export declaration
+          if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
+            return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+          }
+          let is_all_used = before_length == specifiers.len();
+          import.specifiers = specifiers;
+          if !is_all_used {
+            import.span = DUMMY_SP;
+          }
+          ModuleItem::ModuleDecl(ModuleDecl::Import(import))
         }
         ModuleDecl::ExportDecl(decl) => match decl.decl {
           Decl::Class(mut class) => {
             let id = class.ident.to_id();
-            let symbol = Symbol::from_id_and_uri(id.into(), self.module_identifier.into());
+            let symbol = SymbolRef::Direct(Symbol::new(
+              self.module_identifier.into(),
+              id.into(),
+              SymbolType::Define,
+            ));
             if !self.used_symbol_set.contains(&symbol) {
               class.class.span = DUMMY_SP;
               ModuleItem::Stmt(Stmt::Decl(Decl::Class(class)))
@@ -119,7 +217,11 @@ impl<'a> Fold for TreeShaker<'a> {
           }
           Decl::Fn(mut func) => {
             let id = func.ident.to_id();
-            let symbol = Symbol::from_id_and_uri(id.into(), self.module_identifier.into());
+            let symbol = SymbolRef::Direct(Symbol::new(
+              self.module_identifier.into(),
+              id.into(),
+              SymbolType::Define,
+            ));
             if !self.used_symbol_set.contains(&symbol) {
               func.function.span = DUMMY_SP;
               ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func)))
@@ -148,7 +250,11 @@ impl<'a> Fold for TreeShaker<'a> {
               .map(|decl| match decl.name {
                 Pat::Ident(ident) => {
                   let id: BetterId = ident.to_id().into();
-                  let symbol = Symbol::from_id_and_uri(id, self.module_identifier.into());
+                  let symbol = SymbolRef::Direct(Symbol::new(
+                    self.module_identifier.into(),
+                    id,
+                    SymbolType::Define,
+                  ));
                   let used = self.used_symbol_set.contains(&symbol);
                   (
                     VarDeclarator {
@@ -222,24 +328,31 @@ impl<'a> Fold for TreeShaker<'a> {
                   unreachable!("`export v from ''` is a unrecoverable syntax error")
                 }
 
-                ExportSpecifier::Named(named_spec) => match named_spec.orig {
-                  ModuleExportName::Ident(ref ident) => {
-                    // return true;
+                ExportSpecifier::Named(named_spec) => {
+                  let original = match &named_spec.orig {
+                    ModuleExportName::Ident(ref ident) => ident.sym.clone(),
+                    ModuleExportName::Str(str) => str.value.clone(),
+                  };
+                  let exported = named_spec.exported.as_ref().map(|exported| match exported {
+                    ModuleExportName::Ident(ident) => ident.sym.clone(),
+                    ModuleExportName::Str(str) => str.value.clone(),
+                  });
+                  let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
+                    src: self.module_identifier.into(),
+                    ty: rspack_symbol::IndirectType::ReExport(original, exported),
+                    importer: self.module_identifier.into(),
+                  });
 
-                    let symbol = IndirectTopLevelSymbol::from_uri_and_id(
-                      module_identifier.into(),
-                      ident.sym.clone(),
-                    );
-                    self.used_indirect_symbol_set.contains(&symbol)
-                  }
-                  ModuleExportName::Str(_) => {
-                    // named export without src has string lit orig is a syntax error
-                    // `export { "something" }`
-                    todo!("`export {{ 'something' }}`")
-                  }
-                },
+                  self.used_symbol_set.contains(&symbol)
+                }
               })
               .collect::<Vec<_>>();
+
+            // try if we could remove this export declaration
+            if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier)
+            {
+              return ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }));
+            }
             let is_all_used = before_legnth == specifiers.len();
             named.specifiers = specifiers;
             if !is_all_used {
@@ -265,7 +378,11 @@ impl<'a> Fold for TreeShaker<'a> {
                 ExportSpecifier::Named(named_spec) => match named_spec.orig {
                   ModuleExportName::Ident(ref ident) => {
                     let id: BetterId = ident.to_id().into();
-                    let symbol = Symbol::from_id_and_uri(id, self.module_identifier.into());
+                    let symbol = SymbolRef::Direct(Symbol::new(
+                      self.module_identifier.into(),
+                      id,
+                      SymbolType::Temp,
+                    ));
                     self.used_symbol_set.contains(&symbol)
                   }
                   ModuleExportName::Str(_) => {
@@ -286,8 +403,12 @@ impl<'a> Fold for TreeShaker<'a> {
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
           let default_symbol = self.crate_virtual_default_symbol();
+
           let ctxt = default_symbol.id().ctxt;
-          if self.used_symbol_set.contains(&default_symbol) {
+          if self
+            .used_symbol_set
+            .contains(&SymbolRef::Direct(default_symbol))
+          {
             ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(decl))
           } else {
             let decl = match decl.decl {
@@ -325,7 +446,7 @@ impl<'a> Fold for TreeShaker<'a> {
           }
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
-          let default_symbol = self.crate_virtual_default_symbol();
+          let default_symbol = SymbolRef::Direct(self.crate_virtual_default_symbol());
           if self.used_symbol_set.contains(&default_symbol) {
             ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(expr))
           } else {
@@ -378,7 +499,11 @@ impl<'a> TreeShaker<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
     let mut default_ident = quote_ident!("default");
     default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
-    Symbol::from_id_and_uri(default_ident.to_id().into(), self.module_identifier.into())
+    Symbol::new(
+      self.module_identifier.into(),
+      default_ident.to_id().into(),
+      SymbolType::Define,
+    )
   }
 
   /// Resolve module identifier with code generated module id and Esm dependency category.

@@ -22,6 +22,7 @@ module.exports = {
     sideEffects: true,
     noEmitAssets: false,
   },
+  cache: false,
   module: {
     rules:
       [

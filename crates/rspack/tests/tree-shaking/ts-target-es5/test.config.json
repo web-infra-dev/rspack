@@ -1,0 +1,15 @@
+{
+  "entry": {
+    "main": {
+      "import": ["./index.ts"]
+    }
+  },
+  "builtins": {
+    "define": {}
+  },
+  "target": ["web", "es5"],
+  "debug": {
+    "treeshake": true,
+    "sideEffects": true
+  }
+}
