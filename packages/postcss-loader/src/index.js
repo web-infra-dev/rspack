@@ -47,7 +47,7 @@ module.exports = async function loader(content, sourceMap) {
 		if (modulesOptions) {
 			let auto =
 				typeof modulesOptions === "boolean"
-					? true
+					? modulesOptions
 					: modulesOptions.auto ?? true;
 			let isModules;
 			if (typeof auto === "boolean") {
@@ -57,7 +57,6 @@ module.exports = async function loader(content, sourceMap) {
 			} else if (typeof auto === "function") {
 				isModules = auto(this.resourcePath);
 			}
-			delete modulesOptions.auto;
 
 			if (isModules) {
 				plugins.push(
