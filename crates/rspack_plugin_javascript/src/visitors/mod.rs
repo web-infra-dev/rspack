@@ -136,18 +136,6 @@ pub fn run_before_pass(
 
     Ok(())
   })?;
-  // dbg!(&resource_data.resource_path);
-  // if debug_care_module_id(&resource_data.resource_path.to_str().unwrap()) {
-  //   // dbg!(&module.identifier());
-  //   dbg!(&ast);
-  //   let res = stringify(ast, &Devtool::default());
-  //   dbg!(&resource_data.resource_path.to_str().unwrap());
-  //   println!(
-  //     "{}\n{}",
-  //     &resource_data.resource_path.to_str().unwrap(),
-  //     res.unwrap().code
-  //   );
-  // }
 
   Ok(())
 }
