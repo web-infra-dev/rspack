@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::code_splitter::CodeSplitter;
-use crate::{ChunkUkey, Compilation, IdentifierSet, ModuleIdentifier};
+use crate::{fast_drop, ChunkUkey, Compilation, IdentifierSet, ModuleIdentifier};
 
 type ChunkRelationGraph = petgraph::graphmap::DiGraphMap<ChunkUkey, ()>;
 type DefinitelyLoadedModules = Arc<IdentifierSet>;
@@ -71,7 +71,7 @@ impl<'me> CodeSplitter<'me> {
         // Try hit the cache
 
         ctx.analyzing_chunks.insert(ctx.target_ukey);
-        let mut loaded_modules_of_parents = ctx
+        let loaded_modules_of_parents = ctx
           .chunk_relation_graph
           .edges_directed(ctx.target_ukey, petgraph::Direction::Incoming)
           .par_bridge()
@@ -110,7 +110,9 @@ impl<'me> CodeSplitter<'me> {
       ret
     }
 
-    self
+    let cache = DashMap::default();
+
+    let res = self
       .compilation
       .chunk_by_ukey
       .values()
@@ -122,13 +124,15 @@ impl<'me> CodeSplitter<'me> {
           root_chunks: &self.remove_parent_modules_context.root_chunks,
           compilation: self.compilation,
           chunk_relation_graph: &self.remove_parent_modules_context.chunk_relation_graph,
-          cache: &DashMap::default(),
+          cache: &cache,
         })
         .unwrap_or_default();
 
         (chunk.ukey, loaded_modules)
       })
-      .collect()
+      .collect();
+    fast_drop(cache);
+    res
   }
 
   #[tracing::instrument(skip_all)]
@@ -199,9 +203,7 @@ impl<'me> CodeSplitter<'me> {
   pub(super) fn remove_parent_modules(&mut self) {
     let loaded_modules_map = self.prepare_remove_parent_modules();
     let modules_should_be_removed = self.analyze_modules_should_be_removed(&loaded_modules_map);
-    std::thread::spawn(move || {
-      loaded_modules_map;
-    });
+    fast_drop(loaded_modules_map);
     self.remove_modules(modules_should_be_removed)
   }
 }
