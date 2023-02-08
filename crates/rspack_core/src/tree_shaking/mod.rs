@@ -6,6 +6,7 @@ use swc_core::ecma::ast::ModuleItem;
 use self::visitor::{SymbolRef, TreeShakingResult};
 use crate::{IdentifierMap, IdentifierSet};
 
+pub mod optimizer;
 pub mod symbol_graph;
 pub mod utils;
 pub mod visitor;
@@ -13,7 +14,7 @@ pub mod visitor;
 pub struct OptimizeDependencyResult {
   pub used_symbol_ref: HashSet<SymbolRef>,
   pub analyze_results: IdentifierMap<TreeShakingResult>,
-  pub bail_out_module_identifiers: IdentifierMap<BailoutFlog>,
+  pub bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
 }
@@ -51,7 +52,7 @@ pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
 }
 
 bitflags::bitflags! {
-  pub struct BailoutFlog: u8 {
+  pub struct BailoutFlag: u8 {
       const HELPER = 1 << 0;
       const COMMONJS_REQUIRE = 1 << 1;
       const COMMONJS_EXPORTS = 1 << 2;
