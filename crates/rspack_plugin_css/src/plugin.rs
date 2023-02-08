@@ -465,6 +465,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
+    /// Compat for @rspack/postcss-loader css modules
+    #[derive(serde::Deserialize)]
+    struct RspackPostcssModules {
+      rspack_postcss_modules: String,
+    }
+
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
         let devtool = &generate_context.compilation.options.devtool;
@@ -513,21 +519,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
           Ok(RawSource::from(code).boxed())
         }
       }
-      SourceType::JavaScript => Ok(
-        RawSource::from(if let Some(exports) = &self.exports {
+      SourceType::JavaScript => {
+        let locals = if let Some(exports) = &self.exports {
           css_modules_exports_to_string(
             exports,
             module,
             generate_context.compilation,
             &self.config.modules.locals_convention,
           )?
-        } else if let Some(meta) = &self.meta {
-          format!("module.exports = {meta};\n")
+        } else if let Some(meta) = &self.meta
+          && let Ok(meta) = serde_json::from_str::<RspackPostcssModules>(meta)
+        {
+          format!("module.exports = {};\n", meta.rspack_postcss_modules)
         } else {
           "".to_string()
-        })
-        .boxed(),
-      ),
+        };
+        Ok(RawSource::from(locals).boxed())
+      }
       _ => Err(internal_error!(
         "Unsupported source type: {:?}",
         generate_context.requested_source_type

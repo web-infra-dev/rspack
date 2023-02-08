@@ -6,7 +6,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: resolve("modules-true.module.css"),
+				test: resolve("modules-true.css"),
 				use: [
 					{
 						loader: postcssLoader,
