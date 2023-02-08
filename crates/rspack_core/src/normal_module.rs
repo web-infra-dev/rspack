@@ -322,7 +322,7 @@ pub struct NormalModule {
   loaders: Vec<BoxLoader>,
 
   /// Original content of this module, will be available after module build
-  original_source: Option<Box<dyn Source>>,
+  original_source: Option<BoxSource>,
   /// Built AST or source of this module (passed with loaders)
   ast_or_source: NormalModuleAstOrSource,
 
