@@ -53,6 +53,7 @@ export interface ModuleRule {
 	issuer?: {
 		not?: Condition[];
 	};
+	oneOf?: ModuleRule[];
 	parser?: RawModuleRule["parser"];
 	generator?: RawModuleRule["generator"];
 	resolve?: Resolve;
@@ -74,6 +75,8 @@ interface ResolvedModuleRule {
 	parser?: RawModuleRule["parser"];
 	generator?: RawModuleRule["generator"];
 	resolve?: ResolvedResolve;
+	issuer?: RawModuleRule["issuer"];
+	oneOf?: RawModuleRule["oneOf"];
 }
 
 export interface ResolvedModule {
@@ -770,53 +773,57 @@ export function resolveModuleOptions(
 	module: Module = {},
 	options: ComposeJsUseOptions
 ): ResolvedModule {
-	const rules = (module.rules ?? []).map(rule => {
-		// FIXME: use error handler instead of throwing
-		if ((rule as any)?.loader) {
-			throw new Error("`Rule.loader` is not supported, use `Rule.use` instead");
-		}
+	const formatRule = (rules: ModuleRule[]): ResolvedModuleRule[] =>
+		rules.map(rule => {
+			// FIXME: use error handler instead of throwing
+			if ((rule as any)?.loader) {
+				throw new Error(
+					"`Rule.loader` is not supported, use `Rule.use` instead"
+				);
+			}
 
-		if ((rule as any)?.uses) {
-			throw new Error(
-				"`Rule.uses` is deprecated for aligning with webpack, use `Rule.use` instead"
-			);
-		}
+			if ((rule as any)?.uses) {
+				throw new Error(
+					"`Rule.uses` is deprecated for aligning with webpack, use `Rule.use` instead"
+				);
+			}
 
-		return {
-			...rule,
-			issuer: isNil(rule.issuer)
-				? null
-				: {
-						not: isNil(rule.issuer.not)
-							? null
-							: resolveModuleRuleConditions(rule.issuer.not)
-				  },
-			test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
-			include: isNil(rule.include)
-				? null
-				: Array.isArray(rule.include)
-				? resolveModuleRuleConditions(rule.include)
-				: [resolveModuleRuleCondition(rule.include)],
-			exclude: isNil(rule.exclude)
-				? null
-				: Array.isArray(rule.exclude)
-				? resolveModuleRuleConditions(rule.exclude)
-				: [resolveModuleRuleCondition(rule.exclude)],
-			resource: isNil(rule.resource)
-				? null
-				: resolveModuleRuleCondition(rule.resource),
-			resourceQuery: isNil(rule.resourceQuery)
-				? null
-				: resolveModuleRuleCondition(rule.resourceQuery),
-			use: createRawModuleRuleUses(rule.use || [], options),
-			resolve: isNil(rule.resolve)
-				? null
-				: resolveResolveOptions(rule.resolve, options)
-		};
-	});
+			return {
+				...rule,
+				oneOf: isNil(rule.oneOf) ? null : formatRule(rule.oneOf),
+				issuer: isNil(rule.issuer)
+					? null
+					: {
+							not: isNil(rule.issuer.not)
+								? null
+								: resolveModuleRuleConditions(rule.issuer.not)
+					  },
+				test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+				include: isNil(rule.include)
+					? null
+					: Array.isArray(rule.include)
+					? resolveModuleRuleConditions(rule.include)
+					: [resolveModuleRuleCondition(rule.include)],
+				exclude: isNil(rule.exclude)
+					? null
+					: Array.isArray(rule.exclude)
+					? resolveModuleRuleConditions(rule.exclude)
+					: [resolveModuleRuleCondition(rule.exclude)],
+				resource: isNil(rule.resource)
+					? null
+					: resolveModuleRuleCondition(rule.resource),
+				resourceQuery: isNil(rule.resourceQuery)
+					? null
+					: resolveModuleRuleCondition(rule.resourceQuery),
+				use: createRawModuleRuleUses(rule.use || [], options),
+				resolve: isNil(rule.resolve)
+					? null
+					: resolveResolveOptions(rule.resolve, options)
+			} as ResolvedModuleRule;
+		});
+	const rules = formatRule(module.rules ?? []);
 	return {
 		parser: module.parser,
-		// @ts-expect-error
 		rules
 	};
 }

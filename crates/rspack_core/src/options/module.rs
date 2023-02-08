@@ -60,6 +60,7 @@ pub struct ModuleRule {
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub issuer: Option<IssuerOptions>,
+  pub one_of: Option<Vec<ModuleRule>>,
   /// Internal matching method, not intended to be used by the user. (Loader experimental)
   pub func__: Option<ModuleRuleFunc>,
 }
@@ -80,6 +81,7 @@ impl Debug for ModuleRule {
       .field("use", &self.r#use)
       .field("side_effects", &self.side_effects)
       .field("issuer", &self.issuer)
+      .field("one_of", &self.one_of)
       .finish()
   }
 }
