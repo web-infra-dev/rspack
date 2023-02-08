@@ -12,7 +12,8 @@ module.exports = {
   entry: { main: './src/index.tsx' },
   devServer: {
     port: 5555,
-    webSocketServer: 'sockjs'
+    webSocketServer: 'sockjs',
+    historyApiFallback:true
   },
   mode: prod ? 'production' : 'development',
   devtool: prod ? false : 'source-map',
@@ -48,6 +49,16 @@ module.exports = {
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
   output: {
     publicPath: '/'
+  },
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        someVendor: {
+          chunks: 'all',
+          minChunk: 2,
+        }
+      }
+    }
   },
   plugins: [
     new HtmlPlugin({
