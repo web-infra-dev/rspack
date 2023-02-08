@@ -1,5 +1,5 @@
 it("modules-true should use css modules", () => {
-	const css = require("./modules-true.module.css");
+	const css = require("./modules-true.css");
 	expect(css).toEqual({ "module-true": "_module-true_3vgpi_1" });
 });
 
