@@ -107,13 +107,7 @@ pub fn module_rule_matcher_inner<'a>(
   if let Some(one_of) = &module_rule.one_of {
     let matched_rule = one_of.iter().find_map(|module_rule| {
       match module_rule_matcher_inner(module_rule, resource_data, issuer) {
-        Ok(val) => {
-          if let Some(rule) = val {
-            Some(rule)
-          } else {
-            None
-          }
-        }
+        Ok(val) => val.map(|rule| rule),
         Err(_err) => None,
       }
     });
