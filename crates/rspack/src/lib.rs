@@ -72,9 +72,7 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
     }
   }
 
-  plugins.push(Box::new(rspack_ids::StableNamedChunkIdsPlugin::new(
-    None, None,
-  )));
+  plugins.push(Box::new(rspack_ids::StableNumericChunkIdsPlugin));
 
   // Notice the plugin need to be placed after SplitChunksPlugin
   plugins.push(Box::new(

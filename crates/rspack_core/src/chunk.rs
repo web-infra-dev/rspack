@@ -289,6 +289,10 @@ impl Chunk {
     }
     self.groups.clear();
   }
+
+  pub fn chunk_reasons(&self) -> String {
+    self.chunk_reasons.join("@")
+  }
 }
 
 pub fn chunk_hash_js<'a>(

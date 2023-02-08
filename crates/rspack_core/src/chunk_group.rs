@@ -1,3 +1,4 @@
+use derivative::Derivative;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
@@ -5,11 +6,14 @@ use crate::{
   RuntimeSpec,
 };
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
+  #[derivative(Debug = "ignore")]
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
+  #[derivative(Debug = "ignore")]
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
   pub(crate) children: HashSet<ChunkGroupUkey>,
@@ -71,9 +75,16 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
-  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) {
-    self.chunks.insert(0, chunk.ukey);
-    chunk.add_group(self.ukey);
+  pub fn unshift_chunk(&mut self, chunk: &mut Chunk) -> bool {
+    let old_idx = self.chunks.iter().position(|ukey| *ukey == chunk.ukey);
+    if let Some(idx) = old_idx {
+      self.chunks.remove(idx);
+      self.chunks.insert(0, chunk.ukey);
+    } else {
+      self.chunks.insert(0, chunk.ukey);
+      return true;
+    }
+    false
   }
 
   pub(crate) fn is_initial(&self) -> bool {

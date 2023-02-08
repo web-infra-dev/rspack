@@ -147,6 +147,7 @@ impl<'me> CodeSplitter<'me> {
           }
         };
 
+        chunk.add_group(entry_point.ukey);
         entry_point.unshift_chunk(chunk);
         entry_point.set_runtime_chunk(chunk.ukey);
       }

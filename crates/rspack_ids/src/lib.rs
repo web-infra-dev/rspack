@@ -7,3 +7,5 @@ mod named_chunk_ids_plugin;
 pub use named_chunk_ids_plugin::*;
 mod stable_named_chunk_ids_plugin;
 pub use stable_named_chunk_ids_plugin::StableNamedChunkIdsPlugin;
+mod stable_numeric_chunk_ids_plugin;
+pub use stable_numeric_chunk_ids_plugin::*;
