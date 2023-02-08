@@ -513,9 +513,7 @@ impl Compilation {
             match result {
               Ok(result) => {
                 if !is_expected_shutdown.load(Ordering::SeqCst) {
-                  result_tx
-                    .send(result)
-                    .expect("Failed to send factorize result");
+                  result_tx.send(result).expect("Failed to send build result");
                 }
               }
               Err(e) => {
