@@ -3,15 +3,16 @@
 
 use std::sync::Arc;
 
+use dashmap::DashMap;
 use rayon::prelude::ParallelBridge;
 use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::code_splitter::CodeSplitter;
-use crate::{ChunkUkey, Compilation, IdentifierSet, ModuleIdentifier};
+use crate::{fast_drop, ChunkUkey, Compilation, IdentifierSet, ModuleIdentifier};
 
 type ChunkRelationGraph = petgraph::graphmap::DiGraphMap<ChunkUkey, ()>;
-type DefinitelyLoadedModules = IdentifierSet;
+type DefinitelyLoadedModules = Arc<IdentifierSet>;
 
 #[derive(Debug, Default)]
 pub(super) struct RemoveParentModulesContext {
@@ -39,6 +40,7 @@ impl<'me> CodeSplitter<'me> {
       root_chunks: &'a FxHashSet<ChunkUkey>,
       compilation: &'a Compilation,
       chunk_relation_graph: &'a ChunkRelationGraph,
+      cache: &'a DashMap<ChunkUkey, DefinitelyLoadedModules>,
     }
 
     impl<'a> AnalyzeContext<'a> {
@@ -52,7 +54,11 @@ impl<'me> CodeSplitter<'me> {
 
     #[tracing::instrument(skip_all)]
     fn analyze_loaded_modules(mut ctx: AnalyzeContext) -> Option<DefinitelyLoadedModules> {
-      if ctx.analyzing_chunks.contains(&ctx.target_ukey) {
+      if let Some(loaded_modules) = ctx.cache.try_get(&ctx.target_ukey).try_unwrap() {
+        return Some(loaded_modules.clone());
+      }
+
+      let ret = if ctx.analyzing_chunks.contains(&ctx.target_ukey) {
         // We are in a circle.
         // For case: ChunkA[a.js, shared.js] <--> ChunkB[b.js, shared.js]
         // Just return a empty vec.
@@ -60,10 +66,12 @@ impl<'me> CodeSplitter<'me> {
       } else if ctx.root_chunks.contains(&ctx.target_ukey) {
         // we are in a root chunk.
         // Just return the modules itself.
-        Some(ctx.chunk_modules(&ctx.target_ukey).clone())
+        Some(Arc::new(ctx.chunk_modules(&ctx.target_ukey).clone()))
       } else {
+        // Try hit the cache
+
         ctx.analyzing_chunks.insert(ctx.target_ukey);
-        let loaded_modules = ctx
+        let loaded_modules_of_parents = ctx
           .chunk_relation_graph
           .edges_directed(ctx.target_ukey, petgraph::Direction::Incoming)
           .par_bridge()
@@ -74,6 +82,15 @@ impl<'me> CodeSplitter<'me> {
               ..ctx.clone()
             })
           })
+          .collect::<Vec<_>>();
+
+        // If hit cache, return it.
+        if let Some(loaded_modules) = ctx.cache.try_get(&ctx.target_ukey).try_unwrap() {
+          return Some(loaded_modules.clone());
+        }
+
+        let loaded_modules = loaded_modules_of_parents
+          .into_par_iter()
           .fold(IdentifierSet::default, |mut acc, cur| {
             // The word `Definitely` in `DefinitelyLoadedModules` infers that
             // we need the intersection of all parent loaded modules.
@@ -85,11 +102,17 @@ impl<'me> CodeSplitter<'me> {
           .chain(ctx.chunk_modules(&ctx.target_ukey).par_iter().cloned())
           .collect::<IdentifierSet>();
 
-        Some(loaded_modules)
+        Some(Arc::new(loaded_modules))
+      };
+      if let Some(ret) = &ret {
+        ctx.cache.insert(ctx.target_ukey, ret.clone());
       }
+      ret
     }
 
-    self
+    let cache = DashMap::default();
+
+    let res = self
       .compilation
       .chunk_by_ukey
       .values()
@@ -101,18 +124,21 @@ impl<'me> CodeSplitter<'me> {
           root_chunks: &self.remove_parent_modules_context.root_chunks,
           compilation: self.compilation,
           chunk_relation_graph: &self.remove_parent_modules_context.chunk_relation_graph,
+          cache: &cache,
         })
         .unwrap_or_default();
 
         (chunk.ukey, loaded_modules)
       })
-      .collect()
+      .collect();
+    fast_drop(cache);
+    res
   }
 
   #[tracing::instrument(skip_all)]
   fn analyze_modules_should_be_removed(
     &mut self,
-    loaded_modules_map: FxHashMap<ChunkUkey, DefinitelyLoadedModules>,
+    loaded_modules_map: &FxHashMap<ChunkUkey, DefinitelyLoadedModules>,
   ) -> Vec<(ChunkUkey, ModuleIdentifier)> {
     self
       .compilation
@@ -176,7 +202,8 @@ impl<'me> CodeSplitter<'me> {
   #[tracing::instrument(skip_all)]
   pub(super) fn remove_parent_modules(&mut self) {
     let loaded_modules_map = self.prepare_remove_parent_modules();
-    let modules_should_be_removed = self.analyze_modules_should_be_removed(loaded_modules_map);
+    let modules_should_be_removed = self.analyze_modules_should_be_removed(&loaded_modules_map);
+    fast_drop(loaded_modules_map);
     self.remove_modules(modules_should_be_removed)
   }
 }
