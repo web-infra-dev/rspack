@@ -46,9 +46,9 @@ module.exports = async function loader(content, sourceMap) {
 
 		if (modulesOptions) {
 			let auto =
-				typeof modulesOptions === "boolean"
-					? modulesOptions
-					: modulesOptions.auto ?? true;
+				typeof modulesOptions === "object"
+					? modulesOptions.auto ?? true
+					: undefined;
 			let isModules;
 			if (typeof auto === "boolean") {
 				isModules = auto && IS_MODULES.test(this.resourcePath);
@@ -56,6 +56,8 @@ module.exports = async function loader(content, sourceMap) {
 				isModules = auto.test(this.resourcePath);
 			} else if (typeof auto === "function") {
 				isModules = auto(this.resourcePath);
+			} else {
+				isModules = true;
 			}
 
 			if (isModules) {
@@ -64,7 +66,9 @@ module.exports = async function loader(content, sourceMap) {
 						...modulesOptions,
 						getJSON(_, json) {
 							if (json) {
-								additionalData = json;
+								additionalData = {
+									rspack_postcss_modules: JSON.stringify(json)
+								};
 							}
 						}
 					})
@@ -80,6 +84,10 @@ module.exports = async function loader(content, sourceMap) {
 		}
 		if (sourceMap && processOptions.map) {
 			processOptions.map.prev = normalizeSourceMap(sourceMap, this.context);
+		}
+
+		if (options.postcssOptions?.plugins) {
+			plugins.push(...options.postcssOptions.plugins);
 		}
 
 		let root = new Processor(plugins);

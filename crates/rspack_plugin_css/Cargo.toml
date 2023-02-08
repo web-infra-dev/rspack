@@ -28,7 +28,7 @@ regex = "1.6.0"
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rustc-hash = { workspace = true }
-serde = "1.0.144"
+serde = { version = "1.0.144", features = ["derive"] }
 serde_json = "1.0.85"
 sugar_path = "0.0.9"
 swc_core = { workspace = true, features = [
