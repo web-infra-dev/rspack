@@ -509,20 +509,16 @@ fn to_compiler_option(
     None
   };
 
-  let one_of: Option<Vec<ModuleRule>> = if let Some(one_of) = rule.one_of {
-    Some(
-      one_of
-        .into_iter()
-        .filter_map(|raw| match to_compiler_option(raw, options) {
-          Ok(val) => Some(val),
-          // todo: how to handle error, ignore?
-          Err(_err) => None,
-        })
-        .collect::<Vec<_>>(), // .transpose()?,
-    )
-  } else {
-    None
-  };
+  let one_of: Option<Vec<ModuleRule>> = rule.one_of.map(|one_of| {
+    one_of
+      .into_iter()
+      .filter_map(|raw| match to_compiler_option(raw, options) {
+        Ok(val) => Some(val),
+        // todo: how to handle error, ignore?
+        Err(_err) => None,
+      })
+      .collect::<Vec<_>>()
+  });
 
   Ok(ModuleRule {
     test: rule.test.map(|raw| raw.try_into()).transpose()?,
