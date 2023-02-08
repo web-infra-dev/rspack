@@ -20,15 +20,9 @@ console.log(getClass().name);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    bar: ()=>bar,
-    baz: ()=>Baz
+Object.defineProperty(exports, "baz", {
+    enumerable: true,
+    get: ()=>Baz
 });
 function bar() {
     console.log("outer bar");
@@ -42,6 +36,10 @@ function Baz() {
     }
     return bar(), bog;
 }
+__webpack_require__.d(exports, {
+    "bar": ()=>bar,
+    "baz": ()=>Baz
+});
 },
 
 },function(__webpack_require__) {

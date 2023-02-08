@@ -10,23 +10,15 @@ _bJs.d;
 },
 "./b.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "d", {
-    enumerable: true,
-    get: ()=>d
-});
 const d = 3;
+__webpack_require__.d(exports, {
+    "d": ()=>d
+});
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "ccc", {
-    enumerable: true,
-    get: ()=>ccc
+__webpack_require__.d(exports, {
+    "ccc": ()=>ccc
 });
 const ccc = 30;
 },

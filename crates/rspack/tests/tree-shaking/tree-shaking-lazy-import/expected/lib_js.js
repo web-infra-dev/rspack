@@ -4,27 +4,22 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 const _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
 function myanswer() {
     _testJs.default;
 }
-const _default = myanswer;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = myanswer;
 },
 "./test.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 function test() {}
-const _default = test;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = test;
 },
 
 }]);

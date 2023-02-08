@@ -41,6 +41,10 @@ try {
 } catch (e) {
     var ok2 = true;
 }
+__webpack_require__.d(exports, {
+    "ok2": ()=>ok2,
+    "ok": ()=>ok
+});
 },
 
 },function(__webpack_require__) {

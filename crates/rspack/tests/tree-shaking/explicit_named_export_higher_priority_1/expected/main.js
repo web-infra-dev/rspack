@@ -7,12 +7,11 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
-});
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 const a = 'foo';
+__webpack_require__.d(exports, {
+    "a": ()=>a
+});
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

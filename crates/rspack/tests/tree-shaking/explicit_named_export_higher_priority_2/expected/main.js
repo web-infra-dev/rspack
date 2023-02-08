@@ -4,12 +4,8 @@
 },
 "./baz.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
+__webpack_require__.d(exports, {
+    "a": ()=>a
 });
 const a = 'baz';
 },

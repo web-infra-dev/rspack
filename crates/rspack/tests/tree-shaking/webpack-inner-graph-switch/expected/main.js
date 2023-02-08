@@ -4,11 +4,10 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "test", {
-    enumerable: true,
-    get: ()=>test
-});
 const _moduleJs = __webpack_require__.ir(__webpack_require__("./module.js"));
+__webpack_require__.d(exports, {
+    "test": ()=>test
+});
 function test() {
     (0, _moduleJs.default)({
         type: "inline"
@@ -28,10 +27,6 @@ it("should generate correct code when pure expressions are in dead branches", ()
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
 });
 const _someModuleJs = __webpack_require__("./some-module.js");
 function getType(obj) {
@@ -59,7 +54,10 @@ function doSomething(obj) {
             throw new Error();
     }
 }
-const _default = doSomething;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = doSomething;
 },
 "./some-module.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -86,6 +84,11 @@ class Inline {
 class Document {
     static doSomething() {}
 }
+__webpack_require__.d(exports, {
+    "Inline": ()=>Inline,
+    "Block": ()=>Block,
+    "Document": ()=>Document
+});
 },
 
 },function(__webpack_require__) {

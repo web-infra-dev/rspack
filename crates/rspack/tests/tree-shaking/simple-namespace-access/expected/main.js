@@ -13,37 +13,25 @@ console.log(_mathsJs['square']);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    square: ()=>square,
-    xxx: ()=>_testJs
+Object.defineProperty(exports, "xxx", {
+    enumerable: true,
+    get: ()=>_testJs
 });
 const _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
 function square(x) {
     return x * x;
 }
+__webpack_require__.d(exports, {
+    "square": ()=>square
+});
 },
 "./test.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    test: ()=>test,
-    ccc: ()=>ccc
-});
 function test() {}
+__webpack_require__.d(exports, {
+    "test": ()=>test,
+    "ccc": ()=>ccc
+});
 function ccc() {}
 },
 

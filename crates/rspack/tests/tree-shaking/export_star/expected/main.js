@@ -16,20 +16,14 @@ __webpack_require__.es(__webpack_require__("./result.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    a: ()=>a,
-    foo: ()=>foo
-});
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 __webpack_require__.es(__webpack_require__("./result.js"), exports);
 const a = 3;
 const foo = 3;
+__webpack_require__.d(exports, {
+    "a": ()=>a,
+    "foo": ()=>foo
+});
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -45,13 +39,12 @@ _fooJs.bar.a;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "c", {
-    enumerable: true,
-    get: ()=>c
-});
 __webpack_require__.es(__webpack_require__("./foo.js"), exports);
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 const c = 103330;
+__webpack_require__.d(exports, {
+    "c": ()=>c
+});
 },
 
 },function(__webpack_require__) {

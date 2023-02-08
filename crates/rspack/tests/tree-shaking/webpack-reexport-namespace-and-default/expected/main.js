@@ -23,12 +23,11 @@ it("default export should be used", ()=>{
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "mod", {
-    enumerable: true,
-    get: ()=>mod
-});
 const _scriptJs = __webpack_require__.ir(__webpack_require__("./package1/script.js"));
 const _scriptJs1 = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
+__webpack_require__.d(exports, {
+    "mod": ()=>mod
+});
 const mod = _scriptJs1.default;
 },
 "./package1/script.js": function (module, exports, __webpack_require__) {
@@ -36,11 +35,10 @@ const mod = _scriptJs1.default;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "exportDefaultUsed", {
-    enumerable: true,
-    get: ()=>exportDefaultUsed
-});
 __webpack_require__.es(__webpack_require__("./package1/script1.js"), exports);
+__webpack_require__.d(exports, {
+    "exportDefaultUsed": ()=>exportDefaultUsed
+});
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package1/script1.js": function (module, exports, __webpack_require__) {
@@ -52,12 +50,8 @@ __webpack_require__.es(__webpack_require__("./package1/script2.js"), exports);
 },
 "./package1/script2.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "exportDefaultUsed", {
-    enumerable: true,
-    get: ()=>exportDefaultUsed
+__webpack_require__.d(exports, {
+    "exportDefaultUsed": ()=>exportDefaultUsed
 });
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
@@ -66,30 +60,20 @@ const exportDefaultUsed = __webpack_exports_info__.default.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    default: ()=>_default,
-    exportDefaultUsed: ()=>exportDefaultUsed
-});
 const _script1Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package2/script1.js"), exports));
-const _default = _script1Js.default;
+let __RSPACK_DEFAULT_EXPORT__ = _script1Js.default;
+__webpack_require__.d(exports, {
+    "exportDefaultUsed": ()=>exportDefaultUsed,
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package2/script1.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = 1;
+let __RSPACK_DEFAULT_EXPORT__ = 1;
 },
 
 },function(__webpack_require__) {

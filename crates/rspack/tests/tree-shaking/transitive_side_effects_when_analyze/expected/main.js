@@ -4,11 +4,10 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
-});
 __webpack_require__("./side-effects.js");
+__webpack_require__.d(exports, {
+    "a": ()=>a
+});
 const a = 3;
 },
 "./index.js": function (module, exports, __webpack_require__) {

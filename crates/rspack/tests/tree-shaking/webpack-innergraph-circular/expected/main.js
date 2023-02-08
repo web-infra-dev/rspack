@@ -16,22 +16,6 @@ it("export should be unused when only unused functions use it", ()=>{
 },
 "./inner.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    A: ()=>A,
-    B: ()=>B,
-    exportAUsed: ()=>exportAUsed,
-    exportBUsed: ()=>exportBUsed,
-    exportCUsed: ()=>exportCUsed
-});
 function A(s) {
     return s + "A";
 }
@@ -40,6 +24,13 @@ function B(s) {
 }
 const exportAUsed = __webpack_exports_info__.A.used;
 const exportBUsed = __webpack_exports_info__.B.used;
+__webpack_require__.d(exports, {
+    "B": ()=>B,
+    "exportAUsed": ()=>exportAUsed,
+    "exportBUsed": ()=>exportBUsed,
+    "exportCUsed": ()=>exportCUsed,
+    "A": ()=>A
+});
 const exportCUsed = __webpack_exports_info__.C.used;
 },
 "./module.js": function (module, exports, __webpack_require__) {
@@ -79,6 +70,10 @@ function withB(v) {
     const value = x(v);
     return (0, _innerJs.B)(value);
 }
+__webpack_require__.d(exports, {
+    "x": ()=>x,
+    "y": ()=>y
+});
 },
 
 },function(__webpack_require__) {

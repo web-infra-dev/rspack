@@ -7,14 +7,13 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 __webpack_require__("./dead.js");
-function _default() {
+function __RSPACK_DEFAULT_EXPORT__() {
     return "foo";
 }
+__webpack_require__.d(exports, {
+    "__RSPACK_DEFAULT_EXPORT__": ()=>__RSPACK_DEFAULT_EXPORT__
+});
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

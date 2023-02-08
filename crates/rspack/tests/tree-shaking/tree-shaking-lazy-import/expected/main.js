@@ -1,12 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "answer", {
-    enumerable: true,
-    get: ()=>answer
+__webpack_require__.d(exports, {
+    "answer": ()=>answer
 });
 const answer = 30;
 },

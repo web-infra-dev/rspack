@@ -1,15 +1,11 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
-});
 __webpack_require__.e("bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then(__webpack_require__.ir).then((mod)=>{
     console.log(mod);
+});
+__webpack_require__.d(exports, {
+    "a": ()=>a
 });
 const a = "a";
 exports.test = 30;

@@ -4,14 +4,13 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "app", {
-    enumerable: true,
-    get: ()=>app
-});
 const _libJs = __webpack_require__("./lib.js");
 var app = function() {
     _libJs.result;
 };
+__webpack_require__.d(exports, {
+    "app": ()=>app
+});
 (0, _libJs.something)('app4');
 (0, _libJs.something)('app3');
 },
@@ -25,18 +24,9 @@ const _appJs = __webpack_require__("./app.js");
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    result: ()=>result,
-    something: ()=>something
+__webpack_require__.d(exports, {
+    "something": ()=>something,
+    "result": ()=>result
 });
 const result = 20000;
 const something = function() {};

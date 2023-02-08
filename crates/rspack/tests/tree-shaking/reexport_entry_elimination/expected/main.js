@@ -15,23 +15,18 @@ const _bJs = __webpack_require__.ir(__webpack_require__("./b.js"));
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 const _cJs = __webpack_require__.ir(__webpack_require__("./c.js"));
-const _default = 2000 + _cJs.default;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = 2000 + _cJs.default;
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = 10;
+let __RSPACK_DEFAULT_EXPORT__ = 10;
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

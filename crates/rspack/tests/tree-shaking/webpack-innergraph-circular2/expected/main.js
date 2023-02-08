@@ -128,6 +128,13 @@ function f4() {
         f3
     ];
 }
+__webpack_require__.d(exports, {
+    "a": ()=>a,
+    "x": ()=>x,
+    "y": ()=>y,
+    "z": ()=>z,
+    "f3": ()=>f3
+});
 },
 
 },function(__webpack_require__) {

@@ -8,23 +8,15 @@ __webpack_require__.es(__webpack_require__("./something/index.js"), exports);
 },
 "./colors/a.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "red", {
-    enumerable: true,
-    get: ()=>red
+__webpack_require__.d(exports, {
+    "red": ()=>red
 });
 const red = 'red';
 },
 "./colors/b.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "blue", {
-    enumerable: true,
-    get: ()=>blue
+__webpack_require__.d(exports, {
+    "blue": ()=>blue
 });
 const blue = 'blue';
 },
@@ -46,12 +38,8 @@ __webpack_require__.es(__webpack_require__("./colors/c.js"), exports);
 },
 "./colors/result.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "result", {
-    enumerable: true,
-    get: ()=>result
+__webpack_require__.d(exports, {
+    "result": ()=>result
 });
 const result = 'ssss';
 },
@@ -73,12 +61,8 @@ _exportJs.Something;
 },
 "./something/Something.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "Something", {
-    enumerable: true,
-    get: ()=>Something
+__webpack_require__.d(exports, {
+    "Something": ()=>Something
 });
 class Something {
 }
@@ -94,6 +78,9 @@ Object.defineProperty(exports, "Colors", {
 });
 const _indexJs = __webpack_require__.ir(__webpack_require__("./colors/index.js"));
 __webpack_require__.es(__webpack_require__("./something/Something.js"), exports);
+__webpack_require__.d(exports, {
+    "Colors": ()=>_indexJs
+});
 },
 
 },function(__webpack_require__) {

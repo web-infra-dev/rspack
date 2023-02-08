@@ -1,12 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "c", {
-    enumerable: true,
-    get: ()=>c
+__webpack_require__.d(exports, {
+    "c": ()=>c
 });
 const c = 'a';
 },
@@ -18,12 +14,11 @@ const c = 'a';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
-});
 __webpack_require__.es(__webpack_require__("./foo.js"), exports);
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
+__webpack_require__.d(exports, {
+    "a": ()=>a
+});
 const a = 3;
 },
 "./foo.js": function (module, exports, __webpack_require__) {
@@ -31,11 +26,10 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "b", {
-    enumerable: true,
-    get: ()=>b
-});
 __webpack_require__.es(__webpack_require__("./a.js"), exports);
+__webpack_require__.d(exports, {
+    "b": ()=>b
+});
 const b = 'foo';
 },
 "./index.js": function (module, exports, __webpack_require__) {

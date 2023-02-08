@@ -1,12 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./answer.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "answer", {
-    enumerable: true,
-    get: ()=>answer
+__webpack_require__.d(exports, {
+    "answer": ()=>answer
 });
 const answer = 103330;
 },
@@ -35,11 +31,10 @@ const _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "myanswer", {
-    enumerable: true,
-    get: ()=>myanswer
-});
 const _answerJs = __webpack_require__("./answer.js");
+__webpack_require__.d(exports, {
+    "myanswer": ()=>myanswer
+});
 const myanswer = _answerJs.answer;
 },
 

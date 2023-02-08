@@ -1,18 +1,14 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./foo.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 var Foo = function() {
     console.log("side effect");
     this.isFoo = true;
 };
-const _default = Foo;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = Foo;
 Foo.prototype = {
     answer: function() {
         return 42;

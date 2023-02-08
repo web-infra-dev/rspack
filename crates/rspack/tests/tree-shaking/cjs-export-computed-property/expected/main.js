@@ -21,18 +21,20 @@ const _localeZhTs = __webpack_require__.ir(__webpack_require__("./locale_zh.ts")
 const locales = {
     zh_CN: _localeZhTs.default
 };
+__webpack_require__.d(exports, {
+    "locales": ()=>locales
+});
 },
 "./index.ts": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "test", {
-    enumerable: true,
-    get: ()=>test
-});
 const _indexTs = __webpack_require__("./antd/index.ts");
 _indexTs.locales.zh_CN;
+__webpack_require__.d(exports, {
+    "test": ()=>test
+});
 function test() {}
 },
 "./locale_zh.ts": function (module, exports, __webpack_require__) {
@@ -40,12 +42,11 @@ function test() {}
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 const _zhLocaleJs = __webpack_require__.ir(__webpack_require__("./zh_locale.js"));
-const _default = _zhLocaleJs.default;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = _zhLocaleJs.default;
 },
 
 },function(__webpack_require__) {

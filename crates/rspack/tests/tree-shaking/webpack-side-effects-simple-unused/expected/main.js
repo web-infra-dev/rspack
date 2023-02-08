@@ -17,6 +17,9 @@ _export(exports, {
 const _cJs = __webpack_require__("../node_modules/pmodule/c.js");
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 var x = "x";
+__webpack_require__.d(exports, {
+    "x": ()=>x
+});
 (0, _trackerJs.track)("b.js");
 },
 "../node_modules/pmodule/c.js": function (module, exports, __webpack_require__) {
@@ -30,6 +33,9 @@ Object.defineProperty(exports, "z", {
 });
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 var z = "z";
+__webpack_require__.d(exports, {
+    "z": ()=>z
+});
 (0, _trackerJs.track)("c.js");
 },
 "../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
@@ -45,34 +51,27 @@ function _export(target, all) {
 }
 _export(exports, {
     x: ()=>_bJs.x,
-    z: ()=>_bJs.z,
-    default: ()=>_default
+    z: ()=>_bJs.z
 });
 const _bJs = __webpack_require__("../node_modules/pmodule/b.js");
 const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 (0, _trackerJs.track)("index.js");
-const _default = "def";
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = "def";
 },
 "../node_modules/pmodule/tracker.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    track: ()=>track,
-    log: ()=>log
-});
 function track(file) {
     log.push(file);
     log.sort();
 }
 var log = [];
+__webpack_require__.d(exports, {
+    "track": ()=>track,
+    "log": ()=>log
+});
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

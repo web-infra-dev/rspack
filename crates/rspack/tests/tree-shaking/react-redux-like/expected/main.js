@@ -16,6 +16,10 @@ _export(exports, {
 });
 const _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
 const _selectorJs = __webpack_require__.ir(__webpack_require__("./selector.js"));
+__webpack_require__.d(exports, {
+    "useSelector": ()=>_selectorJs.default,
+    "Provider": ()=>_libJs.default
+});
 },
 "./foo.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -35,24 +39,16 @@ _fooJs.useSelector;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
 function Provider() {}
-const _default = Provider;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = Provider;
 },
 "./selector.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>useSelector
+__webpack_require__.d(exports, {
+    "useSelector": ()=>useSelector
 });
 function useSelector() {
     return "";

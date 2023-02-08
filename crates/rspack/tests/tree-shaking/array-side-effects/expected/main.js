@@ -4,11 +4,10 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "app", {
-    enumerable: true,
-    get: ()=>app
-});
 const _libJs = __webpack_require__("./lib.js");
+__webpack_require__.d(exports, {
+    "app": ()=>app
+});
 function app() {}
 app.prototype.result = _libJs.result;
 },
@@ -21,12 +20,8 @@ __webpack_require__("./src/a.js");
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "result", {
-    enumerable: true,
-    get: ()=>result
+__webpack_require__.d(exports, {
+    "result": ()=>result
 });
 const result = 20000;
 },

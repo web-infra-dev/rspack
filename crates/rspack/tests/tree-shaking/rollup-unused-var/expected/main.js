@@ -9,6 +9,9 @@ Object.defineProperty(exports, "foo", {
     get: ()=>foo
 });
 var foo = "lol";
+__webpack_require__.d(exports, {
+    "foo": ()=>foo
+});
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

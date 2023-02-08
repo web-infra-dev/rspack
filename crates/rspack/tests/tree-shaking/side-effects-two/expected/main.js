@@ -20,14 +20,10 @@ const _appJs = __webpack_require__("./app.js");
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+__webpack_require__.d(exports, {
+    "__RSPACK_DEFAULT_EXPORT__": ()=>__RSPACK_DEFAULT_EXPORT__
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-function _default() {}
+function __RSPACK_DEFAULT_EXPORT__() {}
 },
 
 },function(__webpack_require__) {

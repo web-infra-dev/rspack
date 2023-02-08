@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rspack_core::tree_shaking::debug_care_module_id;
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
@@ -9,8 +11,8 @@ use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{Mark, DUMMY_SP, GLOBALS};
 use swc_core::ecma::ast::*;
-use swc_core::ecma::atoms::JsWord;
-use swc_core::ecma::utils::quote_ident;
+use swc_core::ecma::atoms::{js_word, JsWord};
+use swc_core::ecma::utils::{find_pat_ids, quote_ident, quote_str};
 use swc_core::ecma::visit::{noop_fold_type, Fold, FoldWith};
 #[allow(clippy::too_many_arguments)]
 pub fn tree_shaking_visitor<'a>(
@@ -35,6 +37,7 @@ pub fn tree_shaking_visitor<'a>(
     last_module_item_index: 0,
     module_item_map,
     helper_mark,
+    used_exported_map: HashMap::default(),
   }
 }
 
@@ -62,6 +65,7 @@ struct TreeShaker<'a> {
   last_module_item_index: usize,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
   helper_mark: Mark,
+  used_exported_map: HashMap<String, Ident>,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -97,6 +101,62 @@ impl<'a> Fold for TreeShaker<'a> {
           .body
           .insert(self.last_module_item_index, module_item.clone());
       }
+    }
+    dbg!(&self.used_exported_map);
+    // insert __webpack_require.d to the top of the module
+    if self.used_exported_map.len() > 0 {
+      let webpack_require_define = quote_ident!("__webpack_require__");
+      let d = quote_ident!("d");
+      let webpack_require_define_dot_d = Expr::Member(MemberExpr {
+        span: DUMMY_SP,
+        obj: Box::new(Expr::Ident(webpack_require_define)),
+        prop: MemberProp::Ident(d),
+      });
+      let exports = quote_ident!("exports");
+      let define_props = self
+        .used_exported_map
+        .iter()
+        .map(|(k, value)| {
+          PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+            key: PropName::Str(quote_str!(JsWord::from(k.as_str()))),
+            value: Box::new(Expr::Arrow(ArrowExpr {
+              span: DUMMY_SP,
+              params: vec![],
+              body: BlockStmtOrExpr::Expr(Box::new(Expr::Ident(value.clone()))),
+              is_async: false,
+              is_generator: false,
+              type_params: None,
+              return_type: None,
+            })),
+          })))
+        })
+        .collect::<Vec<_>>();
+      let obj = ObjectLit {
+        span: DUMMY_SP,
+        props: define_props,
+      };
+      let call_expr = Expr::Call(CallExpr {
+        span: DUMMY_SP,
+        callee: Callee::Expr(Box::new(webpack_require_define_dot_d)),
+        args: vec![
+          ExprOrSpread {
+            spread: None,
+            expr: Box::new(Expr::Ident(exports)),
+          },
+          ExprOrSpread {
+            spread: None,
+            expr: Box::new(Expr::Object(obj)),
+          },
+        ],
+        type_args: None,
+      });
+      node.body.insert(
+        self.last_module_item_index,
+        ModuleItem::Stmt(Stmt::Expr(ExprStmt {
+          span: DUMMY_SP,
+          expr: Box::new(call_expr),
+        })),
+      );
     }
 
     node
@@ -199,38 +259,36 @@ impl<'a> Fold for TreeShaker<'a> {
         }
         ModuleDecl::ExportDecl(decl) => match decl.decl {
           Decl::Class(mut class) => {
-            let id = class.ident.to_id();
+            let local_binding = &class.ident;
             let symbol = SymbolRef::Direct(Symbol::new(
               self.module_identifier.into(),
-              id.into(),
+              local_binding.to_id().into(),
               SymbolType::Define,
             ));
-            if !self.used_symbol_set.contains(&symbol) {
-              class.class.span = DUMMY_SP;
-              ModuleItem::Stmt(Stmt::Decl(Decl::Class(class)))
-            } else {
-              ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
-                span: decl.span,
-                decl: Decl::Class(class),
-              }))
+            let used = self.used_symbol_set.contains(&symbol);
+            if used {
+              self
+                .used_exported_map
+                .insert(local_binding.sym.to_string(), local_binding.clone());
             }
+            class.class.span = DUMMY_SP;
+            ModuleItem::Stmt(Stmt::Decl(Decl::Class(class)))
           }
           Decl::Fn(mut func) => {
-            let id = func.ident.to_id();
+            let local_binding = &func.ident;
             let symbol = SymbolRef::Direct(Symbol::new(
               self.module_identifier.into(),
-              id.into(),
+              local_binding.to_id().into(),
               SymbolType::Define,
             ));
-            if !self.used_symbol_set.contains(&symbol) {
-              func.function.span = DUMMY_SP;
-              ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func)))
-            } else {
-              ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
-                span: decl.span,
-                decl: Decl::Fn(func),
-              }))
+            let used = self.used_symbol_set.contains(&symbol);
+            if used {
+              self
+                .used_exported_map
+                .insert(local_binding.sym.to_string(), local_binding.clone());
             }
+            func.function.span = DUMMY_SP;
+            ModuleItem::Stmt(Stmt::Decl(Decl::Fn(func)))
           }
           Decl::Var(var) => {
             // assume a is used and b, c is unused
@@ -288,15 +346,17 @@ impl<'a> Fold for TreeShaker<'a> {
             if used.is_empty() {
               ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
             } else {
-              ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl {
-                span: DUMMY_SP,
-                decl: Decl::Var(Box::new(VarDecl {
-                  span: var.span,
-                  kind: var.kind,
-                  declare: var.declare,
-                  decls: used.into_iter().map(|item| item.0).collect(),
-                })),
-              }))
+              let used_pat =
+                find_pat_ids::<_, Ident>(&used.iter().map(|var| var.0.clone()).collect::<Vec<_>>());
+              for pat in used_pat {
+                self.used_exported_map.insert(pat.sym.to_string(), pat);
+              }
+              ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+                span: var.span,
+                kind: var.kind,
+                declare: var.declare,
+                decls: used.into_iter().map(|item| item.0).collect(),
+              }))))
             }
           }
           Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
@@ -383,7 +443,18 @@ impl<'a> Fold for TreeShaker<'a> {
                       id,
                       SymbolType::Temp,
                     ));
-                    self.used_symbol_set.contains(&symbol)
+                    let used = self.used_symbol_set.contains(&symbol);
+                    if used {
+                      let exported = match named_spec.exported {
+                        Some(ref exported) => match exported {
+                          ModuleExportName::Ident(ident) => ident.sym.to_string(),
+                          ModuleExportName::Str(str) => str.value.to_string(),
+                        },
+                        None => ident.sym.to_string(),
+                      };
+                      self.used_exported_map.insert(exported, ident.clone());
+                    }
+                    used
                   }
                   ModuleExportName::Str(_) => {
                     // named export without src has string lit orig is a syntax error
@@ -405,72 +476,81 @@ impl<'a> Fold for TreeShaker<'a> {
           let default_symbol = self.crate_virtual_default_symbol();
 
           let ctxt = default_symbol.id().ctxt;
-          if self
+          let used = self
             .used_symbol_set
-            .contains(&SymbolRef::Direct(default_symbol))
-          {
-            ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultDecl(decl))
-          } else {
-            let decl = match decl.decl {
-              DefaultDecl::Class(class) => {
-                let ident = if let Some(ident) = class.ident {
-                  ident
-                } else {
-                  let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
-                  named.span = named.span.with_ctxt(ctxt);
-                  named
-                };
-                Decl::Class(ClassDecl {
-                  ident,
-                  declare: false,
-                  class: class.class,
-                })
+            .contains(&SymbolRef::Direct(default_symbol));
+          let decl = match decl.decl {
+            DefaultDecl::Class(class) => {
+              let ident = if let Some(ident) = class.ident {
+                ident
+              } else {
+                let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
+                named.span = named.span.with_ctxt(ctxt);
+                named
+              };
+              if used {
+                self
+                  .used_exported_map
+                  .insert(ident.sym.to_string(), ident.clone());
               }
-              DefaultDecl::Fn(func) => {
-                let ident = if let Some(ident) = func.ident {
-                  ident
-                } else {
-                  let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
-                  named.span = named.span.with_ctxt(ctxt);
-                  named
-                };
-                Decl::Fn(FnDecl {
-                  ident,
-                  declare: false,
-                  function: func.function,
-                })
+              Decl::Class(ClassDecl {
+                ident,
+                declare: false,
+                class: class.class,
+              })
+            }
+            DefaultDecl::Fn(func) => {
+              let ident = if let Some(ident) = func.ident {
+                ident
+              } else {
+                let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
+                named.span = named.span.with_ctxt(ctxt);
+                named
+              };
+              if used {
+                self
+                  .used_exported_map
+                  .insert(ident.sym.to_string(), ident.clone());
               }
-              DefaultDecl::TsInterfaceDecl(_) => todo!(),
-            };
-            ModuleItem::Stmt(Stmt::Decl(decl))
-          }
+              Decl::Fn(FnDecl {
+                ident,
+                declare: false,
+                function: func.function,
+              })
+            }
+            DefaultDecl::TsInterfaceDecl(_) => todo!(),
+          };
+          ModuleItem::Stmt(Stmt::Decl(decl))
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
           let default_symbol = SymbolRef::Direct(self.crate_virtual_default_symbol());
-          if self.used_symbol_set.contains(&default_symbol) {
-            ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(expr))
-          } else {
-            // convert the original expr to
-            // var __RSPACK_DEFAULT_EXPORT__ = ${expr}
-            ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
-              span: DUMMY_SP,
-              kind: VarDeclKind::Let,
-              declare: false,
-              decls: vec![VarDeclarator {
-                span: DUMMY_SP,
-                name: Pat::Ident(BindingIdent {
-                  id: Ident {
-                    span: DUMMY_SP,
-                    sym: JsWord::from("__RSPACK_DEFAULT_EXPORT__"),
-                    optional: false,
-                  },
-                  type_ann: None,
-                }),
-                init: Some(expr.expr),
-                definite: false,
-              }],
-            }))))
+          let used = self.used_symbol_set.contains(&default_symbol);
+          // convert the original expr to
+          // var __RSPACK_DEFAULT_EXPORT__ = ${expr}
+          let local_binding = quote_ident!(
+            DUMMY_SP.apply_mark(self.top_level_mark),
+            "__RSPACK_DEFAULT_EXPORT__"
+          );
+          if used {
+            self
+              .used_exported_map
+              .insert("default".to_string(), local_binding.clone());
           }
+          ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+            span: DUMMY_SP,
+            kind: VarDeclKind::Let,
+            declare: false,
+            decls: vec![VarDeclarator {
+              span: DUMMY_SP,
+              name: Pat::Ident(BindingIdent {
+                id: local_binding,
+                type_ann: None,
+              }),
+              init: Some(expr.expr),
+              definite: false,
+            }],
+          }))))
+          // }
         }
         ModuleDecl::ExportAll(ref export_all) => {
           let module_identifier = self

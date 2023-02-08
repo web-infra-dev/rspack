@@ -4,13 +4,12 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "b", {
-    enumerable: true,
-    get: ()=>b
-});
 __webpack_require__.es(__webpack_require__("./foo.js"), exports);
 __webpack_require__.es(__webpack_require__("./result.js"), exports);
 function b() {}
+__webpack_require__.d(exports, {
+    "b": ()=>b
+});
 },
 "./foo.js": function (module, exports, __webpack_require__) {
 "use strict";

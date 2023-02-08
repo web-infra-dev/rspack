@@ -1,12 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./Layout.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "defaults", {
-    enumerable: true,
-    get: ()=>defaults
+__webpack_require__.d(exports, {
+    "defaults": ()=>defaults
 });
 const defaults = {
     test: 1000
@@ -17,15 +13,14 @@ const defaults = {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "Something", {
-    enumerable: true,
-    get: ()=>Something
-});
 const _layoutJs = __webpack_require__("./Layout.js");
 class Test {
     test = _layoutJs.defaults.test + 20000;
 }
 new Test();
+__webpack_require__.d(exports, {
+    "Something": ()=>Something
+});
 var Something = 333;
 },
 "./index.js": function (module, exports, __webpack_require__) {

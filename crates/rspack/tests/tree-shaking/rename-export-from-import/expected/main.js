@@ -9,6 +9,9 @@ Object.defineProperty(exports, "q", {
     get: ()=>_libJs.question
 });
 const _libJs = __webpack_require__("./lib.js");
+__webpack_require__.d(exports, {
+    "q": ()=>_libJs.question
+});
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -20,12 +23,8 @@ _appJs.q;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "question", {
-    enumerable: true,
-    get: ()=>question
+__webpack_require__.d(exports, {
+    "question": ()=>question
 });
 const question = "2";
 },

@@ -4,11 +4,10 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>abc
-});
 const _depJsA = __webpack_require__("./dep.js?a");
+__webpack_require__.d(exports, {
+    "abc": ()=>abc
+});
 function abc() {
     return _depJsA.x;
 }
@@ -36,11 +35,10 @@ abc();
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>def
-});
 const _depJsD = __webpack_require__("./dep.js?d");
+__webpack_require__.d(exports, {
+    "def": ()=>def
+});
 class def {
     method() {
         return _depJsD.x;
@@ -49,97 +47,53 @@ class def {
 },
 "./dep.js?a": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    x: ()=>x,
-    default: ()=>_default
-});
 const x = "x";
-const _default = __webpack_exports_info__.x.used;
+__webpack_require__.d(exports, {
+    "x": ()=>x,
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?b": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = __webpack_exports_info__.x.used;
+let __RSPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?c": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    x: ()=>x,
-    default: ()=>_default
-});
 const x = "x";
-const _default = __webpack_exports_info__.x.used;
+__webpack_require__.d(exports, {
+    "x": ()=>x,
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?d": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    x: ()=>x,
-    default: ()=>_default
-});
 const x = "x";
-const _default = __webpack_exports_info__.x.used;
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__,
+    "x": ()=>x
+});
+let __RSPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?e": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
+__webpack_require__.d(exports, {
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: ()=>_default
-});
-const _default = __webpack_exports_info__.x.used;
+let __RSPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?f": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    x: ()=>x,
-    default: ()=>_default
-});
 const x = "x";
-const _default = __webpack_exports_info__.x.used;
+__webpack_require__.d(exports, {
+    "x": ()=>x,
+    "default": ()=>__RSPACK_DEFAULT_EXPORT__
+});
+let __RSPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./e.js": function (module, exports, __webpack_require__) {
 "use strict";

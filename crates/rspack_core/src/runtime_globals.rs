@@ -24,6 +24,11 @@ pub const REQUIRE: &str = "__webpack_require__";
 pub const MODULE_CACHE: &str = "__webpack_require__.c";
 
 /**
+ * the exported property define getters function
+ */
+pub const MODULE_EXPORTED: &str = "__webpack_require__.d";
+
+/**
  * the chunk ensure function
  */
 pub const ENSURE_CHUNK: &str = "__webpack_require__.e";

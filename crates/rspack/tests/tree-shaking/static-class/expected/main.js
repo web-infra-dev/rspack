@@ -4,10 +4,6 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: ()=>a
-});
 const _bJs = __webpack_require__("./b.js");
 class Test {
     static c = (0, _bJs.bb)();
@@ -15,18 +11,17 @@ class Test {
         _bJs.bb;
     }
 }
+__webpack_require__.d(exports, {
+    "a": ()=>a
+});
 const a = 3;
 },
 "./b.js": function (module, exports, __webpack_require__) {
 "use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "bb", {
-    enumerable: true,
-    get: ()=>bb
-});
 const bb = 2;
+__webpack_require__.d(exports, {
+    "bb": ()=>bb
+});
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
