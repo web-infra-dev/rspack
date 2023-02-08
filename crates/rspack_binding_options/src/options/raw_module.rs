@@ -515,7 +515,7 @@ fn to_compiler_option(
         .into_iter()
         .filter_map(|raw| match to_compiler_option(raw, options) {
           Ok(val) => Some(val),
-          // todo: error?
+          // todo: how to handle error, ignore?
           Err(_err) => None,
         })
         .collect::<Vec<_>>(), // .transpose()?,
