@@ -138,9 +138,9 @@ impl Compiler {
         self.cache.clone(),
       );
 
-      let enable_changed_hmr = self.options.experiments.changed_hmr
+      let enable_incremental_rebuild = self.options.experiments.incremental_rebuild
         && !matches!(self.options.cache, CacheOptions::Disabled);
-      if enable_changed_hmr {
+      if enable_incremental_rebuild {
         // copy field from old compilation
         // new_compilation.visited_module_id = std::mem::take(&mut self.compilation.visited_module_id);
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
@@ -178,7 +178,7 @@ impl Compiler {
         .compilation(&mut self.compilation)
         .await?;
 
-      let setup_make_params = if enable_changed_hmr {
+      let setup_make_params = if enable_incremental_rebuild {
         let mut modified_files = HashSet::default();
         modified_files.extend(changed_files.iter().map(PathBuf::from));
         modified_files.extend(removed_files.iter().map(PathBuf::from));

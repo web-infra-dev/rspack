@@ -5,6 +5,6 @@ export function resolveExperiments(
 ): RawExperiments {
 	return {
 		lazyCompilation: experiments?.lazyCompilation ?? false,
-		changedHmr: experiments?.changedHmr ?? false
+		incrementalRebuild: experiments?.incrementalRebuild ?? false
 	};
 }
