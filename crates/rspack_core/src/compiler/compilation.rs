@@ -16,7 +16,9 @@ use futures::{stream::FuturesUnordered, StreamExt};
 use indexmap::IndexSet;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_database::Database;
-use rspack_error::{internal_error, Diagnostic, Result, Severity, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
+};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
@@ -470,17 +472,26 @@ impl Compilation {
           let result_tx = result_tx.clone();
           let is_expected_shutdown = is_expected_shutdown.clone();
           active_task_count += 1;
+
           async move {
             if is_expected_shutdown.load(Ordering::SeqCst) {
               return;
             }
 
-            let result = task.run().await;
+            let result = CatchUnwindFuture::create(task.run()).await;
 
-            if !is_expected_shutdown.load(Ordering::SeqCst) {
-              result_tx
-                .send(result)
-                .expect("Failed to send factorize result");
+            match result {
+              Ok(result) => {
+                if !is_expected_shutdown.load(Ordering::SeqCst) {
+                  result_tx
+                    .send(result)
+                    .expect("Failed to send factorize result");
+                }
+              }
+              Err(e) => {
+                // panic on the tokio worker thread
+                result_tx.send(Err(e)).expect("Failed to send panic info");
+              }
             }
           }
         });
@@ -497,10 +508,20 @@ impl Compilation {
               return;
             }
 
-            let result = task.run().await;
+            let result = CatchUnwindFuture::create(task.run()).await;
 
-            if !is_expected_shutdown.load(Ordering::SeqCst) {
-              result_tx.send(result).expect("Failed to send build result");
+            match result {
+              Ok(result) => {
+                if !is_expected_shutdown.load(Ordering::SeqCst) {
+                  result_tx
+                    .send(result)
+                    .expect("Failed to send factorize result");
+                }
+              }
+              Err(e) => {
+                // panic on the tokio worker thread
+                result_tx.send(Err(e)).expect("Failed to send panic info");
+              }
             }
           }
         });
