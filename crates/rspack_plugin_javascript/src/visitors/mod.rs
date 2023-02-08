@@ -214,6 +214,7 @@ pub fn run_after_pass(
             // here will remove `use strict`
             strict_mode: false,
             no_interop: !context.is_esm,
+            allow_top_level_this: true,
             ..Default::default()
           })),
           comments,
