@@ -111,7 +111,7 @@ describe("snapshots", () => {
 		    },
 		  },
 		  "experiments": {
-		    "changedHmr": false,
+		    "incrementalRebuild": false,
 		    "lazyCompilation": false,
 		  },
 		  "externals": {},
