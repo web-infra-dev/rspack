@@ -790,36 +790,38 @@ export function resolveModuleOptions(
 
 			return {
 				...rule,
-				oneOf: isNil(rule.oneOf) ? null : formatRule(rule.oneOf),
+				oneOf: isNil(rule.oneOf) ? undefined : formatRule(rule.oneOf),
 				issuer: isNil(rule.issuer)
-					? null
+					? undefined
 					: {
 							not: isNil(rule.issuer.not)
-								? null
+								? undefined
 								: resolveModuleRuleConditions(rule.issuer.not)
 					  },
-				test: isNil(rule.test) ? null : resolveModuleRuleCondition(rule.test),
+				test: isNil(rule.test)
+					? undefined
+					: resolveModuleRuleCondition(rule.test),
 				include: isNil(rule.include)
-					? null
+					? undefined
 					: Array.isArray(rule.include)
 					? resolveModuleRuleConditions(rule.include)
 					: [resolveModuleRuleCondition(rule.include)],
 				exclude: isNil(rule.exclude)
-					? null
+					? undefined
 					: Array.isArray(rule.exclude)
 					? resolveModuleRuleConditions(rule.exclude)
 					: [resolveModuleRuleCondition(rule.exclude)],
 				resource: isNil(rule.resource)
-					? null
+					? undefined
 					: resolveModuleRuleCondition(rule.resource),
 				resourceQuery: isNil(rule.resourceQuery)
-					? null
+					? undefined
 					: resolveModuleRuleCondition(rule.resourceQuery),
 				use: createRawModuleRuleUses(rule.use || [], options),
 				resolve: isNil(rule.resolve)
-					? null
+					? undefined
 					: resolveResolveOptions(rule.resolve, options)
-			} as ResolvedModuleRule;
+			};
 		});
 	const rules = formatRule(module.rules ?? []);
 	return {
