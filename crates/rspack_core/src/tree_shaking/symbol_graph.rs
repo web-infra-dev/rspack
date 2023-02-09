@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 use super::visitor::SymbolRef;
 use crate::contextify;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct SymbolGraph {
   pub(crate) graph: StableDiGraph<SymbolRef, ()>,
   pub(crate) symbol_to_index: FxHashMap<SymbolRef, NodeIndex>,
@@ -73,6 +73,25 @@ impl SymbolGraph {
 
   pub fn node_indexes(&self) -> std::collections::hash_map::Keys<NodeIndex, SymbolRef> {
     self.node_index_to_symbol.keys()
+  }
+
+  pub fn reverse_graph(mut self) -> SymbolGraph {
+    let edges_list = self
+      .graph
+      .edge_indices()
+      .into_iter()
+      .map(|edge_index| {
+        self
+          .graph
+          .edge_endpoints(edge_index)
+          .expect("Can't find EdgeIndex")
+      })
+      .collect::<Vec<_>>();
+    self.graph.clear_edges();
+    for (from, to) in edges_list {
+      self.graph.add_edge(to, from, ());
+    }
+    self
   }
 }
 

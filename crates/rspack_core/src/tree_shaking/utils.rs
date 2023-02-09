@@ -45,3 +45,11 @@ pub fn get_dynamic_import_string_literal(e: &CallExpr) -> Option<JsWord> {
     None
   }
 }
+
+/// # Panic
+/// when module_identifier is not a pattern of xxx|xxxxxxxxxxxxxxxxxx
+pub fn get_path_of_module_identifier<T: AsRef<str>>(path: T) -> String {
+  let t = path.as_ref();
+  let (_, path) = t.split_once('|').expect("Expect have `|` delimiter ");
+  path.to_string()
+}
