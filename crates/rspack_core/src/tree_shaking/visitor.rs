@@ -1029,7 +1029,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         let relative_path = module_path.relative(package_path);
         let is_match = patterns
           .iter()
-          .any(|pattern| glob_match::glob_match(&pattern, &relative_path.to_string_lossy()));
+          .any(|pattern| glob_match::glob_match(pattern, &relative_path.to_string_lossy()));
         Some(is_match)
       }
     };
