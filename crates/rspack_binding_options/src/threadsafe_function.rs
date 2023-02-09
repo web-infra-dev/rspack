@@ -65,14 +65,14 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
   /// Note:
   /// Return an recoverable Rust error is not preferred as it will become a fatal error on the Node side. See `call_js_cb` for more details.
   /// Often, the result of the real call-in-js operation is passed as the `result`.
-  pub fn resolve<P: Send>(
+  pub fn resolve<P>(
     self,
     result: Result<impl NapiRaw>,
     resolver: impl 'static + Send + FnOnce(P) -> Result<R>,
   ) -> Result<()>
   where
     // Pure return value without promise wrapper
-    P: FromNapiValue + 'static,
+    P: FromNapiValue + Send + 'static,
   {
     match result {
       Ok(result) => {
