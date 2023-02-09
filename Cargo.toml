@@ -30,3 +30,6 @@ swc_css           = { version = "0.149.2" }
 swc_html          = { version = "0.105.1" }
 swc_html_minifier = { version = "0.102.1" }
 tracing           = "0.1.34"
+
+[patch.crates-io]
+string_cache = { git = "https://github.com/swc-project/string-cache.git", rev = "db382616e9a1bf71bff2004853c3ab88f85a2235" }
