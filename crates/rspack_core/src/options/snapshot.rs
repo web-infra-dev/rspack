@@ -6,10 +6,10 @@ pub struct SnapshotStrategy {
 
 #[derive(Debug, Clone, Default)]
 pub struct SnapshotOptions {
-  /// Snapshots for resolving of build dependencies when using the persistent cache.
-  pub resolve_build_dependencies: SnapshotStrategy,
-  /// Snapshots for build dependencies when using the persistent cache.
-  pub build_dependencies: SnapshotStrategy,
+  // Snapshots for resolving of build dependencies when using the persistent cache.
+  // pub resolve_build_dependencies: SnapshotStrategy,
+  // Snapshots for build dependencies when using the persistent cache.
+  // pub build_dependencies: SnapshotStrategy,
   /// Snapshots for resolving of requests.
   pub resolve: SnapshotStrategy,
   /// Snapshots for building modules.
