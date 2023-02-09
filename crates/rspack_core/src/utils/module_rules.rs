@@ -111,11 +111,8 @@ pub fn module_rule_matcher_inner<'a>(
         Err(_err) => None,
       }
     });
-    if matched_rule.is_some() {
-      return Ok(matched_rule);
-    } else {
-      return Ok(None);
-    }
+
+    return Ok(matched_rule);
   }
 
   Ok(Some(module_rule))

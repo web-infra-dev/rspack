@@ -469,7 +469,7 @@ pub struct JsLoaderResult {
 #[cfg(feature = "node-api")]
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;
 
-fn to_compiler_option(
+fn to_compiler_module_rule_option(
   rule: RawModuleRule,
   options: &CompilerOptionsBuilder,
 ) -> anyhow::Result<ModuleRule> {
@@ -512,7 +512,7 @@ fn to_compiler_option(
   let one_of: Option<Vec<ModuleRule>> = rule.one_of.map(|one_of| {
     one_of
       .into_iter()
-      .filter_map(|raw| match to_compiler_option(raw, options) {
+      .filter_map(|raw| match to_compiler_module_rule_option(raw, options) {
         Ok(val) => Some(val),
         // todo: how to handle error, ignore?
         Err(_err) => None,
@@ -557,7 +557,7 @@ fn to_compiler_option(
 
 impl RawOption<ModuleRule> for RawModuleRule {
   fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
-    to_compiler_option(self, options)
+    to_compiler_module_rule_option(self, options)
   }
 
   fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
