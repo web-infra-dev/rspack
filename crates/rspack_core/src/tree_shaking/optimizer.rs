@@ -166,6 +166,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     )
   }
 
+  fn query_trace() {}
+
   #[allow(clippy::too_many_arguments)]
   fn mark_bailout_module(
     &mut self,
