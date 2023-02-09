@@ -517,7 +517,7 @@ function composeJsUse(
 				/**
 				 * support loader as string
 				 */
-				let loader: Loader | undefined;
+				let loader: Loader;
 				if (typeof use.loader === "string") {
 					try {
 						const loaderPath = require.resolve(use.loader, {
@@ -541,7 +541,6 @@ function composeJsUse(
 				try {
 					// @ts-expect-error
 					result = loader.apply(loaderContext, [
-						// @ts-expect-error
 						loader.raw ? Buffer.from(content) : content.toString("utf-8"),
 						sourceMap,
 						additionalData
