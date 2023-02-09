@@ -130,6 +130,7 @@ pub fn is_dynamic_import_literal_expr(e: &CallExpr) -> bool {
 pub fn ecma_parse_error_to_rspack_error(
   error: swc_core::ecma::parser::error::Error,
   path: &str,
+  source: String,
   module_type: &ModuleType,
 ) -> Error {
   let (file_type, diagnostic_kind) = match module_type {
@@ -143,6 +144,7 @@ pub fn ecma_parse_error_to_rspack_error(
   let span: ErrorSpan = error.span().into();
   let traceable_error = rspack_error::TraceableError::from_path(
     path.to_string(),
+    Some(source),
     span.start as usize,
     span.end as usize,
     format!("{file_type} parsing error"),

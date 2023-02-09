@@ -108,6 +108,7 @@ pub async fn resolve(
           runtime_message,
           Error::TraceableError(TraceableError::from_path(
             importer.display().to_string(),
+            None,
             span.start as usize,
             span.end as usize,
             "Resolve error".to_string(),

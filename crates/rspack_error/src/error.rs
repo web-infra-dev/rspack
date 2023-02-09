@@ -40,6 +40,7 @@ pub struct TraceableError {
 impl TraceableError {
   pub fn from_path(
     path: String,
+    source: Option<String>,
     start: usize,
     end: usize,
     title: String,
@@ -50,7 +51,7 @@ impl TraceableError {
       start,
       end,
       error_message,
-      source: None,
+      source: source,
       title,
       kind: DiagnosticKind::Internal,
       severity: Severity::Error,

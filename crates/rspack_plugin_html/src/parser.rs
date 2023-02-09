@@ -27,17 +27,23 @@ impl<'a> HtmlCompiler<'a> {
 
   pub fn parse_file(&self, path: &str, source: String) -> Result<TWithDiagnosticArray<Document>> {
     let cm = Lrc::new(SourceMap::new(FilePathMapping::empty()));
-    let fm = cm.new_source_file(FileName::Custom(path.to_string()), source);
+    let fm = cm.new_source_file(FileName::Custom(path.to_string()), source.clone());
 
     let mut errors = vec![];
     let document = parse_file_as_document(fm.as_ref(), ParserConfig::default(), &mut errors);
     let diagnostics: Vec<rspack_error::Diagnostic> = errors
       .into_iter()
-      .flat_map(|error| <Vec<Diagnostic>>::from(html_parse_error_to_traceable_error(error, path)))
+      .flat_map(|error| {
+        <Vec<Diagnostic>>::from(html_parse_error_to_traceable_error(
+          error,
+          path,
+          source.clone(),
+        ))
+      })
       .collect();
     document
       .map(|doc| doc.with_diagnostic(diagnostics))
-      .map_err(|e| html_parse_error_to_traceable_error(e, path))
+      .map_err(|e| html_parse_error_to_traceable_error(e, path, source))
   }
 
   pub fn codegen(&self, ast: &mut Document) -> anyhow::Result<String> {
@@ -60,12 +66,17 @@ impl<'a> HtmlCompiler<'a> {
   }
 }
 
-pub fn html_parse_error_to_traceable_error(error: Error, path: &str) -> rspack_error::Error {
+pub fn html_parse_error_to_traceable_error(
+  error: Error,
+  path: &str,
+  source: String,
+) -> rspack_error::Error {
   let message = error.message();
   let error = error.into_inner();
   let span: ErrorSpan = error.0.into();
   let traceable_error = rspack_error::TraceableError::from_path(
     path.to_string(),
+    Some(source),
     span.start as usize,
     span.end as usize,
     "HTML parsing error".to_string(),
