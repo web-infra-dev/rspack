@@ -17,10 +17,10 @@ opt-level     = 3
 
 
 [workspace.dependencies]
-napi              = { version = "=2.10.6" }
+napi              = { version = "=2.11.0" }
 napi-build        = { version = "=2.0.1" }
-napi-derive       = { version = "=2.9.4" }
-napi-sys          = { version = "=2.2.2" }
+napi-derive       = { version = "=2.11.0" }
+napi-sys          = { version = "=2.2.3" }
 preset_env_base   = { version = "0.4.0" }
 rustc-hash        = { version = "1.1.0" }
 serde             = "1.0.152"
