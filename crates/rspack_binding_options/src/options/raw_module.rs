@@ -13,7 +13,7 @@ use {
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
   rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray},
-  rspack_napi_utils::NapiResultIntoRspackResult,
+  rspack_napi_utils::NapiResultExt,
 };
 
 use crate::{RawOption, RawResolveOptions};

@@ -17,7 +17,7 @@ use napi::bindgen_prelude::{FromNapiValue, Promise, ToNapiValue};
 use napi::{check_status, sys, Env, JsUnknown, NapiRaw, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
 use rspack_error::{internal_error, InternalError};
-use rspack_napi_utils::NapiResultIntoRspackResult;
+use rspack_napi_utils::NapiResultExt;
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
@@ -86,68 +86,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
         |env, r| {
           self
             .tx
-            .send(r.or_else(|err| {
-              let napi_error =
-                unsafe { ToNapiValue::to_napi_value(env.raw(), err) }.into_rspack_result()?;
-
-              let mut value_ptr = ptr::null_mut();
-
-              check_status!(
-                unsafe {
-                  sys::napi_get_named_property(
-                    env.raw(),
-                    napi_error,
-                    CStr::from_bytes_with_nul_unchecked(b"stack\0").as_ptr(),
-                    &mut value_ptr,
-                  )
-                },
-                "failed to get the error message"
-              )
-              .into_rspack_result()?;
-
-              let mut str_len = 0;
-              check_status!(
-                unsafe {
-                  sys::napi_get_value_string_utf8(
-                    env.raw(),
-                    value_ptr,
-                    ptr::null_mut(),
-                    0,
-                    &mut str_len,
-                  )
-                },
-                "failed to get the error message"
-              )
-              .into_rspack_result()?;
-
-              str_len += 1;
-              let mut buf = Vec::with_capacity(str_len);
-              let mut copied_len = 0;
-
-              check_status!(
-                unsafe {
-                  sys::napi_get_value_string_utf8(
-                    env.raw(),
-                    value_ptr,
-                    buf.as_mut_ptr(),
-                    str_len,
-                    &mut copied_len,
-                  )
-                },
-                "failed to get the error message"
-              )
-              .into_rspack_result()?;
-
-              let mut buf = std::mem::ManuallyDrop::new(buf);
-
-              let buf =
-                unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
-
-              let message = String::from_utf8(buf)
-                .map_err(|err| internal_error!("Failed to convert error to UTF-8"))?;
-
-              Err(internal_error!(message))
-            }))
+            .send(r.into_rspack_result_with_detail(env))
             .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
         },
       )?;
@@ -162,7 +101,7 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
 
     self
       .tx
-      .send(p.into_rspack_result())
+      .send(p.into_rspack_result_with_detail(&self.env))
       .map_err(|_| napi::Error::from_reason("Failed to resolve".to_string()))
   }
 }

@@ -89,8 +89,12 @@ impl From<Error> for Vec<Diagnostic> {
         severity: err.severity,
         ..Default::default()
       },
-      Error::Napi { status, reason } => Diagnostic {
-        message: format!("Napi Error: {status} - {reason}"),
+      Error::Napi {
+        status,
+        reason,
+        backtrace,
+      } => Diagnostic {
+        message: format!("Napi Error: {status} - {reason}\n{backtrace}"),
         source_info: None,
         start: 0,
         end: 0,
