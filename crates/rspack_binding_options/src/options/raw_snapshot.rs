@@ -16,8 +16,6 @@ pub struct RawSnapshotStrategy {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawSnapshotOptions {
-  pub resolve_build_dependencies: RawSnapshotStrategy,
-  pub build_dependencies: RawSnapshotStrategy,
   pub resolve: RawSnapshotStrategy,
   pub module: RawSnapshotStrategy,
 }
@@ -28,15 +26,6 @@ impl RawOption<SnapshotOptions> for RawSnapshotOptions {
     _options: &CompilerOptionsBuilder,
   ) -> anyhow::Result<SnapshotOptions> {
     let RawSnapshotOptions {
-      resolve_build_dependencies:
-        RawSnapshotStrategy {
-          hash: a,
-          timestamp: b,
-        },
-      build_dependencies: RawSnapshotStrategy {
-        hash: c,
-        timestamp: d,
-      },
       resolve: RawSnapshotStrategy {
         hash: e,
         timestamp: f,
@@ -48,14 +37,6 @@ impl RawOption<SnapshotOptions> for RawSnapshotOptions {
     } = self;
 
     Ok(SnapshotOptions {
-      resolve_build_dependencies: SnapshotStrategy {
-        hash: a,
-        timestamp: b,
-      },
-      build_dependencies: SnapshotStrategy {
-        hash: c,
-        timestamp: d,
-      },
       resolve: SnapshotStrategy {
         hash: e,
         timestamp: f,
