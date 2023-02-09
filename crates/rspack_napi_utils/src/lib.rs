@@ -55,8 +55,8 @@ fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, O
   let stack_or_message = match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {
     Ok(napi_error) => match try_extract_string_value_from_property(env, napi_error, "stack") {
       Err(_) => match try_extract_string_value_from_property(env, napi_error, "message") {
-        Err(_) => ("Unknown NAPI error".to_owned(), None),
-        Ok(message) => (message, None),
+        Err(_) => ("Unknown NAPI error".to_owned(), Some(get_backtrace())),
+        Ok(message) => (message, Some(get_backtrace())),
       },
       Ok(message) => (message, None),
     },
