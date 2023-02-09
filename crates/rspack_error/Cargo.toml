@@ -10,6 +10,7 @@ version    = "0.1.0"
 [dependencies]
 anyhow             = { version = "1.0.61", features = ["backtrace"] }
 codespan-reporting = "0.11.1"
+futures            = "0.3.26"
 json               = "0.12.4"
 sugar_path         = "0.0.9"
 termcolor          = "1.1"

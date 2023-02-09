@@ -7,6 +7,7 @@ use napi::bindgen_prelude::*;
 use napi::{check_status, Env, Error, JsFunction, JsUnknown, NapiRaw, Result};
 use napi_derive::napi;
 use once_cell::sync::OnceCell;
+use rspack_error::CatchUnwindFuture;
 
 use crate::threadsafe_function::{
   ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
@@ -134,10 +135,23 @@ where
   })?;
 
   napi::bindgen_prelude::spawn(async move {
+    let fut = CatchUnwindFuture::create(fut);
     let res = fut.await;
-    tsfn
-      .call(res, ThreadsafeFunctionCallMode::NonBlocking)
-      .expect("Failed to call JS callback");
+    match res {
+      Ok(result) => {
+        tsfn
+          .call(result, ThreadsafeFunctionCallMode::NonBlocking)
+          .expect("Failed to call JS callback");
+      }
+      Err(e) => {
+        tsfn
+          .call(
+            Err(Error::from_reason(format!("{e}"))),
+            ThreadsafeFunctionCallMode::NonBlocking,
+          )
+          .expect("Failed to send panic info");
+      }
+    }
   });
 
   Ok(())

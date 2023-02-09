@@ -1,7 +1,9 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 
+mod catch_unwind;
 mod diagnostic;
 mod error;
+pub use catch_unwind::*;
 pub use diagnostic::*;
 pub use error::*;
 pub mod emitter;
