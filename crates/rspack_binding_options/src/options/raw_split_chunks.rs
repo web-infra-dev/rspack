@@ -1,11 +1,8 @@
 use std::{collections::HashMap, sync::Arc};
 
 use napi_derive::napi;
-use rspack_core::CompilerOptionsBuilder;
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
-
-use crate::RawOption;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,20 +27,16 @@ pub struct RawSplitChunksOptions {
   //   pub max_initial_size: usize,
 }
 
-impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
-  #[allow(clippy::field_reassign_with_default)]
-  fn to_compiler_option(
-    self,
-    _options: &CompilerOptionsBuilder,
-  ) -> anyhow::Result<SplitChunksOptions> {
+impl From<RawSplitChunksOptions> for SplitChunksOptions {
+  fn from(value: RawSplitChunksOptions) -> Self {
     let mut defaults = SplitChunksOptions::default();
-    defaults.max_async_requests = self.max_async_requests;
-    defaults.max_initial_requests = self.max_initial_requests;
-    defaults.min_chunks = self.min_chunks;
-    defaults.min_size = self.min_size;
-    defaults.enforce_size_threshold = self.enforce_size_threshold;
-    defaults.min_remaining_size = self.min_remaining_size;
-    defaults.chunks = self.chunks.map(|chunks| match chunks.as_str() {
+    defaults.max_async_requests = value.max_async_requests;
+    defaults.max_initial_requests = value.max_initial_requests;
+    defaults.min_chunks = value.min_chunks;
+    defaults.min_size = value.min_size;
+    defaults.enforce_size_threshold = value.enforce_size_threshold;
+    defaults.min_remaining_size = value.min_remaining_size;
+    defaults.chunks = value.chunks.map(|chunks| match chunks.as_str() {
       "initial" => ChunkType::Initial,
       "async" => ChunkType::Async,
       "all" => ChunkType::All,
@@ -53,7 +46,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
     defaults
       .cache_groups
       .extend(
-        self
+        value
           .cache_groups
           .unwrap_or_default()
           .into_iter()
@@ -86,20 +79,7 @@ impl RawOption<SplitChunksOptions> for RawSplitChunksOptions {
             )
           }),
       );
-    Ok(defaults)
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    RawSplitChunksOptions {
-      cache_groups: None,
-      chunks: None,
-      max_async_requests: None,
-      max_initial_requests: None,
-      min_chunks: None,
-      min_size: None,
-      enforce_size_threshold: None,
-      min_remaining_size: None,
-    }
+    defaults
   }
 }
 

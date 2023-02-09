@@ -11,7 +11,7 @@ version    = "0.1.0"
 rspack = { path = "../rspack" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
-rspack_test = { path = "../rspack_test" }
+rspack_testing = { path = "../rspack_testing" }
 tokio = { version = "1.21.0", features = [
   "rt",
   "rt-multi-thread",

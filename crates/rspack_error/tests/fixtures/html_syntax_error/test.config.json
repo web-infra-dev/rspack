@@ -1,0 +1,9 @@
+{
+	"builtins": {
+		"html": [
+			{
+				"template": "index.html"
+			}
+		]
+	}
+}

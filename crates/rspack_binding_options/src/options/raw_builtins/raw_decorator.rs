@@ -10,17 +10,11 @@ pub struct RawDecoratorOptions {
   pub emit_metadata: bool,
 }
 
-pub fn transform_to_decorator_options(
-  raw: Option<RawDecoratorOptions>,
-) -> Option<DecoratorOptions> {
-  raw.map(|inner| {
-    let RawDecoratorOptions {
-      legacy,
-      emit_metadata,
-    } = inner;
-    DecoratorOptions {
-      legacy,
-      emit_metadata,
+impl From<RawDecoratorOptions> for DecoratorOptions {
+  fn from(value: RawDecoratorOptions) -> Self {
+    Self {
+      legacy: value.legacy,
+      emit_metadata: value.emit_metadata,
     }
-  })
+  }
 }

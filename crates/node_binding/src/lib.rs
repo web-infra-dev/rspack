@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use dashmap::DashMap;
 use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
+use rspack_core::Plugin;
 
 mod js_values;
 mod plugins;
@@ -127,25 +128,18 @@ impl Rspack {
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
-    let compiler_options = {
-      let mut options =
-        normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{e}")))?;
+    let mut plugins = Vec::new();
+    if let Some(js_hooks) = js_hooks {
+      plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks)?.boxed());
+    }
 
-      if let Some(hooks_adapter) = js_hooks
-        .map(|js_hooks| JsHooksAdapter::from_js_hooks(env, js_hooks))
-        .transpose()?
-      {
-        options
-          .plugins
-          .push(Box::new(hooks_adapter) as Box<dyn rspack_core::Plugin>);
-      };
-
-      options
-    };
+    let mut compiler_options = options
+      .apply(&mut plugins)
+      .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
-    let rspack = rspack::rspack(compiler_options, vec![]);
+    let rspack = rspack_core::Compiler::new(compiler_options, plugins);
 
     let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
     unsafe { COMPILERS.insert_if_vacant(id, rspack) }?;

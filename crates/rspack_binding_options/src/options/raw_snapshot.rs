@@ -1,8 +1,6 @@
 use napi_derive::napi;
-use rspack_core::{CompilerOptionsBuilder, SnapshotOptions, SnapshotStrategy};
+use rspack_core::{SnapshotOptions, SnapshotStrategy};
 use serde::Deserialize;
-
-use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -10,6 +8,15 @@ use crate::RawOption;
 pub struct RawSnapshotStrategy {
   pub hash: bool,
   pub timestamp: bool,
+}
+
+impl From<RawSnapshotStrategy> for SnapshotStrategy {
+  fn from(value: RawSnapshotStrategy) -> Self {
+    Self {
+      hash: value.hash,
+      timestamp: value.timestamp,
+    }
+  }
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -20,35 +27,13 @@ pub struct RawSnapshotOptions {
   pub module: RawSnapshotStrategy,
 }
 
-impl RawOption<SnapshotOptions> for RawSnapshotOptions {
-  fn to_compiler_option(
-    self,
-    _options: &CompilerOptionsBuilder,
-  ) -> anyhow::Result<SnapshotOptions> {
-    let RawSnapshotOptions {
-      resolve: RawSnapshotStrategy {
-        hash: e,
-        timestamp: f,
-      },
-      module: RawSnapshotStrategy {
-        hash: g,
-        timestamp: h,
-      },
-    } = self;
+impl From<RawSnapshotOptions> for SnapshotOptions {
+  fn from(value: RawSnapshotOptions) -> Self {
+    let RawSnapshotOptions { resolve, module } = value;
 
-    Ok(SnapshotOptions {
-      resolve: SnapshotStrategy {
-        hash: e,
-        timestamp: f,
-      },
-      module: SnapshotStrategy {
-        hash: g,
-        timestamp: h,
-      },
-    })
-  }
-
-  fn fallback_value(_: &CompilerOptionsBuilder) -> Self {
-    Default::default()
+    SnapshotOptions {
+      resolve: resolve.into(),
+      module: module.into(),
+    }
   }
 }

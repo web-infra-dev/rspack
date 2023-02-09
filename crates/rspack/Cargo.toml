@@ -11,8 +11,7 @@ version    = "0.1.0"
 criterion              = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
 insta                  = "1.19.0"
 rspack_binding_options = { path = "../rspack_binding_options" }
-rspack_test            = { path = "../rspack_test" }
-rspack_test_utils      = { path = "../rspack_test_utils" }
+rspack_testing         = { path = "../rspack_testing" }
 serde                  = { version = "1", features = ["derive"] }
 serde_json             = "1"
 testing_macros         = "0.2.5"

@@ -119,16 +119,6 @@ impl Compiler {
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
     self.cache.begin_idle().await;
 
-    #[cfg(debug_assertions)]
-    {
-      if self.options.__emit_error {
-        let stats = crate::Stats::new(&self.compilation);
-        stats
-          .emit_diagnostics()
-          .expect("failed to emit diagnostics");
-      }
-    }
-
     Ok(())
   }
 

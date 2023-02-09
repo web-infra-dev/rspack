@@ -33,6 +33,7 @@ pub trait Plugin: Debug + Send + Sync {
   fn name(&self) -> &'static str {
     "unknown"
   }
+
   fn apply(&mut self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
     Ok(())
   }
@@ -228,6 +229,18 @@ pub trait Plugin: Debug + Send + Sync {
 
   async fn after_emit(&mut self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
+  }
+}
+
+pub type BoxPlugin = Box<dyn Plugin>;
+
+pub trait PluginExt {
+  fn boxed(self) -> BoxPlugin;
+}
+
+impl<T: Plugin + 'static> PluginExt for T {
+  fn boxed(self) -> BoxPlugin {
+    Box::new(self)
   }
 }
 

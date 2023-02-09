@@ -1,0 +1,425 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TestConfig",
+  "description": "The configuration is used to configure the test in Rust. The structure should be closed to the webpack configuration.",
+  "type": "object",
+  "properties": {
+    "builtins": {
+      "$ref": "#/definitions/Builtins"
+    },
+    "debug": {
+      "$ref": "#/definitions/Debug"
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/EntryItem"
+      }
+    },
+    "module": {
+      "$ref": "#/definitions/Module"
+    },
+    "optimization": {
+      "$ref": "#/definitions/Optimization"
+    },
+    "output": {
+      "$ref": "#/definitions/Output"
+    },
+    "target": {
+      "default": [
+        "web",
+        "es2022"
+      ],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Builtins": {
+      "type": "object",
+      "properties": {
+        "css": {
+          "$ref": "#/definitions/Css"
+        },
+        "define": {
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "html": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HtmlPluginConfig"
+          }
+        },
+        "postcss": {
+          "$ref": "#/definitions/Postcss"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Css": {
+      "type": "object",
+      "properties": {
+        "presetEnv": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "Debug": {
+      "type": "object",
+      "properties": {
+        "sideEffects": {
+          "default": false,
+          "type": "boolean"
+        },
+        "treeshake": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "EntryItem": {
+      "type": "object",
+      "required": [
+        "import"
+      ],
+      "properties": {
+        "import": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "runtime": {
+          "default": "runtime",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "HtmlPluginConfig": {
+      "type": "object",
+      "properties": {
+        "chunks": {
+          "description": "entry_chunk_name (only entry chunks are supported)",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludedChunks": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "favicon": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "filename": {
+          "description": "emitted file name in output path",
+          "default": "index.html",
+          "type": "string"
+        },
+        "inject": {
+          "description": "`head`, `body` or None",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HtmlPluginConfigInject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "meta": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "minify": {
+          "default": false,
+          "type": "boolean"
+        },
+        "publicPath": {
+          "description": "path or `auto`",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scriptLoading": {
+          "description": "`blocking`, `defer`, or `module`",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HtmlPluginConfigScriptLoading"
+            }
+          ]
+        },
+        "sri": {
+          "description": "hash func that used in subsource integrity sha384, sha256 or sha512",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/HtmlSriHashFunction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "template": {
+          "description": "template html file",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "templateParameters": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "HtmlPluginConfigInject": {
+      "type": "string",
+      "enum": [
+        "head",
+        "body"
+      ]
+    },
+    "HtmlPluginConfigScriptLoading": {
+      "type": "string",
+      "enum": [
+        "blocking",
+        "defer",
+        "module"
+      ]
+    },
+    "HtmlSriHashFunction": {
+      "type": "string",
+      "enum": [
+        "sha256",
+        "sha384",
+        "sha512"
+      ]
+    },
+    "Module": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Rule"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ModuleRule": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "matcher",
+            "type"
+          ],
+          "properties": {
+            "matcher": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "regexp"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Optimization": {
+      "type": "object",
+      "properties": {
+        "removeAvailableModules": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Output": {
+      "type": "object",
+      "properties": {
+        "chunkFilename": {
+          "default": "[name][ext]",
+          "type": "string"
+        },
+        "cssChunkFilename": {
+          "default": "[name][ext]",
+          "type": "string"
+        },
+        "cssFilename": {
+          "default": "[name][ext]",
+          "type": "string"
+        },
+        "filename": {
+          "default": "[name][ext]",
+          "type": "string"
+        },
+        "publicPath": {
+          "default": "auto",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Postcss": {
+      "type": "object",
+      "properties": {
+        "pxtorem": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PxToRem"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "PxToRem": {
+      "type": "object",
+      "properties": {
+        "mediaQuery": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "minPixelValue": {
+          "default": null,
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        },
+        "propList": {
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "replace": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "rootValue": {
+          "default": null,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "selectorBlackList": {
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "unitPrecision": {
+          "default": null,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "Rule": {
+      "type": "object",
+      "properties": {
+        "sideEffect": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "test": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ModuleRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

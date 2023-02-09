@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
 use insta::Settings;
-use rspack_binding_options::RawOptions;
-use rspack_core::{CompilerOptions, Stats};
-use rspack_test::{fixture, test_options::RawOptionsExt};
+use rspack_core::{Compiler, Stats};
+use rspack_testing::{apply_from_fixture, fixture};
 use rspack_tracing::enable_tracing_by_env;
 
 #[tokio::main]
@@ -11,8 +10,8 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   fixture_path: &PathBuf,
   f: F,
 ) -> rspack_error::Result<()> {
-  let options: CompilerOptions = RawOptions::from_fixture(fixture_path).to_compiler_options();
-  let mut compiler = rspack::rspack(options, Default::default());
+  let (options, plugins) = apply_from_fixture(fixture_path);
+  let mut compiler = Compiler::new(options, plugins);
 
   compiler
     .build()

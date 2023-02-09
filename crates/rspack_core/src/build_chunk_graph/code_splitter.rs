@@ -207,7 +207,7 @@ impl<'me> CodeSplitter<'me> {
     if self
       .compilation
       .options
-      .optimizations
+      .optimization
       .remove_available_modules
     {
       self.remove_parent_modules();

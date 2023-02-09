@@ -1,6 +1,5 @@
 use napi_derive::napi;
-use rspack_plugin_css::pxtorem::option::PxToRemOption;
-// use rspack_plugin_css::pxtorem::option;
+use rspack_plugin_css::{plugin::PostcssConfig, pxtorem::options::PxToRemOptions};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
@@ -8,6 +7,14 @@ use serde::{Deserialize, Serialize};
 #[napi(object)]
 pub struct RawPostCssConfig {
   pub pxtorem: Option<RawPxToRemConfig>,
+}
+
+impl From<RawPostCssConfig> for PostcssConfig {
+  fn from(value: RawPostCssConfig) -> Self {
+    Self {
+      pxtorem: value.pxtorem.map(|item| item.into()),
+    }
+  }
 }
 
 // postcss-px-to-rem
@@ -24,21 +31,16 @@ pub struct RawPxToRemConfig {
   pub min_pixel_value: Option<f64>,
 }
 
-#[allow(clippy::from_over_into)]
-/// I need to use `Into` instead of `From` because
-/// using `From` means I need to import [RawPostCssConfig]
-/// in `rspack_plugin_css` which lead a cycle reference
-/// `rspack_plugin_css <- rspack_binding_options` <- `rspack_plugin_css`
-impl Into<PxToRemOption> for RawPxToRemConfig {
-  fn into(self) -> PxToRemOption {
-    PxToRemOption {
-      root_value: self.root_value,
-      unit_precision: self.unit_precision,
-      selector_black_list: self.selector_black_list,
-      prop_list: self.prop_list,
-      replace: self.replace,
-      media_query: self.media_query,
-      min_pixel_value: self.min_pixel_value,
+impl From<RawPxToRemConfig> for PxToRemOptions {
+  fn from(value: RawPxToRemConfig) -> Self {
+    Self {
+      root_value: value.root_value,
+      unit_precision: value.unit_precision,
+      selector_black_list: value.selector_black_list,
+      prop_list: value.prop_list,
+      replace: value.replace,
+      media_query: value.media_query,
+      min_pixel_value: value.min_pixel_value,
     }
   }
 }

@@ -25,11 +25,12 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 
 use crate::{
-  contextify, is_async_dependency, AssetGeneratorOptions, AssetParserOptions, BoxModule,
-  BoxedLoader, BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  CompilerOptions, Context, Dependency, DependencyId, GenerateContext, LibIdentOptions, Module,
-  ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
+  contextify, identifier::Identifiable, is_async_dependency, AssetGeneratorOptions,
+  AssetParserOptions, BoxLoader, BoxModule, BuildContext, BuildResult, ChunkGraph,
+  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, DependencyId,
+  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -114,11 +115,8 @@ impl ModuleGraphModule {
   }
 
   pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
-    chunk_graph
-      .get_module_id(self.module_identifier)
-      .as_ref()
-      .expect("module id not found")
-      .as_str()
+    let c = chunk_graph.get_module_id(self.module_identifier).as_ref();
+    c.expect("module id not found").as_str()
   }
 
   pub fn add_incoming_connection(&mut self, connection_id: usize) {
@@ -321,7 +319,7 @@ pub struct NormalModule {
   /// Resource data (path, query, fragment etc.)
   resource_data: ResourceData,
   /// Loaders for the module
-  loaders: Vec<BoxedLoader>,
+  loaders: Vec<BoxLoader>,
 
   /// Original content of this module, will be available after module build
   original_source: Option<Box<dyn Source>>,
@@ -383,7 +381,7 @@ impl NormalModule {
     generator_options: Option<AssetGeneratorOptions>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
-    loaders: Vec<BoxedLoader>,
+    loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
   ) -> Self {
     let module_type = module_type.into();

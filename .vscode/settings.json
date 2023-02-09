@@ -23,7 +23,7 @@
         "test.config.json"
       ],
       // Point to the options schema of rspack.
-      "url": "./crates/rspack_test_utils/test.config.scheme.json"
+      "url": "./crates/rspack_testing/test.config.scheme.json"
     }
   ],
   "rust-analyzer.procMacro.enable": true,

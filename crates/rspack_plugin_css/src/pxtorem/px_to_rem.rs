@@ -13,11 +13,11 @@ use super::{
   filter_prop_list::{
     contain, ends_with, exact, not_contain, not_ends_with, not_exact, not_starts_with, starts_with,
   },
-  option::PxToRemOption,
+  options::PxToRemOptions,
 };
 
-impl From<PxToRemOption> for PxToRem {
-  fn from(option: PxToRemOption) -> Self {
+impl From<PxToRemOptions> for PxToRem {
+  fn from(option: PxToRemOptions) -> Self {
     let mut ret = PxToRem {
       root_value: option.root_value.unwrap_or(16u32),
       unit_precision: option.unit_precision.unwrap_or(5u32),
@@ -347,7 +347,7 @@ impl VisitMut for PxToRem {
   }
 }
 
-pub fn px_to_rem(option: PxToRemOption) -> impl VisitMut {
+pub fn px_to_rem(option: PxToRemOptions) -> impl VisitMut {
   PxToRem::from(option)
 }
 

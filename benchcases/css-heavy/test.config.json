@@ -1,0 +1,9 @@
+{
+	"builtins": {
+		"postcss": {
+			"pxtorem": {
+				"propList": ["*"]
+			}
+		}
+	}
+}

@@ -9,7 +9,7 @@ use rspack_core::{
   LoaderRunnerAdditionalContext, ResourceData, SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
-use rspack_test::{fixture, rspack_only::options_noop, test_fixture};
+use rspack_testing::{fixture, test_fixture};
 use sass_embedded::Url;
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
@@ -38,6 +38,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           context: rspack_core::Context::default(),
           dev_server: rspack_core::DevServerOptions::default(),
           devtool: rspack_core::Devtool::default(),
+          mode: rspack_core::Mode::None,
           output: rspack_core::OutputOptions {
             path: Default::default(),
             public_path: Default::default(),
@@ -48,23 +49,20 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
             css_chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             css_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             library: None,
-            strict_module_error_handling: None,
+            strict_module_error_handling: false,
           },
           target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
           resolve: rspack_core::Resolve::default(),
           builtins: Default::default(),
-          plugins: Default::default(),
           module: Default::default(),
-          external: Default::default(),
-          external_type: ExternalType::Auto,
+          externals: Default::default(),
+          externals_type: ExternalType::Auto,
           stats: Default::default(),
           cache: Default::default(),
           snapshot: Default::default(),
-          module_ids: rspack_core::ModuleIds::Named,
           experiments: Default::default(),
           node: Default::default(),
-          __emit_error: false,
-          optimizations: rspack_core::Optimizations {
+          optimization: rspack_core::Optimization {
             remove_available_modules: false,
             side_effects: SideEffectOption::False,
           },
@@ -94,5 +92,5 @@ async fn rspack_importer() {
 
 #[fixture("tests/fixtures/*")]
 fn sass(fixture_path: PathBuf) {
-  test_fixture(&fixture_path, options_noop);
+  test_fixture(&fixture_path);
 }

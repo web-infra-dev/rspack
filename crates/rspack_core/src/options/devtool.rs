@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use bitflags::bitflags;
 
 bitflags! {
@@ -79,10 +77,8 @@ impl Devtool {
   }
 }
 
-impl FromStr for Devtool {
-  type Err = anyhow::Error;
-
-  fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl From<String> for Devtool {
+  fn from(s: String) -> Self {
     let mut devtool = Self::default();
     if s.contains("source-map") {
       devtool.add_source_map();
@@ -105,6 +101,6 @@ impl FromStr for Devtool {
     if s.contains("eval") {
       devtool.add_eval();
     }
-    Ok(devtool)
+    devtool
   }
 }

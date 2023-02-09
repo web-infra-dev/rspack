@@ -1,8 +1,6 @@
 use napi_derive::napi;
-use rspack_core::{CompilerOptionsBuilder, Experiments};
+use rspack_core::Experiments;
 use serde::Deserialize;
-
-use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -12,15 +10,11 @@ pub struct RawExperiments {
   pub incremental_rebuild: bool,
 }
 
-impl RawOption<Experiments> for RawExperiments {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Experiments> {
-    Ok(Experiments {
-      lazy_compilation: self.lazy_compilation,
-      incremental_rebuild: self.incremental_rebuild,
-    })
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    Default::default()
+impl From<RawExperiments> for Experiments {
+  fn from(value: RawExperiments) -> Self {
+    Self {
+      lazy_compilation: value.lazy_compilation,
+      incremental_rebuild: value.incremental_rebuild,
+    }
   }
 }

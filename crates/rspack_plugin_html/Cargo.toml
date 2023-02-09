@@ -5,8 +5,12 @@ name       = "rspack_plugin_html"
 repository = "https://github.com/modern-js-dev/rspack"
 version    = "0.1.0"
 
+[features]
+default = []
+testing = ["dep:schemars"]
+
 [dev-dependencies]
-rspack_test = { path = "../rspack_test" }
+rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
 anyhow            = "1"
@@ -19,6 +23,7 @@ rayon             = "1.5.3"
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
 rustc-hash        = { workspace = true }
+schemars          = { version = "0.8.11", optional = true }
 serde             = { version = "1", features = ["derive"] }
 serde_json        = "1"
 sha2              = "0.10.2"

@@ -1,28 +1,16 @@
-use std::{env, str::FromStr};
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Mode {
   Development,
   Production,
+  None,
 }
 
-impl FromStr for Mode {
-  type Err = anyhow::Error;
-
-  fn from_str(s: &str) -> anyhow::Result<Mode> {
-    let mode_string = if s.is_empty() {
-      match env::var("NODE_ENV") {
-        Ok(value) => value,
-        Err(_) => String::from("production"),
-      }
-    } else {
-      s.to_string()
-    };
-
-    if mode_string.eq("development") {
-      Ok(Self::Development)
-    } else {
-      Ok(Self::Production)
+impl From<String> for Mode {
+  fn from(value: String) -> Self {
+    match value.as_ref() {
+      "none" => Self::None,
+      "development" => Self::Development,
+      _ => Self::Production,
     }
   }
 }

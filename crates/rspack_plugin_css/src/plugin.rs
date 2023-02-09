@@ -3,7 +3,6 @@ use std::cmp;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 use std::str::FromStr;
-use std::string::ParseError;
 use std::sync::Arc;
 
 use anyhow::bail;
@@ -24,7 +23,8 @@ use rspack_core::{
   PathData, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
+  AstOrSource, CssImportDependency, Filename, IdentifierSet, ModuleAst, ModuleDependency,
+  ModuleIdentifier,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -45,7 +45,7 @@ use xxhash_rust::xxh3::Xxh3;
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::visitors::{analyze_imports_with_path, rewrite_url};
 use crate::{
-  pxtorem::{option::PxToRemOption, px_to_rem::px_to_rem},
+  pxtorem::{options::PxToRemOptions, px_to_rem::px_to_rem},
   visitors::analyze_dependencies,
   SWC_COMPILER,
 };
@@ -57,7 +57,7 @@ pub struct CssPlugin {
 
 #[derive(Debug, Clone, Default)]
 pub struct PostcssConfig {
-  pub pxtorem: Option<PxToRemOption>,
+  pub pxtorem: Option<PxToRemOptions>,
 }
 
 #[derive(Debug, Clone)]
@@ -71,14 +71,6 @@ pub struct ModulesConfig {
 pub struct LocalIdentName(Filename);
 
 impl LocalIdentName {
-  pub fn with_mode(mode: Option<Mode>) -> Self {
-    if matches!(mode, Some(Mode::Production)) {
-      LocalIdentName::from_str("[hash]").expect("TODO:")
-    } else {
-      LocalIdentName::from_str("[path][name][ext]__[local]").expect("TODO:")
-    }
-  }
-
   pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
     let mut s = self.0.render(options.filename_options);
     if let Some(local) = options.local {
@@ -88,11 +80,9 @@ impl LocalIdentName {
   }
 }
 
-impl FromStr for LocalIdentName {
-  type Err = ParseError;
-
-  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-    Ok(Self(Filename::from_str(s)?))
+impl From<String> for LocalIdentName {
+  fn from(value: String) -> Self {
+    Self(Filename::from(value))
   }
 }
 
