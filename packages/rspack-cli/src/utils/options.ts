@@ -32,6 +32,11 @@ export const commonOptions = (yargs: yargs.Argv<{}>) => {
 				type: "boolean",
 				default: false,
 				describe: "devtool"
+			},
+			configName: {
+				type: "array",
+				string: true,
+				describe: "Name of the configuration to use."
 			}
 		});
 };

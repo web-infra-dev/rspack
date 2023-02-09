@@ -85,9 +85,7 @@ export interface RspackOptionsNormalized {
 	entry: ResolvedEntry;
 	context: ResolvedContext;
 	plugins: PluginInstance[];
-	// TODO: this is optional in webpack, but we need 'devServer.hot' to enable
-	// HMR which is implemented in rust side.
-	devServer: DevServer;
+	devServer?: DevServer;
 	module: ResolvedModule;
 	target: ResolvedTarget;
 	mode: ResolvedMode;
@@ -176,7 +174,7 @@ export function getNormalizedRspackOptions(
 		node,
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
-		devServer: config.devServer ?? {}
+		devServer: config.devServer
 	};
 }
 

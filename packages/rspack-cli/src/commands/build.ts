@@ -3,6 +3,8 @@ import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
 import { Stats } from "@rspack/core/src/stats";
+import { Compiler } from "@rspack/core";
+import MultiStats from "@rspack/core/src/multiStats";
 
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
@@ -28,7 +30,7 @@ export class BuildCommand implements RspackCommand {
 					createJsonStringifyStream = jsonExt.stringifyStream;
 				}
 
-				const callback = (error, stats: Stats) => {
+				const callback = (error, stats: Stats | MultiStats) => {
 					if (error) {
 						logger.error(error);
 						process.exit(2);
@@ -39,7 +41,13 @@ export class BuildCommand implements RspackCommand {
 					if (!compiler || !stats) {
 						return;
 					}
-					const statsOptions = compiler.options
+					const statsOptions = cli.isMultipleCompiler(compiler)
+						? {
+								children: compiler.compilers.map(compiler =>
+									compiler.options ? compiler.options.stats : undefined
+								)
+						  }
+						: compiler.options
 						? compiler.options.stats
 						: undefined;
 					if (options.json && createJsonStringifyStream) {

@@ -50,12 +50,15 @@ export interface Node<T> {
 		| "done";
 }
 
-export type MultiCompilerOptions = {
+export interface MultiCompilerOptions extends ReadonlyArray<RspackOptions> {
 	/**
 	 * how many Compilers are allows to run at the same time in parallel
 	 */
 	parallelism?: number;
-} & RspackOptions[];
+}
+
+export type MultiRspackOptions = ReadonlyArray<RspackOptions> &
+	MultiCompilerOptions;
 
 export class MultiCompiler {
 	// @ts-expect-error

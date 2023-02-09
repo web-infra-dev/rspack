@@ -9,11 +9,15 @@ import util from "util";
 
 import { RspackOptionsApply } from "./rspackOptionsApply";
 import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
-import { MultiCompiler, MultiCompilerOptions } from "./multiCompiler";
+import {
+	MultiCompiler,
+	MultiCompilerOptions,
+	MultiRspackOptions
+} from "./multiCompiler";
+import { Callback } from "tapable";
 import MultiStats from "./multiStats";
-type Callback<T> = (err: Error, t: T) => void;
 
-function createMultiCompiler(options: MultiCompilerOptions): MultiCompiler {
+function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(option => {
 		const compiler = createCompiler(option);
 
@@ -81,10 +85,13 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 
 function rspack(
 	options: MultiCompilerOptions,
-	callback?: Callback<MultiStats>
+	callback?: Callback<Error, MultiStats>
 ): MultiCompiler;
-function rspack(options: RspackOptions, callback?: Callback<Stats>): Compiler;
-function rspack(options: any, callback?: Callback<any>) {
+function rspack(
+	options: RspackOptions,
+	callback?: Callback<Error, Stats>
+): Compiler;
+function rspack(options: any, callback?: Callback<Error, any>) {
 	let compiler: Compiler | MultiCompiler;
 	if (Array.isArray(options)) {
 		compiler = createMultiCompiler(options);
@@ -93,7 +100,6 @@ function rspack(options: any, callback?: Callback<any>) {
 	}
 
 	if (callback) {
-		// @ts-expect-error
 		compiler.run(callback);
 		return compiler;
 	} else {
