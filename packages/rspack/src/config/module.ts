@@ -517,7 +517,7 @@ function composeJsUse(
 				/**
 				 * support loader as string
 				 */
-				let loader: Loader | undefined;
+				let loader: Loader;
 				if (typeof use.loader === "string") {
 					try {
 						const loaderPath = require.resolve(use.loader, {
@@ -541,7 +541,6 @@ function composeJsUse(
 				try {
 					// @ts-expect-error
 					result = loader.apply(loaderContext, [
-						// @ts-expect-error
 						loader.raw ? Buffer.from(content) : content.toString("utf-8"),
 						sourceMap,
 						additionalData
@@ -643,10 +642,10 @@ function composeJsUse(
 			content: toBuffer(content),
 			sourceMap: sourceMap
 				? toBuffer(
-						typeof sourceMap === "string"
-							? sourceMap
-							: JSON.stringify(sourceMap)
-				  )
+					typeof sourceMap === "string"
+						? sourceMap
+						: JSON.stringify(sourceMap)
+				)
 				: undefined,
 			additionalData: additionalData
 				? toBuffer(JSON.stringify(additionalData))
@@ -722,15 +721,13 @@ function createRawModuleRuleUsesImpl(
 function createBuiltinUse(use: ModuleRuleUse): RawModuleRuleUse {
 	assert(
 		typeof use.loader === "string" &&
-			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
+		use.loader.startsWith(BUILTIN_LOADER_PREFIX)
 	);
 
 	if (use.loader === `${BUILTIN_LOADER_PREFIX}sass-loader`) {
 		(use.options ??= {} as any).__exePath = require.resolve(
-			`@tmp-sass-embedded/${process.platform}-${
-				process.arch
-			}/dart-sass-embedded/dart-sass-embedded${
-				process.platform === "win32" ? ".bat" : ""
+			`@tmp-sass-embedded/${process.platform}-${process.arch
+			}/dart-sass-embedded/dart-sass-embedded${process.platform === "win32" ? ".bat" : ""
 			}`
 		);
 	}
@@ -794,23 +791,23 @@ export function resolveModuleOptions(
 				issuer: isNil(rule.issuer)
 					? undefined
 					: {
-							not: isNil(rule.issuer.not)
-								? undefined
-								: resolveModuleRuleConditions(rule.issuer.not)
-					  },
+						not: isNil(rule.issuer.not)
+							? undefined
+							: resolveModuleRuleConditions(rule.issuer.not)
+					},
 				test: isNil(rule.test)
 					? undefined
 					: resolveModuleRuleCondition(rule.test),
 				include: isNil(rule.include)
 					? undefined
 					: Array.isArray(rule.include)
-					? resolveModuleRuleConditions(rule.include)
-					: [resolveModuleRuleCondition(rule.include)],
+						? resolveModuleRuleConditions(rule.include)
+						: [resolveModuleRuleCondition(rule.include)],
 				exclude: isNil(rule.exclude)
 					? undefined
 					: Array.isArray(rule.exclude)
-					? resolveModuleRuleConditions(rule.exclude)
-					: [resolveModuleRuleCondition(rule.exclude)],
+						? resolveModuleRuleConditions(rule.exclude)
+						: [resolveModuleRuleCondition(rule.exclude)],
 				resource: isNil(rule.resource)
 					? undefined
 					: resolveModuleRuleCondition(rule.resource),
