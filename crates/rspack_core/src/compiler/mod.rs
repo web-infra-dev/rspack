@@ -35,6 +35,14 @@ impl Compiler {
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
+
+    // Fill cache related to the context directory to avoid cache misses when `resolve` is called
+    // concurrently on the first request.
+    resolver_factory
+      .resolver
+      .resolve(options.context.as_path(), ".")
+      .expect("Directory exists");
+
     let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
