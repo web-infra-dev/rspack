@@ -221,16 +221,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bstr"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b45ea9b00a7b3f2988e9a65ad3917e62123c38dba709b666506207be96d1790b"
-dependencies = [
- "memchr",
- "serde",
-]
-
-[[package]]
 name = "buf_redux"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -582,7 +572,7 @@ version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22813a6dc45b335f9bade10bf7271dc477e81113e89eb251a0bc2a8a81c536e1"
 dependencies = [
- "bstr 0.2.17",
+ "bstr",
  "csv-core",
  "itoa 0.4.8",
  "ryu",
@@ -1072,17 +1062,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
-name = "globset"
-version = "0.4.10"
+name = "glob-match"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "029d74589adefde59de1a0c4f4732695c32805624aec7b68d91503d4dba79afc"
-dependencies = [
- "aho-corasick",
- "bstr 1.1.0",
- "fnv",
- "log",
- "regex",
-]
+checksum = "9985c9503b412198aa4197559e9a318524ebc4519c229bfa05a535828c950b9d"
 
 [[package]]
 name = "h2"
@@ -2549,7 +2532,7 @@ dependencies = [
  "derivative",
  "dyn-clone",
  "futures",
- "globset",
+ "glob-match",
  "hashlink",
  "indexmap",
  "itertools",
@@ -3237,7 +3220,7 @@ version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "420acb44afdae038210c99e69aae24109f32f15500aa708e81d46c9f29d55fcf"
 dependencies = [
- "bstr 0.2.17",
+ "bstr",
  "unicode-segmentation",
 ]
 

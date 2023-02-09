@@ -3,7 +3,6 @@ use std::{
 };
 
 use bitflags::bitflags;
-use globset::{Glob, GlobSetBuilder};
 use hashlink::LinkedHashMap;
 use rspack_symbol::{
   BetterId, IdOrMemExpr, IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol,
@@ -1022,19 +1021,16 @@ impl<'a> ModuleRefAnalyze<'a> {
     let mut side_effects = match side_effects {
       nodejs_resolver::SideEffects::Bool(s) => Some(s),
       nodejs_resolver::SideEffects::String(s) => {
-        let matcher = Glob::new(&s).ok()?.compile_matcher();
         let relative_path = module_path.relative(package_path);
-        Some(matcher.is_match(relative_path))
+        let is_match = glob_match::glob_match(&s, &relative_path.to_string_lossy());
+        Some(is_match)
       }
-      nodejs_resolver::SideEffects::Array(arr) => {
-        // TODO: Cache
-        let mut builder = GlobSetBuilder::new();
-        for glob in arr.iter() {
-          builder.add(Glob::new(glob).ok()?);
-        }
-        let matcher = builder.build().ok()?;
+      nodejs_resolver::SideEffects::Array(patterns) => {
         let relative_path = module_path.relative(package_path);
-        Some(matcher.is_match(relative_path))
+        let is_match = patterns
+          .iter()
+          .any(|pattern| glob_match::glob_match(&pattern, &relative_path.to_string_lossy()));
+        Some(is_match)
       }
     };
 
