@@ -12,43 +12,59 @@ pub fn module_rule_matcher_condition(condition: &ModuleRuleCondition, data: &str
 }
 
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
-pub fn module_rule_matcher(
-  module_rule: &ModuleRule,
+pub fn module_rule_matcher<'a>(
+  module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
   issuer: Option<&str>,
-) -> Result<bool> {
-  // Internal function to match the condition against the given `data`.
-  if let Some(func) = &module_rule.func__ {
-    match func(resource_data) {
-      Ok(result) => return Ok(result),
-      Err(e) => return Err(e.into()),
-    }
-  }
-
+) -> Result<Option<&'a ModuleRule>> {
   if module_rule.test.is_none()
     && module_rule.resource.is_none()
     && module_rule.resource_query.is_none()
     && module_rule.include.is_none()
     && module_rule.exclude.is_none()
     && module_rule.issuer.is_none()
+    && module_rule.one_of.is_none()
+    && module_rule.func__.is_none()
   {
     return Err(internal_error!(
       "ModuleRule must have at least one condition"
     ));
   }
 
+  return module_rule_matcher_inner(module_rule, resource_data, issuer);
+}
+
+pub fn module_rule_matcher_inner<'a>(
+  module_rule: &'a ModuleRule,
+  resource_data: &ResourceData,
+  issuer: Option<&str>,
+) -> Result<Option<&'a ModuleRule>> {
+  // Internal function to match the condition against the given `data`.
+  if let Some(func) = &module_rule.func__ {
+    match func(resource_data) {
+      Ok(result) => {
+        if result {
+          return Ok(Some(module_rule));
+        } else {
+          return Ok(None);
+        }
+      }
+      Err(e) => return Err(e.into()),
+    }
+  }
+
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test {
     if !module_rule_matcher_condition(test_rule, &resource_data.resource_path.to_string_lossy()) {
-      return Ok(false);
+      return Ok(None);
     }
   } else if let Some(resource_rule) = &module_rule.resource {
     if !module_rule_matcher_condition(
       resource_rule,
       &resource_data.resource_path.to_string_lossy(),
     ) {
-      return Ok(false);
+      return Ok(None);
     }
   }
 
@@ -56,7 +72,7 @@ pub fn module_rule_matcher(
     if include_rule.iter().all(|rule| {
       !module_rule_matcher_condition(rule, &resource_data.resource_path.to_string_lossy())
     }) {
-      return Ok(false);
+      return Ok(None);
     }
   }
 
@@ -64,17 +80,17 @@ pub fn module_rule_matcher(
     if exclude_rule.iter().any(|rule| {
       module_rule_matcher_condition(rule, &resource_data.resource_path.to_string_lossy())
     }) {
-      return Ok(false);
+      return Ok(None);
     }
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
     if let Some(resource_query) = &resource_data.resource_query {
       if !module_rule_matcher_condition(resource_query_rule, resource_query) {
-        return Ok(false);
+        return Ok(None);
       }
     } else {
-      return Ok(false);
+      return Ok(None);
     }
   }
 
@@ -85,8 +101,19 @@ pub fn module_rule_matcher(
       .iter()
       .any(|i| module_rule_matcher_condition(i, issuer))
   {
-    return Ok(false);
+    return Ok(None);
   }
 
-  Ok(true)
+  if let Some(one_of) = &module_rule.one_of {
+    let matched_rule = one_of.iter().find_map(|module_rule| {
+      match module_rule_matcher_inner(module_rule, resource_data, issuer) {
+        Ok(val) => val,
+        Err(_err) => None,
+      }
+    });
+
+    return Ok(matched_rule);
+  }
+
+  Ok(Some(module_rule))
 }

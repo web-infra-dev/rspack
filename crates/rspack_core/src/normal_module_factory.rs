@@ -147,7 +147,7 @@ impl NormalModuleFactory {
           &resource_data,
           importer.map(|i| i.to_string_lossy()).as_deref(),
         ) {
-          Ok(val) => val.then_some(Ok(module_rule)),
+          Ok(val) => val.map(Ok),
           Err(err) => Some(Err(err)),
         }
       })
@@ -247,7 +247,7 @@ impl NormalModuleFactory {
       .iter()
       .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
         match module_rule_matcher(module_rule, resource_data, self.context.issuer.as_deref()) {
-          Ok(val) => val.then_some(Ok(module_rule)),
+          Ok(val) => val.map(Ok),
           Err(err) => Some(Err(err)),
         }
       })

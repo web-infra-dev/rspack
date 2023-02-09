@@ -134,6 +134,7 @@ pub struct RawModuleRule {
   pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawIssuerOptions>,
+  pub one_of: Option<Vec<RawModuleRule>>,
   // Loader experimental
   #[serde(skip_deserializing)]
   pub func__: Option<JsFunction>,
@@ -213,6 +214,7 @@ impl Debug for RawModuleRule {
       .field("side_effects", &self.side_effects)
       .field("use", &self.r#use)
       .field("issuer", &self.issuer)
+      .field("one_of", &self.one_of)
       .finish()
   }
 }
@@ -467,76 +469,95 @@ pub struct JsLoaderResult {
 #[cfg(feature = "node-api")]
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;
 
+fn to_compiler_module_rule_option(
+  rule: RawModuleRule,
+  options: &CompilerOptionsBuilder,
+) -> anyhow::Result<ModuleRule> {
+  // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
+  let uses = rule
+    .r#use
+    .map(|uses| {
+      uses
+        .into_iter()
+        .map(|rule_use| {
+          #[cfg(feature = "node-api")]
+          {
+            if let Some(raw_js_loader) = rule_use.js_loader {
+              return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxedLoader);
+            }
+          }
+          if let Some(builtin_loader) = rule_use.builtin_loader {
+            return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
+          }
+          panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
+        })
+        .collect::<anyhow::Result<Vec<_>>>()
+    })
+    .transpose()?
+    .unwrap_or_default();
+
+  let module_type = rule.r#type.map(|t| (&*t).try_into()).transpose()?;
+
+  let issuer = if let Some(issuer) = rule.issuer {
+    Some(IssuerOptions {
+      not: issuer
+        .not
+        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+        .transpose()?,
+    })
+  } else {
+    None
+  };
+
+  let one_of: Option<Vec<ModuleRule>> = rule.one_of.map(|one_of| {
+    one_of
+      .into_iter()
+      .filter_map(|raw| match to_compiler_module_rule_option(raw, options) {
+        Ok(val) => Some(val),
+        // todo: how to handle error, ignore?
+        Err(_err) => None,
+      })
+      .collect::<Vec<_>>()
+  });
+
+  Ok(ModuleRule {
+    test: rule.test.map(|raw| raw.try_into()).transpose()?,
+    include: rule
+      .include
+      .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+      .transpose()?,
+    exclude: rule
+      .exclude
+      .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+      .transpose()?,
+    resource_query: rule.resource_query.map(|raw| raw.try_into()).transpose()?,
+    resource: rule.resource.map(|raw| raw.try_into()).transpose()?,
+    r#use: uses,
+    r#type: module_type,
+    parser: rule
+      .parser
+      .map(|raw| raw.to_compiler_option(options))
+      .transpose()?,
+    generator: rule
+      .generator
+      .map(|raw| raw.to_compiler_option(options))
+      .transpose()?,
+    resolve: rule
+      .resolve
+      .map(|raw| raw.to_compiler_option(options))
+      .transpose()?,
+    side_effects: rule.side_effects,
+    issuer,
+    one_of,
+    // side_effects: raw.
+    // Loader experimental
+    func__: None,
+  })
+}
+
 impl RawOption<ModuleRule> for RawModuleRule {
   fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
-    // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    let uses = self
-      .r#use
-      .map(|uses| {
-        uses
-          .into_iter()
-          .map(|rule_use| {
-            #[cfg(feature = "node-api")]
-            {
-              if let Some(raw_js_loader) = rule_use.js_loader {
-                return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxedLoader);
-              }
-            }
-            if let Some(builtin_loader) = rule_use.builtin_loader {
-              return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
-            }
-            panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
-          })
-          .collect::<anyhow::Result<Vec<_>>>()
-      })
-      .transpose()?
-      .unwrap_or_default();
-
-    let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
-
-    let issuer = if let Some(issuer) = self.issuer {
-      Some(IssuerOptions {
-        not: issuer
-          .not
-          .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-          .transpose()?,
-      })
-    } else {
-      None
-    };
-
-    Ok(ModuleRule {
-      test: self.test.map(|raw| raw.try_into()).transpose()?,
-      include: self
-        .include
-        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-        .transpose()?,
-      exclude: self
-        .exclude
-        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-        .transpose()?,
-      resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
-      resource: self.resource.map(|raw| raw.try_into()).transpose()?,
-      r#use: uses,
-      r#type: module_type,
-      parser: self
-        .parser
-        .map(|raw| raw.to_compiler_option(options))
-        .transpose()?,
-      generator: self
-        .generator
-        .map(|raw| raw.to_compiler_option(options))
-        .transpose()?,
-      resolve: self
-        .resolve
-        .map(|raw| raw.to_compiler_option(options))
-        .transpose()?,
-      side_effects: self.side_effects,
-      issuer,
-      // side_effects: raw.
-      // Loader experimental
-      func__: None,
-    })
+    to_compiler_module_rule_option(self, options)
   }
 
   fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
