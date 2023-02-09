@@ -114,9 +114,5 @@ fn try_extract_string_value_from_property<S: AsRef<str>>(
 
   let buf = unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
 
-  String::from_utf8(buf).map_err(|e| {
-    Error::from_reason(format!(
-      "Failed to convert the property to a string (property: {property:?}, error: {e:?})"
-    ))
-  })
+  Ok(String::from_utf8_lossy(&buf).into_owned())
 }
