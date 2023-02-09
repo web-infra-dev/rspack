@@ -3,7 +3,6 @@ use std::{
   collections::{hash_map::Entry, VecDeque},
 };
 
-use itertools::Itertools;
 use petgraph::{
   algo,
   prelude::{DiGraphMap, GraphMap},
@@ -1401,9 +1400,9 @@ fn get_symbol_path(symbol_graph: &SymbolGraph, cur: NodeIndex) -> Vec<Vec<Symbol
             .cloned()
             .expect("Can't get nodeIndex of SymbolRef")
         })
-        .collect_vec()
+        .collect::<Vec<_>>()
     })
-    .collect_vec()
+    .collect::<Vec<_>>()
 }
 // TODO: dep replacement
 // fn update_dependency(
