@@ -17,7 +17,7 @@ use napi::bindgen_prelude::{FromNapiValue, Promise, ToNapiValue};
 use napi::{check_status, sys, Env, JsUnknown, NapiRaw, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
 use rspack_error::{internal_error, InternalError};
-use rspack_napi_utils::NapiResultExt;
+use rspack_napi_utils::{NapiErrorExt, NapiResultExt};
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
@@ -61,48 +61,60 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
   ///
   /// Since the original calling of threadsafe function is a pure enqueue operation,
   /// no matter a plain data structure or a `Promise` is returned, we need to send the message to the receiver side.
+  ///
+  /// Note:
+  /// Return an recoverable Rust error is not preferred as it will become a fatal error on the Node side. See `call_js_cb` for more details.
+  /// Often, the result of the real call-in-js operation is passed as the `result`.
   pub fn resolve<P: Send>(
     self,
-    result: impl NapiRaw,
+    result: Result<impl NapiRaw>,
     resolver: impl 'static + Send + FnOnce(P) -> Result<R>,
   ) -> Result<()>
   where
     // Pure return value without promise wrapper
     P: FromNapiValue + 'static,
   {
-    let raw = unsafe { result.raw() };
+    match result {
+      Ok(result) => {
+        let raw = unsafe { result.raw() };
 
-    let mut is_promise = false;
-    check_status!(unsafe { sys::napi_is_promise(self.env.raw(), raw, &mut is_promise) })?;
+        let mut is_promise = false;
+        check_status!(unsafe { sys::napi_is_promise(self.env.raw(), raw, &mut is_promise) })?;
 
-    if is_promise {
-      let p = unsafe { Promise::<P>::from_napi_value(self.env.raw(), raw) }?;
+        if is_promise {
+          let p = unsafe { Promise::<P>::from_napi_value(self.env.raw(), raw) }?;
 
-      self.env.execute_tokio_future(
-        async move {
-          let r = p.await.and_then(resolver);
-          Ok(r)
-        },
-        |env, r| {
-          self
-            .tx
-            .send(r.into_rspack_result_with_detail(env))
-            .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
-        },
-      )?;
+          self.env.execute_tokio_future(
+            async move {
+              let r = p.await.and_then(resolver);
+              Ok(r)
+            },
+            |env, r| {
+              self
+                .tx
+                .send(r.into_rspack_result_with_detail(env))
+                .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
+            },
+          )?;
 
-      return Ok(());
+          return Ok(());
+        }
+
+        let p = {
+          let p = unsafe { P::from_napi_value(self.env.raw(), raw) }?;
+          resolver(p)
+        };
+
+        self
+          .tx
+          .send(p.into_rspack_result_with_detail(&self.env))
+          .map_err(|_| napi::Error::from_reason("Failed to send resolve message".to_string()))
+      }
+      Err(e) => self
+        .tx
+        .send(Err(e.into_rspack_error_with_detail(&self.env)))
+        .map_err(|_| napi::Error::from_reason("Failed to send resolve message".to_string())),
     }
-
-    let p = {
-      let p = unsafe { P::from_napi_value(self.env.raw(), raw) }?;
-      resolver(p)
-    };
-
-    self
-      .tx
-      .send(p.into_rspack_result_with_detail(&self.env))
-      .map_err(|_| napi::Error::from_reason("Failed to resolve".to_string()))
   }
 }
 

@@ -1,4 +1,4 @@
-use std::{ffi::CStr, ptr};
+use std::{ffi::CString, ptr};
 
 use napi::{bindgen_prelude::*, sys::napi_value, Env, Error, Result};
 
@@ -55,7 +55,7 @@ fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, O
   let stack_or_message = match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {
     Ok(napi_error) => match try_extract_string_value_from_property(env, napi_error, "stack") {
       Err(_) => match try_extract_string_value_from_property(env, napi_error, "message") {
-        Err(_) => ("Unknown NAPI error".to_owned(), Some(get_backtrace())),
+        Err(e) => (format!("Unknown NAPI error {e}"), Some(get_backtrace())),
         Ok(message) => (message, Some(get_backtrace())),
       },
       Ok(message) => (message, None),
@@ -74,12 +74,7 @@ fn try_extract_string_value_from_property<S: AsRef<str>>(
   napi_object: napi_value,
   property: S,
 ) -> napi::Result<String> {
-  let property = CStr::from_bytes_with_nul(property.as_ref().as_bytes()).map_err(|e| {
-    Error::from_reason(format!(
-      "Property `{property}` passed is not a valid CStr: {e}",
-      property = property.as_ref()
-    ))
-  })?;
+  let property = CString::new(property.as_ref())?;
 
   let mut value_ptr = ptr::null_mut();
 

@@ -280,7 +280,7 @@ impl TryFrom<JsLoader> for JsLoaderAdapter {
             "loader_sync_call",
             resource = &resource
           )
-          .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) })?;
+          .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) });
 
           let resolve_start = std::time::Instant::now();
           resolver.resolve::<Option<JsLoaderResult>>(result, move |r| {

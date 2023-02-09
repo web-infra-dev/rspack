@@ -1012,8 +1012,7 @@ describe("Compiler", () => {
 			});
 		});
 
-		// TODO: we don't support sync errors currently
-		it.skip("should print error with stack information with sync callback", done => {
+		it("should print error with stack information with sync callback", done => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
 					compiler.hooks.compilation.tap("MyPlugin", compilation => {
