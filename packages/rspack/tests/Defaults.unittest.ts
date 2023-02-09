@@ -161,19 +161,11 @@ describe("snapshots", () => {
 		    "tsConfigPath": undefined,
 		  },
 		  "snapshot": {
-		    "buildDependencies": {
-		      "hash": false,
-		      "timestamp": true,
-		    },
 		    "module": {
 		      "hash": false,
 		      "timestamp": true,
 		    },
 		    "resolve": {
-		      "hash": false,
-		      "timestamp": true,
-		    },
-		    "resolveBuildDependencies": {
 		      "hash": false,
 		      "timestamp": true,
 		    },
