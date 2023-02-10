@@ -83,11 +83,19 @@ impl fmt::Display for TraceableError {
 pub enum Error {
   InternalError(InternalError),
   TraceableError(TraceableError),
-  Io { source: io::Error },
-  Anyhow { source: anyhow::Error },
+  Io {
+    source: io::Error,
+  },
+  Anyhow {
+    source: anyhow::Error,
+  },
   BatchErrors(Vec<Error>),
   // for some reason, We could not just use `napi:Error` here
-  Napi { status: String, reason: String },
+  Napi {
+    status: String,
+    reason: String,
+    backtrace: String,
+  },
 }
 
 impl std::error::Error for Error {
@@ -116,7 +124,11 @@ impl fmt::Display for Error {
           .collect::<Vec<String>>()
           .join("\n")
       ),
-      Error::Napi { status, reason } => write!(f, "napi error: {status} - {reason}"),
+      Error::Napi {
+        status,
+        reason,
+        backtrace,
+      } => write!(f, "napi error: {status} - {reason}\n{backtrace}"),
     }
   }
 }

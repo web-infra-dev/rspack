@@ -4,7 +4,7 @@ use std::pin::Pin;
 use async_trait::async_trait;
 use napi::{Env, NapiRaw, Result};
 use rspack_error::internal_error;
-use rspack_napi_utils::NapiResultIntoRspackResult;
+use rspack_napi_utils::NapiResultExt;
 
 use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{JsCompilation, JsHooks};
@@ -51,7 +51,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to compilation: {err}"))?
+      .map_err(|err| internal_error!("Failed to call compilation: {err}"))?
   }
 
   async fn this_compilation(
@@ -70,7 +70,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to this_compilation: {err}"))?
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
 
   #[tracing::instrument(name = "js_hooks_adapter::make", skip_all)]
@@ -225,7 +225,7 @@ impl JsHooksAdapter {
 
             let env = ctx.env;
             let cb = ctx.callback;
-            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) }?;
+            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
 
             resolver.resolve::<()>(result, |_| Ok(()))
           })?;

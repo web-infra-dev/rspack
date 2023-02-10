@@ -5,7 +5,7 @@ use std::pin::Pin;
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
 use rspack_core::rspack_sources::SourceExt;
-use rspack_napi_utils::NapiResultIntoRspackResult;
+use rspack_napi_utils::NapiResultExt;
 
 use crate::{
   CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
