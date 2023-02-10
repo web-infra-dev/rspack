@@ -17,7 +17,7 @@ async-trait = "0.1.53"
 backtrace = "0.3"
 dashmap = "5.0.0"
 futures = "0.3"
-napi = { version = "=2.11.0" }
+napi = { version = "=2.11.1" }
 napi-derive = { version = "=2.11.0" }
 napi-sys = { version = "=2.2.3" }
 once_cell = "1"
