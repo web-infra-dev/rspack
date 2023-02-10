@@ -81,7 +81,7 @@ impl Module for ExternalModule {
           format!(r#"module.exports = require("{}")"#, self.specifier)
         }
         ExternalType::Window => {
-          format!("module.exports = window.{}", self.specifier)
+          format!(r#"module.exports = window["{}"]"#, self.specifier)
         }
         ExternalType::Auto => match self.target.platform {
           TargetPlatform::BrowsersList
