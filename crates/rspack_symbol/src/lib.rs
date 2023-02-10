@@ -1,4 +1,5 @@
 use bitflags::bitflags;
+use serde::Deserialize;
 use swc_core::ecma::ast::Id;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
@@ -303,4 +304,10 @@ impl IdOrMemExpr {
       IdOrMemExpr::MemberExpr { object, .. } => object,
     }
   }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SerdeSymbol {
+  pub uri: String,
+  pub id: String,
 }

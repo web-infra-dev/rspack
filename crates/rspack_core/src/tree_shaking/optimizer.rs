@@ -16,7 +16,8 @@ use rspack_error::{
   TWithDiagnosticArray,
 };
 use rspack_symbol::{
-  BetterId, IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol, SymbolType,
+  BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind, Symbol,
+  SymbolType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
@@ -143,6 +144,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     //   compilation.options.context.as_ref().to_str().unwrap(),
     // );
     // println!("{:?}", Dot::new(&debug_graph));
+    self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();
     // dependency_replacement();
@@ -164,6 +166,64 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
+  }
+
+  fn check_symbol_query(&self) {
+    let symbol_list = match &std::env::var("SYMBOL_QUERY_PATH") {
+      Ok(relative_path) => {
+        let log = std::env::current_dir().expect("Can't get cwd");
+        let ab_path = log.join(relative_path);
+        let file =
+          std::fs::read_to_string(ab_path).expect("Failed to read target file into string");
+        serde_json::from_str::<Vec<SerdeSymbol>>(&file)
+          .expect("Can't convert to symbol from sourcefile")
+      }
+      Err(_) => {
+        vec![]
+      }
+    };
+
+    let get_node_index_from_serde_symbol = |serde_symbol: &SerdeSymbol| {
+      for symbol_ref in self.symbol_graph.symbol_refs() {
+        match symbol_ref {
+          SymbolRef::Direct(direct) => {
+            if direct.id().atom != serde_symbol.id || !direct.uri().contains(&serde_symbol.uri) {
+              continue;
+            }
+          }
+          SymbolRef::Indirect(_) => {
+            continue;
+          }
+          SymbolRef::Star(_) => {
+            continue;
+          }
+        }
+        let index = self
+          .symbol_graph
+          .get_node_index(symbol_ref)
+          .unwrap_or_else(|| panic!("Can't find NodeIndex for symbol {symbol_ref:?}",));
+        return Some(*index);
+      }
+      None
+    };
+
+    let symbol_graph = self.symbol_graph.clone().reverse_graph();
+
+    for symbol in symbol_list {
+      // get_symbol_path()
+      match get_node_index_from_serde_symbol(&symbol) {
+        Some(node_index) => {
+          let paths = get_symbol_path(&symbol_graph, node_index);
+          println!("Reason of Included Symbol symbol{symbol:?}",);
+          for p in paths {
+            println!("{p:#?}",);
+          }
+        }
+        None => {
+          eprintln!("Can't find symbol {symbol:?} in symbolGraph",);
+        }
+      }
+    }
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1291,6 +1351,59 @@ fn get_inherit_export_symbol_ref(entry_module_result: &TreeShakingResult) -> Vec
   inherit_export_symbols
 }
 
+fn get_symbol_path(symbol_graph: &SymbolGraph, cur: NodeIndex) -> Vec<Vec<SymbolRef>> {
+  fn recursive(
+    symbol_graph: &SymbolGraph,
+    cur_path: &mut Vec<NodeIndex>,
+    paths: &mut Vec<Vec<NodeIndex>>,
+    visited_node: &mut HashSet<NodeIndex>,
+    cur: NodeIndex,
+  ) {
+    if visited_node.contains(&cur) {
+      return;
+    }
+    cur_path.push(cur);
+    visited_node.insert(cur);
+    let mut has_outgoing = false;
+    for edge in symbol_graph
+      .graph
+      .edges_directed(cur, petgraph::Direction::Outgoing)
+    {
+      has_outgoing = true;
+      let to = edge.target();
+      recursive(symbol_graph, cur_path, paths, visited_node, to);
+    }
+    visited_node.remove(&cur);
+    if !has_outgoing {
+      cur_path.push(cur);
+      paths.push(cur_path.clone());
+    }
+  }
+  let mut cur_path = vec![];
+  let mut paths = vec![];
+  let mut visited_node = HashSet::default();
+  recursive(
+    symbol_graph,
+    &mut cur_path,
+    &mut paths,
+    &mut visited_node,
+    cur,
+  );
+  paths
+    .into_iter()
+    .map(|path| {
+      path
+        .into_iter()
+        .map(|node_index| {
+          symbol_graph
+            .get_symbol(&node_index)
+            .cloned()
+            .expect("Can't get nodeIndex of SymbolRef")
+        })
+        .collect::<Vec<_>>()
+    })
+    .collect::<Vec<_>>()
+}
 // TODO: dep replacement
 // fn update_dependency(
 //   symbol_graph: &SymbolGraph,
