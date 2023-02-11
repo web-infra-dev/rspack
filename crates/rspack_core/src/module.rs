@@ -60,11 +60,13 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// to provide multiple code generation results for different `source_type`s.
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
 
+  /// Name matched against bundle-splitting conditions.
   fn name_for_condition(&self) -> Option<Cow<str>> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/Module.js#L852
     None
   }
 
+  /// Apply module hash to the hasher.
   fn update_hash(&self, state: &mut dyn std::hash::Hasher) {
     self.dyn_hash(state);
   }
