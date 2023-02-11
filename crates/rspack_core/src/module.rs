@@ -20,6 +20,7 @@ pub struct BuildContext<'a> {
 
 #[derive(Debug, Default, Clone)]
 pub struct BuildResult {
+  /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -56,6 +57,9 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   ) -> Result<TWithDiagnosticArray<BuildResult>>;
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
+  /// The code generation result should not be cached as it is implemented elsewhere to
+  /// provide a universal cache mechanism (time to invalidate cache, etc.)
+  ///
   /// Code generation will often iterate through every `source_types` given by the module
   /// to provide multiple code generation results for different `source_type`s.
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
@@ -66,7 +70,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
     None
   }
 
-  /// Apply module hash to the hasher.
+  /// Apply module hash to the provided hasher.
   fn update_hash(&self, state: &mut dyn std::hash::Hasher) {
     self.dyn_hash(state);
   }
