@@ -38,8 +38,8 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// Defines what kind of code generation results this module can generate.
   fn source_types(&self) -> &[SourceType];
 
-  /// The original source of the module. This could be optional, since almost only the `NormalModule` can have the corresponding original source.
-  /// However, modules that is created from *nowhere* (e.g. `ExternalModule` and `MissingModule`) does not have the original source.
+  /// The original source of the module. This could be optional, modules like the `NormalModule` can have the corresponding original source.
+  /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its original source.
   fn original_source(&self) -> Option<&dyn Source>;
 
   /// User readable identifier of the module.
