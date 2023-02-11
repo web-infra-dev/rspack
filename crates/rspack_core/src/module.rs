@@ -32,21 +32,32 @@ pub type ModuleIdentifier = Identifier;
 
 #[async_trait]
 pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
+  /// Defines what kind of module this is.
   fn module_type(&self) -> &ModuleType;
 
+  /// Defines what kind of code generation results this module can generate.
   fn source_types(&self) -> &[SourceType];
 
+  /// The original source of the module. This could be optional, since almost only the `NormalModule` can have the corresponding original source.
+  /// However, modules that is created from *nowhere* (e.g. `ExternalModule` and `MissingModule`) does not have the original source.
   fn original_source(&self) -> Option<&dyn Source>;
 
+  /// User readable identifier of the module.
   fn readable_identifier(&self, _context: &Context) -> Cow<str>;
 
+  /// The size of the original source, which will used as a parameter for code-splitting.
   fn size(&self, _source_type: &SourceType) -> f64;
 
+  /// The actual build of the module, which will be called by the `Compilation`.
+  /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     &mut self,
     _build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>>;
 
+  /// The actual code generation of the module, which will be called by the `Compilation`.
+  /// Code generation will often iterate through every `source_types` given by the module
+  /// to provide multiple code generation results for different `source_type`s.
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult>;
 
   fn name_for_condition(&self) -> Option<Cow<str>> {
@@ -63,10 +74,17 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
     None
   }
 
+  /// Code generation dependencies of the module, which means the code generation of this module
+  /// depends on the code generation results of dependencies which are returned by this function.
+  /// e.g `Css` module may rely on the code generation result of `CssUrlDependency` to re-direct
+  /// the url of the referenced assets.
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
     None
   }
 
+  /// Resolve options matched by module rules.
+  /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
+  /// `css` and `css/module` may have special resolving options like `preferRelative`.
   fn get_resolve_options(&self) -> Option<&Resolve> {
     None
   }
@@ -89,6 +107,8 @@ impl<T: Module + 'static> ModuleExt for T {
 pub type BoxModule = Box<dyn Module>;
 
 impl Identifiable for Box<dyn Module> {
+  /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
+  /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
     self.as_ref().identifier()
   }
