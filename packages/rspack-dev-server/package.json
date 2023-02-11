@@ -12,7 +12,6 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "tsm": "^2.2.2",
     "@rspack/core": "workspace:*",
     "typescript": "^4.7.4",
     "@types/ws": "8.5.3",
