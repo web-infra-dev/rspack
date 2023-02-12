@@ -26,7 +26,6 @@
       "url": "./crates/rspack_test_utils/test.config.scheme.json"
     }
   ],
-  "rust-analyzer.checkOnSave": true,
   "rust-analyzer.procMacro.enable": true,
   "rust-analyzer.procMacro.attributes.enable": true,
   "rust-analyzer.linkedProjects": [
