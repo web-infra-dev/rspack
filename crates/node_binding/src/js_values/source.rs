@@ -96,7 +96,7 @@ pub trait ToJsCompatSource {
   fn to_js_compat_source(&self) -> Result<JsCompatSource>;
 }
 
-impl ToJsCompatSource for dyn Source {
+impl ToJsCompatSource for dyn Source + '_ {
   fn to_js_compat_source(&self) -> Result<JsCompatSource> {
     let to_webpack_map = |source: &Self| {
       let map = source.map(&MapOptions::default());

@@ -4,9 +4,14 @@ use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
-use rspack_core::rspack_sources::SourceExt;
+use rspack_core::{
+  rspack_sources::{Source, SourceExt},
+  AstOrSource, Identifier, NormalModuleAstOrSource,
+};
 use rspack_napi_utils::NapiResultExt;
 
+use super::module::ToJsModule;
+use crate::js_values::module::JsModule;
 use crate::{
   CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
 };
@@ -127,6 +132,43 @@ impl JsCompilation {
       .get(&name)
       .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source()))
       .transpose()
+  }
+
+  #[napi]
+  pub fn get_modules(&self) -> Vec<JsModule> {
+    self
+      .inner
+      .module_graph
+      .modules()
+      .filter_map(|module| module.to_js_module().ok())
+      .collect::<Vec<_>>()
+  }
+
+  #[napi]
+  /// Only available for those none Js and Css source,
+  /// return true if set module source successfully, false if failed.
+  pub fn set_none_ast_module_source(
+    &mut self,
+    module_identifier: String,
+    source: JsCompatSource,
+  ) -> bool {
+    match unsafe { self.inner_mut() }
+      .module_graph
+      .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
+    {
+      Some(module) => match module.as_normal_module_mut() {
+        Some(module) => {
+          let compat_source = CompatSource::from(source);
+          *module.ast_or_source_mut() = NormalModuleAstOrSource::new_built(
+            AstOrSource::Source(Box::new(compat_source)),
+            &vec![],
+          );
+          true
+        }
+        None => false,
+      },
+      None => false,
+    }
   }
 
   #[napi]

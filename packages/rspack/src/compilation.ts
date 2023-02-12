@@ -6,7 +6,9 @@ import {
 	JsCompilation,
 	JsAssetInfo,
 	JsCompatSource,
-	JsAsset
+	JsAsset,
+	JsModule,
+	JsChunk
 } from "@rspack/binding";
 
 import { RspackOptionsNormalized, StatsOptions } from "./config";
@@ -50,6 +52,10 @@ export class Compilation {
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
+		optimizeChunkModules: tapable.AsyncSeriesBailHook<
+			[Array<JsModule>],
+			undefined
+		>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
@@ -64,7 +70,8 @@ export class Compilation {
 		this.name = undefined;
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
-			log: new tapable.SyncBailHook(["origin", "logEntry"])
+			log: new tapable.SyncBailHook(["origin", "logEntry"]),
+			optimizeChunkModules: new tapable.AsyncSeriesBailHook(["modules"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -224,6 +231,18 @@ export class Compilation {
 		);
 	}
 
+	/**
+	 *
+	 * @param moduleIdentifier moduleIdentifier of the module you want to modify
+	 * @param source
+	 * @returns true if the setting is success, false if failed.
+	 */
+	setNoneAstModuleSource(
+		moduleIdentifier: string,
+		source: JsCompatSource
+	): boolean {
+		return this.#inner.setNoneAstModuleSource(moduleIdentifier, source);
+	}
 	/**
 	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
 	 *
@@ -470,6 +489,10 @@ export class Compilation {
 			this.#inner.getBuildDependencies(),
 			d => this.#inner.addBuildDependencies(d)
 		);
+	}
+
+	getModules(): JsModule[] {
+		return this.#inner.getModules();
 	}
 
 	getStats() {

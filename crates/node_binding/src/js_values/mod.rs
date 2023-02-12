@@ -3,6 +3,7 @@ mod chunk;
 mod chunk_group;
 mod compilation;
 mod hooks;
+mod module;
 mod source;
 mod stats;
 

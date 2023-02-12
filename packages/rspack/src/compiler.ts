@@ -169,7 +169,8 @@ class Compiler {
 				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
 				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 				// No matter how it will be implemented, it will be copied to the child compiler.
-				compilation: this.#compilation.bind(this)
+				compilation: this.#compilation.bind(this),
+				optimizeChunkModule: this.#optimize_chunk_modules.bind(this)
 			});
 
 		return this.#_instance;
@@ -261,6 +262,12 @@ class Compiler {
 		await this.compilation
 			.__internal_getProcessAssetsHookByStage(stage)
 			.promise(this.compilation.assets);
+	}
+
+	async #optimize_chunk_modules() {
+		await this.compilation.hooks.optimizeChunkModules.promise(
+			this.compilation.getModules()
+		);
 	}
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
