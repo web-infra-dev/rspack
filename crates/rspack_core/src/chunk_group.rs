@@ -51,7 +51,7 @@ impl ChunkGroup {
       .copied()
   }
 
-  pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> HashSet<String> {
+  pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> Vec<String> {
     self
       .chunks
       .iter()

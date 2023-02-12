@@ -115,9 +115,6 @@ impl Plugin for HtmlPlugin {
       })
       .collect::<Vec<_>>();
 
-    // entrypoint.get_files() are unstable, I need to sort it to pass tests.
-    included_assets.sort_by(|(a, _), (b, _)| a.cmp(b));
-
     let mut tags = vec![];
     for (asset_name, asset) in included_assets {
       if let Some(extension) = Path::new(&asset_name).extension() {
