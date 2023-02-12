@@ -14,9 +14,13 @@ type Source = Content;
 
 #[derive(Debug, Clone)]
 pub struct ResourceData {
+  /// Resource with absolute path, query and fragment
   pub resource: String,
+  /// Absolute resource path only
   pub resource_path: PathBuf,
+  /// Resource query with `?` prefix
   pub resource_query: Option<String>,
+  /// Resource fragment with `#` prefix
   pub resource_fragment: Option<String>,
 }
 

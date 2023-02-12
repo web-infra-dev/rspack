@@ -314,7 +314,7 @@ pub struct NormalModule {
   module_type: ModuleType,
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
-  /// Resource data (path, url, etc.)
+  /// Resource data (path, query, fragment etc.)
   resource_data: ResourceData,
   /// Loaders for the module
   loaders: Vec<BoxedLoader>,
