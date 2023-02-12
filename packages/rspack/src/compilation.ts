@@ -52,7 +52,10 @@ export class Compilation {
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
-		optimizeChunkModules: tapable.AsyncSeriesBailHook<[Array<JsModule>], undefined>
+		optimizeChunkModules: tapable.AsyncSeriesBailHook<
+			[Array<JsModule>],
+			undefined
+		>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: ResolvedOutput;
@@ -229,13 +232,16 @@ export class Compilation {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param moduleIdentifier moduleIdentifier of the module you want to modify
-	 * @param source 
-	 * @returns true if the setting is success, false if failed. 
+	 * @param source
+	 * @returns true if the setting is success, false if failed.
 	 */
-	setNoneAstModuleSource(moduleIdentifier: string, source: JsCompatSource): boolean {
-		return this.#inner.setNoneAstModuleSource(moduleIdentifier, source)
+	setNoneAstModuleSource(
+		moduleIdentifier: string,
+		source: JsCompatSource
+	): boolean {
+		return this.#inner.setNoneAstModuleSource(moduleIdentifier, source);
 	}
 	/**
 	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
@@ -486,7 +492,7 @@ export class Compilation {
 	}
 
 	getModules(): JsModule[] {
-		return this.#inner.getModules()
+		return this.#inner.getModules();
 	}
 
 	getStats() {
@@ -556,8 +562,8 @@ export class Compilation {
 		return this.#inner;
 	}
 
-	seal() { }
-	unseal() { }
+	seal() {}
+	unseal() {}
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;

@@ -132,7 +132,6 @@ impl Rspack {
       let mut options =
         normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{e}")))?;
 
-      // dbg!(js_hooks);
       if let Some(hooks_adapter) = js_hooks
         .map(|js_hooks| JsHooksAdapter::from_js_hooks(env, js_hooks))
         .transpose()?

@@ -190,9 +190,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call after emit: {err}",))?
   }
 
-  // fn optimize_chunk_modules(&mut self, _args: OptimizeChunksArgs) -> Result<()> {
-  //   Ok(())
-  // }
   async fn optimize_chunk_modules(
     &mut self,
     args: rspack_core::OptimizeChunksArgs<'_>,

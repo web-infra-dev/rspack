@@ -15,10 +15,10 @@ import { WatchFileSystem } from "./util/fs";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 
 class Compiler {
@@ -265,8 +265,9 @@ class Compiler {
 	}
 
 	async #optimize_chunk_modules() {
-		await this.compilation.hooks.optimizeChunkModules.promise(this.compilation.getModules())
-
+		await this.compilation.hooks.optimizeChunkModules.promise(
+			this.compilation.getModules()
+		);
 	}
 	async #make() {
 		await this.hooks.make.promise(this.compilation);

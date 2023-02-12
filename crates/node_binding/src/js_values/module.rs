@@ -1,23 +1,3 @@
-// pub trait Source:
-//   StreamChunks + DynHash + AsAny + DynEq + DynClone + fmt::Debug + Sync + Send
-// {
-//   /// Get the source code.
-//   fn source(&self) -> Cow<str>;
-
-//   /// Get the source buffer.
-//   fn buffer(&self) -> Cow<[u8]>;
-
-//   /// Get the size of the source.
-//   fn size(&self) -> usize;
-
-//   /// Get the [SourceMap].
-//   fn map(&self, options: &MapOptions) -> Option<SourceMap>;
-
-//   /// Update hash based on the source.
-//   fn update_hash(&self, state: &mut dyn Hasher) {
-//     self.dyn_hash(state);
-//   }
-
 use anyhow::bail;
 use napi::bindgen_prelude::*;
 use rspack_core::{

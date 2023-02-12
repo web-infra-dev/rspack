@@ -4,11 +4,10 @@ use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
-use rspack_core::rspack_sources::Source;
-use rspack_core::rspack_sources::SourceExt;
-use rspack_core::AstOrSource;
-use rspack_core::Identifier;
-use rspack_core::NormalModuleAstOrSource;
+use rspack_core::{
+  rspack_sources::{Source, SourceExt},
+  AstOrSource, Identifier, NormalModuleAstOrSource,
+};
 use rspack_napi_utils::NapiResultExt;
 
 use super::module::ToJsModule;
@@ -146,7 +145,8 @@ impl JsCompilation {
   }
 
   #[napi]
-  /// Only available for those none Js and Css source
+  /// Only available for those none Js and Css source,
+  /// return true if set module source successfully, false if failed.
   pub fn set_none_ast_module_source(
     &mut self,
     module_identifier: String,
