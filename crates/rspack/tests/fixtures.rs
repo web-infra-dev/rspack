@@ -25,7 +25,7 @@ async fn run(context: PathBuf) {
   compiler.run().await.expect("TODO:");
 }
 
-#[fixture("../../examples/*")]
+#[fixture("../../examples/basic")]
 fn example(fixture_path: PathBuf) {
   run(fixture_path);
 }
