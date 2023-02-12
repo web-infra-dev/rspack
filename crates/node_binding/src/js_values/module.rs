@@ -20,35 +20,9 @@ pub trait ToJsModule {
 
 impl ToJsModule for dyn Module {
   fn to_js_module(&self) -> Result<JsModule> {
-    let original_source = if let Some(sou) = self.original_source() {
-      let to_webpack_map = |source: &dyn Source| {
-        let map = source.map(&MapOptions::default());
-
-        map
-          .map(|m| m.to_json().map(|inner| inner.into_bytes().into()))
-          .transpose()
-          .map_err(|err| napi::Error::from_reason(err.to_string()))
-      };
-
-      let res = if let Some(raw_source) = sou.as_any().downcast_ref::<RawSource>() {
-        JsCompatSource {
-          is_raw: true,
-          is_buffer: raw_source.is_buffer(),
-          source: raw_source.buffer().to_vec().into(),
-          map: to_webpack_map(raw_source)?,
-        }
-      } else {
-        JsCompatSource {
-          is_raw: false,
-          is_buffer: false,
-          source: sou.buffer().to_vec().into(),
-          map: to_webpack_map(sou)?,
-        }
-      };
-      Some(res)
-    } else {
-      None
-    };
+    let original_source = self
+      .original_source()
+      .and_then(|source| source.to_js_compat_source().ok());
     self
       .try_as_normal_module()
       .map(|normal_module| JsModule {
