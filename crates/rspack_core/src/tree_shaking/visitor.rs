@@ -745,8 +745,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         node.visit_children_with(self);
       }
       DefaultDecl::TsInterfaceDecl(_) => {
-        // TODO: Ts syntax related tree-shaking is ignored by now.
-        todo!("Ts ")
+        unreachable!("We have been converted Typescript to javascript already")
       }
     }
     self.state.remove(AnalyzeState::EXPORT_DEFAULT);
@@ -1018,23 +1017,13 @@ impl<'a> ModuleRefAnalyze<'a> {
     package_json_path.pop();
     let package_path = package_json_path;
 
-    let mut side_effects = match side_effects {
-      nodejs_resolver::SideEffects::Bool(s) => Some(s),
-      nodejs_resolver::SideEffects::String(s) => {
-        let relative_path = module_path.relative(package_path);
-        let is_match = glob_match::glob_match(&s, &relative_path.to_string_lossy());
-        Some(is_match)
-      }
-      nodejs_resolver::SideEffects::Array(patterns) => {
-        let relative_path = module_path.relative(package_path);
-        let is_match = patterns
-          .iter()
-          .any(|pattern| glob_match::glob_match(pattern, &relative_path.to_string_lossy()));
-        Some(is_match)
-      }
-    };
+    let relative_path = module_path.relative(package_path);
+    let mut side_effects = Some(get_side_effects_from_package_json(
+      side_effects,
+      relative_path,
+    ));
 
-    // sideEffects in module.rule has high priority
+    // sideEffects in module.rule has higher priority
     for rule in self.options.module.rules.iter() {
       let module_side_effects = match rule.side_effects {
         Some(s) => s,
@@ -1054,6 +1043,30 @@ impl<'a> ModuleRefAnalyze<'a> {
       break;
     }
     side_effects.map(SideEffect::Configuration)
+  }
+}
+
+pub fn get_side_effects_from_package_json(
+  side_effects: nodejs_resolver::SideEffects,
+  relative_path: PathBuf,
+) -> bool {
+  match side_effects {
+    nodejs_resolver::SideEffects::Bool(s) => s,
+    nodejs_resolver::SideEffects::String(s) => {
+      let trim_start = s.trim_start_matches("./");
+      let normalized_glob = if trim_start.contains('/') {
+        trim_start.to_string()
+      } else {
+        String::from("**/") + trim_start
+      };
+      glob_match::glob_match(
+        &normalized_glob,
+        relative_path.to_string_lossy().trim_start_matches("./"),
+      )
+    }
+    nodejs_resolver::SideEffects::Array(patterns) => patterns
+      .iter()
+      .any(|pattern| glob_match::glob_match(pattern, &relative_path.to_string_lossy())),
   }
 }
 
