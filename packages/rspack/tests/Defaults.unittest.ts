@@ -129,6 +129,7 @@ describe("snapshots", () => {
 		    "minimizer": undefined,
 		    "moduleIds": "named",
 		    "removeAvailableModules": false,
+		    "sideEffects": "false",
 		    "splitChunks": undefined,
 		  },
 		  "output": {},
