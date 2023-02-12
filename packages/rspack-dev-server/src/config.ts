@@ -9,6 +9,7 @@ export interface ResolvedDevServer extends DevServer {
 	devMiddleware: DevServer["devMiddleware"];
 	// FIXME: hot should be `boolean | 'only'`
 	hot: boolean;
+	host?: string;
 	open: WebpackDevServer.Open[];
 	magicHtml: boolean;
 	liveReload: boolean;

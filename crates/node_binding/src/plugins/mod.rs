@@ -3,6 +3,7 @@ use std::pin::Pin;
 
 use async_trait::async_trait;
 use napi::{Env, NapiRaw, Result};
+use rspack_core::{OptimizeChunksArgs, PluginContext};
 use rspack_error::internal_error;
 use rspack_napi_utils::NapiResultExt;
 
@@ -21,6 +22,7 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
+  pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -187,6 +189,28 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| internal_error!("Failed to call after emit: {err}",))?
   }
+
+  // fn optimize_chunk_modules(&mut self, _args: OptimizeChunksArgs) -> Result<()> {
+  //   Ok(())
+  // }
+  async fn optimize_chunk_modules(
+    &mut self,
+    args: rspack_core::OptimizeChunksArgs<'_>,
+  ) -> rspack_error::Result<()> {
+    let compilation = JsCompilation::from_compilation(unsafe {
+      Pin::new_unchecked(std::mem::transmute::<
+        &'_ mut rspack_core::Compilation,
+        &'static mut rspack_core::Compilation,
+      >(args.compilation))
+    });
+
+    self
+      .optimize_chunk_modules_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to compilation: {err}"))?
+  }
 }
 
 impl JsHooksAdapter {
@@ -203,6 +227,7 @@ impl JsHooksAdapter {
       compilation,
       emit,
       after_emit,
+      optimize_chunk_module,
     } = js_hooks;
 
     // *Note* that the order of the creation of threadsafe function is important. There is a queue of threadsafe calls for each tsfn:
@@ -254,6 +279,8 @@ impl JsHooksAdapter {
       create_hook_tsfn!(this_compilation);
     let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = create_hook_tsfn!(compilation);
     let make_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(make);
+    let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      create_hook_tsfn!(optimize_chunk_module);
 
     Ok(JsHooksAdapter {
       make_tsfn,
@@ -267,6 +294,7 @@ impl JsHooksAdapter {
       this_compilation_tsfn,
       emit_tsfn,
       after_emit_tsfn,
+      optimize_chunk_modules_tsfn,
     })
   }
 }

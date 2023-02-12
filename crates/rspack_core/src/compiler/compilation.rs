@@ -910,6 +910,11 @@ impl Compilation {
     build_chunk_graph(self)?;
 
     plugin_driver.write().await.optimize_chunks(self)?;
+    plugin_driver
+      .write()
+      .await
+      .optimize_chunk_modules(self)
+      .await?;
 
     plugin_driver.write().await.module_ids(self)?;
     plugin_driver.write().await.chunk_ids(self)?;

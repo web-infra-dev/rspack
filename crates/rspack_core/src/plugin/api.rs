@@ -202,6 +202,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn optimize_chunk_modules(&mut self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
+    Ok(())
+  }
+
   async fn build_module(&self, _module: &mut dyn Module) -> Result<()> {
     Ok(())
   }
