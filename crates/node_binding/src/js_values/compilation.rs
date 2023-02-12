@@ -152,25 +152,22 @@ impl JsCompilation {
     module_identifier: String,
     source: JsCompatSource,
   ) -> bool {
-    unsafe {
-      match self
-        .inner_mut()
-        .module_graph
-        .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
-      {
-        Some(module) => match module.as_normal_module_mut() {
-          Some(module) => {
-            let compat_source = CompatSource::from(source);
-            *module.ast_or_source_mut() = NormalModuleAstOrSource::new_built(
-              AstOrSource::Source(Box::new(compat_source)),
-              &vec![],
-            );
-            true
-          }
-          None => false,
-        },
+    match unsafe { self.inner_mut() }
+      .module_graph
+      .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
+    {
+      Some(module) => match module.as_normal_module_mut() {
+        Some(module) => {
+          let compat_source = CompatSource::from(source);
+          *module.ast_or_source_mut() = NormalModuleAstOrSource::new_built(
+            AstOrSource::Source(Box::new(compat_source)),
+            &vec![],
+          );
+          true
+        }
         None => false,
-      }
+      },
+      None => false,
     }
   }
 
