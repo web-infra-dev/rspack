@@ -1054,14 +1054,14 @@ pub fn get_side_effects_from_package_json(
     nodejs_resolver::SideEffects::Bool(s) => s,
     nodejs_resolver::SideEffects::String(s) => {
       let trim_start = s.trim_start_matches("./");
-      let normalized_glob = if trim_start.contains("/") {
+      let normalized_glob = if trim_start.contains('/') {
         trim_start.to_string()
       } else {
         String::from("**/") + trim_start
       };
       glob_match::glob_match(
         &normalized_glob,
-        &relative_path.to_string_lossy().trim_start_matches("./"),
+        relative_path.to_string_lossy().trim_start_matches("./"),
       )
     }
     nodejs_resolver::SideEffects::Array(patterns) => patterns
