@@ -33,6 +33,7 @@ export interface Optimization {
 	splitChunks?: OptimizationSplitChunksOptions;
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
+	sideEffects?: "flag" | boolean;
 }
 
 export interface ResolvedOptimization {
@@ -41,6 +42,7 @@ export interface ResolvedOptimization {
 	minimizer?: ("..." | PluginInstance)[];
 	splitChunks?: RawSplitChunksOptions;
 	removeAvailableModules?: boolean;
+	sideEffects?: "flag" | "true" | "false";
 }
 
 export function getNormalizedOptimizationRuntimeChunk(
@@ -76,6 +78,20 @@ export function resolveOptimizationOptions(
 		minimize: op.minimize,
 		minimizer: op.minimizer,
 		splitChunks: resolveSplitChunksOptions(op.splitChunks),
-		removeAvailableModules: op.removeAvailableModules ?? mode === "production"
+		removeAvailableModules: op.removeAvailableModules ?? mode === "production",
+		sideEffects: resolveSideEffects(op.sideEffects, mode)
 	};
+}
+
+function resolveSideEffects(
+	sideEffects: "flag" | boolean | undefined,
+	mode: string
+): "flag" | "true" | "false" {
+	if (typeof sideEffects === "boolean") {
+		return sideEffects.toString() as "true" | "false";
+	} else if (sideEffects === "flag") {
+		return sideEffects;
+	} else {
+		return "false";
+	}
 }

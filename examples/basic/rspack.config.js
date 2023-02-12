@@ -1,10 +1,11 @@
 const path = require('path');
-/**
- * @type {import('webpack').Configuration}
- */
 module.exports = (env) => {
   console.log('env:',env);
-  return {
+  /**
+ * @type {import('webpack').Configuration}
+ */
+  const config =  {
+    mode: 'development',
     context: __dirname,
     builtins: {
       noEmitAssets:false,
@@ -12,7 +13,7 @@ module.exports = (env) => {
         template: './index.html'
       }],
       treeShaking: true,
-      sideEffects: true
+      minify: false
     },
     context: __dirname,
     entry: {
@@ -26,11 +27,12 @@ module.exports = (env) => {
     infrastructureLogging: {
       debug: true
     },
+    optimization: {
+      sideEffects: true
+    },
     output: {
       path: path.resolve(__dirname, 'dist')
     },
-    builtins: {
-      minify: false
-    }
   }
+  return config
 };
