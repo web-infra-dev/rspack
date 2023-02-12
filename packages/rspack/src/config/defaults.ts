@@ -93,7 +93,7 @@ const applyOptimizationDefaults = (
 		if (development) return "named";
 		return "natural";
 	});
-	F(optimization, "sideEffects", () => (production ? true : "flag"));
+	F(optimization, "sideEffects", () => (production ? "true" : "flag"));
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
 	D(optimization, "innerGraph", production);
