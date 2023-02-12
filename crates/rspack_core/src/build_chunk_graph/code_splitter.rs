@@ -142,6 +142,7 @@ impl<'me> CodeSplitter<'me> {
               &mut compilation.chunk_by_ukey,
               &mut compilation.named_chunks,
             );
+            chunk.chunk_reasons.push(format!("RuntimeChunk({name})",));
             compilation.chunk_graph.add_chunk(chunk.ukey);
             chunk
           }
