@@ -91,7 +91,7 @@ impl Plugin for HtmlPlugin {
     if !diagnostic.is_empty() {
       compilation.push_batch_diagnostic(diagnostic);
     }
-    let mut included_assets = compilation
+    let included_assets = compilation
       .entrypoints
       .keys()
       .into_iter()
@@ -114,9 +114,6 @@ impl Plugin for HtmlPlugin {
         )
       })
       .collect::<Vec<_>>();
-
-    // entrypoint.get_files() are unstable, I need to sort it to pass tests.
-    included_assets.sort_by(|(a, _), (b, _)| a.cmp(b));
 
     let mut tags = vec![];
     for (asset_name, asset) in included_assets {
