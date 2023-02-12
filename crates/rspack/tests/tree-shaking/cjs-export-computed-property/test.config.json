@@ -7,8 +7,10 @@
   "builtins": {
     "define": {}
   },
-  "debug": {
-    "treeshake": true,
+  "optimization": {
     "sideEffects": true
+  },
+  "debug": {
+    "treeshake": true
   }
 }

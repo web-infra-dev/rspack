@@ -8,8 +8,10 @@
     "define": {}
   },
   "target": ["web", "es5"],
+  "optimization": {
+    "sideEffects": "true"
+  },
   "debug": {
-    "treeshake": true,
-    "sideEffects": true
+    "treeshake": true
   }
 }

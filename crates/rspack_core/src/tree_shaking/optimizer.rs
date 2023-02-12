@@ -55,7 +55,12 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
-    let side_effects_options = self.compilation.options.builtins.side_effects;
+    let side_effects_options = self
+      .compilation
+      .options
+      .optimizations
+      .side_effects
+      .is_enable();
     let mut side_effect_map: IdentifierMap<SideEffect> = IdentifierMap::default();
     for analyze_result in analyze_result_map.values() {
       side_effect_map.insert(

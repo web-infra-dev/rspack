@@ -198,17 +198,28 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
-      let optimizations = options
-        .optimizations
-        .get_or_insert_with(|| rspack_core::Optimizations {
-          remove_available_modules: options
-            .mode
-            .map_or(false, |mode| mode == rspack_core::Mode::Production),
-        });
-      if let Some(optimization) = raw_options.optimization.as_ref() {
-        optimizations.remove_available_modules = optimization
+      let optimization = options.optimizations.get_or_insert_with(|| {
+        let is_prod = options
+          .mode
+          .map_or(false, |mode| mode == rspack_core::Mode::Production);
+        rspack_core::Optimizations {
+          remove_available_modules: is_prod,
+          side_effects: if is_prod {
+            "true".into()
+          } else {
+            "false".into()
+          },
+        }
+      });
+      if let Some(raw_optimization) = raw_options.optimization.as_ref() {
+        optimization.remove_available_modules = raw_optimization
           .remove_available_modules
-          .unwrap_or(optimizations.remove_available_modules);
+          .unwrap_or(optimization.remove_available_modules);
+        optimization.side_effects = raw_optimization
+          .side_effects
+          .as_ref()
+          .map(|side_effects| side_effects.as_str().into())
+          .unwrap_or(optimization.side_effects);
       }
       Ok(options)
     })?
