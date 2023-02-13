@@ -73,6 +73,12 @@ impl Compiler {
     self.cache.end_idle().await;
     // TODO: clear the outdate cache entires in resolver,
     // TODO: maybe it's better to use external entries.
+    self
+      .plugin_driver
+      .read()
+      .await
+      .resolver_factory
+      .clear_entries();
 
     fast_set(
       &mut self.compilation,
