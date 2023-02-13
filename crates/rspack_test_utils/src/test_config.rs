@@ -73,6 +73,8 @@ pub struct Optimization {
   // True by default to reduce code in snapshots.
   #[serde(default = "true_by_default")]
   pub remove_available_modules: bool,
+  #[serde(default)]
+  pub side_effects: String,
 }
 
 #[derive(Debug, JsonSchema, Clone, Deserialize)]
@@ -183,7 +185,6 @@ impl TestConfig {
       builtins: c::Builtins {
         define: config.builtins.define,
         tree_shaking: config.debug.treeshake,
-        side_effects: config.debug.side_effects,
         ..Default::default()
       },
       plugins: vec![Box::new(rspack_plugin_css::CssPlugin::new(
@@ -229,6 +230,7 @@ impl TestConfig {
       module_ids: c::ModuleIds::Named,
       optimizations: c::Optimizations {
         remove_available_modules: config.optimization.remove_available_modules,
+        side_effects: config.optimization.side_effects.as_str().into(),
       },
     }
   }

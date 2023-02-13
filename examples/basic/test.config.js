@@ -10,6 +10,9 @@ module.exports = {
     treeShaking: true,
     sideEffects: true
   },
+  optimization: {
+    sideEffects: "true"
+  },
   context: __dirname,
   entry: {
     main: {

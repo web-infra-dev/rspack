@@ -32,7 +32,6 @@ pub struct Builtins {
   pub browserslist: Vec<String>,
   pub define: Define,
   pub tree_shaking: bool,
-  pub side_effects: bool,
   pub react: ReactOptions,
   pub decorator: Option<DecoratorOptions>,
   pub no_emit_assets: bool,

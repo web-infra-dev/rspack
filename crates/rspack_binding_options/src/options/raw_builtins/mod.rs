@@ -46,7 +46,6 @@ pub struct RawBuiltins {
   #[napi(ts_type = "Record<string, string>")]
   pub define: Option<Define>,
   pub tree_shaking: Option<bool>,
-  pub side_effects: Option<bool>,
   pub progress: Option<RawProgressPluginConfig>,
   pub react: Option<RawReactOptions>,
   pub decorator: Option<RawDecoratorOptions>,
@@ -114,7 +113,7 @@ pub(super) fn normalize_builtin(
     polyfill: builtins.polyfill.unwrap_or(true),
     define: builtins.define.unwrap_or_default(),
     tree_shaking: builtins.tree_shaking.unwrap_or_default(),
-    side_effects: builtins.side_effects.unwrap_or_default(),
+    // side_effects: builtins.side_effects.unwrap_or_default(),
     react: RawOption::raw_to_compiler_option(builtins.react, options)?,
     decorator: transform_to_decorator_options(builtins.decorator),
     no_emit_assets: builtins.no_emit_assets.unwrap_or(false),

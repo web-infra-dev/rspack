@@ -6,7 +6,7 @@ use std::{
 
 use rspack_core::{
   CompilationContext, CompilerContext, CompilerOptions, ExternalType, Loader, LoaderRunner,
-  LoaderRunnerAdditionalContext, ResourceData,
+  LoaderRunnerAdditionalContext, ResourceData, SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_test::{fixture, rspack_only::options_noop, test_fixture};
@@ -66,6 +66,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           __emit_error: false,
           optimizations: rspack_core::Optimizations {
             remove_available_modules: false,
+            side_effects: SideEffectOption::False,
           },
         }),
         resolver_factory: Default::default(),

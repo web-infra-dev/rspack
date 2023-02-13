@@ -9,8 +9,10 @@
       "process.env.NODE_ENV": "'development'"
     }
   },
+  "optimization": {
+    "sideEffects": "true"
+  },
   "debug": {
-    "treeshake": true,
-    "sideEffects": true
+    "treeshake": true
   }
 }

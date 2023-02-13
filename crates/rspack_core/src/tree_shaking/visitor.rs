@@ -432,17 +432,23 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       }
     }
 
-    if self.options.builtins.side_effects {
-      self.side_effects = self
-        .get_side_effects_from_config()
-        .unwrap_or(SideEffect::Analyze(self.has_side_effects_stmt));
+    let side_effects_option = self.options.optimizations.side_effects;
+    if side_effects_option.is_enable() {
+      self.side_effects = self.get_side_effects_from_config().unwrap_or_else(|| {
+        if side_effects_option.is_true() {
+          SideEffect::Analyze(self.has_side_effects_stmt)
+        } else {
+          // side_effects_option must be `flag` here
+          SideEffect::Configuration(true)
+        }
+      });
     }
   }
 
   fn visit_module(&mut self, node: &Module) {
-    for ele in &node.body {
-      self.analyze_stmt_side_effects(ele);
-      ele.visit_with(self);
+    for module_item in &node.body {
+      self.analyze_stmt_side_effects(module_item);
+      module_item.visit_with(self);
     }
   }
 
