@@ -52,6 +52,15 @@ impl Default for ResolverFactory {
 }
 
 impl ResolverFactory {
+  pub fn clear_entries(&self) {
+    // TODO: we can use shared `entires` along resolvers.
+    self.resolver.0.clear_entries();
+    self
+      .resolvers
+      .iter()
+      .for_each(|resolver| resolver.0.clear_entries());
+  }
+
   pub fn new(base_options: Resolve) -> Self {
     let cache = Arc::new(nodejs_resolver::Cache::default());
     let resolver = Resolver(nodejs_resolver::Resolver::new(
@@ -73,33 +82,31 @@ impl ResolverFactory {
         .base_options
         .clone()
         .to_inner_options(self.cache.clone(), false);
-      let merged_options = match options.resolve_options.clone() {
-        Some(o) => merge_resolver_options(base_options, o),
+      let merged_options = match &options.resolve_options {
+        Some(o) => merge_resolver_options(base_options, o.clone()),
         None => match &self.base_options.condition_names {
           None => {
-            let options = {
-              let is_esm = matches!(options.dependency_category, DependencyCategory::Esm);
-              let condition_names = if is_esm {
-                vec![
-                  String::from("import"),
-                  String::from("module"),
-                  String::from("webpack"),
-                  String::from("development"),
-                  String::from("browser"),
-                ]
-              } else {
-                vec![
-                  String::from("require"),
-                  String::from("module"),
-                  String::from("webpack"),
-                  String::from("development"),
-                  String::from("browser"),
-                ]
-              };
-              Resolve {
-                condition_names: Some(condition_names),
-                ..self.base_options.clone()
-              }
+            let is_esm = matches!(options.dependency_category, DependencyCategory::Esm);
+            let condition_names = if is_esm {
+              vec![
+                String::from("import"),
+                String::from("module"),
+                String::from("webpack"),
+                String::from("development"),
+                String::from("browser"),
+              ]
+            } else {
+              vec![
+                String::from("require"),
+                String::from("module"),
+                String::from("webpack"),
+                String::from("development"),
+                String::from("browser"),
+              ]
+            };
+            let options = Resolve {
+              condition_names: Some(condition_names),
+              ..self.base_options.clone()
             };
             merge_resolver_options(base_options, options)
           }
@@ -262,10 +269,6 @@ mod test {
 pub struct Resolver(pub(crate) nodejs_resolver::Resolver);
 
 impl Resolver {
-  pub fn clear(&self) {
-    self.0.clear_entries();
-  }
-
   pub fn resolve(&self, path: &Path, request: &str) -> nodejs_resolver::RResult<ResolveResult> {
     self
       .0
