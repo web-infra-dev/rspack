@@ -10,6 +10,23 @@ export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
 };
 
+export type ImportMap = {
+	[packageName: string]: {
+		[exportName: string]: {
+			canonicalImport?: [string, string];
+		};
+	};
+};
+
+export type EmotionConfig =
+	| boolean
+	| {
+			sourceMap?: boolean;
+			autoLabel?: "never" | "dev-only" | "always";
+			labelFormat?: string;
+			importMap?: ImportMap;
+	  };
+
 export type Builtins = Omit<
 	RawBuiltins,
 	"define" | "browserslist" | "html" | "decorator" | "minify" | "emotion"
@@ -19,20 +36,7 @@ export type Builtins = Omit<
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minify?: boolean | Partial<Minification>;
-	emotion?:
-		| boolean
-		| {
-				sourceMap?: boolean;
-				autoLabel?: "never" | "dev-only" | "always";
-				labelFormat?: string;
-				importMap?: {
-					[packageName: string]: {
-						[exportName: string]: {
-							canonicalImport?: [string, string];
-						};
-					};
-				};
-		  };
+	emotion?: EmotionConfig;
 };
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
