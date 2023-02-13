@@ -52,6 +52,9 @@ napi-build = { version = "=2.0.1" }
 [dev-dependencies]
 testing_macros = { version = "0.2.5" }
 
+[patch.crates-io]
+string_cache = { git = "https://github.com/boshen/string-cache", branch = "dashmap" }
+
 [profile.release]
 # debug = true
 # Automatically strip symbols from the binary.
