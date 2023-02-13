@@ -5,7 +5,9 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use once_cell::sync::Lazy;
 use rayon::prelude::*;
+use regex::Regex;
 use rspack_core::{
   BoxModule, Chunk, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, ModuleIdentifier,
 };
@@ -401,12 +403,13 @@ pub fn get_long_chunk_name(
   shorten_long_string(chunk_name, delimiter)
 }
 
-pub fn request_to_id(request: &str) -> String {
-  let regex1 = regex::Regex::new(r"^(\.\.?/)+").expect("Invalid regex");
-  let regex2 = regex::Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex");
+static REGEX1: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(\.\.?/)+").expect("Invalid regex"));
+static REGEX2: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(^[.-]|[^a-zA-Z0-9_-])+").expect("Invalid regex"));
 
-  regex2
-    .replace_all(&regex1.replace(request, ""), "_")
+pub fn request_to_id(request: &str) -> String {
+  REGEX2
+    .replace_all(&REGEX1.replace(request, ""), "_")
     .to_string()
 }
 
