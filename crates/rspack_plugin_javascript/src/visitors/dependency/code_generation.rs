@@ -114,20 +114,42 @@ impl<'a, 'b> DependencyVisitor<'a, 'b> {
     index: usize,
     path: Option<&AstParentKind>,
   ) -> &'b [(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)] {
-    let first = visitors
-      .first()
-      .expect("There should be at least one visitor");
-
-    let first_ast_path = first.0.get(index);
-
     // Since the visitor is sorted, if the first ast path for the first visitor is greater than the given path,
     // then there's no visitor that matches the given path. So we can return an empty slice.
-    if first_ast_path > path {
+
+    if visitors
+      .first()
+      .expect("There should be at least one visitor")
+      .0
+      .get(index)
+      > path
+    {
+      return &[];
+    }
+
+    // The same applies to the last ast path for the last visitor.
+    if visitors
+      .last()
+      .expect("There should be at least one visitor")
+      .0
+      .get(index)
+      < path
+    {
       return &[];
     }
 
     // Otherwise, we can partition the visitors by the given path and find the starting point of the visitors.
-    let starting_point = visitors.partition_point(|(ast_path, _)| ast_path.get(index) < path);
+    let starting_point = if visitors
+      .first()
+      .expect("There should be at least one visitor")
+      .0
+      .get(index)
+      == path
+    {
+      0
+    } else {
+      visitors.partition_point(|(ast_path, _)| ast_path.get(index) < path)
+    };
 
     if starting_point >= visitors.len() {
       return &[];
