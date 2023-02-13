@@ -29,19 +29,21 @@ pub struct RawSplitChunksOptions {
 
 impl From<RawSplitChunksOptions> for SplitChunksOptions {
   fn from(value: RawSplitChunksOptions) -> Self {
-    let mut defaults = SplitChunksOptions::default();
-    defaults.max_async_requests = value.max_async_requests;
-    defaults.max_initial_requests = value.max_initial_requests;
-    defaults.min_chunks = value.min_chunks;
-    defaults.min_size = value.min_size;
-    defaults.enforce_size_threshold = value.enforce_size_threshold;
-    defaults.min_remaining_size = value.min_remaining_size;
-    defaults.chunks = value.chunks.map(|chunks| match chunks.as_str() {
-      "initial" => ChunkType::Initial,
-      "async" => ChunkType::Async,
-      "all" => ChunkType::All,
-      _ => panic!("Invalid chunk type: {chunks}"),
-    });
+    let mut defaults = SplitChunksOptions {
+      max_async_requests: value.max_async_requests,
+      max_initial_requests: value.max_initial_requests,
+      min_chunks: value.min_chunks,
+      min_size: value.min_size,
+      enforce_size_threshold: value.enforce_size_threshold,
+      min_remaining_size: value.min_remaining_size,
+      chunks: value.chunks.map(|chunks| match chunks.as_str() {
+        "initial" => ChunkType::Initial,
+        "async" => ChunkType::Async,
+        "all" => ChunkType::All,
+        _ => panic!("Invalid chunk type: {chunks}"),
+      }),
+      ..Default::default()
+    };
 
     defaults
       .cache_groups

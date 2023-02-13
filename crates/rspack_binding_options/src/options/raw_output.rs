@@ -26,7 +26,7 @@ impl From<RawOutputOptions> for OutputOptions {
       path: value.path.into(),
       public_path: value.public_path.into(),
       asset_module_filename: value.asset_module_filename.into(),
-      unique_name: value.unique_name.into(),
+      unique_name: value.unique_name,
       filename: value.filename.into(),
       chunk_filename: value.chunk_filename.into(),
       css_filename: value.css_filename.into(),
