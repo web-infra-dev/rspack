@@ -342,8 +342,8 @@ pub fn get_short_chunk_name(
     })
     .collect::<Vec<_>>();
 
-  let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();
-  id_name_hints.sort();
+  let mut id_name_hints = Vec::from_iter(chunk.id_name_hints.clone().into_iter());
+  id_name_hints.sort_unstable();
 
   id_name_hints.extend(short_module_names);
 
