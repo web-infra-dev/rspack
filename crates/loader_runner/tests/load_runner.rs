@@ -84,7 +84,7 @@ macro_rules! run_loader {
 
 #[cfg(test)]
 mod fixtures {
-  use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+  use rspack_error::{Diagnostic, Result};
   use rspack_loader_runner::*;
 
   #[derive(Debug)]
@@ -98,22 +98,13 @@ mod fixtures {
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
-      let source = loader_context.source.to_owned();
-      Ok(Some(
-        LoaderResult {
-          cacheable: true,
-          file_dependencies: Default::default(),
-          context_dependencies: Default::default(),
-          missing_dependencies: Default::default(),
-          build_dependencies: Default::default(),
-          content: source,
-          source_map: None,
-          additional_data: None,
-        }
-        .with_empty_diagnostic(),
-      ))
+      loader_context: &mut LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Vec<Diagnostic>> {
+      let content = loader_context.content.to_owned();
+      loader_context.cacheable = true;
+      loader_context.content = content;
+
+      Ok(vec![])
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -136,27 +127,16 @@ mod fixtures {
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
-      let source = loader_context.source.to_owned().try_into_string()?;
-      Ok(Some(
-        LoaderResult {
-          cacheable: true,
-          file_dependencies: Default::default(),
-          context_dependencies: Default::default(),
-          missing_dependencies: Default::default(),
-          build_dependencies: Default::default(),
-          additional_data: None,
-          source_map: None,
-          content: Content::String(format!(
-            r#"{source}
+      loader_context: &mut LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Vec<Diagnostic>> {
+      let content = loader_context.content.to_owned().try_into_string()?;
+      loader_context.content = Content::String(format!(
+        r#"{content}
 html {{
   margin: 0;
 }}"#
-          )),
-        }
-        .with_empty_diagnostic(),
-      ))
+      ));
+      Ok(vec![])
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -179,25 +159,14 @@ html {{
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
-      let source = loader_context.source.to_owned().try_into_string()?;
-      Ok(Some(
-        LoaderResult {
-          cacheable: true,
-          file_dependencies: Default::default(),
-          context_dependencies: Default::default(),
-          missing_dependencies: Default::default(),
-          build_dependencies: Default::default(),
-          additional_data: None,
-          source_map: None,
-          content: Content::String(format!(
-            r#"{source}
+      loader_context: &mut LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Vec<Diagnostic>> {
+      let content = loader_context.content.to_owned().try_into_string()?;
+      loader_context.content = Content::String(format!(
+        r#"{content}
 console.log(2);"#
-          )),
-        }
-        .with_empty_diagnostic(),
-      ))
+      ));
+      Ok(vec![])
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -220,25 +189,14 @@ console.log(2);"#
 
     async fn run(
       &self,
-      loader_context: &LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
-      let source = loader_context.source.to_owned().try_into_string()?;
-      Ok(Some(
-        LoaderResult {
-          cacheable: true,
-          file_dependencies: Default::default(),
-          context_dependencies: Default::default(),
-          missing_dependencies: Default::default(),
-          build_dependencies: Default::default(),
-          additional_data: None,
-          source_map: None,
-          content: Content::String(format!(
-            r#"{source}
+      loader_context: &mut LoaderContext<'_, '_, (), ()>,
+    ) -> Result<Vec<Diagnostic>> {
+      let content = loader_context.content.to_owned().try_into_string()?;
+      loader_context.content = Content::String(format!(
+        r#"{content}
 console.log(3);"#
-          )),
-        }
-        .with_empty_diagnostic(),
-      ))
+      ));
+      Ok(vec![])
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

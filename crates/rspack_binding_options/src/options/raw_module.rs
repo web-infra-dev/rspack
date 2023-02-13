@@ -12,7 +12,7 @@ use {
   crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
-  rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray},
+  rspack_error::{internal_error, Diagnostic, Result},
   rspack_napi_utils::NapiResultExt,
 };
 
@@ -333,15 +333,15 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
 
   async fn run(
     &self,
-    loader_context: &rspack_core::LoaderContext<
+    loader_context: &mut rspack_core::LoaderContext<
       '_,
       '_,
       rspack_core::CompilerContext,
       rspack_core::CompilationContext,
     >,
-  ) -> Result<Option<TWithDiagnosticArray<rspack_core::LoaderResult>>> {
-    let loader_context = JsLoaderContext {
-      content: loader_context.source.to_owned().into_bytes().into(),
+  ) -> Result<Vec<Diagnostic>> {
+    let js_loader_context = JsLoaderContext {
+      content: loader_context.content.to_owned().into_bytes().into(),
       additional_data: loader_context
         .additional_data
         .to_owned()
@@ -382,7 +382,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
 
     let loader_result = self
       .func
-      .call(loader_context, ThreadsafeFunctionCallMode::NonBlocking)
+      .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
@@ -394,37 +394,38 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       .transpose()
       .map_err(|e| internal_error!(e.to_string()))?;
 
-    Ok(loader_result.map(|loader_result| {
-      rspack_core::LoaderResult {
-        cacheable: loader_result.cacheable,
-        file_dependencies: loader_result
-          .file_dependencies
-          .into_iter()
-          .map(std::path::PathBuf::from)
-          .collect(),
-        context_dependencies: loader_result
-          .context_dependencies
-          .into_iter()
-          .map(std::path::PathBuf::from)
-          .collect(),
-        missing_dependencies: loader_result
-          .missing_dependencies
-          .into_iter()
-          .map(std::path::PathBuf::from)
-          .collect(),
-        build_dependencies: loader_result
-          .build_dependencies
-          .into_iter()
-          .map(std::path::PathBuf::from)
-          .collect(),
-        content: rspack_core::Content::from(Into::<Vec<u8>>::into(loader_result.content)),
-        source_map,
-        additional_data: loader_result
-          .additional_data
-          .map(|item| String::from_utf8_lossy(&item).to_string()),
-      }
-      .with_empty_diagnostic()
-    }))
+    if let Some(loader_result) = loader_result {
+      loader_context.cacheable = loader_result.cacheable;
+      //                HashSet::from_iter()
+      loader_context.file_dependencies = loader_result
+        .file_dependencies
+        .into_iter()
+        .map(std::path::PathBuf::from)
+        .collect();
+      loader_context.context_dependencies = loader_result
+        .context_dependencies
+        .into_iter()
+        .map(std::path::PathBuf::from)
+        .collect();
+      loader_context.missing_dependencies = loader_result
+        .missing_dependencies
+        .into_iter()
+        .map(std::path::PathBuf::from)
+        .collect();
+      loader_context.build_dependencies = loader_result
+        .build_dependencies
+        .into_iter()
+        .map(std::path::PathBuf::from)
+        .collect();
+      loader_context.content =
+        rspack_core::Content::from(Into::<Vec<u8>>::into(loader_result.content));
+      loader_context.source_map = source_map;
+      loader_context.additional_data = loader_result
+        .additional_data
+        .map(|item| String::from_utf8_lossy(&item).to_string());
+    }
+
+    Ok(vec![])
   }
 
   fn as_any(&self) -> &dyn std::any::Any {

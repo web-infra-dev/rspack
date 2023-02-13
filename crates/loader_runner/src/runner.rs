@@ -4,13 +4,11 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{Content, LoaderRunnerPlugin};
-
-type Source = Content;
 
 #[derive(Debug, Clone)]
 pub struct ResourceData {
@@ -26,7 +24,7 @@ pub struct ResourceData {
 
 #[derive(Debug)]
 pub struct LoaderContext<'a, 'context, T, U> {
-  pub source: Source,
+  pub content: Content,
   /// The resource part of the request, including query and fragment.
   ///
   /// E.g. /abc/resource.js?query=1#some-fragment
@@ -72,51 +70,6 @@ pub struct LoaderResult {
   pub additional_data: Option<String>,
 }
 
-impl LoaderResult {
-  pub fn new(content: Content, source_map: Option<SourceMap>) -> Self {
-    Self {
-      cacheable: true,
-      file_dependencies: Default::default(),
-      context_dependencies: Default::default(),
-      missing_dependencies: Default::default(),
-      build_dependencies: Default::default(),
-      content,
-      source_map,
-      additional_data: Default::default(),
-    }
-  }
-
-  pub fn cacheable(mut self, v: bool) -> Self {
-    self.cacheable = v;
-    self
-  }
-
-  pub fn file_dependency(mut self, v: PathBuf) -> Self {
-    self.file_dependencies.insert(v);
-    self
-  }
-
-  pub fn context_dependency(mut self, v: PathBuf) -> Self {
-    self.context_dependencies.insert(v);
-    self
-  }
-
-  pub fn missing_dependency(mut self, v: PathBuf) -> Self {
-    self.missing_dependencies.insert(v);
-    self
-  }
-
-  pub fn build_dependency(mut self, v: PathBuf) -> Self {
-    self.build_dependencies.insert(v);
-    self
-  }
-
-  pub fn additional_data(mut self, v: String) -> Self {
-    self.additional_data = Some(v);
-    self
-  }
-}
-
 impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
   fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
     Self {
@@ -125,7 +78,7 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
       context_dependencies: loader_context.context_dependencies,
       missing_dependencies: loader_context.missing_dependencies,
       build_dependencies: loader_context.build_dependencies,
-      content: loader_context.source,
+      content: loader_context.content,
       source_map: loader_context.source_map,
       additional_data: loader_context.additional_data,
     }
@@ -138,13 +91,7 @@ pub trait Loader<T, U>: Sync + Send + Debug {
   fn name(&self) -> &str;
 
   /// Each loader should expose a `run` fn, which will be called by the loader runner.
-  ///
-  /// 1. If a loader returns an error, the loader runner will stop loading the resource.
-  /// 2. If a loader returns a `None`, the result of the loader will be the same as the previous one.
-  async fn run(
-    &self,
-    loader_context: &LoaderContext<'_, '_, T, U>,
-  ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>>;
+  async fn run(&self, loader_context: &mut LoaderContext<'_, '_, T, U>) -> Result<Vec<Diagnostic>>;
 
   fn as_any(&self) -> &dyn std::any::Any;
 
@@ -206,7 +153,7 @@ impl LoaderRunner {
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
       build_dependencies: Default::default(),
-      source: content,
+      content,
       resource: &self.resource_data.resource,
       resource_path: &self.resource_data.resource_path,
       resource_query: self.resource_data.resource_query.as_deref(),
@@ -233,18 +180,8 @@ impl LoaderRunner {
     for loader in loaders.as_ref().iter().rev() {
       tracing::trace!("Running loader: {}", loader.name());
 
-      if let Some(loader_result) = loader.run(&loader_context).await? {
-        let (loader_result, ds) = loader_result.split_into_parts();
-        loader_context.cacheable = loader_result.cacheable;
-        loader_context.source = loader_result.content;
-        loader_context.source_map = loader_result.source_map;
-        loader_context.additional_data = loader_result.additional_data;
-        loader_context.file_dependencies = loader_result.file_dependencies;
-        loader_context.context_dependencies = loader_result.context_dependencies;
-        loader_context.missing_dependencies = loader_result.missing_dependencies;
-        loader_context.build_dependencies = loader_result.build_dependencies;
-        diagnostics.extend(ds);
-      }
+      let ds = loader.run(&mut loader_context).await?;
+      diagnostics.extend(ds);
     }
 
     Ok(TWithDiagnosticArray::new(
