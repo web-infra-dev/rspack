@@ -202,9 +202,9 @@ pub fn run_after_pass(
           builtin_tree_shaking && need_tree_shaking
         ),
         Optional::new(
-          Repeat::new(dce(Config::default(), unresolved_mark)),
+          dce(Config::default(), unresolved_mark),
           // extra branch to avoid doing dce twice, (minify will exec dce)
-          need_tree_shaking && builtin_tree_shaking && !minify.enable,
+          builtin_tree_shaking && !minify.enable,
         ),
         swc_visitor::build_module(
           &cm,
