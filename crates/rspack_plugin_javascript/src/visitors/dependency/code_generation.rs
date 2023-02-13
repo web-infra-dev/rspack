@@ -300,7 +300,7 @@ mod tests {
 
   impl<'a> VisitMut for &'a UrlRewrite {
     fn visit_mut_str(&mut self, node: &mut Str) {
-      if &*node.value == &*self.from {
+      if *node.value == *self.from {
         node.value = JsWord::from(&*self.to);
       }
     }
@@ -316,7 +316,7 @@ mod tests {
 
   impl VisitMutAstPath for PathVisitor {
     fn visit_mut_str(&mut self, _node: &mut Str, ast_path: &mut AstKindPath) {
-      dbg!(ast_path.iter().map(|k| *k).collect::<Vec<_>>());
+      dbg!(ast_path.iter().copied().collect::<Vec<_>>());
     }
   }
 
