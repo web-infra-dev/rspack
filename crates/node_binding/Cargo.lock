@@ -2150,6 +2150,7 @@ dependencies = [
 name = "rspack_ids"
 version = "0.1.0"
 dependencies = [
+ "once_cell",
  "rayon",
  "regex",
  "rspack_core",
