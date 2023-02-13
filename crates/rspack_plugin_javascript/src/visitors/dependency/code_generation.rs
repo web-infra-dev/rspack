@@ -87,7 +87,7 @@ pub struct DependencyVisitor<'a, 'b> {
 
 impl<'a, 'b> DependencyVisitor<'a, 'b> {
   pub(crate) fn new(mut visitors: Vec<(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)>) -> Self {
-    debug_assert!(visitors.len() > 0, "There should be at least one visitor");
+    debug_assert!(!visitors.is_empty(), "There should be at least one visitor");
     // We should sort the visitor in JsAstPath's lexical order, or the partition will be wrong.
     visitors.sort_by_key(|(ast_path, _)| *ast_path);
 
@@ -177,7 +177,7 @@ impl<'a, 'b> DependencyVisitor<'a, 'b> {
         // If we reach here, we have all ast paths matched.
 
         // There's more ast paths left, so we should continue to visit the children.
-        if ending_point <= visitors.len() - 1 {
+        if ending_point < visitors.len() {
           node.visit_mut_children_with_path(
             &mut DependencyVisitor {
               visitors: Cow::Borrowed(&visitors[ending_point..]),
