@@ -44,7 +44,7 @@ pub(crate) fn compare_entries(
   let modules_b_len = b.modules.len();
   let diff = modules_a_len as f64 - modules_b_len as f64;
   if diff != 0f64 {
-    return diff as f64;
+    return diff;
   }
 
   let mut modules_a = a.modules.iter().collect::<Vec<_>>();
