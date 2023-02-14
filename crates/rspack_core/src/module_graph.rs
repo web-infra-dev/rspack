@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp::PartialEq;
 use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
@@ -195,6 +196,24 @@ impl ModuleGraph {
   #[inline]
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     self.module_identifier_to_module.get(identifier)
+  }
+
+  /// Aggregate function which combine `get_normal_module_by_identifier`, `as_normal_module`, `get_resource_resolved_data`
+  #[inline]
+  pub fn normal_module_source_path_by_identifier(
+    &self,
+    identifier: &ModuleIdentifier,
+  ) -> Option<Cow<str>> {
+    self
+      .module_identifier_to_module
+      .get(identifier)
+      .and_then(|module| module.as_normal_module())
+      .map(|module| {
+        module
+          .resource_resolved_data()
+          .resource_path
+          .to_string_lossy()
+      })
   }
 
   /// Uniquely identify a module by its identifier and return the exclusive reference
