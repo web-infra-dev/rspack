@@ -15,39 +15,40 @@ pub(crate) fn compare_entries(
   cache_group_by_key: &CacheGroupByKey,
 ) -> f64 {
   // 1. by priority
-  let diff_priority =
-    a.cache_group(cache_group_by_key).priority - b.cache_group(cache_group_by_key).priority;
-  if diff_priority > 0 {
-    return diff_priority as f64;
+  let diff_priority = a.cache_group(cache_group_by_key).priority as f64
+    - b.cache_group(cache_group_by_key).priority as f64;
+  if diff_priority != 0f64 {
+    return diff_priority;
   }
   // 2. by number of chunks
-  if a.chunks.len() >= b.chunks.len() {
-    let diff_count = a.chunks.len() - b.chunks.len();
-    if diff_count > 0 {
-      return diff_count as f64;
-    }
+  let diff_count = a.chunks.len() as f64 - b.chunks.len() as f64;
+  if diff_count != 0f64 {
+    return diff_count;
   }
+
   // 3. by size reduction
   let a_size_reduce = total_size(&a.sizes) * (a.chunks.len() - 1) as f64;
   let b_size_reduce = total_size(&b.sizes) * (b.chunks.len() - 1) as f64;
   let diff_size_reduce = a_size_reduce - b_size_reduce;
-  if diff_size_reduce > 0f64 {
+  if diff_size_reduce != 0f64 {
     return diff_size_reduce;
   }
   // 4. by cache group index
-  if b.cache_group_index >= a.cache_group_index {
-    let index_diff = b.cache_group_index - a.cache_group_index;
-    if index_diff > 0 {
-      return index_diff as f64;
-    }
+  let index_diff = b.cache_group_index as f64 - a.cache_group_index as f64;
+  if index_diff != 0f64 {
+    return index_diff;
   }
+
   // 5. by number of modules (to be able to compare by identifier)
-  let mut modules_a = a.modules.iter().collect::<Vec<_>>();
-  let mut modules_b = b.modules.iter().collect::<Vec<_>>();
-  let diff = modules_a.len() - modules_b.len();
-  if diff > 0 {
+  let modules_a_len = a.modules.len();
+  let modules_b_len = b.modules.len();
+  let diff = modules_a_len as f64 - modules_b_len as f64;
+  if diff != 0f64 {
     return diff as f64;
   }
+
+  let mut modules_a = a.modules.iter().collect::<Vec<_>>();
+  let mut modules_b = b.modules.iter().collect::<Vec<_>>();
   modules_a.sort();
   modules_b.sort();
   compare_modules(&modules_a, &modules_b) as usize as f64
