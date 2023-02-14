@@ -208,8 +208,6 @@ impl ContextModule {
         return Promise.resolve().then(function() {
         "#,
       ));
-    } else {
-      source.add(RawSource::from("\nreturn id;\n"));
     }
     source.add(RawSource::from(
       r#"
@@ -218,7 +216,9 @@ impl ContextModule {
         e.code = 'MODULE_NOT_FOUND';
         throw e;
       }
-      return map[req];
+      // return map[req];
+      // This is different from webpack, rspack generate map with module id as key
+      return req;
     "#,
     ));
     if is_async {

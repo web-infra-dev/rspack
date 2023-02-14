@@ -1,11 +1,13 @@
 use regex::Regex;
 use rspack_core::{
-  ContextMode, ContextOptions, DependencyCategory, ImportContextDependency, ModuleDependency,
+  CommonJsRequireContextDependency, ContextMode, ContextOptions, DependencyCategory,
+  ImportContextDependency, ModuleDependency,
 };
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
   CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, MemberProp, MetaPropKind, ModuleDecl,
+  Tpl,
 };
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 
@@ -48,20 +50,36 @@ impl DependencyScanner {
             if call_expr.args.len() != 1 {
               return;
             }
-            let src = match call_expr.args.first().expect("TODO:") {
+            match call_expr.args.first().expect("TODO:") {
               ExprOrSpread { spread: None, expr } => match &**expr {
-                Expr::Lit(Lit::Str(s)) => s,
+                Expr::Lit(Lit::Str(s)) => {
+                  let source = s.value.clone();
+                  self.add_dependency(box CommonJSRequireDependency::new(
+                    source,
+                    Some(call_expr.span.into()),
+                    as_parent_path(ast_path),
+                  ));
+                }
+                Expr::Tpl(tpl) => {
+                  let (context, reg) = scanner_tpl(tpl);
+                  self.add_dependency(box CommonJsRequireContextDependency::new(
+                    ContextOptions {
+                      mode: ContextMode::Sync,
+                      recursive: false,
+                      reg_exp: Regex::new(&reg).expect("reg failed"),
+                      include: None,
+                      exclude: None,
+                      category: DependencyCategory::CommonJS,
+                      request: context.to_string(),
+                    },
+                    Some(call_expr.span.into()),
+                    as_parent_path(ast_path),
+                  ));
+                }
                 _ => return,
               },
               _ => return,
             };
-            let source = src.value.clone();
-            self.add_dependency(box CommonJSRequireDependency::new(
-              source,
-              Some(call_expr.span.into()),
-              as_parent_path(ast_path),
-            ));
-            // self.add_dependency(source.clone(), ResolveKind::Require, call_expr.span);
           }
         }
       }
@@ -79,31 +97,7 @@ impl DependencyScanner {
             ));
           }
           if let Expr::Tpl(tpl) = dyn_imported.expr.as_ref() {
-            let prefix_raw = tpl
-              .quasis
-              .first()
-              .expect("should have one quasis")
-              .raw
-              .to_string();
-            let post_raw = if tpl.quasis.len() > 1 {
-              tpl
-                .quasis
-                .last()
-                .expect("should have last quasis")
-                .raw
-                .to_string()
-            } else {
-              String::new()
-            };
-            let (context, prefix) = split_context_from_prefix(&prefix_raw);
-            let inner_reg = tpl
-              .quasis
-              .iter()
-              .skip(1)
-              .map(|_| ".*")
-              .collect::<Vec<&str>>()
-              .join("");
-            let reg = format!("^{prefix}{inner_reg}{post_raw}$");
+            let (context, reg) = scanner_tpl(tpl);
             self.add_dependency(box ImportContextDependency::new(
               ContextOptions {
                 mode: ContextMode::Lazy, // lazy by default
@@ -112,7 +106,7 @@ impl DependencyScanner {
                 include: None,
                 exclude: None,
                 category: DependencyCategory::Esm,
-                request: context.to_string(),
+                request: context,
               },
               Some(node.span.into()),
               as_parent_path(ast_path),
@@ -267,6 +261,35 @@ fn split_context_from_prefix(prefix: &str) -> (&str, &str) {
   } else {
     (".", prefix)
   }
+}
+
+fn scanner_tpl(tpl: &Tpl) -> (String, String) {
+  let prefix_raw = tpl
+    .quasis
+    .first()
+    .expect("should have one quasis")
+    .raw
+    .to_string();
+  let post_raw = if tpl.quasis.len() > 1 {
+    tpl
+      .quasis
+      .last()
+      .expect("should have last quasis")
+      .raw
+      .to_string()
+  } else {
+    String::new()
+  };
+  let (context, prefix) = split_context_from_prefix(&prefix_raw);
+  let inner_reg = tpl
+    .quasis
+    .iter()
+    .skip(1)
+    .map(|_| ".*")
+    .collect::<Vec<&str>>()
+    .join("");
+  let reg = format!("^{prefix}{inner_reg}{post_raw}$");
+  (context.to_string(), reg)
 }
 
 #[test]

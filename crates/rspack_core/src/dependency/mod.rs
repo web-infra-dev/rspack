@@ -4,7 +4,9 @@ mod code_generatable;
 pub use code_generatable::*;
 mod context_element_dependency;
 pub use context_element_dependency::*;
+mod common_js_require_context_dependency;
 mod import_context_dependency;
+pub use common_js_require_context_dependency::*;
 pub use import_context_dependency::*;
 mod css;
 use std::{any::Any, fmt::Debug, hash::Hash};
@@ -47,6 +49,8 @@ pub enum DependencyType {
   ContextElement,
   // import context
   ImportContext,
+  // commonjs require context
+  CommonJSRequireContext,
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
