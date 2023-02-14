@@ -1,4 +1,4 @@
-use std::{fmt::format, fs, hash::Hash, path::Path};
+use std::{fs, hash::Hash, path::Path};
 
 use regex::Regex;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -122,7 +122,7 @@ impl ContextModule {
           .module_identifier_by_dependency_id(dependency)
         {
           if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-            map.insert(id.replace(&context, "./"), id.to_string());
+            map.insert(id.replace(context, "./"), id.to_string());
           }
         }
       }
