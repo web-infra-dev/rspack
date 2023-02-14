@@ -6,8 +6,7 @@ use rspack_core::{
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, MemberProp, MetaPropKind, ModuleDecl,
-  Tpl,
+  CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, MetaPropKind, ModuleDecl, Tpl,
 };
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 
@@ -50,17 +49,16 @@ impl DependencyScanner {
             if call_expr.args.len() != 1 {
               return;
             }
-            match call_expr.args.first().expect("TODO:") {
-              ExprOrSpread { spread: None, expr } => match &**expr {
-                Expr::Lit(Lit::Str(s)) => {
-                  let source = s.value.clone();
+            if let Some(expr) = call_expr.args.get(0) {
+              if expr.spread.is_none() {
+                if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
                   self.add_dependency(box CommonJSRequireDependency::new(
-                    source,
+                    s.value.clone(),
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
                   ));
                 }
-                Expr::Tpl(tpl) => {
+                if let Expr::Tpl(tpl) = expr.expr.as_ref() {
                   let (context, reg) = scanner_tpl(tpl);
                   self.add_dependency(box CommonJsRequireContextDependency::new(
                     ContextOptions {
@@ -70,16 +68,14 @@ impl DependencyScanner {
                       include: None,
                       exclude: None,
                       category: DependencyCategory::CommonJS,
-                      request: context.to_string(),
+                      request: context,
                     },
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
                   ));
                 }
-                _ => return,
-              },
-              _ => return,
-            };
+              }
+            }
           }
         }
       }
