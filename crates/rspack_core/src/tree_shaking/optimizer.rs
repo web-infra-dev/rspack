@@ -161,7 +161,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       visited_symbol_ref,
       &dead_nodes_index,
     );
-    dbg!(&used_symbol_ref);
+    // dbg!(&used_symbol_ref);
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
