@@ -12,7 +12,7 @@ use {
   crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
-  rspack_error::{internal_error, Diagnostic, Result},
+  rspack_error::{internal_error, Result},
   rspack_napi_utils::NapiResultExt,
 };
 
@@ -339,7 +339,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::CompilerContext,
       rspack_core::CompilationContext,
     >,
-  ) -> Result<Vec<Diagnostic>> {
+  ) -> Result<()> {
     let js_loader_context = JsLoaderContext {
       content: loader_context.content.to_owned().into_bytes().into(),
       additional_data: loader_context
@@ -425,7 +425,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
         .map(|item| String::from_utf8_lossy(&item).to_string());
     }
 
-    Ok(vec![])
+    Ok(())
   }
 
   fn as_any(&self) -> &dyn std::any::Any {

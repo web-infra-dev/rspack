@@ -84,7 +84,7 @@ macro_rules! run_loader {
 
 #[cfg(test)]
 mod fixtures {
-  use rspack_error::{Diagnostic, Result};
+  use rspack_error::Result;
   use rspack_loader_runner::*;
 
   #[derive(Debug)]
@@ -96,15 +96,12 @@ mod fixtures {
       "direct-pass-loader"
     }
 
-    async fn run(
-      &self,
-      loader_context: &mut LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Vec<Diagnostic>> {
+    async fn run(&self, loader_context: &mut LoaderContext<'_, '_, (), ()>) -> Result<()> {
       let content = loader_context.content.to_owned();
       loader_context.cacheable = true;
       loader_context.content = content;
 
-      Ok(vec![])
+      Ok(())
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -125,10 +122,7 @@ mod fixtures {
       "basic-loader"
     }
 
-    async fn run(
-      &self,
-      loader_context: &mut LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Vec<Diagnostic>> {
+    async fn run(&self, loader_context: &mut LoaderContext<'_, '_, (), ()>) -> Result<()> {
       let content = loader_context.content.to_owned().try_into_string()?;
       loader_context.content = Content::String(format!(
         r#"{content}
@@ -136,7 +130,7 @@ html {{
   margin: 0;
 }}"#
       ));
-      Ok(vec![])
+      Ok(())
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -157,16 +151,13 @@ html {{
       "chain-loader"
     }
 
-    async fn run(
-      &self,
-      loader_context: &mut LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Vec<Diagnostic>> {
+    async fn run(&self, loader_context: &mut LoaderContext<'_, '_, (), ()>) -> Result<()> {
       let content = loader_context.content.to_owned().try_into_string()?;
       loader_context.content = Content::String(format!(
         r#"{content}
 console.log(2);"#
       ));
-      Ok(vec![])
+      Ok(())
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -187,16 +178,13 @@ console.log(2);"#
       "chain-loader"
     }
 
-    async fn run(
-      &self,
-      loader_context: &mut LoaderContext<'_, '_, (), ()>,
-    ) -> Result<Vec<Diagnostic>> {
+    async fn run(&self, loader_context: &mut LoaderContext<'_, '_, (), ()>) -> Result<()> {
       let content = loader_context.content.to_owned().try_into_string()?;
       loader_context.content = Content::String(format!(
         r#"{content}
 console.log(3);"#
       ));
-      Ok(vec![])
+      Ok(())
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

@@ -4,7 +4,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_error::{Diagnostic, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -56,6 +56,8 @@ pub struct LoaderContext<'a, 'context, T, U> {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
+
+  pub diagnostic: Vec<Diagnostic>,
 }
 
 #[derive(Debug)]
@@ -70,9 +72,9 @@ pub struct LoaderResult {
   pub additional_data: Option<String>,
 }
 
-impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
+impl<T, U> From<LoaderContext<'_, '_, T, U>> for TWithDiagnosticArray<LoaderResult> {
   fn from(loader_context: LoaderContext<'_, '_, T, U>) -> Self {
-    Self {
+    LoaderResult {
       cacheable: loader_context.cacheable,
       file_dependencies: loader_context.file_dependencies,
       context_dependencies: loader_context.context_dependencies,
@@ -82,6 +84,7 @@ impl<T, U> From<LoaderContext<'_, '_, T, U>> for LoaderResult {
       source_map: loader_context.source_map,
       additional_data: loader_context.additional_data,
     }
+    .with_diagnostic(loader_context.diagnostic)
   }
 }
 
@@ -91,7 +94,7 @@ pub trait Loader<T, U>: Sync + Send + Debug {
   fn name(&self) -> &str;
 
   /// Each loader should expose a `run` fn, which will be called by the loader runner.
-  async fn run(&self, loader_context: &mut LoaderContext<'_, '_, T, U>) -> Result<Vec<Diagnostic>>;
+  async fn run(&self, loader_context: &mut LoaderContext<'_, '_, T, U>) -> Result<()>;
 
   fn as_any(&self) -> &dyn std::any::Any;
 
@@ -162,6 +165,7 @@ impl LoaderRunner {
       compilation_context: context.compilation,
       source_map: None,
       additional_data: None,
+      diagnostic: vec![],
     };
 
     Ok(loader_context)
@@ -173,20 +177,15 @@ impl LoaderRunner {
     context: &'context LoaderRunnerAdditionalContext<'_, T, U>,
   ) -> LoaderRunnerResult {
     let mut loader_context = self.get_loader_context(context).await?;
-    let mut diagnostics = Vec::new();
 
     tracing::trace!("Running loaders for resource: {}", loader_context.resource);
 
     for loader in loaders.as_ref().iter().rev() {
       tracing::trace!("Running loader: {}", loader.name());
 
-      let ds = loader.run(&mut loader_context).await?;
-      diagnostics.extend(ds);
+      loader.run(&mut loader_context).await?;
     }
 
-    Ok(TWithDiagnosticArray::new(
-      loader_context.into(),
-      diagnostics,
-    ))
+    Ok(loader_context.into())
   }
 }

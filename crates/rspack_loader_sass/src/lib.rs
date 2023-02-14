@@ -486,7 +486,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
   async fn run(
     &self,
     loader_context: &mut LoaderContext<'_, '_, CompilerContext, CompilationContext>,
-  ) -> Result<Vec<Diagnostic>> {
+  ) -> Result<()> {
     let content = loader_context.content.to_owned();
     let (tx, rx) = unbounded();
     let logger = RspackLogger { tx };
@@ -517,7 +517,10 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
 
     loader_context.content = result.css.into();
     loader_context.source_map = source_map;
-    Ok(rx.into_iter().flatten().collect_vec())
+    loader_context
+      .diagnostic
+      .append(&mut rx.into_iter().flatten().collect_vec());
+    Ok(())
   }
 
   fn as_any(&self) -> &dyn std::any::Any {
