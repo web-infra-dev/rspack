@@ -29,6 +29,7 @@ export interface RspackCLIOptions {
 	argv?: Record<string, any>;
 	env?: Record<string, any>;
 	nodeEnv: string;
+	configName?: string[];
 }
 
 export interface RspackCommand {

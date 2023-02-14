@@ -1,8 +1,7 @@
 import path from "path";
-import { createFsFromVolume, Volume, IFs } from "memfs";
-import { Callback } from "tapable";
+import { createFsFromVolume, Volume } from "memfs";
 import { FileSystemInfoEntry, Watcher } from "../src/util/fs";
-import { MultiCompilerOptions, rspack, RspackOptions } from "../src";
+import { MultiRspackOptions, rspack, RspackOptions } from "../src";
 
 const createMultiCompiler = (
 	options?: RspackOptions[] | { parallelism?: number }
@@ -388,7 +387,7 @@ describe("MultiCompiler", function () {
 		});
 	});
 	it("should respect parallelism when using invalidate", done => {
-		const configs: MultiCompilerOptions = [
+		const configs: MultiRspackOptions = [
 			{
 				name: "a",
 				mode: "development",
