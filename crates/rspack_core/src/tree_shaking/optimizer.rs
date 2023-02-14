@@ -866,20 +866,17 @@ impl<'a> CodeSizeOptimizer<'a> {
                     .compilation
                     .module_graph
                     .normal_module_source_path_by_identifier(&module_result.module_identifier);
-                  match module_path {
-                    Some(module_path) => {
-                      let error_message = format!(
-                        "{} did not export `{}`, imported by {}",
-                        module_path,
-                        indirect_symbol.indirect_id(),
-                        indirect_symbol.importer()
-                      );
-                      errors.push(Error::InternalError(InternalError {
-                        error_message,
-                        severity: Severity::Warn,
-                      }));
-                    }
-                    None => todo!(),
+                  if let Some(module_path) = module_path {
+                    let error_message = format!(
+                      "{} did not export `{}`, imported by {}",
+                      module_path,
+                      indirect_symbol.indirect_id(),
+                      indirect_symbol.importer()
+                    );
+                    errors.push(Error::InternalError(InternalError {
+                      error_message,
+                      severity: Severity::Warn,
+                    }));
                   }
                   return;
                 } else {
