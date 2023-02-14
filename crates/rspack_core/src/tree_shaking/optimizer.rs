@@ -862,16 +862,22 @@ impl<'a> CodeSizeOptimizer<'a> {
                 //   _ => {}
                 // }
                 if !is_bailout_module_identifier && !has_bailout_module_identifiers {
-                  let error_message = format!(
-                    "{} did not export `{}`, imported by {}",
-                    module_result.module_identifier,
-                    indirect_symbol.indirect_id(),
-                    indirect_symbol.importer()
-                  );
-                  errors.push(Error::InternalError(InternalError {
-                    error_message,
-                    severity: Severity::Warn,
-                  }));
+                  let module_path = self
+                    .compilation
+                    .module_graph
+                    .normal_module_source_path_by_identifier(&module_result.module_identifier);
+                  if let Some(module_path) = module_path {
+                    let error_message = format!(
+                      "{} did not export `{}`, imported by {}",
+                      module_path,
+                      indirect_symbol.indirect_id(),
+                      indirect_symbol.importer()
+                    );
+                    errors.push(Error::InternalError(InternalError {
+                      error_message,
+                      severity: Severity::Warn,
+                    }));
+                  }
                   return;
                 } else {
                   // TODO: This branch should be remove after we analyze module.exports
@@ -892,8 +898,14 @@ impl<'a> CodeSizeOptimizer<'a> {
                 // let cwd = std::env::current_dir();
                 let module_identifier_list = ret
                   .iter()
-                  .map(|(module_identifier, _)| {
-                    contextify(self.compilation.options.context.clone(), module_identifier)
+                  .filter_map(|(module_identifier, _)| {
+                    self
+                      .compilation
+                      .module_graph
+                      .normal_module_source_path_by_identifier(module_identifier)
+                  })
+                  .map(|identifier| {
+                    contextify(self.compilation.options.context.clone(), &identifier)
                   })
                   .collect::<Vec<_>>();
                 error_message += &join_string_component(module_identifier_list);
@@ -930,11 +942,17 @@ impl<'a> CodeSizeOptimizer<'a> {
           Some(analyze_result) => analyze_result,
           None => {
             if is_js_like_uri(&src_module_identifier) {
-              let error_message = format!("Can't get analyze result of {0}", star_symbol.src);
-              errors.push(Error::InternalError(InternalError {
-                error_message,
-                severity: Severity::Warn,
-              }));
+              let module_path = self
+                .compilation
+                .module_graph
+                .normal_module_source_path_by_identifier(&star_symbol.src.into());
+              if let Some(module_path) = module_path {
+                let error_message = format!("Can't get analyze result of {module_path}");
+                errors.push(Error::InternalError(InternalError {
+                  error_message,
+                  severity: Severity::Warn,
+                }));
+              }
             }
             return;
           }
