@@ -6,7 +6,7 @@ use rspack_core::{
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, MetaPropKind, ModuleDecl, Tpl,
+  BinExpr, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, MetaPropKind, ModuleDecl, Tpl,
 };
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 
@@ -74,6 +74,23 @@ impl DependencyScanner {
                     as_parent_path(ast_path),
                   ));
                 }
+                if let Expr::Bin(bin) = expr.expr.as_ref() {
+                  if let Some((context, reg)) = scanner_bin(bin) {
+                    self.add_dependency(box CommonJsRequireContextDependency::new(
+                      ContextOptions {
+                        mode: ContextMode::Sync,
+                        recursive: false,
+                        reg_exp: Regex::new(&reg).expect("reg failed"),
+                        include: None,
+                        exclude: None,
+                        category: DependencyCategory::CommonJS,
+                        request: context,
+                      },
+                      Some(call_expr.span.into()),
+                      as_parent_path(ast_path),
+                    ));
+                  }
+                }
               }
             }
           }
@@ -107,6 +124,23 @@ impl DependencyScanner {
               Some(node.span.into()),
               as_parent_path(ast_path),
             ));
+          }
+          if let Expr::Bin(bin) = dyn_imported.expr.as_ref() {
+            if let Some((context, reg)) = scanner_bin(bin) {
+              self.add_dependency(box ImportContextDependency::new(
+                ContextOptions {
+                  mode: ContextMode::Lazy,
+                  recursive: false,
+                  reg_exp: Regex::new(&reg).expect("reg failed"),
+                  include: None,
+                  exclude: None,
+                  category: DependencyCategory::Esm,
+                  request: context,
+                },
+                Some(node.span.into()),
+                as_parent_path(ast_path),
+              ));
+            }
           }
         }
       }
@@ -266,7 +300,7 @@ fn scanner_tpl(tpl: &Tpl) -> (String, String) {
     .expect("should have one quasis")
     .raw
     .to_string();
-  let post_raw = if tpl.quasis.len() > 1 {
+  let postfix_raw = if tpl.quasis.len() > 1 {
     tpl
       .quasis
       .last()
@@ -284,8 +318,38 @@ fn scanner_tpl(tpl: &Tpl) -> (String, String) {
     .map(|_| ".*")
     .collect::<Vec<&str>>()
     .join("");
-  let reg = format!("^{prefix}{inner_reg}{post_raw}$");
+  let reg = format!("^{prefix}{inner_reg}{postfix_raw}$");
   (context.to_string(), reg)
+}
+
+fn scanner_bin(bin: &BinExpr) -> Option<(String, String)> {
+  let prefix_raw = if let Some(prefix) = find_bin_expr_prefix_string(&bin) {
+    prefix
+  } else {
+    "".to_string()
+  };
+  let postfix_raw = if let box Expr::Lit(Lit::Str(right)) = &bin.right {
+    right.value.to_string()
+  } else {
+    "".to_string()
+  };
+
+  if prefix_raw.is_empty() && postfix_raw.is_empty() {
+    return None;
+  }
+
+  let (context, prefix) = split_context_from_prefix(&prefix_raw);
+  let reg = format!("^{prefix}.*{postfix_raw}$");
+
+  Some((context.to_string(), reg))
+}
+
+fn find_bin_expr_prefix_string(bin: &BinExpr) -> Option<String> {
+  match &bin.left {
+    box Expr::Lit(Lit::Str(str)) => Some(str.value.to_string()),
+    box Expr::Bin(bin) => find_bin_expr_prefix_string(&bin),
+    _ => None,
+  }
 }
 
 #[test]
