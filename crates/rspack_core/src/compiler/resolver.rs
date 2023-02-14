@@ -53,12 +53,7 @@ impl Default for ResolverFactory {
 
 impl ResolverFactory {
   pub fn clear_entries(&self) {
-    // TODO: we can use shared `entires` along resolvers.
     self.resolver.0.clear_entries();
-    self
-      .resolvers
-      .iter()
-      .for_each(|resolver| resolver.0.clear_entries());
   }
 
   pub fn new(base_options: Resolve) -> Self {
@@ -78,10 +73,7 @@ impl ResolverFactory {
     if let Some(r) = self.resolvers.get(&options) {
       r.clone()
     } else {
-      let base_options = self
-        .base_options
-        .clone()
-        .to_inner_options(self.cache.clone(), false);
+      let base_options = self.base_options.clone();
       let merged_options = match &options.resolve_options {
         Some(o) => merge_resolver_options(base_options, o.clone()),
         None => match &self.base_options.condition_names {
@@ -110,7 +102,7 @@ impl ResolverFactory {
             };
             merge_resolver_options(base_options, options)
           }
-          _ => self.base_options.clone(),
+          _ => base_options,
         },
       };
       let resolver = Arc::new(Resolver(nodejs_resolver::Resolver::new(
@@ -122,47 +114,51 @@ impl ResolverFactory {
   }
 }
 
-fn merge_resolver_options(base: nodejs_resolver::Options, other: Resolve) -> Resolve {
-  fn overwrite<T: Clone, F: FnOnce(T, T) -> Option<T>>(a: T, b: Option<T>, f: F) -> Option<T> {
-    match b {
-      Some(value) => f(a, value),
-      None => Some(a),
+fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
+  fn overwrite<T, F>(a: Option<T>, b: Option<T>, f: F) -> Option<T>
+  where
+    T: Clone,
+    F: FnOnce(T, T) -> T,
+  {
+    match (a, b) {
+      (Some(a), Some(b)) => Some(f(a, b)),
+      (Some(a), None) => Some(a),
+      (None, Some(b)) => Some(b),
+      (None, None) => None,
     }
   }
 
   let alias = overwrite(base.alias, other.alias, |pre, mut now| {
     now.extend(pre.into_iter());
     let now: indexmap::IndexSet<(String, AliasMap)> = now.into_iter().collect();
-    Some(now.into_iter().collect())
+    now.into_iter().collect()
   });
   let fallback = overwrite(base.fallback, other.fallback, |pre, mut now| {
     now.extend(pre.into_iter());
     let now: indexmap::IndexSet<(String, AliasMap)> = now.into_iter().collect();
-    Some(now.into_iter().collect())
+    now.into_iter().collect()
   });
   let prefer_relative = overwrite(base.prefer_relative, other.prefer_relative, |_, value| {
-    Some(value)
+    value
   });
-  let symlinks = overwrite(base.symlinks, other.symlinks, |_, value| Some(value));
-  let browser_field = overwrite(base.browser_field, other.browser_field, |_, value| {
-    Some(value)
-  });
+  let symlinks = overwrite(base.symlinks, other.symlinks, |_, value| value);
+  let browser_field = overwrite(base.browser_field, other.browser_field, |_, value| value);
   let extensions = overwrite(base.extensions, other.extensions, |base, value| {
-    Some(normalize_string_array(&base, value))
+    normalize_string_array(&base, value)
   });
   let main_files = overwrite(base.main_files, other.main_files, |base, value| {
-    Some(normalize_string_array(&base, value))
+    normalize_string_array(&base, value)
   });
   let main_fields = overwrite(base.main_fields, other.main_fields, |base, value| {
-    Some(normalize_string_array(&base, value))
+    normalize_string_array(&base, value)
   });
   let modules = overwrite(base.modules, other.modules, |base, value| {
-    Some(normalize_string_array(&base, value))
+    normalize_string_array(&base, value)
   });
   let condition_names = overwrite(
-    base.condition_names.into_iter().collect(),
+    base.condition_names,
     other.condition_names,
-    |base, value| Some(normalize_string_array(&base, value)),
+    |base, value| normalize_string_array(&base, value),
   );
   let tsconfig = other.tsconfig;
 
@@ -223,7 +219,7 @@ mod test {
       condition_names: Some(to_string(vec!["f", "..."])),
       ..Default::default()
     };
-    let options = merge_resolver_options(base.to_inner_options(Default::default(), false), another);
+    let options = merge_resolver_options(base, another);
     assert_eq!(
       options.extensions.expect("should be Ok"),
       to_string(vec!["a1", "b1"])
