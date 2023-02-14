@@ -13,7 +13,6 @@ use {
   crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
-  rspack_error::{internal_error, Result},
   rspack_napi_utils::NapiResultExt,
 };
 
@@ -324,7 +323,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::CompilerContext,
       rspack_core::CompilationContext,
     >,
-  ) -> Result<()> {
+  ) -> rspack_error::Result<()> {
     let js_loader_context = JsLoaderContext {
       content: loader_context.content.to_owned().into_bytes().into(),
       additional_data: loader_context
@@ -469,7 +468,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             #[cfg(feature = "node-api")]
             {
               if let Some(raw_js_loader) = rule_use.js_loader {
-                return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxedLoader);
+                return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxLoader);
               }
             }
             if let Some(builtin_loader) = rule_use.builtin_loader {
