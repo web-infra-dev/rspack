@@ -17,10 +17,9 @@ use rspack_core::{
   ResolverFactory,
 };
 use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, Severity,
-  TWithDiagnosticArray, TraceableError,
+  internal_error, Diagnostic, DiagnosticKind, Error, Result, Severity, TraceableError,
 };
-use rspack_loader_runner::{Loader, LoaderContext, LoaderResult};
+use rspack_loader_runner::{Loader, LoaderContext};
 use sass_embedded::{
   legacy::{
     IndentType, LegacyImporter, LegacyImporterResult, LegacyImporterThis, LegacyOptions,
@@ -486,12 +485,12 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
 
   async fn run(
     &self,
-    loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
-  ) -> Result<Option<TWithDiagnosticArray<LoaderResult>>> {
-    let source = loader_context.source.to_owned();
+    loader_context: &mut LoaderContext<'_, '_, CompilerContext, CompilationContext>,
+  ) -> Result<()> {
+    let content = loader_context.content.to_owned();
     let (tx, rx) = unbounded();
     let logger = RspackLogger { tx };
-    let sass_options = self.get_sass_options(loader_context, source.try_into_string()?, logger);
+    let sass_options = self.get_sass_options(loader_context, content.try_into_string()?, logger);
     let result = self
       .compiler
       .lock()
@@ -515,10 +514,13 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
         Ok(map)
       })
       .transpose()?;
-    Ok(Some(
-      LoaderResult::new(result.css.into(), source_map)
-        .with_diagnostic(rx.into_iter().flatten().collect_vec()),
-    ))
+
+    loader_context.content = result.css.into();
+    loader_context.source_map = source_map;
+    loader_context
+      .diagnostic
+      .append(&mut rx.into_iter().flatten().collect_vec());
+    Ok(())
   }
 
   fn as_any(&self) -> &dyn std::any::Any {
