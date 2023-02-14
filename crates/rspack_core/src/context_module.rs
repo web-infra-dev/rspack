@@ -1,4 +1,4 @@
-use std::{fs, hash::Hash, path::Path};
+use std::{fmt::format, fs, hash::Hash, path::Path};
 
 use regex::Regex;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -90,6 +90,28 @@ impl ContextModule {
 
   pub fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
     let mut map = HashMap::default();
+    let binding = Path::new("./")
+      .join(
+        self
+          .options
+          .resource
+          .as_path()
+          .relative(compilation.options.context.as_path()),
+      )
+      .to_string_lossy()
+      .to_string();
+    let context = binding
+      .strip_suffix(
+        &self
+          .options
+          .context_options
+          .request
+          .as_path()
+          .normalize()
+          .to_string_lossy()
+          .to_string(),
+      )
+      .expect("should be suffix");
     if let Some(dependencies) = compilation
       .module_graph
       .dependencies_by_module_identifier(&self.identifier)
@@ -100,7 +122,7 @@ impl ContextModule {
           .module_identifier_by_dependency_id(dependency)
         {
           if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-            map.insert(id.to_string(), "".to_string());
+            map.insert(id.replace(&context, "./"), id.to_string());
           }
         }
       }
@@ -216,9 +238,7 @@ impl ContextModule {
         e.code = 'MODULE_NOT_FOUND';
         throw e;
       }
-      // return map[req];
-      // This is different from webpack, rspack generate map with module id as key
-      return req;
+      return map[req];
     "#,
     ));
     if is_async {

@@ -58,13 +58,27 @@ impl WorkerTask for FactorizeTask {
       .collect::<Vec<_>>();
     let dependency = &self.dependencies[0];
 
+    let context = if let Some(context) = dependency.get_context().map(|x| x.to_string()) {
+      Some(context)
+    } else if let Some(importer) = &self.original_resource_path {
+      Some(
+        importer
+          .parent()
+          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+          .to_string_lossy()
+          .to_string(),
+      )
+    } else {
+      Some(self.options.context.to_string_lossy().to_string())
+    };
+
     let (result, diagnostics) = match *dependency.dependency_type() {
       DependencyType::ImportContext | DependencyType::CommonJSRequireContext => {
         let factory = ContextModuleFactory::new(self.plugin_driver, self.cache);
         factory
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
-            context: None,
+            context,
             dependency: dependency.clone(),
           })
           .await?
@@ -86,7 +100,7 @@ impl WorkerTask for FactorizeTask {
         factory
           .create(ModuleFactoryCreateData {
             resolve_options: self.resolve_options,
-            context: dependency.get_context().map(|x| x.to_string()),
+            context,
             dependency: dependency.clone(),
           })
           .await?
