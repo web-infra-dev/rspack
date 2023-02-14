@@ -46,7 +46,6 @@ fn get_backtrace() -> String {
 
 /// Extract stack or message from a native Node error object,
 /// otherwise we try to format the error from the given `Error` object that indicates which was created on the Rust side.
-/// Backtrace will be included if the error is a Node error but without a stack or message.
 #[inline(always)]
 fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, Option<String>) {
   if !err.reason.is_empty() {
