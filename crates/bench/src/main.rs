@@ -11,7 +11,7 @@ use termcolorful::println_string_with_fg_color;
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
-// use rspack_test::read_test_config_and_normalize;
+
 #[tokio::main]
 async fn main() {
   let path_list = vec![

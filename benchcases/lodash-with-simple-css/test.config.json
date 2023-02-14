@@ -1,4 +1,10 @@
 {
+	"entry": {
+		"main": {
+			"import": ["./src/index.js"],
+			"runtime": "runtime"
+		}
+	},
 	"builtins": {
 		"css": {
 			"presetEnv": [

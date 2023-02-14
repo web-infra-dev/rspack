@@ -7,8 +7,9 @@
     "builtins": {
       "$ref": "#/definitions/Builtins"
     },
-    "debug": {
-      "$ref": "#/definitions/Debug"
+    "devtool": {
+      "default": "",
+      "type": "string"
     },
     "entry": {
       "type": "object",
@@ -57,8 +58,16 @@
             "$ref": "#/definitions/HtmlPluginConfig"
           }
         },
+        "minify": {
+          "default": false,
+          "type": "boolean"
+        },
         "postcss": {
           "$ref": "#/definitions/Postcss"
+        },
+        "treeShaking": {
+          "default": false,
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -72,20 +81,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "additionalProperties": false
-    },
-    "Debug": {
-      "type": "object",
-      "properties": {
-        "sideEffects": {
-          "default": false,
-          "type": "boolean"
-        },
-        "treeshake": {
-          "default": false,
-          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -258,7 +253,7 @@
       },
       "additionalProperties": false
     },
-    "ModuleRule": {
+    "ModuleRuleTest": {
       "oneOf": [
         {
           "type": "object",
@@ -281,12 +276,38 @@
         }
       ]
     },
+    "ModuleRuleUse": {
+      "type": "object",
+      "required": [
+        "builtinLoader"
+      ],
+      "properties": {
+        "builtinLoader": {
+          "type": "string"
+        },
+        "options": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "Optimization": {
       "type": "object",
       "properties": {
+        "moduleIds": {
+          "default": "named",
+          "type": "string"
+        },
         "removeAvailableModules": {
           "default": true,
           "type": "boolean"
+        },
+        "sideEffects": {
+          "default": "false",
+          "type": "string"
         }
       },
       "additionalProperties": false
@@ -403,6 +424,7 @@
       "type": "object",
       "properties": {
         "sideEffect": {
+          "default": null,
           "type": [
             "boolean",
             "null"
@@ -411,12 +433,25 @@
         "test": {
           "anyOf": [
             {
-              "$ref": "#/definitions/ModuleRule"
+              "$ref": "#/definitions/ModuleRuleTest"
             },
             {
               "type": "null"
             }
           ]
+        },
+        "type": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "use": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ModuleRuleUse"
+          }
         }
       },
       "additionalProperties": false

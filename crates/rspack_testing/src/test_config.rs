@@ -74,8 +74,6 @@ pub struct TestConfig {
   #[serde(default = "default_target")]
   pub target: Vec<String>,
   #[serde(default)]
-  pub debug: Debug,
-  #[serde(default)]
   pub output: Output,
   #[serde(default)]
   pub module: Module,
@@ -118,6 +116,8 @@ pub struct Builtins {
   pub html: Vec<HtmlPluginConfig>,
   #[serde(default)]
   pub minify: bool,
+  #[serde(default)]
+  pub tree_shaking: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default)]
@@ -158,15 +158,6 @@ impl From<PxToRem> for PxToRemOptions {
       min_pixel_value: value.min_pixel_value,
     }
   }
-}
-
-#[derive(Debug, JsonSchema, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Debug {
-  #[serde(default)]
-  pub treeshake: bool,
-  #[serde(default)]
-  pub side_effects: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -215,7 +206,6 @@ pub struct ModuleRuleUse {
 
 impl_serde_default!(TestConfig);
 impl_serde_default!(Output);
-impl_serde_default!(Debug);
 impl_serde_default!(Builtins);
 impl_serde_default!(EntryItem);
 impl_serde_default!(Module);
@@ -272,7 +262,7 @@ impl TestConfig {
       },
       builtins: c::Builtins {
         define: self.builtins.define,
-        tree_shaking: self.debug.treeshake,
+        tree_shaking: self.builtins.tree_shaking,
         minify: c::Minification {
           enable: self.builtins.minify,
           ..Default::default()

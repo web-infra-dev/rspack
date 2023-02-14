@@ -1,16 +1,11 @@
 {
-  "entry": {
-    "main": {
-      "import": ["./index.js"]
-    }
-  },
-  "builtins": {
-    "define": {}
-  },
-  "optimization": {
-    "sideEffects": "true"
-  },
-  "debug": {
-    "treeshake": true
-  }
+	"optimization": {
+		"sideEffects": "true"
+	},
+	"builtins": {
+		"treeShaking": true,
+		"define": {
+			"process.env.NODE_ENV": "'development'"
+		}
+	}
 }

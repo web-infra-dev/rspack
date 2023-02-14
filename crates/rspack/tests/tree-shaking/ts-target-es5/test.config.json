@@ -1,17 +1,15 @@
 {
-  "entry": {
-    "main": {
-      "import": ["./index.ts"]
-    }
-  },
-  "builtins": {
-    "define": {}
-  },
-  "target": ["web", "es5"],
+  "target": [
+    "web",
+    "es5"
+  ],
   "optimization": {
     "sideEffects": "true"
   },
-  "debug": {
-    "treeshake": true
+  "builtins": {
+    "treeShaking": true,
+    "define": {
+      "process.env.NODE_ENV": "'development'"
+    }
   }
 }

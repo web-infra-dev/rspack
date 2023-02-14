@@ -83,10 +83,6 @@ pub fn three_production_config() {
     "optimization": {
       "moduleIds": "deterministic"
     },
-    "debug": {
-      "treeshake": true,
-      "sideEffects": true
-    },
     "entry": {
         "index": {
             "import": ["./src/entry.js"]
