@@ -450,7 +450,27 @@ impl<'a> Fold for TreeShaker<'a> {
           if self.used_symbol_set.contains(&default_symbol) {
             ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(expr))
           } else {
-            ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
+            // convert the original expr to
+            // var __RSPACK_DEFAULT_EXPORT__ = ${expr}
+            ModuleItem::Stmt(Stmt::Decl(Decl::Var(Box::new(VarDecl {
+              span: DUMMY_SP,
+              kind: VarDeclKind::Let,
+              declare: false,
+              decls: vec![VarDeclarator {
+                span: DUMMY_SP,
+                name: Pat::Ident(BindingIdent {
+                  id: Ident {
+                    span: DUMMY_SP,
+                    sym: JsWord::from("__RSPACK_DEFAULT_EXPORT__"),
+                    optional: false,
+                  },
+                  type_ann: None,
+                }),
+                init: Some(expr.expr),
+                definite: false,
+              }],
+            }))))
+            // ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
           }
         }
         ModuleDecl::ExportAll(ref export_all) => {

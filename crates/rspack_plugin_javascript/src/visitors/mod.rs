@@ -152,7 +152,7 @@ pub fn run_after_pass(
       let unresolved_mark = context.unresolved_mark;
       let top_level_mark = context.top_level_mark;
       let builtin_tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
-      let minify = &generate_context.compilation.options.builtins.minify;
+      // let minify = &generate_context.compilation.options.builtins.minify;
       let comments = None;
       let dependency_visitors =
         collect_dependency_code_generation_visitors(module, generate_context)?;
@@ -202,9 +202,9 @@ pub fn run_after_pass(
           builtin_tree_shaking && need_tree_shaking
         ),
         Optional::new(
-          dce(Config::default(), unresolved_mark),
+          Repeat::new(dce(Config::default(), unresolved_mark)),
           // extra branch to avoid doing dce twice, (minify will exec dce)
-          builtin_tree_shaking && !minify.enable,
+          need_tree_shaking && builtin_tree_shaking
         ),
         swc_visitor::build_module(
           &cm,
