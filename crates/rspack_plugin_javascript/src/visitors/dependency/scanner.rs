@@ -323,7 +323,7 @@ fn scanner_tpl(tpl: &Tpl) -> (String, String) {
 }
 
 fn scanner_bin(bin: &BinExpr) -> Option<(String, String)> {
-  let prefix_raw = if let Some(prefix) = find_bin_expr_prefix_string(&bin) {
+  let prefix_raw = if let Some(prefix) = find_bin_expr_prefix_string(bin) {
     prefix
   } else {
     "".to_string()
@@ -347,7 +347,7 @@ fn scanner_bin(bin: &BinExpr) -> Option<(String, String)> {
 fn find_bin_expr_prefix_string(bin: &BinExpr) -> Option<String> {
   match &bin.left {
     box Expr::Lit(Lit::Str(str)) => Some(str.value.to_string()),
-    box Expr::Bin(bin) => find_bin_expr_prefix_string(&bin),
+    box Expr::Bin(bin) => find_bin_expr_prefix_string(bin),
     _ => None,
   }
 }
