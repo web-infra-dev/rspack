@@ -66,6 +66,7 @@ pub struct Compilation {
   entries: BundleEntries,
   pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
   pub module_graph: ModuleGraph,
+  pub make_failed_dependencies: HashSet<DependencyId>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_hashes: IdentifierMap<u64>,
   pub chunk_graph: ChunkGraph,
@@ -75,8 +76,6 @@ pub struct Compilation {
   pub assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
-  // record last make diagnostics
-  last_module_diagnostics: IdentifierMap<Vec<Diagnostic>>,
   pub plugin_driver: SharedPluginDriver,
   pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub named_chunks: HashMap<String, ChunkUkey>,
@@ -119,8 +118,8 @@ impl Compilation {
   ) -> Self {
     Self {
       options,
-      last_module_diagnostics: Default::default(),
       module_graph,
+      make_failed_dependencies: HashSet::default(),
       runtime_modules: Default::default(),
       runtime_module_hashes: Default::default(),
       chunk_by_ukey: Default::default(),
@@ -363,7 +362,7 @@ impl Compilation {
     );
 
     let mut force_build_module = HashSet::default();
-    let mut force_build_deps = HashSet::default();
+    let mut force_build_deps = std::mem::take(&mut self.make_failed_dependencies);
     // handle setup params
     if let SetupMakeParam::ModifiedFiles(files) = &params {
       force_build_module.extend(
@@ -384,25 +383,16 @@ impl Compilation {
     if let SetupMakeParam::ForceBuildDeps(deps) = params {
       force_build_deps.extend(deps);
     }
-    // show last module build diagnostics, need exclude force_build_module
-    for identifier in force_build_module.iter() {
-      self.last_module_diagnostics.remove(identifier);
-    }
 
-    self.push_batch_diagnostic(
-      self
-        .last_module_diagnostics
-        .values()
-        .flatten()
-        .cloned()
-        .collect::<Vec<_>>(),
-    );
     // move deps bindings module to force_build_module
-    // for dependency_id in &force_build_deps {
-    //   if let Some(mgm) = self.module_graph.module_by_dependency(dependency_id) {
-    //     force_build_module.insert(mgm.module_identifier);
-    //   }
-    // }
+    for dependency_id in &force_build_deps {
+      if let Some(mid) = self
+        .module_graph
+        .module_identifier_by_dependency_id(dependency_id)
+      {
+        force_build_module.insert(*mid);
+      }
+    }
 
     let mut need_check_isolated_module_ids = HashSet::default();
     // handle force build module
@@ -425,6 +415,7 @@ impl Compilation {
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
+    let mut make_failed_dependencies: HashSet<DependencyId> = HashSet::default();
     let mut errored = None;
 
     force_build_deps.extend(
@@ -589,6 +580,9 @@ impl Compilation {
               } = task_result;
 
               tracing::trace!("Module created: {}", factory_result.module.identifier());
+              if !diagnostics.is_empty() {
+                make_failed_dependencies.insert(dependencies[0]);
+              }
 
               self.push_batch_diagnostic(diagnostics);
 
@@ -611,33 +605,37 @@ impl Compilation {
               });
             }
             Ok(TaskResult::Add(task_result)) => match task_result {
-              AddTaskResult::ModuleAdded { module } => {
+              AddTaskResult::ModuleAdded {
+                module,
+                dependencies,
+              } => {
                 tracing::trace!("Module added: {}", module.identifier());
                 build_queue.add_task(BuildTask {
                   module,
+                  dependencies,
                   loader_runner_runner: self.loader_runner_runner.clone(),
                   compiler_options: self.options.clone(),
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
                 });
               }
-              AddTaskResult::ModuleReused { module } => {
+              AddTaskResult::ModuleReused { module, .. } => {
                 tracing::trace!("Module reused: {}, skipping build", module.identifier());
               }
             },
             Ok(TaskResult::Build(task_result)) => {
               let BuildTaskResult {
                 module,
+                dependencies,
                 build_result,
                 diagnostics,
               } = task_result;
 
-              tracing::trace!("Module built: {}", module.identifier());
               if !diagnostics.is_empty() {
-                self
-                  .last_module_diagnostics
-                  .insert(module.identifier(), diagnostics.clone());
+                make_failed_dependencies.insert(dependencies[0]);
               }
+
+              tracing::trace!("Module built: {}", module.identifier());
               self.push_batch_diagnostic(diagnostics);
 
               self
@@ -702,6 +700,7 @@ impl Compilation {
       }
     });
 
+    self.make_failed_dependencies = make_failed_dependencies;
     tracing::debug!("All task is finished");
 
     // clean isolated module
