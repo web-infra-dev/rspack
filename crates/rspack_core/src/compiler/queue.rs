@@ -4,10 +4,10 @@ use rspack_error::{Diagnostic, Result};
 
 use crate::{
   cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerOptions,
-  ContextModuleFactory, Dependency, DependencyId, DependencyType, LoaderRunnerRunner, Module,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
-  SharedPluginDriver, WorkerQueue,
+  ContextModuleFactory, DependencyId, DependencyType, LoaderRunnerRunner, Module, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, SharedPluginDriver,
+  WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -127,8 +127,14 @@ pub struct AddTask {
 
 #[derive(Debug)]
 pub enum AddTaskResult {
-  ModuleReused { module: Box<dyn Module> },
-  ModuleAdded { module: Box<dyn Module> },
+  ModuleReused {
+    module: Box<dyn Module>,
+    dependencies: Vec<DependencyId>,
+  },
+  ModuleAdded {
+    module: Box<dyn Module>,
+    dependencies: Vec<DependencyId>,
+  },
 }
 
 impl AddTask {
@@ -149,6 +155,7 @@ impl AddTask {
 
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused {
         module: self.module,
+        dependencies: self.dependencies,
       }));
     }
 
@@ -171,6 +178,7 @@ impl AddTask {
 
     Ok(TaskResult::Add(AddTaskResult::ModuleAdded {
       module: self.module,
+      dependencies: self.dependencies,
     }))
   }
 }
@@ -197,6 +205,7 @@ pub type AddQueue = WorkerQueue<AddTask>;
 
 pub struct BuildTask {
   pub module: Box<dyn Module>,
+  pub dependencies: Vec<DependencyId>,
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
@@ -206,6 +215,7 @@ pub struct BuildTask {
 #[derive(Debug)]
 pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
+  pub dependencies: Vec<DependencyId>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
 }
@@ -245,6 +255,7 @@ impl WorkerTask for BuildTask {
       let (build_result, diagnostics) = build_result.split_into_parts();
       TaskResult::Build(BuildTaskResult {
         module,
+        dependencies: self.dependencies,
         build_result: Box::new(build_result),
         diagnostics,
       })
