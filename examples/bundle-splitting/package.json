@@ -5,8 +5,8 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack serve -c test.config.js",
-    "build": "rspack build -c test.config.js"
+    "dev": "rspack serve -c rspack.config.js",
+    "build": "rspack build -c rspack.config.js"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*"
