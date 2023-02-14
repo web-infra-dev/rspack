@@ -38,7 +38,7 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: "xtask-release"
+          shared-key: "bench"
 
       - name: Install critcmp
         run: cargo install critcmp
@@ -51,9 +51,6 @@ jobs:
         with:
           clean: false
           ref: main
-
-      - name: Remove Release
-        run: rm -rf ./target/release
 
       - name: Run Bench on Next Branch
         run: cargo bench --bench main -- --save-baseline baseline
