@@ -905,7 +905,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                     self
                       .compilation
                       .module_graph
-                      .normal_module_source_path_by_identifier(&module_identifier)
+                      .normal_module_source_path_by_identifier(module_identifier)
                   })
                   .map(|identifier| {
                     contextify(self.compilation.options.context.clone(), &identifier)
