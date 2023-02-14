@@ -1,3 +1,6 @@
+/**
+ * @type {import('@rspack/cli').Configuration}
+ */
 module.exports = {
   mode: "development",
   entry: {
@@ -20,6 +23,17 @@ module.exports = {
         },
       },
     },
+  },
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          chunks: "all",
+          name: "vendor",
+          test: "common"
+        }
+      }
+    }
   },
   builtins: {
     html: [{}],
