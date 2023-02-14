@@ -41,12 +41,12 @@ impl<T: 'static> NapiResultExt<T> for Result<T> {
 
 #[inline(always)]
 fn get_backtrace() -> String {
-  format!("{:?}", std::backtrace::Backtrace::capture())
+  format!("{}", std::backtrace::Backtrace::force_capture())
 }
 
 /// Extract stack or message from a native Node error object,
 /// otherwise we try to format the error from the given `Error` object that indicates which was created on the Rust side.
-/// Backtrace will be included if the error is a Node error but without a stack or message.
+#[inline(always)]
 fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, Option<String>) {
   if !err.reason.is_empty() {
     return (err.reason.clone(), None);
@@ -58,7 +58,7 @@ fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, O
         Err(e) => (format!("Unknown NAPI error {e}"), Some(get_backtrace())),
         Ok(message) => (message, Some(get_backtrace())),
       },
-      Ok(message) => (message, None),
+      Ok(message) => (message, Some(get_backtrace())),
     },
     Err(e) => (
       format!("Failed to extract NAPI error stack or message: {e}"),
