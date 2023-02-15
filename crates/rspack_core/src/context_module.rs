@@ -112,7 +112,7 @@ impl ContextModule {
     if context.ends_with('/') {
       context
     } else {
-      format!("{context}/")
+      context + "/"
     }
   }
 
