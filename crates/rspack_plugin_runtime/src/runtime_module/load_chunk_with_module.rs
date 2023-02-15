@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
@@ -16,42 +17,42 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
-    let mut map: HashMap<String, Vec<String>> = HashMap::default();
-
-    compilation.module_graph.modules().for_each(|module| {
-      let mgm = compilation
-        .module_graph
-        .module_graph_module_by_identifier(&module.identifier())
-        .expect("no module found");
-
-      mgm
-        .dynamic_depended_modules(&compilation.module_graph)
-        .iter()
-        .for_each(|identifier| {
-          let mut chunk_ids = {
-            let chunk_group = compilation
-              .chunk_graph
-              .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey);
-            chunk_group
-              .chunks
-              .iter()
-              .map(|chunk_ukey| {
-                let chunk = compilation
-                  .chunk_by_ukey
-                  .get(chunk_ukey)
-                  .unwrap_or_else(|| panic!("chunk should exist"));
-                chunk.expect_id().to_string()
-              })
-              .collect::<Vec<_>>()
-          };
-          chunk_ids.sort();
-          let module = compilation
-            .module_graph
-            .module_graph_module_by_identifier(identifier)
-            .expect("no module found");
-          map.insert(module.id(&compilation.chunk_graph).to_string(), chunk_ids);
-        })
-    });
+    let map = compilation
+      .module_graph
+      .module_identifier_to_module_graph_module
+      .par_iter()
+      .map(|(_, mgm)| {
+        mgm
+          .dynamic_depended_modules(&compilation.module_graph)
+          .iter()
+          .map(|identifier| {
+            let mut chunk_ids = {
+              let chunk_group = compilation
+                .chunk_graph
+                .get_block_chunk_group(identifier, &compilation.chunk_group_by_ukey);
+              chunk_group
+                .chunks
+                .iter()
+                .map(|chunk_ukey| {
+                  let chunk = compilation
+                    .chunk_by_ukey
+                    .get(chunk_ukey)
+                    .expect("chunk should exist");
+                  chunk.expect_id().to_string()
+                })
+                .collect::<Vec<_>>()
+            };
+            chunk_ids.sort();
+            let module = compilation
+              .module_graph
+              .module_graph_module_by_identifier(identifier)
+              .expect("no module found");
+            (module.id(&compilation.chunk_graph).to_string(), chunk_ids)
+          })
+          .collect::<HashMap<String, Vec<String>>>()
+      })
+      .flatten()
+      .collect::<HashMap<String, Vec<String>>>();
 
     let mut source = ConcatSource::default();
     source.add(RawSource::from(format!(

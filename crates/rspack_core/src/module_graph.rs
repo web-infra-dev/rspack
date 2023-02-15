@@ -68,7 +68,7 @@ pub struct ModuleGraph {
   /// Module identifier to its module
   pub(crate) module_identifier_to_module: IdentifierMap<BoxModule>,
   /// Module identifier to its module graph module
-  pub(crate) module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
+  pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
   dependency_id_to_connection_id: HashMap<usize, usize>,
   connection_id_to_dependency_id: HashMap<usize, usize>,

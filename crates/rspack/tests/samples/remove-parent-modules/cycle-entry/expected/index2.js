@@ -5,10 +5,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 __webpack_require__("./shared.js");
-Promise.all([
-    __webpack_require__.e("index"),
-    __webpack_require__.e("runtime")
-]).then(__webpack_require__.bind(__webpack_require__, "./index.js")).then(__webpack_require__.ir);
+__webpack_require__.el("./index.js").then(__webpack_require__.bind(__webpack_require__, "./index.js")).then(__webpack_require__.ir);
 console.log('index2');
 },
 "./shared.js": function (module, exports, __webpack_require__) {
