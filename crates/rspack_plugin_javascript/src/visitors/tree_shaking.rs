@@ -470,7 +470,6 @@ impl<'a> Fold for TreeShaker<'a> {
                 definite: false,
               }],
             }))))
-            // ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
           }
         }
         ModuleDecl::ExportAll(ref export_all) => {
