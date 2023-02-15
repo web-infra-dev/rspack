@@ -7,7 +7,6 @@ const prod = process.env.NODE_ENV === 'production';
  * @type {import('webpack').Configuration}
  */
 module.exports = {
-  stats: false,
   context: __dirname,
   entry: { main: './src/index.tsx' },
   devServer: {
@@ -43,7 +42,7 @@ module.exports = {
             ],
           type: 'css/module'
         },
-        { test: /\.svg$/, use: [{ loader: './svg-loader.js' }], type: 'jsx' }
+        { test: /\.svg$/, use: [{ loader: '@svgr/webpack' }], type: 'javascript/auto' }
       ]
   },
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
