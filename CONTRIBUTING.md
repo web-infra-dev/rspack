@@ -1,42 +1,85 @@
-# Set up development environment
+# Rspack Contributing Guide
 
-## Setup rust
+Thank you for your interest in contributing to Rspack! Before starting your contribution, please take a moment to read the following guidelines.
 
-- Install rust using [rustup](https://rustup.rs/).
-- Install [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) for VSCode.
+## Sending a Pull Request
 
-## Setup node
+1. [Fork](https://help.github.com/articles/fork-a-repo/) the Rspack repository into your own GitHub account.
+2. [Clone](https://help.github.com/articles/cloning-a-repository/) the repository to your local.
+3. Checkout a new branch from `main`.
+4. Set up the development environment, you can read the "Setup Development Environment" section below to learn about it.
+5. If you've fixed a bug or added code that should be tested, then add some tests.
+6. Make sure all the tests pass, you can read the "Testing" section below to learn about it.
+7. Run `pnpm run lint:js` and `pnpm run lint:rs` to check the code style.
+8. If you've changed some Node.js packages, you should add a new [changeset](https://github.com/changesets/changesets). Run `pnpm run changeset`, select the changed packages and add the changeset info.
+9. Submit the Pull Request, make sure all CI runs pass.
+10. The maintainers will review your Pull Request soon.
 
-- Install js dependencies using `pnpm install`.
+When submitting a Pull Request, please note the following:
 
-## Setup other dependencies
+- Keep your PRs small enough, so that each PR only addresses a single issue or adds a single feature.
+- Please include an appropriate description in the PR, and link related issues.
+
+## Setup Development Environment
+
+### Setup Rust
+
+- Install Rust using [rustup](https://rustup.rs/).
+- If you are using VSCode, we recommend installing the [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) extension.
+
+### Setup Node.js
+
+#### Install Node.js
+
+We recommend using the LTS version of Node.js 16. You can check your currently used Node.js version with the following command:
+
+```bash
+$ node -v
+#v16.18.0
+```
+
+If you do not have Node.js installed in your current environment, you can use [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm) to install it.
+
+Here is an example of how to install the Node.js 16 LTS version via nvm:
+
+```bash
+# Install the LTS version of Node.js 16
+$ nvm install 16 --lts
+
+# Make the newly installed Node.js 16 as the default version
+$ nvm alias default 16
+
+# Switch to the newly installed Node.js 16
+$ nvm use 16
+```
+
+#### Install Dependencies
+
+Install Node.js dependencies via [pnpm](https://pnpm.io/).
+
+```bash
+# enable pnpm with corepack
+$ corepack enable
+
+# or install pnpm directly
+$ npm install -g pnpm@7
+
+# Install dependencies
+$ pnpm run init
+```
+
+### Setup Other Dependencies
 
 - Install [protoc](https://grpc.io/docs/protoc-installation/) for building `sass-embedded`.
 
-## Final
+### Final
 
-- Open rspack project.
+- Open Rspack project.
 - Run `cargo build` to see that is everthing ok.
-
-## Release
-
-### Prerequisite
-
-1. Making sure you have permission to access organization `@rspack` in npmjs.com
-2. `Zig` compiler, you could install it by running `brew install zig` on Macos, for other OS, please refer https://ziglang.org/learn/getting-started/#installing-zig
-3. Installing `Linux` target toolchain (for now, only two target Macos and linux are fairly enough), install `linux` target with command `rustup target add x86_64-unknown-linux-gnu`, if you are using Macos with arm architecture, you also need to run `rustup target add x86_64-apple-darwin`.
-
-### Step
-
-1. Making sure you have logged into npm
-2. Building packages `./x build cli:release`.
-3. `pnpm changeset`
-4. `pnpm bump` (for stable release) or `pnpm version:snapshot` (for snapshot release)
-5. `pnpm release`
 
 ## Testing
 
-We currently have two sets of test suits, one for rust and one for node.
+We currently have two sets of test suits, one for Rust and one for Node.js.
 
 ### Rust Testing
 
@@ -67,6 +110,22 @@ Cases are used to test custom build behavior, you could use custom `webpack.conf
 ##### statsTestCase.test.ts
 
 Cases are used to test your stats, By Default we will use jest's snapshot to snapshot your stats, and we **highly** recommend to **avoid** snapshot except statsCase. you can use statsCase to test behaviors like code splitting | bundle splitting, which is hard to test by just running code.
+
+## Release
+
+### Prerequisite
+
+1. Making sure you have permission to access organization `@rspack` in npmjs.com
+2. `Zig` compiler, you could install it by running `brew install zig` on Macos, for other OS, please refer https://ziglang.org/learn/getting-started/#installing-zig
+3. Installing `Linux` target toolchain (for now, only two target Macos and linux are fairly enough), install `linux` target with command `rustup target add x86_64-unknown-linux-gnu`, if you are using Macos with arm architecture, you also need to run `rustup target add x86_64-apple-darwin`.
+
+### Step
+
+1. Making sure you have logged into npm
+2. Building packages `./x build cli:release`.
+3. `pnpm changeset`
+4. `pnpm bump` (for stable release) or `pnpm version:snapshot` (for snapshot release)
+5. `pnpm release`
 
 ### Useful Scripts
 
