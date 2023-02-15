@@ -87,7 +87,7 @@ function resolveSideEffects(
 	sideEffects: "flag" | boolean | undefined,
 	mode: string
 ): "flag" | "true" | "false" {
-	if (typeof sideEffects === undefined) {
+	if (sideEffects === undefined) {
 		return mode === "production" ? "true" : "false";
 	}
 	if (typeof sideEffects === "boolean") {
