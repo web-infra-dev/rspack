@@ -172,7 +172,7 @@ pub fn run_after_pass(
       {
         if !visitors.is_empty() {
           program.visit_mut_with_path(
-            &mut ApplyVisitors::new(
+            &mut DependencyVisitor::new(
               visitors
                 .iter()
                 .map(|(ast_path, visitor)| (ast_path, &**visitor))

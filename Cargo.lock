@@ -2770,6 +2770,7 @@ dependencies = [
  "either",
  "linked_hash_set",
  "once_cell",
+ "paste",
  "preset_env_base",
  "rayon",
  "regex",
