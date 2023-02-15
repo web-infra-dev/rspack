@@ -109,10 +109,10 @@ impl ContextModule {
     } else {
       binding
     };
-    if context.ends_with("/") {
+    if context.ends_with('/') {
       context
     } else {
-      format!("{}/", context)
+      format!("{context}/")
     }
   }
 
@@ -121,9 +121,9 @@ impl ContextModule {
       .as_path()
       .normalize()
       .to_string_lossy()
-      .strip_prefix(&context)
+      .strip_prefix(context)
     {
-      format!("./{}", value)
+      format!("./{value}")
     } else {
       id.to_string()
     }
