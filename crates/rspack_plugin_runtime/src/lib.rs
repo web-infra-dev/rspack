@@ -66,6 +66,7 @@ impl Plugin for RuntimePlugin {
     // workaround for jsonp_chunk_loading can scan `ENSURE_CHUNK` to add additional runtime_requirements
     if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK) {
       runtime_requirements.insert(runtime_globals::ENSURE_CHUNK_HANDLERS);
+      runtime_requirements.insert(runtime_globals::LOAD_CHUNK_WITH_MODULE);
       compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
     }
 
