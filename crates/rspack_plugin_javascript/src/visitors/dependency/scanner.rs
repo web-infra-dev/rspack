@@ -290,11 +290,12 @@ fn scanner_context_module_tpl(tpl: &Tpl) -> (String, String) {
   let inner_reg = tpl
     .quasis
     .iter()
+    .skip(tpl.quasis.len())
     .skip(1)
-    .map(|_| ".*")
-    .collect::<Vec<&str>>()
+    .map(|s| s.raw.to_string() + ".*")
+    .collect::<Vec<String>>()
     .join("");
-  let reg = format!("^{prefix}{inner_reg}{postfix_raw}$");
+  let reg = format!("^{prefix}.*{inner_reg}{postfix_raw}$");
   (context.to_string(), reg)
 }
 
