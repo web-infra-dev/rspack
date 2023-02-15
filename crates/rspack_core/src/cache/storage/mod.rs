@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 
-use crate::{CacheOptions, Identifier};
+use rspack_identifier::Identifier;
+
+use crate::CacheOptions;
 
 mod memory;
 use memory::MemoryStorage;

@@ -4,13 +4,13 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsAny, CodeGenerationResult, Compilation, CompilerOptions, Context, DynEq, DynHash, Identifiable,
-  Identifier, LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, Resolve,
-  SourceType,
+  AsAny, CodeGenerationResult, Compilation, CompilerOptions, Context, DynEq, DynHash,
+  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, Resolve, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -237,12 +237,13 @@ mod test {
   use std::hash::{Hash, Hasher};
 
   use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
 
   use super::Module;
   use crate::{
-    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Identifiable,
-    Identifier, ModuleExt, ModuleType, SourceType,
+    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ModuleExt, ModuleType,
+    SourceType,
   };
 
   #[derive(Debug, Eq)]

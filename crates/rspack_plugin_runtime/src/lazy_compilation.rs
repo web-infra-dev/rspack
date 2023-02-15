@@ -7,10 +7,9 @@ use rspack_core::{
   runtime_globals, ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs,
   ModuleType, Plugin, PluginContext, PluginModuleHookOutput, SourceType,
 };
-use rspack_core::{
-  BuildContext, BuildResult, CodeGenerationResult, Context, Identifiable, ModuleIdentifier,
-};
+use rspack_core::{BuildContext, BuildResult, CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_identifier::Identifiable;
 
 #[derive(Debug)]
 pub struct LazyCompilationProxyModule {

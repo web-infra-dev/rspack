@@ -1,9 +1,8 @@
 use futures::Future;
 use rspack_error::Result;
+use rspack_identifier::Identifier;
 
-use crate::{
-  cache::storage, Chunk, Compilation, Identifier, NormalModuleAstOrSource, RenderManifestEntry,
-};
+use crate::{cache::storage, Chunk, Compilation, NormalModuleAstOrSource, RenderManifestEntry};
 
 type Storage = dyn storage::Storage<Vec<RenderManifestEntry>>;
 

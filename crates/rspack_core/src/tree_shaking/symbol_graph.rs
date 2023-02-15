@@ -121,11 +121,11 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
       importer: contextify(context, indirect.importer().as_str()).into(),
       ..indirect.clone()
     }),
-    SymbolRef::Star(star) => SymbolRef::Star(StarSymbol {
-      src: contextify(context, star.src.as_str()).into(),
-      binding: star.binding.clone(),
-      module_ident: star.module_ident,
-      ty: star.ty,
-    }),
+    SymbolRef::Star(star) => SymbolRef::Star(StarSymbol::new(
+      contextify(context, star.src().as_str()).into(),
+      star.binding().clone(),
+      star.module_ident(),
+      star.ty(),
+    )),
   }
 }

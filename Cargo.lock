@@ -2545,6 +2545,7 @@ dependencies = [
  "regex",
  "rspack_database",
  "rspack_error",
+ "rspack_identifier",
  "rspack_loader_runner",
  "rspack_regex",
  "rspack_sources",
@@ -2592,6 +2593,14 @@ dependencies = [
  "termcolor",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "rspack_identifier"
+version = "0.1.0"
+dependencies = [
+ "hashlink",
+ "ustr",
 ]
 
 [[package]]
@@ -2665,6 +2674,7 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_test",
  "serde_json",
  "sugar_path",
@@ -2695,6 +2705,7 @@ dependencies = [
  "rspack",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_test",
  "rustc-hash",
  "serde",
@@ -2742,6 +2753,7 @@ dependencies = [
  "async-trait",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2788,6 +2800,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_plugin_devtool",
  "rspack_symbol",
  "rspack_test",
@@ -2841,6 +2854,7 @@ dependencies = [
  "itertools",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_plugin_javascript",
  "rustc-hash",
 ]
@@ -2851,6 +2865,7 @@ version = "0.1.0"
 dependencies = [
  "derivative",
  "rspack_core",
+ "rspack_identifier",
  "rspack_util",
  "rustc-hash",
  "tracing",
@@ -2888,10 +2903,10 @@ name = "rspack_symbol"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "rspack_identifier",
  "serde",
  "serde_json",
  "swc_core",
- "ustr",
 ]
 
 [[package]]

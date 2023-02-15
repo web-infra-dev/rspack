@@ -24,12 +24,12 @@ use rspack_core::{
   PathData, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, IdentifierSet, Mode, ModuleAst, ModuleDependency,
-  ModuleIdentifier,
+  AstOrSource, CssImportDependency, Filename, Mode, ModuleAst, ModuleDependency, ModuleIdentifier,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
+use rspack_identifier::IdentifierSet;
 use sugar_path::SugarPath;
 use swc_core::{
   css::{

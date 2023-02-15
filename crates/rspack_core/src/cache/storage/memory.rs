@@ -1,9 +1,9 @@
 use std::hash::BuildHasherDefault;
 
 use dashmap::DashMap;
+use rspack_identifier::{Identifier, IdentifierHasher};
 
 use super::Storage;
-use crate::{Identifier, IdentifierHasher};
 
 #[derive(Debug)]
 pub struct MemoryStorage<Item> {

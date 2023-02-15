@@ -19,6 +19,7 @@ use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
+use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
@@ -41,10 +42,10 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
   CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, DependencyId,
   EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, IdentifierMap, IdentifierSet, LoaderRunnerRunner, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
+  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
+  TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]

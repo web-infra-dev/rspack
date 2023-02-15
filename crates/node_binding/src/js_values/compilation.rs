@@ -4,10 +4,8 @@ use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
-use rspack_core::{
-  rspack_sources::{Source, SourceExt},
-  AstOrSource, Identifier, NormalModuleAstOrSource,
-};
+use rspack_core::{rspack_sources::SourceExt, AstOrSource, NormalModuleAstOrSource};
+use rspack_identifier::Identifier;
 use rspack_napi_utils::NapiResultExt;
 
 use super::module::ToJsModule;

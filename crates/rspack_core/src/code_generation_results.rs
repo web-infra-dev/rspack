@@ -2,12 +2,11 @@ use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
 
 use rspack_error::{internal_error, Result};
+use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::{
-  AstOrSource, IdentifierMap, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType,
-};
+use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};
 
 #[derive(Debug, Clone)]
 pub struct GenerationResult {

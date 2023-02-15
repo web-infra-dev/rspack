@@ -3,7 +3,6 @@ use std::pin::Pin;
 
 use async_trait::async_trait;
 use napi::{Env, NapiRaw, Result};
-use rspack_core::{OptimizeChunksArgs, PluginContext};
 use rspack_error::internal_error;
 use rspack_napi_utils::NapiResultExt;
 

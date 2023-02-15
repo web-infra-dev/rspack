@@ -2,6 +2,7 @@ use std::{fs, hash::Hash, path::Path};
 
 use regex::Regex;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::{AsPath, SugarPath};
@@ -9,8 +10,7 @@ use sugar_path::{AsPath, SugarPath};
 use crate::{
   runtime_globals, stringify_map, stringify_value_vec_map, AstOrSource, BoxModuleDependency,
   BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ContextElementDependency, DependencyCategory, GenerationResult, Identifiable, Identifier, Module,
-  ModuleType, SourceType,
+  ContextElementDependency, DependencyCategory, GenerationResult, Module, ModuleType, SourceType,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]

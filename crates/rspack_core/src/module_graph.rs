@@ -5,12 +5,12 @@ use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rspack_error::{internal_error, Result};
+use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  BoxModule, BoxModuleDependency, DependencyId, IdentifierMap, Module, ModuleGraphModule,
-  ModuleIdentifier,
+  BoxModule, BoxModuleDependency, DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
 };
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
@@ -432,12 +432,13 @@ mod test {
   use std::borrow::Cow;
 
   use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_identifier::Identifiable;
   use rspack_sources::Source;
 
   use crate::{
     BuildContext, BuildResult, CodeGeneratable, CodeGenerationResult, Compilation, Context,
-    Dependency, DependencyId, Identifiable, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, SourceType,
+    Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, SourceType,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s

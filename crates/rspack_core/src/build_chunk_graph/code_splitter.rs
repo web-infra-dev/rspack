@@ -1,12 +1,10 @@
 use anyhow::anyhow;
 use rspack_error::Result;
+use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
-use crate::{
-  ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, IdentifierSet,
-  ModuleIdentifier,
-};
+use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
