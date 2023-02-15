@@ -15,6 +15,7 @@ use rspack_error::{
   errors_to_diagnostics, Error, InternalError, IntoTWithDiagnosticArray, Result, Severity,
   TWithDiagnosticArray,
 };
+use rspack_identifier::{Identifier, IdentifierLinkedSet, IdentifierMap, IdentifierSet};
 use rspack_symbol::{
   BetterId, IndirectTopLevelSymbol, IndirectType, SerdeSymbol, StarSymbol, StarSymbolKind, Symbol,
   SymbolType,
@@ -28,9 +29,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, join_string_component, resolve_module_type_by_uri, Compilation, Identifier,
-  IdentifierLinkedSet, IdentifierMap, IdentifierSet, ModuleGraph, ModuleIdentifier,
-  NormalModuleAstOrSource,
+  contextify, join_string_component, resolve_module_type_by_uri, Compilation, ModuleGraph,
+  ModuleIdentifier, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {

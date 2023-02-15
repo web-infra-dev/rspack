@@ -14,11 +14,12 @@ use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
   runtime_globals, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
-  FilenameRenderOptions, GenerateContext, GenerationResult, IdentifierHasher, Module,
-  ModuleIdentifier, ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
+  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleIdentifier, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
+use rspack_identifier::IdentifierHasher;
 use sugar_path::SugarPath;
 
 #[derive(Debug)]

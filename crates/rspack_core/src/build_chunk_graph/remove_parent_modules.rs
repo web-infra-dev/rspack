@@ -6,10 +6,11 @@ use std::sync::Arc;
 use dashmap::DashMap;
 use rayon::prelude::ParallelBridge;
 use rayon::prelude::*;
+use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::code_splitter::CodeSplitter;
-use crate::{fast_drop, ChunkUkey, Compilation, IdentifierSet, ModuleIdentifier};
+use crate::{fast_drop, ChunkUkey, Compilation, ModuleIdentifier};
 
 type ChunkRelationGraph = petgraph::graphmap::DiGraphMap<ChunkUkey, ()>;
 type DefinitelyLoadedModules = Arc<IdentifierSet>;

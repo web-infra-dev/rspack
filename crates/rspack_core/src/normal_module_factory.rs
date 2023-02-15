@@ -4,14 +4,15 @@ use std::{
 };
 
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_identifier::Identifiable;
 use swc_core::common::Span;
 
 use crate::{
   cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions,
-  CompilerOptions, Dependency, FactorizeArgs, Identifiable, MissingModule, ModuleArgs,
-  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs,
-  ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
+  CompilerOptions, Dependency, FactorizeArgs, MissingModule, ModuleArgs, ModuleDependency,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs, ResolveError,
+  ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 #[derive(Debug)]

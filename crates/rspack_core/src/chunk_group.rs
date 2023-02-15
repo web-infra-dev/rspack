@@ -1,9 +1,9 @@
 use rspack_database::DatabaseItem;
+use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, IdentifierMap, ModuleIdentifier,
-  RuntimeSpec,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec,
 };
 
 impl DatabaseItem for ChunkGroup {

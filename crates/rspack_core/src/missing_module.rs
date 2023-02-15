@@ -2,12 +2,13 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source};
 use serde_json::json;
 
 use crate::{
-  AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Identifiable,
-  Identifier, Module, ModuleIdentifier, ModuleType, SourceType,
+  AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Module,
+  ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug, Eq)]

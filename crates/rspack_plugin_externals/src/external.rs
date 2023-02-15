@@ -4,10 +4,10 @@ use std::hash::Hash;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
-  Identifiable, Identifier, LibIdentOptions, Module, ModuleType, SourceType, Target,
-  TargetPlatform,
+  LibIdentOptions, Module, ModuleType, SourceType, Target, TargetPlatform,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_identifier::{Identifiable, Identifier};
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 

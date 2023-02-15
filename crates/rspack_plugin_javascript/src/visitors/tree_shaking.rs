@@ -1,10 +1,9 @@
 use rspack_core::tree_shaking::debug_care_module_id;
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, Identifier, IdentifierMap,
-  IdentifierSet, ModuleGraph, ModuleIdentifier,
+  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, ModuleGraph, ModuleIdentifier,
 };
-// use swc_ecma_utils::
+use rspack_identifier::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{Mark, DUMMY_SP, GLOBALS};

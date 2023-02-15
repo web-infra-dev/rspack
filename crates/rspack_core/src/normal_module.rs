@@ -15,6 +15,7 @@ use dashmap::DashMap;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
+use rspack_identifier::Identifiable;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
@@ -24,12 +25,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 
 use crate::{
-  contextify, identifier::Identifiable, is_async_dependency, AssetGeneratorOptions,
-  AssetParserOptions, BoxModule, BoxedLoader, BuildContext, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, DependencyId,
-  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, SourceType,
+  contextify, is_async_dependency, AssetGeneratorOptions, AssetParserOptions, BoxModule,
+  BoxedLoader, BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  CompilerOptions, Context, Dependency, DependencyId, GenerateContext, LibIdentOptions, Module,
+  ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {

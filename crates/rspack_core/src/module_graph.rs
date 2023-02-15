@@ -5,12 +5,12 @@ use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rspack_error::{internal_error, Result};
+use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  BoxModule, BoxModuleDependency, DependencyId, IdentifierMap, Module, ModuleGraphModule,
-  ModuleIdentifier,
+  BoxModule, BoxModuleDependency, DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
 };
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later

@@ -23,6 +23,7 @@ rayon = "1.5.3"
 regex = "1.6.0"
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+rspack_identifier = { path = "../rspack_identifier" }
 rspack_plugin_devtool = { path = "../rspack_plugin_devtool" }
 rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }

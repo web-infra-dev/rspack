@@ -1,10 +1,10 @@
 use bitflags;
 use once_cell::sync::Lazy;
+use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::ast::ModuleItem;
 
 use self::visitor::{SymbolRef, TreeShakingResult};
-use crate::{IdentifierMap, IdentifierSet};
 
 pub mod optimizer;
 pub mod symbol_graph;

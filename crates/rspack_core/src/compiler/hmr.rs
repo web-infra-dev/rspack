@@ -5,12 +5,13 @@ use std::{
 };
 
 use rspack_error::Result;
+use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   fast_set, AssetInfo, CacheOptions, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler,
-  IdentifierMap, IdentifierSet, ModuleIdentifier, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
+  ModuleIdentifier, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
 };
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";

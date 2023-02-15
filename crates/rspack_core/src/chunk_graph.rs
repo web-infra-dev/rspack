@@ -1,9 +1,10 @@
+use rspack_identifier::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   find_graph_roots, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
-  IdentifierLinkedMap, IdentifierMap, IdentifierSet, Module, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, SourceType,
+  Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap,
+  RuntimeSpecSet, SourceType,
 };
 
 #[derive(Debug, Default)]

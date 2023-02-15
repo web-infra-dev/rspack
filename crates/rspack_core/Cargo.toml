@@ -26,6 +26,7 @@ rayon = "1.5.3"
 regex = "1.6.0"
 rspack_database = { path = "../rspack_database" }
 rspack_error = { path = "../rspack_error" }
+rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../loader_runner" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_sources = { version = "0.1.19" }

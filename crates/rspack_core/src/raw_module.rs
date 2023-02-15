@@ -2,12 +2,13 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  identifier::Identifiable, AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Context,
-  Module, ModuleIdentifier, ModuleType, SourceType,
+  AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Context, Module, ModuleIdentifier,
+  ModuleType, SourceType,
 };
 
 #[derive(Debug)]

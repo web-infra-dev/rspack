@@ -4,6 +4,7 @@ use std::{
 
 use bitflags::bitflags;
 use hashlink::LinkedHashMap;
+use rspack_identifier::{IdentifierLinkedMap, IdentifierMap};
 use rspack_symbol::{
   BetterId, IdOrMemExpr, IndirectTopLevelSymbol, IndirectType, StarSymbol, StarSymbolKind, Symbol,
   SymbolExt, SymbolFlag, SymbolType,
@@ -27,8 +28,8 @@ use super::{
   BailoutFlag,
 };
 use crate::{
-  module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, IdentifierLinkedMap,
-  IdentifierMap, ModuleGraph, ModuleIdentifier, ModuleSyntax, ResolverFactory,
+  module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, ModuleGraph,
+  ModuleIdentifier, ModuleSyntax, ResolverFactory,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
