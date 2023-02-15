@@ -5,7 +5,7 @@ use rspack_core::{Chunk, ChunkGraphChunk, ChunkUkey, Identifier, Plugin};
 /// But there are number of duplicated modules in very large projects, which affects the performance of the development/hmr.
 /// Currently, the plugin does following things:
 /// - Split modules shared by multiple chunks into a new chunk.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DevFriendlySplitChunksPlugin;
 
 impl DevFriendlySplitChunksPlugin {
@@ -44,7 +44,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
         let chunks = compilation.chunk_graph.get_modules_chunks(module);
         SharedModule {
           module,
-          ref_chunks: chunks.into_iter().cloned().collect(),
+          ref_chunks: chunks.iter().cloned().collect(),
         }
       })
       .filter(|m| m.ref_chunks.len() > 1)
@@ -78,7 +78,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
         let mut chunk = Chunk::new(None, None, rspack_core::ChunkKind::Normal);
         chunk
           .chunk_reasons
-          .push(format!("Splitted with ref count> 1"));
+          .push("Splitted with ref count> 1".to_string());
         let mut chunk_graph_chunk = ChunkGraphChunk::new();
         chunk_graph_chunk
           .modules

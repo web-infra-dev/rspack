@@ -224,15 +224,22 @@ pub fn normalize_bundle_options(raw_options: RawOptions) -> anyhow::Result<Compi
       Ok(options)
     })?
     .then(|mut options| {
-      // if let Some(optimization) = raw_options.optimization {
-      //   let split_chunks = RawOption::raw_to_compiler_option(optimization.split_chunks, &options)?;
-      //   options.plugins.get_or_insert_default().push(Box::new(
-      //     rspack_plugin_split_chunks::SplitChunksPlugin::new(split_chunks),
-      //   ))
-      // }
-      options.plugins.get_or_insert_default().push(Box::new(
-        rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new(),
-      ));
+      // if dev_friendly_split_chunks is enabled, we will ignore the split_chunks option.
+      if options
+        .builtins
+        .as_ref()
+        .map(|opts| opts.dev_friendly_split_chunks)
+        .unwrap_or_default()
+      {
+        options.plugins.get_or_insert_default().push(Box::new(
+          rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new(),
+        ));
+      } else if let Some(optimization) = raw_options.optimization {
+        let split_chunks = RawOption::raw_to_compiler_option(optimization.split_chunks, &options)?;
+        options.plugins.get_or_insert_default().push(Box::new(
+          rspack_plugin_split_chunks::SplitChunksPlugin::new(split_chunks),
+        ))
+      }
       Ok(options)
     })?
     .then(|mut options| {
