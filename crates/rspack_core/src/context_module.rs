@@ -88,8 +88,50 @@ impl ContextModule {
       .as_str()
   }
 
+  pub fn get_context(&self, compilation: &Compilation) -> String {
+    let binding = self
+      .options
+      .resource
+      .as_path()
+      .relative(compilation.options.context.as_path())
+      .to_string_lossy()
+      .to_string();
+    let request = self
+      .options
+      .context_options
+      .request
+      .as_path()
+      .normalize()
+      .to_string_lossy()
+      .to_string();
+    let context = if let Some(value) = binding.strip_suffix(&request) {
+      value.to_string()
+    } else {
+      binding
+    };
+    if context.ends_with('/') {
+      context
+    } else {
+      context + "/"
+    }
+  }
+
+  pub fn relative_context(&self, id: &str, context: &str) -> String {
+    if let Some(value) = id
+      .as_path()
+      .normalize()
+      .to_string_lossy()
+      .strip_prefix(context)
+    {
+      format!("./{value}")
+    } else {
+      id.to_string()
+    }
+  }
+
   pub fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
     let mut map = HashMap::default();
+    let context = self.get_context(compilation);
     if let Some(dependencies) = compilation
       .module_graph
       .dependencies_by_module_identifier(&self.identifier)
@@ -100,7 +142,7 @@ impl ContextModule {
           .module_identifier_by_dependency_id(dependency)
         {
           if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-            map.insert(id.to_string(), "".to_string());
+            map.insert(self.relative_context(id, &context), id.to_string());
           }
         }
       }
@@ -118,7 +160,7 @@ impl ContextModule {
 
   pub fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
     let mut map = HashMap::default();
-
+    let context = self.get_context(compilation);
     if let Some(dependencies) = compilation
       .module_graph
       .dependencies_by_module_identifier(&self.identifier)
@@ -145,7 +187,7 @@ impl ContextModule {
               })
               .collect::<Vec<_>>();
 
-            map.insert(id.to_string(), chunk_ids);
+            map.insert(self.relative_context(id, &context), chunk_ids);
           }
         }
       }
@@ -208,8 +250,6 @@ impl ContextModule {
         return Promise.resolve().then(function() {
         "#,
       ));
-    } else {
-      source.add(RawSource::from("\nreturn id;\n"));
     }
     source.add(RawSource::from(
       r#"

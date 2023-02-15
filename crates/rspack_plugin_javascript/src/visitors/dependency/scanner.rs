@@ -1,11 +1,13 @@
 use regex::Regex;
 use rspack_core::{
-  ContextMode, ContextOptions, DependencyCategory, ImportContextDependency, ModuleDependency,
+  CommonJsRequireContextDependency, ContextMode, ContextOptions, DependencyCategory,
+  ImportContextDependency, ModuleDependency,
 };
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  CallExpr, Callee, ExportSpecifier, Expr, ExprOrSpread, Lit, MemberProp, MetaPropKind, ModuleDecl,
+  BinExpr, BinaryOp, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, MetaPropKind,
+  ModuleDecl, Tpl,
 };
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 
@@ -48,20 +50,33 @@ impl DependencyScanner {
             if call_expr.args.len() != 1 {
               return;
             }
-            let src = match call_expr.args.first().expect("TODO:") {
-              ExprOrSpread { spread: None, expr } => match &**expr {
-                Expr::Lit(Lit::Str(s)) => s,
-                _ => return,
-              },
-              _ => return,
-            };
-            let source = src.value.clone();
-            self.add_dependency(box CommonJSRequireDependency::new(
-              source,
-              Some(call_expr.span.into()),
-              as_parent_path(ast_path),
-            ));
-            // self.add_dependency(source.clone(), ResolveKind::Require, call_expr.span);
+            if let Some(expr) = call_expr.args.get(0) {
+              if expr.spread.is_none() {
+                if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
+                  self.add_dependency(box CommonJSRequireDependency::new(
+                    s.value.clone(),
+                    Some(call_expr.span.into()),
+                    as_parent_path(ast_path),
+                  ));
+                }
+
+                if let Some((context, reg)) = scanner_context_module(expr.expr.as_ref()) {
+                  self.add_dependency(box CommonJsRequireContextDependency::new(
+                    ContextOptions {
+                      mode: ContextMode::Sync,
+                      recursive: false,
+                      reg_exp: Regex::new(&reg).expect("reg failed"),
+                      include: None,
+                      exclude: None,
+                      category: DependencyCategory::CommonJS,
+                      request: context,
+                    },
+                    Some(call_expr.span.into()),
+                    as_parent_path(ast_path),
+                  ));
+                }
+              }
+            }
           }
         }
       }
@@ -78,41 +93,16 @@ impl DependencyScanner {
               as_parent_path(ast_path),
             ));
           }
-          if let Expr::Tpl(tpl) = dyn_imported.expr.as_ref() {
-            let prefix_raw = tpl
-              .quasis
-              .first()
-              .expect("should have one quasis")
-              .raw
-              .to_string();
-            let post_raw = if tpl.quasis.len() > 1 {
-              tpl
-                .quasis
-                .last()
-                .expect("should have last quasis")
-                .raw
-                .to_string()
-            } else {
-              String::new()
-            };
-            let (context, prefix) = split_context_from_prefix(&prefix_raw);
-            let inner_reg = tpl
-              .quasis
-              .iter()
-              .skip(1)
-              .map(|_| ".*")
-              .collect::<Vec<&str>>()
-              .join("");
-            let reg = format!("^{prefix}{inner_reg}{post_raw}$");
+          if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
             self.add_dependency(box ImportContextDependency::new(
               ContextOptions {
-                mode: ContextMode::Lazy, // lazy by default
+                mode: ContextMode::Lazy,
                 recursive: false,
                 reg_exp: Regex::new(&reg).expect("reg failed"),
                 include: None,
                 exclude: None,
                 category: DependencyCategory::Esm,
-                request: context.to_string(),
+                request: context,
               },
               Some(node.span.into()),
               as_parent_path(ast_path),
@@ -267,6 +257,169 @@ fn split_context_from_prefix(prefix: &str) -> (&str, &str) {
   } else {
     (".", prefix)
   }
+}
+
+fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
+  match expr {
+    Expr::Tpl(tpl) => Some(scanner_context_module_tpl(tpl)),
+    Expr::Bin(bin) => scanner_context_module_bin(bin),
+    Expr::Call(call) => scanner_context_module_concat_call(call),
+    _ => None,
+  }
+}
+
+// require(`./${a}.js`)
+fn scanner_context_module_tpl(tpl: &Tpl) -> (String, String) {
+  let prefix_raw = tpl
+    .quasis
+    .first()
+    .expect("should have one quasis")
+    .raw
+    .to_string();
+  let postfix_raw = if tpl.quasis.len() > 1 {
+    tpl
+      .quasis
+      .last()
+      .expect("should have last quasis")
+      .raw
+      .to_string()
+  } else {
+    String::new()
+  };
+  let (context, prefix) = split_context_from_prefix(&prefix_raw);
+  let inner_reg = tpl
+    .quasis
+    .iter()
+    .skip(tpl.quasis.len())
+    .skip(1)
+    .map(|s| s.raw.to_string() + ".*")
+    .collect::<Vec<String>>()
+    .join("");
+  let reg = format!("^{prefix}.*{inner_reg}{postfix_raw}$");
+  (context.to_string(), reg)
+}
+
+// require("./" + a + ".js")
+fn scanner_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
+  if !is_add_op_bin_expr(bin) {
+    return None;
+  }
+  let prefix_raw = if let Some(prefix) = find_expr_prefix_string(&bin.left) {
+    prefix
+  } else {
+    "".to_string()
+  };
+  let postfix_raw = if let Some(postfix) = find_expr_prefix_string(&bin.right) {
+    postfix
+  } else {
+    "".to_string()
+  };
+
+  if prefix_raw.is_empty() && postfix_raw.is_empty() {
+    return None;
+  }
+
+  let (context, prefix) = split_context_from_prefix(&prefix_raw);
+  let reg = format!("^{prefix}.*{postfix_raw}$");
+
+  Some((context.to_string(), reg))
+}
+
+fn find_expr_prefix_string(expr: &Expr) -> Option<String> {
+  match &expr {
+    Expr::Lit(Lit::Str(str)) => Some(str.value.to_string()),
+    Expr::Lit(Lit::Num(num)) => Some(num.value.to_string()),
+    Expr::Bin(bin) => find_expr_prefix_string(&bin.left),
+    _ => None,
+  }
+}
+
+fn is_add_op_bin_expr(bin: &BinExpr) -> bool {
+  if !matches!(&bin.op, BinaryOp::Add) {
+    return false;
+  }
+  match &bin.left {
+    box Expr::Bin(bin) => is_add_op_bin_expr(bin),
+    _ => true,
+  }
+}
+
+// require("./".concat(a, ".js"))
+// babel/swc will transform template literal to string concat, so we need to handle this case
+// see https://github.com/webpack/webpack/pull/5679
+fn scanner_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> {
+  if !is_concat_call(expr) {
+    return None;
+  }
+  let prefix_raw = if let Some(prefix) = find_concat_expr_prefix_string(expr) {
+    prefix
+  } else {
+    "".to_string()
+  };
+  let postfix_raw = if let Some(postfix) = find_concat_expr_postfix_string(expr) {
+    postfix
+  } else {
+    "".to_string()
+  };
+
+  if prefix_raw.is_empty() && postfix_raw.is_empty() {
+    return None;
+  }
+
+  let (context, prefix) = split_context_from_prefix(&prefix_raw);
+  let reg = format!("^{prefix}.*{postfix_raw}$");
+
+  Some((context.to_string(), reg))
+}
+
+fn is_concat_call(expr: &CallExpr) -> bool {
+  match &expr.callee {
+    Callee::Expr(box Expr::Member(member_expr)) => {
+      if let MemberProp::Ident(ident) = &member_expr.prop {
+        if ident.sym != *"concat" {
+          return false;
+        }
+      } else {
+        return false;
+      }
+
+      if let box Expr::Call(call) = &member_expr.obj {
+        return is_concat_call(call);
+      }
+      true
+    }
+    _ => false,
+  }
+}
+
+fn find_concat_expr_prefix_string(expr: &CallExpr) -> Option<String> {
+  match &expr.callee {
+    Callee::Expr(box Expr::Member(member_expr)) => {
+      if let box Expr::Lit(Lit::Str(str)) = &member_expr.obj {
+        return Some(str.value.to_string());
+      }
+      if let box Expr::Lit(Lit::Num(num)) = &member_expr.obj {
+        return Some(num.value.to_string());
+      }
+      if let box Expr::Call(call) = &member_expr.obj {
+        return find_concat_expr_prefix_string(call);
+      }
+      None
+    }
+    _ => None,
+  }
+}
+
+fn find_concat_expr_postfix_string(expr: &CallExpr) -> Option<String> {
+  expr.args.last().and_then(|arg| {
+    if let box Expr::Lit(Lit::Str(str)) = &arg.expr {
+      return Some(str.value.to_string());
+    }
+    if let box Expr::Lit(Lit::Num(num)) = &arg.expr {
+      return Some(num.value.to_string());
+    }
+    None
+  })
 }
 
 #[test]
