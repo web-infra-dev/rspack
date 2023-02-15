@@ -102,8 +102,7 @@ impl ContextModule {
       .request
       .as_path()
       .normalize()
-      .to_string_lossy()
-      .to_string();
+      .to_string_lossy();
     let context = if let Some(value) = binding.strip_suffix(&request) {
       value.to_string()
     } else {
