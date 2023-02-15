@@ -116,8 +116,8 @@ Cases are used to test your stats, By Default we will use jest's snapshot to sna
 ### Prerequisite
 
 1. Making sure you have permission to access organization `@rspack` in npmjs.com
-2. `Zig` compiler, you could install it by running `brew install zig` on Macos, for other OS, please refer https://ziglang.org/learn/getting-started/#installing-zig
-3. Installing `Linux` target toolchain (for now, only two target Macos and linux are fairly enough), install `linux` target with command `rustup target add x86_64-unknown-linux-gnu`, if you are using Macos with arm architecture, you also need to run `rustup target add x86_64-apple-darwin`.
+2. `Zig` compiler, you could install it by running `brew install zig` on macOS, for other OS, please refer https://ziglang.org/learn/getting-started/#installing-zig
+3. Installing `Linux` target toolchain (for now, only two target macOS and Linux are fairly enough), install `linux` target with command `rustup target add x86_64-unknown-linux-gnu`, if you are using macOS with arm architecture, you also need to run `rustup target add x86_64-apple-darwin`.
 
 ### Step
 
