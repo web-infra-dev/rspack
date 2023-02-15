@@ -1,9 +1,6 @@
-use anyhow::bail;
 use napi::bindgen_prelude::*;
-use rspack_core::{
-  rspack_sources::{MapOptions, RawSource, Source},
-  Identifiable, Module,
-};
+use rspack_core::Module;
+use rspack_identifier::Identifiable;
 
 use super::{JsCompatSource, ToJsCompatSource};
 
