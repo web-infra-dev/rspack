@@ -71,7 +71,7 @@ pub struct Compilation {
   pub runtime_module_hashes: IdentifierMap<u64>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
-  pub chunk_group_by_ukey: HashMap<ChunkGroupUkey, ChunkGroup>,
+  pub chunk_group_by_ukey: Database<ChunkGroup>,
   pub entrypoints: HashMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,

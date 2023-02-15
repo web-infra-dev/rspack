@@ -1,9 +1,16 @@
+use rspack_database::DatabaseItem;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, IdentifierMap, ModuleIdentifier,
   RuntimeSpec,
 };
+
+impl DatabaseItem for ChunkGroup {
+  fn ukey(&self) -> rspack_database::Ukey<Self> {
+    self.ukey
+  }
+}
 
 #[derive(Debug)]
 pub struct ChunkGroup {

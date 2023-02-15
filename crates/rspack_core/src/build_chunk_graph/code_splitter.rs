@@ -93,7 +93,7 @@ impl<'me> CodeSplitter<'me> {
 
       let entrypoint = {
         let ukey = entrypoint.ukey;
-        compilation.chunk_group_by_ukey.insert(ukey, entrypoint);
+        compilation.chunk_group_by_ukey.add(entrypoint);
 
         compilation
           .chunk_group_by_ukey
@@ -402,10 +402,7 @@ impl<'me> CodeSplitter<'me> {
 
       let chunk_group = {
         let ukey = chunk_group.ukey;
-        self
-          .compilation
-          .chunk_group_by_ukey
-          .insert(ukey, chunk_group);
+        self.compilation.chunk_group_by_ukey.add(chunk_group);
 
         self
           .compilation

@@ -7,7 +7,6 @@
 use std::{fmt, sync::Arc};
 
 use rspack_database::Database;
-use rustc_hash::FxHashMap as HashMap;
 
 pub mod ast;
 pub mod cache;
@@ -207,5 +206,5 @@ impl TryFrom<&str> for ModuleType {
 // pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, DependencyCategory, String)>;
 
 pub type ChunkByUkey = Database<Chunk>;
-pub type ChunkGroupByUkey = HashMap<ChunkGroupUkey, ChunkGroup>;
+pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<RwLock<PluginDriver>>;
