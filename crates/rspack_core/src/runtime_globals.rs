@@ -2,7 +2,7 @@ pub const INTEROP_REQUIRE: &str = "ir";
 pub const EXPORT_STAR: &str = "es";
 /**
  * rspack
- * load chunk with module, keep module code generation result is same at hmr
+ * load chunk with module, let module code generation result can be cached at hmr
  */
 pub const LOAD_CHUNK_WITH_MODULE: &str = "__webpack_require__.el";
 
