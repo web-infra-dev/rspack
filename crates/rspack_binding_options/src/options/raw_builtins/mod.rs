@@ -51,6 +51,7 @@ pub struct RawBuiltins {
   pub decorator: Option<RawDecoratorOptions>,
   pub no_emit_assets: Option<bool>,
   pub emotion: Option<String>,
+  pub dev_friendly_split_chunks: Option<bool>,
 }
 
 pub(super) fn normalize_builtin(
@@ -118,6 +119,7 @@ pub(super) fn normalize_builtin(
     decorator: transform_to_decorator_options(builtins.decorator),
     no_emit_assets: builtins.no_emit_assets.unwrap_or(false),
     emotion: transform_emotion(builtins.emotion)?,
+    dev_friendly_split_chunks: builtins.dev_friendly_split_chunks.unwrap_or(false),
   };
   Ok(ret)
 }

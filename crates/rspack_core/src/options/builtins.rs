@@ -36,6 +36,7 @@ pub struct Builtins {
   pub decorator: Option<DecoratorOptions>,
   pub no_emit_assets: bool,
   pub emotion: Option<swc_emotion::EmotionOptions>,
+  pub dev_friendly_split_chunks: bool,
 }
 
 #[derive(Debug, Clone, Default)]

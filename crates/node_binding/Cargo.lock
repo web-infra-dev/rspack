@@ -2069,6 +2069,7 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_napi_utils",
  "rspack_plugin_css",
+ "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_html",
  "rspack_plugin_progress",
  "rspack_plugin_split_chunks",
@@ -2279,6 +2280,17 @@ dependencies = [
  "tokio",
  "tracing",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_plugin_dev_friendly_split_chunks"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "rayon",
+ "rspack_core",
+ "rspack_util",
+ "rustc-hash",
 ]
 
 [[package]]
