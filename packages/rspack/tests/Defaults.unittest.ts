@@ -224,8 +224,10 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "moduleIds": "named",
 		-     "removeAvailableModules": false,
+		-     "sideEffects": "false",
 		+     "moduleIds": "deterministic",
 		+     "removeAvailableModules": true,
+		+     "sideEffects": "true",
 	`)
 	);
 	test("production", { mode: "production" }, e =>
@@ -245,8 +247,10 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "moduleIds": "named",
 		-     "removeAvailableModules": false,
+		-     "sideEffects": "false",
 		+     "moduleIds": "deterministic",
 		+     "removeAvailableModules": true,
+		+     "sideEffects": "true",
 	`)
 	);
 	test("development", { mode: "development" }, e =>
