@@ -1,3 +1,2 @@
-import tinycolor from './d.js'
-export * from './c.js'
-export default tinycolor;
+export {myanswer} from './lib'
+export {default as aaa} from './a'

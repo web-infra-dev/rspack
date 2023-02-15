@@ -2,17 +2,13 @@
  * @type {import('webpack').Configuration}
  */
 module.exports = {
-  mode: 'development',
   context: __dirname,
   builtins: {
     html: [{
       template: './index.html'
     }],
     treeShaking: true,
-    sideEffects: true,
-    minify: {
-      enable: true
-    }
+    sideEffects: true
   },
   optimization: {
     sideEffects: "true"
