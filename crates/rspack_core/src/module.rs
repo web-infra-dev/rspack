@@ -237,12 +237,13 @@ mod test {
   use std::hash::{Hash, Hasher};
 
   use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_identifier::{Identifiable, Identifier};
   use rspack_sources::Source;
 
   use super::Module;
   use crate::{
-    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Identifiable,
-    Identifier, ModuleExt, ModuleType, SourceType,
+    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ModuleExt, ModuleType,
+    SourceType,
   };
 
   #[derive(Debug, Eq)]

@@ -432,12 +432,13 @@ mod test {
   use std::borrow::Cow;
 
   use rspack_error::{Result, TWithDiagnosticArray};
+  use rspack_identifier::Identifiable;
   use rspack_sources::Source;
 
   use crate::{
     BuildContext, BuildResult, CodeGeneratable, CodeGenerationResult, Compilation, Context,
-    Dependency, DependencyId, Identifiable, Module, ModuleDependency, ModuleGraph,
-    ModuleGraphModule, ModuleIdentifier, ModuleType, SourceType,
+    Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    ModuleIdentifier, ModuleType, SourceType,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
