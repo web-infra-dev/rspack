@@ -150,9 +150,9 @@ impl<'a> Fold for TreeShaker<'a> {
                     return true;
                   }
                   let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
-                    src: module_identifier.into(),
+                    src: module_identifier,
                     ty: rspack_symbol::IndirectType::ImportDefault(default.local.sym.clone()),
-                    importer: self.module_identifier.into(),
+                    importer: self.module_identifier,
                   });
                   let ret = self.used_symbol_set.contains(&symbol);
                   if debug_care_module_id(module_identifier.as_str()) {
@@ -173,9 +173,9 @@ impl<'a> Fold for TreeShaker<'a> {
                       ModuleExportName::Str(str) => str.value.clone(),
                     });
                   let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
-                    src: module_identifier.into(),
+                    src: module_identifier,
                     ty: rspack_symbol::IndirectType::Import(local, imported),
-                    importer: self.module_identifier.into(),
+                    importer: self.module_identifier,
                   });
 
                   // dbg!(&symbol);
@@ -200,7 +200,7 @@ impl<'a> Fold for TreeShaker<'a> {
           Decl::Class(mut class) => {
             let id = class.ident.to_id();
             let symbol = SymbolRef::Direct(Symbol::new(
-              self.module_identifier.into(),
+              self.module_identifier,
               id.into(),
               SymbolType::Define,
             ));
@@ -217,7 +217,7 @@ impl<'a> Fold for TreeShaker<'a> {
           Decl::Fn(mut func) => {
             let id = func.ident.to_id();
             let symbol = SymbolRef::Direct(Symbol::new(
-              self.module_identifier.into(),
+              self.module_identifier,
               id.into(),
               SymbolType::Define,
             ));
@@ -249,11 +249,8 @@ impl<'a> Fold for TreeShaker<'a> {
               .map(|decl| match decl.name {
                 Pat::Ident(ident) => {
                   let id: BetterId = ident.to_id().into();
-                  let symbol = SymbolRef::Direct(Symbol::new(
-                    self.module_identifier.into(),
-                    id,
-                    SymbolType::Define,
-                  ));
+                  let symbol =
+                    SymbolRef::Direct(Symbol::new(self.module_identifier, id, SymbolType::Define));
                   let used = self.used_symbol_set.contains(&symbol);
                   (
                     VarDeclarator {
@@ -337,9 +334,9 @@ impl<'a> Fold for TreeShaker<'a> {
                     ModuleExportName::Str(str) => str.value.clone(),
                   });
                   let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
-                    src: self.module_identifier.into(),
+                    src: self.module_identifier,
                     ty: rspack_symbol::IndirectType::ReExport(original, exported),
-                    importer: self.module_identifier.into(),
+                    importer: self.module_identifier,
                   });
 
                   self.used_symbol_set.contains(&symbol)
@@ -377,11 +374,8 @@ impl<'a> Fold for TreeShaker<'a> {
                 ExportSpecifier::Named(named_spec) => match named_spec.orig {
                   ModuleExportName::Ident(ref ident) => {
                     let id: BetterId = ident.to_id().into();
-                    let symbol = SymbolRef::Direct(Symbol::new(
-                      self.module_identifier.into(),
-                      id,
-                      SymbolType::Temp,
-                    ));
+                    let symbol =
+                      SymbolRef::Direct(Symbol::new(self.module_identifier, id, SymbolType::Temp));
                     self.used_symbol_set.contains(&symbol)
                   }
                   ModuleExportName::Str(_) => {
@@ -499,7 +493,7 @@ impl<'a> TreeShaker<'a> {
     let mut default_ident = quote_ident!("default");
     default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
     Symbol::new(
-      self.module_identifier.into(),
+      self.module_identifier,
       default_ident.to_id().into(),
       SymbolType::Define,
     )

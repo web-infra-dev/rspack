@@ -633,7 +633,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       SymbolRef::Direct(symbol) => {
         merge_used_export_type(
           used_export_module_identifiers,
-          symbol.uri().into(),
+          symbol.uri(),
           ModuleUsedType::DIRECT,
         );
       }
@@ -644,7 +644,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }) => {
         merge_used_export_type(
           used_export_module_identifiers,
-          (*src).into(),
+          *src,
           ModuleUsedType::REEXPORT,
         );
       }
@@ -655,7 +655,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }) => {
         merge_used_export_type(
           used_export_module_identifiers,
-          (*src).into(),
+          *src,
           ModuleUsedType::INDIRECT,
         );
       }
@@ -666,7 +666,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }) => {
         merge_used_export_type(
           used_export_module_identifiers,
-          (*module_ident).into(),
+          *module_ident,
           ModuleUsedType::EXPORT_ALL,
         );
       }
@@ -706,7 +706,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       SymbolRef::Indirect(ref indirect_symbol) => {
         // dbg!(&current_symbol_ref);
         let _importer = indirect_symbol.importer();
-        let module_result = match analyze_map.get(&indirect_symbol.src.into()) {
+        let module_result = match analyze_map.get(&indirect_symbol.src) {
           Some(module_result) => module_result,
           None => {
             // eprintln!(
@@ -758,7 +758,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 ret.push((module_identifier, value));
                 if is_first_result {
                   let mut final_node_of_path = vec![];
-                  let tuple = (indirect_symbol.src.into(), *module_identifier);
+                  let tuple = (indirect_symbol.src, *module_identifier);
                   match traced_tuple.entry(tuple) {
                     Entry::Occupied(occ) => {
                       let final_node_path = occ.get();
@@ -771,7 +771,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                     Entry::Vacant(vac) => {
                       for path in algo::all_simple_paths::<Vec<_>, _>(
                         &inherit_extend_graph,
-                        indirect_symbol.src.into(),
+                        indirect_symbol.src,
                         *module_identifier,
                         0,
                         None,
@@ -781,9 +781,9 @@ impl<'a> CodeSizeOptimizer<'a> {
                         for i in 0..path.len() - 1 {
                           // dbg!(&path);
                           let star_symbol = StarSymbol::new(
-                            path[i + 1].into(),
+                            path[i + 1],
                             Default::default(),
-                            path[i].into(),
+                            path[i],
                             StarSymbolKind::ReExportAll,
                           );
                           if !evaluated_module_identifiers.contains(&star_symbol.module_ident()) {
@@ -839,7 +839,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 self.symbol_graph.add_edge(
                   &current_symbol_ref,
                   &SymbolRef::Direct(Symbol::new(
-                    module_result.module_identifier.into(),
+                    module_result.module_identifier,
                     BetterId {
                       ctxt: SyntaxContext::empty(),
                       atom: indirect_symbol.indirect_id().clone(),

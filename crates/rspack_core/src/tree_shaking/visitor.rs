@@ -51,8 +51,8 @@ impl SymbolRef {
 
   pub fn importer(&self) -> ModuleIdentifier {
     match self {
-      SymbolRef::Direct(d) => d.uri().into(),
-      SymbolRef::Indirect(i) => i.importer.into(),
+      SymbolRef::Direct(d) => d.uri(),
+      SymbolRef::Indirect(i) => i.importer,
       SymbolRef::Star(s) => s.module_ident(),
     }
   }
@@ -265,7 +265,7 @@ impl<'a> ModuleRefAnalyze<'a> {
             SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
             SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
               uri.src(),
-              self.module_identifier.into(),
+              self.module_identifier,
               IndirectType::Import(property.clone(), None),
             )),
           })
@@ -496,8 +496,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 let local = named.local.sym.clone();
 
                 let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                  resolved_uri_ukey.into(),
-                  self.module_identifier.into(),
+                  resolved_uri_ukey,
+                  self.module_identifier,
                   IndirectType::Import(local, imported),
                 ));
 
@@ -507,8 +507,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 self.add_import(
                   default.local.to_id().into(),
                   SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                    resolved_uri_ukey.into(),
-                    self.module_identifier.into(),
+                    resolved_uri_ukey,
+                    self.module_identifier,
                     IndirectType::ImportDefault(default.local.sym.clone()),
                   )),
                 );
@@ -532,7 +532,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self.add_export(
               class.ident.sym.clone(),
               SymbolRef::Direct(Symbol::new(
-                self.module_identifier.into(),
+                self.module_identifier,
                 class.ident.to_id().into(),
                 SymbolType::Define,
               )),
@@ -543,7 +543,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self.add_export(
               function.ident.sym.clone(),
               SymbolRef::Direct(Symbol::new(
-                self.module_identifier.into(),
+                self.module_identifier,
                 function.ident.to_id().into(),
                 SymbolType::Define,
               )),
@@ -602,7 +602,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     self.add_export(
       default_ident.atom.clone(),
       SymbolRef::Direct(Symbol::new(
-        self.module_identifier.into(),
+        self.module_identifier,
         default_ident.clone(),
         SymbolType::Define,
       )),
@@ -765,7 +765,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.add_export(
         default_ident.sym.clone(),
         SymbolRef::Direct(Symbol::new(
-          self.module_identifier.into(),
+          self.module_identifier,
           default_ident.to_id().into(),
           SymbolType::Define,
         )),
@@ -871,7 +871,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.add_export(
         default_ident.sym.clone(),
         SymbolRef::Direct(Symbol::new(
-          self.module_identifier.into(),
+          self.module_identifier,
           default_ident.to_id().into(),
           SymbolType::Define,
         )),
@@ -967,7 +967,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         self.add_export(
           lhs.atom.clone(),
           SymbolRef::Direct(Symbol::new(
-            self.module_identifier.into(),
+            self.module_identifier,
             lhs.clone(),
             SymbolType::Define,
           )),
@@ -1247,9 +1247,9 @@ impl<'a> ModuleRefAnalyze<'a> {
             self.add_export(
               atom.clone(),
               SymbolRef::Star(StarSymbol::new(
-                resolved_uri_ukey.into(),
+                resolved_uri_ukey,
                 atom,
-                self.module_identifier.into(),
+                self.module_identifier,
                 StarSymbolKind::ReExportAllAs,
               )),
             );
@@ -1276,8 +1276,8 @@ impl<'a> ModuleRefAnalyze<'a> {
             self.reachable_import_and_export.insert(
               exported_atom.clone(),
               HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                resolved_uri_ukey.into(),
-                self.module_identifier.into(),
+                resolved_uri_ukey,
+                self.module_identifier,
                 IndirectType::Temp(original.clone()),
               ))]),
             );
