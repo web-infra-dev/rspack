@@ -1,5 +1,6 @@
 use dashmap::DashMap;
-use rspack_core::{Chunk, ChunkGraphChunk, ChunkUkey, Identifier, Plugin};
+use rspack_core::{Chunk, ChunkGraphChunk, ChunkUkey, Plugin};
+use rspack_identifier::Identifier;
 
 /// In practice, the algorithm friendly to development/hmr of splitting chunks is doing nothing.
 /// But there are number of duplicated modules in very large projects, which affects the performance of the development/hmr.
