@@ -43,9 +43,9 @@ pub enum SymbolRef {
 impl SymbolRef {
   pub fn module_identifier(&self) -> ModuleIdentifier {
     match self {
-      SymbolRef::Direct(d) => d.uri().into(),
-      SymbolRef::Indirect(i) => i.src.into(),
-      SymbolRef::Star(s) => s.src.into(),
+      SymbolRef::Direct(d) => d.uri(),
+      SymbolRef::Indirect(i) => i.src(),
+      SymbolRef::Star(s) => s.src(),
     }
   }
 
@@ -53,7 +53,7 @@ impl SymbolRef {
     match self {
       SymbolRef::Direct(d) => d.uri().into(),
       SymbolRef::Indirect(i) => i.importer.into(),
-      SymbolRef::Star(s) => s.module_ident.into(),
+      SymbolRef::Star(s) => s.module_ident(),
     }
   }
   /// Returns `true` if the symbol ref is [`Direct`].
@@ -264,7 +264,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
             SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
             SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-              (*uri.src).into(),
+              uri.src(),
               self.module_identifier.into(),
               IndirectType::Import(property.clone(), None),
             )),
@@ -420,8 +420,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self
               .used_symbol_ref
               .insert(SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                (*uri.src).into(),
-                self.module_identifier.into(),
+                uri.src(),
+                self.module_identifier,
                 IndirectType::Import(property.clone(), None),
               )));
           }
@@ -516,12 +516,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               ImportSpecifier::Namespace(namespace) => {
                 self.add_import(
                   namespace.local.to_id().into(),
-                  SymbolRef::Star(StarSymbol {
-                    src: resolved_uri_ukey.into(),
-                    binding: namespace.local.sym.clone(),
-                    module_ident: self.module_identifier.into(),
-                    ty: StarSymbolKind::ImportAllAs,
-                  }),
+                  SymbolRef::Star(StarSymbol::new(
+                    resolved_uri_ukey,
+                    namespace.local.sym.clone(),
+                    self.module_identifier,
+                    StarSymbolKind::ImportAllAs,
+                  )),
                 );
               }
             });
@@ -1246,12 +1246,12 @@ impl<'a> ModuleRefAnalyze<'a> {
             };
             self.add_export(
               atom.clone(),
-              SymbolRef::Star(StarSymbol {
-                src: resolved_uri_ukey.into(),
-                binding: atom,
-                module_ident: self.module_identifier.into(),
-                ty: StarSymbolKind::ReExportAllAs,
-              }),
+              SymbolRef::Star(StarSymbol::new(
+                resolved_uri_ukey.into(),
+                atom,
+                self.module_identifier.into(),
+                StarSymbolKind::ReExportAllAs,
+              )),
             );
           }
           ExportSpecifier::Default(_) => {
@@ -1283,8 +1283,8 @@ impl<'a> ModuleRefAnalyze<'a> {
             );
 
             let exported_symbol = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-              self.module_identifier.into(),
-              self.module_identifier.into(),
+              self.module_identifier,
+              self.module_identifier,
               IndirectType::ReExport(original, exported),
             ));
             self.add_export(exported_atom, exported_symbol);
@@ -1320,11 +1320,8 @@ impl<'a> ModuleRefAnalyze<'a> {
               },
               None => id.atom.clone(),
             };
-            let symbol_ref = SymbolRef::Direct(Symbol::new(
-              self.module_identifier.into(),
-              id,
-              SymbolType::Temp,
-            ));
+            let symbol_ref =
+              SymbolRef::Direct(Symbol::new(self.module_identifier, id, SymbolType::Temp));
 
             self.add_export(exported_atom, symbol_ref);
           }

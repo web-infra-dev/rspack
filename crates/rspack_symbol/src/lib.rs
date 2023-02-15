@@ -1,9 +1,9 @@
 use bitflags::bitflags;
+use rspack_identifier::Identifier;
 use serde::Deserialize;
 use swc_core::ecma::ast::Id;
 use swc_core::ecma::atoms::JsWord;
 use swc_core::{common::SyntaxContext, ecma::atoms::js_word};
-use ustr::Ustr;
 
 bitflags! {
     pub struct SymbolFlag: u8 {
@@ -19,7 +19,7 @@ bitflags! {
 }
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Symbol {
-  pub(crate) uri: Ustr,
+  pub(crate) uri: Identifier,
   pub(crate) id: BetterId,
   pub(crate) ty: SymbolType,
 }
@@ -31,11 +31,11 @@ pub enum SymbolType {
 }
 
 impl Symbol {
-  pub fn new(uri: Ustr, id: BetterId, ty: SymbolType) -> Self {
+  pub fn new(uri: Identifier, id: BetterId, ty: SymbolType) -> Self {
     Self { uri, id, ty }
   }
 
-  pub fn uri(&self) -> Ustr {
+  pub fn uri(&self) -> Identifier {
     self.uri
   }
 
@@ -45,6 +45,10 @@ impl Symbol {
 
   pub fn ty(&self) -> &SymbolType {
     &self.ty
+  }
+
+  pub fn set_uri(&mut self, uri: Identifier) {
+    self.uri = uri;
   }
 }
 
@@ -101,9 +105,9 @@ pub static DEFAULT_JS_WORD: JsWord = js_word!("default");
 /// ```
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct StarSymbol {
-  pub src: Ustr,
+  pub src: Identifier,
   pub binding: JsWord,
-  pub module_ident: Ustr,
+  pub module_ident: Identifier,
   pub ty: StarSymbolKind,
 }
 
@@ -115,19 +119,57 @@ pub enum StarSymbolKind {
 }
 
 impl StarSymbol {
+  pub fn new(
+    src: Identifier,
+    binding: JsWord,
+    module_ident: Identifier,
+    ty: StarSymbolKind,
+  ) -> Self {
+    Self {
+      src,
+      binding,
+      module_ident,
+      ty,
+    }
+  }
+
   pub fn star_kind(&self) {}
+
+  pub fn set_src(&mut self, src: Identifier) {
+    self.src = src;
+  }
+
+  pub fn set_module_ident(&mut self, module_ident: Identifier) {
+    self.module_ident = module_ident;
+  }
+
+  pub fn src(&self) -> Identifier {
+    self.src
+  }
+
+  pub fn module_ident(&self) -> Identifier {
+    self.module_ident
+  }
+
+  pub fn binding(&self) -> &JsWord {
+    &self.binding
+  }
+
+  pub fn ty(&self) -> StarSymbolKind {
+    self.ty
+  }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct IndirectTopLevelSymbol {
-  pub src: Ustr,
+  pub src: Identifier,
   pub ty: IndirectType,
   // module identifier of module that import me, only used for debugging
-  pub importer: Ustr,
+  pub importer: Identifier,
 }
 
 impl IndirectTopLevelSymbol {
-  pub fn new(src: Ustr, importer: Ustr, ty: IndirectType) -> Self {
+  pub fn new(src: Identifier, importer: Identifier, ty: IndirectType) -> Self {
     Self { src, importer, ty }
   }
 
@@ -161,11 +203,11 @@ impl IndirectTopLevelSymbol {
     }
   }
 
-  pub fn src(&self) -> Ustr {
+  pub fn src(&self) -> Identifier {
     self.src
   }
 
-  pub fn importer(&self) -> Ustr {
+  pub fn importer(&self) -> Identifier {
     self.importer
   }
 
@@ -182,6 +224,14 @@ impl IndirectTopLevelSymbol {
       &self.ty,
       IndirectType::Import(_, _) | IndirectType::ImportDefault(_)
     )
+  }
+
+  pub fn set_src(&mut self, src: Identifier) {
+    self.src = src;
+  }
+
+  pub fn set_importer(&mut self, importer: Identifier) {
+    self.importer = importer;
   }
 }
 

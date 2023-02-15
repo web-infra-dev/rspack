@@ -29,8 +29,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, join_string_component, resolve_module_type_by_uri, Compilation, ModuleGraph,
-  ModuleIdentifier, NormalModuleAstOrSource,
+  contextify, join_string_component, resolve_module_type_by_uri, tree_shaking::ConvertModulePath,
+  Compilation, ModuleGraph, ModuleIdentifier, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -218,7 +218,13 @@ impl<'a> CodeSizeOptimizer<'a> {
           let paths = get_symbol_path(&symbol_graph, node_index);
           println!("Reason of Included Symbol symbol{symbol:?}",);
           for p in paths {
-            println!("{p:#?}",);
+            let normalized_symbols = p
+              .into_iter()
+              .map(|symbol| {
+                symbol.convert_module_identifier_to_module_path(&self.compilation.module_graph)
+              })
+              .collect::<Vec<_>>();
+            println!("{normalized_symbols:#?}",);
           }
         }
         None => {
@@ -668,7 +674,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     };
     match current_symbol_ref {
       SymbolRef::Direct(ref symbol) => {
-        let module_result = analyze_map.get(&symbol.uri().into()).expect("TODO:");
+        let module_result = analyze_map.get(&symbol.uri()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
           .get(&symbol.id().atom)
@@ -774,18 +780,16 @@ impl<'a> CodeSizeOptimizer<'a> {
                         let mut star_chain_start_end_pair = (from.clone(), from.clone());
                         for i in 0..path.len() - 1 {
                           // dbg!(&path);
-                          let star_symbol = StarSymbol {
-                            src: path[i + 1].into(),
-                            binding: Default::default(),
-                            module_ident: path[i].into(),
-                            ty: StarSymbolKind::ReExportAll,
-                          };
-                          if !evaluated_module_identifiers
-                            .contains(&star_symbol.module_ident.into())
-                          {
-                            evaluated_module_identifiers.insert(star_symbol.module_ident.into());
+                          let star_symbol = StarSymbol::new(
+                            path[i + 1].into(),
+                            Default::default(),
+                            path[i].into(),
+                            StarSymbolKind::ReExportAll,
+                          );
+                          if !evaluated_module_identifiers.contains(&star_symbol.module_ident()) {
+                            evaluated_module_identifiers.insert(star_symbol.module_ident());
                             if let Some(module_result) =
-                              analyze_map.get(&star_symbol.module_ident.into())
+                              analyze_map.get(&star_symbol.module_ident())
                             {
                               for used_symbol in module_result.used_symbol_refs.iter() {
                                 // graph.add_edge(&current_symbol_ref, used_symbol);
@@ -929,12 +933,12 @@ impl<'a> CodeSizeOptimizer<'a> {
         // then, all the exports in `test.js` including
         // export defined in `test.js` and all realted
         // reexport should be marked as used
-        let include_default_export = match star_symbol.ty {
+        let include_default_export = match star_symbol.ty() {
           StarSymbolKind::ReExportAllAs => false,
           StarSymbolKind::ImportAllAs => true,
           StarSymbolKind::ReExportAll => false,
         };
-        let src_module_identifier: Identifier = star_symbol.src.into();
+        let src_module_identifier: Identifier = star_symbol.src();
         let analyze_refsult = match analyze_map.get(&src_module_identifier) {
           Some(analyze_result) => analyze_result,
           None => {
@@ -942,7 +946,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               let module_path = self
                 .compilation
                 .module_graph
-                .normal_module_source_path_by_identifier(&star_symbol.src.into());
+                .normal_module_source_path_by_identifier(&star_symbol.src());
               if let Some(module_path) = module_path {
                 let error_message = format!("Can't get analyze result of {module_path}");
                 errors.push(Error::InternalError(InternalError {
@@ -966,12 +970,12 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
 
         for (key, _) in analyze_refsult.inherit_export_maps.iter() {
-          let export_all = SymbolRef::Star(StarSymbol {
-            src: (*key).into(),
-            binding: Default::default(),
-            module_ident: src_module_identifier.into(),
-            ty: StarSymbolKind::ReExportAll,
-          });
+          let export_all = SymbolRef::Star(StarSymbol::new(
+            *key,
+            Default::default(),
+            src_module_identifier,
+            StarSymbolKind::ReExportAll,
+          ));
           self.symbol_graph.add_edge(&current_symbol_ref, &export_all);
           symbol_queue.push_back(export_all.clone());
         }

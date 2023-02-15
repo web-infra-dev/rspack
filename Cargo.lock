@@ -2891,10 +2891,10 @@ name = "rspack_symbol"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "rspack_identifier",
  "serde",
  "serde_json",
  "swc_core",
- "ustr",
 ]
 
 [[package]]
