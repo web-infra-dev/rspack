@@ -196,10 +196,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               continue;
             }
           }
-          SymbolRef::Indirect(_) => {
-            continue;
-          }
-          SymbolRef::Star(_) => {
+          SymbolRef::Indirect(_) | SymbolRef::Star(_) => {
             continue;
           }
         }

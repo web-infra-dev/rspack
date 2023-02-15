@@ -2594,6 +2594,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_identifier"
+version = "0.1.0"
+dependencies = [
+ "hashlink",
+ "ustr",
+]
+
+[[package]]
 name = "rspack_ids"
 version = "0.1.0"
 dependencies = [

@@ -76,3 +76,7 @@ pub enum SideEffect {
   Configuration(bool),
   Analyze(bool),
 }
+
+pub trait ConvertModulePath {
+  fn convert_module_identifier_to_module_path(self) -> Self;
+}
