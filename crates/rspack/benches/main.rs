@@ -33,13 +33,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     .enable_all()
     .build()
     .expect("TODO:");
-  generate_bench!(css_heavy, "css-heavy", group, rt);
   generate_bench!(ten_copy_of_threejs, "three", group, rt);
-  generate_bench!(lodash, "lodash-with-simple-css", group, rt);
   group.finish();
 
   // High cost benchmark
-  // sample count reduce to 50
+  // sample count reduce to 30
   let mut group = c.benchmark_group("high_cost_benchmark");
   group.sample_size(30);
   group.measurement_time(Duration::new(180, 0));
