@@ -173,6 +173,21 @@ importers:
       copy-webpack-plugin: 5.1.2
       web-vitals: 2.1.4
 
+  examples/cra-ts:
+    specifiers:
+      '@rspack/cli': workspace:*
+      copy-webpack-plugin: 5.1.2
+      react: ^18.2.0
+      react-dom: ^18.2.0
+      web-vitals: ^2.1.4
+    dependencies:
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      copy-webpack-plugin: 5.1.2
+      web-vitals: 2.1.4
+
   examples/multi-entry:
     specifiers:
       '@rspack/cli': workspace:*

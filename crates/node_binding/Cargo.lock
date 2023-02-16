@@ -2301,6 +2301,7 @@ dependencies = [
  "dashmap",
  "rayon",
  "rspack_core",
+ "rspack_identifier",
  "rspack_util",
  "rustc-hash",
 ]

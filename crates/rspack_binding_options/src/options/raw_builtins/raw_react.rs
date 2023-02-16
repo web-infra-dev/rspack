@@ -32,7 +32,7 @@ impl RawOption<ReactOptions> for RawReactOptions {
         _ => anyhow::bail!("Invalid runtime: {}", runtime),
       }
     } else {
-      None
+      Some(Runtime::Automatic)
     };
 
     Ok(ReactOptions {
