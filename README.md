@@ -12,7 +12,7 @@ English | [简体中文](./README.zh-CN.md)
 ## ✨ Features
 
 - 🚀 **Fast**: Based on Rust, the build speed is extremely fast, bringing you the ultimate development experience.
-- 📦 **Webpack Interoperable**: Interoperable well with the Webpack ecosystem, no need to build your ecosystem from scratch.
+- 📦 **Webpack Interoperable**: Targeted interoperability the Webpack ecosystem, no need to build your ecosystem from scratch.
 - 🎨 **Batteries Included**: Out-of-the-box support for Typescript, JSX, CSS, CSS Modules, Sass, and more.
 
 Read [Introduction](https://rspack-docs.vercel.app/guide/introduction.html) for details.
