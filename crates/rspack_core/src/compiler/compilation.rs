@@ -414,18 +414,18 @@ impl Compilation {
     }
 
     let mut need_check_isolated_module_ids = HashSet::default();
-    // handle force build module
-    need_check_isolated_module_ids.extend(force_build_module.iter().flat_map(|id| {
+    let mut origin_module_issuers = HashMap::default();
+    // calc need_check_isolated_module_ids & regen_module_issues
+    for id in &force_build_module {
       if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
-        mgm
+        let depended_modules = mgm
           .all_depended_modules(&self.module_graph)
           .into_iter()
-          .copied()
-          .collect()
-      } else {
-        vec![]
+          .copied();
+        need_check_isolated_module_ids.extend(depended_modules);
+        origin_module_issuers.insert(*id, mgm.get_issuer().clone());
       }
-    }));
+    }
 
     let mut active_task_count = 0usize;
     let is_expected_shutdown = Arc::new(AtomicBool::new(false));
@@ -750,6 +750,13 @@ impl Compilation {
     }
 
     tracing::debug!("All clean task is finished");
+    // set origin module issues
+    for (id, issuer) in origin_module_issuers {
+      if let Some(mgm) = self.module_graph.module_graph_module_by_identifier_mut(&id) {
+        mgm.set_issuer(issuer);
+      }
+    }
+
     // calc has_module_import_export_change
     self.has_module_import_export_change = if origin_module_deps.is_empty() {
       true
