@@ -4,7 +4,7 @@ use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
-use crate::{fast_drop, Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation};
+use crate::{Chunk, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation};
 
 #[derive(Debug, Default)]
 pub struct CodeSplittingCache {
@@ -32,61 +32,28 @@ where
   }
 
   if !compilation.has_module_import_export_change {
-    fast_drop((
-      std::mem::replace(
-        &mut compilation.chunk_by_ukey,
-        compilation.code_splitting_cache.chunk_by_ukey.clone(),
-      ),
-      std::mem::replace(
-        &mut compilation.chunk_graph,
-        compilation.code_splitting_cache.chunk_graph.clone(),
-      ),
-      std::mem::replace(
-        &mut compilation.chunk_group_by_ukey,
-        compilation.code_splitting_cache.chunk_group_by_ukey.clone(),
-      ),
-      std::mem::replace(
-        &mut compilation.entrypoints,
-        compilation.code_splitting_cache.entrypoints.clone(),
-      ),
-      std::mem::replace(
-        &mut compilation.named_chunk_groups,
-        compilation.code_splitting_cache.named_chunk_groups.clone(),
-      ),
-      std::mem::replace(
-        &mut compilation.named_chunks,
-        compilation.code_splitting_cache.named_chunks.clone(),
-      ),
-    ));
+    let cache = &mut compilation.code_splitting_cache;
+    rayon::scope(|s| {
+      s.spawn(|_| compilation.chunk_by_ukey = cache.chunk_by_ukey.clone());
+      s.spawn(|_| compilation.chunk_graph = cache.chunk_graph.clone());
+      s.spawn(|_| compilation.chunk_group_by_ukey = cache.chunk_group_by_ukey.clone());
+      s.spawn(|_| compilation.entrypoints = cache.entrypoints.clone());
+      s.spawn(|_| compilation.named_chunk_groups = cache.named_chunk_groups.clone());
+      s.spawn(|_| compilation.named_chunks = cache.named_chunks.clone());
+    });
+
     return Ok(());
   }
 
   let compilation = task(compilation).await?;
-  fast_drop((
-    std::mem::replace(
-      &mut compilation.code_splitting_cache.chunk_by_ukey,
-      compilation.chunk_by_ukey.clone(),
-    ),
-    std::mem::replace(
-      &mut compilation.code_splitting_cache.chunk_graph,
-      compilation.chunk_graph.clone(),
-    ),
-    std::mem::replace(
-      &mut compilation.code_splitting_cache.chunk_group_by_ukey,
-      compilation.chunk_group_by_ukey.clone(),
-    ),
-    std::mem::replace(
-      &mut compilation.code_splitting_cache.entrypoints,
-      compilation.entrypoints.clone(),
-    ),
-    std::mem::replace(
-      &mut compilation.code_splitting_cache.named_chunk_groups,
-      compilation.named_chunk_groups.clone(),
-    ),
-    std::mem::replace(
-      &mut compilation.code_splitting_cache.named_chunks,
-      compilation.named_chunks.clone(),
-    ),
-  ));
+  let cache = &mut compilation.code_splitting_cache;
+  rayon::scope(|s| {
+    s.spawn(|_| cache.chunk_by_ukey = compilation.chunk_by_ukey.clone());
+    s.spawn(|_| cache.chunk_graph = compilation.chunk_graph.clone());
+    s.spawn(|_| cache.chunk_group_by_ukey = compilation.chunk_group_by_ukey.clone());
+    s.spawn(|_| cache.entrypoints = compilation.entrypoints.clone());
+    s.spawn(|_| cache.named_chunk_groups = compilation.named_chunk_groups.clone());
+    s.spawn(|_| cache.named_chunks = compilation.named_chunks.clone());
+  });
   Ok(())
 }
