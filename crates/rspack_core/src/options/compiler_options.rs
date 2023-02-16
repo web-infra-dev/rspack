@@ -28,6 +28,12 @@ pub struct CompilerOptions {
   pub optimizations: Optimizations,
 }
 
+impl CompilerOptions {
+  pub fn is_incremental_rebuild(&self) -> bool {
+    self.experiments.incremental_rebuild && !matches!(self.cache, CacheOptions::Disabled)
+  }
+}
+
 #[derive(Debug)]
 pub enum ModuleIds {
   Named,

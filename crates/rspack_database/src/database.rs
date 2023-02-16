@@ -5,6 +5,7 @@ use rustc_hash::FxHashMap;
 use super::ukey::Ukey;
 use crate::DatabaseItem;
 
+#[derive(Clone)]
 pub struct Database<Item> {
   inner: FxHashMap<Ukey<Item>, Item>,
 }

@@ -4,9 +4,11 @@ use tokio::sync::Mutex;
 
 use crate::CompilerOptions;
 
+mod local;
 mod occasion;
 mod snapshot;
 mod storage;
+pub use local::*;
 use occasion::{
   BuildModuleOccasion, CodeGenerateOccasion, CreateChunkAssetsOccasion, ResolveModuleOccasion,
 };

@@ -29,7 +29,7 @@ use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   build_chunk_graph::build_chunk_graph,
-  cache::Cache,
+  cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
   tree_shaking::{
     optimizer,
@@ -68,6 +68,7 @@ pub struct Compilation {
   pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
   pub module_graph: ModuleGraph,
   pub make_failed_dependencies: HashSet<DependencyId>,
+  pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_hashes: IdentifierMap<u64>,
   pub chunk_graph: ChunkGraph,
@@ -92,6 +93,7 @@ pub struct Compilation {
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
   pub cache: Arc<Cache>,
+  pub code_splitting_cache: CodeSplittingCache,
   pub hash: String,
   // TODO: make compilation safer
   _pin: PhantomPinned,
@@ -121,6 +123,7 @@ impl Compilation {
       options,
       module_graph,
       make_failed_dependencies: HashSet::default(),
+      has_module_import_export_change: true,
       runtime_modules: Default::default(),
       runtime_module_hashes: Default::default(),
       chunk_by_ukey: Default::default(),
@@ -146,6 +149,7 @@ impl Compilation {
       code_generated_modules: Default::default(),
 
       cache,
+      code_splitting_cache: Default::default(),
       hash: Default::default(),
       _pin: PhantomPinned,
       lazy_visit_modules: Default::default(),
@@ -364,6 +368,7 @@ impl Compilation {
 
     let mut force_build_module = HashSet::default();
     let mut force_build_deps = std::mem::take(&mut self.make_failed_dependencies);
+    let mut origin_module_deps = HashMap::default();
     // handle setup params
     if let SetupMakeParam::ModifiedFiles(files) = &params {
       force_build_module.extend(
@@ -380,6 +385,19 @@ impl Compilation {
             }
           }),
       );
+      // collect origin_module_deps
+      for module_id in &force_build_module {
+        let mgm = self
+          .module_graph
+          .module_graph_module_by_identifier(module_id)
+          .expect("module graph module not exist");
+        let deps = mgm
+          .all_depended_modules(&self.module_graph)
+          .into_iter()
+          .cloned()
+          .collect::<Vec<_>>();
+        origin_module_deps.insert(*module_id, deps);
+      }
     }
     if let SetupMakeParam::ForceBuildDeps(deps) = params {
       force_build_deps.extend(deps);
@@ -732,6 +750,21 @@ impl Compilation {
     }
 
     tracing::debug!("All clean task is finished");
+    // calc has_module_import_export_change
+    self.has_module_import_export_change = if origin_module_deps.is_empty() {
+      true
+    } else {
+      !origin_module_deps.into_iter().all(|(module_id, deps)| {
+        if let Some(mgm) = self
+          .module_graph
+          .module_graph_module_by_identifier(&module_id)
+        {
+          mgm.all_depended_modules(&self.module_graph) == deps.iter().collect::<Vec<_>>()
+        } else {
+          false
+        }
+      })
+    };
 
     if let Some(err) = errored {
       Err(err)
@@ -907,9 +940,12 @@ impl Compilation {
   }
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    build_chunk_graph(self)?;
-
-    plugin_driver.write().await.optimize_chunks(self)?;
+    use_code_splitting_cache(self, |compilation| async {
+      build_chunk_graph(compilation)?;
+      plugin_driver.write().await.optimize_chunks(compilation)?;
+      Ok(compilation)
+    })
+    .await?;
     plugin_driver
       .write()
       .await

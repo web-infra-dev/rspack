@@ -12,7 +12,7 @@ impl DatabaseItem for ChunkGroup {
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
@@ -157,7 +157,7 @@ impl ChunkGroup {
   }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChunkGroupKind {
   Entrypoint,
   Normal,

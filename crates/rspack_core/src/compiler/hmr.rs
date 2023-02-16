@@ -10,8 +10,8 @@ use rspack_sources::{RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  fast_set, AssetInfo, CacheOptions, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler,
-  ModuleIdentifier, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
+  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
+  RenderManifestArgs, RuntimeSpec, SetupMakeParam,
 };
 
 const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
@@ -144,11 +144,10 @@ impl Compiler {
         self.cache.clone(),
       );
 
-      let enable_incremental_rebuild = self.options.experiments.incremental_rebuild
-        && !matches!(self.options.cache, CacheOptions::Disabled);
-      if enable_incremental_rebuild {
+      let is_incremental_rebuild = self.options.is_incremental_rebuild();
+      if is_incremental_rebuild {
         // copy field from old compilation
-        // new_compilation.visited_module_id = std::mem::take(&mut self.compilation.visited_module_id);
+        // make stage used
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
@@ -163,6 +162,10 @@ impl Compiler {
           std::mem::take(&mut self.compilation.missing_dependencies);
         new_compilation.build_dependencies =
           std::mem::take(&mut self.compilation.build_dependencies);
+
+        // seal stage used
+        new_compilation.code_splitting_cache =
+          std::mem::take(&mut self.compilation.code_splitting_cache);
       } else {
         new_compilation.setup_entry_dependencies();
       }
@@ -186,7 +189,7 @@ impl Compiler {
         .compilation(&mut self.compilation)
         .await?;
 
-      let setup_make_params = if enable_incremental_rebuild {
+      let setup_make_params = if is_incremental_rebuild {
         let mut modified_files = HashSet::default();
         modified_files.extend(changed_files.iter().map(PathBuf::from));
         modified_files.extend(removed_files.iter().map(PathBuf::from));

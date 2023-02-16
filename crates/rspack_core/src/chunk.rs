@@ -12,12 +12,13 @@ use crate::{
   RuntimeSpec, SourceType,
 };
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChunkKind {
   HotUpdate,
   Normal,
 }
 
+#[derive(Clone)]
 pub struct Chunk {
   // - If the chunk is create by entry, the name is the entry name
   // - (Rspack doesn't support it yet)If the chunk is create by dynamic import, the name

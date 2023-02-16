@@ -7,7 +7,7 @@ use crate::{
   RuntimeSpecSet, SourceType,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
   pub split_point_module_identifier_to_chunk_ukey: IdentifierMap<ChunkUkey>,
 
@@ -484,7 +484,7 @@ impl ChunkGraph {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ChunkGraphModule {
   pub id: Option<String>,
   pub(crate) entry_in_chunks: HashSet<ChunkUkey>,
@@ -507,7 +507,7 @@ impl ChunkGraphModule {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ChunkGraphChunk {
   /// URI of modules => ChunkGroupUkey
   ///

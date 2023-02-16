@@ -36,7 +36,7 @@ pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
   runtime.join("\n")
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 pub struct RuntimeSpecMap<T> {
   mode: RuntimeMode,
   map: HashMap<RuntimeKey, T>,
