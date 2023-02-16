@@ -50,7 +50,7 @@ impl RawOption<ReactOptions> for RawReactOptions {
 
   fn fallback_value(_options: &rspack_core::CompilerOptionsBuilder) -> Self {
     RawReactOptions {
-      runtime: Some("classic".to_string()),
+      runtime: Some("automatic".to_string()),
       ..Default::default()
     }
   }
