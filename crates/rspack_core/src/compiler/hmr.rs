@@ -158,7 +158,7 @@ impl Compiler {
         .read()
         .await
         .resolver_factory
-        .clear_entries(&self.compilation.resolver_cache_lock);
+        .clear_entries();
 
       let mut new_compilation = Compilation::new(
         // TODO: use Arc<T> instead
@@ -168,7 +168,6 @@ impl Compiler {
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
         self.cache.clone(),
-        self.compilation.resolver_cache_lock.clone(),
       );
 
       let is_incremental_rebuild = self.options.is_incremental_rebuild();
@@ -231,7 +230,7 @@ impl Compiler {
         SetupMakeParam::ForceBuildDeps(deps)
       };
       self.compile(setup_make_params).await?;
-      self.cache.begin_idle(&self.compilation).await?;
+      self.cache.begin_idle().await?;
     }
 
     // ----

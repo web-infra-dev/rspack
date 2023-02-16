@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_error::Result;
 use tokio::sync::Mutex;
 
-use crate::{Compilation, CompilerOptions, SharedPluginDriver};
+use crate::{CompilerOptions, SharedPluginDriver};
 
 mod local;
 mod occasion;
@@ -47,18 +47,13 @@ impl Cache {
     }
   }
 
-  pub async fn begin_idle(&self, compilation: &Compilation) -> Result<()> {
+  pub async fn begin_idle(&self) -> Result<()> {
     let mut is_idle = self.is_idle.lock().await;
     if *is_idle {
       return Ok(());
     }
     self.snapshot_manager.clear().await;
-    self
-      .plugin_driver
-      .write()
-      .await
-      .begin_idle(compilation)
-      .await?;
+    self.plugin_driver.write().await.begin_idle().await?;
     *is_idle = true;
 
     Ok(())

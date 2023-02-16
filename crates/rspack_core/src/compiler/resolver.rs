@@ -32,6 +32,7 @@ impl ResolveInfo {
 #[derive(Debug)]
 pub struct ResolverFactory {
   cache: Arc<nodejs_resolver::Cache>,
+  cache_lock: Mutex<()>,
   base_options: Resolve,
   pub resolver: Resolver,
   resolvers: DashMap<ResolveOptionsWithDependencyType, Arc<Resolver>, BuildHasherDefault<FxHasher>>,
@@ -52,8 +53,8 @@ impl Default for ResolverFactory {
 }
 
 impl ResolverFactory {
-  pub fn clear_entries(&self, cache_lock: &Mutex<()>) {
-    let lock = cache_lock.lock().expect("Failed to lock");
+  pub fn clear_entries(&self) {
+    let lock = self.cache_lock.lock().expect("Failed to lock");
     // TODO: we can use shared `entires` along resolvers.
     self.resolver.0.clear_entries();
     self
@@ -70,6 +71,7 @@ impl ResolverFactory {
     ));
     Self {
       cache,
+      cache_lock: Mutex::new(()),
       base_options,
       resolvers: Default::default(),
       resolver,

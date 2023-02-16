@@ -3,12 +3,7 @@ mod hmr;
 mod queue;
 mod resolver;
 
-use std::{
-  fs::File,
-  io::BufWriter,
-  path::Path,
-  sync::{Arc, Mutex},
-};
+use std::{fs::File, io::BufWriter, path::Path, sync::Arc};
 
 use anyhow::Context;
 pub use compilation::*;
@@ -32,7 +27,6 @@ pub struct Compiler {
   pub plugin_driver: SharedPluginDriver,
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub cache: Arc<Cache>,
-  pub resolver_cache_lock: Arc<Mutex<()>>,
 }
 
 impl Compiler {
@@ -52,7 +46,6 @@ impl Compiler {
       plugin_driver.clone(),
     ));
     let cache = Arc::new(Cache::new(options.clone(), plugin_driver.clone()));
-    let resolver_cache_lock = Arc::new(Mutex::new(()));
 
     Self {
       options: options.clone(),
@@ -63,11 +56,9 @@ impl Compiler {
         plugin_driver.clone(),
         loader_runner_runner.clone(),
         cache.clone(),
-        resolver_cache_lock.clone(),
       ),
       plugin_driver,
       loader_runner_runner,
-      resolver_cache_lock,
       cache,
     }
   }
@@ -87,7 +78,7 @@ impl Compiler {
       .read()
       .await
       .resolver_factory
-      .clear_entries(&self.resolver_cache_lock);
+      .clear_entries();
 
     fast_set(
       &mut self.compilation,
@@ -99,7 +90,6 @@ impl Compiler {
         self.plugin_driver.clone(),
         self.loader_runner_runner.clone(),
         self.cache.clone(),
-        self.resolver_cache_lock.clone(),
       ),
     );
 
@@ -127,7 +117,7 @@ impl Compiler {
       .flat_map(|(_, deps)| deps.clone())
       .collect::<HashSet<_>>();
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
-    self.cache.begin_idle(&self.compilation).await?;
+    self.cache.begin_idle().await?;
 
     #[cfg(debug_assertions)]
     {
