@@ -71,7 +71,7 @@ impl Compiler {
                 item.module_identifier,
                 compilation
                   .code_generation_results
-                  .get_hash(&item.module_identifier, Some(&runtime)),
+                  .get_hash(&item.module_identifier, Some(runtime)),
               )
             })
             .collect::<Vec<_>>()
