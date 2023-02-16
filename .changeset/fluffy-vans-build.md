@@ -5,7 +5,6 @@
 "@rspack/binding-linux-x64-gnu": patch
 "@rspack/binding-win32-x64-msvc": patch
 "create-rspack": patch
-"@rspack/less-loader": patch
 "@rspack/postcss-loader": patch
 "@rspack/core": patch
 "@rspack/cli": patch
