@@ -11,6 +11,7 @@ mod load_chunk_with_module;
 mod load_script;
 mod on_chunk_loaded;
 mod public_path;
+mod read_file_js_chunk_loading;
 mod require_js_chunk_loading;
 mod utils;
 
@@ -27,4 +28,5 @@ pub use load_chunk_with_module::LoadChunkWithModuleRuntimeModule;
 pub use load_script::LoadScriptRuntimeModule;
 pub use on_chunk_loaded::OnChunkLoadedRuntimeModule;
 pub use public_path::PublicPathRuntimeModule;
+pub use read_file_js_chunk_loading::ReadFileChunkLoadingRuntimeModule;
 pub use require_js_chunk_loading::RequireChunkLoadingRuntimeModule;

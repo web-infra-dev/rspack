@@ -94,6 +94,12 @@ impl Module for ExternalModule {
               self.specifier
             )
           }
+          TargetPlatform::AsyncNode(_) => {
+            format!(
+              r#"module.exports = __rspack_require__.nr("{}")"#,
+              self.specifier
+            )
+          }
         },
       })
       .boxed();

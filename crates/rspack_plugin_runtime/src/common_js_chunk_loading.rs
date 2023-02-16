@@ -5,6 +5,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
+use crate::runtime_module::ReadFileChunkLoadingRuntimeModule;
 use crate::runtime_module::RequireChunkLoadingRuntimeModule;
 
 #[derive(Debug)]

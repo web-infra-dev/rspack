@@ -142,3 +142,8 @@ pub const EXTERNAL_INSTALL_CHUNK: &str = "__webpack_require__.C";
  * the webpack hash
  */
 pub const GET_FULL_HASH: &str = "__webpack_require__.h";
+
+/**
+ * the baseURI of current document
+ */
+pub const BASE_URI: &str = "__webpack_require__.b";

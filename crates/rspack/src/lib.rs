@@ -31,6 +31,15 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
         rspack_plugin_runtime::CommonJsChunkLoadingPlugin {},
       ));
     }
+    TargetPlatform::AsyncNode(_) => {
+      plugins.push(Box::new(
+        rspack_plugin_runtime::CommonJsChunkFormatPlugin {},
+      ));
+      plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
+      plugins.push(Box::new(
+        rspack_plugin_runtime::AsyncNodeChunkLoadingPlugin {},
+      ));
+    }
     _ => {
       plugins.push(Box::new(rspack_plugin_runtime::RuntimePlugin {}));
     }

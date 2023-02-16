@@ -7,6 +7,7 @@ pub enum TargetPlatform {
   Web,
   WebWorker,
   Node(String),
+  AsyncNode(String),
   None,
 }
 
