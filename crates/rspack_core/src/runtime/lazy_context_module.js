@@ -8,17 +8,11 @@ function webpackAsyncContext(req) {
 		});
 	}
 	// extract logic from generate
-	var ids = map[req];
+	var id = map[req];
 
-	if(ids.length > 0) {
-		return Promise.all(ids.map(__webpack_require__.e)).then(function() {
-			return __webpack_require__(req);
-		});
-	} else {
-		return Promise.resolve().then(function() {
-			return __webpack_require__(req);
-		});
-	}
+	return __webpack_require__.el(id).then(function() {
+		return __webpack_require__(id);
+	});
 }
 webpackAsyncContext.keys = function() {
 	return Object.keys(map);

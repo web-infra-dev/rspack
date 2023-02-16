@@ -8,6 +8,8 @@ mod common_js_require_context_dependency;
 mod import_context_dependency;
 pub use common_js_require_context_dependency::*;
 pub use import_context_dependency::*;
+mod require_context_dependency;
+pub use require_context_dependency::RequireContextDependency;
 mod css;
 use std::{any::Any, fmt::Debug, hash::Hash};
 
@@ -51,6 +53,8 @@ pub enum DependencyType {
   ImportContext,
   // commonjs require context
   CommonJSRequireContext,
+  // require.context
+  RequireContext,
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
