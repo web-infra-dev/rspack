@@ -1,5 +1,7 @@
 use std::{any::Any, fmt::Debug};
 
+#[cfg(feature = "rayon")]
+use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 
 use super::ukey::Ukey;
@@ -84,6 +86,24 @@ impl<Item: Any> Database<Item> {
 
   pub fn into_items(self) -> impl Iterator<Item = Item> {
     self.inner.into_values()
+  }
+}
+
+#[cfg(feature = "rayon")]
+impl<Item: 'static + Sync> Database<Item> {
+  pub fn par_keys(&self) -> impl ParallelIterator<Item = &Ukey<Item>> {
+    self.keys().par_bridge()
+  }
+
+  pub fn par_values(&self) -> impl ParallelIterator<Item = &Item> {
+    self.values().par_bridge()
+  }
+}
+
+#[cfg(feature = "rayon")]
+impl<Item: 'static + Send> Database<Item> {
+  pub fn par_values_mut(&mut self) -> impl ParallelIterator<Item = &mut Item> {
+    self.values_mut().par_bridge()
   }
 }
 
