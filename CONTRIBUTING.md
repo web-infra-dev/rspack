@@ -34,7 +34,7 @@ When submitting a Pull Request, please note the following:
 We recommend using the LTS version of Node.js 16. You can check your currently used Node.js version with the following command:
 
 ```bash
-$ node -v
+node -v
 #v16.18.0
 ```
 
@@ -44,13 +44,13 @@ Here is an example of how to install the Node.js 16 LTS version via nvm:
 
 ```bash
 # Install the LTS version of Node.js 16
-$ nvm install 16 --lts
+nvm install 16 --lts
 
 # Make the newly installed Node.js 16 as the default version
-$ nvm alias default 16
+nvm alias default 16
 
 # Switch to the newly installed Node.js 16
-$ nvm use 16
+nvm use 16
 ```
 
 #### Install Dependencies
@@ -59,13 +59,13 @@ Install Node.js dependencies via [pnpm](https://pnpm.io/).
 
 ```bash
 # enable pnpm with corepack
-$ corepack enable
+corepack enable
 
 # or install pnpm directly
-$ npm install -g pnpm@7
+npm install -g pnpm@7
 
 # Install dependencies
-$ pnpm run init
+pnpm run init
 ```
 
 ### Setup Other Dependencies
