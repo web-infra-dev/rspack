@@ -52,6 +52,7 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   }
   plugins.push(Box::<rspack_plugin_externals::ExternalPlugin>::default());
   plugins.append(&mut options.plugins);
+  plugins.push(Box::new(rspack_plugin_resolve::Resolve::default()));
   plugins.push(Box::new(rspack_plugin_javascript::JsPlugin::new()));
   plugins.push(Box::new(rspack_plugin_devtool::DevtoolPlugin::new(
     DevtoolPluginOptions {

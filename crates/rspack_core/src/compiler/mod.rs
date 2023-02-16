@@ -45,7 +45,7 @@ impl Compiler {
       resolver_factory,
       plugin_driver.clone(),
     ));
-    let cache = Arc::new(Cache::new(options.clone()));
+    let cache = Arc::new(Cache::new(options.clone(), plugin_driver.clone()));
 
     Self {
       options: options.clone(),
@@ -117,7 +117,7 @@ impl Compiler {
       .flat_map(|(_, deps)| deps.clone())
       .collect::<HashSet<_>>();
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
-    self.cache.begin_idle().await;
+    self.cache.begin_idle().await?;
 
     #[cfg(debug_assertions)]
     {

@@ -4,6 +4,7 @@ use std::{
   path::PathBuf,
 };
 
+use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{RawSource, SourceExt};
@@ -51,28 +52,53 @@ impl Compiler {
       HashMap<ModuleIdentifier, String>,
       IdentifierMap<String>,
     ) {
-      let mut all_modules = IdentifierMap::default();
-      let mut module_id_map = IdentifierMap::default();
-      for (ukey, chunk) in compilation.chunk_by_ukey.iter() {
-        compilation
-          .chunk_graph
-          .get_chunk_modules(ukey, &compilation.module_graph)
-          .iter()
-          .for_each(|item| {
-            let hash = compilation
-              .code_generation_results
-              .get_hash(&item.module_identifier, Some(&chunk.runtime));
-            all_modules.insert(item.module_identifier, hash);
-            module_id_map.insert(
-              item.module_identifier,
-              compilation
-                .chunk_graph
-                .get_module_id(item.module_identifier)
-                .clone()
-                .expect("should has module id"),
-            );
-          });
-      }
+      let all_modules = compilation
+        .chunk_by_ukey
+        .iter()
+        .par_bridge()
+        .map(|(ukey, chunk)| {
+          (
+            compilation
+              .chunk_graph
+              .get_chunk_modules(ukey, &compilation.module_graph),
+            &chunk.runtime,
+          )
+        })
+        .flat_map(|(v, runtime)| {
+          v.par_iter()
+            .map(|item| {
+              (
+                item.module_identifier,
+                compilation
+                  .code_generation_results
+                  .get_hash(&item.module_identifier, Some(&runtime)),
+              )
+            })
+            .collect::<Vec<_>>()
+        })
+        .collect::<IdentifierMap<_>>();
+
+      let module_id_map = compilation
+        .chunk_by_ukey
+        .iter()
+        .flat_map(|(ukey, _)| {
+          compilation
+            .chunk_graph
+            .get_chunk_modules(ukey, &compilation.module_graph)
+            .iter()
+            .map(|item| {
+              (
+                item.module_identifier,
+                compilation
+                  .chunk_graph
+                  .get_module_id(item.module_identifier)
+                  .clone()
+                  .expect("should has module id"),
+              )
+            })
+            .collect::<Vec<_>>()
+        })
+        .collect::<IdentifierMap<_>>();
 
       let old_runtime_modules = compilation
         .runtime_modules
@@ -204,7 +230,7 @@ impl Compiler {
         SetupMakeParam::ForceBuildDeps(deps)
       };
       self.compile(setup_make_params).await?;
-      self.cache.begin_idle().await;
+      self.cache.begin_idle().await?;
     }
 
     // ----

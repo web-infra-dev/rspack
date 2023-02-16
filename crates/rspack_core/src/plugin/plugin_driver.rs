@@ -9,9 +9,10 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
-  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  cache::Cache, AdditionalChunkRuntimeRequirementsArgs, ApplyContext,
+  BoxedParserAndGeneratorBuilder, Compilation, CompilationArgs, CompilerOptions, Content,
+  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType,
+  NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContentHashHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
@@ -51,7 +52,10 @@ impl PluginDriver {
     let registered_parser_and_generator_builder = plugins
       .par_iter_mut()
       .map(|plugin| {
-        let mut apply_context = ApplyContext::default();
+        let mut apply_context = ApplyContext {
+          resolver_factory: resolver_factory.clone(),
+          registered_parser_and_generator_builder: HashMap::default(),
+        };
         plugin
           .apply(PluginContext::with_context(&mut apply_context))
           .expect("TODO:");
@@ -303,6 +307,14 @@ impl PluginDriver {
     }
     Ok(())
   }
+
+  pub async fn begin_idle(&mut self) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.begin_idle().await?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:optimize_chunks", skip_all)]
   pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {

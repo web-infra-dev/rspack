@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
@@ -6,10 +6,11 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ThisCompilationArgs,
+  cache::Cache, AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation,
+  CompilationArgs, Compiler, ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs,
+  ModuleFactoryResult, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs,
+  ResolverFactory, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -17,6 +18,7 @@ pub type PluginCompilationHookOutput = Result<()>;
 pub type PluginThisCompilationHookOutput = Result<()>;
 pub type PluginMakeHookOutput = Result<()>;
 pub type PluginBuildEndHookOutput = Result<()>;
+pub type PluginBeginIdleHookOutput = Result<()>;
 pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
@@ -57,6 +59,10 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
+    Ok(())
+  }
+
+  async fn begin_idle(&mut self) -> PluginBeginIdleHookOutput {
     Ok(())
   }
 
@@ -287,6 +293,7 @@ pub type BoxedParserAndGeneratorBuilder =
 
 #[derive(Default)]
 pub struct ApplyContext {
+  pub resolver_factory: Arc<ResolverFactory>,
   // pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
   pub(crate) registered_parser_and_generator_builder:
     HashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
