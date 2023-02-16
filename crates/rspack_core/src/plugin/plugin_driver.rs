@@ -9,10 +9,9 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, AdditionalChunkRuntimeRequirementsArgs, ApplyContext,
-  BoxedParserAndGeneratorBuilder, Compilation, CompilationArgs, CompilerOptions, Content,
-  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleType,
-  NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
+  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
+  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContentHashHookOutput, PluginContext,
   PluginFactorizeHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,

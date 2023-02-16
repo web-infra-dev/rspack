@@ -6,11 +6,10 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  cache::Cache, AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation,
-  CompilationArgs, Compiler, ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs,
-  ModuleFactoryResult, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs,
-  ResolverFactory, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
+  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ResolverFactory, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
