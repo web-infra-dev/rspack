@@ -61,7 +61,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn begin_idle(&mut self) -> PluginBeginIdleHookOutput {
+  async fn begin_idle(&mut self, _compilation: &Compilation) -> PluginBeginIdleHookOutput {
     Ok(())
   }
 

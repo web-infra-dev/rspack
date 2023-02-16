@@ -8,6 +8,7 @@ use std::{
     atomic::{AtomicBool, Ordering},
     // time::Instant,
     Arc,
+    Mutex,
   },
 };
 
@@ -94,6 +95,7 @@ pub struct Compilation {
   pub code_generated_modules: IdentifierSet,
   pub cache: Arc<Cache>,
   pub code_splitting_cache: CodeSplittingCache,
+  pub resolver_cache_lock: Arc<Mutex<()>>,
   pub hash: String,
   // TODO: make compilation safer
   _pin: PhantomPinned,
@@ -118,6 +120,7 @@ impl Compilation {
     plugin_driver: SharedPluginDriver,
     loader_runner_runner: Arc<LoaderRunnerRunner>,
     cache: Arc<Cache>,
+    resolver_cache_lock: Arc<Mutex<()>>,
   ) -> Self {
     Self {
       options,
@@ -161,6 +164,7 @@ impl Compilation {
       build_dependencies: Default::default(),
       side_effects_free_modules: IdentifierSet::default(),
       module_item_map: IdentifierMap::default(),
+      resolver_cache_lock,
     }
   }
 

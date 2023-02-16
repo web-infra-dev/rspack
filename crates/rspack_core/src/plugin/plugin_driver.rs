@@ -307,9 +307,9 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn begin_idle(&mut self) -> Result<()> {
+  pub async fn begin_idle(&mut self, compilation: &Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
-      plugin.begin_idle().await?;
+      plugin.begin_idle(compilation).await?;
     }
     Ok(())
   }

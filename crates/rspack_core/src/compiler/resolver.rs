@@ -1,7 +1,7 @@
 use std::{
   hash::BuildHasherDefault,
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{Arc, Mutex},
 };
 
 use dashmap::DashMap;
@@ -52,13 +52,15 @@ impl Default for ResolverFactory {
 }
 
 impl ResolverFactory {
-  pub fn clear_entries(&self) {
+  pub fn clear_entries(&self, cache_lock: &Mutex<()>) {
+    let lock = cache_lock.lock().expect("Failed to lock");
     // TODO: we can use shared `entires` along resolvers.
     self.resolver.0.clear_entries();
     self
       .resolvers
       .iter()
       .for_each(|resolver| resolver.0.clear_entries());
+    drop(lock)
   }
 
   pub fn new(base_options: Resolve) -> Self {

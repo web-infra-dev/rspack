@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ApplyContext, Plugin, PluginBeginIdleHookOutput, PluginContext, ResolverFactory,
+  ApplyContext, Compilation, Plugin, PluginBeginIdleHookOutput, PluginContext, ResolverFactory,
 };
 use rspack_error::Result;
 
@@ -21,13 +21,17 @@ impl Plugin for Resolve {
     Ok(())
   }
 
-  async fn begin_idle(&mut self) -> PluginBeginIdleHookOutput {
+  async fn begin_idle(&mut self, compilation: &Compilation) -> PluginBeginIdleHookOutput {
     if let Some(resolver) = self.resolver_factory.take() {
       // Clear the cache of the resolver. As we will clear it in the next build anyway,
       // so it's not necessary for us to wait for this to finish.
       // Writing this to avoid a big overhead for clearing on the next build.
       // This behavior might be changed in the future.
-      std::thread::spawn(move || resolver.clear_entries());
+      let lock = compilation.resolver_cache_lock.clone();
+      std::thread::spawn(move || {
+        resolver.clear_entries(&lock);
+        drop(lock)
+      });
     }
     Ok(())
   }
