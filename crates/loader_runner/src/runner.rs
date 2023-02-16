@@ -7,6 +7,7 @@ use std::{
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
+use tokio::io::AsyncReadExt;
 
 use crate::{Content, LoaderRunnerPlugin};
 
@@ -136,7 +137,10 @@ impl LoaderRunner {
       }
     }
 
-    let result = tokio::fs::read(&self.resource_data.resource_path).await?;
+    let file = tokio::fs::File::open(&self.resource_data.resource_path).await?;
+    let mut reader = tokio::io::BufReader::new(file);
+    let mut result = Vec::new();
+    reader.read_to_end(&mut result).await?;
     Ok(Content::from(result))
   }
 
