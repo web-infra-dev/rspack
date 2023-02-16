@@ -1,6 +1,5 @@
 import path from "path";
 import { Rspack } from "../src";
-import lessLoader from "@rspack/less-loader";
 import postcssLoader from "@rspack/postcss-loader";
 
 const context = path.resolve(__dirname, "../../../examples/react-with-less");
@@ -21,7 +20,7 @@ const rspack = new Rspack({
 			{
 				test: /\.module\.less$/,
 				use: [
-					{ loader: lessLoader },
+					{ loader: "less-loader" },
 					{
 						loader: postcssLoader,
 						options: {

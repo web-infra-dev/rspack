@@ -1,4 +1,3 @@
-const lessLoader = require('@rspack/less-loader');
 const path = require('path');
 module.exports = {
   context: __dirname,
@@ -13,7 +12,7 @@ module.exports = {
     html : [{}],
   },
   module : {
-    rules : [{test : /.less$/, use : [{loader : lessLoader}], type : 'css'}]
+    rules : [{test : /.less$/, use : [{loader : 'less-loader'}], type : 'css'}]
   },
   output: {
     path: path.resolve(__dirname,'dist')

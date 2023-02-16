@@ -12,7 +12,7 @@ module.exports = {
 			},
 			{
 				test: /\.less$/,
-				use: [{ loader: "@rspack/less-loader" }],
+				use: [{ loader: "less-loader" }],
 				type: "css/module"
 			}
 		]

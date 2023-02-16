@@ -14,7 +14,6 @@
   ],
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "@rspack/less-loader": "workspace:^",
     "@rspack/plugin-minify": "workspace:^",
     "@rspack/plugin-node-polyfill": "workspace:^",
     "@rspack/postcss-loader": "workspace:^",
