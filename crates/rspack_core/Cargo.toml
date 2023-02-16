@@ -24,7 +24,7 @@ paste = "1.0"
 petgraph = "0.6.0"
 rayon = "1.5.3"
 regex = "1.6.0"
-rspack_database = { path = "../rspack_database" }
+rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../loader_runner" }

@@ -93,7 +93,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
     .collect::<FxHashMap<_, _>>();
 
   // grab all the dependencies
-  db.values_mut().par_bridge().for_each(|node| {
+  db.par_values_mut().for_each(|node| {
     node.dependencies = get_dependencies(node.item.clone())
       .into_iter()
       .filter_map(|item| item_to_node_ukey.get(&item))
