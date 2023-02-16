@@ -7,7 +7,7 @@ import type { WatchOptions } from "watchpack";
 import Watching from "./watching";
 import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
-import { RspackOptionsNormalized } from "./config";
+import { RspackOptionsNormalized } from "./config2";
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
@@ -32,12 +32,9 @@ class Compiler {
 	running: boolean;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
-	// @ts-expect-error
-	watching: Watching;
-	// @ts-expect-error
-	outputPath: string;
-	// @ts-expect-error
-	name: string;
+	watching?: Watching;
+	outputPath!: string;
+	name?: string;
 	inputFileSystem: any;
 	outputFileSystem: any;
 	// @ts-expect-error
@@ -128,6 +125,7 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
+		// @ts-expect-error call adapter
 		const options: binding.RawOptions = this.options;
 		// delete options.optimization.splitChunks.cacheGroups.default
 		// console.log({ options: options.optimization.splitChunks.cacheGroups })

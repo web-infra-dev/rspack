@@ -13,7 +13,7 @@ import fs from "graceful-fs";
 import createConsoleLogger from "../logging/createConsoleLogger";
 import NodeWatchFileSystem from "./NodeWatchFileSystem";
 import nodeConsole from "./nodeConsole";
-import type { InfrastructureLogging } from "../config/RspackOptions";
+import type { InfrastructureLogging } from "../config2";
 import type { Compiler } from "..";
 
 export interface NodeEnvironmentPluginOptions {

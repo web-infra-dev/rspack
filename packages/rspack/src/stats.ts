@@ -1,6 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Compilation } from ".";
-import { StatsOptions, StatsOptionsObj } from "./config/stats";
+import { StatsValue, StatsOptions } from "./config2";
 import { LogType } from "./logging/Logger";
 
 export type StatsCompilation = Partial<
@@ -903,7 +903,7 @@ export const optionsOrFallback = (...args: (boolean | undefined)[]) => {
 	return optionValues.find(optionValue => optionValue !== undefined);
 };
 
-export function normalizeStatsPreset(options?: StatsOptions): StatsOptionsObj {
+export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 	if (typeof options === "boolean" || typeof options === "string")
 		return presetToOptions(options);
 	else if (!options) return {};
@@ -914,7 +914,7 @@ export function normalizeStatsPreset(options?: StatsOptions): StatsOptionsObj {
 	}
 }
 
-function presetToOptions(name?: boolean | string): StatsOptionsObj {
+function presetToOptions(name?: boolean | string): StatsOptions {
 	const pn = (typeof name === "string" && name.toLowerCase()) || name;
 	switch (pn) {
 		case "none":

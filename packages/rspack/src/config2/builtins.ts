@@ -2,7 +2,6 @@ import type {
 	RawBuiltins,
 	RawHtmlPluginConfig,
 	RawDecoratorOptions,
-	RawProgressPluginConfig,
 	RawMinification
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
@@ -30,23 +29,18 @@ export type EmotionConfig =
 
 export type Builtins = Omit<
 	RawBuiltins,
-	| "define"
-	| "browserslist"
-	| "html"
-	| "decorator"
-	| "minify"
-	| "emotion"
-	| "progress"
+	"define" | "browserslist" | "html" | "decorator" | "minify" | "emotion"
 > & {
 	define?: Record<string, string | undefined>;
+	polyfillBuiltins?: boolean; // polyfill node builtin api
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minify?: boolean | Partial<RawMinification>;
 	emotion?: EmotionConfig;
-	progress?: boolean | RawProgressPluginConfig;
 };
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
+	polyfillBuiltins?: boolean;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	emotion?: string;
 };
@@ -96,20 +90,6 @@ function resolveDecorator(
 	);
 }
 
-function resolveProgress(
-	progress: Builtins["progress"]
-): RawProgressPluginConfig | undefined {
-	if (!progress) {
-		return undefined;
-	}
-
-	if (progress === true) {
-		progress = {};
-	}
-
-	return progress;
-}
-
 function resolveEmotion(
 	emotion: Builtins["emotion"],
 	isProduction: boolean
@@ -147,7 +127,6 @@ export function resolveBuiltinsOptions(
 		define: resolveDefine(builtins.define || {}),
 		html: resolveHtml(builtins.html || []),
 		browserslist,
-		progress: resolveProgress(builtins.progress),
 		decorator: resolveDecorator(builtins.decorator),
 		minify: resolveMinify(builtins, isProduction),
 		emotion: resolveEmotion(builtins.emotion, isProduction)

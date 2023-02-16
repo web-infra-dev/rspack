@@ -11,9 +11,13 @@ import {
 	JsChunk
 } from "@rspack/binding";
 
-import { RspackOptionsNormalized, StatsOptions } from "./config";
+import {
+	RspackOptionsNormalized,
+	StatsOptions,
+	OutputNormalized,
+	StatsValue
+} from "./config2";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
-import { ResolvedOutput } from "./config/output";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
 import ResolverFactory from "./ResolverFactory";
@@ -25,7 +29,6 @@ import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
 import { normalizeStatsPreset, Stats } from "./stats";
-import { StatsOptionsObj } from "./config/stats";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -58,15 +61,14 @@ export class Compilation {
 		>;
 	};
 	options: RspackOptionsNormalized;
-	outputOptions: ResolvedOutput;
+	outputOptions: OutputNormalized;
 	compiler: Compiler;
 	resolverFactory: ResolverFactory;
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
-	name: string;
+	name?: string;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
-		// @ts-expect-error
 		this.name = undefined;
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
@@ -152,12 +154,12 @@ export class Compilation {
 	}
 
 	createStatsOptions(
-		optionsOrPreset: StatsOptions,
+		optionsOrPreset: StatsValue,
 		context: CreateStatsOptionsContext = {}
-	): StatsOptionsObj {
+	): StatsOptions {
 		optionsOrPreset = normalizeStatsPreset(optionsOrPreset);
 
-		let options: Partial<StatsOptionsObj> = {};
+		let options: Partial<StatsOptions> = {};
 		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
 			for (const key in optionsOrPreset) {
 				// @ts-expect-error

@@ -4,23 +4,29 @@ import fs from "graceful-fs";
 import { NodeTargetPlugin } from "./node/NodeTargetPlugin";
 import { ResolveSwcPlugin } from "./web/ResolveSwcPlugin";
 import { cleverMerge } from "./util/cleverMerge";
+import assert from "assert";
+
 export class RspackOptionsApply {
 	constructor() {}
 	process(options: RspackOptionsNormalized, compiler: Compiler) {
-		// @ts-expect-error
+		assert(
+			options.output.path,
+			"options.output.path should at least have a default value after `applyRspackOptionsDefaults`"
+		);
 		compiler.outputPath = options.output.path;
-		// @ts-expect-error
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
-		if (compiler.options.target.includes("node")) {
+		// TODO: align externalsPresets with webpack
+		if (
+			compiler.options.target !== false &&
+			(compiler.options.target === "node" ||
+				compiler.options.target?.includes("node"))
+		) {
 			new NodeTargetPlugin().apply(compiler);
 		}
 		// after we migrate minify to minimze, we could remove it
-		// @ts-expect-error
 		if (options.optimization.minimize || options.builtins.minify) {
-			// @ts-expect-error
 			if (options.optimization.minimizer) {
-				// @ts-expect-error
 				for (const minimizer of options.optimization.minimizer) {
 					if (minimizer !== "...") {
 						minimizer.apply(compiler);
