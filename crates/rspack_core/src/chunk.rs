@@ -112,6 +112,16 @@ impl Chunk {
     !chunk_graph.get_chunk_entry_modules(&self.ukey).is_empty()
   }
 
+  pub fn get_entry_options(&self) -> Option<&ChunkGroupOptions> {
+    for group in &self.groups {
+      if group.kind == ChunkGroupKind::Entrypoint {
+        // should return options of entrypoint.
+        return Some(&group.options);
+      }
+    }
+    None
+  }
+
   pub fn get_all_referenced_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,

@@ -3,6 +3,7 @@ use rspack_core::{
   runtime_globals, ChunkUkey, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rustc_hash::FxHashSet as HashSet;
+use serde_json::json;
 
 use super::utils::chunk_has_js;
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
@@ -26,8 +27,8 @@ impl ReadFileChunkLoadingRuntimeModule {
       if let Some(base_uri) = entry_options.base_uri {
         return format!(
           "{} = {};",
-          RuntimeGlobals::baseURI,
-          serde_json::to_string(&base_uri).unwrap()
+          runtime_globals::base_uri,
+          &base_uri.toString().unwrap()
         );
       }
     }
