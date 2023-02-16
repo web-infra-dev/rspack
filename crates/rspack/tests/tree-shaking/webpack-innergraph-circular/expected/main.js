@@ -11,7 +11,7 @@ it("export should be unused when only unused functions use it", ()=>{
     expect(_innerJs.exportAUsed).toBe(true);
     expect(_innerJs.exportBUsed).toBe(true);
     expect(_innerJs.exportCUsed).toBe(false);
-    return __webpack_require__.e("chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir);
+    return __webpack_require__.el("./chunk.js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir);
 });
 },
 "./inner.js": function (module, exports, __webpack_require__) {

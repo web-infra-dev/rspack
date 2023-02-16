@@ -9,7 +9,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 __webpack_require__("./shared.js");
 __webpack_require__("./i-2.js");
-__webpack_require__.e("a_js").then(__webpack_require__.bind(__webpack_require__, "./a.js")).then(__webpack_require__.ir);
+__webpack_require__.el("./a.js").then(__webpack_require__.bind(__webpack_require__, "./a.js")).then(__webpack_require__.ir);
 console.log('index');
 },
 "./shared.js": function (module, exports, __webpack_require__) {

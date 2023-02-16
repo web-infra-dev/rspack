@@ -7,8 +7,8 @@ use rspack_error::Result;
 
 use crate::runtime_module::{
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-  GetMainFilenameRuntimeModule, HasOwnPropertyRuntimeModule, LoadScriptRuntimeModule,
-  PublicPathRuntimeModule,
+  GetMainFilenameRuntimeModule, HasOwnPropertyRuntimeModule, LoadChunkWithModuleRuntimeModule,
+  LoadScriptRuntimeModule, PublicPathRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -106,6 +106,9 @@ impl Plugin for BasicRuntimeRequirementPlugin {
         }
         runtime_globals::GET_FULL_HASH => {
           compilation.add_runtime_module(chunk, GetFullHashRuntimeModule::default().boxed())
+        }
+        runtime_globals::LOAD_CHUNK_WITH_MODULE => {
+          compilation.add_runtime_module(chunk, LoadChunkWithModuleRuntimeModule::default().boxed())
         }
         _ => {}
       }
