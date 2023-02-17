@@ -452,6 +452,7 @@ impl NormalModule {
 }
 
 impl Identifiable for NormalModule {
+  #[inline]
   fn identifier(&self) -> ModuleIdentifier {
     self.id
   }

@@ -420,6 +420,7 @@ impl ModuleGraph {
     }
   }
 
+  #[inline]
   pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<u64> {
     self
       .module_graph_module_by_identifier(module_identifier)

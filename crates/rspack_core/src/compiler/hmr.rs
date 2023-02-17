@@ -46,33 +46,32 @@ impl Compiler {
     removed_files: std::collections::HashSet<String>,
   ) -> Result<()> {
     let old = self.compilation.get_stats();
-    let collect_changed_modules = |compilation: &Compilation| -> (
-      IdentifierMap<u64>,
-      HashMap<ModuleIdentifier, String>,
-      IdentifierMap<String>,
-    ) {
-      let mut all_modules = IdentifierMap::default();
-      let mut module_id_map = IdentifierMap::default();
-      for (ukey, chunk) in compilation.chunk_by_ukey.iter() {
-        compilation
-          .chunk_graph
-          .get_chunk_modules(ukey, &compilation.module_graph)
-          .iter()
-          .for_each(|item| {
-            let hash = compilation
-              .code_generation_results
-              .get_hash(&item.module_identifier, Some(&chunk.runtime));
-            all_modules.insert(item.module_identifier, hash);
-            module_id_map.insert(
-              item.module_identifier,
+    fn collect_changed_modules(
+      compilation: &Compilation,
+    ) -> (IdentifierMap<(u64, String)>, IdentifierMap<String>) {
+      let modules_map = compilation
+        .module_graph
+        .module_identifier_to_module
+        .values()
+        .map(|module| {
+          let identifier = module.identifier();
+          (
+            identifier,
+            (
+              compilation
+                .module_graph
+                .get_module_hash(&identifier)
+                .expect("Module hash expected"),
               compilation
                 .chunk_graph
-                .get_module_id(item.module_identifier)
-                .clone()
-                .expect("should has module id"),
-            );
-          });
-      }
+                .get_module_id(identifier)
+                .as_deref()
+                .expect("should has module id")
+                .to_string(),
+            ),
+          )
+        })
+        .collect::<IdentifierMap<_>>();
 
       let old_runtime_modules = compilation
         .runtime_modules
@@ -85,11 +84,10 @@ impl Compiler {
         })
         .collect();
 
-      (all_modules, old_runtime_modules, module_id_map)
-    };
+      (modules_map, old_runtime_modules)
+    }
 
-    let (old_all_modules, old_runtime_modules, old_module_id_map) =
-      collect_changed_modules(old.compilation);
+    let (old_all_modules, old_runtime_modules) = collect_changed_modules(old.compilation);
     // TODO: should use `records`
 
     let mut all_old_runtime: RuntimeSpec = Default::default();
@@ -212,26 +210,21 @@ impl Compiler {
       return Ok(());
     }
 
-    let (now_all_modules, now_runtime_modules, _) = collect_changed_modules(&mut self.compilation);
+    let (now_all_modules, now_runtime_modules) = collect_changed_modules(&self.compilation);
 
     let mut updated_modules: IdentifierSet = Default::default();
     let mut updated_runtime_modules: IdentifierSet = Default::default();
     let mut completely_removed_modules: HashSet<String> = Default::default();
 
-    for (old_uri, old_hash) in &old_all_modules {
-      if let Some(now_hash) = now_all_modules.get(old_uri) {
+    for (old_uri, (old_hash, old_module_id)) in &old_all_modules {
+      if let Some((now_hash, _)) = now_all_modules.get(old_uri) {
         // updated
         if now_hash != old_hash {
           updated_modules.insert(*old_uri);
         }
       } else {
         // deleted
-        completely_removed_modules.insert(
-          old_module_id_map
-            .get(old_uri)
-            .expect("should have module id")
-            .clone(),
-        );
+        completely_removed_modules.insert(old_module_id.to_string());
       }
     }
     for identifier in now_all_modules.keys() {
