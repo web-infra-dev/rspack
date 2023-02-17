@@ -9,6 +9,7 @@ Object.defineProperty(exports, "something", {
     get: ()=>_libJs.default
 });
 const _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
+__webpack_require__("./src/a.js");
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -28,6 +29,9 @@ Object.defineProperty(exports, "default", {
     get: ()=>_default
 });
 function _default() {}
+},
+"./src/a.js": function (module, exports, __webpack_require__) {
+"use strict";
 },
 
 },function(__webpack_require__) {
