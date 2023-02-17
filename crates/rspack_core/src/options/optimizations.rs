@@ -9,7 +9,7 @@ impl From<&str> for SideEffectOption {
   fn from(value: &str) -> Self {
     match value {
       "true" => Self::True,
-      "flag" => Self::False,
+      "flag" => Self::Flag,
       _ => Self::False,
     }
   }
