@@ -103,12 +103,12 @@ impl<'a> Fold for TreeShaker<'a> {
   fn fold_module_item(&mut self, node: ModuleItem) -> ModuleItem {
     match node {
       ModuleItem::ModuleDecl(module_decl) => match module_decl {
-        ModuleDecl::Import(import) => self.customfold_import_decl(import),
-        ModuleDecl::ExportDecl(decl) => self.customfold_export_decl(decl),
-        ModuleDecl::ExportNamed(named) => self.customfold_named_export(named),
-        ModuleDecl::ExportDefaultDecl(decl) => self.customfold_export_default_decl(decl),
-        ModuleDecl::ExportDefaultExpr(expr) => self.customfold_export_default_expr(expr),
-        ModuleDecl::ExportAll(export_all) => self.customfold_export_all(export_all),
+        ModuleDecl::Import(import) => self.custom_fold_import_decl(import),
+        ModuleDecl::ExportDecl(decl) => self.custom_fold_export_decl(decl),
+        ModuleDecl::ExportNamed(named) => self.custom_fold_named_export(named),
+        ModuleDecl::ExportDefaultDecl(decl) => self.custom_fold_export_default_decl(decl),
+        ModuleDecl::ExportDefaultExpr(expr) => self.custom_fold_export_default_expr(expr),
+        ModuleDecl::ExportAll(export_all) => self.custom_fold_export_all(export_all),
         ModuleDecl::TsImportEquals(_) => ModuleItem::ModuleDecl(module_decl),
         ModuleDecl::TsExportAssignment(_) => ModuleItem::ModuleDecl(module_decl),
         ModuleDecl::TsNamespaceExport(_) => ModuleItem::ModuleDecl(module_decl),
@@ -133,7 +133,7 @@ impl<'a> TreeShaker<'a> {
     ModuleItem::Stmt(Stmt::Empty(EmptyStmt { span: DUMMY_SP }))
   }
 
-  fn customfold_import_decl(&mut self, mut import: ImportDecl) -> ModuleItem {
+  fn custom_fold_import_decl(&mut self, mut import: ImportDecl) -> ModuleItem {
     let module_identifier = self
     .resolve_module_identifier(import.src.value.to_string())
     .unwrap_or_else(|| {
@@ -212,7 +212,7 @@ impl<'a> TreeShaker<'a> {
     ModuleItem::ModuleDecl(ModuleDecl::Import(import))
   }
 
-  fn customfold_export_decl(&mut self, decl: ExportDecl) -> ModuleItem {
+  fn custom_fold_export_decl(&mut self, decl: ExportDecl) -> ModuleItem {
     match decl.decl {
       Decl::Class(mut class) => {
         let id = class.ident.to_id();
@@ -329,7 +329,7 @@ impl<'a> TreeShaker<'a> {
       .cloned()
   }
 
-  fn customfold_export_all(&mut self, export_all: ExportAll) -> ModuleItem {
+  fn custom_fold_export_all(&mut self, export_all: ExportAll) -> ModuleItem {
     let module_identifier = self
       .resolve_module_identifier(export_all.src.value.to_string())
       .expect("TODO:");
@@ -344,7 +344,7 @@ impl<'a> TreeShaker<'a> {
     }
   }
 
-  fn customfold_named_export(&mut self, mut named: NamedExport) -> ModuleItem {
+  fn custom_fold_named_export(&mut self, mut named: NamedExport) -> ModuleItem {
     if let Some(ref src) = named.src {
       let before_legnth = named.specifiers.len();
       let module_identifier = self
@@ -436,7 +436,7 @@ impl<'a> TreeShaker<'a> {
     }
   }
 
-  fn customfold_export_default_decl(&mut self, decl: ExportDefaultDecl) -> ModuleItem {
+  fn custom_fold_export_default_decl(&mut self, decl: ExportDefaultDecl) -> ModuleItem {
     let default_symbol = self.crate_virtual_default_symbol();
 
     let ctxt = default_symbol.id().ctxt;
@@ -481,7 +481,7 @@ impl<'a> TreeShaker<'a> {
     }
   }
 
-  fn customfold_export_default_expr(&mut self, expr: ExportDefaultExpr) -> ModuleItem {
+  fn custom_fold_export_default_expr(&mut self, expr: ExportDefaultExpr) -> ModuleItem {
     let default_symbol = SymbolRef::Direct(self.crate_virtual_default_symbol());
     if self.used_symbol_set.contains(&default_symbol) {
       ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(expr))
