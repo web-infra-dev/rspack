@@ -12,10 +12,9 @@ use std::{
 };
 
 use dashmap::DashSet;
-use futures::{stream::FuturesUnordered, StreamExt};
 use indexmap::IndexSet;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
-use rspack_database::Database;
+use rspack_database::{Database, Ukey};
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
@@ -23,7 +22,7 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
-use tokio::sync::mpsc::error::TryRecvError;
+use tokio::{sync::mpsc::error::TryRecvError, task::JoinError};
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
@@ -44,8 +43,8 @@ use crate::{
   EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
   FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType,
   NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
-  TaskResult, WorkerTask,
+  ProcessDependenciesTask, RenderManifestArgs, RenderManifestEntry, Resolve, RuntimeModule,
+  SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -865,31 +864,37 @@ impl Compilation {
 
   #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
-    let chunk_ukey_and_manifest = (self
-      .chunk_by_ukey
-      .values()
-      .map(|chunk| async {
-        let manifest = plugin_driver
-          .read()
-          .await
-          .render_manifest(RenderManifestArgs {
-            chunk_ukey: chunk.ukey,
-            compilation: self,
-          })
-          .await;
+    let (_, results) =
+      async_scoped::Scope::scope_and_block(|s: &mut async_scoped::TokioScope<'_, _>| {
+        self
+          .chunk_by_ukey
+          .values()
+          .map(|chunk| async {
+            let manifest = plugin_driver
+              .read()
+              .await
+              .render_manifest(RenderManifestArgs {
+                chunk_ukey: chunk.ukey,
+                compilation: self,
+              })
+              .await;
 
-        if let Ok(manifest) = &manifest {
-          tracing::debug!(
-            "For Chunk({:?}), collected assets: {:?}",
-            chunk.id,
-            manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
-          );
-        };
-        (chunk.ukey, manifest)
-      })
-      .collect::<FuturesUnordered<_>>())
-    .collect::<Vec<_>>()
-    .await;
+            if let Ok(manifest) = &manifest {
+              tracing::debug!(
+                "For Chunk({:?}), collected assets: {:?}",
+                chunk.id,
+                manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
+              );
+            };
+            (chunk.ukey, manifest)
+          })
+          .for_each(|fut| s.spawn(fut));
+      });
+
+    let chunk_ukey_and_manifest = results
+      .into_iter()
+      .collect::<std::result::Result<Vec<_>, JoinError>>()
+      .expect("Failed to resolve render_manifest result");
 
     chunk_ukey_and_manifest
       .into_iter()
