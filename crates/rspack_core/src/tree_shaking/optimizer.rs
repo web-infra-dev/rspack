@@ -145,8 +145,9 @@ impl<'a> CodeSizeOptimizer<'a> {
     );
 
     // let debug_graph = generate_debug_symbol_graph(
-    //   &symbol_graph,
-    //   compilation.options.context.as_ref().to_str().unwrap(),
+    //   &self.symbol_graph,
+    //   &self.compilation.module_graph,
+    //   &self.compilation.options.context.as_ref().to_str().unwrap(),
     // );
     // println!("{:?}", Dot::new(&debug_graph));
     self.check_symbol_query();
@@ -1399,7 +1400,6 @@ fn get_symbol_path(symbol_graph: &SymbolGraph, cur: NodeIndex) -> Vec<Vec<Symbol
     }
     visited_node.remove(&cur);
     if !has_outgoing {
-      cur_path.push(cur);
       paths.push(cur_path.clone());
     }
   }
