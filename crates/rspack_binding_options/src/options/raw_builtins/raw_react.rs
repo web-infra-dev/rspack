@@ -9,6 +9,7 @@ use crate::RawOption;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawReactOptions {
+  #[napi(ts_type = "\"automatic\" | \"classic\"")]
   pub runtime: Option<String>,
   pub import_source: Option<String>,
   pub pragma: Option<String>,

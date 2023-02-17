@@ -32,7 +32,6 @@ export type Builtins = Omit<
 	"define" | "browserslist" | "html" | "decorator" | "minify" | "emotion"
 > & {
 	define?: Record<string, string | undefined>;
-	polyfillBuiltins?: boolean; // polyfill node builtin api
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minify?: boolean | Partial<Minification>;
@@ -40,7 +39,6 @@ export type Builtins = Omit<
 };
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
-	polyfillBuiltins?: boolean;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	emotion?: string;
 };
