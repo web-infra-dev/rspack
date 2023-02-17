@@ -443,7 +443,7 @@ pub fn normalize_context(context: &str) -> String {
   if str.starts_with("./") {
     str = &str[2..];
   }
-  if str.ends_with("/") {
+  if str.ends_with('/') {
     return str.to_string();
   }
   str.to_string() + "/"
