@@ -5,6 +5,7 @@ use rspack_core::{Builtins, CompilerOptionsBuilder, Define, Mode, Plugin};
 use rspack_plugin_css::plugin::{CssConfig, LocalIdentName, LocalsConvention, PostcssConfig};
 use rspack_plugin_progress::{ProgressPlugin, ProgressPluginConfig};
 
+mod raw_copy;
 mod raw_css;
 mod raw_decorator;
 mod raw_emotion;
@@ -22,6 +23,7 @@ pub use raw_progress::*;
 pub use raw_react::*;
 use serde::Deserialize;
 
+use self::raw_copy::RawCopyConfig;
 use crate::RawOption;
 
 #[derive(Debug, Deserialize)]
@@ -52,6 +54,7 @@ pub struct RawBuiltins {
   pub no_emit_assets: Option<bool>,
   pub emotion: Option<String>,
   pub dev_friendly_split_chunks: Option<bool>,
+  pub copy: Option<RawCopyConfig>,
 }
 
 pub(super) fn normalize_builtin(
@@ -120,6 +123,7 @@ pub(super) fn normalize_builtin(
     no_emit_assets: builtins.no_emit_assets.unwrap_or(false),
     emotion: transform_emotion(builtins.emotion)?,
     dev_friendly_split_chunks: builtins.dev_friendly_split_chunks.unwrap_or(false),
+    copy: builtins.copy.map(Into::into),
   };
   Ok(ret)
 }

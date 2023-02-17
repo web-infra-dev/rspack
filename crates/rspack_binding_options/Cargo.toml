@@ -28,6 +28,7 @@ rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_loader_sass = { path = "../rspack_loader_sass" }
 rspack_napi_utils = { path = "../rspack_napi_utils" }
+rspack_plugin_copy = { path = "../rspack_plugin_copy" }
 rspack_plugin_css = { path = "../rspack_plugin_css" }
 rspack_plugin_dev_friendly_split_chunks = { path = "../rspack_plugin_dev_friendly_split_chunks" }
 rspack_plugin_html = { path = "../rspack_plugin_html" }

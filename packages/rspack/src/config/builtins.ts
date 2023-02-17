@@ -29,7 +29,13 @@ export type EmotionConfig =
 
 export type Builtins = Omit<
 	RawBuiltins,
-	"define" | "browserslist" | "html" | "decorator" | "minify" | "emotion"
+	| "define"
+	| "browserslist"
+	| "html"
+	| "decorator"
+	| "minify"
+	| "emotion"
+	| "copy"
 > & {
 	define?: Record<string, string | undefined>;
 	polyfillBuiltins?: boolean; // polyfill node builtin api
