@@ -203,7 +203,8 @@ fn emit_diagnostic<T: Write + WriteColor>(
     writer.set_color(ColorSpec::new().set_fg(Some(color)))?;
     writeln!(writer, "{}", diagnostic.message)?;
   }
-  Ok(())
+  // reset to original color after emitting a diagnostic, this avoids interference stdio of other procedure.
+  writer.reset().map_err(|e| e.into())
 }
 
 impl From<crate::Severity> for Severity {
