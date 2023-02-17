@@ -15,7 +15,7 @@
   "scripts": {
     "build:debug": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
     "build:debug:x64": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",
-    "build:release:all": "run-p build:release build:release:x64 build:release:linux && pnpm move-binding",
+    "build:release:all": "run-p build:release:win build:release build:release:x64 build:release:linux  && pnpm move-binding",
     "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json && pnpm move-binding",
     "build:release:x64": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",
     "build:release:linux": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --zig --target x86_64-unknown-linux-gnu --zig-abi-suffix=2.17",
