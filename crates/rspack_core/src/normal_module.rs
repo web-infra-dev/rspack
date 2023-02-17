@@ -218,6 +218,10 @@ impl ModuleGraphModule {
     }
   }
 
+  pub fn set_issuer(&mut self, issuer: ModuleIssuer) {
+    self.issuer = issuer;
+  }
+
   pub fn get_issuer(&self) -> &ModuleIssuer {
     &self.issuer
   }
