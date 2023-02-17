@@ -3364,12 +3364,10 @@ checksum = "5f026164926842ec52deb1938fae44f83dfdb82d0a5b0270c5bd5935ab74d6dd"
 [[package]]
 name = "string_cache"
 version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "213494b7a2b503146286049378ce02b482200519accc31872ee8be91fa820a08"
+source = "git+https://github.com/boshen/string-cache?rev=33e00b3d9a60322251532a202390c6bc53b7ea45#33e00b3d9a60322251532a202390c6bc53b7ea45"
 dependencies = [
  "new_debug_unreachable",
  "once_cell",
- "parking_lot 0.12.1",
  "phf_shared",
  "precomputed-hash",
  "serde",
