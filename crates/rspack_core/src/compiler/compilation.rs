@@ -22,7 +22,7 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
-use tokio::{sync::mpsc::error::TryRecvError, task::JoinError};
+use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
@@ -893,7 +893,7 @@ impl Compilation {
 
     let chunk_ukey_and_manifest = results
       .into_iter()
-      .collect::<std::result::Result<Vec<_>, JoinError>>()
+      .collect::<std::result::Result<Vec<_>, _>>()
       .expect("Failed to resolve render_manifest result");
 
     chunk_ukey_and_manifest
