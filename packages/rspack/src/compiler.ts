@@ -7,12 +7,13 @@ import type { WatchOptions } from "watchpack";
 import Watching from "./watching";
 import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
-import { RspackOptionsNormalized } from "./config2";
+import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Compilation } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import { getRawOptions } from "./config/adapter";
 
 class EntryPlugin {
 	apply() {}
@@ -125,10 +126,7 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		// @ts-expect-error call adapter
-		const options: binding.RawOptions = this.options;
-		// delete options.optimization.splitChunks.cacheGroups.default
-		// console.log({ options: options.optimization.splitChunks.cacheGroups })
+		const options = getRawOptions(this.options, this);
 		this.#_instance =
 			this.#_instance ||
 			new binding.Rspack(options, {

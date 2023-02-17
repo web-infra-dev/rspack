@@ -16,7 +16,7 @@ import {
 	StatsOptions,
 	OutputNormalized,
 	StatsValue
-} from "./config2";
+} from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
@@ -154,7 +154,7 @@ export class Compilation {
 	}
 
 	createStatsOptions(
-		optionsOrPreset: StatsValue,
+		optionsOrPreset: StatsValue | undefined,
 		context: CreateStatsOptionsContext = {}
 	): StatsOptions {
 		optionsOrPreset = normalizeStatsPreset(optionsOrPreset);

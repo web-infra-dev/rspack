@@ -52,6 +52,7 @@ pub struct RawBuiltins {
   pub minify: RawMinification,
   pub polyfill: bool,
   pub browserslist: Vec<String>,
+  #[napi(ts_type = "Record<string, string>")]
   pub define: Define,
   pub tree_shaking: bool,
   pub progress: Option<RawProgressPluginConfig>,

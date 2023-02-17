@@ -4,7 +4,7 @@ import {
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
 	RspackPluginFunction
-} from "./config2";
+} from "./config";
 import { Compiler } from "./compiler";
 import { Stats } from "./stats";
 import util from "util";

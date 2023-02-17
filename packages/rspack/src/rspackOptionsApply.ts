@@ -28,7 +28,9 @@ export class RspackOptionsApply {
 		if (options.optimization.minimize || options.builtins.minify) {
 			if (options.optimization.minimizer) {
 				for (const minimizer of options.optimization.minimizer) {
-					if (minimizer !== "...") {
+					if (typeof minimizer === "function") {
+						minimizer.call(compiler, compiler);
+					} else if (minimizer !== "...") {
 						minimizer.apply(compiler);
 					}
 				}

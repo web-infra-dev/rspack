@@ -126,18 +126,12 @@ pub struct RawModuleRule {
   pub resource_query: Option<RawModuleRuleCondition>,
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
-  #[napi(
-    ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
-  )]
   pub r#type: Option<String>,
   pub parser: Option<RawModuleRuleParser>,
   pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawIssuerOptions>,
   pub one_of: Option<Vec<RawModuleRule>>,
-  // Loader experimental
-  #[serde(skip_deserializing)]
-  pub func__: Option<JsFunction>,
 }
 
 impl Debug for RawModuleRule {

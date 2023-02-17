@@ -55,15 +55,21 @@ pub trait RawOptionsApply {
 #[napi(object)]
 pub struct RawOptions {
   pub entry: HashMap<String, RawEntryItem>,
+  #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
+  #[napi(ts_type = "Array<string>")]
   pub target: RawTarget,
+  #[napi(ts_type = "string")]
   pub context: RawContext,
   pub output: RawOutputOptions,
   pub resolve: RawResolveOptions,
   pub module: RawModuleOptions,
   pub builtins: RawBuiltins,
+  #[napi(ts_type = "Record<string, string>")]
   pub externals: RawExternal,
+  #[napi(ts_type = "'' | 'node-commonjs' | 'window'")]
   pub externals_type: RawExternalType,
+  #[napi(ts_type = "string")]
   pub devtool: RawDevtool,
   pub optimization: RawOptimizationOptions,
   pub stats: RawStatsOptions,

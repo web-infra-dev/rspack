@@ -1,11 +1,9 @@
-import type {
-	RawModuleRuleUse,
-	RawModuleRule,
-	RawModuleRuleCondition,
-	RawModuleOptions,
+import {
 	JsAssetInfo,
 	JsLoaderContext,
-	JsLoaderResult
+	JsLoaderResult,
+	RawModuleRuleUse,
+	RawOptions
 } from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
@@ -18,70 +16,33 @@ import {
 } from "webpack-sources";
 import { Compiler } from "../compiler";
 import { Logger } from "../logging/Logger";
-import {
-	ResolveOptions,
-	Resolver,
-	ResolverWithOptions
-} from "../ResolverFactory";
-import { concatErrorMsgAndStack, isNil, isPromiseLike } from "../util";
+import { concatErrorMsgAndStack, isPromiseLike } from "../util";
 import { createHash } from "../util/createHash";
-import { createRawFromSource } from "../util/createSource";
 import Hash from "../util/hash";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import { ResolvedContext } from "./context";
-import {
-	isUseSimpleSourceMap,
-	isUseSourceMap,
-	ResolvedDevtool
-} from "./devtool";
-import { ResolvedMode } from "./mode";
-import { Resolve, ResolvedResolve, resolveResolveOptions } from "./resolve";
-import { ResolvedTarget } from "./target";
+import { Mode, Resolve, RuleSetUse, RuleSetUseItem } from "./types";
 
-export type Condition = string | RegExp;
+const BUILTIN_LOADER_PREFIX = "builtin:";
 
-export interface ModuleRule {
-	name?: string;
-	test?: Condition;
-	include?: Condition | Condition[];
-	exclude?: Condition | Condition[];
-	resource?: Condition;
-	resourceQuery?: Condition;
-	use?: ModuleRuleUse[];
-	type?: RawModuleRule["type"];
-	issuer?: {
-		not?: Condition[];
-	};
-	oneOf?: ModuleRule[];
-	parser?: RawModuleRule["parser"];
-	generator?: RawModuleRule["generator"];
-	resolve?: Resolve;
+export interface ComposeJsUseOptions {
+	devtool: RawOptions["devtool"];
+	context: RawOptions["context"];
+	compiler: Compiler;
 }
 
-export interface Module {
-	rules?: ModuleRule[];
-	parser?: RawModuleOptions["parser"];
+export interface SourceMap {
+	version: number;
+	sources: string[];
+	mappings: string;
+	file?: string;
+	sourceRoot?: string;
+	sourcesContent?: string[];
+	names?: string[];
 }
 
-interface ResolvedModuleRule {
-	test?: RawModuleRule["test"];
-	include?: RawModuleRule["include"];
-	exclude?: RawModuleRule["exclude"];
-	resource?: RawModuleRule["resource"];
-	resourceQuery?: RawModuleRule["resourceQuery"];
-	use?: RawModuleRuleUse[];
-	type?: RawModuleRule["type"];
-	parser?: RawModuleRule["parser"];
-	generator?: RawModuleRule["generator"];
-	resolve?: ResolvedResolve;
-	issuer?: RawModuleRule["issuer"];
-	oneOf?: RawModuleRule["oneOf"];
-}
-
-export interface ResolvedModule {
-	rules: ResolvedModuleRule[];
-	parser?: RawModuleOptions["parser"];
+export interface AdditionalData {
+	[index: string]: any;
 }
 
 export interface LoaderContext
@@ -107,7 +68,7 @@ export interface LoaderContext
 	rootContext: string;
 	context: string;
 	loaderIndex: number;
-	mode: ResolvedMode;
+	mode?: Mode;
 	hot?: boolean;
 	getOptions(schema?: any): unknown;
 	resolve(
@@ -120,7 +81,7 @@ export interface LoaderContext
 		) => void
 	): void;
 	getResolve(
-		options: ResolveOptions
+		options: Resolve
 	): (context: any, request: any, callback: any) => Promise<any>;
 	getLogger(name: string): Logger;
 	emitError(error: Error): void;
@@ -151,40 +112,6 @@ export interface LoaderContext
 	_compilation: Compiler["compilation"];
 }
 
-const toBuffer = (bufLike: string | Buffer): Buffer => {
-	if (Buffer.isBuffer(bufLike)) {
-		return bufLike;
-	} else if (typeof bufLike === "string") {
-		return Buffer.from(bufLike);
-	}
-
-	throw new Error("Buffer or string expected");
-};
-
-export type GetCompiler = () => Compiler;
-
-export interface ComposeJsUseOptions {
-	devtool: ResolvedDevtool;
-	context: ResolvedContext;
-	target: ResolvedTarget;
-	getCompiler: GetCompiler;
-}
-
-export interface SourceMap {
-	version: number;
-	sources: string[];
-	mappings: string;
-	file?: string;
-	sourceRoot?: string;
-	sourcesContent?: string[];
-	names?: string[];
-}
-
-export interface AdditionalData {
-	[index: string]: any;
-	// webpackAST: object;
-}
-
 export interface LoaderResult {
 	cacheable: boolean;
 	content: string | Buffer;
@@ -196,17 +123,52 @@ export interface LoaderResult {
 	buildDependencies: string[];
 }
 
-function composeJsUse(
-	uses: ModuleRuleUse[],
+export function createRawModuleRuleUses(
+	uses: RuleSetUse,
+	options: ComposeJsUseOptions
+): RawModuleRuleUse[] {
+	const allUses = [...uses].reverse();
+	return createRawModuleRuleUsesImpl(allUses, options, allUses);
+}
+
+function createRawModuleRuleUsesImpl(
+	uses: RuleSetUse,
 	options: ComposeJsUseOptions,
-	allUses: ModuleRuleUse[]
+	allUses: RuleSetUse
+): RawModuleRuleUse[] {
+	if (!uses.length) {
+		return [];
+	}
+	const index = uses.findIndex(
+		use =>
+			typeof use.loader === "string" &&
+			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
+	);
+	if (index < 0) {
+		// @ts-expect-error
+		return [composeJsUse(uses, options, allUses)];
+	}
+
+	const before = uses.slice(0, index);
+	const after = uses.slice(index + 1);
+	return [
+		composeJsUse(before, options, allUses),
+		createBuiltinUse(uses[index]),
+		...createRawModuleRuleUsesImpl(after, options, allUses)
+	].filter((item): item is RawModuleRuleUse => Boolean(item));
+}
+
+function composeJsUse(
+	uses: RuleSetUse,
+	options: ComposeJsUseOptions,
+	allUses: RuleSetUse
 ): RawModuleRuleUse | null {
 	if (!uses.length) {
 		return null;
 	}
 
 	async function loader(data: JsLoaderContext): Promise<JsLoaderResult> {
-		const compiler = options.getCompiler();
+		const compiler = options.compiler;
 		const resolver = compiler.resolverFactory.get("normal");
 		const moduleContext = path.dirname(data.resourcePath);
 
@@ -326,6 +288,7 @@ function composeJsUse(
 					// @ts-expect-error
 					createHash: type => {
 						return createHash(
+							// @ts-expect-error hashFunction should also avaiable in rust side, then we can make the type right
 							type || compiler.compilation.outputOptions.hashFunction
 						);
 					}
@@ -368,10 +331,8 @@ function composeJsUse(
 					get query() {
 						return use.options && typeof use.options === "object"
 							? use.options
-							: use.query;
-					},
-					get data() {
-						return use.data;
+							: // deprecated usage so ignore the type
+							  (use as any).query;
 					},
 					resolve(context, request, callback) {
 						resolver.resolve(
@@ -517,7 +478,7 @@ function composeJsUse(
 				/**
 				 * support loader as string
 				 */
-				let loader: Loader;
+				let loader;
 				if (typeof use.loader === "string") {
 					try {
 						const loaderPath = require.resolve(use.loader, {
@@ -539,7 +500,6 @@ function composeJsUse(
 				let result: Promise<string | Buffer> | string | Buffer | undefined =
 					undefined;
 				try {
-					// @ts-expect-error
 					result = loader.apply(loaderContext, [
 						loader.raw ? Buffer.from(content) : content.toString("utf-8"),
 						sourceMap,
@@ -661,64 +621,7 @@ function composeJsUse(
 	};
 }
 
-export interface Loader {
-	(
-		this: LoaderContext,
-		content: string | Buffer,
-		sourceMap?: string | SourceMap,
-		additionalData?: AdditionalData
-	): void;
-	displayName?: string;
-	raw?: boolean;
-}
-
-const BUILTIN_LOADER_PREFIX = "builtin:";
-
-type ModuleRuleUse = {
-	// String represents a path to the loader
-	loader: Loader | string;
-	options?: unknown;
-	name?: string;
-	query?: string;
-	data?: unknown;
-};
-
-export function createRawModuleRuleUses(
-	uses: ModuleRuleUse[],
-	options: ComposeJsUseOptions
-): RawModuleRuleUse[] {
-	const allUses = [...uses].reverse();
-	return createRawModuleRuleUsesImpl(allUses, options, allUses);
-}
-
-function createRawModuleRuleUsesImpl(
-	uses: ModuleRuleUse[],
-	options: ComposeJsUseOptions,
-	allUses: ModuleRuleUse[]
-): RawModuleRuleUse[] {
-	if (!uses.length) {
-		return [];
-	}
-	const index = uses.findIndex(
-		use =>
-			typeof use.loader === "string" &&
-			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
-	);
-	if (index < 0) {
-		// @ts-expect-error
-		return [composeJsUse(uses, options, allUses)];
-	}
-
-	const before = uses.slice(0, index);
-	const after = uses.slice(index + 1);
-	return [
-		composeJsUse(before, options, allUses),
-		createBuiltinUse(uses[index]),
-		...createRawModuleRuleUsesImpl(after, options, allUses)
-	].filter((item): item is RawModuleRuleUse => Boolean(item));
-}
-
-function createBuiltinUse(use: ModuleRuleUse): RawModuleRuleUse {
+function createBuiltinUse(use: RuleSetUseItem): RawModuleRuleUse {
 	assert(
 		typeof use.loader === "string" &&
 			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
@@ -740,91 +643,23 @@ function createBuiltinUse(use: ModuleRuleUse): RawModuleRuleUse {
 	};
 }
 
-function resolveModuleRuleCondition(
-	condition: Condition
-): RawModuleRuleCondition {
-	if (typeof condition === "string") {
-		return {
-			type: "string",
-			matcher: condition
-		};
+const toBuffer = (bufLike: string | Buffer): Buffer => {
+	if (Buffer.isBuffer(bufLike)) {
+		return bufLike;
+	} else if (typeof bufLike === "string") {
+		return Buffer.from(bufLike);
 	}
 
-	if (condition instanceof RegExp) {
-		return {
-			type: "regexp",
-			matcher: condition.source
-		};
-	}
+	throw new Error("Buffer or string expected");
+};
 
-	throw new Error(
-		`Unsupported condition type ${typeof condition}, value: ${condition}`
+export function isUseSourceMap(devtool: RawOptions["devtool"]): boolean {
+	return (
+		devtool.includes("source-map") &&
+		(devtool.includes("module") || !devtool.includes("cheap"))
 	);
 }
 
-function resolveModuleRuleConditions(
-	conditions: Condition[]
-): RawModuleRuleCondition[] {
-	return conditions.map(resolveModuleRuleCondition);
-}
-
-export function resolveModuleOptions(
-	module: Module = {},
-	options: ComposeJsUseOptions
-): ResolvedModule {
-	const formatRule = (rules: ModuleRule[]): ResolvedModuleRule[] =>
-		rules.map(rule => {
-			// FIXME: use error handler instead of throwing
-			if ((rule as any)?.loader) {
-				throw new Error(
-					"`Rule.loader` is not supported, use `Rule.use` instead"
-				);
-			}
-
-			if ((rule as any)?.uses) {
-				throw new Error(
-					"`Rule.uses` is deprecated for aligning with webpack, use `Rule.use` instead"
-				);
-			}
-
-			return {
-				...rule,
-				oneOf: isNil(rule.oneOf) ? undefined : formatRule(rule.oneOf),
-				issuer: isNil(rule.issuer)
-					? undefined
-					: {
-							not: isNil(rule.issuer.not)
-								? undefined
-								: resolveModuleRuleConditions(rule.issuer.not)
-					  },
-				test: isNil(rule.test)
-					? undefined
-					: resolveModuleRuleCondition(rule.test),
-				include: isNil(rule.include)
-					? undefined
-					: Array.isArray(rule.include)
-					? resolveModuleRuleConditions(rule.include)
-					: [resolveModuleRuleCondition(rule.include)],
-				exclude: isNil(rule.exclude)
-					? undefined
-					: Array.isArray(rule.exclude)
-					? resolveModuleRuleConditions(rule.exclude)
-					: [resolveModuleRuleCondition(rule.exclude)],
-				resource: isNil(rule.resource)
-					? undefined
-					: resolveModuleRuleCondition(rule.resource),
-				resourceQuery: isNil(rule.resourceQuery)
-					? undefined
-					: resolveModuleRuleCondition(rule.resourceQuery),
-				use: createRawModuleRuleUses(rule.use || [], options),
-				resolve: isNil(rule.resolve)
-					? undefined
-					: resolveResolveOptions(rule.resolve, options)
-			};
-		});
-	const rules = formatRule(module.rules ?? []);
-	return {
-		parser: module.parser,
-		rules
-	};
+export function isUseSimpleSourceMap(devtool: RawOptions["devtool"]): boolean {
+	return devtool.includes("source-map") && !isUseSourceMap(devtool);
 }

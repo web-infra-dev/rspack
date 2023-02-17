@@ -46,6 +46,7 @@ describe("StatsTestCases", () => {
 				...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 			};
 			const stats = await util.promisify(rspack)(options);
+			if (!stats) return expect(false);
 			const statsOptions = options.stats ?? { all: true };
 			const statsJson = stats.toJson(statsOptions);
 			// case ends with error should generate errors

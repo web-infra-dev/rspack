@@ -4,7 +4,7 @@ const getBrowserslistTargetHandler = memoize(() =>
 	require("./browserslistTargetHandler")
 );
 
-export const getDefaultTarget = context => {
+const getDefaultTarget = context => {
 	const browsers = getBrowserslistTargetHandler().load(null, context);
 	return browsers ? "browserslist" : "web";
 };
@@ -277,7 +277,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
  * @param {string} context the context directory
  * @returns {TargetProperties} target properties
  */
-export const getTargetProperties = (target, context) => {
+const getTargetProperties = (target, context) => {
 	for (const [, , regExp, handler] of TARGETS) {
 		const match = regExp.exec(target);
 		if (match) {
@@ -326,8 +326,12 @@ const mergeTargetProperties = targetProperties => {
  * @param {string} context the context directory
  * @returns {TargetProperties} target properties
  */
-export const getTargetsProperties = (targets, context) => {
+const getTargetsProperties = (targets, context) => {
 	return mergeTargetProperties(
 		targets.map(t => getTargetProperties(t, context))
 	);
 };
+
+exports.getDefaultTarget = getDefaultTarget;
+exports.getTargetsProperties = getTargetsProperties;
+exports.getTargetProperties = getTargetProperties;

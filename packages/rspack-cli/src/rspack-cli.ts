@@ -17,7 +17,7 @@ import {
 	MultiRspackOptions
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import { Mode } from "@rspack/core/src/config/mode";
+import { Mode } from "@rspack/core/src/config";
 
 const defaultConfig = "rspack.config.js";
 const defaultEntry = "src/index.js";

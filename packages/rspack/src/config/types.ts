@@ -3,6 +3,8 @@ import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 
+export type Configuration = RspackOptions;
+
 export interface RspackOptions {
 	name?: Name;
 	dependencies?: Dependencies;
@@ -48,7 +50,7 @@ export interface RspackOptionsNormalized {
 	snapshot: SnapshotOptions;
 	cache?: CacheOptions;
 	stats: StatsValue;
-	optimization: Optimization;
+	optimization: OptimizationNormalized;
 	plugins: Plugins;
 	experiments: Experiments;
 	watch?: Watch;
@@ -162,14 +164,14 @@ export interface ModuleOptions {
 }
 export type RuleSetRules = ("..." | RuleSetRule)[];
 export interface RuleSetRule {
-	test?: RuleSetConditionOrConditionsAbsolute;
+	test?: RuleSetConditionAbsolute;
 	exclude?: RuleSetConditionOrConditionsAbsolute;
 	include?: RuleSetConditionOrConditionsAbsolute;
 	// TODO: should be `RuleSetConditionOrConditionsAbsolute`
 	issuer?: RuleSetLogicalConditionsAbsolute;
-	resource?: RuleSetConditionOrConditionsAbsolute;
-	resourceFragment?: RuleSetConditionOrConditions;
-	resourceQuery?: RuleSetConditionOrConditions;
+	resource?: RuleSetConditionAbsolute;
+	resourceFragment?: RuleSetCondition;
+	resourceQuery?: RuleSetCondition;
 	oneOf?: RuleSetRule[];
 	type?: string;
 	use?: RuleSetUse;
@@ -182,20 +184,23 @@ export interface RuleSetRule {
 	resolve?: ResolveOptions;
 	sideEffects?: boolean;
 }
-export type RuleSetConditionOrConditionsAbsolute = RuleSetConditionAbsolute;
+export type RuleSetConditionOrConditionsAbsolute =
+	| RuleSetConditionAbsolute
+	| RuleSetConditionsAbsolute;
 export type RuleSetConditionAbsolute = RegExp | string;
 export type RuleSetConditionsAbsolute = RuleSetConditionAbsolute[];
 export interface RuleSetLogicalConditionsAbsolute {
 	// and?: RuleSetConditionsAbsolute;
-	not?: RuleSetConditionAbsolute;
+	not?: RuleSetConditionsAbsolute;
 	// or?: RuleSetConditionsAbsolute;
 }
-export type RuleSetConditionOrConditions = RuleSetCondition;
+export type RuleSetConditionOrConditions = RuleSetCondition | RuleSetConditions;
 export type RuleSetCondition = RegExp | string;
+export type RuleSetConditions = RuleSetCondition[];
 export type RuleSetUse = RuleSetUseItem[];
 export type RuleSetUseItem = {
 	// ident?: string;
-	loader?: RuleSetLoader;
+	loader: RuleSetLoader;
 	options?: RuleSetLoaderOptions;
 };
 export type RuleSetLoader = string;
@@ -233,11 +238,8 @@ export interface ExternalItemObjectUnknown {
 export type ExternalItemValue = string;
 
 ///// ExternalsType /////
-export type ExternalsType =
-	| "window"
-	| "node-commonjs"
-	// TODO: align with webpack
-	| "auto";
+// TODO: align with webpack
+export type ExternalsType = "window" | "node-commonjs";
 
 ///// InfrastructureLogging /////
 export interface InfrastructureLogging {
@@ -364,8 +366,30 @@ export type OptimizationRuntimeChunk =
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name?: Function;
+			name: Function;
 	  };
+
+export interface OptimizationNormalized {
+	moduleIds?: "named" | "deterministic";
+	minimize?: boolean;
+	minimizer?: ("..." | RspackPluginInstance)[];
+	splitChunks: OptimizationSplitChunksOptionsNormalized;
+	runtimeChunk?: OptimizationRuntimeChunkNormalized;
+	removeAvailableModules?: boolean;
+	sideEffects?: "flag" | boolean;
+}
+export interface OptimizationSplitChunksOptionsNormalized {
+	cacheGroups: {
+		[k: string]: OptimizationSplitChunksCacheGroup;
+	};
+	chunks?: "initial" | "async" | "all";
+	maxAsyncRequests?: number;
+	maxInitialRequests?: number;
+	minChunks?: number;
+	minSize?: OptimizationSplitChunksSizes;
+	enforceSizeThreshold?: OptimizationSplitChunksSizes;
+	minRemainingSize?: OptimizationSplitChunksSizes;
+}
 
 ///// Plugins /////
 export type Plugins = (RspackPluginInstance | RspackPluginFunction)[];

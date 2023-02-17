@@ -1,6 +1,6 @@
 import * as binding from "@rspack/binding";
 import { Compilation } from ".";
-import { StatsValue, StatsOptions } from "./config2";
+import { StatsValue, StatsOptions } from "./config";
 import { LogType } from "./logging/Logger";
 
 export type StatsCompilation = Partial<
@@ -34,8 +34,7 @@ export class Stats {
 		return this.#inner.getWarnings().length > 0;
 	}
 
-	toJson(opts?: StatsOptions, forToString?: boolean) {
-		// @ts-expect-error
+	toJson(opts?: StatsValue, forToString?: boolean) {
 		const options = this.compilation.createStatsOptions(opts, {
 			forToString
 		});
@@ -81,8 +80,7 @@ export class Stats {
 		return obj;
 	}
 
-	toString(opts?: StatsOptions) {
-		// @ts-expect-error
+	toString(opts?: StatsValue) {
 		const options = this.compilation.createStatsOptions(opts, {
 			forToString: true
 		});

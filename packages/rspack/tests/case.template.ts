@@ -72,7 +72,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								}
 							};
 							const stats = await util.promisify(rspack)(options);
-							const statsJson = stats.toJson();
+							const statsJson = stats!.toJson();
 							if (category.name === "errors") {
 								assert(statsJson.errors!.length > 0);
 							} else if (category.name === "warnings") {

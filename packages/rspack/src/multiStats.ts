@@ -9,7 +9,7 @@
  */
 
 import { KnownCreateStatsOptionsContext } from ".";
-import { SnapshotOptions } from "./config2";
+import { SnapshotOptions } from "./config";
 import { Stats, StatsCompilation } from "./stats";
 import { indent } from "./util";
 import identifierUtils from "./util/identifier";

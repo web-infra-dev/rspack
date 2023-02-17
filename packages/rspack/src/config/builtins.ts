@@ -2,8 +2,11 @@ import type {
 	RawBuiltins,
 	RawHtmlPluginConfig,
 	RawDecoratorOptions,
+	RawMinification,
+	RawReactOptions,
 	RawProgressPluginConfig,
-	RawMinification
+	RawPostCssConfig,
+	RawCssPluginConfig
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 
@@ -11,7 +14,7 @@ export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
 };
 
-export type ImportMap = {
+export type EmotionConfigImportMap = {
 	[packageName: string]: {
 		[exportName: string]: {
 			canonicalImport?: [string, string];
@@ -25,26 +28,24 @@ export type EmotionConfig =
 			sourceMap?: boolean;
 			autoLabel?: "never" | "dev-only" | "always";
 			labelFormat?: string;
-			importMap?: ImportMap;
+			importMap?: EmotionConfigImportMap;
 	  };
 
-export type Builtins = Omit<
-	RawBuiltins,
-	| "define"
-	| "browserslist"
-	| "html"
-	| "decorator"
-	| "minify"
-	| "emotion"
-	| "progress"
-> & {
+export interface Builtins {
+	css?: RawCssPluginConfig;
+	postcss?: RawPostCssConfig;
+	treeShaking?: boolean;
+	progress?: boolean | RawProgressPluginConfig;
+	react?: RawReactOptions;
+	noEmitAssets?: boolean;
 	define?: Record<string, string | undefined>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minify?: boolean | Partial<RawMinification>;
 	emotion?: EmotionConfig;
-	progress?: boolean | RawProgressPluginConfig;
-};
+	browserslist?: string[];
+	polyfill?: boolean;
+}
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
 	html?: Array<BuiltinsHtmlPluginConfig>;
@@ -60,19 +61,22 @@ function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 	return Object.fromEntries(entries);
 }
 
-function resolveHtml(html: Builtins["html"]): BuiltinsHtmlPluginConfig[] {
-	// @ts-expect-error
+function resolveHtml(html: BuiltinsHtmlPluginConfig[]): RawHtmlPluginConfig[] {
 	return html.map(c => {
+		const meta: Record<string, Record<string, string>> = {};
 		for (const key in c.meta) {
 			const value = c.meta[key];
 			if (typeof value === "string") {
-				c.meta[key] = {
+				meta[key] = {
 					name: key,
 					content: value
 				};
 			}
 		}
-		return c;
+		return {
+			...c,
+			meta
+		};
 	});
 }
 
@@ -140,17 +144,34 @@ function resolveEmotion(
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
 	{ contextPath, isProduction }: { contextPath: string; isProduction: boolean }
-): ResolvedBuiltins {
-	const browserslist = loadConfig({ path: contextPath });
+): RawBuiltins {
+	const browserslist =
+		builtins.browserslist ?? loadConfig({ path: contextPath }) ?? [];
 	return {
-		...builtins,
+		css: {
+			presetEnv: builtins.css?.presetEnv ? builtins.css.presetEnv : [],
+			modules: {
+				localsConvention: "asIs",
+				localIdentName: isProduction ? "[hash]" : "[path][name][ext]__[local]",
+				exportsOnly: false,
+				...builtins.css?.modules
+			}
+		},
+		postcss: { pxtorem: undefined, ...builtins.postcss },
+		treeShaking: builtins.treeShaking ?? isProduction ? true : false,
+		progress: builtins.progress
+			? { prefix: undefined, ...builtins.progress }
+			: undefined,
+		react: builtins.react ?? {},
+		noEmitAssets: builtins.noEmitAssets ?? false,
 		define: resolveDefine(builtins.define || {}),
 		html: resolveHtml(builtins.html || []),
 		browserslist,
 		progress: resolveProgress(builtins.progress),
 		decorator: resolveDecorator(builtins.decorator),
 		minify: resolveMinify(builtins, isProduction),
-		emotion: resolveEmotion(builtins.emotion, isProduction)
+		emotion: resolveEmotion(builtins.emotion, isProduction),
+		polyfill: builtins.polyfill ?? true
 	};
 }
 
@@ -162,23 +183,32 @@ export function resolveMinify(
 		if (builtins.minify === true) {
 			return {
 				enable: true,
-				passes: 1
+				passes: 1,
+				dropConsole: false,
+				pureFuncs: []
 			};
 		} else {
 			return {
-				...builtins.minify,
-				enable: true
+				enable: true,
+				passes: 1,
+				dropConsole: false,
+				pureFuncs: [],
+				...builtins.minify
 			};
 		}
 	} else if (builtins.minify === false) {
 		return {
 			enable: false,
-			passes: 1
+			passes: 1,
+			dropConsole: false,
+			pureFuncs: []
 		};
 	} else {
 		return {
 			enable: isProduction,
-			passes: 1
+			passes: 1,
+			dropConsole: false,
+			pureFuncs: []
 		};
 	}
 }

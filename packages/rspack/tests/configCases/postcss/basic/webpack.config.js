@@ -1,6 +1,7 @@
 const postcssLoader = require("@rspack/postcss-loader");
 module.exports = {
 	module: {
+		defaultRules: [],
 		rules: [
 			{
 				test: /\.module\.css$/,
