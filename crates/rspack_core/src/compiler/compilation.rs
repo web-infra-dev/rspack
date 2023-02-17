@@ -14,7 +14,7 @@ use std::{
 use dashmap::DashSet;
 use indexmap::IndexSet;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
-use rspack_database::{Database, Ukey};
+use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
@@ -43,8 +43,8 @@ use crate::{
   EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
   FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType,
   NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, RenderManifestEntry, Resolve, RuntimeModule,
-  SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
+  TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
