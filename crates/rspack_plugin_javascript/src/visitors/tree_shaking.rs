@@ -109,9 +109,9 @@ impl<'a> Fold for TreeShaker<'a> {
         ModuleDecl::ExportDefaultDecl(decl) => self.custom_fold_export_default_decl(decl),
         ModuleDecl::ExportDefaultExpr(expr) => self.custom_fold_export_default_expr(expr),
         ModuleDecl::ExportAll(export_all) => self.custom_fold_export_all(export_all),
-        ModuleDecl::TsImportEquals(_) => ModuleItem::ModuleDecl(module_decl),
-        ModuleDecl::TsExportAssignment(_) => ModuleItem::ModuleDecl(module_decl),
-        ModuleDecl::TsNamespaceExport(_) => ModuleItem::ModuleDecl(module_decl),
+        ModuleDecl::TsImportEquals(_)
+        | ModuleDecl::TsExportAssignment(_)
+        | ModuleDecl::TsNamespaceExport(_) => ModuleItem::ModuleDecl(module_decl),
       },
       ModuleItem::Stmt(_) => node,
     }
