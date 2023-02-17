@@ -2,7 +2,7 @@ const path = require("path");
 const fs = require("fs");
 
 console.log(__dirname);
-let abslute_path_binding_list = fs
+let abslutePathBindingList = fs
 	.readdirSync(".")
 	.filter(p => {
 		return p.endsWith(".node");
@@ -16,7 +16,7 @@ let abslute_path_binding_list = fs
 		};
 	});
 
-abslute_path_binding_list.forEach(bindingInfo => {
+abslutePathBindingList.forEach(bindingInfo => {
 	let npmPath = path.join(__dirname, "../../../npm");
 	let packagePath = path.join(npmPath, bindingInfo.platform);
 	fs.copyFileSync(
