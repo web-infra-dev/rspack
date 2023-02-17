@@ -86,7 +86,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       .contains(runtime_globals::ON_CHUNKS_LOADED)
     {
       source.add(RawSource::from(include_str!(
-        "runtime/require_chunk_loading.js"
+        "runtime/read_file_chunk_loading_with_on_chunk_load.js"
       )));
     } else {
       source.add(RawSource::from("// no on chunks loaded"));
@@ -97,9 +97,16 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       .contains(runtime_globals::ENSURE_CHUNK_HANDLERS);
 
     if with_loading || with_external_install_chunk {
-      source.add(RawSource::from(include_str!(
-        "runtime/require_chunk_loading.js"
-      )));
+      source.add(
+        RawSource::from(include_str!("runtime/read_file_chunk_loading.js"))
+          //TODO
+          .replace(
+            "ON_CHUNK_LOAD_CONDITION",
+            self
+              .runtime_requirements
+              .contains(runtime_globals::ON_CHUNKS_LOADED),
+          ),
+      );
     }
 
     if with_loading {
