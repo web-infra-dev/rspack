@@ -12,7 +12,6 @@ use std::{
 };
 
 use dashmap::DashSet;
-use futures::{stream::FuturesUnordered, StreamExt};
 use indexmap::IndexSet;
 use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_database::Database;
@@ -865,31 +864,37 @@ impl Compilation {
 
   #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
-    let chunk_ukey_and_manifest = (self
-      .chunk_by_ukey
-      .values()
-      .map(|chunk| async {
-        let manifest = plugin_driver
-          .read()
-          .await
-          .render_manifest(RenderManifestArgs {
-            chunk_ukey: chunk.ukey,
-            compilation: self,
-          })
-          .await;
+    let (_, results) =
+      async_scoped::Scope::scope_and_block(|s: &mut async_scoped::TokioScope<'_, _>| {
+        self
+          .chunk_by_ukey
+          .values()
+          .map(|chunk| async {
+            let manifest = plugin_driver
+              .read()
+              .await
+              .render_manifest(RenderManifestArgs {
+                chunk_ukey: chunk.ukey,
+                compilation: self,
+              })
+              .await;
 
-        if let Ok(manifest) = &manifest {
-          tracing::debug!(
-            "For Chunk({:?}), collected assets: {:?}",
-            chunk.id,
-            manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
-          );
-        };
-        (chunk.ukey, manifest)
-      })
-      .collect::<FuturesUnordered<_>>())
-    .collect::<Vec<_>>()
-    .await;
+            if let Ok(manifest) = &manifest {
+              tracing::debug!(
+                "For Chunk({:?}), collected assets: {:?}",
+                chunk.id,
+                manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
+              );
+            };
+            (chunk.ukey, manifest)
+          })
+          .for_each(|fut| s.spawn(fut));
+      });
+
+    let chunk_ukey_and_manifest = results
+      .into_iter()
+      .collect::<std::result::Result<Vec<_>, _>>()
+      .expect("Failed to resolve render_manifest result");
 
     chunk_ukey_and_manifest
       .into_iter()
