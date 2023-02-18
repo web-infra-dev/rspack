@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::pin::Pin;
 
 use async_trait::async_trait;
 use napi::{Env, NapiRaw, Result};
@@ -41,10 +40,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
     args: rspack_core::CompilationArgs<'_>,
   ) -> rspack_core::PluginCompilationHookOutput {
     let compilation = JsCompilation::from_compilation(unsafe {
-      Pin::new_unchecked(std::mem::transmute::<
-        &'_ mut rspack_core::Compilation,
-        &'static mut rspack_core::Compilation,
-      >(args.compilation))
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        args.compilation,
+      )
     });
 
     self
@@ -60,10 +58,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
     args: rspack_core::ThisCompilationArgs<'_>,
   ) -> rspack_core::PluginThisCompilationHookOutput {
     let compilation = JsCompilation::from_compilation(unsafe {
-      Pin::new_unchecked(std::mem::transmute::<
-        &'_ mut rspack_core::Compilation,
-        &'static mut rspack_core::Compilation,
-      >(args.this_compilation))
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        args.this_compilation,
+      )
     });
 
     self
@@ -194,10 +191,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_error::Result<()> {
     let compilation = JsCompilation::from_compilation(unsafe {
-      Pin::new_unchecked(std::mem::transmute::<
-        &'_ mut rspack_core::Compilation,
-        &'static mut rspack_core::Compilation,
-      >(args.compilation))
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        args.compilation,
+      )
     });
 
     self
