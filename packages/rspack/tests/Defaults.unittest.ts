@@ -86,6 +86,7 @@ describe("snapshots", () => {
 		      "enable": false,
 		      "passes": 1,
 		    },
+		    "progress": undefined,
 		  },
 		  "cache": {
 		    "buildDependencies": [],
