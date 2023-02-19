@@ -402,13 +402,9 @@ impl Plugin for JsPlugin {
   async fn content_hash(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &mut rspack_core::ContentHashArgs<'_>,
+    args: &rspack_core::ContentHashArgs<'_>,
   ) -> rspack_core::PluginContentHashHookOutput {
-    let compilation = &mut args.compilation;
-    let chunk = compilation
-      .chunk_by_ukey
-      .get_mut(&args.chunk_ukey)
-      .expect("should have chunk");
+    let compilation = &args.compilation;
     let mut hasher = Xxh3::default();
 
     let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
@@ -418,14 +414,19 @@ impl Plugin for JsPlugin {
     );
     // SAFETY: module identifier is unique
     ordered_modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
-    for mgm in ordered_modules {
-      if let Some(hash) = compilation
-        .module_graph
-        .get_module_hash(&mgm.module_identifier)
-      {
-        hash.hash(&mut hasher);
-      }
-    }
+
+    ordered_modules
+      .iter()
+      .map(|mgm| {
+        compilation
+          .module_graph
+          .get_module_hash(&mgm.module_identifier)
+      })
+      .for_each(|current| {
+        if let Some(current) = current {
+          current.hash(&mut hasher);
+        }
+      });
 
     for runtime_module_identifier in compilation
       .chunk_graph
@@ -439,10 +440,10 @@ impl Plugin for JsPlugin {
       }
     }
 
-    chunk
-      .content_hash
-      .insert(SourceType::JavaScript, format!("{:x}", hasher.finish()));
-    Ok(())
+    Ok(Some((
+      SourceType::JavaScript,
+      format!("{:x}", hasher.finish()),
+    )))
   }
 
   async fn render_manifest(

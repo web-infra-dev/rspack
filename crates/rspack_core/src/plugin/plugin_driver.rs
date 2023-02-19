@@ -13,11 +13,10 @@ use crate::{
   Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
   Module, ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginCompilationHookOutput, PluginContentHashHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
-  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderManifestHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs,
-  ResolverFactory, Stats, ThisCompilationArgs,
+  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
+  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
+  PluginRenderManifestHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
+  RenderChunkArgs, RenderManifestArgs, ResolverFactory, SourceType, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -161,11 +160,27 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn content_hash(&self, args: &mut ContentHashArgs<'_>) -> PluginContentHashHookOutput {
-    for plugin in &self.plugins {
-      plugin.content_hash(PluginContext::new(), args).await?;
-    }
-    Ok(())
+  pub async fn content_hash(
+    &self,
+    args: &ContentHashArgs<'_>,
+  ) -> Result<Vec<Option<(SourceType, String)>>> {
+    let (_, result) =
+      async_scoped::Scope::scope_and_block(|s: &mut async_scoped::TokioScope<'_, _>| {
+        self
+          .plugins
+          .iter()
+          .map(|plugin| plugin.content_hash(PluginContext::new(), args))
+          .for_each(|fut| s.spawn(fut));
+      });
+
+    let result = result
+      .into_iter()
+      .collect::<std::result::Result<Vec<_>, _>>()
+      .expect("Failed to resolve content_hash results")
+      .into_iter()
+      .collect::<Result<Vec<_>>>()?;
+
+    Ok(result)
   }
 
   pub async fn render_manifest(

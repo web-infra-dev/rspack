@@ -889,7 +889,7 @@ impl Compilation {
     let chunk_ukey_and_manifest = results
       .into_iter()
       .collect::<std::result::Result<Vec<_>, _>>()
-      .expect("Failed to resolve render_manifest result");
+      .expect("Failed to resolve render_manifest results");
 
     chunk_ukey_and_manifest
       .into_iter()
@@ -1144,11 +1144,17 @@ impl Compilation {
       plugin_driver
         .read()
         .await
-        .content_hash(&mut ContentHashArgs {
+        .content_hash(&ContentHashArgs {
           chunk_ukey,
           compilation: self,
         })
-        .await?;
+        .await?
+        .into_iter()
+        .for_each(|hash| {
+          if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
+            chunk.content_hash.insert(source_type, hash);
+          }
+        });
     }
     tracing::trace!("calculate chunks content hash");
 

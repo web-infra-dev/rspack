@@ -27,7 +27,7 @@ pub struct ProcessAssetsArgs<'me> {
 #[derive(Debug)]
 pub struct ContentHashArgs<'me> {
   pub chunk_ukey: ChunkUkey,
-  pub compilation: &'me mut Compilation,
+  pub compilation: &'me Compilation,
 }
 
 #[derive(Debug, Clone)]

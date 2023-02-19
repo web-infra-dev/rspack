@@ -9,7 +9,7 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
   ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, ThisCompilationArgs,
+  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -21,7 +21,7 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
-pub type PluginContentHashHookOutput = Result<()>;
+pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
@@ -85,9 +85,9 @@ pub trait Plugin: Debug + Send + Sync {
   async fn content_hash(
     &self,
     _ctx: PluginContext,
-    _args: &mut ContentHashArgs<'_>,
+    _args: &ContentHashArgs<'_>,
   ) -> PluginContentHashHookOutput {
-    Ok(())
+    Ok(None)
   }
 
   async fn render_manifest(
