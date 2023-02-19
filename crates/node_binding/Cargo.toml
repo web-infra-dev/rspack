@@ -54,7 +54,7 @@ napi-build = { version = "=2.0.1" }
 testing_macros = { version = "0.2.5" }
 
 [profile.release]
-debug = true
+# debug = true
 # Automatically strip symbols from the binary.
 # lto = true   # disabled by now, because it will significantly increase our compile time.
 
