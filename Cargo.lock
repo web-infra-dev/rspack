@@ -2461,6 +2461,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_futures"
+version = "0.1.0"
+dependencies = [
+ "async-scoped",
+ "futures",
+ "rspack_error",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_identifier"
 version = "0.1.0"
 dependencies = [
