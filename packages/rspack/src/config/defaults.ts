@@ -130,36 +130,35 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 	}
 
 	A(module, "defaultRules", () => {
-		const rules = [];
-		// const esm = {
-		// 	type: "javascript/esm"
-		// };
-		// const commonjs = {
-		//   // TODO: this is "javascript/dynamic" in webpack
-		// 	type: "javascript/auto"
-		// };
-		// const rules: RuleSetRules = [
-		// 	{
-		// 		test: /\.json$/i,
-		// 		type: "json"
-		// 	},
-		// 	{
-		// 		test: /\.mjs$/i,
-		// 		...esm
-		// 	},
-		// 	{
-		// 		test: /\.js$/i,
-		// 		...esm
-		// 	},
-		// 	{
-		// 		test: /\.cjs$/i,
-		// 		...commonjs
-		// 	},
-		// 	{
-		// 		test: /\.js$/i,
-		// 		...commonjs
-		// 	}
-		// ];
+		const esm = {
+			type: "javascript/esm"
+		};
+		const commonjs = {
+		  // TODO: this is "javascript/dynamic" in webpack
+			type: "javascript/auto"
+		};
+		const rules: RuleSetRules = [
+			{
+				test: /\.json$/i,
+				type: "json"
+			},
+			{
+				test: /\.mjs$/i,
+				...esm
+			},
+			{
+				test: /\.js$/i,
+				...esm
+			},
+			{
+				test: /\.cjs$/i,
+				...commonjs
+			},
+			{
+				test: /\.js$/i,
+				...commonjs
+			}
+		];
 		const cssRule = {
 			type: "css",
 			resolve: {
@@ -306,7 +305,8 @@ const getResolveDefaults = ({
 
 	const resolveOptions: ResolveOptions = {
 		modules: ["node_modules"],
-		conditionNames: conditions,
+		// TODO: align with webpack, we need resolve.byDependency!
+		// conditionNames: undefined,
 		mainFiles: ["index"],
 		// TODO: align with webpack
 		extensions: [...jsExtensions],

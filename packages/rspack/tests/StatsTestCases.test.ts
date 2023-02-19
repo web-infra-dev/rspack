@@ -34,7 +34,7 @@ describe("StatsTestCases", () => {
 			}
 			const options: RspackOptions = {
 				target: "node",
-				context: path.resolve(base, testName),
+				context,
 				entry: {
 					main: "./index"
 				},
