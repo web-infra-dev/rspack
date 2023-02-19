@@ -1,0 +1,6 @@
+name: Rspack
+features:
+  bundle_splitting:
+    split_chunks: node_modules
+  tree_shaking:
+    usec_exports
