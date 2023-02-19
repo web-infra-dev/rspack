@@ -22,6 +22,7 @@ pub struct BuildContext<'a> {
 pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
+  pub hash: u64,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,

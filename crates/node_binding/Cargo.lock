@@ -2019,7 +2019,6 @@ name = "rspack_futures"
 version = "0.1.0"
 dependencies = [
  "async-scoped",
- "futures",
  "tokio",
 ]
 

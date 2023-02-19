@@ -683,6 +683,9 @@ impl Compilation {
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
               });
+              self
+                .module_graph
+                .set_module_hash(&module.identifier(), build_result.hash);
               self.module_graph.add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {

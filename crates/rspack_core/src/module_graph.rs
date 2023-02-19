@@ -7,7 +7,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use rspack_error::{internal_error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   BoxModule, BoxModuleDependency, DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
@@ -89,9 +88,6 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    let mut hasher = Xxh3::new();
-    module.hash(&mut hasher);
-    self.set_module_hash(&module.identifier(), hasher.finish());
     if let Entry::Vacant(val) = self.module_identifier_to_module.entry(module.identifier()) {
       val.insert(module);
     }
@@ -420,6 +416,7 @@ impl ModuleGraph {
     }
   }
 
+  #[inline]
   pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<u64> {
     self
       .module_graph_module_by_identifier(module_identifier)

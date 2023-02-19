@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   fmt::Debug,
   hash::BuildHasherDefault,
-  hash::Hash,
+  hash::{Hash, Hasher},
   path::PathBuf,
   sync::{
     atomic::{AtomicUsize, Ordering},
@@ -23,6 +23,7 @@ use rspack_sources::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use serde_json::json;
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   contextify, is_async_dependency, AssetGeneratorOptions, AssetParserOptions, BoxModule,
@@ -452,6 +453,7 @@ impl NormalModule {
 }
 
 impl Identifiable for NormalModule {
+  #[inline]
   fn identifier(&self) -> ModuleIdentifier {
     self.id
   }
@@ -563,8 +565,12 @@ impl Module for NormalModule {
       .build_dependencies
       .extend(loader_result.build_dependencies);
 
+    let mut hasher = Xxh3::new();
+    self.hash(&mut hasher);
+
     Ok(
       BuildResult {
+        hash: hasher.finish(),
         cacheable: loader_result.cacheable,
         file_dependencies: self.build_info.file_dependencies.clone(),
         context_dependencies: self.build_info.context_dependencies.clone(),

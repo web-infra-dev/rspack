@@ -44,6 +44,7 @@ impl Module for LazyCompilationProxyModule {
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
     Ok(
       BuildResult {
+        hash: Default::default(),
         cacheable: true,
         dependencies: vec![],
         file_dependencies: Default::default(),
