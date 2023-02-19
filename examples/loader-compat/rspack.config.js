@@ -8,35 +8,58 @@ module.exports = {
     main: './src/index.js'
   },
   builtins: {
-    minify:false
+    minify: false
   },
   module: {
     rules: [
       {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'postcss-loader',
+            options: {
+              postcssOptions: {
+                plugins: [
+                  "autoprefixer"
+                ]
+              }
+            }
+          }
+        ],
+        type: 'css'
+      },
+      {
         test: /\.js$/,
-        use: [{loader: 'babel-loader', options: {
-          presets: [
-            ['@babel/preset-env', { targets: 'defaults'}]
-          ]
-        }}]
+        use: [
+          {
+            loader: 'babel-loader', options: {
+              presets: [
+                ['@babel/preset-env', { targets: 'defaults' }]
+              ]
+            }
+          },
+          {
+            loader: 'source-map-loader'
+          }
+        ]
       },
       {
         test: /\.less$/,
-        use: [{loader: 'less-loader'}],
+        use: [{ loader: 'less-loader' }],
         type: 'css'
       },
       {
         test: /\.scss$/,
-        use: [{loader:'sass-loader'}],
+        use: [{ loader: 'sass-loader' }],
         type: 'css'
       },
       {
         test: /\.yaml$/,
-        use: [{loader:'yaml-loader'}]
+        use: [{ loader: 'yaml-loader' }]
       },
       {
         test: /\.styl$/,
-        use: [{loader:'stylus-loader'}],
+        use: [{ loader: 'stylus-loader' }],
         type: 'css'
       },
       {
@@ -47,6 +70,27 @@ module.exports = {
             options: {}
           }
         ]
+      },
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: '@svgr/webpack'
+          },
+          {
+            loader: 'file-loader'
+          }
+        ],
+        type: 'javascript/auto'
+      },
+      {
+        test: /\.txt/,
+        use: [
+          {
+            loader: 'raw-loader'
+          }
+        ],
+        type:'javascript/auto'
       }
     ]
   }
