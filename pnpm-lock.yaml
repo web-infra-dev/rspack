@@ -230,6 +230,20 @@ importers:
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
+  examples/plugin-compat:
+    specifiers:
+      '@rspack/cli': workspace:*
+      '@rspack/plugin-html': workspace:*
+      copy-webpack-plugin: 5.1.2
+      webpack-bundle-analyzer: 4.7.0
+      webpack-stats-plugin: 1.1.1
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/plugin-html': link:../../packages/rspack-plugin-html
+      copy-webpack-plugin: 5.1.2
+      webpack-bundle-analyzer: 4.7.0
+      webpack-stats-plugin: 1.1.1
+
   examples/postcss:
     specifiers:
       '@rspack/cli': workspace:*
@@ -15523,6 +15537,25 @@ packages:
       - bufferutil
       - utf-8-validate
 
+  /webpack-bundle-analyzer/4.7.0:
+    resolution: {integrity: sha512-j9b8ynpJS4K+zfO5GGwsAcQX4ZHpWV+yRiHDiL+bE0XHJ8NiPYLTNVQdlFYWxtpg9lfAQNlwJg16J9AJtFSXRg==}
+    engines: {node: '>= 10.13.0'}
+    hasBin: true
+    dependencies:
+      acorn: 8.8.0
+      acorn-walk: 8.2.0
+      chalk: 4.1.2
+      commander: 7.2.0
+      gzip-size: 6.0.0
+      lodash: 4.17.21
+      opener: 1.5.2
+      sirv: 1.0.19
+      ws: 7.5.9
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+    dev: true
+
   /webpack-cli/4.10.0_webpack@5.74.0:
     resolution: {integrity: sha512-NLhDfH/h4O6UOy+0LSso42xvYypClINuMNBVVzX4vX98TmTaTUxwRbXdhucbFMd2qLaCTcLq/PdYrvi8onw90w==}
     engines: {node: '>=10.13.0'}
@@ -15710,6 +15743,10 @@ packages:
   /webpack-sources/3.2.3:
     resolution: {integrity: sha512-/DyMEOrDgLKKIG0fmvtz+4dUX/3Ghozwgm6iPp8KRhvn+eQf9+Q7GWxVNMk3+uCPWfdXYC4ExGBckIXdFEfH1w==}
     engines: {node: '>=10.13.0'}
+
+  /webpack-stats-plugin/1.1.1:
+    resolution: {integrity: sha512-aWwE/YuO2W7VCOyWwyDJ7BRSYRYjeXat+X31YiasMM3FS6/4X9W4Mb9Q0g+jIdVgArr1Mb08sHBJKMT5M9+gVA==}
+    dev: true
 
   /webpack/5.74.0:
     resolution: {integrity: sha512-A2InDwnhhGN4LYctJj6M1JEaGL7Luj6LOmyBHjcI8529cm5p6VXiTIW2sn6ffvEAKmveLzvu4jrihwXtPojlAA==}
