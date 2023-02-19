@@ -1,4 +1,8 @@
-use std::{fs, hash::Hash, path::Path};
+use std::{
+  fs,
+  hash::{Hash, Hasher},
+  path::Path,
+};
 
 use regex::Regex;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -6,6 +10,7 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::{AsPath, SugarPath};
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   runtime_globals, stringify_map, stringify_value_vec_map, AstOrSource, BoxModuleDependency,
@@ -370,6 +375,7 @@ impl PartialEq for ContextModule {
 impl Hash for ContextModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     "__rspack_internal__ContextModule".hash(state);
+    self.identifier.hash(state);
   }
 }
 
@@ -420,8 +426,12 @@ impl ContextModule {
 
     // println!("resolving dependencies for {:?}", dependencies);
 
+    let mut hasher = Xxh3::new();
+    self.hash(&mut hasher);
+
     Ok(
       BuildResult {
+        hash: hasher.finish(),
         dependencies,
         // TODO
         cacheable: false,

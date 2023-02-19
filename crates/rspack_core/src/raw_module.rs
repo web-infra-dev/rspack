@@ -1,10 +1,11 @@
-use std::borrow::Cow;
 use std::hash::Hash;
+use std::{borrow::Cow, hash::Hasher};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source};
 use rustc_hash::FxHashSet as HashSet;
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Context, Module, ModuleIdentifier,
@@ -70,8 +71,11 @@ impl Module for RawModule {
     &mut self,
     _build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    let mut hasher = Xxh3::new();
+    self.hash(&mut hasher);
     Ok(
       BuildResult {
+        hash: hasher.finish(),
         cacheable: true,
         file_dependencies: Default::default(),
         context_dependencies: Default::default(),
