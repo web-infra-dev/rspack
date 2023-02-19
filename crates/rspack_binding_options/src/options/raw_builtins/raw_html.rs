@@ -51,24 +51,24 @@ pub type RawHtmlFilename = String;
 #[napi(object)]
 pub struct RawHtmlPluginConfig {
   /// emitted file name in output path
-  #[napi(ts_type = "string | void")]
+  #[napi(ts_type = "string")]
   pub filename: Option<RawHtmlFilename>,
   /// template html file
   pub template: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
-  #[napi(ts_type = "string | void")]
+  #[napi(ts_type = "\"head\" | \"body\"")]
   pub inject: Option<RawHtmlPluginConfigInject>,
   /// path or `auto`
   pub public_path: Option<String>,
   /// `blocking`, `defer`, or `module`
-  #[napi(ts_type = "string | void")]
+  #[napi(ts_type = "\"blocking\" | \"defer\" | \"module\"")]
   pub script_loading: Option<RawHtmlPluginConfigScriptLoading>,
 
   /// entry_chunk_name (only entry chunks are supported)
   pub chunks: Option<Vec<String>>,
   pub excluded_chunks: Option<Vec<String>>,
-  #[napi(ts_type = "string | void")]
+  #[napi(ts_type = "\"sha256\" | \"sha384\" | \"sha512\"")]
   pub sri: Option<RawHtmlSriHashFunction>,
   pub minify: Option<bool>,
   pub title: Option<String>,

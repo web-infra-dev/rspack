@@ -20,7 +20,7 @@ impl FromStr for HtmlSriHashFunction {
   fn from_str(s: &str) -> anyhow::Result<HtmlSriHashFunction> {
     if s.eq("sha256") {
       Ok(HtmlSriHashFunction::Sha256)
-    } else if s.starts_with("sha384") {
+    } else if s.eq("sha384") {
       Ok(HtmlSriHashFunction::Sha384)
     } else if s.eq("sha512") {
       Ok(HtmlSriHashFunction::Sha512)
