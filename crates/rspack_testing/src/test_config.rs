@@ -253,7 +253,7 @@ impl TestConfig {
       target: c::Target::new(&self.target).expect("Can't construct target"),
       resolve: c::Resolve {
         extensions: Some(
-          [".js", ".jsx", ".ts", ".tsx", ".css"]
+          [".js", ".jsx", ".ts", ".tsx", ".json", ".d.ts", ".css"]
             .into_iter()
             .map(|i| i.to_string())
             .collect(),
@@ -265,6 +265,7 @@ impl TestConfig {
         tree_shaking: self.builtins.tree_shaking,
         minify: c::Minification {
           enable: self.builtins.minify,
+          passes: 1,
           ..Default::default()
         },
         ..Default::default()
