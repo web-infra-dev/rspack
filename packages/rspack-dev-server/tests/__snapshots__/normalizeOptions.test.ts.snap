@@ -141,6 +141,7 @@ exports[`normalize options snapshot react.development and react.refresh should b
       "enable": true,
       "passes": 1,
     },
+    "progress": undefined,
     "react": {
       "development": true,
       "refresh": true,
