@@ -38,3 +38,11 @@ impl TryFrom<&SwcRegex> for RspackRegex {
     RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
   }
 }
+
+impl TryFrom<SwcRegex> for RspackRegex {
+  type Error = Error;
+
+  fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
+    RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
+  }
+}
