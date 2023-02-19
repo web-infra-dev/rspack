@@ -25,12 +25,11 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 
 use crate::{
-  contextify, identifier::Identifiable, is_async_dependency, AssetGeneratorOptions,
-  AssetParserOptions, BoxLoader, BoxModule, BuildContext, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, DependencyId,
-  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, SourceType,
+  contextify, is_async_dependency, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
+  BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions,
+  Context, Dependency, DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {

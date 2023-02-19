@@ -1,3 +1,13 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/declarations/WebpackOptions.d.ts
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
+
 import watchpack from "watchpack";
 import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
@@ -50,7 +60,7 @@ export interface RspackOptionsNormalized {
 	snapshot: SnapshotOptions;
 	cache?: CacheOptions;
 	stats: StatsValue;
-	optimization: OptimizationNormalized;
+	optimization: Optimization;
 	plugins: Plugins;
 	experiments: Experiments;
 	watch?: Watch;
@@ -368,28 +378,6 @@ export type OptimizationRuntimeChunkNormalized =
 	| {
 			name: Function;
 	  };
-
-export interface OptimizationNormalized {
-	moduleIds?: "named" | "deterministic";
-	minimize?: boolean;
-	minimizer?: ("..." | RspackPluginInstance)[];
-	splitChunks: OptimizationSplitChunksOptionsNormalized;
-	runtimeChunk?: OptimizationRuntimeChunkNormalized;
-	removeAvailableModules?: boolean;
-	sideEffects?: "flag" | boolean;
-}
-export interface OptimizationSplitChunksOptionsNormalized {
-	cacheGroups: {
-		[k: string]: OptimizationSplitChunksCacheGroup;
-	};
-	chunks?: "initial" | "async" | "all";
-	maxAsyncRequests?: number;
-	maxInitialRequests?: number;
-	minChunks?: number;
-	minSize?: OptimizationSplitChunksSizes;
-	enforceSizeThreshold?: OptimizationSplitChunksSizes;
-	minRemainingSize?: OptimizationSplitChunksSizes;
-}
 
 ///// Plugins /////
 export type Plugins = (RspackPluginInstance | RspackPluginFunction)[];

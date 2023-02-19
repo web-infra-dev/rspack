@@ -45,6 +45,7 @@ export interface Builtins {
 	emotion?: EmotionConfig;
 	browserslist?: string[];
 	polyfill?: boolean;
+	devFriendlySplitChunks?: boolean;
 }
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
@@ -143,7 +144,11 @@ function resolveEmotion(
 
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
-	{ contextPath, isProduction }: { contextPath: string; isProduction: boolean }
+	{
+		contextPath,
+		production,
+		development
+	}: { contextPath: string; production: boolean; development: boolean }
 ): RawBuiltins {
 	const browserslist =
 		builtins.browserslist ?? loadConfig({ path: contextPath }) ?? [];
@@ -152,13 +157,13 @@ export function resolveBuiltinsOptions(
 			presetEnv: builtins.css?.presetEnv ? builtins.css.presetEnv : [],
 			modules: {
 				localsConvention: "asIs",
-				localIdentName: isProduction ? "[hash]" : "[path][name][ext]__[local]",
+				localIdentName: production ? "[hash]" : "[path][name][ext]__[local]",
 				exportsOnly: false,
 				...builtins.css?.modules
 			}
 		},
 		postcss: { pxtorem: undefined, ...builtins.postcss },
-		treeShaking: builtins.treeShaking ?? isProduction ? true : false,
+		treeShaking: builtins.treeShaking ?? production ? true : false,
 		progress: builtins.progress
 			? { prefix: undefined, ...builtins.progress }
 			: undefined,
@@ -169,9 +174,10 @@ export function resolveBuiltinsOptions(
 		browserslist,
 		progress: resolveProgress(builtins.progress),
 		decorator: resolveDecorator(builtins.decorator),
-		minify: resolveMinify(builtins, isProduction),
-		emotion: resolveEmotion(builtins.emotion, isProduction),
-		polyfill: builtins.polyfill ?? true
+		minify: resolveMinify(builtins, production),
+		emotion: resolveEmotion(builtins.emotion, production),
+		polyfill: builtins.polyfill ?? true,
+		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false
 	};
 }
 

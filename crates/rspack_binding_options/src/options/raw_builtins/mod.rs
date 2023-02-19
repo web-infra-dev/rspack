@@ -60,7 +60,7 @@ pub struct RawBuiltins {
   pub decorator: Option<RawDecoratorOptions>,
   pub no_emit_assets: bool,
   pub emotion: Option<String>,
-  pub dev_friendly_split_chunks: Option<bool>,
+  pub dev_friendly_split_chunks: bool,
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -95,6 +95,7 @@ impl RawOptionsApply for RawBuiltins {
       react: self.react.into(),
       decorator: self.decorator.map(|i| i.into()),
       no_emit_assets: self.no_emit_assets,
+      dev_friendly_split_chunks: self.dev_friendly_split_chunks,
       emotion: self
         .emotion
         .map(|i| serde_json::from_str(&i))

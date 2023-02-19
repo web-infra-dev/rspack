@@ -1,3 +1,13 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/config/defaults.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
+
 import path from "path";
 import fs from "fs";
 import {
@@ -19,6 +29,7 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./types";
+import * as oldBuiltins from "./builtins";
 import { cleverMerge } from "../util/cleverMerge";
 import assert from "assert";
 import { isNil } from "../util";
@@ -80,6 +91,13 @@ export const applyRspackOptionsDefaults = (
 		}),
 		options.resolve
 	);
+
+	// TODO: refactor builtins
+	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
+		contextPath: options.context!,
+		production,
+		development
+	}) as any;
 };
 
 export const applyRspackOptionsBaseDefaults = (
@@ -134,7 +152,7 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 			type: "javascript/esm"
 		};
 		const commonjs = {
-		  // TODO: this is "javascript/dynamic" in webpack
+			// TODO: this is "javascript/dynamic" in webpack
 			type: "javascript/auto"
 		};
 		const rules: RuleSetRules = [

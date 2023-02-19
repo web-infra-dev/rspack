@@ -1,4 +1,8 @@
-import { RspackOptionsNormalized, Compiler } from ".";
+import {
+	RspackOptionsNormalized,
+	Compiler,
+	OptimizationRuntimeChunkNormalized
+} from ".";
 import fs from "graceful-fs";
 
 import { NodeTargetPlugin } from "./node/NodeTargetPlugin";
@@ -35,6 +39,18 @@ export class RspackOptionsApply {
 					}
 				}
 			}
+		}
+		const runtimeChunk = options.optimization
+			.runtimeChunk as OptimizationRuntimeChunkNormalized;
+		if (runtimeChunk) {
+			Object.entries(options.entry).forEach(([entryName, value]) => {
+				if (value.runtime === undefined) {
+					value.runtime = runtimeChunk.name({ name: entryName });
+				}
+			});
+		}
+		if (options.builtins.devFriendlySplitChunks) {
+			options.optimization.splitChunks = undefined;
 		}
 		new ResolveSwcPlugin().apply(compiler);
 

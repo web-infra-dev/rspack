@@ -23,8 +23,7 @@ use rspack_core::{
   PathData, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, IdentifierSet, ModuleAst, ModuleDependency,
-  ModuleIdentifier,
+  AstOrSource, CssImportDependency, Filename, ModuleAst, ModuleDependency, ModuleIdentifier,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,

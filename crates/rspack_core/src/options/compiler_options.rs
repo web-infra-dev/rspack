@@ -25,3 +25,9 @@ pub struct CompilerOptions {
   pub node: NodeOption,
   pub optimization: Optimization,
 }
+
+impl CompilerOptions {
+  pub fn is_incremental_rebuild(&self) -> bool {
+    self.experiments.incremental_rebuild && !matches!(self.cache, CacheOptions::Disabled)
+  }
+}

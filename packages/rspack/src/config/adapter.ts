@@ -15,7 +15,6 @@ import {
 	ModuleOptionsNormalized,
 	Node,
 	Optimization,
-	OptimizationRuntimeChunkNormalized,
 	OptimizationSplitChunksOptions,
 	OutputNormalized,
 	RspackOptionsNormalized,
@@ -43,7 +42,7 @@ export const getRawOptions = (
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
 	return {
-		entry: getRawEntry(options.entry, options.optimization.runtimeChunk),
+		entry: getRawEntry(options.entry),
 		mode: options.mode,
 		target: getRawTarget(options.target),
 		context: options.context,
@@ -78,17 +77,12 @@ export const getRawOptions = (
 		},
 		experiments: getRawExperiments(options.experiments),
 		node: getRawNode(options.node),
-		builtins: oldBuiltins.resolveBuiltinsOptions(options.builtins, {
-			contextPath: options.context,
-			isProduction: options.mode === "production"
-		})
+		// TODO: refactor builtins
+		builtins: options.builtins as any
 	};
 };
 
-function getRawEntry(
-	entry: EntryNormalized,
-	runtimeChunk?: OptimizationRuntimeChunkNormalized
-): RawOptions["entry"] {
+function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
 	const raw: RawOptions["entry"] = {};
 	for (const key of Object.keys(entry)) {
 		const runtime = entry[key].runtime;
@@ -96,13 +90,6 @@ function getRawEntry(
 			import: entry[key].import!,
 			runtime: runtime === false ? undefined : runtime
 		};
-	}
-	if (runtimeChunk) {
-		Object.entries(raw).forEach(([entryName, value]) => {
-			if (value.runtime === undefined) {
-				value.runtime = runtimeChunk.name({ name: entryName });
-			}
-		});
 	}
 	return raw;
 }
