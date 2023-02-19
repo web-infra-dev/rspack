@@ -580,9 +580,9 @@ impl Plugin for CssPlugin {
   async fn content_hash(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &mut rspack_core::ContentHashArgs<'_>,
+    args: &rspack_core::ContentHashArgs<'_>,
   ) -> rspack_core::PluginContentHashHookOutput {
-    let compilation = &mut args.compilation;
+    let compilation = &args.compilation;
     let chunk = compilation
       .chunk_by_ukey
       .get(&args.chunk_ukey)
@@ -594,22 +594,19 @@ impl Plugin for CssPlugin {
       compilation,
     );
     let mut hasher = Xxh3::default();
-    for module_identifier in ordered_modules {
-      if let Some(hash) = compilation.module_graph.get_module_hash(&module_identifier) {
-        hash.hash(&mut hasher);
-      }
-    }
 
-    {
-      let chunk = compilation
-        .chunk_by_ukey
-        .get_mut(&args.chunk_ukey)
-        .expect("should have chunk");
-      chunk
-        .content_hash
-        .insert(SourceType::Css, format!("{:x}", hasher.finish()));
-    }
-    Ok(())
+    ordered_modules
+      .par_iter()
+      .map(|module_identifier| compilation.module_graph.get_module_hash(&module_identifier))
+      .collect::<Vec<_>>()
+      .into_iter()
+      .for_each(|current| {
+        if let Some(current) = current {
+          current.hash(&mut hasher);
+        }
+      });
+
+    Ok(Some((SourceType::Css, format!("{:x}", hasher.finish()))))
   }
 
   async fn render_manifest(
