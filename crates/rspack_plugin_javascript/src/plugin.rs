@@ -416,14 +416,12 @@ impl Plugin for JsPlugin {
     ordered_modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
 
     ordered_modules
-      .par_iter()
+      .iter()
       .map(|mgm| {
         compilation
           .module_graph
           .get_module_hash(&mgm.module_identifier)
       })
-      .collect::<Vec<_>>()
-      .into_iter()
       .for_each(|current| {
         if let Some(current) = current {
           current.hash(&mut hasher);

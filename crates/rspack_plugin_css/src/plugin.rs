@@ -596,10 +596,8 @@ impl Plugin for CssPlugin {
     let mut hasher = Xxh3::default();
 
     ordered_modules
-      .par_iter()
-      .map(|module_identifier| compilation.module_graph.get_module_hash(&module_identifier))
-      .collect::<Vec<_>>()
-      .into_iter()
+      .iter()
+      .map(|module_identifier| compilation.module_graph.get_module_hash(module_identifier))
       .for_each(|current| {
         if let Some(current) = current {
           current.hash(&mut hasher);
