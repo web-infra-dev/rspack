@@ -1,0 +1,76 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CopyPlugin basic should work with multi compiler mode: assets 1`] = `
+{
+  ".dottedfile": "dottedfile contents
+",
+  "directoryfile.txt": "new",
+  "nested/deep-nested/deepnested.txt": "",
+  "nested/nestedfile.txt": "",
+}
+`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: assets 2`] = `
+{
+  ".dottedfile": "dottedfile contents
+",
+  "directoryfile.txt": "new",
+  "nested/deep-nested/deepnested.txt": "",
+  "nested/nestedfile.txt": "",
+}
+`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: errors 1`] = `
+{
+  "push": [Function],
+}
+`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: errors 2`] = `
+{
+  "push": [Function],
+}
+`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: warnings 1`] = `
+{
+  "push": [Function],
+}
+`;
+
+exports[`CopyPlugin basic should work with multi compiler mode: warnings 2`] = `
+{
+  "push": [Function],
+}
+`;
+
+exports[`CopyPlugin stats should work have assets info: assets 1`] = `
+{
+  "asset-modules/deepnested.txt": "",
+}
+`;
+
+exports[`CopyPlugin stats should work have assets info: assets info 1`] = `
+[
+  {
+    "info": {
+      "copied": undefined,
+      "immutable": undefined,
+      "sourceFilename": "directory/nested/deep-nested/deepnested.txt",
+    },
+    "name": "asset-modules/deepnested.txt",
+  },
+  {
+    "info": {
+      "copied": undefined,
+      "immutable": undefined,
+      "sourceFilename": undefined,
+    },
+    "name": "main.js",
+  },
+]
+`;
+
+exports[`CopyPlugin stats should work have assets info: errors 1`] = `[]`;
+
+exports[`CopyPlugin stats should work have assets info: warnings 1`] = `[]`;

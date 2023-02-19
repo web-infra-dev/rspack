@@ -37,6 +37,7 @@ export type Builtins = Omit<
 	| "minify"
 	| "emotion"
 	| "progress"
+	| "copy"
 > & {
 	define?: Record<string, string | undefined>;
 	html?: Array<BuiltinsHtmlPluginConfig>;

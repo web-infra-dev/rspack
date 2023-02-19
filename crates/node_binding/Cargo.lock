@@ -1892,6 +1892,7 @@ dependencies = [
  "rspack_ids",
  "rspack_loader_sass",
  "rspack_plugin_asset",
+ "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
  "rspack_plugin_externals",
@@ -1931,6 +1932,7 @@ dependencies = [
  "rspack_error",
  "rspack_loader_sass",
  "rspack_napi_utils",
+ "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_html",
@@ -2135,6 +2137,24 @@ dependencies = [
  "sugar_path",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_copy"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "glob",
+ "lazy_static",
+ "pathdiff",
+ "rayon",
+ "regex",
+ "relative-path",
+ "rspack_core",
+ "rspack_error",
+ "serde_json",
+ "sugar_path",
+ "tokio",
 ]
 
 [[package]]

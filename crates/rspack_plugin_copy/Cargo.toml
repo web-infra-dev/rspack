@@ -1,0 +1,32 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_copy"
+repository = "https://github.com/modern-js-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+rspack_test    = { path = "../rspack_test" }
+testing_macros = "0.2.5"
+
+[dependencies]
+anyhow = "1"
+glob = "0.3.1"
+lazy_static = "1.4.0"
+pathdiff = "0.2.1"
+rayon = "1.5.3"
+regex = "1.7.1"
+rspack_core = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+serde_json = "1.0.91"
+sugar_path = "0.0.9"
+tokio = { version = "1.21.0", features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "test-util",
+  "parking_lot",
+] }
+xxhash-rust = { version = "0.8.5", features = ["xxh3"] }

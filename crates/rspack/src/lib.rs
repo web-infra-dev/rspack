@@ -80,5 +80,11 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
     rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin,
   ));
 
+  if let Some(copy) = &options.builtins.copy {
+    plugins.push(Box::new(rspack_plugin_copy::CopyPlugin::new(
+      copy.patterns.clone(),
+    )));
+  }
+
   Compiler::new(options, plugins)
 }

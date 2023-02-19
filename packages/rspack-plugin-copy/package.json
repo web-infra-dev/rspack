@@ -1,0 +1,29 @@
+{
+  "name": "@rspack/plugin-copy",
+  "version": "0.0.22",
+  "description": "copy plugin for rspack",
+  "author": "",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "scripts": {
+    "build": "rm -rf lib/ && tsc",
+    "dev": "tsc -w",
+    "test": "jest --runInBand --verbose"
+  },
+  "keywords": [
+    "rspack",
+    "webpack-copy-plugin",
+    "rspack-copy-plugin"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@rspack/core": "workspace:*",
+    "fast-glob": "^3.2.12"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.20.2",
+    "@rspack/binding": "workspace:*",
+    "babel-jest": "^29.4.3",
+    "jest": "29.0.3"
+  }
+}
