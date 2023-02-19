@@ -1,7 +1,6 @@
 #![recursion_limit = "256"]
 pub use rspack_core::Compiler;
 use rspack_core::{CompilerOptions, Plugin, TargetPlatform};
-use rspack_error::Result;
 use rspack_plugin_asset::AssetConfig;
 use rspack_plugin_devtool::DevtoolPluginOptions;
 
@@ -82,39 +81,4 @@ pub fn rspack(mut options: CompilerOptions, mut plugins: Vec<Box<dyn Plugin>>) -
   ));
 
   Compiler::new(options, plugins)
-}
-
-pub fn dev_server(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> DevServer {
-  DevServer {
-    compiler: rspack(options, plugins),
-  }
-}
-
-pub struct DevServer {
-  compiler: Compiler,
-}
-
-impl DevServer {
-  pub async fn serve(&mut self) -> Result<()> {
-    self.compiler.build().await?;
-
-    warp::fs::dir(self.compiler.options.context.join("dist"));
-    let filter = warp::fs::dir(self.compiler.options.context.join("dist"));
-
-    // let routes = warp::ws().map(|ws: warp::ws::Ws| {
-    //   // And then our closure will be called when it completes...
-    //   ws.on_upgrade(|websocket| {
-    //     // Just echo all messages back...
-    //     let (tx, rx) = websocket.split();
-    //     rx.forward(tx).map(|result| {
-    //       if let Err(e) = result {
-    //         eprintln!("websocket error: {:?}", e);
-    //       }
-    //     })
-    //   })
-    // });
-
-    warp::serve(filter).run(([127, 0, 0, 1], 3031)).await;
-    Ok(())
-  }
 }
