@@ -4,7 +4,7 @@ exports[`normalize options snapshot additional entires should added 1`] = `
 {
   "main": [
     "<prefix>/dist/clients/WebSocketClient.js",
-    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8080&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
+    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8081&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/rspack-dev-client/dist/devServer.js",
     "<prefix>/rspack-dev-client/dist/reactRefresh.js",
     "<prefix>/something",
@@ -30,7 +30,7 @@ exports[`normalize options snapshot no options 1`] = `
   "liveReload": true,
   "magicHtml": true,
   "open": [],
-  "port": 8080,
+  "port": 8081,
   "server": {
     "options": {},
     "type": "http",
@@ -129,23 +129,40 @@ exports[`normalize options snapshot port string 1`] = `
 exports[`normalize options snapshot react.development and react.refresh should be true in default when hot enabled 1`] = `
 {
   "builtins": {
-    "browserslist": undefined,
+    "browserslist": [],
+    "css": {
+      "modules": {
+        "exportsOnly": false,
+        "localIdentName": "[hash]",
+        "localsConvention": "asIs",
+      },
+      "presetEnv": [],
+    },
     "decorator": {
       "emitMetadata": true,
       "legacy": true,
     },
     "define": {},
+    "devFriendlySplitChunks": false,
     "emotion": undefined,
     "html": [],
     "minify": {
+      "dropConsole": false,
       "enable": true,
       "passes": 1,
+      "pureFuncs": [],
+    },
+    "noEmitAssets": false,
+    "polyfill": true,
+    "postcss": {
+      "pxtorem": undefined,
     },
     "progress": undefined,
     "react": {
       "development": true,
       "refresh": true,
     },
+    "treeShaking": true,
   },
   "devServer": {
     "allowedHosts": "auto",
@@ -164,7 +181,7 @@ exports[`normalize options snapshot react.development and react.refresh should b
     "liveReload": true,
     "magicHtml": true,
     "open": [],
-    "port": 8080,
+    "port": 8081,
     "server": {
       "options": {},
       "type": "http",
@@ -208,7 +225,7 @@ exports[`normalize options snapshot react-refresh client added when react/refres
 {
   "main": [
     "<prefix>/dist/clients/WebSocketClient.js",
-    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8080&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
+    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8081&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/rspack-dev-client/dist/devServer.js",
     "<prefix>/rspack-dev-client/dist/reactRefresh.js",
     "<prefix>/something",
