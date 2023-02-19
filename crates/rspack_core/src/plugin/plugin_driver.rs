@@ -13,11 +13,10 @@ use crate::{
   Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
   Module, ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginCompilationHookOutput, PluginContentHashHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
-  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderManifestHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs,
-  ResolverFactory, SourceType, Stats, ThisCompilationArgs,
+  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
+  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
+  PluginRenderManifestHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
+  RenderChunkArgs, RenderManifestArgs, ResolverFactory, SourceType, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
