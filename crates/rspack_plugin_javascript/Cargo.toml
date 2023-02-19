@@ -25,6 +25,7 @@ rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_plugin_devtool = { path = "../rspack_plugin_devtool" }
+rspack_regex = { path = "../rspack_regex" }
 rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }
 serde = { version = "1", features = ["derive"] }

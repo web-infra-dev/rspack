@@ -1,8 +1,8 @@
-use regex::Regex;
 use rspack_core::{
   CommonJsRequireContextDependency, ContextMode, ContextOptions, DependencyCategory,
   ImportContextDependency, ModuleDependency, RequireContextDependency,
 };
+use rspack_regex::RspackRegex;
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
@@ -65,7 +65,7 @@ impl DependencyScanner {
                     ContextOptions {
                       mode: ContextMode::Sync,
                       recursive: true,
-                      reg_exp: Regex::new(&reg).expect("reg failed"),
+                      reg_exp: RspackRegex::new(&reg).expect("reg failed"),
                       include: None,
                       exclude: None,
                       category: DependencyCategory::CommonJS,
@@ -98,7 +98,7 @@ impl DependencyScanner {
               ContextOptions {
                 mode: ContextMode::Lazy,
                 recursive: true,
-                reg_exp: Regex::new(&reg).expect("reg failed"),
+                reg_exp: RspackRegex::new(&reg).expect("reg failed"),
                 include: None,
                 exclude: None,
                 category: DependencyCategory::Esm,
@@ -232,9 +232,9 @@ impl DependencyScanner {
 
         let reg_exp =
           if let Some(Lit::Regex(regex)) = node.args.get(2).and_then(|x| x.expr.as_lit()) {
-            Regex::new(&regex.exp).expect("reg failed")
+            RspackRegex::try_from(regex).expect("reg failed")
           } else {
-            Regex::new(r"^./.*$").expect("reg failed")
+            RspackRegex::new(r"^\.\/.*$").expect("reg failed")
           };
 
         let mode = if let Some(Lit::Str(str)) = node.args.get(3).and_then(|x| x.expr.as_lit()) {

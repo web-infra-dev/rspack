@@ -1,17 +1,23 @@
-use std::{fs, hash::Hash, path::Path};
+use std::{
+  borrow::Cow,
+  fmt::{self, Display},
+  fs,
+  hash::Hash,
+  path::Path,
+};
 
-use regex::Regex;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::{AsPath, SugarPath};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  runtime_globals, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildResult,
-  ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency, DependencyCategory,
-  GenerationResult, Module, ModuleType, SourceType,
+  contextify, runtime_globals, stringify_map, AstOrSource, BoxModuleDependency, BuildContext,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependencyCategory, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -28,7 +34,7 @@ pub enum ContextMode {
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  pub reg_exp: Regex,
+  pub reg_exp: RspackRegex,
   pub include: Option<String>,
   pub exclude: Option<String>,
   pub category: DependencyCategory,
@@ -39,7 +45,7 @@ impl Display for ContextOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "({:?}, {}, {},  {:?}, {:?},  {:?}, {})",
+      "({:?}, {}, {:?},  {:?}, {:?},  {:?}, {})",
       self.mode,
       self.recursive,
       self.reg_exp,
@@ -281,6 +287,16 @@ impl Module for ContextModule {
     160.0
   }
 
+  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
+    let mut id = contextify(options.context, &self.options.resource);
+    id.push_str(format!(" {:?}", self.options.context_options.mode).as_str());
+    if self.options.context_options.recursive {
+      id.push_str(" recursive");
+    }
+    id.push_str(format!(" {:?}", self.options.context_options.reg_exp).as_str());
+    Some(Cow::Owned(id))
+  }
+
   async fn build(
     &mut self,
     _build_context: BuildContext<'_>,
@@ -386,7 +402,7 @@ impl ContextModule {
             }
 
             paths.iter().for_each(|path| {
-              if options.context_options.reg_exp.is_match(path) {
+              if options.context_options.reg_exp.test(path) {
                 dependencies.push(Box::new(ContextElementDependency {
                   id: None,
                   // TODO query

@@ -3,7 +3,7 @@ use rspack_error::{internal_error, Error};
 use swc_core::ecma::ast::Regex as SwcRegex;
 
 /// Using wrapper because I want to implement the `TryFrom` Trait
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RspackRegex(Regex);
 
 impl RspackRegex {
@@ -31,10 +31,10 @@ impl RspackRegex {
   }
 }
 
-impl TryFrom<SwcRegex> for RspackRegex {
+impl TryFrom<&SwcRegex> for RspackRegex {
   type Error = Error;
 
-  fn try_from(value: SwcRegex) -> Result<Self, Self::Error> {
+  fn try_from(value: &SwcRegex) -> Result<Self, Self::Error> {
     RspackRegex::with_flags(value.exp.as_ref(), value.flags.as_ref())
   }
 }
