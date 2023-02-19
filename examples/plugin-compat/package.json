@@ -1,0 +1,20 @@
+{
+  "name": "example-loader-compat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "webpack-bundle-analyzer": "4.7.0",
+    "copy-webpack-plugin": "5.1.2",
+    "@rspack/plugin-html": "workspace:*",
+    "webpack-stats-plugin": "1.1.1"
+  }
+}
