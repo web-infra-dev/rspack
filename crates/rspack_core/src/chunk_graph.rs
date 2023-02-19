@@ -66,7 +66,7 @@ impl ChunkGraph {
     chunk_graph_chunk.modules.contains(module_identifier)
   }
 
-  pub(crate) fn get_chunk_graph_module_mut(
+  pub fn get_chunk_graph_module_mut(
     &mut self,
     module_identifier: ModuleIdentifier,
   ) -> &mut ChunkGraphModule {

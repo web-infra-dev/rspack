@@ -587,27 +587,25 @@ impl SplitChunksPlugin {
             .chunk_by_ukey
             .get(used_chunk)
             .expect("Chunk should exist");
-          for module_identifier in &item.modules {
-            compilation
-              .chunk_graph
-              .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
-          }
+          compilation
+            .chunk_graph
+            .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
         }
       }
     } else {
       // Remove all modules from used chunks
-      for module_identifier in &item.modules {
-        for used_chunk in used_chunks {
-          let used_chunk = compilation
-            .chunk_by_ukey
-            .get(used_chunk)
-            .expect("Chunk should exist");
-          for module_identifier in &item.modules {
-            compilation
-              .chunk_graph
-              .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
-          }
+      // for module_identifier in &item.modules {
+      for used_chunk in used_chunks {
+        let used_chunk = compilation
+          .chunk_by_ukey
+          .get(used_chunk)
+          .expect("Chunk should exist");
+        for module_identifier in &item.modules {
+          compilation
+            .chunk_graph
+            .disconnect_chunk_and_module(&used_chunk.ukey, *module_identifier);
         }
+        // }
       }
     }
   }
@@ -853,6 +851,7 @@ impl Plugin for SplitChunksPlugin {
 
         // new_chunk.id_name_hints.insert(info)
 
+        // dbg!(&is_reused_with_all_modules);
         self.link_module_new_chunk_and_remove_in_old_chunks(
           is_reused_with_all_modules,
           &item,
