@@ -1,9 +1,7 @@
 use std::{
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
-  marker::PhantomPinned,
   path::PathBuf,
-  pin::Pin,
   sync::{
     atomic::{AtomicBool, Ordering},
     // time::Instant,
@@ -94,8 +92,6 @@ pub struct Compilation {
   pub cache: Arc<Cache>,
   pub code_splitting_cache: CodeSplittingCache,
   pub hash: String,
-  // TODO: make compilation safer
-  _pin: PhantomPinned,
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
@@ -150,7 +146,6 @@ impl Compilation {
       cache,
       code_splitting_cache: Default::default(),
       hash: Default::default(),
-      _pin: PhantomPinned,
       lazy_visit_modules: Default::default(),
       used_chunk_ids: Default::default(),
 
@@ -168,12 +163,12 @@ impl Compilation {
   }
 
   pub fn update_asset(
-    self: Pin<&mut Self>,
+    &mut self,
     filename: &str,
     updater: impl FnOnce(&mut BoxSource, &mut AssetInfo) -> Result<()>,
   ) -> Result<()> {
     // Safety: we don't move anything from compilation
-    let assets = unsafe { self.map_unchecked_mut(|c| &mut c.assets) }.get_mut();
+    let assets = &mut self.assets;
 
     match assets.get_mut(filename) {
       Some(CompilationAsset {

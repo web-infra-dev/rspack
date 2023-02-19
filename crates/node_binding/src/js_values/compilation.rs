@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::pin::Pin;
 
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
@@ -16,7 +15,7 @@ use crate::{
 
 #[napi]
 pub struct JsCompilation {
-  inner: Pin<&'static mut rspack_core::Compilation>,
+  inner: &'static mut rspack_core::Compilation,
 }
 
 #[napi]
@@ -33,7 +32,6 @@ impl JsCompilation {
   ) -> Result<()> {
     self
       .inner
-      .as_mut()
       .update_asset(&filename, |original_source, original_info| {
         let napi_result: napi::Result<()> = try {
           let new_source = match new_source_or_function {
@@ -150,7 +148,8 @@ impl JsCompilation {
     module_identifier: String,
     source: JsCompatSource,
   ) -> bool {
-    match unsafe { self.inner_mut() }
+    match self
+      .inner
       .module_graph
       .module_by_identifier_mut(&Identifier::from(module_identifier.as_str()))
     {
@@ -172,7 +171,7 @@ impl JsCompilation {
   #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
     let source = CompatSource::from(source).boxed();
-    match unsafe { self.inner_mut() }.assets.entry(name) {
+    match self.inner.assets.entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
         e.insert(rspack_core::CompilationAsset::with_source(source));
@@ -182,7 +181,8 @@ impl JsCompilation {
 
   #[napi]
   pub fn delete_asset_source(&mut self, name: String) {
-    unsafe { self.inner_mut() }
+    self
+      .inner
       .assets
       .entry(name)
       .and_modify(|a| a.set_source(None));
@@ -215,23 +215,17 @@ impl JsCompilation {
   ) -> Result<()> {
     let compat_source: CompatSource = source.into();
 
-    // Safety: It is safe as modify for the asset will never move Compilation.
-    unsafe {
-      self.inner.as_mut().get_unchecked_mut().emit_asset(
-        filename,
-        rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
-      )
-    };
+    self.inner.emit_asset(
+      filename,
+      rspack_core::CompilationAsset::new(Some(compat_source.boxed()), asset_info.into()),
+    );
 
     Ok(())
   }
 
   #[napi]
   pub fn delete_asset(&mut self, filename: String) {
-    // Safety: It is safe as modify for the asset will never move Compilation.
-    unsafe {
-      self.inner_mut().delete_asset(&filename);
-    };
+    self.inner.delete_asset(&filename);
   }
 
   #[napi(getter)]
@@ -299,9 +293,7 @@ impl JsCompilation {
       "warning" => rspack_error::Diagnostic::warn(title, message, 0, 0),
       _ => rspack_error::Diagnostic::error(title, message, 0, 0),
     };
-    unsafe {
-      self.inner_mut().push_diagnostic(diagnostic);
-    };
+    self.inner.push_diagnostic(diagnostic);
   }
 
   #[napi]
@@ -313,51 +305,39 @@ impl JsCompilation {
 
   #[napi]
   pub fn add_file_dependencies(&mut self, deps: Vec<String>) {
-    unsafe {
-      self
-        .inner_mut()
-        .file_dependencies
-        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
-    };
+    self
+      .inner
+      .file_dependencies
+      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
   }
 
   #[napi]
   pub fn add_context_dependencies(&mut self, deps: Vec<String>) {
-    unsafe {
-      self
-        .inner_mut()
-        .context_dependencies
-        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
-    };
+    self
+      .inner
+      .context_dependencies
+      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
   }
 
   #[napi]
   pub fn add_missing_dependencies(&mut self, deps: Vec<String>) {
-    unsafe {
-      self
-        .inner_mut()
-        .missing_dependencies
-        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
-    };
+    self
+      .inner
+      .missing_dependencies
+      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
   }
 
   #[napi]
   pub fn add_build_dependencies(&mut self, deps: Vec<String>) {
-    unsafe {
-      self
-        .inner_mut()
-        .build_dependencies
-        .extend(deps.into_iter().map(|i| PathBuf::from(i)))
-    };
+    self
+      .inner
+      .build_dependencies
+      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
   }
 }
 
 impl JsCompilation {
-  pub fn from_compilation(inner: Pin<&'static mut rspack_core::Compilation>) -> Self {
+  pub fn from_compilation(inner: &'static mut rspack_core::Compilation) -> Self {
     Self { inner }
-  }
-
-  pub unsafe fn inner_mut(&mut self) -> &mut rspack_core::Compilation {
-    self.inner.as_mut().get_unchecked_mut()
   }
 }

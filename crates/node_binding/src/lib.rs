@@ -7,7 +7,6 @@ extern crate napi_derive;
 extern crate rspack_binding_macros;
 
 use std::collections::HashSet;
-use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use dashmap::DashMap;
@@ -234,9 +233,7 @@ impl Rspack {
       let compiler = unsafe {
         std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
       };
-      f(JsCompilation::from_compilation(unsafe {
-        Pin::new_unchecked(&mut compiler.compilation)
-      }))
+      f(JsCompilation::from_compilation(&mut compiler.compilation))
     };
 
     unsafe { COMPILERS.borrow_mut(&self.id, handle_last_compilation) }
