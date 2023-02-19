@@ -17,11 +17,12 @@ type FuturesResult<T> = Vec<Result<T, JoinError>>;
 /// ```rust,ignore
 /// use rspack_futures::FuturesResults;
 ///
+/// #[tokio::main]
 /// fn main() {
 ///   let futures = vec![async { 1 }, async { 2 }];
 ///   let results = futures.into_iter().collect::<FuturesResults>();
 ///
-///   assert_eq!(results, vec![Ok(1), Ok(2)]
+///   assert_eq!(results, vec![Ok(1), Ok(2)]);
 /// }
 /// ```
 #[derive(Default)]

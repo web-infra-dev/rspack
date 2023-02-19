@@ -16,6 +16,7 @@ use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
+use rspack_futures::FuturesResults;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -859,34 +860,32 @@ impl Compilation {
 
   #[instrument(skip_all)]
   async fn create_chunk_assets(&mut self, plugin_driver: SharedPluginDriver) {
-    let (_, results) =
-      async_scoped::Scope::scope_and_block(|s: &mut async_scoped::TokioScope<'_, _>| {
-        self
-          .chunk_by_ukey
-          .values()
-          .map(|chunk| async {
-            let manifest = plugin_driver
-              .read()
-              .await
-              .render_manifest(RenderManifestArgs {
-                chunk_ukey: chunk.ukey,
-                compilation: self,
-              })
-              .await;
-
-            if let Ok(manifest) = &manifest {
-              tracing::debug!(
-                "For Chunk({:?}), collected assets: {:?}",
-                chunk.id,
-                manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
-              );
-            };
-            (chunk.ukey, manifest)
+    let results = self
+      .chunk_by_ukey
+      .values()
+      .map(|chunk| async {
+        let manifest = plugin_driver
+          .read()
+          .await
+          .render_manifest(RenderManifestArgs {
+            chunk_ukey: chunk.ukey,
+            compilation: self,
           })
-          .for_each(|fut| s.spawn(fut));
-      });
+          .await;
+
+        if let Ok(manifest) = &manifest {
+          tracing::debug!(
+            "For Chunk({:?}), collected assets: {:?}",
+            chunk.id,
+            manifest.iter().map(|m| m.filename()).collect::<Vec<_>>()
+          );
+        };
+        (chunk.ukey, manifest)
+      })
+      .collect::<FuturesResults<_>>();
 
     let chunk_ukey_and_manifest = results
+      .into_inner()
       .into_iter()
       .collect::<std::result::Result<Vec<_>, _>>()
       .expect("Failed to resolve render_manifest results");
@@ -1156,6 +1155,7 @@ impl Compilation {
           }
         });
     }
+
     tracing::trace!("calculate chunks content hash");
 
     self.create_runtime_module_hash();

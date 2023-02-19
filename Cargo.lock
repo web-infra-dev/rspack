@@ -2409,6 +2409,7 @@ dependencies = [
  "regex",
  "rspack_database",
  "rspack_error",
+ "rspack_futures",
  "rspack_identifier",
  "rspack_loader_runner",
  "rspack_regex",
@@ -2465,8 +2466,6 @@ name = "rspack_futures"
 version = "0.1.0"
 dependencies = [
  "async-scoped",
- "futures",
- "rspack_error",
  "tokio",
 ]
 

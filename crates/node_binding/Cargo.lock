@@ -2020,7 +2020,7 @@ version = "0.1.0"
 dependencies = [
  "async-scoped",
  "futures",
- "rspack_error",
+ "tokio",
 ]
 
 [[package]]
