@@ -2468,6 +2468,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_fs"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_error",
+]
+
+[[package]]
+name = "rspack_fs_node"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "rspack_error",
+ "rspack_fs",
+]
+
+[[package]]
 name = "rspack_futures"
 version = "0.1.0"
 dependencies = [

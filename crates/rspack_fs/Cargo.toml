@@ -1,0 +1,19 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_fs"
+repository = "https://github.com/modern-js-dev/rspack"
+version    = "0.1.0"
+
+[features]
+async        = []
+default      = ["native"]
+native       = []
+rspack-error = ["dep:rspack_error"]
+
+[dependencies]
+async-trait = "0.1.53"
+
+  [dependencies.rspack_error]
+  optional = true
+  path     = "../rspack_error"
