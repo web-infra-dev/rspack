@@ -4,7 +4,7 @@ exports[`normalize options snapshot additional entires should added 1`] = `
 {
   "main": [
     "<prefix>/dist/clients/WebSocketClient.js",
-    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8081&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
+    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8080&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/rspack-dev-client/dist/devServer.js",
     "<prefix>/rspack-dev-client/dist/reactRefresh.js",
     "<prefix>/something",
@@ -30,7 +30,7 @@ exports[`normalize options snapshot no options 1`] = `
   "liveReload": true,
   "magicHtml": true,
   "open": [],
-  "port": 8081,
+  "port": 8080,
   "server": {
     "options": {},
     "type": "http",
@@ -181,7 +181,7 @@ exports[`normalize options snapshot react.development and react.refresh should b
     "liveReload": true,
     "magicHtml": true,
     "open": [],
-    "port": 8081,
+    "port": 8080,
     "server": {
       "options": {},
       "type": "http",
@@ -225,7 +225,7 @@ exports[`normalize options snapshot react-refresh client added when react/refres
 {
   "main": [
     "<prefix>/dist/clients/WebSocketClient.js",
-    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8081&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
+    "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8080&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/rspack-dev-client/dist/devServer.js",
     "<prefix>/rspack-dev-client/dist/reactRefresh.js",
     "<prefix>/something",
