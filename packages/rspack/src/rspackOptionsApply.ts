@@ -52,6 +52,9 @@ export class RspackOptionsApply {
 		if (options.builtins.devFriendlySplitChunks) {
 			options.optimization.splitChunks = undefined;
 		}
+		if (options.devServer?.hot) {
+			options.output.strictModuleErrorHandling = true;
+		}
 		new ResolveSwcPlugin().apply(compiler);
 
 		compiler.hooks.afterPlugins.call(compiler);
