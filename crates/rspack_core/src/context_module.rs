@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   fmt::{self, Display},
   fs,
-  hash::Hash,
+  hash::{Hash, Hasher},
   path::Path,
 };
 
