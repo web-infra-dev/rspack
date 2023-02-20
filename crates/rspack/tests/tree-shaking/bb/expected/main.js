@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _bJs = __webpack_require__("./b.js");
+var _bJs = __webpack_require__("./b.js");
 __webpack_require__.es(__webpack_require__("./c.js"), exports);
 _bJs.d;
 },
@@ -15,7 +15,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "d", {
     enumerable: true,
-    get: ()=>d
+    get: function() {
+        return d;
+    }
 });
 const d = 3;
 },
@@ -26,7 +28,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "ccc", {
     enumerable: true,
-    get: ()=>ccc
+    get: function() {
+        return ccc;
+    }
 });
 const ccc = 30;
 },
@@ -35,7 +39,7 @@ const ccc = 30;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _aJs = __webpack_require__("./a.js");
+var _aJs = __webpack_require__("./a.js");
 _aJs.ccc;
 },
 

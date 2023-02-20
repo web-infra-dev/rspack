@@ -6,9 +6,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "bar", {
     enumerable: true,
-    get: ()=>_fooJs
+    get: function() {
+        return _fooJs;
+    }
 });
-const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
+var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 __webpack_require__.es(__webpack_require__("./result.js"), exports);
 },
 "./foo.js": function (module, exports, __webpack_require__) {
@@ -23,8 +25,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    a: ()=>a,
-    foo: ()=>foo
+    a: function() {
+        return a;
+    },
+    foo: function() {
+        return foo;
+    }
 });
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 __webpack_require__.es(__webpack_require__("./result.js"), exports);
@@ -36,7 +42,7 @@ const foo = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__("./foo.js");
+var _fooJs = __webpack_require__("./foo.js");
 _fooJs.bar.a;
 (0, _fooJs.c)();
 },
@@ -47,7 +53,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "c", {
     enumerable: true,
-    get: ()=>c
+    get: function() {
+        return c;
+    }
 });
 __webpack_require__.es(__webpack_require__("./foo.js"), exports);
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);

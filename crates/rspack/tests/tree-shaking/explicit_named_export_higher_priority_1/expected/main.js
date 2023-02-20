@@ -9,7 +9,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 const a = 'foo';
@@ -19,7 +21,7 @@ const a = 'foo';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__("./foo.js");
+var _fooJs = __webpack_require__("./foo.js");
 console.log(_fooJs.a);
 },
 

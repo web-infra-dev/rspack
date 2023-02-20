@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>test
+    get: function() {
+        return test;
+    }
 });
 function test() {}
 },

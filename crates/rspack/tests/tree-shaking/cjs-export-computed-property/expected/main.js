@@ -15,9 +15,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "locales", {
     enumerable: true,
-    get: ()=>locales
+    get: function() {
+        return locales;
+    }
 });
-const _localeZhTs = __webpack_require__.ir(__webpack_require__("./locale_zh.ts"));
+var _localeZhTs = __webpack_require__.ir(__webpack_require__("./locale_zh.ts"));
 const locales = {
     zh_CN: _localeZhTs.default
 };
@@ -29,9 +31,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "test", {
     enumerable: true,
-    get: ()=>test
+    get: function() {
+        return test;
+    }
 });
-const _indexTs = __webpack_require__("./antd/index.ts");
+var _indexTs = __webpack_require__("./antd/index.ts");
 _indexTs.locales.zh_CN;
 function test() {}
 },
@@ -42,10 +46,12 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>_default
+    get: function() {
+        return _default;
+    }
 });
-const _zhLocaleJs = __webpack_require__.ir(__webpack_require__("./zh_locale.js"));
-const _default = _zhLocaleJs.default;
+var _zhLocaleJs = __webpack_require__.ir(__webpack_require__("./zh_locale.js"));
+var _default = _zhLocaleJs.default;
 },
 
 },function(__webpack_require__) {

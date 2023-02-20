@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "foo", {
     enumerable: true,
-    get: ()=>foo
+    get: function() {
+        return foo;
+    }
 });
 var foo = {
     value: 1
@@ -22,7 +24,7 @@ mutate(foo);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__("./foo.js");
+var _fooJs = __webpack_require__("./foo.js");
 assert.equal(_fooJs.foo.value, 2);
 },
 

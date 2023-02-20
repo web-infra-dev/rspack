@@ -6,13 +6,15 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>_default
+    get: function() {
+        return _default;
+    }
 });
 var Foo = function() {
     console.log("side effect");
     this.isFoo = true;
 };
-const _default = Foo;
+var _default = Foo;
 Foo.prototype = {
     answer: function() {
         return 42;
@@ -24,7 +26,7 @@ Foo.prototype = {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
+var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 new _fooJs.default();
 },
 

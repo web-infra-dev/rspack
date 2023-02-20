@@ -9,7 +9,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>_default
+    get: function() {
+        return _default;
+    }
 });
 __webpack_require__("./dead.js");
 function _default() {
@@ -21,7 +23,7 @@ function _default() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
+var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 assert.equal((0, _fooJs.default)(), "foo");
 },
 

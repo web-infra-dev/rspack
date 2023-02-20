@@ -75,14 +75,12 @@ describe("snapshots", () => {
 		expect(baseConfig).toMatchInlineSnapshot(`
 		{
 		  "builtins": {
-		    "browserslist": [],
 		    "css": {
 		      "modules": {
 		        "exportsOnly": false,
 		        "localIdentName": "[path][name][ext]__[local]",
 		        "localsConvention": "asIs",
 		      },
-		      "presetEnv": [],
 		    },
 		    "decorator": {
 		      "emitMetadata": true,
@@ -103,6 +101,7 @@ describe("snapshots", () => {
 		    "postcss": {
 		      "pxtorem": undefined,
 		    },
+		    "presetEnv": [],
 		    "progress": undefined,
 		    "react": {},
 		    "treeShaking": false,
@@ -837,8 +836,8 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "browserslist": Array [],
-			+     "browserslist": Array [
+			-     "presetEnv": Array [],
+			+     "presetEnv": Array [
 			+       "ie >= 9",
 			+     ],
 			@@ ... @@

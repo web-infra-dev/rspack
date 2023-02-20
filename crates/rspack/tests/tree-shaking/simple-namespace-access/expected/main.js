@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _mathsJs = __webpack_require__.ir(__webpack_require__("./maths.js"));
+var _mathsJs = __webpack_require__.ir(__webpack_require__("./maths.js"));
 console.log(_mathsJs.xxx.test);
 console.log(_mathsJs['square']);
 },
@@ -20,10 +20,14 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    square: ()=>square,
-    xxx: ()=>_testJs
+    square: function() {
+        return square;
+    },
+    xxx: function() {
+        return _testJs;
+    }
 });
-const _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
+var _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
 function square(x) {
     return x * x;
 }
@@ -40,8 +44,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    test: ()=>test,
-    ccc: ()=>ccc
+    test: function() {
+        return test;
+    },
+    ccc: function() {
+        return ccc;
+    }
 });
 function test() {}
 function ccc() {}

@@ -7,7 +7,7 @@ module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";},
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _dataTxt = __webpack_require__.ir(__webpack_require__("./data.txt"));
+var _dataTxt = __webpack_require__.ir(__webpack_require__("./data.txt"));
 console.log(_dataTxt.default);
 },
 

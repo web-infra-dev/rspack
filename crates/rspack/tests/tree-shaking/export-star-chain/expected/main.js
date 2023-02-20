@@ -13,7 +13,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "red", {
     enumerable: true,
-    get: ()=>red
+    get: function() {
+        return red;
+    }
 });
 const red = 'red';
 },
@@ -24,7 +26,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "blue", {
     enumerable: true,
-    get: ()=>blue
+    get: function() {
+        return blue;
+    }
 });
 const blue = 'blue';
 },
@@ -51,7 +55,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "result", {
     enumerable: true,
-    get: ()=>result
+    get: function() {
+        return result;
+    }
 });
 const result = 'ssss';
 },
@@ -67,7 +73,7 @@ __webpack_require__.es(__webpack_require__("./Layout.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _exportJs = __webpack_require__("./export.js");
+var _exportJs = __webpack_require__("./export.js");
 _exportJs.Colors;
 _exportJs.Something;
 },
@@ -78,7 +84,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Something", {
     enumerable: true,
-    get: ()=>Something
+    get: function() {
+        return Something;
+    }
 });
 class Something {
 }
@@ -90,9 +98,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Colors", {
     enumerable: true,
-    get: ()=>_indexJs
+    get: function() {
+        return _indexJs;
+    }
 });
-const _indexJs = __webpack_require__.ir(__webpack_require__("./colors/index.js"));
+var _indexJs = __webpack_require__.ir(__webpack_require__("./colors/index.js"));
 __webpack_require__.es(__webpack_require__("./something/Something.js"), exports);
 },
 

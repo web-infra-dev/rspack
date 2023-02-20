@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 __webpack_require__.el("./bar.js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then(__webpack_require__.ir).then((mod)=>{
     console.log(mod);
@@ -24,7 +26,7 @@ exports.test = 30;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
+var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 (0, _fooJs.default)();
 },
 

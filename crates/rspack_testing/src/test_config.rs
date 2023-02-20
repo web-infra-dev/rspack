@@ -109,8 +109,6 @@ pub struct Builtins {
   #[serde(default)]
   pub define: HashMap<String, String>,
   #[serde(default)]
-  pub css: Css,
-  #[serde(default)]
   pub postcss: Postcss,
   #[serde(default)]
   pub html: Vec<HtmlPluginConfig>,
@@ -118,11 +116,6 @@ pub struct Builtins {
   pub minify: bool,
   #[serde(default)]
   pub tree_shaking: bool,
-}
-
-#[derive(Debug, JsonSchema, Deserialize, Default)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Css {
   #[serde(default)]
   pub preset_env: Vec<String>,
 }
@@ -268,6 +261,7 @@ impl TestConfig {
           passes: 1,
           ..Default::default()
         },
+        preset_env: self.builtins.preset_env.clone(),
         ..Default::default()
       },
       module: c::ModuleOptions {
@@ -327,7 +321,7 @@ impl TestConfig {
     }
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
-        preset_env: self.builtins.css.preset_env,
+        preset_env: self.builtins.preset_env,
         postcss: rspack_plugin_css::plugin::PostcssConfig {
           pxtorem: self.builtins.postcss.pxtorem.map(|i| i.into()),
         },

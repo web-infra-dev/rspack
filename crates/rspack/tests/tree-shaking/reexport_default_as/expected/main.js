@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>test
+    get: function() {
+        return test;
+    }
 });
 function test() {}
 },
@@ -17,16 +19,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Select", {
     enumerable: true,
-    get: ()=>_barJs.default
+    get: function() {
+        return _barJs.default;
+    }
 });
-const _barJs = __webpack_require__.ir(__webpack_require__("./bar.js"));
+var _barJs = __webpack_require__.ir(__webpack_require__("./bar.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__("./foo.js");
+var _fooJs = __webpack_require__("./foo.js");
 (0, _fooJs.Select)();
 },
 

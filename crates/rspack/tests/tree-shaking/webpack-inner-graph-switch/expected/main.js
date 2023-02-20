@@ -6,9 +6,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "test", {
     enumerable: true,
-    get: ()=>test
+    get: function() {
+        return test;
+    }
 });
-const _moduleJs = __webpack_require__.ir(__webpack_require__("./module.js"));
+var _moduleJs = __webpack_require__.ir(__webpack_require__("./module.js"));
 function test() {
     (0, _moduleJs.default)({
         type: "inline"
@@ -31,9 +33,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>_default
+    get: function() {
+        return _default;
+    }
 });
-const _someModuleJs = __webpack_require__("./some-module.js");
+var _someModuleJs = __webpack_require__("./some-module.js");
 function getType(obj) {
     return obj.type;
 }
@@ -59,7 +63,7 @@ function doSomething(obj) {
             throw new Error();
     }
 }
-const _default = doSomething;
+var _default = doSomething;
 },
 "./some-module.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -73,9 +77,15 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    Block: ()=>Block,
-    Inline: ()=>Inline,
-    Document: ()=>Document
+    Block: function() {
+        return Block;
+    },
+    Inline: function() {
+        return Inline;
+    },
+    Document: function() {
+        return Document;
+    }
 });
 class Block {
     static doSomething() {}

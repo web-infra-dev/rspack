@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "answer", {
     enumerable: true,
-    get: ()=>answer
+    get: function() {
+        return answer;
+    }
 });
 const answer = 103330;
 },
@@ -15,7 +17,7 @@ const answer = 103330;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _libJs = __webpack_require__("./lib.js");
+var _libJs = __webpack_require__("./lib.js");
 setTimeout(()=>{
     console.log(_libJs.myanswer);
 }, 1000);
@@ -28,7 +30,7 @@ if (module.hot?.accept) module.hot.accept((module1)=>{
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
+var _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -37,9 +39,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "myanswer", {
     enumerable: true,
-    get: ()=>myanswer
+    get: function() {
+        return myanswer;
+    }
 });
-const _answerJs = __webpack_require__("./answer.js");
+var _answerJs = __webpack_require__("./answer.js");
 const myanswer = _answerJs.answer;
 },
 

@@ -16,11 +16,15 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    default: ()=>_default,
-    test: ()=>test
+    default: function() {
+        return _default;
+    },
+    test: function() {
+        return test;
+    }
 });
-const _indexJs = __webpack_require__("./package/index.js");
-const _default = _indexJs.a;
+var _indexJs = __webpack_require__("./package/index.js");
+var _default = _indexJs.a;
 function test() {}
 },
 "./package/index.js": function (module, exports, __webpack_require__) {
@@ -30,7 +34,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 function a() {
     return 42;

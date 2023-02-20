@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 __webpack_require__("./side-effects.js");
 const a = 3;
@@ -16,7 +18,7 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__("./app.js");
+var _appJs = __webpack_require__("./app.js");
 _appJs.a;
 },
 "./side-effects.js": function (module, exports, __webpack_require__) {
