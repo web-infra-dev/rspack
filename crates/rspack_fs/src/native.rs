@@ -16,11 +16,7 @@ impl WritableFileSystem for NativeFileSystem {
     fs::create_dir_all(dir.as_ref()).map_err(Error::from)
   }
 
-  fn write<P: AsRef<std::path::Path>, D: AsRef<[u8]>>(
-    &self,
-    file: P,
-    data: D,
-  ) -> crate::Result<()> {
+  fn write<P: AsRef<std::path::Path>, D: AsRef<[u8]>>(&self, file: P, data: D) -> Result<()> {
     fs::write(file.as_ref(), data.as_ref()).map_err(Error::from)
   }
 }
