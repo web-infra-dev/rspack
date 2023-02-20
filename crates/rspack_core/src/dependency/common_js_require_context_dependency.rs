@@ -2,15 +2,15 @@ use rspack_error::Result;
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
-    ast::{CallExpr, Expr},
-    utils::{quote_ident, ExprFactory},
+    ast::{CallExpr, Expr, MemberExpr, MemberProp, ParenExpr},
+    utils::{quote_ident, quote_str, ExprFactory},
   },
 };
 
 use crate::{
-  create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableResult,
-  ContextOptions, Dependency, DependencyId, ErrorSpan, JsAstPath, ModuleDependency,
-  ModuleIdentifier,
+  create_javascript_visitor, normalize_context, runtime_globals, CodeGeneratable,
+  CodeGeneratableResult, ContextOptions, Dependency, DependencyId, ErrorSpan, JsAstPath,
+  ModuleDependency, ModuleIdentifier,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -88,6 +88,7 @@ impl CodeGeneratable for CommonJsRequireContextDependency {
         .map(|m| m.id(&compilation.chunk_graph).to_string())
       {
         let module_id = format!("'{module_id}'");
+        let context = normalize_context(&self.options.request);
         code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
             n.callee = Expr::Call(CallExpr {
@@ -96,6 +97,15 @@ impl CodeGeneratable for CommonJsRequireContextDependency {
               args: vec![quote_ident!(DUMMY_SP, *module_id).as_arg()],
               type_args: None,
             }).as_callee();
+            if !context.is_empty() {
+              let mut args = std::mem::take(&mut n.args);
+              n.args = vec![Expr::Call(CallExpr {
+                span: DUMMY_SP,
+                callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Paren(ParenExpr { span: DUMMY_SP, expr: args.remove(0).expr })), prop: MemberProp::Ident(quote_ident!("replace")) }.as_callee(),
+                args: vec![quote_str!(*context).as_arg(), quote_str!("").as_arg()],
+                type_args: None,
+              }).as_arg()];
+            }
           }),
         );
       }

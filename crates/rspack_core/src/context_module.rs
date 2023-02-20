@@ -1,21 +1,23 @@
 use std::{
+  borrow::Cow,
+  fmt::{self, Display},
   fs,
   hash::{Hash, Hasher},
   path::Path,
 };
 
-use regex::Regex;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
+use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::{AsPath, SugarPath};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  runtime_globals, stringify_map, stringify_value_vec_map, AstOrSource, BoxModuleDependency,
-  BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ContextElementDependency, DependencyCategory, GenerationResult, Module, ModuleType, SourceType,
+  contextify, runtime_globals, stringify_map, AstOrSource, BoxModuleDependency, BuildContext,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependencyCategory, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -32,11 +34,27 @@ pub enum ContextMode {
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  pub reg_exp: Regex,
+  pub reg_exp: RspackRegex,
   pub include: Option<String>,
   pub exclude: Option<String>,
   pub category: DependencyCategory,
   pub request: String,
+}
+
+impl Display for ContextOptions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "({:?}, {}, {:?},  {:?}, {:?},  {:?}, {})",
+      self.mode,
+      self.recursive,
+      self.reg_exp,
+      self.include,
+      self.exclude,
+      self.category,
+      self.request
+    )
+  }
 }
 
 impl PartialEq for ContextOptions {
@@ -71,6 +89,16 @@ pub struct ContextModuleOptions {
   pub context_options: ContextOptions,
 }
 
+impl Display for ContextModuleOptions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "({}, {:?}, {:?},  {:?})",
+      self.resource, self.resource_query, self.resource_fragment, self.context_options
+    )
+  }
+}
+
 #[derive(Debug, Eq)]
 pub struct ContextModule {
   identifier: Identifier,
@@ -93,50 +121,8 @@ impl ContextModule {
       .as_str()
   }
 
-  pub fn get_context(&self, compilation: &Compilation) -> String {
-    let binding = self
-      .options
-      .resource
-      .as_path()
-      .relative(compilation.options.context.as_path())
-      .to_string_lossy()
-      .to_string();
-    let request = self
-      .options
-      .context_options
-      .request
-      .as_path()
-      .normalize()
-      .to_string_lossy()
-      .to_string();
-    let context = if let Some(value) = binding.strip_suffix(&request) {
-      value.to_string()
-    } else {
-      binding
-    };
-    if context.ends_with('/') {
-      context
-    } else {
-      context + "/"
-    }
-  }
-
-  pub fn relative_context(&self, id: &str, context: &str) -> String {
-    if let Some(value) = id
-      .as_path()
-      .normalize()
-      .to_string_lossy()
-      .strip_prefix(context)
-    {
-      format!("./{value}")
-    } else {
-      id.to_string()
-    }
-  }
-
   pub fn get_user_request_map(&self, compilation: &Compilation) -> HashMap<String, String> {
     let mut map = HashMap::default();
-    let context = self.get_context(compilation);
     if let Some(dependencies) = compilation
       .module_graph
       .dependencies_by_module_identifier(&self.identifier)
@@ -146,8 +132,12 @@ impl ContextModule {
           .module_graph
           .module_identifier_by_dependency_id(dependency)
         {
+          let dependency = compilation
+            .module_graph
+            .dependency_by_id(dependency)
+            .expect("should have dependency");
           if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-            map.insert(self.relative_context(id, &context), id.to_string());
+            map.insert(dependency.user_request().to_string(), id.to_string());
           }
         }
       }
@@ -165,7 +155,6 @@ impl ContextModule {
 
   pub fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
     let mut map = HashMap::default();
-    let context = self.get_context(compilation);
     if let Some(dependencies) = compilation
       .module_graph
       .dependencies_by_module_identifier(&self.identifier)
@@ -176,23 +165,11 @@ impl ContextModule {
           .module_identifier_by_dependency_id(dependency)
         {
           if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-            let chunk_group = compilation
-              .chunk_graph
-              .get_block_chunk_group(module_identifier, &compilation.chunk_group_by_ukey);
-
-            let chunk_ids = chunk_group
-              .chunks
-              .iter()
-              .map(|chunk_ukey| {
-                let chunk = compilation
-                  .chunk_by_ukey
-                  .get(chunk_ukey)
-                  .unwrap_or_else(|| panic!("chunk should exist"));
-                chunk.expect_id().to_string()
-              })
-              .collect::<Vec<_>>();
-
-            map.insert(self.relative_context(id, &context), chunk_ids);
+            let dependency = compilation
+              .module_graph
+              .dependency_by_id(dependency)
+              .expect("should have dependency");
+            map.insert(dependency.user_request().to_string(), id.to_string());
           }
         }
       }
@@ -201,7 +178,7 @@ impl ContextModule {
     RawSource::from(
       include_str!("runtime/lazy_context_module.js")
         .replace("$ID$", self.id(&compilation.chunk_graph))
-        .replace("$MAP$", &stringify_value_vec_map(&map)),
+        .replace("$MAP$", &stringify_map(&map)),
     )
     .boxed()
   }
@@ -310,6 +287,16 @@ impl Module for ContextModule {
     160.0
   }
 
+  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
+    let mut id = contextify(options.context, &self.options.resource);
+    id.push_str(format!(" {:?}", self.options.context_options.mode).as_str());
+    if self.options.context_options.recursive {
+      id.push_str(" recursive");
+    }
+    id.push_str(format!(" {:?}", self.options.context_options.reg_exp).as_str());
+    Some(Cow::Owned(id))
+  }
+
   async fn build(
     &mut self,
     _build_context: BuildContext<'_>,
@@ -348,6 +335,9 @@ impl Module for ContextModule {
         code_generation_result
           .runtime_requirements
           .insert(runtime_globals::ENSURE_CHUNK);
+        code_generation_result
+          .runtime_requirements
+          .insert(runtime_globals::LOAD_CHUNK_WITH_MODULE);
       }
       _ => {}
     }
@@ -395,12 +385,24 @@ impl ContextModule {
           let entry = entry?;
           let path = entry.path();
           if path.is_dir() {
-            visit_dirs(&path, dependencies, options)?;
+            if options.context_options.recursive {
+              visit_dirs(&path, dependencies, options)?;
+            }
           } else {
             let request = path.relative(options.resource.as_path());
-            if let Some(request) = request.to_str() {
-              let path = format!("./{request}");
-              if options.context_options.reg_exp.is_match(&path) {
+            let mut request_string = request.to_string_lossy().to_string();
+            let mut paths = vec![format!("./{request_string}")];
+
+            // TODO: should respect fullySpecified resolve options
+            if let Some(extension) = request.extension() {
+              let path: String = request_string
+                .drain(..request_string.len() - extension.len() - 1)
+                .collect();
+              paths.push(format!("./{path}"));
+            }
+
+            paths.iter().for_each(|path| {
+              if options.context_options.reg_exp.test(path) {
                 dependencies.push(Box::new(ContextElementDependency {
                   id: None,
                   // TODO query
@@ -411,7 +413,7 @@ impl ContextModule {
                   options: options.context_options.clone(),
                 }));
               }
-            }
+            })
           }
         }
       }
@@ -446,14 +448,19 @@ impl ContextModule {
 }
 
 fn create_identifier(options: &ContextModuleOptions) -> Identifier {
-  let mut identifier = options.resource.clone();
-  if let Some(resource_query) = &options.resource_query {
-    identifier.push('|');
-    identifier.push_str(resource_query);
+  Identifier::from(format!("{options}"))
+}
+
+pub fn normalize_context(context: &str) -> String {
+  if context == "." {
+    return "".to_string();
   }
-  if let Some(resource_fragment) = &options.resource_fragment {
-    identifier.push('|');
-    identifier.push_str(resource_fragment);
+  let mut str = context;
+  if str.starts_with("./") {
+    str = &str[2..];
   }
-  identifier.into()
+  if str.ends_with('/') {
+    return str.to_string();
+  }
+  str.to_string() + "/"
 }

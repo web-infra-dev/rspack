@@ -73,7 +73,9 @@ impl WorkerTask for FactorizeTask {
     };
 
     let (result, diagnostics) = match *dependency.dependency_type() {
-      DependencyType::ImportContext | DependencyType::CommonJSRequireContext => {
+      DependencyType::ImportContext
+      | DependencyType::CommonJSRequireContext
+      | DependencyType::RequireContext => {
         let factory = ContextModuleFactory::new(self.plugin_driver, self.cache);
         factory
           .create(ModuleFactoryCreateData {

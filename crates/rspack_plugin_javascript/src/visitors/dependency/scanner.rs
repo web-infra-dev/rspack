@@ -1,8 +1,8 @@
-use regex::Regex;
 use rspack_core::{
   CommonJsRequireContextDependency, ContextMode, ContextOptions, DependencyCategory,
-  ImportContextDependency, ModuleDependency,
+  ImportContextDependency, ModuleDependency, RequireContextDependency,
 };
+use rspack_regex::RspackRegex;
 use swc_core::common::pass::AstNodePath;
 use swc_core::common::{Mark, SyntaxContext};
 use swc_core::ecma::ast::{
@@ -64,8 +64,8 @@ impl DependencyScanner {
                   self.add_dependency(box CommonJsRequireContextDependency::new(
                     ContextOptions {
                       mode: ContextMode::Sync,
-                      recursive: false,
-                      reg_exp: Regex::new(&reg).expect("reg failed"),
+                      recursive: true,
+                      reg_exp: RspackRegex::new(&reg).expect("reg failed"),
                       include: None,
                       exclude: None,
                       category: DependencyCategory::CommonJS,
@@ -97,8 +97,8 @@ impl DependencyScanner {
             self.add_dependency(box ImportContextDependency::new(
               ContextOptions {
                 mode: ContextMode::Lazy,
-                recursive: false,
-                reg_exp: Regex::new(&reg).expect("reg failed"),
+                recursive: true,
+                reg_exp: RspackRegex::new(&reg).expect("reg failed"),
                 include: None,
                 exclude: None,
                 category: DependencyCategory::Esm,
@@ -215,6 +215,57 @@ impl DependencyScanner {
     }
     Ok(())
   }
+
+  fn scan_require_context(
+    &mut self,
+    node: &CallExpr,
+    ast_path: &AstNodePath<AstParentNodeRef<'_>>,
+  ) {
+    if is_require_context_call(node) && !node.args.is_empty() {
+      if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
+        let recursive =
+          if let Some(Lit::Bool(bool)) = node.args.get(1).and_then(|x| x.expr.as_lit()) {
+            bool.value
+          } else {
+            true
+          };
+
+        let reg_exp =
+          if let Some(Lit::Regex(regex)) = node.args.get(2).and_then(|x| x.expr.as_lit()) {
+            RspackRegex::try_from(regex).expect("reg failed")
+          } else {
+            RspackRegex::new(r"^\.\/.*$").expect("reg failed")
+          };
+
+        let mode = if let Some(Lit::Str(str)) = node.args.get(3).and_then(|x| x.expr.as_lit()) {
+          match str.value.to_string().as_str() {
+            "sync" => ContextMode::Sync,
+            "eager" => ContextMode::Eager,
+            "weak" => ContextMode::Weak,
+            "lazy" => ContextMode::Lazy,
+            "lazy-once" => ContextMode::LazyOnce,
+            // TODO should give warning
+            _ => unreachable!("unknown context mode"),
+          }
+        } else {
+          ContextMode::Sync
+        };
+        self.add_dependency(box RequireContextDependency::new(
+          ContextOptions {
+            mode,
+            recursive,
+            reg_exp,
+            include: None,
+            exclude: None,
+            category: DependencyCategory::CommonJS,
+            request: str.value.to_string(),
+          },
+          Some(node.span.into()),
+          as_parent_path(ast_path),
+        ));
+      }
+    }
+  }
 }
 
 impl VisitAstPath for DependencyScanner {
@@ -237,6 +288,7 @@ impl VisitAstPath for DependencyScanner {
     self.add_module_hot(node, &*ast_path);
     self.add_dynamic_import(node, &*ast_path);
     self.add_require(node, &*ast_path);
+    self.scan_require_context(node, &*ast_path);
     node.visit_children_with_path(self, ast_path);
   }
 }
@@ -261,15 +313,15 @@ fn split_context_from_prefix(prefix: &str) -> (&str, &str) {
 
 fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
   match expr {
-    Expr::Tpl(tpl) => Some(scanner_context_module_tpl(tpl)),
-    Expr::Bin(bin) => scanner_context_module_bin(bin),
-    Expr::Call(call) => scanner_context_module_concat_call(call),
+    Expr::Tpl(tpl) => Some(scan_context_module_tpl(tpl)),
+    Expr::Bin(bin) => scan_context_module_bin(bin),
+    Expr::Call(call) => scan_context_module_concat_call(call),
     _ => None,
   }
 }
 
 // require(`./${a}.js`)
-fn scanner_context_module_tpl(tpl: &Tpl) -> (String, String) {
+fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
   let prefix_raw = tpl
     .quasis
     .first()
@@ -300,7 +352,7 @@ fn scanner_context_module_tpl(tpl: &Tpl) -> (String, String) {
 }
 
 // require("./" + a + ".js")
-fn scanner_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
+fn scan_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
   if !is_add_op_bin_expr(bin) {
     return None;
   }
@@ -347,7 +399,7 @@ fn is_add_op_bin_expr(bin: &BinExpr) -> bool {
 // require("./".concat(a, ".js"))
 // babel/swc will transform template literal to string concat, so we need to handle this case
 // see https://github.com/webpack/webpack/pull/5679
-fn scanner_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> {
+fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> {
   if !is_concat_call(expr) {
     return None;
   }
@@ -544,6 +596,10 @@ fn is_hmr_api_call(node: &CallExpr, value: &str) -> bool {
     .as_expr()
     .map(|expr| match_member_expr(expr, value))
     .unwrap_or_default()
+}
+
+fn is_require_context_call(node: &CallExpr) -> bool {
+  is_hmr_api_call(node, "require.context")
 }
 
 pub fn is_module_hot_accept_call(node: &CallExpr) -> bool {

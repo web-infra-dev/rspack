@@ -2681,6 +2681,7 @@ dependencies = [
  "rspack_error",
  "rspack_identifier",
  "rspack_plugin_devtool",
+ "rspack_regex",
  "rspack_symbol",
  "rspack_testing",
  "rustc-hash",
