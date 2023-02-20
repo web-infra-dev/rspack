@@ -522,7 +522,7 @@ fn test_dependency_scanner() {
 
 fn match_member_expr(mut expr: &Expr, value: &str) -> bool {
   let mut parts = value.split('.');
-  let last = parts.next().expect("should have a last str");
+  let first = parts.next().expect("should have a last str");
   for part in parts.rev() {
     if let Expr::Member(member_expr) = expr {
       if let MemberProp::Ident(ident) = &member_expr.prop {
@@ -534,7 +534,7 @@ fn match_member_expr(mut expr: &Expr, value: &str) -> bool {
     }
     return false;
   }
-  matches!(&expr, Expr::Ident(ident) if ident.sym.eq(last))
+  matches!(&expr, Expr::Ident(ident) if ident.sym.eq(first))
 }
 
 #[inline]
@@ -555,12 +555,11 @@ pub fn is_module_hot_decline_call(node: &CallExpr) -> bool {
 }
 
 fn match_import_meta_member_expr(mut expr: &Expr, value: &str) -> bool {
-  let mut parts: Vec<&str> = value.split('.').collect();
-  parts.reverse();
+  let mut parts = value.split('.');
   // pop import.meta
-  parts.pop();
-  parts.pop();
-  for part in parts {
+  parts.next();
+  parts.next();
+  for part in parts.rev() {
     if let Expr::Member(member_expr) = expr {
       if let MemberProp::Ident(ident) = &member_expr.prop {
         if ident.sym.eq(part) {
