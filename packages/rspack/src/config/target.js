@@ -15,8 +15,10 @@ const getBrowserslistTargetHandler = memoize(() =>
 );
 
 const getDefaultTarget = context => {
-	const browsers = getBrowserslistTargetHandler().load(null, context);
-	return browsers ? "browserslist" : "web";
+	// TODO: align with webpack
+	// const browsers = getBrowserslistTargetHandler().load(null, context);
+	// return browsers ? "browserslist" : "web";
+	return "web";
 };
 
 /**
