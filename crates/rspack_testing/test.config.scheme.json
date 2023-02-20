@@ -75,6 +75,16 @@
     "Css": {
       "type": "object",
       "properties": {
+        "modules": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ModulesConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "presetEnv": {
           "default": [],
           "type": "array",
@@ -286,6 +296,30 @@
           "type": "string"
         },
         "options": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ModulesConfig": {
+      "type": "object",
+      "properties": {
+        "exportsOnly": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "localIdentName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "localsConvention": {
           "type": [
             "string",
             "null"

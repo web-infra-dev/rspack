@@ -118,6 +118,16 @@ pub struct Builtins {
   pub tree_shaking: bool,
   #[serde(default)]
   pub preset_env: Vec<String>,
+  #[serde(default)]
+  pub modules: Option<ModulesConfig>,
+}
+
+#[derive(Debug, JsonSchema, Deserialize, Default)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ModulesConfig {
+  pub locals_convention: Option<String>,
+  pub local_ident_name: Option<String>,
+  pub exports_only: Option<bool>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default)]
@@ -325,13 +335,29 @@ impl TestConfig {
         postcss: rspack_plugin_css::plugin::PostcssConfig {
           pxtorem: self.builtins.postcss.pxtorem.map(|i| i.into()),
         },
-        modules: rspack_plugin_css::plugin::ModulesConfig {
-          locals_convention: Default::default(),
-          local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
-            "[path][name][ext]__[local]".to_string(),
-          ),
-          exports_only: Default::default(),
-        },
+        modules: self
+          .builtins
+          .css
+          .modules
+          .map(|modules| rspack_plugin_css::plugin::ModulesConfig {
+            locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
+              &modules.locals_convention.unwrap_or("asIs".to_string()),
+            )
+            .unwrap(),
+            local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
+              modules
+                .local_ident_name
+                .unwrap_or("[path][name][ext]__[local]".to_string()),
+            ),
+            exports_only: modules.exports_only.unwrap_or_default(),
+          })
+          .unwrap_or_else(|| rspack_plugin_css::plugin::ModulesConfig {
+            locals_convention: Default::default(),
+            local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
+              "[path][name][ext]__[local]".to_string(),
+            ),
+            exports_only: Default::default(),
+          }),
       })
       .boxed(),
     );

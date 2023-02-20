@@ -9,8 +9,10 @@ use anyhow::bail;
 use bitflags::bitflags;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use once_cell::sync::Lazy;
 use preset_env_base::query::{Query, Targets};
 use rayon::prelude::*;
+use regex::Regex;
 use rspack_core::{
   ast::css::Ast as CssAst,
   get_css_chunk_filename_template,
@@ -49,6 +51,9 @@ use crate::{
   SWC_COMPILER,
 };
 
+static ESCAPE_LOCAL_IDENT_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r#"[<>:"/\\|?*\.]"#).expect("Invalid regex"));
+
 #[derive(Debug)]
 pub struct CssPlugin {
   config: CssConfig,
@@ -75,6 +80,7 @@ impl LocalIdentName {
     if let Some(local) = options.local {
       s = s.replace("[local]", &local);
     }
+    s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "-").into_owned();
     s
   }
 }
