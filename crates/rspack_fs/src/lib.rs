@@ -1,6 +1,5 @@
 #[macro_use]
-#[doc(hidden)]
-pub mod macros;
+mod macros;
 
 cfg_async! {
   pub mod r#async;
