@@ -847,9 +847,6 @@ describe("snapshots", () => {
 			@@ ... @@
 			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "browserslist-test",
-			@@ ... @@
-			-   "target": "web",
-			+   "target": "browserslist",
 		`)
 	);
 
