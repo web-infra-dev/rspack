@@ -40,7 +40,8 @@ impl ResolveModuleOccasion {
     };
 
     let id = ModuleIdentifier::from(format!(
-      "{}|{}|{:?}",
+      "{:?}|{}|{}|{:?}",
+      args.context,
       args
         .importer
         .map(|i| i.display().to_string())
