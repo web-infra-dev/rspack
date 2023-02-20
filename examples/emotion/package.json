@@ -1,0 +1,24 @@
+{
+  "name": "example-basic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "rspack serve -c rspack.config.js",
+    "build": "rspack build -c rspack.config.js"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@emotion/react": "11.10.6",
+    "@emotion/styled": "11.10.6",
+    "react": "17",
+    "react-dom": "17"
+  }
+}
