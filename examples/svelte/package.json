@@ -1,6 +1,7 @@
 {
   "name": "example-svelte",
   "version": "1.0.0",
+  "private": true,
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/plugin-html": "workspace:*",
