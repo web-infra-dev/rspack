@@ -1,14 +1,12 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{AliasMap, CompilerOptionsBuilder, Resolve};
+use rspack_core::{AliasMap, Resolve};
 use serde::Deserialize;
-
-use crate::RawOption;
 
 pub type AliasValue = serde_json::Value;
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawResolveOptions {
@@ -58,19 +56,21 @@ fn normalize_alias(
     .map_or(Ok(None), |v| v.map(Some))
 }
 
-impl RawOption<Resolve> for RawResolveOptions {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Resolve> {
-    let prefer_relative = self.prefer_relative;
-    let extensions = self.extensions;
-    let browser_field = self.browser_field;
-    let main_files = self.main_files;
-    let main_fields = self.main_fields;
-    let condition_names = self.condition_names;
-    let symlinks = self.symlinks;
-    let alias = normalize_alias(self.alias)?;
-    let fallback = normalize_alias(self.fallback)?;
-    let modules = self.modules;
-    let tsconfig = self.ts_config_path.map(std::path::PathBuf::from);
+impl TryFrom<RawResolveOptions> for Resolve {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawResolveOptions) -> Result<Self, Self::Error> {
+    let prefer_relative = value.prefer_relative;
+    let extensions = value.extensions;
+    let browser_field = value.browser_field;
+    let main_files = value.main_files;
+    let main_fields = value.main_fields;
+    let condition_names = value.condition_names;
+    let symlinks = value.symlinks;
+    let alias = normalize_alias(value.alias)?;
+    let fallback = normalize_alias(value.fallback)?;
+    let modules = value.modules;
+    let tsconfig = value.ts_config_path.map(std::path::PathBuf::from);
     Ok(Resolve {
       modules,
       prefer_relative,
@@ -84,9 +84,5 @@ impl RawOption<Resolve> for RawResolveOptions {
       tsconfig,
       fallback,
     })
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    Default::default()
   }
 }

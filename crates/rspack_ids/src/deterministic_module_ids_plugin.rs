@@ -6,7 +6,7 @@ use crate::id_helpers::{
   get_used_module_ids_and_modules,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct DeterministicModuleIdsPlugin {}
 
 impl Plugin for DeterministicModuleIdsPlugin {

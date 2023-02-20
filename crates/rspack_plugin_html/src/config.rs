@@ -1,10 +1,13 @@
 use std::{collections::HashMap, str::FromStr};
 
 use rspack_core::Compilation;
+#[cfg(feature = "testing")]
+use schemars::JsonSchema;
 use serde::Deserialize;
 
 use crate::sri::HtmlSriHashFunction;
 
+#[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlPluginConfigInject {
@@ -28,6 +31,7 @@ impl FromStr for HtmlPluginConfigInject {
   }
 }
 
+#[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlPluginConfigScriptLoading {
@@ -54,7 +58,9 @@ impl FromStr for HtmlPluginConfigScriptLoading {
   }
 }
 
+#[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct HtmlPluginConfig {
   /// emitted file name in output path
   #[serde(default = "default_filename")]
@@ -77,6 +83,7 @@ pub struct HtmlPluginConfig {
   /// hash func that used in subsource integrity
   /// sha384, sha256 or sha512
   pub sri: Option<HtmlSriHashFunction>,
+  #[serde(default)]
   pub minify: bool,
   pub title: Option<String>,
   pub favicon: Option<String>,

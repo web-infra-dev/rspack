@@ -9,42 +9,10 @@ use rspack_plugin_html::sri::HtmlSriHashFunction;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::RawOption;
-
 pub type RawHtmlPluginConfigScriptLoading = String;
 pub type RawHtmlPluginConfigInject = String;
 pub type RawHtmlSriHashFunction = String;
 pub type RawHtmlFilename = String;
-
-// fn default_template() -> String {
-//   String::from("index.html")
-// }
-
-/**
- * It seems napi not support enum well
- */
-// #[derive(Deserialize, Debug, Clone, Copy)]
-// #[serde(rename_all = "snake_case")]
-// pub enum HtmlSriHashFunction {
-//   Sha256,
-//   Sha384,
-//   Sha512,
-// }
-// #[derive(Deserialize, Debug, Serialize)]
-// #[serde(rename_all = "snake_case")]
-// #[napi]
-// pub enum HtmlPluginConfigInject {
-//   Head,
-//   Body,
-// }
-// #[derive(Deserialize, Debug, Serialize)]
-// #[serde(rename_all = "snake_case")]
-// #[napi]
-// pub enum HtmlPluginConfigScriptLoading {
-//   Blocking,
-//   Defer,
-//   Module,
-// }
 
 #[derive(Deserialize, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,55 +44,37 @@ pub struct RawHtmlPluginConfig {
   pub meta: Option<HashMap<String, HashMap<String, String>>>,
 }
 
-impl RawOption<HtmlPluginConfig> for RawHtmlPluginConfig {
-  fn to_compiler_option(
-    self,
-    _options: &rspack_core::CompilerOptionsBuilder,
-  ) -> anyhow::Result<HtmlPluginConfig> {
-    let inject = self.inject.as_ref().map(|s| {
+impl From<RawHtmlPluginConfig> for HtmlPluginConfig {
+  fn from(value: RawHtmlPluginConfig) -> Self {
+    let inject = value.inject.as_ref().map(|s| {
       HtmlPluginConfigInject::from_str(s).unwrap_or_else(|_| panic!("Invalid inject value: {s}"))
     });
 
     let script_loading = HtmlPluginConfigScriptLoading::from_str(
-      &self.script_loading.unwrap_or_else(|| String::from("defer")),
-    )?;
+      &value
+        .script_loading
+        .unwrap_or_else(|| String::from("defer")),
+    )
+    .expect("value.script_loading has unwrap_or_else so this will never happen");
 
-    let sri = self.sri.as_ref().map(|s| {
+    let sri = value.sri.as_ref().map(|s| {
       HtmlSriHashFunction::from_str(s).unwrap_or_else(|_| panic!("Invalid sri value: {s}"))
     });
 
-    Ok(HtmlPluginConfig {
-      filename: self.filename.unwrap_or_else(|| String::from("index.html")),
-      template: self.template,
-      template_parameters: self.template_parameters,
+    HtmlPluginConfig {
+      filename: value.filename.unwrap_or_else(|| String::from("index.html")),
+      template: value.template,
+      template_parameters: value.template_parameters,
       inject,
-      public_path: self.public_path,
+      public_path: value.public_path,
       script_loading,
-      chunks: self.chunks,
-      excluded_chunks: self.excluded_chunks,
+      chunks: value.chunks,
+      excluded_chunks: value.excluded_chunks,
       sri,
-      minify: self.minify.unwrap_or_default(),
-      title: self.title,
-      favicon: self.favicon,
-      meta: self.meta,
-    })
-  }
-
-  fn fallback_value(_options: &rspack_core::CompilerOptionsBuilder) -> Self {
-    Self {
-      filename: Some(String::from("index.html")),
-      template: Default::default(),
-      template_parameters: None,
-      inject: Default::default(),
-      public_path: Default::default(),
-      script_loading: Some(String::from("defer")),
-      chunks: Default::default(),
-      excluded_chunks: Default::default(),
-      sri: Default::default(),
-      minify: Default::default(),
-      title: Default::default(),
-      favicon: Default::default(),
-      meta: None,
+      minify: value.minify.unwrap_or_default(),
+      title: value.title,
+      favicon: value.favicon,
+      meta: value.meta,
     }
   }
 }

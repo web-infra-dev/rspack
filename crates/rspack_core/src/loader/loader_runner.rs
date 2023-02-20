@@ -18,7 +18,7 @@ pub struct CompilerContext {
 
 pub type CompilationContext = ();
 
-pub type BoxedLoader = rspack_loader_runner::BoxedLoader<CompilerContext, CompilationContext>;
+pub type BoxLoader = rspack_loader_runner::BoxLoader<CompilerContext, CompilationContext>;
 
 #[derive(Debug)]
 pub struct LoaderRunnerRunner {

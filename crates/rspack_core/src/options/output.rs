@@ -20,7 +20,7 @@ pub struct OutputOptions {
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
   pub library: Option<String>,
-  pub strict_module_error_handling: Option<bool>,
+  pub strict_module_error_handling: bool,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";
@@ -150,6 +150,16 @@ impl FromStr for PublicPath {
       Ok(PublicPath::Auto)
     } else {
       Ok(PublicPath::String(s.to_string()))
+    }
+  }
+}
+
+impl From<String> for PublicPath {
+  fn from(value: String) -> Self {
+    if value == "auto" {
+      Self::Auto
+    } else {
+      Self::String(value)
     }
   }
 }

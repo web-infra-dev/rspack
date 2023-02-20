@@ -17,8 +17,8 @@ describe("Stats", () => {
 			}
 		});
 		const statsOptions = { all: true };
-		expect(typeof stats.hash).toBe("string");
-		expect(stats.toJson(statsOptions)).toMatchInlineSnapshot(`
+		expect(typeof stats?.hash).toBe("string");
+		expect(stats?.toJson(statsOptions)).toMatchInlineSnapshot(`
 		{
 		  "assets": [
 		    {
@@ -92,7 +92,7 @@ describe("Stats", () => {
 		  "warningsCount": 0,
 		}
 	`);
-		expect(stats.toString(statsOptions)).toMatchInlineSnapshot(`
+		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"Hash: ff293361e645d785
 		  Asset       Size  Chunks             Chunk Names
 		main.js  215 bytes    main  [emitted]  main
@@ -109,7 +109,7 @@ describe("Stats", () => {
 			entry: "./fixtures/a"
 		});
 		expect(
-			stats.toJson({
+			stats?.toJson({
 				all: false
 			})
 		).toEqual({});
@@ -120,7 +120,7 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(stats.toString()).toMatchInlineSnapshot(`
+		expect(stats?.toString()).toMatchInlineSnapshot(`
 		"Hash: 2168fece27972fed
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main

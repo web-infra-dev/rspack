@@ -12,6 +12,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use dashmap::DashMap;
 use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
+use rspack_core::{Plugin, PluginExt};
 
 mod js_values;
 mod plugins;
@@ -106,7 +107,7 @@ where
 unsafe impl<K, V> Send for SingleThreadedHashMap<K, V> {}
 unsafe impl<K, V> Sync for SingleThreadedHashMap<K, V> {}
 
-static COMPILERS: Lazy<SingleThreadedHashMap<CompilerId, rspack::Compiler>> =
+static COMPILERS: Lazy<SingleThreadedHashMap<CompilerId, rspack_core::Compiler>> =
   Lazy::new(Default::default);
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(1);
@@ -127,25 +128,18 @@ impl Rspack {
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
-    let compiler_options = {
-      let mut options =
-        normalize_bundle_options(options).map_err(|e| Error::from_reason(format!("{e}")))?;
+    let mut plugins = Vec::new();
+    if let Some(js_hooks) = js_hooks {
+      plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks)?.boxed());
+    }
 
-      if let Some(hooks_adapter) = js_hooks
-        .map(|js_hooks| JsHooksAdapter::from_js_hooks(env, js_hooks))
-        .transpose()?
-      {
-        options
-          .plugins
-          .push(Box::new(hooks_adapter) as Box<dyn rspack_core::Plugin>);
-      };
-
-      options
-    };
+    let mut compiler_options = options
+      .apply(&mut plugins)
+      .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
-    let rspack = rspack::rspack(compiler_options, vec![]);
+    let rspack = rspack_core::Compiler::new(compiler_options, plugins);
 
     let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
     unsafe { COMPILERS.insert_if_vacant(id, rspack) }?;
@@ -166,7 +160,9 @@ impl Rspack {
     let handle_build = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
       let compiler = unsafe {
-        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
+        std::mem::transmute::<&'_ mut rspack_core::Compiler, &'static mut rspack_core::Compiler>(
+          compiler,
+        )
       };
 
       callbackify(env, f, async move {
@@ -200,7 +196,9 @@ impl Rspack {
     let handle_rebuild = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
       let compiler = unsafe {
-        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
+        std::mem::transmute::<&'_ mut rspack_core::Compiler, &'static mut rspack_core::Compiler>(
+          compiler,
+        )
       };
 
       callbackify(env, f, async move {
@@ -231,7 +229,9 @@ impl Rspack {
     let handle_last_compilation = |compiler: &mut _| {
       // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
       let compiler = unsafe {
-        std::mem::transmute::<&'_ mut rspack::Compiler, &'static mut rspack::Compiler>(compiler)
+        std::mem::transmute::<&'_ mut rspack_core::Compiler, &'static mut rspack_core::Compiler>(
+          compiler,
+        )
       };
       f(JsCompilation::from_compilation(&mut compiler.compilation))
     };

@@ -1,11 +1,14 @@
 use std::str::FromStr;
 
 use rspack_core::rspack_sources::{BoxSource, Source};
+#[cfg(feature = "testing")]
+use schemars::JsonSchema;
 use serde::Deserialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use crate::visitors::asset::{HTMLPluginTag, HtmlPluginAttribute};
 
+#[cfg_attr(feature = "testing", derive(JsonSchema))]
 #[derive(Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum HtmlSriHashFunction {

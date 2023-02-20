@@ -1,7 +1,7 @@
 import { Callback } from "tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
-import { WatchOptions } from "./config/watch";
+import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
 
 class Watching {
@@ -107,7 +107,6 @@ class Watching {
 		const finalCallback = (err?: Error) => {
 			this.running = false;
 			this.compiler.running = false;
-			// @ts-expect-error
 			this.compiler.watching = undefined;
 			this.compiler.watchMode = false;
 			this.compiler.modifiedFiles = undefined;
@@ -143,15 +142,12 @@ class Watching {
 		this.#closed = true;
 		if (this.watcher) {
 			this.watcher.close();
-			// @ts-expect-error
-			this.watcher = null;
+			this.watcher = undefined;
 		}
 		if (this.pausedWatcher) {
 			this.pausedWatcher.close();
-			// @ts-expect-error
-			this.pausedWatcher = null;
+			this.pausedWatcher = undefined;
 		}
-		// @ts-expect-error
 		this.compiler.watching = undefined;
 		this.compiler.watchMode = false;
 		this.#closeCallbacks = [];

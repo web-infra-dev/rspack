@@ -1,9 +1,11 @@
-import { getNormalizedRspackOptions, RspackOptions } from "./config";
-import { Compiler } from "./compiler";
 import {
+	getNormalizedRspackOptions,
+	RspackOptions,
 	applyRspackOptionsBaseDefaults,
-	applyRspackOptionsDefaults
-} from "./config/defaults";
+	applyRspackOptionsDefaults,
+	RspackPluginFunction
+} from "./config";
+import { Compiler } from "./compiler";
 import { Stats } from "./stats";
 import util from "util";
 
@@ -16,6 +18,8 @@ import {
 } from "./multiCompiler";
 import { Callback } from "tapable";
 import MultiStats from "./multiStats";
+import assert from "assert";
+import { isNil } from "./util";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(option => {
@@ -25,7 +29,6 @@ function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 		 * Missing features: WebpackOptionsApply
 		 * `compiler.name` should be set by WebpackOptionsApply.
 		 */
-		// @ts-expect-error
 		compiler.name = option.name;
 		return compiler;
 	});
@@ -47,8 +50,9 @@ function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 
 function createCompiler(userOptions: RspackOptions): Compiler {
 	// console.log("user:", userOptions);
-	const options = getNormalizedRspackOptions(userOptions, () => compiler);
+	const options = getNormalizedRspackOptions(userOptions);
 	applyRspackOptionsBaseDefaults(options);
+	assert(!isNil(options.context));
 	const compiler = new Compiler(options.context, options);
 
 	new NodeEnvironmentPlugin({
@@ -64,7 +68,7 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 	if (Array.isArray(options.plugins)) {
 		for (const plugin of options.plugins) {
 			if (typeof plugin === "function") {
-				plugin.call(compiler, compiler);
+				(plugin as RspackPluginFunction).call(compiler, compiler);
 			} else {
 				plugin.apply(compiler);
 			}

@@ -39,18 +39,17 @@ pub fn copy_three(num: usize) {
   let mut file = File::create(entry_file).expect("TODO:");
   file.write_all(entry.as_bytes()).expect("TODO:");
 
-  // test.config.js
+  // test.config.json
   let test_config_file = r#"
-module.exports = {
-    mode: 'development',
-    entry: {
-        index: {
-            import: ['./src/entry.js']
+{
+    "entry": {
+        "index": {
+            "import": ["./src/entry.js"]
         }
     }
-};
-  "#;
-  let test_config_path = root_dir.join("benchcases/three/test.config.js");
+}
+"#;
+  let test_config_path = root_dir.join("benchcases/three/test.config.json");
   let mut file = File::create(test_config_path).expect("TODO:");
   file.write_all(test_config_file.as_bytes()).expect("TODO:");
 
@@ -64,7 +63,7 @@ module.exports = {
     devtool: 'eval',
     cache: {type: 'filesystem'}
 }
-    "#;
+"#;
   let webpack_config_path = root_dir.join("benchcases/three/webpack.config.js");
   let mut file = File::create(webpack_config_path).expect("TODO:");
   file
@@ -76,20 +75,22 @@ pub fn three_production_config() {
   let root_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // test.config.js
   let test_config_file = r#"
-module.exports = {
-    mode: 'production',
-    devtool: 'source-map', 
-    builtins: {
-      minify: {}
+{
+    "devtool": "source-map",
+    "builtins": {
+      "minify": true
     },
-    entry: {
-        index: {
-            import: ['./src/entry.js']
+    "optimization": {
+      "moduleIds": "deterministic"
+    },
+    "entry": {
+        "index": {
+            "import": ["./src/entry.js"]
         }
     }
-};
-  "#;
-  let test_config_path = root_dir.join("benchcases/three/test.config.js");
+}
+"#;
+  let test_config_path = root_dir.join("benchcases/three/test.config.json");
   let mut file = File::create(test_config_path).expect("TODO:");
   file.write_all(test_config_file.as_bytes()).expect("TODO:");
 }

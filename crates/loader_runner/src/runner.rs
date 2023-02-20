@@ -101,13 +101,13 @@ pub trait Loader<T, U>: Sync + Send + Debug {
   fn as_any_mut(&mut self) -> &mut dyn std::any::Any;
 }
 
-pub type BoxedLoader<T, U> = Arc<dyn Loader<T, U>>;
-pub type BoxedRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
+pub type BoxLoader<T, U> = Arc<dyn Loader<T, U>>;
+pub type BoxRunnerPlugin = Box<dyn LoaderRunnerPlugin>;
 
 pub type LoaderRunnerResult = Result<TWithDiagnosticArray<LoaderResult>>;
 
 pub struct LoaderRunner {
-  plugins: Vec<BoxedRunnerPlugin>,
+  plugins: Vec<BoxRunnerPlugin>,
   resource_data: ResourceData,
 }
 
@@ -118,7 +118,7 @@ pub struct LoaderRunnerAdditionalContext<'context, T, U> {
 }
 
 impl LoaderRunner {
-  pub fn new(resource_data: ResourceData, plugins: Vec<BoxedRunnerPlugin>) -> Self {
+  pub fn new(resource_data: ResourceData, plugins: Vec<BoxRunnerPlugin>) -> Self {
     Self {
       plugins,
       resource_data,

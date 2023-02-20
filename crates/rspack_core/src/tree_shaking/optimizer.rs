@@ -58,7 +58,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     let side_effects_options = self
       .compilation
       .options
-      .optimizations
+      .optimization
       .side_effects
       .is_enable();
     let mut side_effect_map: IdentifierMap<SideEffect> = IdentifierMap::default();

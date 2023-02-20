@@ -13,7 +13,7 @@ use swc_core::css::{
   visit::VisitMutWith,
 };
 
-use super::{option::PxToRemOption, px_to_rem::px_to_rem};
+use super::{options::PxToRemOptions, px_to_rem::px_to_rem};
 
 #[test]
 fn valid() {
@@ -44,7 +44,7 @@ fn transform(source: &str, config_file: Option<&String>) -> String {
     None, // Some(&mut src_map_buf),
     BasicCssWriterConfig::default(),
   );
-  let config: PxToRemOption = config_file
+  let config: PxToRemOptions = config_file
     .map(|file| serde_json::from_str(file).expect("TODO:"))
     .unwrap_or_default();
   let mut gen = CodeGenerator::new(wr, CodegenConfig { minify: false });

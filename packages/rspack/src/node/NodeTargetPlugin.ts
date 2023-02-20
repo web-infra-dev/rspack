@@ -71,9 +71,13 @@ const builtins = [
 export class NodeTargetPlugin {
 	apply(compiler: Compiler) {
 		const externals = Object.fromEntries(builtins.map(x => [x, x]));
+		const original =
+			typeof compiler.options.externals === "string"
+				? { [compiler.options.externals]: compiler.options.externals }
+				: compiler.options.externals;
 		compiler.options.externals = {
 			...externals,
-			...compiler.options.externals
+			...original
 		};
 	}
 }

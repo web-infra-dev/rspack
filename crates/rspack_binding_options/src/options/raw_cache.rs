@@ -1,10 +1,6 @@
 use napi_derive::napi;
-use rspack_core::{
-  CacheOptions, CompilerOptionsBuilder, FileSystemCacheOptions, MemoryCacheOptions,
-};
+use rspack_core::{CacheOptions, FileSystemCacheOptions, MemoryCacheOptions};
 use serde::Deserialize;
-
-use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -21,9 +17,9 @@ pub struct RawCacheOptions {
   pub version: String,
 }
 
-impl RawOption<CacheOptions> for RawCacheOptions {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<CacheOptions> {
-    let Self {
+impl From<RawCacheOptions> for CacheOptions {
+  fn from(value: RawCacheOptions) -> CacheOptions {
+    let RawCacheOptions {
       r#type,
       max_generations,
       max_age,
@@ -33,9 +29,9 @@ impl RawOption<CacheOptions> for RawCacheOptions {
       cache_location,
       name,
       version,
-    } = self;
+    } = value;
 
-    Ok(match r#type.as_str() {
+    match r#type.as_str() {
       "memory" => CacheOptions::Memory(MemoryCacheOptions { max_generations }),
       "filesystem" => CacheOptions::FileSystem(FileSystemCacheOptions {
         max_age,
@@ -47,10 +43,6 @@ impl RawOption<CacheOptions> for RawCacheOptions {
         version,
       }),
       _ => CacheOptions::Disabled,
-    })
-  }
-
-  fn fallback_value(_: &CompilerOptionsBuilder) -> Self {
-    Default::default()
+    }
   }
 }

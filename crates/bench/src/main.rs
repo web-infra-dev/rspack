@@ -2,6 +2,8 @@ mod termcolorful;
 use std::{path::PathBuf, time::Instant};
 
 use mimalloc_rust::GlobalMiMalloc;
+use rspack_core::Compiler;
+use rspack_testing::apply_from_fixture;
 #[cfg(feature = "tracing")]
 use rspack_tracing::enable_tracing_by_env_with_chrome_layer;
 use termcolorful::println_string_with_fg_color;
@@ -9,7 +11,7 @@ use termcolorful::println_string_with_fg_color;
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
-use rspack_test::read_test_config_and_normalize;
+
 #[tokio::main]
 async fn main() {
   let path_list = vec![
@@ -35,10 +37,10 @@ async fn run(relative_path: &str) {
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join(relative_path);
   println!("{bundle_dir:?}");
-  let mut options = read_test_config_and_normalize(&bundle_dir);
-  options.__emit_error = true;
+  let (options, plugins) = apply_from_fixture(&bundle_dir);
   #[cfg(feature = "hmr")]
-  {
+  let options = {
+    let mut options = options;
     use rspack_core::{CacheOptions, MemoryCacheOptions, Minification};
     // options.devtool = Default::default();
     options.builtins.minify = Minification {
@@ -46,15 +48,14 @@ async fn run(relative_path: &str) {
       passes: 0,
     };
     options.cache = CacheOptions::Memory(MemoryCacheOptions { max_generations: 0 });
-    options.snapshot.resolve_build_dependencies.timestamp = true;
-    options.snapshot.build_dependencies.timestamp = true;
     options.snapshot.resolve.timestamp = true;
     options.snapshot.module.timestamp = true;
-  }
+    options
+  };
 
   let start = Instant::now();
   // println!("{:?}", options);
-  let mut compiler = rspack::rspack(options, Default::default());
+  let mut compiler = Compiler::new(options, plugins);
 
   compiler
     .build()
@@ -89,15 +90,3 @@ async fn run(relative_path: &str) {
     }
   }
 }
-
-// fn main() {
-//   prints_calling_location(); // would print `called from line: 2`
-//   prints_calling_location(); // would print `called from line: 3`
-// }
-
-// #[track_caller]
-// fn prints_calling_location() {
-//   let caller_location = std::panic::Location::caller();
-//   let caller_line_number = caller_location.line();
-//   println!("called from line: {}", caller_line_number);
-// }

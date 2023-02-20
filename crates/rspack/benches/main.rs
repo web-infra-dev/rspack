@@ -3,7 +3,8 @@ use std::{hint::black_box, path::PathBuf, time::Duration};
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use mimalloc_rust::GlobalMiMalloc;
-use rspack_test::read_test_config_and_normalize;
+use rspack_core::Compiler;
+use rspack_testing::apply_from_fixture;
 use xshell::{cmd, Shell};
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
@@ -11,9 +12,8 @@ use xshell::{cmd, Shell};
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 
 async fn bench(cur_dir: &PathBuf) {
-  // cur_dir = cur_dir.join("webpack_css_cases_to_be_migrated/bootstrap");
-  let options = read_test_config_and_normalize(cur_dir);
-  let mut compiler = rspack::rspack(options, Default::default());
+  let (options, plugins) = apply_from_fixture(cur_dir);
+  let mut compiler = Compiler::new(options, plugins);
 
   compiler
     .build()

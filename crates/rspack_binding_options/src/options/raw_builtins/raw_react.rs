@@ -3,8 +3,6 @@ use rspack_core::ReactOptions;
 use serde::{Deserialize, Serialize};
 use swc_core::ecma::transforms::react::Runtime;
 
-use crate::RawOption;
-
 #[derive(Deserialize, Debug, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -21,38 +19,28 @@ pub struct RawReactOptions {
   pub refresh: Option<bool>,
 }
 
-impl RawOption<ReactOptions> for RawReactOptions {
-  fn to_compiler_option(
-    self,
-    _options: &rspack_core::CompilerOptionsBuilder,
-  ) -> anyhow::Result<ReactOptions> {
-    let runtime = if let Some(runtime) = &self.runtime {
+impl From<RawReactOptions> for ReactOptions {
+  fn from(value: RawReactOptions) -> Self {
+    let runtime = if let Some(runtime) = &value.runtime {
       match runtime.as_str() {
         "automatic" => Some(Runtime::Automatic),
         "classic" => Some(Runtime::Classic),
-        _ => anyhow::bail!("Invalid runtime: {}", runtime),
+        _ => None,
       }
     } else {
       Some(Runtime::Automatic)
     };
 
-    Ok(ReactOptions {
+    ReactOptions {
       runtime,
-      import_source: self.import_source,
-      pragma: self.pragma,
-      pragma_frag: self.pragma_frag,
-      throw_if_namespace: self.throw_if_namespace,
-      development: self.development,
-      use_builtins: self.use_builtins,
-      use_spread: self.use_spread,
-      refresh: self.refresh,
-    })
-  }
-
-  fn fallback_value(_options: &rspack_core::CompilerOptionsBuilder) -> Self {
-    RawReactOptions {
-      runtime: Some("automatic".to_string()),
-      ..Default::default()
+      import_source: value.import_source,
+      pragma: value.pragma,
+      pragma_frag: value.pragma_frag,
+      throw_if_namespace: value.throw_if_namespace,
+      development: value.development,
+      use_builtins: value.use_builtins,
+      use_spread: value.use_spread,
+      refresh: value.refresh,
     }
   }
 }

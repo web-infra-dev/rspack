@@ -1,1 +1,1 @@
-import test from "./index";
+import test from "./index.jsx";

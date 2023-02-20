@@ -6,7 +6,7 @@ use crate::id_helpers::{
   get_long_module_name, get_short_module_name, get_used_module_ids_and_modules,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct NamedModuleIdsPlugin {}
 
 impl Plugin for NamedModuleIdsPlugin {

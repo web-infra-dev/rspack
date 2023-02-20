@@ -4,6 +4,7 @@ const resolve = filename => path.resolve(__dirname, filename);
 
 module.exports = {
 	module: {
+		defaultRules: [],
 		rules: [
 			{
 				test: resolve("modules-true.css"),

@@ -26,8 +26,8 @@ impl Plugin for ExternalPlugin {
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
     let target = &job_ctx.options.target;
-    let external_type = &job_ctx.options.external_type;
-    for external_item in &job_ctx.options.external {
+    let external_type = &job_ctx.options.externals_type;
+    for external_item in &job_ctx.options.externals {
       match external_item {
         External::Object(eh) => {
           let specifier = args.dependency.request();

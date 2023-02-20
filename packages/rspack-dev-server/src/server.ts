@@ -26,10 +26,7 @@ export class RspackDevServer extends WebpackDevServer {
 
 	addAdditionEntires(compiler: Compiler) {
 		const additionalEntries: string[] = [];
-		// TODO: align with webpack-dev-server after options.target is aligned
-		const isWebTarget =
-			compiler.options.target.includes("web") ||
-			compiler.options.target.includes("webworker");
+		const isWebTarget = isWebTarget2(compiler);
 		if (this.options.client && isWebTarget) {
 			let webSocketURLStr = "";
 
@@ -447,4 +444,31 @@ export class RspackDevServer extends WebpackDevServer {
 			}
 		});
 	}
+}
+
+// TODO: use WebpackDevServer.isWebTarget instead of this once we have a new webpack-dev-server version
+function isWebTarget2(compiler: Compiler): boolean {
+	if (
+		compiler.options.resolve.conditionNames &&
+		compiler.options.resolve.conditionNames.includes("browser")
+	) {
+		return true;
+	}
+	const target = compiler.options.target;
+	const webTargets = [
+		"web",
+		"webworker",
+		"electron-preload",
+		"electron-renderer",
+		"node-webkit",
+		undefined,
+		null
+	];
+	if (Array.isArray(target)) {
+		return target.some(r => webTargets.includes(r));
+	}
+	if (typeof target === "string") {
+		return webTargets.includes(target);
+	}
+	return false;
 }

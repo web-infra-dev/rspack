@@ -45,7 +45,7 @@ impl SideEffectOption {
 }
 
 #[derive(Debug)]
-pub struct Optimizations {
+pub struct Optimization {
   pub remove_available_modules: bool,
   pub side_effects: SideEffectOption,
 }

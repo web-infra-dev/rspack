@@ -73,111 +73,52 @@ describe("snapshots", () => {
 	it("should have the correct base config", () => {
 		expect(baseConfig).toMatchInlineSnapshot(`
 		{
-		  "builtins": {
-		    "browserslist": undefined,
-		    "decorator": {
-		      "emitMetadata": true,
-		      "legacy": true,
-		    },
-		    "define": {},
-		    "emotion": undefined,
-		    "html": [],
-		    "minify": {
-		      "enable": false,
-		      "passes": 1,
-		    },
-		    "progress": undefined,
-		  },
-		  "cache": {
-		    "buildDependencies": [],
-		    "cacheDirectory": "",
-		    "cacheLocation": "",
-		    "maxAge": 0,
-		    "maxGenerations": 0,
-		    "name": "",
-		    "profile": false,
-		    "type": "memory",
-		    "version": "",
-		  },
-		  "context": "<cwd>",
+		  "builtins": {},
+		  "cache": undefined,
+		  "context": undefined,
 		  "dependencies": undefined,
 		  "devServer": undefined,
-		  "devtool": "",
+		  "devtool": undefined,
 		  "entry": {
-		    "main": {
-		      "import": [
-		        "<cwd>/src/index.js",
-		      ],
-		      "runtime": undefined,
-		    },
+		    "main": {},
 		  },
-		  "experiments": {
-		    "incrementalRebuild": false,
-		    "lazyCompilation": false,
-		  },
-		  "externals": {},
-		  "externalsType": "",
+		  "experiments": {},
+		  "externals": undefined,
+		  "externalsType": undefined,
 		  "infrastructureLogging": {},
 		  "mode": "none",
 		  "module": {
-		    "parser": undefined,
+		    "defaultRules": undefined,
+		    "parser": {},
 		    "rules": [],
 		  },
 		  "name": undefined,
 		  "node": {},
 		  "optimization": {
-		    "minimize": undefined,
-		    "minimizer": undefined,
-		    "moduleIds": "named",
-		    "removeAvailableModules": false,
-		    "sideEffects": "false",
-		    "splitChunks": undefined,
+		    "runtimeChunk": undefined,
+		    "splitChunks": {
+		      "cacheGroups": {},
+		    },
 		  },
-		  "output": {},
+		  "output": {
+		    "assetModuleFilename": undefined,
+		    "chunkFilename": undefined,
+		    "cssChunkFilename": undefined,
+		    "cssFilename": undefined,
+		    "filename": undefined,
+		    "library": undefined,
+		    "path": undefined,
+		    "publicPath": undefined,
+		    "uniqueName": undefined,
+		  },
 		  "plugins": [],
-		  "resolve": {
-		    "alias": {},
-		    "browserField": true,
-		    "conditionNames": undefined,
-		    "extensions": [
-		      ".tsx",
-		      ".jsx",
-		      ".ts",
-		      ".js",
-		      ".json",
-		      ".d.ts",
-		    ],
-		    "fallback": {},
-		    "mainFields": [
-		      "browser",
-		      "module",
-		      "main",
-		    ],
-		    "mainFiles": [
-		      "index",
-		    ],
-		    "modules": [
-		      "node_modules",
-		    ],
-		    "preferRelative": false,
-		    "tsConfigPath": undefined,
-		  },
+		  "resolve": {},
 		  "snapshot": {
-		    "module": {
-		      "hash": false,
-		      "timestamp": true,
-		    },
-		    "resolve": {
-		      "hash": false,
-		      "timestamp": true,
-		    },
+		    "module": undefined,
+		    "resolve": undefined,
 		  },
-		  "stats": {
-		    "colors": false,
-		  },
-		  "target": [
-		    "web",
-		  ],
+		  "stats": {},
+		  "target": undefined,
 		  "watch": undefined,
 		  "watchOptions": {},
 		}
@@ -214,21 +155,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "enable": false,
-		+       "enable": true,
-		@@ ... @@
-		-     "type": "memory",
-		+     "type": "",
-		@@ ... @@
 		-   "mode": "none",
-		+   "mode": "production",
-		@@ ... @@
-		-     "moduleIds": "named",
-		-     "removeAvailableModules": false,
-		-     "sideEffects": "false",
-		+     "moduleIds": "deterministic",
-		+     "removeAvailableModules": true,
-		+     "sideEffects": "true",
+		+   "mode": undefined,
 	`)
 	);
 	test("production", { mode: "production" }, e =>
@@ -237,21 +165,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "enable": false,
-		+       "enable": true,
-		@@ ... @@
-		-     "type": "memory",
-		+     "type": "",
-		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
-		@@ ... @@
-		-     "moduleIds": "named",
-		-     "removeAvailableModules": false,
-		-     "sideEffects": "false",
-		+     "moduleIds": "deterministic",
-		+     "removeAvailableModules": true,
-		+     "sideEffects": "true",
 	`)
 	);
 	test("development", { mode: "development" }, e =>
@@ -268,24 +183,62 @@ describe("snapshots", () => {
 	 * not support yet
 	 */
 	test("sync wasm", { experiments: { syncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "experiments": Object {},
+		+   "experiments": Object {
+		+     "syncWebAssembly": true,
+		+   },
+	`)
 	);
 	/**
 	 * not support yet
 	 */
 	test("output module", { experiments: { outputModule: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "experiments": Object {},
+		+   "experiments": Object {
+		+     "outputModule": true,
+		+   },
+	`)
 	);
 	/**
 	 * not support yet
 	 */
 	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "experiments": Object {},
+		+   "experiments": Object {
+		+     "asyncWebAssembly": true,
+		+   },
+	`)
 	);
 	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "experiments": Object {},
+			+   "experiments": Object {
+			+     "asyncWebAssembly": true,
+			+     "syncWebAssembly": true,
+			+   },
+		`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
 		e.toMatchInlineSnapshot(`
@@ -293,10 +246,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "output": Object {},
-		+   "output": Object {
+		-     "filename": undefined,
 		+     "filename": "bundle.js",
-		+   },
 	`)
 	);
 	test("function filename", { output: { filename: () => "bundle.js" } }, e =>
@@ -305,10 +256,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "output": Object {},
-		+   "output": Object {
+		-     "filename": undefined,
 		+     "filename": [Function filename],
-		+   },
 	`)
 	);
 	test("library", { output: { library: ["myLib", "awesome"] } }, e =>
@@ -317,13 +266,11 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "output": Object {},
-		+   "output": Object {
+		-     "library": undefined,
 		+     "library": Array [
 		+       "myLib",
 		+       "awesome",
 		+     ],
-		+   },
 	`)
 	);
 	test(
@@ -339,13 +286,11 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "output": Object {},
-			+   "output": Object {
+			-     "library": undefined,
 			+     "library": Array [
 			+       "myLib",
 			+       "[name]",
 			+     ],
-			+   },
 		`)
 	);
 	test(
@@ -364,8 +309,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "output": Object {},
-			+   "output": Object {
+			-     "library": undefined,
 			+     "library": Object {
 			+       "name": Array [
 			+         "my[name]Lib",
@@ -374,7 +318,6 @@ describe("snapshots", () => {
 			+       ],
 			+       "type": "var",
 			+     },
-			+   },
 		`)
 	);
 	test(
@@ -395,8 +338,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "output": Object {},
-			+   "output": Object {
+			-     "library": undefined,
 			+     "library": Object {
 			+       "name": Object {
 			+         "root": Array [
@@ -406,7 +348,6 @@ describe("snapshots", () => {
 			+       },
 			+       "type": "var",
 			+     },
-			+   },
 		`)
 	);
 	test(
@@ -427,8 +368,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "output": Object {},
-			+   "output": Object {
+			-     "library": undefined,
 			+     "library": Object {
 			+       "name": Object {
 			+         "root": Array [
@@ -439,7 +379,6 @@ describe("snapshots", () => {
 			+       },
 			+       "type": "var",
 			+     },
-			+   },
 		`)
 	);
 	test("target node", { target: "node" }, e =>
@@ -448,10 +387,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "browser",
-		@@ ... @@
-		-     "web",
-		+     "node",
+		-   "target": undefined,
+		+   "target": "node",
 	`)
 	);
 	test("target webworker", { target: "webworker" }, e =>
@@ -460,10 +397,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "browser",
-		@@ ... @@
-		-     "web",
-		+     "webworker",
+		-   "target": undefined,
+		+   "target": "webworker",
 	`)
 	);
 	test("target electron-main", { target: "electron-main" }, e =>
@@ -472,10 +407,8 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "browser",
-		@@ ... @@
-		-     "web",
-		+     "electron-main",
+		-   "target": undefined,
+		+   "target": "electron-main",
 	`)
 	);
 	test("target electron-main", { target: "electron-preload" }, e =>
@@ -484,26 +417,15 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "browser",
-		@@ ... @@
-		-     "web",
-		+     "electron-preload",
+		-   "target": undefined,
+		+   "target": "electron-preload",
 	`)
 	);
 	test("records", { recordsPath: "some-path" }, e =>
 		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("ecmaVersion", { output: { ecmaVersion: 2020 } }, e =>
-		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
-
-		@@ ... @@
-		-   "output": Object {},
-		+   "output": Object {
-		+     "ecmaVersion": 2020,
-		+   },
-	`)
+		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: "single" } }, e =>
 		e.toMatchInlineSnapshot(`
@@ -511,8 +433,10 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "runtime": undefined,
-		+       "runtime": "runtime",
+		-     "runtimeChunk": undefined,
+		+     "runtimeChunk": Object {
+		+       "name": [Function name],
+		+     },
 	`)
 	);
 	test(
@@ -524,8 +448,10 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-       "runtime": undefined,
-			+       "runtime": "runtime~main",
+			-     "runtimeChunk": undefined,
+			+     "runtimeChunk": Object {
+			+       "name": [Function name],
+			+     },
 		`)
 	);
 	test("single runtimeChunk", { optimization: { runtimeChunk: true } }, e =>
@@ -534,12 +460,21 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-       "runtime": undefined,
-		+       "runtime": "runtime~main",
+		-     "runtimeChunk": undefined,
+		+     "runtimeChunk": Object {
+		+       "name": [Function name],
+		+     },
 	`)
 	);
 	test("cache true", { cache: true }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "cache": undefined,
+		+   "cache": true,
+	`)
 	);
 	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
 		e.toMatchInlineSnapshot(`
@@ -547,8 +482,10 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-     "type": "memory",
+		-   "cache": undefined,
+		+   "cache": Object {
 		+     "type": "filesystem",
+		+   },
 	`)
 	);
 	test(
@@ -560,8 +497,10 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "type": "memory",
+			-   "cache": undefined,
+			+   "cache": Object {
 			+     "type": "filesystem",
+			+   },
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
@@ -582,13 +521,16 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "type": "memory",
-			+     "type": "",
+			-   "cache": undefined,
+			+   "cache": false,
 			@@ ... @@
 			-   "node": Object {},
-			+   "node": Object {
-			+     "dirname": undefined,
-			+   },
+			+   "node": false,
+			@@ ... @@
+			-     "splitChunks": Object {
+			-       "cacheGroups": Object {},
+			-     },
+			+     "splitChunks": false,
 		`)
 	);
 
@@ -606,24 +548,48 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "output": Object {},
-			+   "output": Object {
-			+     "trustedTypes": true,
+			-     "uniqueName": undefined,
 			+     "uniqueName": "@@@Hello World!",
-			+   },
 		`)
 	);
 
 	test("stats true", { stats: true }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "stats": Object {},
+		+   "stats": Object {
+		+     "preset": "normal",
+		+   },
+	`)
 	);
 
 	test("stats false", { stats: false }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "stats": Object {},
+		+   "stats": Object {
+		+     "preset": "none",
+		+   },
+	`)
 	);
 
 	test("stats string", { stats: "minimal" }, e =>
-		e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e.toMatchInlineSnapshot(`
+		- Expected
+		+ Received
+
+		@@ ... @@
+		-   "stats": Object {},
+		+   "stats": Object {
+		+     "preset": "minimal",
+		+   },
+	`)
 	);
 
 	test(
@@ -635,16 +601,8 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "browserslist": undefined,
-			+     "browserslist": Array [
-			+       "ie >= 9",
-			+     ],
-			@@ ... @@
-			-   "context": "<cwd>",
+			-   "context": undefined,
 			+   "context": "<cwd>/tests/fixtures/browserslist",
-			@@ ... @@
-			-         "<cwd>/src/index.js",
-			+         "<cwd>/tests/fixtures/browserslist/src/index.js",
 		`)
 	);
 
@@ -661,14 +619,10 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "type": "memory",
+			-   "cache": undefined,
+			+   "cache": Object {
 			+     "type": "filesystem",
-			@@ ... @@
-			-   "context": "<cwd>",
-			+   "context": "<cwd>/tests/fixtures",
-			@@ ... @@
-			-         "<cwd>/src/index.js",
-			+         "<cwd>/tests/fixtures/src/index.js",
+			+   },
 		`),
 		() => {
 			process.chdir(path.resolve(__dirname, "fixtures"));
@@ -686,24 +640,7 @@ describe("snapshots", () => {
 				enabledWasmLoadingTypes: ["...", "async-node"]
 			}
 		},
-		e =>
-			e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
-
-			@@ ... @@
-			-   "output": Object {},
-			+   "output": Object {
-			+     "enabledChunkLoadingTypes": Array [
-			+       "require",
-			+       "...",
-			+     ],
-			+     "enabledWasmLoadingTypes": Array [
-			+       "...",
-			+       "async-node",
-			+     ],
-			+   },
-		`)
+		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
 	);
 
 	test(
@@ -713,7 +650,17 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "experiments": Object {},
+			+   "experiments": Object {
+			+     "futureDefaults": true,
+			+   },
+		`)
 	);
 
 	test(
@@ -724,7 +671,18 @@ describe("snapshots", () => {
 				futureDefaults: true
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			-   "experiments": Object {},
+			+   "experiments": Object {
+			+     "css": false,
+			+     "futureDefaults": true,
+			+   },
+		`)
 	);
 });
 export {};

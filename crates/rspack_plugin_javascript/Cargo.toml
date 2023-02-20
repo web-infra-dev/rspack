@@ -6,7 +6,7 @@ repository = "https://github.com/modern-js-dev/rspack"
 version    = "0.1.0"
 
 [dev-dependencies]
-rspack_test = { path = "../rspack_test" }
+rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
 anyhow = "1"

@@ -1,15 +1,16 @@
-use rspack_core::{CompilerOptionsBuilder, Target};
+use rspack_core::Target;
 
-use crate::RawOption;
+use crate::RawOptionsApply;
 
 pub type RawTarget = Vec<String>;
 
-impl RawOption<Target> for RawTarget {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<Target> {
-    Target::new(&self)
-  }
+impl RawOptionsApply for RawTarget {
+  type Options = Target;
 
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    vec![String::from("web")]
+  fn apply(
+    self,
+    _: &mut Vec<rspack_core::BoxPlugin>,
+  ) -> Result<Self::Options, rspack_error::Error> {
+    Ok(Target::new(&self)?)
   }
 }

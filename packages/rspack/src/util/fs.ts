@@ -1,4 +1,4 @@
-import { WatchOptions } from "../config/watch";
+import { WatchOptions } from "../config";
 
 export interface Watcher {
 	close(): void; // closes the watcher and all underlying file watchers

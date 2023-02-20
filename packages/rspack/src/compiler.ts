@@ -13,6 +13,7 @@ import { Compilation } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import { getRawOptions } from "./config/adapter";
 
 class EntryPlugin {
 	apply() {}
@@ -32,12 +33,9 @@ class Compiler {
 	running: boolean;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
-	// @ts-expect-error
-	watching: Watching;
-	// @ts-expect-error
-	outputPath: string;
-	// @ts-expect-error
-	name: string;
+	watching?: Watching;
+	outputPath!: string;
+	name?: string;
 	inputFileSystem: any;
 	outputFileSystem: any;
 	// @ts-expect-error
@@ -128,9 +126,7 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		const options: binding.RawOptions = this.options;
-		// delete options.optimization.splitChunks.cacheGroups.default
-		// console.log({ options: options.optimization.splitChunks.cacheGroups })
+		const options = getRawOptions(this.options, this);
 		this.#_instance =
 			this.#_instance ||
 			new binding.Rspack(options, {

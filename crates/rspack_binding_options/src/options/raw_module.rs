@@ -3,22 +3,22 @@ use std::{fmt::Debug, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
-  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxedLoader,
-  CompilerOptionsBuilder, IssuerOptions, ModuleOptions, ModuleRule, ParserOptions,
+  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, IssuerOptions,
+  ModuleOptions, ModuleRule, ParserOptions,
 };
+use rspack_error::internal_error;
 use serde::Deserialize;
 #[cfg(feature = "node-api")]
 use {
   crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
-  rspack_error::{internal_error, Result},
   rspack_napi_utils::NapiResultExt,
 };
 
-use crate::{RawOption, RawResolveOptions};
+use crate::RawResolveOptions;
 
-fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxedLoader {
+fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
   match builtin {
     "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
@@ -79,21 +79,21 @@ pub struct RawModuleRuleCondition {
 }
 
 impl TryFrom<RawModuleRuleCondition> for rspack_core::ModuleRuleCondition {
-  type Error = anyhow::Error;
+  type Error = rspack_error::Error;
 
   fn try_from(x: RawModuleRuleCondition) -> std::result::Result<Self, Self::Error> {
     let matcher = x
       .matcher
-      .ok_or_else(|| anyhow::anyhow!("Matcher is required."))?;
+      .ok_or_else(|| internal_error!("Matcher is required."))?;
 
     let result = match x.r#type.as_str() {
       "string" => Self::String(matcher),
       "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(&matcher)?),
       _ => {
-        anyhow::bail!(
+        return Err(internal_error!(
           "Failed to resolve the condition type {}. Expected type is either `string` or `regexp`.",
           x.r#type
-        );
+        ));
       }
     };
 
@@ -126,80 +126,12 @@ pub struct RawModuleRule {
   pub resource_query: Option<RawModuleRuleCondition>,
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
-  #[napi(
-    ts_type = r#""js" | "jsx" | "ts" | "tsx" | "css" | "json" | "asset" | "asset/resource" | "asset/source" | "asset/inline""#
-  )]
   pub r#type: Option<String>,
   pub parser: Option<RawModuleRuleParser>,
   pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawIssuerOptions>,
   pub one_of: Option<Vec<RawModuleRule>>,
-  // Loader experimental
-  #[serde(skip_deserializing)]
-  pub func__: Option<JsFunction>,
-}
-
-impl RawOption<AssetParserOptions> for RawModuleRuleParser {
-  fn to_compiler_option(
-    self,
-    options: &CompilerOptionsBuilder,
-  ) -> anyhow::Result<AssetParserOptions> {
-    Ok(AssetParserOptions {
-      data_url_condition: self
-        .data_url_condition
-        .map(|d| d.to_compiler_option(options))
-        .transpose()?,
-    })
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    Self::default()
-  }
-}
-
-impl RawOption<AssetParserDataUrlOption> for RawAssetParserDataUrlOption {
-  fn to_compiler_option(
-    self,
-    _options: &CompilerOptionsBuilder,
-  ) -> anyhow::Result<AssetParserDataUrlOption> {
-    Ok(AssetParserDataUrlOption {
-      max_size: self.max_size,
-    })
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    Self::default()
-  }
-}
-
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawModuleRuleGenerator {
-  pub filename: Option<String>,
-}
-
-impl RawOption<AssetGeneratorOptions> for RawModuleRuleGenerator {
-  fn to_compiler_option(
-    self,
-    _options: &CompilerOptionsBuilder,
-  ) -> anyhow::Result<AssetGeneratorOptions> {
-    Ok(AssetGeneratorOptions {
-      filename: self.filename.map(Into::into),
-    })
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    Self::default()
-  }
-}
-
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawModuleRuleParser {
-  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
 }
 
 impl Debug for RawModuleRule {
@@ -219,11 +151,49 @@ impl Debug for RawModuleRule {
   }
 }
 
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawModuleRuleGenerator {
+  pub filename: Option<String>,
+}
+
+impl From<RawModuleRuleGenerator> for AssetGeneratorOptions {
+  fn from(value: RawModuleRuleGenerator) -> Self {
+    Self {
+      filename: value.filename.map(|i| i.into()),
+    }
+  }
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawModuleRuleParser {
+  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
+}
+
+impl From<RawModuleRuleParser> for AssetParserOptions {
+  fn from(value: RawModuleRuleParser) -> Self {
+    Self {
+      data_url_condition: value.data_url_condition.map(|i| i.into()),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Deserialize, Default)]
 #[napi(object)]
 #[serde(rename_all = "camelCase")]
 pub struct RawAssetParserDataUrlOption {
   pub max_size: Option<u32>,
+}
+
+impl From<RawAssetParserDataUrlOption> for AssetParserDataUrlOption {
+  fn from(value: RawAssetParserDataUrlOption) -> Self {
+    Self {
+      max_size: value.max_size,
+    }
+  }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -233,6 +203,14 @@ pub struct RawAssetParserOptions {
   pub data_url_condition: Option<RawAssetParserDataUrlOption>,
 }
 
+impl From<RawAssetParserOptions> for AssetParserOptions {
+  fn from(value: RawAssetParserOptions) -> Self {
+    Self {
+      data_url_condition: value.data_url_condition.map(|i| i.into()),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -240,7 +218,7 @@ pub struct RawParserOptions {
   pub asset: Option<RawAssetParserOptions>,
 }
 
-#[derive(Default, Debug, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleOptions {
@@ -339,7 +317,7 @@ impl rspack_core::Loader<rspack_core::CompilerContext, rspack_core::CompilationC
       rspack_core::CompilerContext,
       rspack_core::CompilationContext,
     >,
-  ) -> Result<()> {
+  ) -> rspack_error::Result<()> {
     let js_loader_context = JsLoaderContext {
       content: loader_context.content.to_owned().into_bytes().into(),
       additional_data: loader_context
@@ -470,133 +448,95 @@ pub struct JsLoaderResult {
 #[cfg(feature = "node-api")]
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;
 
-fn to_compiler_module_rule_option(
-  rule: RawModuleRule,
-  options: &CompilerOptionsBuilder,
-) -> anyhow::Result<ModuleRule> {
-  // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-  let uses = rule
-    .r#use
-    .map(|uses| {
-      uses
-        .into_iter()
-        .map(|rule_use| {
-          #[cfg(feature = "node-api")]
-          {
-            if let Some(raw_js_loader) = rule_use.js_loader {
-              return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxedLoader);
+impl TryFrom<RawModuleRule> for ModuleRule {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawModuleRule) -> std::result::Result<Self, Self::Error> {
+    // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
+    let uses = value
+      .r#use
+      .map(|uses| {
+        uses
+          .into_iter()
+          .map(|rule_use| {
+            #[cfg(feature = "node-api")]
+            {
+              if let Some(raw_js_loader) = rule_use.js_loader {
+                return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxLoader);
+              }
             }
-          }
-          if let Some(builtin_loader) = rule_use.builtin_loader {
-            return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
-          }
-          panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
-        })
-        .collect::<anyhow::Result<Vec<_>>>()
-    })
-    .transpose()?
-    .unwrap_or_default();
+            if let Some(builtin_loader) = rule_use.builtin_loader {
+              return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
+            }
+            panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
+          })
+          .collect::<anyhow::Result<Vec<_>>>()
+      })
+      .transpose()?
+      .unwrap_or_default();
 
-  let module_type = rule.r#type.map(|t| (&*t).try_into()).transpose()?;
+    let module_type = value.r#type.map(|t| (&*t).try_into()).transpose()?;
 
-  let issuer = if let Some(issuer) = rule.issuer {
-    Some(IssuerOptions {
-      not: issuer
-        .not
+    let issuer = if let Some(issuer) = value.issuer {
+      Some(IssuerOptions {
+        not: issuer
+          .not
+          .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+          .transpose()?,
+      })
+    } else {
+      None
+    };
+
+    let one_of = value
+      .one_of
+      .map(|one_of| {
+        one_of
+          .into_iter()
+          .map(|raw| raw.try_into())
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
+
+    Ok(ModuleRule {
+      test: value.test.map(|raw| raw.try_into()).transpose()?,
+      include: value
+        .include
         .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
         .transpose()?,
+      exclude: value
+        .exclude
+        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
+        .transpose()?,
+      resource_query: value.resource_query.map(|raw| raw.try_into()).transpose()?,
+      resource: value.resource.map(|raw| raw.try_into()).transpose()?,
+      r#use: uses,
+      r#type: module_type,
+      parser: value.parser.map(|raw| raw.into()),
+      generator: value.generator.map(|raw| raw.into()),
+      resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
+      side_effects: value.side_effects,
+      issuer,
+      one_of,
     })
-  } else {
-    None
-  };
-
-  let one_of: Option<Vec<ModuleRule>> = rule.one_of.map(|one_of| {
-    one_of
-      .into_iter()
-      .filter_map(|raw| match to_compiler_module_rule_option(raw, options) {
-        Ok(val) => Some(val),
-        // todo: how to handle error, ignore?
-        Err(_err) => None,
-      })
-      .collect::<Vec<_>>()
-  });
-
-  Ok(ModuleRule {
-    test: rule.test.map(|raw| raw.try_into()).transpose()?,
-    include: rule
-      .include
-      .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-      .transpose()?,
-    exclude: rule
-      .exclude
-      .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-      .transpose()?,
-    resource_query: rule.resource_query.map(|raw| raw.try_into()).transpose()?,
-    resource: rule.resource.map(|raw| raw.try_into()).transpose()?,
-    r#use: uses,
-    r#type: module_type,
-    parser: rule
-      .parser
-      .map(|raw| raw.to_compiler_option(options))
-      .transpose()?,
-    generator: rule
-      .generator
-      .map(|raw| raw.to_compiler_option(options))
-      .transpose()?,
-    resolve: rule
-      .resolve
-      .map(|raw| raw.to_compiler_option(options))
-      .transpose()?,
-    side_effects: rule.side_effects,
-    issuer,
-    one_of,
-    // side_effects: raw.
-    // Loader experimental
-    func__: None,
-  })
-}
-
-impl RawOption<ModuleRule> for RawModuleRule {
-  fn to_compiler_option(self, options: &CompilerOptionsBuilder) -> anyhow::Result<ModuleRule> {
-    to_compiler_module_rule_option(self, options)
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    RawModuleRule::default()
   }
 }
 
-impl RawOption<Option<ModuleOptions>> for RawModuleOptions {
-  fn to_compiler_option(
-    self,
-    options: &CompilerOptionsBuilder,
-  ) -> anyhow::Result<Option<ModuleOptions>> {
+impl TryFrom<RawModuleOptions> for ModuleOptions {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawModuleOptions) -> std::result::Result<Self, Self::Error> {
     // FIXME: temporary implementation
-    let rules = self
+    let rules = value
       .rules
       .into_iter()
-      .map(|rule| {
-        rule
-          .to_compiler_option(options)
-          .map_err(|err| anyhow::format_err!("failed to convert rule: {}", err))
-      })
-      .collect::<anyhow::Result<Vec<ModuleRule>>>()?;
-    Ok(Some(ModuleOptions {
+      .map(|rule| rule.try_into())
+      .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
+    Ok(ModuleOptions {
       rules,
-      parser: self.parser.map(|x| ParserOptions {
-        asset: x.asset.map(|y| AssetParserOptions {
-          data_url_condition: y.data_url_condition.map(|a| AssetParserDataUrlOption {
-            max_size: a.max_size,
-          }),
-        }),
+      parser: value.parser.map(|x| ParserOptions {
+        asset: x.asset.map(|y| y.into()),
       }),
-    }))
-  }
-
-  fn fallback_value(_options: &CompilerOptionsBuilder) -> Self {
-    RawModuleOptions {
-      rules: vec![],
-      parser: None,
-    }
+    })
   }
 }

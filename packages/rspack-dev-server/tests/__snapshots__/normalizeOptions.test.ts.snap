@@ -129,23 +129,40 @@ exports[`normalize options snapshot port string 1`] = `
 exports[`normalize options snapshot react.development and react.refresh should be true in default when hot enabled 1`] = `
 {
   "builtins": {
-    "browserslist": undefined,
+    "browserslist": [],
+    "css": {
+      "modules": {
+        "exportsOnly": false,
+        "localIdentName": "[hash]",
+        "localsConvention": "asIs",
+      },
+      "presetEnv": [],
+    },
     "decorator": {
       "emitMetadata": true,
       "legacy": true,
     },
     "define": {},
+    "devFriendlySplitChunks": false,
     "emotion": undefined,
     "html": [],
     "minify": {
+      "dropConsole": false,
       "enable": true,
       "passes": 1,
+      "pureFuncs": [],
+    },
+    "noEmitAssets": false,
+    "polyfill": true,
+    "postcss": {
+      "pxtorem": undefined,
     },
     "progress": undefined,
     "react": {
       "development": true,
       "refresh": true,
     },
+    "treeShaking": true,
   },
   "devServer": {
     "allowedHosts": "auto",

@@ -29,12 +29,14 @@ import asyncLib from "neo-async";
 import ArrayQueue from "./util/ArrayQueue";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import MultiWatching from "./multiWatching";
-import { WatchOptions } from "./config/watch";
+import { WatchOptions } from "./config";
 import { IFs } from "memfs";
+import assert from "assert";
+import { isNil } from "./util";
 
 type Any = any;
 
-export interface Node<T> {
+interface Node<T> {
 	compiler: Compiler;
 	children: Node<T>[];
 	parents: Node<T>[];
@@ -348,8 +350,8 @@ export class MultiCompiler {
 			children: [],
 			parents: []
 		}));
-		const compilerToNode = new Map<string, Node<SetupResult>>();
-
+		// only useful for MultiCompiler options.name and options.dependencies
+		const compilerToNode = new Map<string | undefined, Node<SetupResult>>();
 		for (const node of nodes) compilerToNode.set(node.compiler.name, node);
 		for (const node of nodes) {
 			const dependencies = this.dependencies.get(node.compiler);

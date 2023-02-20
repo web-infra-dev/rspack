@@ -24,7 +24,6 @@ pub fn module_rule_matcher<'a>(
     && module_rule.exclude.is_none()
     && module_rule.issuer.is_none()
     && module_rule.one_of.is_none()
-    && module_rule.func__.is_none()
   {
     return Err(internal_error!(
       "ModuleRule must have at least one condition"
@@ -39,20 +38,6 @@ pub fn module_rule_matcher_inner<'a>(
   resource_data: &ResourceData,
   issuer: Option<&str>,
 ) -> Result<Option<&'a ModuleRule>> {
-  // Internal function to match the condition against the given `data`.
-  if let Some(func) = &module_rule.func__ {
-    match func(resource_data) {
-      Ok(result) => {
-        if result {
-          return Ok(Some(module_rule));
-        } else {
-          return Ok(None);
-        }
-      }
-      Err(e) => return Err(e.into()),
-    }
-  }
-
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test {

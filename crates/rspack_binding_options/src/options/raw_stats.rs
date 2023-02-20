@@ -1,8 +1,6 @@
 use napi_derive::napi;
-use rspack_core::{CompilerOptionsBuilder, StatsOptions};
+use rspack_core::StatsOptions;
 use serde::Deserialize;
-
-use crate::RawOption;
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -11,14 +9,10 @@ pub struct RawStatsOptions {
   pub colors: bool,
 }
 
-impl RawOption<StatsOptions> for RawStatsOptions {
-  fn to_compiler_option(self, _options: &CompilerOptionsBuilder) -> anyhow::Result<StatsOptions> {
-    Ok(StatsOptions {
-      colors: self.colors,
-    })
-  }
-
-  fn fallback_value(_: &CompilerOptionsBuilder) -> Self {
-    Default::default()
+impl From<RawStatsOptions> for StatsOptions {
+  fn from(value: RawStatsOptions) -> Self {
+    Self {
+      colors: value.colors,
+    }
   }
 }

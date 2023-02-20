@@ -56,13 +56,13 @@ export class BuildCommand implements RspackCommand {
 							process.exit(2);
 						};
 						if (options.json === true) {
-							createJsonStringifyStream(stats.toJson(statsOptions))
+							createJsonStringifyStream(stats.toJson(statsOptions as any))
 								.on("error", handleWriteError)
 								.pipe(process.stdout)
 								.on("error", handleWriteError)
 								.on("close", () => process.stdout.write("\n"));
 						} else if (typeof options.json === "string") {
-							createJsonStringifyStream(stats.toJson(statsOptions))
+							createJsonStringifyStream(stats.toJson(statsOptions as any))
 								.on("error", handleWriteError)
 								.pipe(fs.createWriteStream(options.json))
 								.on("error", handleWriteError)

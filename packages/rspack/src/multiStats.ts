@@ -9,7 +9,7 @@
  */
 
 import { KnownCreateStatsOptionsContext } from ".";
-import { StatsOptionsObj } from "./config/stats";
+import { SnapshotOptions } from "./config";
 import { Stats, StatsCompilation } from "./stats";
 import { indent } from "./util";
 import identifierUtils from "./util/identifier";
@@ -36,7 +36,7 @@ export default class MultiStats {
 	#createChildOptions(
 		options: { [x: string]: any; children?: any },
 		context: (KnownCreateStatsOptionsContext & Record<string, any>) | undefined
-	): StatsOptionsObj {
+	) {
 		if (!options) {
 			options = {};
 		}

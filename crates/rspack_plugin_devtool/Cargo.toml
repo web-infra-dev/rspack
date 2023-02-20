@@ -19,6 +19,3 @@ rspack_error = { path = "../rspack_error" }
 rustc-hash   = { workspace = true }
 serde_json   = "1.0.91"
 tracing      = "0.1"
-
-[dev-dependencies]
-rspack_test = { path = "../rspack_test" }
