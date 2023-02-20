@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+#[derive(Debug)]
 pub enum Error {
   /// Generic I/O error
   Io(std::io::Error),
@@ -15,8 +16,7 @@ impl From<std::io::Error> for Error {
 impl From<Error> for rspack_error::Error {
   fn from(value: Error) -> Self {
     match value {
-      Error::Io(err) => Self::Io(err),
-      _ => rspack_error::internal_error!(value),
+      Error::Io(err) => Self::Io { source: err },
     }
   }
 }

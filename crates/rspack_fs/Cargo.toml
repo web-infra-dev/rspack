@@ -11,9 +11,11 @@ default      = ["native"]
 native       = []
 rspack-error = ["dep:rspack_error"]
 
-[dependencies]
-async-trait = "0.1.53"
 
-  [dependencies.rspack_error]
-  optional = true
-  path     = "../rspack_error"
+[dependencies.rspack_error]
+optional = true
+path     = "../rspack_error"
+
+[dependencies.futures]
+optional = true
+version  = "0.3.26"
