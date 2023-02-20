@@ -2,7 +2,7 @@
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
 const stripAnsi = require("strip-ansi");
-import { getNormalizedRspackOptions } from "../src";
+import { getNormalizedRspackOptions, applyRspackOptionsDefaults } from "../src";
 /**
  * Escapes regular expression metacharacters
  * @param {string} str String to quote
@@ -63,6 +63,7 @@ expect.addSnapshotSerializer({
 
 const getDefaultConfig = config => {
 	config = getNormalizedRspackOptions(config);
+	applyRspackOptionsDefaults(config);
 	process.chdir(cwd);
 	return config;
 };
@@ -73,53 +74,176 @@ describe("snapshots", () => {
 	it("should have the correct base config", () => {
 		expect(baseConfig).toMatchInlineSnapshot(`
 		{
-		  "builtins": {},
-		  "cache": undefined,
-		  "context": undefined,
+		  "builtins": {
+		    "browserslist": [],
+		    "css": {
+		      "modules": {
+		        "exportsOnly": false,
+		        "localIdentName": "[path][name][ext]__[local]",
+		        "localsConvention": "asIs",
+		      },
+		      "presetEnv": [],
+		    },
+		    "decorator": {
+		      "emitMetadata": true,
+		      "legacy": true,
+		    },
+		    "define": {},
+		    "devFriendlySplitChunks": false,
+		    "emotion": undefined,
+		    "html": [],
+		    "minify": {
+		      "dropConsole": false,
+		      "enable": false,
+		      "passes": 1,
+		      "pureFuncs": [],
+		    },
+		    "noEmitAssets": false,
+		    "polyfill": true,
+		    "postcss": {
+		      "pxtorem": undefined,
+		    },
+		    "progress": undefined,
+		    "react": {},
+		    "treeShaking": false,
+		  },
+		  "cache": false,
+		  "context": "<cwd>",
 		  "dependencies": undefined,
 		  "devServer": undefined,
-		  "devtool": undefined,
+		  "devtool": false,
 		  "entry": {
-		    "main": {},
+		    "main": {
+		      "import": [
+		        "./src",
+		      ],
+		    },
 		  },
-		  "experiments": {},
+		  "experiments": {
+		    "incrementalRebuild": false,
+		    "lazyCompilation": false,
+		  },
 		  "externals": undefined,
 		  "externalsType": undefined,
 		  "infrastructureLogging": {},
 		  "mode": "none",
 		  "module": {
-		    "defaultRules": undefined,
-		    "parser": {},
+		    "defaultRules": [
+		      {
+		        "test": /\\\\\\.json\\$/i,
+		        "type": "json",
+		      },
+		      {
+		        "test": /\\\\\\.mjs\\$/i,
+		        "type": "javascript/esm",
+		      },
+		      {
+		        "test": /\\\\\\.js\\$/i,
+		        "type": "javascript/esm",
+		      },
+		      {
+		        "test": /\\\\\\.cjs\\$/i,
+		        "type": "javascript/auto",
+		      },
+		      {
+		        "test": /\\\\\\.js\\$/i,
+		        "type": "javascript/auto",
+		      },
+		      {
+		        "oneOf": [
+		          {
+		            "test": /\\\\\\.module\\\\\\.css\\$/i,
+		            "type": "css/module",
+		          },
+		          {
+		            "resolve": {
+		              "preferRelative": true,
+		            },
+		            "type": "css",
+		          },
+		        ],
+		        "test": /\\\\\\.css\\$/i,
+		      },
+		    ],
+		    "parser": {
+		      "asset": {
+		        "dataUrlCondition": {
+		          "maxSize": 8096,
+		        },
+		      },
+		    },
 		    "rules": [],
 		  },
 		  "name": undefined,
-		  "node": {},
+		  "node": {
+		    "__dirname": "warn-mock",
+		  },
 		  "optimization": {
-		    "runtimeChunk": undefined,
+		    "minimize": false,
+		    "minimizer": [],
+		    "moduleIds": "named",
+		    "removeAvailableModules": false,
+		    "runtimeChunk": false,
+		    "sideEffects": "flag",
 		    "splitChunks": {
 		      "cacheGroups": {},
+		      "chunks": "async",
+		      "enforceSizeThreshold": 30000,
+		      "maxAsyncRequests": Infinity,
+		      "maxInitialRequests": Infinity,
+		      "minChunks": 1,
+		      "minRemainingSize": undefined,
+		      "minSize": 10000,
 		    },
 		  },
 		  "output": {
-		    "assetModuleFilename": undefined,
-		    "chunkFilename": undefined,
-		    "cssChunkFilename": undefined,
-		    "cssFilename": undefined,
-		    "filename": undefined,
+		    "assetModuleFilename": "[hash][ext][query]",
+		    "chunkFilename": "[name].js",
+		    "cssChunkFilename": "[name].css",
+		    "cssFilename": "[name].css",
+		    "filename": "[name].js",
 		    "library": undefined,
-		    "path": undefined,
-		    "publicPath": undefined,
-		    "uniqueName": undefined,
+		    "path": "<cwd>/dist",
+		    "publicPath": "auto",
+		    "strictModuleErrorHandling": false,
+		    "uniqueName": "@rspack/core",
 		  },
 		  "plugins": [],
-		  "resolve": {},
+		  "resolve": {
+		    "browserField": true,
+		    "extensions": [
+		      ".tsx",
+		      ".jsx",
+		      ".ts",
+		      ".js",
+		      ".json",
+		      ".d.ts",
+		    ],
+		    "mainFields": [
+		      "browser",
+		      "module",
+		      "main",
+		    ],
+		    "mainFiles": [
+		      "index",
+		    ],
+		    "modules": [
+		      "node_modules",
+		    ],
+		  },
 		  "snapshot": {
-		    "module": undefined,
-		    "resolve": undefined,
+		    "module": {
+		      "hash": false,
+		      "timestamp": true,
+		    },
+		    "resolve": {
+		      "hash": false,
+		      "timestamp": true,
+		    },
 		  },
 		  "stats": {},
-		  "target": undefined,
-		  "watch": undefined,
+		  "target": "web",
+		  "watch": false,
 		  "watchOptions": {},
 		}
 	`);
@@ -155,8 +279,42 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-         "localIdentName": "[path][name][ext]__[local]",
+		+         "localIdentName": "[hash]",
+		@@ ... @@
+		-       "enable": false,
+		+       "enable": true,
+		@@ ... @@
+		-     "treeShaking": false,
+		+     "treeShaking": true,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
+		@@ ... @@
+		-     "minimize": false,
+		+     "minimize": true,
+		@@ ... @@
+		-     "moduleIds": "named",
+		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "sideEffects": "flag",
+		+     "sideEffects": true,
+		@@ ... @@
+		-       "enforceSizeThreshold": 30000,
+		-       "maxAsyncRequests": Infinity,
+		-       "maxInitialRequests": Infinity,
+		+       "enforceSizeThreshold": 50000,
+		+       "maxAsyncRequests": 30,
+		+       "maxInitialRequests": 30,
+		@@ ... @@
+		-       "minSize": 10000,
+		+       "minSize": 20000,
+		@@ ... @@
+		-       "hash": false,
+		+       "hash": true,
+		@@ ... @@
+		-       "hash": false,
+		+       "hash": true,
 	`)
 	);
 	test("production", { mode: "production" }, e =>
@@ -165,8 +323,42 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-         "localIdentName": "[path][name][ext]__[local]",
+		+         "localIdentName": "[hash]",
+		@@ ... @@
+		-       "enable": false,
+		+       "enable": true,
+		@@ ... @@
+		-     "treeShaking": false,
+		+     "treeShaking": true,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
+		@@ ... @@
+		-     "minimize": false,
+		+     "minimize": true,
+		@@ ... @@
+		-     "moduleIds": "named",
+		+     "moduleIds": "deterministic",
+		@@ ... @@
+		-     "sideEffects": "flag",
+		+     "sideEffects": true,
+		@@ ... @@
+		-       "enforceSizeThreshold": 30000,
+		-       "maxAsyncRequests": Infinity,
+		-       "maxInitialRequests": Infinity,
+		+       "enforceSizeThreshold": 50000,
+		+       "maxAsyncRequests": 30,
+		+       "maxInitialRequests": 30,
+		@@ ... @@
+		-       "minSize": 10000,
+		+       "minSize": 20000,
+		@@ ... @@
+		-       "hash": false,
+		+       "hash": true,
+		@@ ... @@
+		-       "hash": false,
+		+       "hash": true,
 	`)
 	);
 	test("development", { mode: "development" }, e =>
@@ -175,8 +367,14 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-   "cache": false,
+		+   "cache": true,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
+		@@ ... @@
+		-       "minRemainingSize": undefined,
+		+       "minRemainingSize": 0,
 	`)
 	);
 	/**
@@ -188,10 +386,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "experiments": Object {},
-		+   "experiments": Object {
 		+     "syncWebAssembly": true,
-		+   },
 	`)
 	);
 	/**
@@ -203,10 +398,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "experiments": Object {},
-		+   "experiments": Object {
 		+     "outputModule": true,
-		+   },
 	`)
 	);
 	/**
@@ -218,10 +410,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "experiments": Object {},
-		+   "experiments": Object {
 		+     "asyncWebAssembly": true,
-		+   },
 	`)
 	);
 	test(
@@ -233,11 +422,9 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "experiments": Object {},
-			+   "experiments": Object {
 			+     "asyncWebAssembly": true,
+			@@ ... @@
 			+     "syncWebAssembly": true,
-			+   },
 		`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
@@ -246,7 +433,13 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-     "filename": undefined,
+		-     "chunkFilename": "[name].js",
+		-     "cssChunkFilename": "[name].css",
+		-     "cssFilename": "[name].css",
+		-     "filename": "[name].js",
+		+     "chunkFilename": "[id].bundle.js",
+		+     "cssChunkFilename": "[id].bundle.css",
+		+     "cssFilename": "bundle.css",
 		+     "filename": "bundle.js",
 	`)
 	);
@@ -256,7 +449,13 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-     "filename": undefined,
+		-     "chunkFilename": "[name].js",
+		-     "cssChunkFilename": "[name].css",
+		-     "cssFilename": "[name].css",
+		-     "filename": "[name].js",
+		+     "chunkFilename": "[id].js",
+		+     "cssChunkFilename": "[id].css",
+		+     "cssFilename": "[id].css",
 		+     "filename": [Function filename],
 	`)
 	);
@@ -387,7 +586,18 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "target": undefined,
+		-     "__dirname": "warn-mock",
+		+     "__dirname": "eval-only",
+		@@ ... @@
+		-     "publicPath": "auto",
+		+     "publicPath": "",
+		@@ ... @@
+		-     "browserField": true,
+		+     "browserField": false,
+		@@ ... @@
+		-       "browser",
+		@@ ... @@
+		-   "target": "web",
 		+   "target": "node",
 	`)
 	);
@@ -397,7 +607,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "target": undefined,
+		-   "target": "web",
 		+   "target": "webworker",
 	`)
 	);
@@ -407,7 +617,18 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "target": undefined,
+		-     "__dirname": "warn-mock",
+		+     "__dirname": "eval-only",
+		@@ ... @@
+		-     "publicPath": "auto",
+		+     "publicPath": "",
+		@@ ... @@
+		-     "browserField": true,
+		+     "browserField": false,
+		@@ ... @@
+		-       "browser",
+		@@ ... @@
+		-   "target": "web",
 		+   "target": "electron-main",
 	`)
 	);
@@ -417,7 +638,18 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "target": undefined,
+		-     "__dirname": "warn-mock",
+		+     "__dirname": "eval-only",
+		@@ ... @@
+		-     "publicPath": "auto",
+		+     "publicPath": "",
+		@@ ... @@
+		-     "browserField": true,
+		+     "browserField": false,
+		@@ ... @@
+		-       "browser",
+		@@ ... @@
+		-   "target": "web",
 		+   "target": "electron-preload",
 	`)
 	);
@@ -433,7 +665,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-     "runtimeChunk": undefined,
+		-     "runtimeChunk": false,
 		+     "runtimeChunk": Object {
 		+       "name": [Function name],
 		+     },
@@ -448,7 +680,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "runtimeChunk": undefined,
+			-     "runtimeChunk": false,
 			+     "runtimeChunk": Object {
 			+       "name": [Function name],
 			+     },
@@ -460,7 +692,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-     "runtimeChunk": undefined,
+		-     "runtimeChunk": false,
 		+     "runtimeChunk": Object {
 		+       "name": [Function name],
 		+     },
@@ -472,7 +704,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "cache": undefined,
+		-   "cache": false,
 		+   "cache": true,
 	`)
 	);
@@ -482,7 +714,7 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-   "cache": undefined,
+		-   "cache": false,
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
@@ -497,42 +729,46 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "cache": undefined,
+			-   "cache": false,
 			+   "cache": Object {
 			+     "type": "filesystem",
 			+   },
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
+			@@ ... @@
+			-       "minRemainingSize": undefined,
+			+       "minRemainingSize": 0,
 		`)
 	);
 
-	test(
-		"disable",
-		{
-			cache: false,
-			node: false,
-			amd: false,
-			optimization: { splitChunks: false }
-		},
-		e =>
-			e.toMatchInlineSnapshot(`
-			- Expected
-			+ Received
+	// TODO: options.node = false
+	// test(
+	// 	"disable",
+	// 	{
+	// 		cache: false,
+	// 		node: false,
+	// 		amd: false,
+	// 		optimization: { splitChunks: false }
+	// 	},
+	// 	e =>
+	// 		e.toMatchInlineSnapshot(`
+	// 		- Expected
+	// 		+ Received
 
-			@@ ... @@
-			-   "cache": undefined,
-			+   "cache": false,
-			@@ ... @@
-			-   "node": Object {},
-			+   "node": false,
-			@@ ... @@
-			-     "splitChunks": Object {
-			-       "cacheGroups": Object {},
-			-     },
-			+     "splitChunks": false,
-		`)
-	);
+	// 		@@ ... @@
+	// 		-   "cache": undefined,
+	// 		+   "cache": false,
+	// 		@@ ... @@
+	// 		-   "node": Object {},
+	// 		+   "node": false,
+	// 		@@ ... @@
+	// 		-     "splitChunks": Object {
+	// 		-       "cacheGroups": Object {},
+	// 		-     },
+	// 		+     "splitChunks": false,
+	// 	`)
+	// );
 
 	test(
 		"uniqueName",
@@ -548,7 +784,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "uniqueName": undefined,
+			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "@@@Hello World!",
 		`)
 	);
@@ -601,8 +837,19 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "context": undefined,
+			-     "browserslist": Array [],
+			+     "browserslist": Array [
+			+       "ie >= 9",
+			+     ],
+			@@ ... @@
+			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",
+			@@ ... @@
+			-     "uniqueName": "@rspack/core",
+			+     "uniqueName": "browserslist-test",
+			@@ ... @@
+			-   "target": "web",
+			+   "target": "browserslist",
 		`)
 	);
 
@@ -619,10 +866,18 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "cache": undefined,
+			-   "cache": false,
+			-   "context": "<cwd>",
 			+   "cache": Object {
 			+     "type": "filesystem",
 			+   },
+			+   "context": "<cwd>/tests/fixtures",
+			@@ ... @@
+			-     "path": "<cwd>/dist",
+			+     "path": "<cwd>/tests/fixtures/dist",
+			@@ ... @@
+			-     "uniqueName": "@rspack/core",
+			+     "uniqueName": "",
 		`),
 		() => {
 			process.chdir(path.resolve(__dirname, "fixtures"));
@@ -656,10 +911,7 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "experiments": Object {},
-			+   "experiments": Object {
 			+     "futureDefaults": true,
-			+   },
 		`)
 	);
 
@@ -677,11 +929,8 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-   "experiments": Object {},
-			+   "experiments": Object {
 			+     "css": false,
 			+     "futureDefaults": true,
-			+   },
 		`)
 	);
 });

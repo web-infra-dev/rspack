@@ -147,10 +147,6 @@ export class RspackCLI {
 				};
 			}
 
-			item.output = {
-				...item.output,
-				publicPath: item.output?.publicPath ?? "/"
-			};
 			if (typeof item.stats === "undefined") {
 				item.stats = { preset: "normal" };
 			} else if (typeof item.stats === "boolean") {
