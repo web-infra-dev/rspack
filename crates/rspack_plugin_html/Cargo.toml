@@ -15,11 +15,11 @@ rspack_testing = { path = "../rspack_testing" }
 [dependencies]
 anyhow            = "1"
 async-trait       = "0.1.53"
-base64            = "0.13.0"
 dojang            = "0.1.6"
 itertools         = "0.10.1"
 once_cell         = "1"
 rayon             = "1.5.3"
+rspack_base64     = { path = "../rspack_base64" }
 rspack_core       = { path = "../rspack_core" }
 rspack_error      = { path = "../rspack_error" }
 rustc-hash        = { workspace = true }

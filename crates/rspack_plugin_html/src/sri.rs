@@ -42,19 +42,19 @@ pub fn create_digest_from_asset(hash_func: &HtmlSriHashFunction, asset: &BoxSour
       let mut hasher = Sha384::new();
       hasher.update(byte_content);
       let digest = &hasher.finalize()[..];
-      format!("sha384-{}", base64::encode(digest))
+      format!("sha384-{}", rspack_base64::encode_to_string(digest))
     }
     HtmlSriHashFunction::Sha256 => {
       let mut hasher = Sha256::new();
       hasher.update(byte_content);
       let digest = &hasher.finalize()[..];
-      format!("sha256-{}", base64::encode(digest))
+      format!("sha256-{}", rspack_base64::encode_to_string(digest))
     }
     HtmlSriHashFunction::Sha512 => {
       let mut hasher = Sha512::new();
       hasher.update(byte_content);
       let digest = &hasher.finalize()[..];
-      format!("sha512-{}", base64::encode(digest))
+      format!("sha512-{}", rspack_base64::encode_to_string(digest))
     }
   }
 }

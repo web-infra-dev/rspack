@@ -309,7 +309,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
                 "failed to guess mime type of {}",
                 resource_path.display()
               ))?,
-            base64::encode(
+            rspack_base64::encode_to_string(
               ast_or_source
                 .as_source()
                 .expect("Expected source for asset generator, please file an issue.")

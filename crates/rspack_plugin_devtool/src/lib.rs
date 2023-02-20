@@ -114,7 +114,7 @@ impl Plugin for DevtoolPlugin {
       if self.inline {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("DevToolPlugin: append can't be false when inline is true.");
-        let base64 = base64::encode(&map_buffer);
+        let base64 = rspack_base64::encode_to_string(&map_buffer);
         let mut asset = args.compilation.assets.remove(&filename).expect("TODO:");
         asset.source = Some(
           ConcatSource::new([
@@ -184,7 +184,7 @@ pub fn wrap_eval_source_map(
   map
     .to_writer(&mut map_buffer)
     .map_err(|e| internal_error!(e.to_string()))?;
-  let base64 = base64::encode(&map_buffer);
+  let base64 = rspack_base64::encode_to_string(&map_buffer);
   let footer =
     format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
   let result = RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed();
