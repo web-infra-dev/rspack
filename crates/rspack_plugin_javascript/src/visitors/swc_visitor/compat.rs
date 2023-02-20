@@ -14,7 +14,7 @@ fn compat_by_browser_list(
   assumptions: Assumptions,
   comments: Option<&SingleThreadedComments>,
 ) -> impl Fold + '_ {
-  if let Some((browserlist, polyfill)) = browser_config {
+  if let Some((browserlist, polyfill)) = browser_config && !browserlist.is_empty() {
     Either::Left(swc_ecma_preset_env::preset_env(
       top_level_mark,
       comments,

@@ -51,7 +51,7 @@ pub struct RawBuiltins {
   pub postcss: Option<RawPostCssConfig>,
   pub minify: RawMinification,
   pub polyfill: bool,
-  pub browserslist: Vec<String>,
+  pub preset_env: Vec<String>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Define,
   pub tree_shaking: bool,
@@ -77,7 +77,7 @@ impl RawOptionsApply for RawBuiltins {
     }
     if let Some(css) = self.css {
       let options = CssConfig {
-        preset_env: css.preset_env,
+        preset_env: self.preset_env.clone(),
         postcss: self.postcss.unwrap_or_default().into(),
         modules: css.modules.try_into()?,
       };
@@ -89,7 +89,7 @@ impl RawOptionsApply for RawBuiltins {
     Ok(Builtins {
       minify: self.minify.into(),
       polyfill: self.polyfill,
-      browserslist: self.browserslist,
+      preset_env: self.preset_env,
       define: self.define,
       tree_shaking: self.tree_shaking,
       react: self.react.into(),

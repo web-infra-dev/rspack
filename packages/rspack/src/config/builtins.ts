@@ -43,7 +43,7 @@ export interface Builtins {
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minify?: boolean | Partial<RawMinification>;
 	emotion?: EmotionConfig;
-	browserslist?: string[];
+	presetEnv?: string[];
 	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
 }
@@ -150,11 +150,10 @@ export function resolveBuiltinsOptions(
 		development
 	}: { contextPath: string; production: boolean; development: boolean }
 ): RawBuiltins {
-	const browserslist =
-		builtins.browserslist ?? loadConfig({ path: contextPath }) ?? [];
+	const presetEnv =
+		builtins.presetEnv ?? loadConfig({ path: contextPath }) ?? [];
 	return {
 		css: {
-			presetEnv: builtins.css?.presetEnv ? builtins.css.presetEnv : [],
 			modules: {
 				localsConvention: "asIs",
 				localIdentName: production ? "[hash]" : "[path][name][ext]__[local]",
@@ -168,7 +167,7 @@ export function resolveBuiltinsOptions(
 		noEmitAssets: builtins.noEmitAssets ?? false,
 		define: resolveDefine(builtins.define || {}),
 		html: resolveHtml(builtins.html || []),
-		browserslist,
+		presetEnv,
 		progress: resolveProgress(builtins.progress),
 		decorator: resolveDecorator(builtins.decorator),
 		minify: resolveMinify(builtins, production),

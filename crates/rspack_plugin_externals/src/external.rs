@@ -84,10 +84,9 @@ impl Module for ExternalModule {
           format!(r#"module.exports = window["{}"]"#, self.specifier)
         }
         ExternalType::Auto => match self.target.platform {
-          TargetPlatform::BrowsersList
-          | TargetPlatform::Web
-          | TargetPlatform::WebWorker
-          | TargetPlatform::None => format!("module.exports = {}", self.specifier),
+          TargetPlatform::Web | TargetPlatform::WebWorker | TargetPlatform::None => {
+            format!("module.exports = {}", self.specifier)
+          }
           TargetPlatform::Node(_) => {
             format!(
               r#"module.exports = __rspack_require__.nr("{}")"#,

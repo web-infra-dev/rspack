@@ -3,7 +3,6 @@ pub use swc_core::ecma::ast::EsVersion;
 
 #[derive(Debug, Clone)]
 pub enum TargetPlatform {
-  BrowsersList,
   Web,
   WebWorker,
   Node(String),
@@ -15,47 +14,61 @@ impl TargetPlatform {
     matches!(self, TargetPlatform::None)
   }
   pub fn is_web(&self) -> bool {
-    matches!(self, TargetPlatform::BrowsersList | TargetPlatform::Web)
+    matches!(self, TargetPlatform::Web)
+  }
+}
+
+#[derive(Debug, Clone)]
+pub enum TargetEsVersion {
+  Esx(EsVersion),
+  BrowsersList,
+  None,
+}
+
+impl TargetEsVersion {
+  pub fn is_none(&self) -> bool {
+    matches!(self, TargetEsVersion::None)
   }
   pub fn is_browsers_list(&self) -> bool {
-    matches!(self, TargetPlatform::BrowsersList)
+    matches!(self, TargetEsVersion::BrowsersList)
   }
 }
 
 #[derive(Debug, Clone)]
 pub struct Target {
   pub platform: TargetPlatform,
-  pub es_version: Option<EsVersion>,
+  pub es_version: TargetEsVersion,
 }
 
 impl Target {
   pub fn new(args: &Vec<String>) -> anyhow::Result<Target> {
-    let mut platform: TargetPlatform = TargetPlatform::None;
-    let mut es_version: Option<EsVersion> = None;
+    let mut platform = TargetPlatform::None;
+    let mut es_version = TargetEsVersion::None;
 
     for item in args {
       let item = item.as_str();
-      if item.starts_with("es") {
+      if item.starts_with("es") || item == "browserslist" {
         // es version
-        if es_version.is_some() {
+        if !es_version.is_none() {
           return Err(anyhow!("Target es version conflict"));
         }
         let version = match item {
-          "es3" => EsVersion::Es3,
-          "es5" => EsVersion::Es5,
-          "es2015" => EsVersion::Es2015,
-          "es2016" => EsVersion::Es2016,
-          "es2017" => EsVersion::Es2017,
-          "es2018" => EsVersion::Es2018,
-          "es2019" => EsVersion::Es2019,
-          "es2020" => EsVersion::Es2020,
-          "es2021" => EsVersion::Es2021,
-          "es2022" => EsVersion::Es2022,
+          "browserslist" => TargetEsVersion::BrowsersList,
+          "es3" => TargetEsVersion::Esx(EsVersion::Es3),
+          "es5" => TargetEsVersion::Esx(EsVersion::Es5),
+          "es2015" => TargetEsVersion::Esx(EsVersion::Es2015),
+          "es2016" => TargetEsVersion::Esx(EsVersion::Es2016),
+          "es2017" => TargetEsVersion::Esx(EsVersion::Es2017),
+          "es2018" => TargetEsVersion::Esx(EsVersion::Es2018),
+          "es2019" => TargetEsVersion::Esx(EsVersion::Es2019),
+          "es2020" => TargetEsVersion::Esx(EsVersion::Es2020),
+          "es2021" => TargetEsVersion::Esx(EsVersion::Es2021),
+          "es2022" => TargetEsVersion::Esx(EsVersion::Es2022),
           _ => {
             return Err(anyhow!("Unknown target es version {}", item));
           }
         };
-        es_version = Some(version);
+        es_version = version;
         continue;
       }
 
@@ -66,7 +79,6 @@ impl Target {
       platform = match item {
         "web" => TargetPlatform::Web,
         "webworker" => TargetPlatform::WebWorker,
-        "browserslist" => TargetPlatform::BrowsersList,
         "node" => TargetPlatform::Node(String::new()),
         _ => {
           return Err(anyhow!("Unknown target platform {}", item));
