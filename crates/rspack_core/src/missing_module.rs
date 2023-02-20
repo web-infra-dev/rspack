@@ -3,7 +3,7 @@ use std::hash::Hash;
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
-use rspack_sources::{RawSource, Source};
+use rspack_sources::{RawSource, Source, SourceExt};
 use serde_json::json;
 
 use crate::{
@@ -63,10 +63,13 @@ impl Module for MissingModule {
   }
 
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
-    let code_gen =
-      CodeGenerationResult::default().with_javascript(AstOrSource::Source(box RawSource::from(
-        format!("throw new Error({});\n", json!(&self.error_message)),
-      )));
+    let code_gen = CodeGenerationResult::default().with_javascript(AstOrSource::Source(
+      RawSource::from(format!(
+        "throw new Error({});\n",
+        json!(&self.error_message)
+      ))
+      .boxed(),
+    ));
 
     Ok(code_gen)
   }

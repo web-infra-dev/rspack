@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use rspack_core::{
-  rspack_sources::{RawSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
   LibIdentOptions, Module, ModuleType, SourceType, Target, TargetPlatform,
 };
@@ -17,7 +17,7 @@ pub struct ExternalModule {
   external_type: ExternalType,
   target: Target,
 
-  cached_source: Option<Box<dyn Source>>,
+  cached_source: Option<BoxSource>,
   /// Request intended by user (without loaders from config)
   user_request: String,
 }

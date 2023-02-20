@@ -3,7 +3,7 @@ use std::{borrow::Cow, hash::Hasher};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifiable;
-use rspack_sources::{BoxSource, RawSource, Source};
+use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
 use rustc_hash::FxHashSet as HashSet;
 use xxhash_rust::xxh3::Xxh3;
 
@@ -31,7 +31,7 @@ impl RawModule {
   ) -> Self {
     Self {
       // TODO: useSourceMap, etc...
-      source: Box::new(RawSource::Source(source)),
+      source: RawSource::from(source).boxed(),
       identifier,
       readable_identifier,
       runtime_requirements,

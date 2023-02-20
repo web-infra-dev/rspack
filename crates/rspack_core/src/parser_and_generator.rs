@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
-use rspack_sources::Source;
+use rspack_sources::BoxSource;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ParseContext<'a> {
-  pub source: Box<dyn Source>,
+  pub source: BoxSource,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
   pub module_parser_options: Option<&'a AssetParserOptions>,
