@@ -155,11 +155,9 @@ impl JsCompilation {
     {
       Some(module) => match module.as_normal_module_mut() {
         Some(module) => {
-          let compat_source = CompatSource::from(source);
-          *module.ast_or_source_mut() = NormalModuleAstOrSource::new_built(
-            AstOrSource::Source(Box::new(compat_source)),
-            &vec![],
-          );
+          let compat_source = CompatSource::from(source).boxed();
+          *module.ast_or_source_mut() =
+            NormalModuleAstOrSource::new_built(AstOrSource::Source(compat_source), &vec![]);
           true
         }
         None => false,

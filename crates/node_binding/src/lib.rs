@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use dashmap::DashMap;
 use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
-use rspack_core::{Plugin, PluginExt};
+use rspack_core::PluginExt;
 
 mod js_values;
 mod plugins;
@@ -133,7 +133,7 @@ impl Rspack {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks)?.boxed());
     }
 
-    let mut compiler_options = options
+    let compiler_options = options
       .apply(&mut plugins)
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
