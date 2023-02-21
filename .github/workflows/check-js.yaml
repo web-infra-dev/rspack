@@ -32,9 +32,11 @@ jobs:
           pnpm run lint:js
           pnpm run build:cli:release
           pnpm --filter @rspack/plugin-html run build
+          pnpm --filter @rspack/fs run build:test
       - name: binding test
         run: |
           pnpm --filter @rspack/core run test
+          pnpm --filter @rspack/fs run test
           pnpm --filter @rspack/dev-server run test
           pnpm --filter @rspack/plugin-html run test
           pnpm run build:webpack
