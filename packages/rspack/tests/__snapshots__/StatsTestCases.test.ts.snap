@@ -33,37 +33,6 @@ error[scss]: Sass Error
 
 exports[`StatsTestCases should print correct stats for filename 1`] = `
 {
-  "errors": [
-    {
-      "formatted": "error[scss]: Sass Error
-  ┌─ tests/statsCases/char-based-offset-error-span/index.scss:5:10
-  │
-5 │   wrong: $wrong;
-  │          ^^^^^^ Undefined variable.
-
-",
-      "message": "Undefined variable.",
-    },
-  ],
-  "errorsCount": 1,
-  "warnings": [],
-  "warningsCount": 0,
-}
-`;
-
-exports[`StatsTestCases should print correct stats for filename 2`] = `
-"
-error[scss]: Sass Error
-  ┌─ tests/statsCases/char-based-offset-error-span/index.scss:5:10
-  │
-5 │   wrong: $wrong;
-  │          ^^^^^^ Undefined variable.
-
-"
-`;
-
-exports[`StatsTestCases should print correct stats for filename 3`] = `
-{
   "assets": [
     {
       "chunkNames": [
@@ -190,7 +159,7 @@ exports[`StatsTestCases should print correct stats for filename 3`] = `
 }
 `;
 
-exports[`StatsTestCases should print correct stats for filename 4`] = `
+exports[`StatsTestCases should print correct stats for filename 2`] = `
 "Hash: 901f4924ec5f8d25
              Asset       Size      Chunks             Chunk Names
       main.xxxx.js   1.39 KiB        main  [emitted]  main
