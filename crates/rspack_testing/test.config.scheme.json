@@ -65,6 +65,13 @@
         "postcss": {
           "$ref": "#/definitions/Postcss"
         },
+        "presetEnv": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "treeShaking": {
           "default": false,
           "type": "boolean"
@@ -75,12 +82,8 @@
     "Css": {
       "type": "object",
       "properties": {
-        "presetEnv": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "modules": {
+          "$ref": "#/definitions/ModulesConfig"
         }
       },
       "additionalProperties": false
@@ -290,6 +293,24 @@
             "string",
             "null"
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ModulesConfig": {
+      "type": "object",
+      "properties": {
+        "exportsOnly": {
+          "default": false,
+          "type": "boolean"
+        },
+        "localIdentName": {
+          "default": "[path][name][ext]__[local]",
+          "type": "string"
+        },
+        "localsConvention": {
+          "default": "asIs",
+          "type": "string"
         }
       },
       "additionalProperties": false

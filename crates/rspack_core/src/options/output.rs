@@ -4,6 +4,8 @@ use std::{
   string::ParseError,
 };
 
+use once_cell::sync::Lazy;
+use regex::{Captures, Regex};
 use sugar_path::SugarPath;
 
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation};
@@ -27,9 +29,12 @@ pub const NAME_PLACEHOLDER: &str = "[name]";
 pub const PATH_PLACEHOLDER: &str = "[path]";
 pub const EXT_PLACEHOLDER: &str = "[ext]";
 pub const ID_PLACEHOLDER: &str = "[id]";
-pub const HASH_PLACEHOLDER: &str = "[hash]";
-pub const CHUNK_HASH_PLACEHOLDER: &str = "[chunkhash]";
-pub const CONTENT_HASH_PLACEHOLDER: &str = "[contenthash]";
+pub static HASH_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
+pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
+pub static CONTENT_HASH_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
 pub const QUERY_PLACEHOLDER: &str = "[query]";
 
 #[derive(Debug, Default)]
@@ -84,24 +89,45 @@ impl Filename {
     }
 
     if let Some(contenthash) = options.contenthash {
-      let hash_placeholder = get_hash_placeholder(&filename, CONTENT_HASH_PLACEHOLDER);
-      let hash_length: usize = get_hash_length(&hash_placeholder, CONTENT_HASH_PLACEHOLDER);
-
-      filename = filename.replace(&hash_placeholder, &contenthash[..hash_length]);
+      filename = CONTENT_HASH_PLACEHOLDER
+        .replace_all(&filename, |caps: &Captures| {
+          let hash_len = contenthash.len();
+          let hash_len: usize = caps
+            .get(2)
+            .and_then(|m| m.as_str().parse().ok())
+            .unwrap_or(hash_len)
+            .min(hash_len);
+          &contenthash[..hash_len.min(contenthash.len())]
+        })
+        .into_owned();
     }
 
     if let Some(chunkhash) = options.chunkhash {
-      let hash_placeholder = get_hash_placeholder(&filename, CHUNK_HASH_PLACEHOLDER);
-      let hash_length: usize = get_hash_length(&hash_placeholder, CHUNK_HASH_PLACEHOLDER);
-
-      filename = filename.replace(&hash_placeholder, &chunkhash[..hash_length]);
+      filename = CHUNK_HASH_PLACEHOLDER
+        .replace_all(&filename, |caps: &Captures| {
+          let hash_len = chunkhash.len();
+          let hash_len: usize = caps
+            .get(2)
+            .and_then(|m| m.as_str().parse().ok())
+            .unwrap_or(hash_len)
+            .min(hash_len);
+          &chunkhash[..hash_len.min(chunkhash.len())]
+        })
+        .into_owned();
     }
 
     if let Some(hash) = options.hash {
-      let hash_placeholder = get_hash_placeholder(&filename, HASH_PLACEHOLDER);
-      let hash_length: usize = get_hash_length(&hash_placeholder, HASH_PLACEHOLDER);
-
-      filename = filename.replace(&hash_placeholder, &hash[..hash_length]);
+      filename = HASH_PLACEHOLDER
+        .replace_all(&filename, |caps: &Captures| {
+          let hash_len = hash.len();
+          let hash_len: usize = caps
+            .get(2)
+            .and_then(|m| m.as_str().parse().ok())
+            .unwrap_or(hash_len)
+            .min(hash_len);
+          &hash[..hash_len]
+        })
+        .into_owned();
     }
 
     if let Some(query) = options.query {
@@ -162,42 +188,6 @@ impl From<String> for PublicPath {
       Self::String(value)
     }
   }
-}
-
-fn get_hash_placeholder(filename: &str, placeholder: &str) -> String {
-  let filename_split = filename.split('.');
-
-  let mut return_placeholder: String = String::from(placeholder);
-  for sub_filename in filename_split {
-    if sub_filename.contains(&placeholder[..placeholder.len() - 1]) {
-      return_placeholder = String::from(sub_filename);
-    }
-  }
-
-  return_placeholder
-}
-
-fn get_hash_length(placeholder_with_length: &str, placeholder: &str) -> usize {
-  let mut hash_length: usize = placeholder_with_length.len();
-  let start_index: usize = placeholder.len() - 1;
-  let end_index: usize = placeholder_with_length.len() - 1;
-  if start_index < end_index {
-    let hash_length_string = String::from(&placeholder_with_length[start_index + 1..end_index]);
-    if !hash_length_string.is_empty() && is_string_numeric(&hash_length_string) {
-      hash_length = hash_length_string.parse().expect("TODO:")
-    }
-  }
-
-  hash_length
-}
-
-fn is_string_numeric(str: &str) -> bool {
-  for c in str.chars() {
-    if !c.is_numeric() {
-      return false;
-    }
-  }
-  true
 }
 
 #[allow(clippy::if_same_then_else)]
