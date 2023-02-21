@@ -1623,6 +1623,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "napi-build"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "882a73d9ef23e8dc2ebbffb6a6ae2ef467c0f18ac10711e4cc59c5485d41df0e"
+
+[[package]]
 name = "napi-derive"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2494,7 +2500,7 @@ dependencies = [
 name = "rspack_fs"
 version = "0.1.0"
 dependencies = [
- "async-trait",
+ "futures",
  "rspack_error",
 ]
 
@@ -2502,7 +2508,9 @@ dependencies = [
 name = "rspack_fs_node"
 version = "0.1.0"
 dependencies = [
- "async-trait",
+ "napi",
+ "napi-build",
+ "napi-derive",
  "rspack_error",
  "rspack_fs",
 ]

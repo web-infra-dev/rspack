@@ -53,6 +53,16 @@ importers:
       npm-run-all: 4.1.5
       why-is-node-running: 2.2.1
 
+  crates/rspack_fs_node:
+    specifiers:
+      '@napi-rs/cli': 2.14.2
+      '@types/jest': 29.0.2
+      memfs: 3.4.12
+    devDependencies:
+      '@napi-rs/cli': 2.14.2
+      '@types/jest': 29.0.2
+      memfs: 3.4.12
+
   examples/arco-pro:
     specifiers:
       '@antv/data-set': ^0.11.8

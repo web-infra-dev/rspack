@@ -5,7 +5,16 @@ name       = "rspack_fs_node"
 repository = "https://github.com/modern-js-dev/rspack"
 version    = "0.1.0"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
-async-trait  = "0.1.53"
+napi = { workspace = true }
+napi-derive = { workspace = true }
 rspack_error = { path = "../rspack_error" }
-rspack_fs    = { path = "../rspack_fs", features = ["async"] }
+rspack_fs = { path = "../rspack_fs", default-features = false, features = [
+  "rspack-error",
+] }
+
+[build-dependencies]
+napi-build = { workspace = true }
