@@ -4,8 +4,10 @@ module.exports = {
 	},
 	builtins: {
 		define: {
-			TRUE: "true",
-			FALSE: "false",
+			TRUE: true,
+			FALSE: false,
+			TRUE_STRING: "true",
+			FALSE_STRING: "false",
 			NUMBER_ADD: "3 + 2",
 			NULL: "null",
 			UNDEFINED: undefined,

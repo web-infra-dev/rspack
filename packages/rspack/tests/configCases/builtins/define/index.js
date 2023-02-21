@@ -6,6 +6,8 @@ const { DO_NOT_CONVERTED9 } = require("./lib");
 it("should builtins define works", () => {
 	expect(TRUE).toBe(true);
 	expect(FALSE).toBe(false);
+	expect(TRUE_STRING).toBe(true);
+	expect(FALSE_STRING).toBe(false);
 	expect(NUMBER_ADD).toBe(5);
 	expect(NULL).toBe(null);
 	expect(UNDEFINED).toBe(undefined);

@@ -39,7 +39,7 @@ export interface Builtins {
 	progress?: boolean | RawProgressPluginConfig;
 	react?: RawReactOptions;
 	noEmitAssets?: boolean;
-	define?: Record<string, string | undefined>;
+	define?: Record<string, string | boolean | undefined>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minifyOptions?: Partial<RawMinification>;
@@ -56,10 +56,12 @@ export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
 
 function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 	// @ts-expect-error
-	const entries = Object.entries(define).map(([key, value]) => [
-		key,
-		value === undefined ? "undefined" : value
-	]);
+	const entries = Object.entries(define).map(([key, value]) => {
+		if (typeof value !== "string") {
+			value = value === undefined ? "undefined" : JSON.stringify(value);
+		}
+		return [key, value];
+	});
 	return Object.fromEntries(entries);
 }
 
