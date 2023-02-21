@@ -257,15 +257,3 @@ impl Rspack {
     NAPI_ENV.with(|napi_env| *napi_env.borrow_mut() = Some(env.raw()));
   }
 }
-
-#[napi::module_init]
-fn init() {
-  use std::panic::set_hook;
-
-  use backtrace::Backtrace;
-
-  set_hook(Box::new(|panic_info| {
-    let backtrace = Backtrace::new();
-    println!("Panic: {panic_info:?}\nBacktrace: \n{backtrace:?}");
-  }));
-}
