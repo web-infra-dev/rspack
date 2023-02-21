@@ -16,11 +16,11 @@ English | [简体中文](./README.zh-CN.md)
 - 📦 **Webpack Interoperable**: Targeted interoperability the Webpack ecosystem, no need to build your ecosystem from scratch.
 - 🎨 **Batteries Included**: Out-of-the-box support for Typescript, JSX, CSS, CSS Modules, Sass, and more.
 
-Read [Introduction](https://rspack-docs.vercel.app/guide/introduction.html) for details.
+Read [Introduction](https://rspack.org/guide/introduction.html) for details.
 
 ## Getting Started
 
-- [Quick Start](https://rspack-docs.vercel.app/guide/getting-started.html)
+- [Quick Start](https://rspack.org/guide/getting-started.html)
 
 ## Contribution
 
@@ -30,7 +30,7 @@ Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack t
 
 ## Links
 
-- [Rspack Website](https://rspack-docs.vercel.app/)
+- [Rspack Website](https://rspack.org)
 
 ## Credits
 

@@ -1,12 +1,13 @@
 {
   "name": "@rspack/plugin-minify",
   "version": "0.0.22",
-  "description": "",
+  "license": "MIT",
+  "description": "Minify plugin for rspack",
   "main": "src/index.js",
   "scripts": {},
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
+  "homepage": "https://rspack.org",
+  "bugs": "https://github.com/modern-js-dev/rspack/issues",
+  "repository": "modern-js-dev/rspack",
   "publishConfig": {
     "access": "public"
   },

@@ -1,18 +1,19 @@
 {
   "name": "@rspack/postcss-loader",
   "version": "0.0.22",
-  "description": "",
+  "license": "MIT",
+  "description": "PostCSS loader for rspack",
   "main": "src/index.js",
   "scripts": {
     "test": "echo success"
   },
-  "keywords": [],
+  "homepage": "https://rspack.org",
+  "bugs": "https://github.com/modern-js-dev/rspack/issues",
+  "repository": "modern-js-dev/rspack",
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "postcss-modules": "^5.0.0",
     "postcss-pxtorem": "^6.0.0",
     "postcss": "^8.4.16"
-  },
-  "author": "",
-  "license": "MIT"
+  }
 }
