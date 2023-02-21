@@ -114,6 +114,14 @@ pub struct Minification {
   pub pure_funcs: Vec<String>,
 }
 
+#[derive(Debug, JsonSchema, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PresetEnv {
+  targets: Vec<String>,
+  mode: Option<String>,
+  core_js: Option<String>,
+}
+
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Builtins {
@@ -128,7 +136,7 @@ pub struct Builtins {
   #[serde(default)]
   pub tree_shaking: bool,
   #[serde(default)]
-  pub preset_env: Vec<String>,
+  pub preset_env: Option<PresetEnv>,
   #[serde(default)]
   pub css: Css,
 }
@@ -246,6 +254,25 @@ impl TestConfig {
   pub fn apply(self, context: PathBuf) -> (CompilerOptions, Vec<BoxPlugin>) {
     use rspack_core as c;
 
+    impl From<PresetEnv> for c::PresetEnv {
+      fn from(preset_env: PresetEnv) -> Self {
+        Self {
+          mode: preset_env
+            .mode
+            .and_then(|mode| c::string_to_mode(mode.as_str())),
+          targets: preset_env.targets,
+          core_js: preset_env.core_js,
+        }
+      }
+    }
+
+    let targets = self
+      .builtins
+      .preset_env
+      .as_ref()
+      .map(|preset_env| preset_env.targets.clone())
+      .unwrap_or_default();
+
     assert!(context.is_absolute());
     let options = CompilerOptions {
       context: c::Context::new(context.clone()),
@@ -299,7 +326,7 @@ impl TestConfig {
           drop_console: op.drop_console,
           pure_funcs: op.pure_funcs,
         }),
-        preset_env: self.builtins.preset_env.clone(),
+        preset_env: self.builtins.preset_env.map(Into::into),
         ..Default::default()
       },
       module: c::ModuleOptions {
@@ -359,7 +386,7 @@ impl TestConfig {
     }
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
-        preset_env: self.builtins.preset_env,
+        targets,
         postcss: rspack_plugin_css::plugin::PostcssConfig {
           pxtorem: self.builtins.postcss.pxtorem.map(|i| i.into()),
         },

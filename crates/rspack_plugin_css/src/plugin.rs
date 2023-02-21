@@ -144,7 +144,7 @@ impl Default for LocalsConvention {
 
 #[derive(Debug, Clone)]
 pub struct CssConfig {
-  pub preset_env: Vec<String>,
+  pub targets: Vec<String>,
   pub postcss: PostcssConfig,
   pub modules: ModulesConfig,
 }
@@ -327,8 +327,8 @@ impl CssParserAndGenerator {
     // TODO: figure out if the prefixer visitMut is stateless
     // I need to clone the preset_env every time, due to I don't know if it is stateless
     // If it is true, I reduce this clone
-    if !self.config.preset_env.is_empty() {
-      Some(Query::Multiple(self.config.preset_env.clone()))
+    if !self.config.targets.is_empty() {
+      Some(Query::Multiple(self.config.targets.clone()))
     } else {
       None
     }

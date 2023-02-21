@@ -1,33 +1,34 @@
 {
-	"entry": {
-		"main": {
-			"import": ["./src/index.js"],
-			"runtime": "runtime"
-		}
-	},
-	"builtins": {
-		"css": {
-			"presetEnv": [
+  "entry": {
+    "main": {
+      "import": ["./src/index.js"],
+      "runtime": "runtime"
+    }
+  },
+  "builtins": {
+    "css": {},
+    "presetEnv": {
+      "targets": [
 				"chrome >= 40",
 				"firefox > 10"
 			]
-		},
-		"html": [
-			{
-				"template": "index.html",
-				"sri": "sha384",
-				"filename": "chunk1.html"
-			},
-			{
-				"template": "index.html",
-				"sri": "sha256",
-				"filename": "chunk2.html"
-			},
-			{
-				"template": "index.html",
-				"sri": "sha512",
-				"filename": "chunk3.html"
-			}
-		]
-	}
+    },
+    "html": [
+      {
+        "template": "index.html",
+        "sri": "sha384",
+        "filename": "chunk1.html"
+      },
+      {
+        "template": "index.html",
+        "sri": "sha256",
+        "filename": "chunk2.html"
+      },
+      {
+        "template": "index.html",
+        "sri": "sha512",
+        "filename": "chunk3.html"
+      }
+    ]
+  }
 }
