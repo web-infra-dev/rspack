@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use async_trait::async_trait;
 use futures::future::BoxFuture;
 
 use crate::Result;

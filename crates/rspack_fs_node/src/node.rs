@@ -1,5 +1,4 @@
-use napi::{Env, JsFunction, Ref};
-use napi_derive::napi;
+use napi::{Env, JsFunction, NapiRaw, Ref};
 
 pub(crate) struct JsFunctionRef {
   env: Env,
@@ -51,4 +50,111 @@ pub(crate) struct NodeFSRef {
   pub(crate) write_file: JsFunctionRef,
   pub(crate) mkdir: JsFunctionRef,
   pub(crate) mkdirp: JsFunctionRef,
+}
+
+cfg_async! {
+  use napi::{
+    bindgen_prelude::FromNapiValue,
+    JsUnknown,
+    Either,
+  };
+  use napi_derive::napi;
+  use rspack_napi_utils::threadsafe_function::ThreadsafeFunction;
+
+  #[napi(object)]
+  pub struct ThreadsafeNodeFS {
+    pub write_file: JsFunction,
+    pub mkdir: JsFunction,
+    pub mkdirp: JsFunction,
+  }
+
+  trait ToJsUnknown {
+    fn to_js_unknown(self, env: &Env) -> napi::Result<JsUnknown>;
+  }
+
+  // Implement a few common types to avoid conflict with upperstream crates
+
+  impl ToJsUnknown for String {
+    fn to_js_unknown(self, env: &Env) -> napi::Result<JsUnknown> {
+      Ok(env.create_string_from_std(self)?.into_unknown())
+    }
+  }
+
+  impl ToJsUnknown for Vec<u8> {
+    fn to_js_unknown(self, env: &Env) -> napi::Result<JsUnknown> {
+      env.create_buffer_with_data(self).map(|v| v.into_unknown())
+    }
+  }
+
+  trait JsValuesTupleIntoVec {
+    fn into_vec(self, env: &Env) -> napi::Result<Vec<JsUnknown>>;
+  }
+
+  impl<T: ToJsUnknown> JsValuesTupleIntoVec for T {
+    fn into_vec(self, env: &Env) -> napi::Result<Vec<JsUnknown>> {
+      Ok(vec![<T as ToJsUnknown>::to_js_unknown(self, env)?])
+    }
+  }
+
+  macro_rules! impl_js_value_tuple_to_vec {
+    ($($ident:ident),*) => {
+      impl<$($ident: ToJsUnknown),*> JsValuesTupleIntoVec for ($($ident,)*) {
+        fn into_vec(self, env: &Env) -> napi::Result<Vec<JsUnknown>> {
+          #[allow(non_snake_case)]
+          let ($($ident,)*) = self;
+          Ok(vec![$(<$ident as ToJsUnknown>::to_js_unknown($ident, env)?),*])
+        }
+      }
+    };
+  }
+
+  impl_js_value_tuple_to_vec!(A);
+  impl_js_value_tuple_to_vec!(A, B);
+  impl_js_value_tuple_to_vec!(A, B, C);
+
+  pub(crate) trait TryIntoThreadsafeFunctionRef {
+    fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeFunctionRef>;
+  }
+
+  pub(crate) trait TryIntoThreadsafeFunction<T, R> {
+    fn try_into_tsfn(self, env: &Env) -> napi::Result<ThreadsafeFunction<T, R>>;
+  }
+
+  impl<T: JsValuesTupleIntoVec, R: FromNapiValue + Send + 'static> TryIntoThreadsafeFunction<T, R>
+    for JsFunction
+  {
+    fn try_into_tsfn(self, env: &Env) -> napi::Result<ThreadsafeFunction<T, R>> {
+      let mut tsfn: ThreadsafeFunction<T, R> =
+        ThreadsafeFunction::create(env.raw(), unsafe { self.raw() }, 0, |ctx| {
+          let (ctx, resolver) = ctx.split_into_parts();
+
+          let env = ctx.env;
+          let cb = ctx.callback;
+          let result = <T as JsValuesTupleIntoVec>::into_vec(ctx.value, &env)?;
+          let result = cb.call(None, &result);
+
+          resolver.resolve::<R>(result, |_, v| Ok(v))
+        })?;
+
+      tsfn.unref(env)?;
+
+      Ok(tsfn)
+    }
+  }
+
+  impl TryIntoThreadsafeFunctionRef for ThreadsafeNodeFS {
+    fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeFunctionRef> {
+      Ok(ThreadsafeFunctionRef {
+        write_file: self.write_file.try_into_tsfn(env)?,
+        mkdir: self.mkdir.try_into_tsfn(env)?,
+        mkdirp: self.mkdirp.try_into_tsfn(env)?,
+      })
+    }
+  }
+
+  pub(crate) struct ThreadsafeFunctionRef {
+    pub(crate) write_file: ThreadsafeFunction<(String, Vec<u8>), ()>,
+    pub(crate) mkdir: ThreadsafeFunction<String, ()>,
+    pub(crate) mkdirp: ThreadsafeFunction<String, Either<String, ()>>,
+  }
 }

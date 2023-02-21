@@ -1,4 +1,3 @@
-#[macro_use]
 mod macros;
 
 cfg_async! {

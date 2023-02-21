@@ -2,6 +2,8 @@ use std::{ffi::CString, ptr};
 
 use napi::{bindgen_prelude::*, sys::napi_value, Env, Error, Result};
 
+pub mod threadsafe_function;
+
 pub trait NapiErrorExt {
   fn into_rspack_error(self) -> rspack_error::Error;
   fn into_rspack_error_with_detail(self, env: &Env) -> rspack_error::Error;
