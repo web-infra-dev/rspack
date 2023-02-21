@@ -1,10 +1,11 @@
-<h1 align="center">Rspack</h1>
+![rspack banner](https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1142.png)
 
-<p align="center">A Fast Rust-based Web Bundler.</p>
+<h2 align="center">A fast Rust-based web bundler</h2>
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&color=007ec6" alt="npm version" />
-  <img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&color=007ec6" alt="downloads" />
+  <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
+  <img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" />
+  <a href="https://github.com/modern-js-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
 </p>
 
 English | [简体中文](./README.zh-CN.md)
