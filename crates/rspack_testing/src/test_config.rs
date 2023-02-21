@@ -343,7 +343,7 @@ impl TestConfig {
             locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
               &modules.locals_convention.unwrap_or("asIs".to_string()),
             )
-            .unwrap(),
+            .expect("Invalid css.modules.locals_convention"),
             local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
               modules
                 .local_ident_name
