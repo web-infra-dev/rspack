@@ -1,6 +1,6 @@
 ![rspack banner](https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1142.png)
 
-<h2 align="center">A fast Rust-based web bundler.</h2>
+<h2 align="center">A fast Rust-based web bundler</h2>
 
 <p align="center">
   <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
