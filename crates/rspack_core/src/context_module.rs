@@ -62,7 +62,7 @@ impl PartialEq for ContextOptions {
   fn eq(&self, other: &Self) -> bool {
     self.mode == other.mode
       && self.recursive == other.recursive
-    //   && self.regExp == other.regExp
+      && self.reg_str == other.reg_str
       && self.include == other.include
       && self.exclude == other.exclude
       && self.category == other.category
@@ -75,7 +75,7 @@ impl Hash for ContextOptions {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.mode.hash(state);
     self.recursive.hash(state);
-    // self.regExp.hash(state);
+    self.reg_str.hash(state);
     self.include.hash(state);
     self.exclude.hash(state);
     self.category.hash(state);
