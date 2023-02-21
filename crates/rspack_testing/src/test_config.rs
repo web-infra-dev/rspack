@@ -119,15 +119,32 @@ pub struct Builtins {
   #[serde(default)]
   pub preset_env: Vec<String>,
   #[serde(default)]
-  pub modules: Option<ModulesConfig>,
+  pub css: Css,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Css {
+  #[serde(default)]
+  pub modules: ModulesConfig,
+}
+
+#[derive(Debug, JsonSchema, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields, default)]
 pub struct ModulesConfig {
-  pub locals_convention: Option<String>,
-  pub local_ident_name: Option<String>,
-  pub exports_only: Option<bool>,
+  pub locals_convention: String,
+  pub local_ident_name: String,
+  pub exports_only: bool,
+}
+
+impl Default for ModulesConfig {
+  fn default() -> Self {
+    Self {
+      locals_convention: "asIs".to_string(),
+      local_ident_name: "[path][name][ext]__[local]".to_string(),
+      exports_only: false,
+    }
+  }
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default)]
@@ -335,29 +352,16 @@ impl TestConfig {
         postcss: rspack_plugin_css::plugin::PostcssConfig {
           pxtorem: self.builtins.postcss.pxtorem.map(|i| i.into()),
         },
-        modules: self
-          .builtins
-          .css
-          .modules
-          .map(|modules| rspack_plugin_css::plugin::ModulesConfig {
-            locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
-              &modules.locals_convention.unwrap_or("asIs".to_string()),
-            )
-            .expect("Invalid css.modules.locals_convention"),
-            local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
-              modules
-                .local_ident_name
-                .unwrap_or("[path][name][ext]__[local]".to_string()),
-            ),
-            exports_only: modules.exports_only.unwrap_or_default(),
-          })
-          .unwrap_or_else(|| rspack_plugin_css::plugin::ModulesConfig {
-            locals_convention: Default::default(),
-            local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
-              "[path][name][ext]__[local]".to_string(),
-            ),
-            exports_only: Default::default(),
-          }),
+        modules: rspack_plugin_css::plugin::ModulesConfig {
+          locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
+            &self.builtins.css.modules.locals_convention,
+          )
+          .expect("Invalid css.modules.locals_convention"),
+          local_ident_name: rspack_plugin_css::plugin::LocalIdentName::from(
+            self.builtins.css.modules.local_ident_name,
+          ),
+          exports_only: self.builtins.css.modules.exports_only,
+        },
       })
       .boxed(),
     );
