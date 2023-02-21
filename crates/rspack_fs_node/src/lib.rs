@@ -26,7 +26,7 @@ impl NodeWritableFileSystem {
 
 impl WritableFileSystem for NodeWritableFileSystem {
   fn create_dir<P: AsRef<Path>>(&self, dir: P) -> Result<()> {
-    let dir = dir.as_ref().to_string_lossy().to_string();
+    let dir = dir.as_ref().to_string_lossy();
     let mkdir = self.fs_ref.mkdir.get().expect("Failed to get mkdir");
     mkdir
       .call(
@@ -47,7 +47,7 @@ impl WritableFileSystem for NodeWritableFileSystem {
   }
 
   fn create_dir_all<P: AsRef<Path>>(&self, dir: P) -> Result<()> {
-    let dir = dir.as_ref().to_string_lossy().to_string();
+    let dir = dir.as_ref().to_string_lossy();
     let mkdirp = self.fs_ref.mkdirp.get().expect("Failed to get mkdirp");
     mkdirp
       .call(
@@ -68,7 +68,7 @@ impl WritableFileSystem for NodeWritableFileSystem {
   }
 
   fn write<P: AsRef<Path>, D: AsRef<[u8]>>(&self, file: P, data: D) -> Result<()> {
-    let file = file.as_ref().to_str().expect("Invalid file path");
+    let file = file.as_ref().to_string_lossy();
     let buf = data.as_ref().to_vec();
     let write_file = self
       .fs_ref
@@ -82,7 +82,7 @@ impl WritableFileSystem for NodeWritableFileSystem {
         &[
           self
             .env
-            .create_string(file)
+            .create_string(&file)
             .expect("Failed to create string")
             .into_unknown(),
           self
