@@ -13,7 +13,7 @@
 ## ✨ 特性
 
 - 🚀 **Fast**: 基于 Rust 实现，构建速度极快，带给你极致的开发体验。
-- 📦 **Webpack Interoperable**: 与 Webpack 生态有很好的兼容性，无需从零构建你的生态。
+- 📦 **Webpack Interoperable**: 与 Webpack 生态有良好的兼容性，无需从零构建你的生态。
 - 🎨 **Batteries Included**: 对 Typescript、JSX、CSS、CSS Modules、Sass 等提供开箱即用的支持。
 
 请阅读 [Rspack 介绍](https://rspack.org/zh/guide/introduction.html) 章节来了解更多。
