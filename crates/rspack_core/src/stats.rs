@@ -72,12 +72,12 @@ impl Stats<'_> {
           .iter()
           .map(|chunk| chunk.id.clone().expect("Chunk should have id"))
           .collect();
-        asset.chunks.sort();
+        asset.chunks.sort_unstable();
         asset.chunk_names = chunks
           .iter()
           .filter_map(|chunk| chunk.name.clone())
           .collect();
-        asset.chunk_names.sort();
+        asset.chunk_names.sort_unstable();
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
@@ -155,7 +155,7 @@ impl Stats<'_> {
               .to_string()
           })
           .collect();
-        chunks.sort();
+        chunks.sort_unstable();
 
         Ok(StatsModule {
           r#type: "module",
@@ -193,7 +193,7 @@ impl Stats<'_> {
       .into_iter()
       .map(|c| {
         let mut files = Vec::from_iter(c.files.iter().cloned());
-        files.sort();
+        files.sort_unstable();
         StatsChunk {
           r#type: "chunk",
           files,
@@ -235,7 +235,7 @@ impl Stats<'_> {
           })
           .map(|c| c.expect_id().to_string())
           .collect();
-        chunks.sort();
+        chunks.sort_unstable();
         let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
           let chunk = self
             .compilation

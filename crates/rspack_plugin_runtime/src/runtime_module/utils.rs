@@ -53,7 +53,7 @@ pub fn get_initial_chunk_ids(
 
 pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
   let mut v = Vec::from_iter(chunks.iter());
-  v.sort();
+  v.sort_unstable();
 
   format!(
     r#"{{{}}}"#,
@@ -65,7 +65,7 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
 
 pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
   let mut v = Vec::from_iter(chunks.iter());
-  v.sort();
+  v.sort_unstable();
 
   format!(
     r#"[{}]"#,

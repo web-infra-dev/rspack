@@ -85,7 +85,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
         .map(|chunk| chunk.as_ref(&compilation.chunk_by_ukey))
         .filter_map(|c| c.id.as_deref())
         .collect::<Vec<_>>();
-      chunk_names_in_same_group.sort();
+      chunk_names_in_same_group.sort_unstable();
 
       if chunk_names_in_same_group.len() == 1 {
         // All modules of the chunk is from one group, to avoid conflict, we need to add a suffix
