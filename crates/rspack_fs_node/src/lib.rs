@@ -103,7 +103,7 @@ impl WritableFileSystem for NodeWritableFileSystem {
 
 #[cfg(node)]
 mod node_test {
-  use napi::Env;
+  use napi::{bindgen_prelude::Buffer, Env};
   use napi_derive::napi;
 
   use super::*;
@@ -123,17 +123,17 @@ mod node_test {
     }
 
     #[napi]
-    pub fn write(&self, file: String, data: Vec<u8>) {
+    pub fn write_sync(&self, file: String, data: Buffer) {
       self.writable_fs.write(file, data).unwrap();
     }
 
     #[napi]
-    pub fn mkdir(&self, file: String) {
+    pub fn mkdir_sync(&self, file: String) {
       self.writable_fs.create_dir(file).unwrap();
     }
 
     #[napi]
-    pub fn mkdirp(&self, file: String) {
+    pub fn mkdirp_sync(&self, file: String) {
       self.writable_fs.create_dir_all(file).unwrap();
     }
   }

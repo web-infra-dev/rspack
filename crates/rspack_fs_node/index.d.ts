@@ -11,7 +11,7 @@ export interface NodeFs {
 export type TestFS = TestFs
 export class TestFs {
   constructor(fs: NodeFs)
-  write(file: string, data: Array<number>): void
-  mkdir(file: string): void
-  mkdirp(file: string): void
+  writeSync(file: string, data: Buffer): void
+  mkdirSync(file: string): void
+  mkdirpSync(file: string): void
 }
