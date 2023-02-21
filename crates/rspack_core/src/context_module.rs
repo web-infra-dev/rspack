@@ -451,13 +451,9 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   Identifier::from(format!("{options}"))
 }
 
-pub fn normalize_context(context: &str) -> String {
-  if context == "." {
+pub fn normalize_context(str: &str) -> String {
+  if str == "./" || str == "." {
     return "".to_string();
-  }
-  let mut str = context;
-  if str.starts_with("./") {
-    str = &str[2..];
   }
   if str.ends_with('/') {
     return str.to_string();
