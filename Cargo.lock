@@ -2883,16 +2883,15 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.1.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67eaf8b9684e4ed3ea8eaa406e9f4dfbde9d265f502df58f7dbaf7a953795289"
+version = "0.2.0"
+source = "git+https://github.com/modern-js-dev/rspack-sources?branch=main#0b74b3f9a0d85339a70ba72b62db815be02044e2"
 dependencies = [
  "dashmap",
  "dyn-clone",
- "hashbrown",
  "memchr",
  "once_cell",
  "parking_lot 0.12.1",
+ "rustc-hash",
  "serde",
  "serde_json",
  "smallvec",

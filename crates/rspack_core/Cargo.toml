@@ -29,7 +29,7 @@ rspack_error = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../loader_runner" }
 rspack_regex = { path = "../rspack_regex" }
-rspack_sources = { version = "0.1.19" }
+rspack_sources = { git = "https://github.com/modern-js-dev/rspack-sources", branch = "main" }
 rspack_symbol = { path = "../rspack_symbol" }
 rspack_tracing = { path = "../rspack_tracing" }
 rustc-hash = { workspace = true }
