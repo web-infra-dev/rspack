@@ -66,6 +66,7 @@ impl DependencyScanner {
                       mode: ContextMode::Sync,
                       recursive: true,
                       reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                      reg_str: reg,
                       include: None,
                       exclude: None,
                       category: DependencyCategory::CommonJS,
@@ -99,6 +100,7 @@ impl DependencyScanner {
                 mode: ContextMode::Lazy,
                 recursive: true,
                 reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                reg_str: reg,
                 include: None,
                 exclude: None,
                 category: DependencyCategory::Esm,
@@ -230,11 +232,17 @@ impl DependencyScanner {
             true
           };
 
-        let reg_exp =
+        let (reg_exp, reg_str) =
           if let Some(Lit::Regex(regex)) = node.args.get(2).and_then(|x| x.expr.as_lit()) {
-            RspackRegex::try_from(regex).expect("reg failed")
+            (
+              RspackRegex::try_from(regex).expect("reg failed"),
+              format!("{}|{}", regex.exp, regex.flags),
+            )
           } else {
-            RspackRegex::new(r"^\.\/.*$").expect("reg failed")
+            (
+              RspackRegex::new(r"^\.\/.*$").expect("reg failed"),
+              r"^\.\/.*$".to_string(),
+            )
           };
 
         let mode = if let Some(Lit::Str(str)) = node.args.get(3).and_then(|x| x.expr.as_lit()) {
@@ -255,6 +263,7 @@ impl DependencyScanner {
             mode,
             recursive,
             reg_exp,
+            reg_str,
             include: None,
             exclude: None,
             category: DependencyCategory::CommonJS,

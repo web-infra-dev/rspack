@@ -35,6 +35,7 @@ pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
   pub reg_exp: RspackRegex,
+  pub reg_str: String, // generate context module id
   pub include: Option<String>,
   pub exclude: Option<String>,
   pub category: DependencyCategory,
@@ -45,10 +46,10 @@ impl Display for ContextOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "({:?}, {}, {:?},  {:?}, {:?},  {:?}, {})",
+      "({:?}, {}, {},  {:?}, {:?},  {:?}, {})",
       self.mode,
       self.recursive,
-      self.reg_exp,
+      self.reg_str,
       self.include,
       self.exclude,
       self.category,
@@ -289,11 +290,11 @@ impl Module for ContextModule {
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
     let mut id = contextify(options.context, &self.options.resource);
-    id.push_str(format!(" {:?}", self.options.context_options.mode).as_str());
+    id.push_str(format!(" {:?} ", self.options.context_options.mode).as_str());
     if self.options.context_options.recursive {
-      id.push_str(" recursive");
+      id.push_str(" recursive ");
     }
-    id.push_str(format!(" {:?}", self.options.context_options.reg_exp).as_str());
+    id.push_str(&self.options.context_options.reg_str);
     Some(Cow::Owned(id))
   }
 
