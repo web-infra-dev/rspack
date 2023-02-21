@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
+var _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
 const lib = __webpack_require__("./lib.js");
 const { DO_NOT_CONVERTED9  } = __webpack_require__("./lib.js");
 equal(true, true);
@@ -241,13 +241,19 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    default: ()=>_default,
-    DO_NOT_CONVERTED7: ()=>DO_NOT_CONVERTED7,
-    DO_NOT_CONVERTED9: ()=>DO_NOT_CONVERTED9
+    default: function() {
+        return _default;
+    },
+    DO_NOT_CONVERTED7: function() {
+        return DO_NOT_CONVERTED7;
+    },
+    DO_NOT_CONVERTED9: function() {
+        return DO_NOT_CONVERTED9;
+    }
 });
 const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
-const _default = 401;
+var _default = 401;
 },
 
 },function(__webpack_require__) {

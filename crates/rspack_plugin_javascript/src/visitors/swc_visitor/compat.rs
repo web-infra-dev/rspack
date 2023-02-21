@@ -6,15 +6,15 @@ use swc_core::ecma::transforms::base::{feature::FeatureFlag, pass::noop, Assumpt
 use swc_core::ecma::transforms::compat;
 use swc_core::ecma::visit::Fold;
 
-type BrowserConfig = (Vec<String>, bool);
+type PresetEnvConfig = (Vec<String>, bool);
 
-fn compat_by_browser_list(
-  browser_config: Option<BrowserConfig>,
+fn compat_by_preset_env(
+  preset_env_config: Option<PresetEnvConfig>,
   top_level_mark: Mark,
   assumptions: Assumptions,
   comments: Option<&SingleThreadedComments>,
 ) -> impl Fold + '_ {
-  if let Some((browserlist, polyfill)) = browser_config {
+  if let Some((preset_env, polyfill)) = preset_env_config && !preset_env.is_empty() {
     Either::Left(swc_ecma_preset_env::preset_env(
       top_level_mark,
       comments,
@@ -25,7 +25,7 @@ fn compat_by_browser_list(
           Some(swc_ecma_preset_env::Mode::Entry)
         },
         targets: Some(swc_ecma_preset_env::Targets::Query(
-          preset_env_base::query::Query::Multiple(browserlist),
+          preset_env_base::query::Query::Multiple(preset_env),
         )),
         ..Default::default()
       },
@@ -137,7 +137,7 @@ fn compat_by_es_version(
 }
 
 pub fn compat(
-  browser_config: Option<BrowserConfig>,
+  preset_env_config: Option<PresetEnvConfig>,
   es_version: Option<EsVersion>,
   assumptions: Assumptions,
   top_level_mark: Mark,
@@ -146,7 +146,7 @@ pub fn compat(
   is_typescript: bool,
 ) -> impl Fold + '_ {
   chain!(
-    compat_by_browser_list(browser_config, top_level_mark, assumptions, comments),
+    compat_by_preset_env(preset_env_config, top_level_mark, assumptions, comments),
     compat_by_es_version(
       es_version,
       unresolved_mark,

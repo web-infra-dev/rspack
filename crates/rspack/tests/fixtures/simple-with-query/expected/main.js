@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 const a = 3;
 },
@@ -15,8 +17,8 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _bJsx = __webpack_require__("./b.jsx");
-const _bJsX = __webpack_require__("./b.js?x");
+var _bJsx = __webpack_require__("./b.jsx");
+var _bJsX = __webpack_require__("./b.js?x");
 _bJsX.a;
 _bJsx.a;
 console.log("hello, world");
@@ -28,7 +30,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 const a = 3;
 },

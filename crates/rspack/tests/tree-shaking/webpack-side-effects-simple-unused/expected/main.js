@@ -11,11 +11,15 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    x: ()=>x,
-    z: ()=>_cJs.z
+    x: function() {
+        return x;
+    },
+    z: function() {
+        return _cJs.z;
+    }
 });
-const _cJs = __webpack_require__("../node_modules/pmodule/c.js");
-const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
+var _cJs = __webpack_require__("../node_modules/pmodule/c.js");
+var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 var x = "x";
 (0, _trackerJs.track)("b.js");
 },
@@ -26,9 +30,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "z", {
     enumerable: true,
-    get: ()=>z
+    get: function() {
+        return z;
+    }
 });
-const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
+var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 var z = "z";
 (0, _trackerJs.track)("c.js");
 },
@@ -44,14 +50,20 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    x: ()=>_bJs.x,
-    z: ()=>_bJs.z,
-    default: ()=>_default
+    x: function() {
+        return _bJs.x;
+    },
+    z: function() {
+        return _bJs.z;
+    },
+    default: function() {
+        return _default;
+    }
 });
-const _bJs = __webpack_require__("../node_modules/pmodule/b.js");
-const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
+var _bJs = __webpack_require__("../node_modules/pmodule/b.js");
+var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
 (0, _trackerJs.track)("index.js");
-const _default = "def";
+var _default = "def";
 },
 "../node_modules/pmodule/tracker.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -65,8 +77,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    track: ()=>track,
-    log: ()=>log
+    track: function() {
+        return track;
+    },
+    log: function() {
+        return log;
+    }
 });
 function track(file) {
     log.push(file);
@@ -79,8 +95,8 @@ var log = [];
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-const _indexJs = __webpack_require__.ir(__webpack_require__("../node_modules/pmodule/index.js"));
+var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
+var _indexJs = __webpack_require__.ir(__webpack_require__("../node_modules/pmodule/index.js"));
 _indexJs.default.should.be.eql("def");
 _indexJs.x.should.be.eql("x");
 _indexJs.z.should.be.eql("z");

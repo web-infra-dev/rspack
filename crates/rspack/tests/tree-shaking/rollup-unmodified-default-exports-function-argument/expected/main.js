@@ -11,13 +11,17 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    default: ()=>_default,
-    bar: ()=>bar
+    default: function() {
+        return _default;
+    },
+    bar: function() {
+        return bar;
+    }
 });
 var foo = function() {
     return 42;
 };
-const _default = foo;
+var _default = foo;
 function bar() {
     return contrivedExample(foo);
 }
@@ -27,7 +31,7 @@ function bar() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
+var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
 var answer = (0, _fooJs.default)();
 (0, _fooJs.bar)();
 console.log(answer);

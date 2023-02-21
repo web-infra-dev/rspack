@@ -9,7 +9,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 const a = 3;
 },
@@ -18,8 +20,8 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _aJs = __webpack_require__("./a.js");
-const _aSvg = __webpack_require__.ir(__webpack_require__("./a.svg"));
+var _aJs = __webpack_require__("./a.js");
+var _aSvg = __webpack_require__.ir(__webpack_require__("./a.svg"));
 _aJs.a;
 _aSvg.default;
 },

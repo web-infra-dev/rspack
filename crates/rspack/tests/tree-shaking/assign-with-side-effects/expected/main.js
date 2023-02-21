@@ -6,9 +6,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "app", {
     enumerable: true,
-    get: ()=>app
+    get: function() {
+        return app;
+    }
 });
-const _libJs = __webpack_require__("./lib.js");
+var _libJs = __webpack_require__("./lib.js");
 function app() {}
 app.prototype.result = _libJs.result;
 },
@@ -17,7 +19,7 @@ app.prototype.result = _libJs.result;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__("./app.js");
+var _appJs = __webpack_require__("./app.js");
 (0, _appJs.app)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
@@ -27,7 +29,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "result", {
     enumerable: true,
-    get: ()=>result
+    get: function() {
+        return result;
+    }
 });
 const result = 20000;
 },

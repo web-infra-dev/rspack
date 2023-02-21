@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "defaults", {
     enumerable: true,
-    get: ()=>defaults
+    get: function() {
+        return defaults;
+    }
 });
 const defaults = {
     test: 1000
@@ -19,9 +21,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Something", {
     enumerable: true,
-    get: ()=>Something
+    get: function() {
+        return Something;
+    }
 });
-const _layoutJs = __webpack_require__("./Layout.js");
+var _layoutJs = __webpack_require__("./Layout.js");
 class Test {
     test = _layoutJs.defaults.test + 20000;
 }
@@ -33,7 +37,7 @@ var Something = 333;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _exportJs = __webpack_require__("./export.js");
+var _exportJs = __webpack_require__("./export.js");
 (0, _exportJs.Something)();
 },
 

@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _moduleJs = __webpack_require__("./module.js");
+var _moduleJs = __webpack_require__("./module.js");
 expect(_moduleJs.ok).toBe(true);
 expect(_moduleJs.ok2).toBe(true);
 },
@@ -25,8 +25,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    ok: ()=>ok,
-    ok2: ()=>ok2
+    ok: function() {
+        return ok;
+    },
+    ok2: function() {
+        return ok2;
+    }
 });
 try {
     NOT_DEFINED;

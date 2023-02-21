@@ -11,7 +11,7 @@ __webpack_require__.es(__webpack_require__("./lib.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__("./app.js");
+var _appJs = __webpack_require__("./app.js");
 (0, _appJs.something)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
@@ -21,7 +21,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "something", {
     enumerable: true,
-    get: ()=>something
+    get: function() {
+        return something;
+    }
 });
 const something = function() {};
 },

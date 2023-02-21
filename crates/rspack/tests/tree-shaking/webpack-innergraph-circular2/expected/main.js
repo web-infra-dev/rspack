@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _moduleJs = __webpack_require__("./module.js");
+var _moduleJs = __webpack_require__("./module.js");
 it("should be able to handle circular referenced", ()=>{
     expect((0, _moduleJs.x)()).toEqual([
         _moduleJs.y,
@@ -48,11 +48,21 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    x: ()=>x,
-    y: ()=>y,
-    z: ()=>z,
-    a: ()=>a,
-    f3: ()=>f3
+    x: function() {
+        return x;
+    },
+    y: function() {
+        return y;
+    },
+    z: function() {
+        return z;
+    },
+    a: function() {
+        return a;
+    },
+    f3: function() {
+        return f3;
+    }
 });
 function x() {
     return [

@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _stuffJs = __webpack_require__("./stuff.js");
+var _stuffJs = __webpack_require__("./stuff.js");
 (0, _stuffJs.bar)();
 var f = (0, _stuffJs.baz)();
 f();
@@ -27,8 +27,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    bar: ()=>bar,
-    baz: ()=>Baz
+    bar: function() {
+        return bar;
+    },
+    baz: function() {
+        return Baz;
+    }
 });
 function bar() {
     console.log("outer bar");

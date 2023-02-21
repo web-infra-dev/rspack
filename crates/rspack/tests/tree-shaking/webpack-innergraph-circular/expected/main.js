@@ -4,8 +4,8 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _innerJs = __webpack_require__("./inner.js");
-const _moduleJs = __webpack_require__("./module.js");
+var _innerJs = __webpack_require__("./inner.js");
+var _moduleJs = __webpack_require__("./module.js");
 it("export should be unused when only unused functions use it", ()=>{
     expect((0, _moduleJs.y)("a")).toBe("okBAA");
     expect(_innerJs.exportAUsed).toBe(true);
@@ -26,11 +26,21 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    A: ()=>A,
-    B: ()=>B,
-    exportAUsed: ()=>exportAUsed,
-    exportBUsed: ()=>exportBUsed,
-    exportCUsed: ()=>exportCUsed
+    A: function() {
+        return A;
+    },
+    B: function() {
+        return B;
+    },
+    exportAUsed: function() {
+        return exportAUsed;
+    },
+    exportBUsed: function() {
+        return exportBUsed;
+    },
+    exportCUsed: function() {
+        return exportCUsed;
+    }
 });
 function A(s) {
     return s + "A";
@@ -54,10 +64,14 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    x: ()=>x,
-    y: ()=>y
+    x: function() {
+        return x;
+    },
+    y: function() {
+        return y;
+    }
 });
-const _innerJs = __webpack_require__("./inner.js");
+var _innerJs = __webpack_require__("./inner.js");
 function x(type) {
     switch(type){
         case "a":

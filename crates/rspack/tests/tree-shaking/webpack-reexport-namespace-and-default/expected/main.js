@@ -4,9 +4,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _scriptJs = __webpack_require__("./package1/script.js");
-const _script2Js = __webpack_require__("./package1/script2.js");
-const _scriptJs1 = __webpack_require__("./package2/script.js");
+var _scriptJs = __webpack_require__("./package1/script.js");
+var _script2Js = __webpack_require__("./package1/script2.js");
+var _scriptJs1 = __webpack_require__("./package2/script.js");
 it("should load module correctly", ()=>{
     __webpack_require__("./module.js");
 });
@@ -25,10 +25,12 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "mod", {
     enumerable: true,
-    get: ()=>mod
+    get: function() {
+        return mod;
+    }
 });
-const _scriptJs = __webpack_require__.ir(__webpack_require__("./package1/script.js"));
-const _scriptJs1 = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
+var _scriptJs = __webpack_require__.ir(__webpack_require__("./package1/script.js"));
+var _scriptJs1 = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
 const mod = _scriptJs1.default;
 },
 "./package1/script.js": function (module, exports, __webpack_require__) {
@@ -38,7 +40,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "exportDefaultUsed", {
     enumerable: true,
-    get: ()=>exportDefaultUsed
+    get: function() {
+        return exportDefaultUsed;
+    }
 });
 __webpack_require__.es(__webpack_require__("./package1/script1.js"), exports);
 const exportDefaultUsed = __webpack_exports_info__.default.used;
@@ -57,7 +61,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "exportDefaultUsed", {
     enumerable: true,
-    get: ()=>exportDefaultUsed
+    get: function() {
+        return exportDefaultUsed;
+    }
 });
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
@@ -73,11 +79,15 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    default: ()=>_default,
-    exportDefaultUsed: ()=>exportDefaultUsed
+    default: function() {
+        return _default;
+    },
+    exportDefaultUsed: function() {
+        return exportDefaultUsed;
+    }
 });
-const _script1Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package2/script1.js"), exports));
-const _default = _script1Js.default;
+var _script1Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package2/script1.js"), exports));
+var _default = _script1Js.default;
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package2/script1.js": function (module, exports, __webpack_require__) {
@@ -87,9 +97,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>_default
+    get: function() {
+        return _default;
+    }
 });
-const _default = 1;
+var _default = 1;
 },
 
 },function(__webpack_require__) {

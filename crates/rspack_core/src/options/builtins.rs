@@ -29,7 +29,7 @@ pub struct DecoratorOptions {
 pub struct Builtins {
   pub minify: Minification,
   pub polyfill: bool,
-  pub browserslist: Vec<String>,
+  pub preset_env: Vec<String>,
   pub define: Define,
   pub tree_shaking: bool,
   pub react: ReactOptions,

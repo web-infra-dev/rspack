@@ -14,7 +14,7 @@ mod format;
 use format::*;
 mod module_variables;
 use module_variables::*;
-use rspack_core::{BuildInfo, Module, ModuleType};
+use rspack_core::{BuildInfo, EsVersion, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
@@ -110,15 +110,11 @@ pub fn run_before_pass(
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
       swc_visitor::compat(
-        if options.target.platform.is_browsers_list() {
-          Some((
-            options.builtins.browserslist.clone(),
-            options.builtins.polyfill,
-          ))
-        } else {
-          None
-        },
-        options.target.es_version,
+        Some((
+          options.builtins.preset_env.clone(),
+          options.builtins.polyfill,
+        )),
+        None,
         assumptions,
         top_level_mark,
         unresolved_mark,
@@ -221,7 +217,7 @@ pub fn run_after_pass(
             ..Default::default()
           })),
           comments,
-          generate_context.compilation.options.target.es_version
+          Some(EsVersion::Es5)
         ),
         inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
         module_variables(module, generate_context.compilation),

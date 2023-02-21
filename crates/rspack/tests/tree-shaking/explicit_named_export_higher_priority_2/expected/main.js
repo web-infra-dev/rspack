@@ -9,7 +9,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>a
+    get: function() {
+        return a;
+    }
 });
 const a = 'baz';
 },
@@ -20,9 +22,11 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "a", {
     enumerable: true,
-    get: ()=>_bazJs.a
+    get: function() {
+        return _bazJs.a;
+    }
 });
-const _bazJs = __webpack_require__("./baz.js");
+var _bazJs = __webpack_require__("./baz.js");
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 },
 "./index.js": function (module, exports, __webpack_require__) {
@@ -30,7 +34,7 @@ __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fooJs = __webpack_require__("./foo.js");
+var _fooJs = __webpack_require__("./foo.js");
 console.log(_fooJs.a);
 },
 

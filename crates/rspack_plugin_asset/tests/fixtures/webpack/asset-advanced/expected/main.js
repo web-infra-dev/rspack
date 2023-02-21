@@ -7,7 +7,7 @@ module.exports = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5v
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _fileSvg = __webpack_require__.ir(__webpack_require__("./images/file.svg"));
+var _fileSvg = __webpack_require__.ir(__webpack_require__("./images/file.svg"));
 const container = document.createElement("div");
 Object.assign(container.style, {
     display: "flex",

@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "answer", {
     enumerable: true,
-    get: ()=>answer
+    get: function() {
+        return answer;
+    }
 });
 const answer = 103330;
 },
@@ -22,10 +24,14 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    render: ()=>render,
-    default: ()=>result
+    render: function() {
+        return render;
+    },
+    default: function() {
+        return result;
+    }
 });
-const _libJs = __webpack_require__("./lib.js");
+var _libJs = __webpack_require__("./lib.js");
 function render() {}
 function result() {}
 },
@@ -34,7 +40,7 @@ function result() {}
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
+var _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
 (0, _appJs.render)(_appJs.default);
 },
 "./lib.js": function (module, exports, __webpack_require__) {
@@ -49,10 +55,14 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    secret: ()=>secret,
-    myanswer: ()=>myanswer
+    secret: function() {
+        return secret;
+    },
+    myanswer: function() {
+        return myanswer;
+    }
 });
-const _answerJs = __webpack_require__("./answer.js");
+var _answerJs = __webpack_require__("./answer.js");
 const secret = "888";
 const myanswer = _answerJs.answer;
 },

@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "default", {
     enumerable: true,
-    get: ()=>Something
+    get: function() {
+        return Something;
+    }
 });
 class Something {
 }
@@ -18,16 +20,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "Sider", {
     enumerable: true,
-    get: ()=>_somethingJs.default
+    get: function() {
+        return _somethingJs.default;
+    }
 });
-const _somethingJs = __webpack_require__.ir(__webpack_require__("./Something.js"));
+var _somethingJs = __webpack_require__.ir(__webpack_require__("./Something.js"));
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _exportJs = __webpack_require__("./export.js");
+var _exportJs = __webpack_require__("./export.js");
 (0, _exportJs.Sider)();
 },
 

@@ -6,16 +6,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "q", {
     enumerable: true,
-    get: ()=>_libJs.question
+    get: function() {
+        return _libJs.question;
+    }
 });
-const _libJs = __webpack_require__("./lib.js");
+var _libJs = __webpack_require__("./lib.js");
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__("./app.js");
+var _appJs = __webpack_require__("./app.js");
 _appJs.q;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
@@ -25,7 +27,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "question", {
     enumerable: true,
-    get: ()=>question
+    get: function() {
+        return question;
+    }
 });
 const question = "2";
 },

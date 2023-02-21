@@ -6,7 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "answer", {
     enumerable: true,
-    get: ()=>answer
+    get: function() {
+        return answer;
+    }
 });
 const answer = 42;
 },
@@ -17,16 +19,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "myanswer", {
     enumerable: true,
-    get: ()=>_libJs.myanswer
+    get: function() {
+        return _libJs.myanswer;
+    }
 });
-const _libJs = __webpack_require__("./lib.js");
+var _libJs = __webpack_require__("./lib.js");
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-const _appJs = __webpack_require__("./app.js");
+var _appJs = __webpack_require__("./app.js");
 __webpack_require__("./answer.js");
 (0, _appJs.myanswer)();
 },
@@ -37,7 +41,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 Object.defineProperty(exports, "myanswer", {
     enumerable: true,
-    get: ()=>myanswer
+    get: function() {
+        return myanswer;
+    }
 });
 const myanswer = 'anyser';
 },
