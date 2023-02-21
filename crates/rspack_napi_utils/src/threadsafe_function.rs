@@ -133,7 +133,7 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
 /// ## Example
 /// An example of using `ThreadsafeFunction`:
 ///
-/// ```rust
+/// ```rust,ignore
 /// #[macro_use]
 /// extern crate napi_derive;
 ///

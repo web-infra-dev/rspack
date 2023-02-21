@@ -68,20 +68,20 @@ cfg_async! {
     pub mkdirp: JsFunction,
   }
 
-  trait ToJsUnknown {
-    fn to_js_unknown(self, env: &Env) -> napi::Result<JsUnknown>;
+  trait TryIntoJsUnknown {
+    fn try_into_js_unknown(self, env: &Env) -> napi::Result<JsUnknown>;
   }
 
   // Implement a few common types to avoid conflict with upperstream crates
 
-  impl ToJsUnknown for String {
-    fn to_js_unknown(self, env: &Env) -> napi::Result<JsUnknown> {
-      Ok(env.create_string_from_std(self)?.into_unknown())
+  impl TryIntoJsUnknown for String {
+    fn try_into_js_unknown(self, env: &Env) -> napi::Result<JsUnknown> {
+      env.create_string_from_std(self).map(|v| v.into_unknown())
     }
   }
 
-  impl ToJsUnknown for Vec<u8> {
-    fn to_js_unknown(self, env: &Env) -> napi::Result<JsUnknown> {
+  impl TryIntoJsUnknown for Vec<u8> {
+    fn try_into_js_unknown(self, env: &Env) -> napi::Result<JsUnknown> {
       env.create_buffer_with_data(self).map(|v| v.into_unknown())
     }
   }
@@ -90,19 +90,19 @@ cfg_async! {
     fn into_vec(self, env: &Env) -> napi::Result<Vec<JsUnknown>>;
   }
 
-  impl<T: ToJsUnknown> JsValuesTupleIntoVec for T {
+  impl<T: TryIntoJsUnknown> JsValuesTupleIntoVec for T {
     fn into_vec(self, env: &Env) -> napi::Result<Vec<JsUnknown>> {
-      Ok(vec![<T as ToJsUnknown>::to_js_unknown(self, env)?])
+      Ok(vec![<T as TryIntoJsUnknown>::try_into_js_unknown(self, env)?])
     }
   }
 
   macro_rules! impl_js_value_tuple_to_vec {
     ($($ident:ident),*) => {
-      impl<$($ident: ToJsUnknown),*> JsValuesTupleIntoVec for ($($ident,)*) {
+      impl<$($ident: TryIntoJsUnknown),*> JsValuesTupleIntoVec for ($($ident,)*) {
         fn into_vec(self, env: &Env) -> napi::Result<Vec<JsUnknown>> {
           #[allow(non_snake_case)]
           let ($($ident,)*) = self;
-          Ok(vec![$(<$ident as ToJsUnknown>::to_js_unknown($ident, env)?),*])
+          Ok(vec![$(<$ident as TryIntoJsUnknown>::try_into_js_unknown($ident, env)?),*])
         }
       }
     };
