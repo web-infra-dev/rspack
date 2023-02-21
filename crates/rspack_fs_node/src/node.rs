@@ -40,9 +40,9 @@ pub(crate) trait TryIntoNodeFSRef {
 impl TryIntoNodeFSRef for NodeFS {
   fn try_into_node_fs_ref(self, env: &Env) -> napi::Result<NodeFSRef> {
     Ok(NodeFSRef {
-      write_file: JsFunctionRef::new(env.clone(), self.write_file)?,
-      mkdir: JsFunctionRef::new(env.clone(), self.mkdir)?,
-      mkdirp: JsFunctionRef::new(env.clone(), self.mkdirp)?,
+      write_file: JsFunctionRef::new(*env, self.write_file)?,
+      mkdir: JsFunctionRef::new(*env, self.mkdir)?,
+      mkdirp: JsFunctionRef::new(*env, self.mkdirp)?,
     })
   }
 }

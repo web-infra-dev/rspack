@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_in_result)]
+
 mod node;
 
 use std::{marker::PhantomData, path::Path};
