@@ -103,6 +103,17 @@ pub struct EntryItem {
   pub runtime: Option<String>,
 }
 
+#[derive(Debug, Default, JsonSchema, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Minification {
+  #[serde(default)]
+  pub passes: usize,
+  #[serde(default)]
+  pub drop_console: bool,
+  #[serde(default)]
+  pub pure_funcs: Vec<String>,
+}
+
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Builtins {
@@ -113,7 +124,7 @@ pub struct Builtins {
   #[serde(default)]
   pub html: Vec<HtmlPluginConfig>,
   #[serde(default)]
-  pub minify: bool,
+  pub minify_options: Option<Minification>,
   #[serde(default)]
   pub tree_shaking: bool,
   #[serde(default)]
@@ -283,11 +294,11 @@ impl TestConfig {
       builtins: c::Builtins {
         define: self.builtins.define,
         tree_shaking: self.builtins.tree_shaking,
-        minify: c::Minification {
-          enable: self.builtins.minify,
-          passes: 1,
-          ..Default::default()
-        },
+        minify_options: self.builtins.minify_options.map(|op| c::Minification {
+          passes: op.passes,
+          drop_console: op.drop_console,
+          pure_funcs: op.pure_funcs,
+        }),
         preset_env: self.builtins.preset_env.clone(),
         ..Default::default()
       },

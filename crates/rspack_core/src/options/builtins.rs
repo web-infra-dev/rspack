@@ -27,7 +27,7 @@ pub struct DecoratorOptions {
 
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
-  pub minify: Minification,
+  pub minify_options: Option<Minification>,
   pub polyfill: bool,
   pub preset_env: Vec<String>,
   pub define: Define,
@@ -41,7 +41,6 @@ pub struct Builtins {
 
 #[derive(Debug, Clone, Default)]
 pub struct Minification {
-  pub enable: bool,
   pub passes: usize,
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,

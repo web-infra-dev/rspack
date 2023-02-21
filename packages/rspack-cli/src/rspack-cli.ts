@@ -122,10 +122,7 @@ export class RspackCLI {
 					? "source-map"
 					: "cheap-module-source-map";
 			}
-			item.builtins = {
-				...item.builtins,
-				minify: item.builtins?.minify ?? item.mode === "production"
-			};
+			item.builtins = item.builtins || {};
 
 			// no emit assets when run dev server, it will use node_binding api get file content
 			if (typeof item.builtins.noEmitAssets === "undefined") {

@@ -144,9 +144,8 @@ exports[`normalize options snapshot react.development and react.refresh should b
     "devFriendlySplitChunks": false,
     "emotion": undefined,
     "html": [],
-    "minify": {
+    "minifyOptions": {
       "dropConsole": false,
-      "enable": true,
       "passes": 1,
       "pureFuncs": [],
     },

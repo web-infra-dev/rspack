@@ -1,7 +1,10 @@
 module.exports = {
 	builtins: {
-		minify: {
+		minifyOptions: {
 			dropConsole: true
 		}
+	},
+	optimization: {
+		minimize: true
 	}
 };

@@ -1,5 +1,5 @@
 module.exports = {
-	builtins: {
-		minify: true
+	optimization: {
+		minimize: true
 	}
 };

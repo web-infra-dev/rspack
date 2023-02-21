@@ -9,6 +9,7 @@ import type {
 	RawCssPluginConfig
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
+import { Optimization } from "..";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
 	meta?: Record<string, string | Record<string, string>>;
@@ -41,7 +42,7 @@ export interface Builtins {
 	define?: Record<string, string | undefined>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minify?: boolean | Partial<RawMinification>;
+	minifyOptions?: Partial<RawMinification>;
 	emotion?: EmotionConfig;
 	presetEnv?: string[];
 	polyfill?: boolean;
@@ -147,8 +148,8 @@ export function resolveBuiltinsOptions(
 	{
 		contextPath,
 		production,
-		development
-	}: { contextPath: string; production: boolean; development: boolean }
+		optimization
+	}: { contextPath: string; production: boolean; optimization: Optimization }
 ): RawBuiltins {
 	const presetEnv =
 		builtins.presetEnv ?? loadConfig({ path: contextPath }) ?? [];
@@ -170,47 +171,29 @@ export function resolveBuiltinsOptions(
 		presetEnv,
 		progress: resolveProgress(builtins.progress),
 		decorator: resolveDecorator(builtins.decorator),
-		minify: resolveMinify(builtins, production),
+		minifyOptions: resolveMinifyOptions(builtins, optimization),
 		emotion: resolveEmotion(builtins.emotion, production),
 		polyfill: builtins.polyfill ?? true,
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false
 	};
 }
 
-export function resolveMinify(
+export function resolveMinifyOptions(
 	builtins: Builtins,
-	isProduction: boolean
-): RawMinification {
-	if (builtins.minify) {
-		if (builtins.minify === true) {
-			return {
-				enable: true,
-				passes: 1,
-				dropConsole: false,
-				pureFuncs: []
-			};
-		} else {
-			return {
-				enable: true,
-				passes: 1,
-				dropConsole: false,
-				pureFuncs: [],
-				...builtins.minify
-			};
-		}
-	} else if (builtins.minify === false) {
-		return {
-			enable: false,
-			passes: 1,
-			dropConsole: false,
-			pureFuncs: []
-		};
-	} else {
-		return {
-			enable: isProduction,
-			passes: 1,
-			dropConsole: false,
-			pureFuncs: []
-		};
+	optimization: Optimization
+): RawMinification | undefined {
+	const disable_minify =
+		!optimization.minimize ||
+		optimization.minimizer?.some(item => item !== "...");
+
+	if (disable_minify) {
+		return undefined;
 	}
+
+	return {
+		passes: 1,
+		dropConsole: false,
+		pureFuncs: [],
+		...builtins.minifyOptions
+	};
 }
