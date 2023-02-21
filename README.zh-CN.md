@@ -1,4 +1,4 @@
-<h1 align="center">Rspack</h1>
+![rspack banner](https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1142.png)
 
 <p align="center">基于 Rust 的高性能模块打包工具</p>
 
