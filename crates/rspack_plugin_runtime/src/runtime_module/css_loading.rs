@@ -26,9 +26,10 @@ impl CssLoadingRuntimeModule {
     chunk_graph: &ChunkGraph,
     module_graph: &ModuleGraph,
   ) -> bool {
-    !chunk_graph
-      .get_chunk_modules_by_source_type(chunk, SourceType::Css, module_graph)
-      .is_empty()
+    chunk_graph
+      .get_chunk_modules_iterable_by_source_type(chunk, SourceType::Css, module_graph)
+      .count()
+      > 0
   }
 }
 

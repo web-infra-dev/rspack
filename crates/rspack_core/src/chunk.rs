@@ -109,7 +109,7 @@ impl Chunk {
   }
 
   pub fn has_entry_module(&self, chunk_graph: &ChunkGraph) -> bool {
-    !chunk_graph.get_chunk_entry_modules(&self.ukey).is_empty()
+    chunk_graph.get_chunk_entry_modules(&self.ukey).count() > 0
   }
 
   pub fn get_all_referenced_chunks(
@@ -300,9 +300,10 @@ pub fn chunk_hash_js<'a>(
   if chunk_graph.get_number_of_entry_modules(chunk) > 0 {
     return true;
   }
-  if !chunk_graph
-    .get_chunk_modules_by_source_type(chunk, SourceType::JavaScript, module_graph)
-    .is_empty()
+  if chunk_graph
+    .get_chunk_modules_iterable_by_source_type(chunk, SourceType::JavaScript, module_graph)
+    .count()
+    > 0
   {
     return true;
   }

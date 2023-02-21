@@ -89,7 +89,7 @@ impl<'a, 'b> DependencyVisitor<'a, 'b> {
   pub(crate) fn new(mut visitors: Vec<(&'a JsAstPath, &'a dyn JavaScriptVisitorBuilder)>) -> Self {
     debug_assert!(!visitors.is_empty(), "There should be at least one visitor");
     // We should sort the visitor in JsAstPath's lexical order, or the partition will be wrong.
-    visitors.sort_by_key(|(ast_path, _)| *ast_path);
+    visitors.sort_unstable_by_key(|(ast_path, _)| *ast_path);
 
     Self {
       visitors: Cow::Owned(visitors),

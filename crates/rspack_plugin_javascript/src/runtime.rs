@@ -25,7 +25,7 @@ pub fn render_chunk_modules(
     .get(chunk_ukey)
     .expect("chunk not found");
 
-  ordered_modules.sort_by_key(|m| &m.module_identifier);
+  ordered_modules.sort_unstable_by_key(|m| &m.module_identifier);
 
   let module_code_array = ordered_modules
     .par_iter()
@@ -114,25 +114,22 @@ pub fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSou
 }
 
 pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> BoxSource {
-  let entry_modules_uri = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
-  let entry_modules_id = entry_modules_uri
-    .into_iter()
+  // let namespace = &compilation.options.output.unique_name;
+  let sources = compilation
+    .chunk_graph
+    .get_chunk_entry_modules(chunk_ukey)
     .filter_map(|entry_module_identifier| {
       compilation
         .module_graph
-        .module_graph_module_by_identifier(&entry_module_identifier)
-        .map(|module| module.id(&compilation.chunk_graph))
-    })
-    .collect::<Vec<_>>();
-  // let namespace = &compilation.options.output.unique_name;
-  let sources = entry_modules_id
-    .iter()
-    .map(|id| {
-      if let Some(library) = &compilation.options.output.library && !library.is_empty() {
-          RawSource::from(format!(r#"{} = {}("{}");"#, library, runtime_globals::REQUIRE, id))
-        } else {
-          RawSource::from(format!(r#"{}("{}");"#, runtime_globals::REQUIRE, id))
-        }
+        .module_graph_module_by_identifier(entry_module_identifier)
+        .map(|module| {
+          let id = module.id(&compilation.chunk_graph);
+          if let Some(library) = &compilation.options.output.library && !library.is_empty() {
+            RawSource::from(format!(r#"{} = {}("{}");"#, library, runtime_globals::REQUIRE, id))
+          } else {
+            RawSource::from(format!(r#"{}("{}");"#, runtime_globals::REQUIRE, id))
+          }
+        })
     })
     .collect::<Vec<_>>();
   ConcatSource::new(sources).boxed()
@@ -168,7 +165,7 @@ pub fn render_runtime_modules(
     .iter()
     .filter_map(|identifier| compilation.runtime_modules.get(identifier))
     .collect();
-  runtime_modules.sort_by_key(|a| a.stage());
+  runtime_modules.sort_unstable_by_key(|a| a.stage());
   runtime_modules.iter().for_each(|module| {
     sources.add(RawSource::from(format!("// {}\n", module.identifier())));
     sources.add(RawSource::from("(function() {\n"));

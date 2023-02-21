@@ -38,10 +38,13 @@ impl ChunkGraph {
       .or_insert_with(ChunkGraphModule::new);
   }
 
-  pub fn get_chunk_entry_modules(&self, chunk_ukey: &ChunkUkey) -> Vec<ModuleIdentifier> {
+  pub fn get_chunk_entry_modules<'a>(
+    &'a self,
+    chunk_ukey: &ChunkUkey,
+  ) -> impl Iterator<Item = &'a ModuleIdentifier> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk_ukey);
 
-    chunk_graph_chunk.entry_modules.keys().cloned().collect()
+    chunk_graph_chunk.entry_modules.keys()
   }
 
   pub fn get_chunk_entry_modules_with_chunk_group(
@@ -164,17 +167,16 @@ impl ChunkGraph {
     &chunk_graph_module.chunks
   }
 
-  pub fn get_chunk_modules<'module>(
-    &self,
+  pub fn get_chunk_modules<'module, 'm: 'module>(
+    &'m self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module ModuleGraphModule> {
+  ) -> impl Iterator<Item = &'module ModuleGraphModule> + 'module {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
     chunk_graph_chunk
       .modules
       .iter()
       .filter_map(|uri| module_graph.module_graph_module_by_identifier(uri))
-      .collect()
   }
 
   pub fn get_chunk_module_identifiers(&self, chunk: &ChunkUkey) -> &IdentifierSet {
@@ -182,12 +184,14 @@ impl ChunkGraph {
     &chunk_graph_chunk.modules
   }
 
-  pub fn get_ordered_chunk_modules<'module>(
-    &self,
+  pub fn get_ordered_chunk_modules<'module, 'm: 'module>(
+    &'m self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
   ) -> Vec<&'module ModuleGraphModule> {
-    let mut modules = self.get_chunk_modules(chunk, module_graph);
+    let mut modules = self
+      .get_chunk_modules(chunk, module_graph)
+      .collect::<Vec<_>>();
     // SAFETY: module identifier is unique
     modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
     modules
@@ -232,7 +236,6 @@ impl ChunkGraph {
   pub fn get_chunk_modules_size(&self, chunk: &ChunkUkey, module_graph: &ModuleGraph) -> f64 {
     self
       .get_chunk_modules(chunk, module_graph)
-      .iter()
       .fold(0.0, |acc, m| {
         let module = module_graph
           .module_by_identifier(&m.module_identifier)

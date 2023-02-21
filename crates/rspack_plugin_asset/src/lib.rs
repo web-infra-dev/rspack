@@ -452,12 +452,10 @@ impl Plugin for AssetPlugin {
     let chunk = args.chunk();
     let module_graph = &compilation.module_graph;
 
-    let ordered_modules = compilation
+    let assets = compilation
       .chunk_graph
-      .get_chunk_modules(&args.chunk_ukey, module_graph);
-
-    let assets = ordered_modules
-      .par_iter()
+      .get_chunk_modules(&args.chunk_ukey, module_graph)
+      .par_bridge()
       .filter(|mgm| {
         let module = compilation
           .module_graph
