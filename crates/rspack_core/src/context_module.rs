@@ -35,6 +35,7 @@ pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
   pub reg_exp: RspackRegex,
+  pub reg_str: String, // generate context module id
   pub include: Option<String>,
   pub exclude: Option<String>,
   pub category: DependencyCategory,
@@ -45,10 +46,10 @@ impl Display for ContextOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "({:?}, {}, {:?},  {:?}, {:?},  {:?}, {})",
+      "({:?}, {}, {},  {:?}, {:?},  {:?}, {})",
       self.mode,
       self.recursive,
-      self.reg_exp,
+      self.reg_str,
       self.include,
       self.exclude,
       self.category,
@@ -61,7 +62,7 @@ impl PartialEq for ContextOptions {
   fn eq(&self, other: &Self) -> bool {
     self.mode == other.mode
       && self.recursive == other.recursive
-    //   && self.regExp == other.regExp
+      && self.reg_str == other.reg_str
       && self.include == other.include
       && self.exclude == other.exclude
       && self.category == other.category
@@ -74,7 +75,7 @@ impl Hash for ContextOptions {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.mode.hash(state);
     self.recursive.hash(state);
-    // self.regExp.hash(state);
+    self.reg_str.hash(state);
     self.include.hash(state);
     self.exclude.hash(state);
     self.category.hash(state);
@@ -289,11 +290,11 @@ impl Module for ContextModule {
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
     let mut id = contextify(options.context, &self.options.resource);
-    id.push_str(format!(" {:?}", self.options.context_options.mode).as_str());
+    id.push_str(format!(" {:?} ", self.options.context_options.mode).as_str());
     if self.options.context_options.recursive {
-      id.push_str(" recursive");
+      id.push_str(" recursive ");
     }
-    id.push_str(format!(" {:?}", self.options.context_options.reg_exp).as_str());
+    id.push_str(&self.options.context_options.reg_str);
     Some(Cow::Owned(id))
   }
 
@@ -451,13 +452,9 @@ fn create_identifier(options: &ContextModuleOptions) -> Identifier {
   Identifier::from(format!("{options}"))
 }
 
-pub fn normalize_context(context: &str) -> String {
-  if context == "." {
+pub fn normalize_context(str: &str) -> String {
+  if str == "./" || str == "." {
     return "".to_string();
-  }
-  let mut str = context;
-  if str.starts_with("./") {
-    str = &str[2..];
   }
   if str.ends_with('/') {
     return str.to_string();

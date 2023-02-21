@@ -102,7 +102,7 @@ impl CodeGeneratable for ImportContextDependency {
               n.args = vec![Expr::Call(CallExpr {
                 span: DUMMY_SP,
                 callee: MemberExpr { span: DUMMY_SP, obj: Box::new(Expr::Paren(ParenExpr { span: DUMMY_SP, expr: args.remove(0).expr })), prop: MemberProp::Ident(quote_ident!("replace")) }.as_callee(),
-                args: vec![quote_str!(*context).as_arg(), quote_str!("").as_arg()],
+                args: vec![quote_str!(*context).as_arg(), quote_str!("./").as_arg()],
                 type_args: None,
               }).as_arg()];
             }
