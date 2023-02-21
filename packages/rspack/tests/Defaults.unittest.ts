@@ -90,12 +90,7 @@ describe("snapshots", () => {
 		    "devFriendlySplitChunks": false,
 		    "emotion": undefined,
 		    "html": [],
-		    "minify": {
-		      "dropConsole": false,
-		      "enable": false,
-		      "passes": 1,
-		      "pureFuncs": [],
-		    },
+		    "minifyOptions": undefined,
 		    "noEmitAssets": false,
 		    "polyfill": true,
 		    "postcss": {
@@ -281,8 +276,12 @@ describe("snapshots", () => {
 		-         "localIdentName": "[path][name][ext]__[local]",
 		+         "localIdentName": "[hash]",
 		@@ ... @@
-		-       "enable": false,
-		+       "enable": true,
+		-     "minifyOptions": undefined,
+		+     "minifyOptions": Object {
+		+       "dropConsole": false,
+		+       "passes": 1,
+		+       "pureFuncs": Array [],
+		+     },
 		@@ ... @@
 		-     "treeShaking": false,
 		+     "treeShaking": true,
@@ -325,8 +324,12 @@ describe("snapshots", () => {
 		-         "localIdentName": "[path][name][ext]__[local]",
 		+         "localIdentName": "[hash]",
 		@@ ... @@
-		-       "enable": false,
-		+       "enable": true,
+		-     "minifyOptions": undefined,
+		+     "minifyOptions": Object {
+		+       "dropConsole": false,
+		+       "passes": 1,
+		+       "pureFuncs": Array [],
+		+     },
 		@@ ... @@
 		-     "treeShaking": false,
 		+     "treeShaking": true,

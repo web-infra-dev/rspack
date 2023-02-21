@@ -148,7 +148,7 @@ pub fn run_after_pass(
       let unresolved_mark = context.unresolved_mark;
       let top_level_mark = context.top_level_mark;
       let builtin_tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
-      let minify = &generate_context.compilation.options.builtins.minify;
+      let minify_options = &generate_context.compilation.options.builtins.minify_options;
       let comments = None;
       let dependency_visitors =
         collect_dependency_code_generation_visitors(module, generate_context)?;
@@ -199,11 +199,11 @@ pub fn run_after_pass(
         ),
         Optional::new(
           Repeat::new(dce(Config::default(), unresolved_mark)),
-          need_tree_shaking && builtin_tree_shaking && !minify.enable
+          need_tree_shaking && builtin_tree_shaking && minify_options.is_none()
         ),
         Optional::new(
           dce(Config::default(), unresolved_mark),
-          need_tree_shaking && builtin_tree_shaking && minify.enable
+          need_tree_shaking && builtin_tree_shaking && minify_options.is_some()
         ),
         swc_visitor::build_module(
           &cm,

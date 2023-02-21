@@ -26,7 +26,6 @@ use crate::RawOptionsApply;
 #[napi(object)]
 pub struct RawMinification {
   pub passes: u32,
-  pub enable: bool,
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
 }
@@ -34,7 +33,6 @@ pub struct RawMinification {
 impl From<RawMinification> for Minification {
   fn from(value: RawMinification) -> Self {
     Self {
-      enable: value.enable,
       passes: value.passes as usize,
       drop_console: value.drop_console,
       pure_funcs: value.pure_funcs,
@@ -49,7 +47,7 @@ pub struct RawBuiltins {
   pub html: Option<Vec<RawHtmlPluginConfig>>,
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
-  pub minify: RawMinification,
+  pub minify_options: Option<RawMinification>,
   pub polyfill: bool,
   pub preset_env: Vec<String>,
   #[napi(ts_type = "Record<string, string>")]
@@ -87,7 +85,7 @@ impl RawOptionsApply for RawBuiltins {
       plugins.push(ProgressPlugin::new(progress.into()).boxed());
     }
     Ok(Builtins {
-      minify: self.minify.into(),
+      minify_options: self.minify_options.map(Into::into),
       polyfill: self.polyfill,
       preset_env: self.preset_env,
       define: self.define,

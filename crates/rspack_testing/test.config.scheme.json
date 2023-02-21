@@ -58,9 +58,15 @@
             "$ref": "#/definitions/HtmlPluginConfig"
           }
         },
-        "minify": {
-          "default": false,
-          "type": "boolean"
+        "minifyOptions": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Minification"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "postcss": {
           "$ref": "#/definitions/Postcss"
@@ -243,6 +249,29 @@
         "sha384",
         "sha512"
       ]
+    },
+    "Minification": {
+      "type": "object",
+      "properties": {
+        "dropConsole": {
+          "default": false,
+          "type": "boolean"
+        },
+        "passes": {
+          "default": 0,
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "pureFuncs": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "Module": {
       "type": "object",

@@ -95,8 +95,8 @@ export const applyRspackOptionsDefaults = (
 	// TODO: refactor builtins
 	options.builtins = oldBuiltins.resolveBuiltinsOptions(options.builtins, {
 		contextPath: options.context!,
-		production,
-		development
+		optimization: options.optimization,
+		production
 	}) as any;
 };
 

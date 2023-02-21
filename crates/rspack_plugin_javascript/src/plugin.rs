@@ -502,12 +502,10 @@ impl Plugin for JsPlugin {
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
-    let minify = &compilation.options.builtins.minify;
-    if !minify.enable {
-      return Ok(());
-    }
+    let minify_options = &compilation.options.builtins.minify_options;
 
-    compilation
+    if let Some(minify_options) = minify_options {
+      compilation
       .assets
       .par_iter_mut()
       .filter(|(filename, _)| {
@@ -524,9 +522,9 @@ impl Plugin for JsPlugin {
           let input_source_map = original_source.map(&MapOptions::default());
           let output = crate::ast::minify(&JsMinifyOptions {
             compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
-              passes: minify.passes,
-              drop_console: minify.drop_console,
-              pure_funcs: minify.pure_funcs.clone(),
+              passes: minify_options.passes,
+              drop_console: minify_options.drop_console,
+              pure_funcs: minify_options.pure_funcs.clone(),
               ..Default::default()
             }),
             source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
@@ -553,7 +551,7 @@ impl Plugin for JsPlugin {
         original.get_info_mut().minimized = true;
         Ok(())
       })?;
-
+    }
     Ok(())
   }
 }

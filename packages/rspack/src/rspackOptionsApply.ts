@@ -28,15 +28,14 @@ export class RspackOptionsApply {
 		) {
 			new NodeTargetPlugin().apply(compiler);
 		}
-		// after we migrate minify to minimze, we could remove it
-		if (options.optimization.minimize || options.builtins.minify) {
-			if (options.optimization.minimizer) {
-				for (const minimizer of options.optimization.minimizer) {
-					if (typeof minimizer === "function") {
-						minimizer.call(compiler, compiler);
-					} else if (minimizer !== "...") {
-						minimizer.apply(compiler);
-					}
+
+		const { minimize, minimizer } = options.optimization;
+		if (minimize && minimizer) {
+			for (const item of minimizer) {
+				if (typeof item === "function") {
+					item.call(compiler, compiler);
+				} else if (item !== "...") {
+					item.apply(compiler);
 				}
 			}
 		}
