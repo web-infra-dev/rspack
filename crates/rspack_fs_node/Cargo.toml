@@ -16,7 +16,6 @@ default = ["async"]
 futures = "0.3.21"
 napi = { workspace = true, features = ["napi4", "tokio_rt"] }
 napi-derive = { workspace = true }
-rspack_binding_macros = { path = "../rspack_binding_macros" }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", default-features = false, features = [
   "rspack-error",
