@@ -3,14 +3,14 @@ mod hmr;
 mod queue;
 mod resolver;
 
-use std::{fs::File, io::BufWriter, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use anyhow::Context;
 pub use compilation::*;
 pub use queue::*;
-use rayon::prelude::*;
 pub use resolver::*;
 use rspack_error::{Error, Result};
+use rspack_fs::AsyncWritableFileSystem;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::RwLock;
 use tracing::instrument;
@@ -21,17 +21,28 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct Compiler {
+pub struct Compiler<T>
+where
+  T: AsyncWritableFileSystem,
+{
   pub options: Arc<CompilerOptions>,
+  pub output_filesystem: T,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
   pub loader_runner_runner: Arc<LoaderRunnerRunner>,
   pub cache: Arc<Cache>,
 }
 
-impl Compiler {
+impl<T> Compiler<T>
+where
+  T: AsyncWritableFileSystem,
+{
   #[instrument(skip_all)]
-  pub fn new(options: CompilerOptions, plugins: Vec<Box<dyn Plugin>>) -> Self {
+  pub fn new(
+    options: CompilerOptions,
+    plugins: Vec<Box<dyn Plugin>>,
+    output_filesystem: T,
+  ) -> Self {
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
@@ -57,6 +68,7 @@ impl Compiler {
         loader_runner_runner.clone(),
         cache.clone(),
       ),
+      output_filesystem,
       plugin_driver,
       loader_runner_runner,
       cache,
@@ -179,11 +191,9 @@ impl Compiler {
         .map_err(|e| Error::Anyhow { source: e })?;
     }
 
-    self
-      .compilation
-      .assets()
-      .par_iter()
-      .try_for_each(|(filename, asset)| self.emit_asset(&output_path, filename, asset))?;
+    for (filename, asset) in self.compilation.assets() {
+      self.emit_asset(&output_path, filename, asset).await?;
+    }
 
     self
       .plugin_driver
@@ -193,20 +203,34 @@ impl Compiler {
       .await
   }
 
-  fn emit_asset(&self, output_path: &Path, filename: &str, asset: &CompilationAsset) -> Result<()> {
+  async fn emit_asset(
+    &self,
+    output_path: &Path,
+    filename: &str,
+    asset: &CompilationAsset,
+  ) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let file_path = Path::new(&output_path).join(filename);
-      std::fs::create_dir_all(
-        file_path
-          .parent()
-          .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
-      )?;
-      let file = File::create(file_path).map_err(rspack_error::Error::from)?;
-      let mut writer = BufWriter::new(file);
-      source
-        .as_ref()
-        .to_writer(&mut writer)
-        .map_err(rspack_error::Error::from)?;
+      self
+        .output_filesystem
+        .create_dir_all(
+          file_path
+            .parent()
+            .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
+        )
+        .await?;
+      self
+        .output_filesystem
+        .write(&file_path, source.buffer())
+        .await?;
+
+      // let file = File::create(file_path).map_err(rspack_error::Error::from)?;
+      // let mut writer = BufWriter::new(file);
+      // source
+      //   .as_ref()
+      //   .to_writer(&mut writer)
+      //   .map_err(rspack_error::Error::from)?;
+
       self.compilation.emitted_assets.insert(filename.to_string());
     }
     Ok(())

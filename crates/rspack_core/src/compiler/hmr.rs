@@ -5,6 +5,7 @@ use std::{
 };
 
 use rspack_error::Result;
+use rspack_fs::AsyncWritableFileSystem;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -38,7 +39,10 @@ impl HotUpdateContent {
   }
 }
 
-impl Compiler {
+impl<T> Compiler<T>
+where
+  T: AsyncWritableFileSystem,
+{
   // TODO: remove this function when we had `record` in compiler.
   pub async fn rebuild(
     &mut self,
@@ -400,7 +404,9 @@ impl Compiler {
             .chunk_by_ukey
             .get(&entry.path_options.chunk_ukey);
           let id = chunk.map_or(String::new(), |c| c.expect_id().to_string());
-          self.emit_asset(&output_path, &(id + ".hot-update.js"), &asset)?;
+          self
+            .emit_asset(&output_path, &(id + ".hot-update.js"), &asset)
+            .await?;
         }
 
         new_runtime.iter().for_each(|runtime| {
@@ -421,24 +427,26 @@ impl Compiler {
         .iter()
         .map(|x| x.to_owned())
         .collect();
-      self.emit_asset(
-        &output_path,
-        &content.filename,
-        &CompilationAsset::new(
-          Some(
-            RawSource::Source(
-              serde_json::json!({
-                "c": c,
-                "r": r,
-                "m": m,
-              })
-              .to_string(),
-            )
-            .boxed(),
+      self
+        .emit_asset(
+          &output_path,
+          &content.filename,
+          &CompilationAsset::new(
+            Some(
+              RawSource::Source(
+                serde_json::json!({
+                  "c": c,
+                  "r": r,
+                  "m": m,
+                })
+                .to_string(),
+              )
+              .boxed(),
+            ),
+            AssetInfo::default().with_hot_module_replacement(true),
           ),
-          AssetInfo::default().with_hot_module_replacement(true),
-        ),
-      )?;
+        )
+        .await?;
     }
 
     Ok(())

@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use insta::Settings;
 use rspack_core::{Compiler, Stats};
+use rspack_fs::NativeFileSystem;
 use rspack_testing::{apply_from_fixture, fixture};
 use rspack_tracing::enable_tracing_by_env;
 
@@ -11,7 +12,7 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   f: F,
 ) -> rspack_error::Result<()> {
   let (options, plugins) = apply_from_fixture(fixture_path);
-  let mut compiler = Compiler::new(options, plugins);
+  let mut compiler = Compiler::new(options, plugins, NativeFileSystem);
 
   compiler
     .build()

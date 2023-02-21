@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
 use rspack_core::{Compiler, CompilerOptions};
+use rspack_fs::NativeFileSystem;
 use rspack_tracing::enable_tracing_by_env;
 
 use crate::apply_from_fixture;
@@ -24,7 +25,7 @@ pub async fn test_fixture_with_modify(
   let (options, plugins) = apply_from_fixture(fixture_path);
   let options = modify(options);
   let output_path = options.output.path.clone();
-  let mut compiler = Compiler::new(options, plugins);
+  let mut compiler = Compiler::new(options, plugins, NativeFileSystem);
   compiler
     .build()
     .await

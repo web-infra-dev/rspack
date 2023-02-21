@@ -11,7 +11,11 @@ mod sync;
 pub use sync::NodeWritableFileSystem;
 
 mod node;
-pub use node::{NodeFS, ThreadsafeNodeFS};
+pub use node::NodeFS;
+
+cfg_async! {
+  pub use node::ThreadsafeNodeFS;
+}
 
 #[cfg(node)]
 mod node_test {

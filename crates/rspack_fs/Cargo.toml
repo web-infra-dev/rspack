@@ -6,7 +6,7 @@ repository = "https://github.com/modern-js-dev/rspack"
 version    = "0.1.0"
 
 [features]
-async        = ["dep:futures"]
+async        = ["dep:futures", "dep:tokio"]
 default      = ["native"]
 native       = []
 rspack-error = ["dep:rspack_error"]
@@ -19,3 +19,7 @@ path     = "../rspack_error"
 [dependencies.futures]
 optional = true
 version  = "0.3.26"
+
+[dependencies.tokio]
+optional = true
+version  = "1.21.0"

@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import {
 	getNormalizedRspackOptions,
 	RspackOptions,
@@ -53,7 +54,7 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 	const options = getNormalizedRspackOptions(userOptions);
 	applyRspackOptionsBaseDefaults(options);
 	assert(!isNil(options.context));
-	const compiler = new Compiler(options.context, options);
+	const compiler = new Compiler(options.context, options, fs);
 
 	new NodeEnvironmentPlugin({
 		infrastructureLogging: options.infrastructureLogging
