@@ -129,6 +129,7 @@ exports[`normalize options snapshot port string 1`] = `
 exports[`normalize options snapshot react.development and react.refresh should be true in default when hot enabled 1`] = `
 {
   "builtins": {
+    "copy": undefined,
     "css": {
       "modules": {
         "exportsOnly": false,

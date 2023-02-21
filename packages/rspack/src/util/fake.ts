@@ -48,6 +48,9 @@ export function createFakeCompilationDependencies(
 				yield dep;
 			}
 		},
+		has(dep: string): boolean {
+			return deps.includes(dep);
+		},
 		add: (dep: string) => {
 			addDeps([dep]);
 		},

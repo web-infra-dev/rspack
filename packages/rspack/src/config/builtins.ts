@@ -6,7 +6,9 @@ import type {
 	RawReactOptions,
 	RawProgressPluginConfig,
 	RawPostCssConfig,
-	RawCssPluginConfig
+	RawCssPluginConfig,
+	RawCopyConfig,
+	RawPattern
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 
@@ -46,7 +48,16 @@ export interface Builtins {
 	presetEnv?: string[];
 	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
+	copy?: CopyConfig;
 }
+
+export type CopyConfig = {
+	patterns:
+		| string[]
+		| ({
+				from: string;
+		  } & Partial<RawPattern>)[];
+};
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
 	html?: Array<BuiltinsHtmlPluginConfig>;
@@ -142,6 +153,31 @@ function resolveEmotion(
 	return JSON.stringify(emotionConfig);
 }
 
+function resolveCopy(copy?: Builtins["copy"]): RawCopyConfig | undefined {
+	if (!copy) {
+		return undefined;
+	}
+
+	const ret: RawCopyConfig = {
+		patterns: []
+	};
+
+	ret.patterns = (copy.patterns || []).map(pattern => {
+		if (typeof pattern === "string") {
+			pattern = { from: pattern };
+		}
+
+		pattern.force ??= false;
+		pattern.noErrorOnMissing ??= false;
+		pattern.priority ??= 0;
+		pattern.globOptions ??= {};
+
+		return pattern as RawPattern;
+	});
+
+	return ret;
+}
+
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
 	{
@@ -173,7 +209,8 @@ export function resolveBuiltinsOptions(
 		minify: resolveMinify(builtins, production),
 		emotion: resolveEmotion(builtins.emotion, production),
 		polyfill: builtins.polyfill ?? true,
-		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false
+		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
+		copy: resolveCopy(builtins.copy)
 	};
 }
 
