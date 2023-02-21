@@ -1,4 +1,4 @@
-![rspack banner](https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1142.png)
+![rspack banner](https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png)
 
 <h2 align="center">A fast Rust-based web bundler</h2>
 
