@@ -1,7 +1,8 @@
 {
   "name": "@rspack/dev-server",
-  "description": "",
   "version": "0.0.22",
+  "license": "MIT",
+  "description": "Development server for rspack",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -9,8 +10,9 @@
     "dev": "tsc -w",
     "test": "rm -rf .test-temp && jest --verbose"
   },
-  "author": "",
-  "license": "MIT",
+  "homepage": "https://rspack.org",
+  "bugs": "https://github.com/modern-js-dev/rspack/issues",
+  "repository": "modern-js-dev/rspack",
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "typescript": "^4.7.4",

@@ -1,17 +1,14 @@
 {
   "name": "create-rspack",
   "version": "0.0.18",
-  "description": "",
+  "license": "Create a new rspack project",
   "main": "index.js",
   "bin": {
     "create-rspack": "index.js"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
+  "homepage": "https://rspack.org",
+  "bugs": "https://github.com/modern-js-dev/rspack/issues",
+  "repository": "modern-js-dev/rspack",
   "dependencies": {
     "yargs": "17.6.2",
     "prompts": "2.4.2"
