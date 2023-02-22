@@ -177,6 +177,7 @@ dependencies = [
  "rspack",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_testing",
  "rspack_tracing",
  "tokio",
@@ -2333,6 +2334,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_ids",
  "rspack_loader_sass",
  "rspack_plugin_asset",
@@ -2447,6 +2449,7 @@ dependencies = [
  "regex",
  "rspack_database",
  "rspack_error",
+ "rspack_fs",
  "rspack_futures",
  "rspack_identifier",
  "rspack_loader_runner",
@@ -2490,6 +2493,7 @@ dependencies = [
  "rspack",
  "rspack_binding_options",
  "rspack_core",
+ "rspack_fs",
  "rspack_testing",
  "rspack_tracing",
  "sugar_path",
@@ -2504,6 +2508,7 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "rspack_error",
+ "tokio",
 ]
 
 [[package]]
@@ -2878,6 +2883,7 @@ dependencies = [
  "quick-js",
  "rayon",
  "rspack_core",
+ "rspack_fs",
  "rspack_ids",
  "rspack_loader_sass",
  "rspack_plugin_asset",

@@ -3,6 +3,7 @@ use std::{path::PathBuf, time::Instant};
 
 use mimalloc_rust::GlobalMiMalloc;
 use rspack_core::Compiler;
+use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::apply_from_fixture;
 #[cfg(feature = "tracing")]
 use rspack_tracing::enable_tracing_by_env_with_chrome_layer;
@@ -55,7 +56,7 @@ async fn run(relative_path: &str) {
 
   let start = Instant::now();
   // println!("{:?}", options);
-  let mut compiler = Compiler::new(options, plugins);
+  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
 
   compiler
     .build()

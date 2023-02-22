@@ -14,6 +14,10 @@ import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { getRawOptions } from "./config/adapter";
+import {
+	createThreadsafeNodeFSFromRaw,
+	ThreadsafeWritableNodeFS
+} from "./fileSystem";
 
 class EntryPlugin {
 	apply() {}
@@ -37,7 +41,7 @@ class Compiler {
 	outputPath!: string;
 	name?: string;
 	inputFileSystem: any;
-	outputFileSystem: any;
+	outputFileSystem: typeof import("fs");
 	// @ts-expect-error
 	watchFileSystem: WatchFileSystem;
 	intermediateFileSystem: any;
@@ -73,6 +77,7 @@ class Compiler {
 	options: RspackOptionsNormalized;
 
 	constructor(context: string, options: RspackOptionsNormalized) {
+		this.outputFileSystem = fs;
 		this.options = options;
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
@@ -132,45 +137,49 @@ class Compiler {
 		const options = getRawOptions(this.options, this);
 		this.#_instance =
 			this.#_instance ||
-			new binding.Rspack(options, {
-				make: this.#make.bind(this),
-				emit: this.#emit.bind(this),
-				afterEmit: this.#afterEmit.bind(this),
-				processAssetsStageAdditional: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-				),
-				processAssetsStagePreProcess: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
-				),
-				processAssetsStageNone: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_NONE
-				),
-				processAssetsStageOptimizeInline: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
-				),
-				processAssetsStageSummarize: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
-				),
-				processAssetsStageReport: this.#processAssets.bind(
-					this,
-					Compilation.PROCESS_ASSETS_STAGE_REPORT
-				),
-				// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
-				// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
-				// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
-				// So it is safe to create a new compilation here.
-				thisCompilation: this.#newCompilation.bind(this),
-				// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
-				// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
-				// No matter how it will be implemented, it will be copied to the child compiler.
-				compilation: this.#compilation.bind(this),
-				optimizeChunkModule: this.#optimize_chunk_modules.bind(this)
-			});
+			new binding.Rspack(
+				options,
+				{
+					make: this.#make.bind(this),
+					emit: this.#emit.bind(this),
+					afterEmit: this.#afterEmit.bind(this),
+					processAssetsStageAdditional: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+					),
+					processAssetsStagePreProcess: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
+					),
+					processAssetsStageNone: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_NONE
+					),
+					processAssetsStageOptimizeInline: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+					),
+					processAssetsStageSummarize: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+					),
+					processAssetsStageReport: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_REPORT
+					),
+					// `Compilation` should be created with hook `thisCompilation`, and here is the reason:
+					// We know that the hook `thisCompilation` will not be called from a child compiler(it doesn't matter whether the child compiler is created on the Rust or the Node side).
+					// See webpack's API: https://webpack.js.org/api/compiler-hooks/#thiscompilation
+					// So it is safe to create a new compilation here.
+					thisCompilation: this.#newCompilation.bind(this),
+					// The hook `Compilation` should be called whenever it's a call from the child compiler or normal compiler and
+					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
+					// No matter how it will be implemented, it will be copied to the child compiler.
+					compilation: this.#compilation.bind(this),
+					optimizeChunkModule: this.#optimize_chunk_modules.bind(this)
+				},
+				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
+			);
 
 		return this.#_instance;
 	}

@@ -22,6 +22,7 @@ insta = "1.19.0"
 rspack = { path = "../rspack" }
 rspack_binding_options = { path = "../rspack_binding_options" }
 rspack_core = { path = "../rspack_core" }
+rspack_fs = { path = "../rspack_fs", featuers = ["async"] }
 rspack_testing = { path = "../rspack_testing" }
 rspack_tracing = { path = "../rspack_tracing" }
 tokio = { version = "1.21.0", features = [

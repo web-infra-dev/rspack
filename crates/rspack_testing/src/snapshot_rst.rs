@@ -2,11 +2,12 @@ use std::path::{Path, PathBuf};
 
 use cargo_rst::{helper::make_relative_from, rst::RstBuilder};
 use rspack_core::{Compiler, CompilerOptions};
+use rspack_fs::AsyncNativeFileSystem;
 use rspack_tracing::enable_tracing_by_env;
 
 use crate::apply_from_fixture;
 
-pub fn test_fixture(fixture_path: &Path) -> Compiler {
+pub fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
   test_fixture_with_modify(fixture_path, |i| i)
 }
 
@@ -14,7 +15,7 @@ pub fn test_fixture(fixture_path: &Path) -> Compiler {
 pub async fn test_fixture_with_modify(
   fixture_path: &Path,
   modify: impl Fn(CompilerOptions) -> CompilerOptions,
-) -> Compiler {
+) -> Compiler<AsyncNativeFileSystem> {
   enable_tracing_by_env();
   //avoid interference from previous testing
   let dist_dir = fixture_path.join("dist");
@@ -24,7 +25,7 @@ pub async fn test_fixture_with_modify(
   let (options, plugins) = apply_from_fixture(fixture_path);
   let options = modify(options);
   let output_path = options.output.path.clone();
-  let mut compiler = Compiler::new(options, plugins);
+  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
   compiler
     .build()
     .await

@@ -8,7 +8,7 @@ import {
 } from "../src";
 import { Stats } from "../src/stats";
 const path = require("path");
-const { createFsFromVolume, Volume } = require("memfs");
+import { createFsFromVolume, Volume } from "memfs";
 const captureStdio = require("./helpers/captureStdio");
 const deprecationTracking = require("./helpers/deprecationTracking");
 
@@ -1202,11 +1202,39 @@ describe("Compiler", () => {
 			const compiler = rspack({
 				entry: "./d",
 				context: path.join(__dirname, "fixtures"),
-				plugins: [new MyPlugin()]
+				plugins: [new MyPlugin()],
+				output: {
+					path: "dist"
+				}
 			});
 
+			const outputFileSystem = createFsFromVolume(new Volume());
+			compiler.outputFileSystem = outputFileSystem;
+			// This is not right, see the issue: https://github.com/modern-js-dev/rspack/issues/1938
+			const outputPath = path.join(__dirname, "fixtures/dist");
+
 			compiler.build((err, stats) => {
-				done(err);
+				if (err) {
+					return done(err);
+				}
+
+				if (
+					outputFileSystem.existsSync(path.join(outputPath, "main.js")) &&
+					outputFileSystem.existsSync(path.join(outputPath, "dd.js"))
+				) {
+					const dd = outputFileSystem.readFileSync(
+						path.join(outputPath, "dd.js"),
+						"utf-8"
+					);
+
+					if (dd !== `module.exports="This is dd";`) {
+						return done(new Error("File content is not correct"));
+					}
+
+					return done();
+				}
+
+				done(new Error("File not found"));
 			});
 		});
 
