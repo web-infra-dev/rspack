@@ -93,11 +93,10 @@ describe("snapshots", () => {
 		    "html": [],
 		    "minifyOptions": undefined,
 		    "noEmitAssets": false,
-		    "polyfill": true,
 		    "postcss": {
 		      "pxtorem": undefined,
 		    },
-		    "presetEnv": [],
+		    "presetEnv": undefined,
 		    "progress": undefined,
 		    "react": {},
 		    "treeShaking": false,
@@ -839,11 +838,6 @@ describe("snapshots", () => {
 			- Expected
 			+ Received
 
-			@@ ... @@
-			-     "presetEnv": Array [],
-			+     "presetEnv": Array [
-			+       "ie >= 9",
-			+     ],
 			@@ ... @@
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",

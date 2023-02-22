@@ -8,7 +8,8 @@ import type {
 	RawPostCssConfig,
 	RawCssPluginConfig,
 	RawCopyConfig,
-	RawPattern
+	RawPattern,
+	RawPresetEnv
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
@@ -46,7 +47,7 @@ export interface Builtins {
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minifyOptions?: Partial<RawMinification>;
 	emotion?: EmotionConfig;
-	presetEnv?: string[];
+	presetEnv?: Partial<RawBuiltins["presetEnv"]>;
 	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
 	copy?: CopyConfig;
@@ -64,6 +65,20 @@ export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	emotion?: string;
 };
+
+function resolvePresetEnv(
+	presetEnv: Builtins["presetEnv"],
+	context: string
+): RawPresetEnv | undefined {
+	if (!presetEnv) {
+		return undefined;
+	}
+	return {
+		targets: presetEnv?.targets ?? loadConfig({ path: context }) ?? [],
+		mode: presetEnv?.mode,
+		coreJs: presetEnv?.coreJs
+	};
+}
 
 function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 	// @ts-expect-error
@@ -189,8 +204,8 @@ export function resolveBuiltinsOptions(
 		optimization
 	}: { contextPath: string; production: boolean; optimization: Optimization }
 ): RawBuiltins {
-	const presetEnv =
-		builtins.presetEnv ?? loadConfig({ path: contextPath }) ?? [];
+	const presetEnv = resolvePresetEnv(builtins.presetEnv, contextPath);
+	builtins.presetEnv ?? loadConfig({ path: contextPath }) ?? [];
 	return {
 		css: {
 			modules: {
@@ -211,7 +226,6 @@ export function resolveBuiltinsOptions(
 		decorator: resolveDecorator(builtins.decorator),
 		minifyOptions: resolveMinifyOptions(builtins, optimization),
 		emotion: resolveEmotion(builtins.emotion, production),
-		polyfill: builtins.polyfill ?? true,
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
 		copy: resolveCopy(builtins.copy)
 	};

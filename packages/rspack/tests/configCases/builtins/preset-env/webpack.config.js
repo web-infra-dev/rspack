@@ -1,5 +1,7 @@
 module.exports = {
 	builtins: {
-		presetEnv: ["chrome 20"]
+		presetEnv: {
+			targets: ["chrome 20"]
+		}
 	}
 };

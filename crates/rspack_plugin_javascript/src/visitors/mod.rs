@@ -110,10 +110,7 @@ pub fn run_before_pass(
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
       swc_visitor::compat(
-        Some((
-          options.builtins.preset_env.clone(),
-          options.builtins.polyfill,
-        )),
+        options.builtins.preset_env.clone(),
         None,
         assumptions,
         top_level_mark,

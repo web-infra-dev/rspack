@@ -1,4 +1,5 @@
 use either::Either;
+use rspack_core::PresetEnv;
 use swc_core::common::{chain, comments::SingleThreadedComments, pass::Optional, Mark};
 use swc_core::ecma::ast::EsVersion;
 use swc_core::ecma::preset_env as swc_ecma_preset_env;
@@ -6,27 +7,32 @@ use swc_core::ecma::transforms::base::{feature::FeatureFlag, pass::noop, Assumpt
 use swc_core::ecma::transforms::compat;
 use swc_core::ecma::visit::Fold;
 
-type PresetEnvConfig = (Vec<String>, bool);
-
 fn compat_by_preset_env(
-  preset_env_config: Option<PresetEnvConfig>,
+  preset_env_config: Option<PresetEnv>,
   top_level_mark: Mark,
   assumptions: Assumptions,
   comments: Option<&SingleThreadedComments>,
 ) -> impl Fold + '_ {
-  if let Some((preset_env, polyfill)) = preset_env_config && !preset_env.is_empty() {
+  if let Some(PresetEnv { mode, targets, core_js }) = preset_env_config && !targets.is_empty() {
+    let core_js = if let Some(core_js) = &core_js && let Ok(core_js) = core_js.parse() {
+      Some(core_js)
+    } else {
+      None
+    };
+
     Either::Left(swc_ecma_preset_env::preset_env(
       top_level_mark,
       comments,
       swc_ecma_preset_env::Config {
-        mode: if polyfill {
-          Some(swc_ecma_preset_env::Mode::Usage)
+        mode: mode.map(Into::into),
+        targets: if targets.is_empty() {
+          None
         } else {
-          Some(swc_ecma_preset_env::Mode::Entry)
+          Some(swc_ecma_preset_env::Targets::Query(
+            preset_env_base::query::Query::Multiple(targets),
+          ))
         },
-        targets: Some(swc_ecma_preset_env::Targets::Query(
-          preset_env_base::query::Query::Multiple(preset_env),
-        )),
+        core_js,
         ..Default::default()
       },
       assumptions,
@@ -137,7 +143,7 @@ fn compat_by_es_version(
 }
 
 pub fn compat(
-  preset_env_config: Option<PresetEnvConfig>,
+  preset_env_config: Option<PresetEnv>,
   es_version: Option<EsVersion>,
   assumptions: Assumptions,
   top_level_mark: Mark,

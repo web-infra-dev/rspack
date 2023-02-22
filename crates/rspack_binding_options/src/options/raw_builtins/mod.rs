@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{Builtins, Define, Minification, PluginExt};
+use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv};
 use rspack_error::internal_error;
 use rspack_plugin_copy::CopyPlugin;
 use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
@@ -33,12 +33,35 @@ pub struct RawMinification {
   pub pure_funcs: Vec<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[napi(object)]
+pub struct RawPresetEnv {
+  pub targets: Vec<String>,
+  #[napi(ts_type = "'usage' | 'entry'")]
+  pub mode: Option<String>,
+  pub core_js: Option<String>,
+}
+
 impl From<RawMinification> for Minification {
   fn from(value: RawMinification) -> Self {
     Self {
       passes: value.passes as usize,
       drop_console: value.drop_console,
       pure_funcs: value.pure_funcs,
+    }
+  }
+}
+
+impl From<RawPresetEnv> for PresetEnv {
+  fn from(raw_preset_env: RawPresetEnv) -> Self {
+    Self {
+      targets: raw_preset_env.targets,
+      mode: raw_preset_env.mode.and_then(|mode| match mode.as_str() {
+        "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
+        "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
+        _ => None,
+      }),
+      core_js: raw_preset_env.core_js,
     }
   }
 }
@@ -51,8 +74,7 @@ pub struct RawBuiltins {
   pub css: Option<RawCssPluginConfig>,
   pub postcss: Option<RawPostCssConfig>,
   pub minify_options: Option<RawMinification>,
-  pub polyfill: bool,
-  pub preset_env: Vec<String>,
+  pub preset_env: Option<RawPresetEnv>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Define,
   pub tree_shaking: bool,
@@ -79,7 +101,11 @@ impl RawOptionsApply for RawBuiltins {
     }
     if let Some(css) = self.css {
       let options = CssConfig {
-        preset_env: self.preset_env.clone(),
+        targets: self
+          .preset_env
+          .as_ref()
+          .map(|preset_env| preset_env.targets.clone())
+          .unwrap_or_default(),
         postcss: self.postcss.unwrap_or_default().into(),
         modules: css.modules.try_into()?,
       };
@@ -94,8 +120,7 @@ impl RawOptionsApply for RawBuiltins {
 
     Ok(Builtins {
       minify_options: self.minify_options.map(Into::into),
-      polyfill: self.polyfill,
-      preset_env: self.preset_env,
+      preset_env: self.preset_env.map(Into::into),
       define: self.define,
       tree_shaking: self.tree_shaking,
       react: self.react.into(),

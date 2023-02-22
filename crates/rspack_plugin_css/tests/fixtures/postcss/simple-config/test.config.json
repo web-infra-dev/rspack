@@ -5,6 +5,8 @@
     }
   },
   "builtins": {
-    "presetEnv": ["chrome >= 40", "firefox > 10"]
+    "presetEnv": {
+      "targets": ["chrome >= 40", "firefox > 10"]
+    }
   }
 }

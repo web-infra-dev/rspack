@@ -72,10 +72,18 @@
           "$ref": "#/definitions/Postcss"
         },
         "presetEnv": {
-          "default": [],
-          "type": "array",
-          "items": {
-            "type": "string"
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["usage", "entry"]
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         },
         "treeShaking": {

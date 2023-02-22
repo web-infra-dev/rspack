@@ -151,11 +151,10 @@ exports[`normalize options snapshot react.development and react.refresh should b
       "pureFuncs": [],
     },
     "noEmitAssets": false,
-    "polyfill": true,
     "postcss": {
       "pxtorem": undefined,
     },
-    "presetEnv": [],
+    "presetEnv": undefined,
     "progress": undefined,
     "react": {
       "development": true,

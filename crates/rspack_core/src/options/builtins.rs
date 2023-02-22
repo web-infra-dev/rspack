@@ -30,8 +30,7 @@ pub struct DecoratorOptions {
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
   pub minify_options: Option<Minification>,
-  pub polyfill: bool,
-  pub preset_env: Vec<String>,
+  pub preset_env: Option<PresetEnv>,
   pub define: Define,
   pub tree_shaking: bool,
   pub react: ReactOptions,
@@ -94,4 +93,19 @@ pub struct Pattern {
 pub struct GlobOptions {
   pub case_sensitive_match: Option<bool>,
   pub dot: Option<bool>,
+}
+#[derive(Debug, Clone, Default)]
+pub struct PresetEnv {
+  pub targets: Vec<String>,
+  pub mode: Option<swc_core::ecma::preset_env::Mode>,
+  pub core_js: Option<String>,
+}
+
+// This only used for rspack_test as rspack_test do not directly depend on swc_core, use this to convert string to mode
+pub fn string_to_mode(s: &str) -> Option<swc_core::ecma::preset_env::Mode> {
+  match s {
+    "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
+    "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
+    _ => None,
+  }
 }
