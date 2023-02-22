@@ -338,10 +338,18 @@ impl<'a> CodeSizeOptimizer<'a> {
       // pruning
       let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
       let mut visited = IdentifierSet::default();
+      let context_entry_modules = self.bailout_modules.iter().filter_map(|(k, v)| {
+        if v.contains(BailoutFlag::CONTEXT_MODULE) {
+          Some(k.clone())
+        } else {
+          None
+        }
+      });
       let mut q = VecDeque::from_iter(
         self
           .compilation
           .entry_modules()
+          .chain(context_entry_modules)
           .map(|module_id| (module_id, true)),
       );
       while let Some((module_identifier, _is_entry)) = q.pop_front() {

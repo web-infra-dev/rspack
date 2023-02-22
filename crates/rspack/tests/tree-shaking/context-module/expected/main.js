@@ -1,6 +1,6 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./child Sync  recursive ^.*.js$": function (module, exports, __webpack_require__) {
-var map = {"./index.js": "./child/index.js",};
+var map = {"./child/index.js": "./child/child/index.js","./index.js": "./child/index.js",};
 function webpackContext(req) {
 var id = webpackContextResolve(req);
 
@@ -25,6 +25,19 @@ webpackContext.id = './child Sync  recursive ^.*.js$';
       webpackContext.resolve = webpackContextResolve;
       module.exports = webpackContext;
       },
+"./child/child/index.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "value", {
+    enumerable: true,
+    get: function() {
+        return value;
+    }
+});
+const value = "dynamic";
+},
 "./child/index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
