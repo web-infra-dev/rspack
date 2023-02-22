@@ -11,7 +11,9 @@ use std::{
 
 use dashmap::DashSet;
 use indexmap::IndexSet;
-use rayon::prelude::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
+use rayon::prelude::{
+  IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator,
+};
 use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
@@ -770,6 +772,40 @@ impl Compilation {
         }
       })
     };
+
+    // add context module and context element module to bailout_module_identifiers
+    self.bailout_module_identifiers = self
+      .module_graph
+      .modules()
+      .par_bridge()
+      .filter_map(|module| {
+        if module.as_context_module().is_some() {
+          let mut values = vec![(module.identifier(), BailoutFlag::CONTEXT_MODULE)];
+          if let Some(dependencies) = self
+            .module_graph
+            .dependencies_by_module_identifier(&module.identifier())
+          {
+            for dependency in dependencies {
+              if let Some(dependency_module) = self
+                .module_graph
+                .module_identifier_by_dependency_id(dependency)
+              {
+                values.push((*dependency_module, BailoutFlag::CONTEXT_MODULE));
+              }
+            }
+          }
+
+          Some(values)
+        } else {
+          None
+        }
+      })
+      .flatten()
+      .collect();
+    println!(
+      "bailout_module_identifiers: {:?}\n\n",
+      self.bailout_module_identifiers
+    );
 
     if let Some(err) = errored {
       Err(err)

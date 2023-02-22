@@ -61,6 +61,7 @@ bitflags::bitflags! {
       const COMMONJS_REQUIRE = 1 << 1;
       const COMMONJS_EXPORTS = 1 << 2;
       const DYNAMIC_IMPORT = 1 << 3;
+      const CONTEXT_MODULE = 1 << 4;
   }
 }
 

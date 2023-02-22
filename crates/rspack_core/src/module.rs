@@ -9,8 +9,9 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsAny, CodeGenerationResult, Compilation, CompilerOptions, Context, DynEq, DynHash,
-  LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, Resolve, SourceType,
+  AsAny, CodeGenerationResult, Compilation, CompilerOptions, Context, ContextModule, DynEq,
+  DynHash, LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, Resolve,
+  SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -231,6 +232,7 @@ macro_rules! impl_module_downcast_helpers {
 
 impl_module_downcast_helpers!(NormalModule, normal_module);
 impl_module_downcast_helpers!(RawModule, raw_module);
+impl_module_downcast_helpers!(ContextModule, context_module);
 
 #[cfg(test)]
 mod test {
