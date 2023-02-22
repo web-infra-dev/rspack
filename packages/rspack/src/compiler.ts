@@ -81,7 +81,10 @@ class Compiler {
 			get sources(): typeof import("webpack-sources") {
 				return require("webpack-sources");
 			},
-			Compilation
+			Compilation,
+			get version() {
+				return require("../package.json").version;
+			}
 		};
 		this.root = this;
 		this.running = false;
