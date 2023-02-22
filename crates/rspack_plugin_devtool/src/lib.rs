@@ -12,6 +12,7 @@ use rspack_core::{
   ProcessAssetsArgs,
 };
 use rspack_error::{internal_error, Result};
+use rspack_util::swc::normalize_custom_filename;
 use rustc_hash::FxHashMap as HashMap;
 use serde_json::json;
 
@@ -189,12 +190,4 @@ pub fn wrap_eval_source_map(
     format!("\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}");
   let result = RawSource::from(format!("eval({});", json!(format!("{source}{footer}")))).boxed();
   Ok(result)
-}
-
-fn normalize_custom_filename(source: &str) -> &str {
-  if source.starts_with('<') && source.ends_with('>') {
-    &source[1..source.len() - 1] // remove '<' and '>' for swc FileName::Custom
-  } else {
-    source
-  }
 }

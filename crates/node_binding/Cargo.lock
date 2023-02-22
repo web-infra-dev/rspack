@@ -2044,7 +2044,9 @@ dependencies = [
  "codespan-reporting",
  "futures",
  "json",
+ "rspack_util",
  "sugar_path",
+ "swc_core",
  "termcolor",
  "thiserror",
 ]
@@ -2274,6 +2276,7 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "tracing",

@@ -17,6 +17,7 @@ use rspack_error::{
   internal_error, Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result,
   TWithDiagnosticArray,
 };
+use swc_core::common::SourceFile;
 use swc_core::common::{
   input::SourceFileInput, source_map::SourceMapGenConfig, FileName, SourceMap,
 };
@@ -60,7 +61,7 @@ impl SwcCssCompiler {
     let diagnostics = parser
       .take_errors()
       .into_iter()
-      .flat_map(|error| css_parse_error_to_diagnostic(error, path))
+      .flat_map(|error| css_parse_error_to_diagnostic(error, &fm))
       .collect();
     stylesheet
       .map_err(|_| internal_error!("Css parsing failed".to_string()))
@@ -167,12 +168,12 @@ impl SourceMapGenConfig for SwcCssSourceMapGenConfig {
   }
 }
 
-pub fn css_parse_error_to_diagnostic(error: Error, path: &str) -> Vec<Diagnostic> {
+pub fn css_parse_error_to_diagnostic(error: Error, fm: &SourceFile) -> Vec<Diagnostic> {
   let message = error.message();
   let error = error.into_inner();
   let span: ErrorSpan = error.0.into();
-  let traceable_error = rspack_error::TraceableError::from_path(
-    path.to_string(),
+  let traceable_error = rspack_error::TraceableError::from_source_file(
+    fm,
     span.start as usize,
     span.end as usize,
     "Css parsing error".to_string(),

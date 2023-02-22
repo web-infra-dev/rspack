@@ -70,7 +70,7 @@ pub fn parse(
   let fm = cm.new_source_file(FileName::Custom(filename.to_string()), source_code);
 
   match parse_js(
-    fm,
+    fm.clone(),
     ast::EsVersion::Es2022,
     syntax,
     // TODO: Is this correct to think the code is module by default?
@@ -81,7 +81,7 @@ pub fn parse(
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()
-        .map(|err| ecma_parse_error_to_rspack_error(err, filename, module_type))
+        .map(|err| ecma_parse_error_to_rspack_error(err, &fm, module_type))
         .collect::<Vec<_>>(),
     )),
   }
@@ -94,7 +94,7 @@ pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Progra
   let fm = cm.new_source_file(FileName::Custom(filename), js_code);
 
   match parse_js(
-    fm,
+    fm.clone(),
     ast::EsVersion::Es2022,
     syntax,
     // TODO: Is this correct to think the code is module by default?
@@ -105,7 +105,7 @@ pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Progra
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()
-        .map(|err| ecma_parse_error_to_rspack_error(err, "", module_type))
+        .map(|err| ecma_parse_error_to_rspack_error(err, &fm, module_type))
         .collect::<Vec<_>>(),
     )),
   }
