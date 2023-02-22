@@ -5,7 +5,8 @@ module.exports = {
 		"<rootDir>/tests/*.test.ts",
 		"<rootDir>/tests/*.basictest.ts",
 		"<rootDir>/tests/*.longtest.ts",
-		"<rootDir>/tests/*.unittest.ts"
+		"<rootDir>/tests/*.unittest.ts",
+		"<rootDir>/tests/copyPlugin/*.test.js"
 	],
 	cache: false,
 	transform: {
@@ -14,6 +15,7 @@ module.exports = {
 			{
 				isolatedModules: true
 			}
-		]
+		],
+		"^.+\\.jsx?$": "babel-jest"
 	}
 };

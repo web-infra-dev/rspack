@@ -1,11 +1,13 @@
 use napi_derive::napi;
 use rspack_core::{Builtins, Define, Minification, PluginExt};
 use rspack_error::internal_error;
+use rspack_plugin_copy::CopyPlugin;
 use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
 use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use serde::Deserialize;
 
+mod raw_copy;
 mod raw_css;
 mod raw_decorator;
 mod raw_html;
@@ -20,6 +22,7 @@ pub use raw_postcss::*;
 pub use raw_progress::*;
 pub use raw_react::*;
 
+use self::raw_copy::RawCopyConfig;
 use crate::RawOptionsApply;
 
 #[derive(Debug, Deserialize)]
@@ -59,6 +62,7 @@ pub struct RawBuiltins {
   pub no_emit_assets: bool,
   pub emotion: Option<String>,
   pub dev_friendly_split_chunks: bool,
+  pub copy: Option<RawCopyConfig>,
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -84,6 +88,10 @@ impl RawOptionsApply for RawBuiltins {
     if let Some(progress) = self.progress {
       plugins.push(ProgressPlugin::new(progress.into()).boxed());
     }
+    if let Some(copy) = self.copy {
+      plugins.push(CopyPlugin::new(copy.patterns.into_iter().map(Into::into).collect()).boxed());
+    }
+
     Ok(Builtins {
       minify_options: self.minify_options.map(Into::into),
       polyfill: self.polyfill,

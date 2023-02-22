@@ -100,9 +100,9 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.61"
+version = "0.1.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705339e0e4a9690e2908d2b3d049d85682cf19fbd5782494498fbf7003a6a282"
+checksum = "1cd7fce9ba8c3c042128ce72d8b2ddbf3a05747efb67ea0313c635e10bda47a2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2336,6 +2336,7 @@ dependencies = [
  "rspack_ids",
  "rspack_loader_sass",
  "rspack_plugin_asset",
+ "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_devtool",
  "rspack_plugin_externals",
@@ -2400,6 +2401,7 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_napi_utils",
  "rspack_plugin_asset",
+ "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_devtool",
@@ -2611,6 +2613,30 @@ dependencies = [
  "sugar_path",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_copy"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dashmap",
+ "glob",
+ "lazy_static",
+ "pathdiff",
+ "rayon",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_futures",
+ "rspack_testing",
+ "serde_json",
+ "sugar_path",
+ "testing_macros",
+ "tokio",
+ "tracing",
+ "xxhash-rust",
 ]
 
 [[package]]
