@@ -1011,26 +1011,9 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_by_identifier(&self.module_identifier)
       .and_then(|module| module.as_normal_module())
       .map(|normal_module| &normal_module.resource_resolved_data().resource_path)?;
-    // self.resolver.0.resolve(path, request);
-    let module_path = PathBuf::from(resource_path);
-    let (mut package_json_path, side_effects) = self
-      .resolver_factory
-      .resolver
-      .0
-      .load_side_effects(module_path.as_path())
-      .ok()??;
-    let side_effects = side_effects?;
 
-    package_json_path.pop();
-    let package_path = package_json_path;
-
-    let relative_path = module_path.relative(package_path);
-    let mut side_effects = Some(get_side_effects_from_package_json(
-      side_effects,
-      relative_path,
-    ));
-
-    // sideEffects in module.rule has higher priority
+    // sideEffects in module.rule has higher priority,
+    // we could early return if we match a rule.
     for rule in self.options.module.rules.iter() {
       let module_side_effects = match rule.side_effects {
         Some(s) => s,
@@ -1046,9 +1029,26 @@ impl<'a> ModuleRefAnalyze<'a> {
           continue;
         }
       }
-      side_effects = Some(module_side_effects);
-      break;
+      return Some(SideEffect::Analyze(module_side_effects));
     }
+    let module_path = PathBuf::from(resource_path);
+    let (mut package_json_path, side_effects) = self
+      .resolver_factory
+      .resolver
+      .0
+      .load_side_effects(module_path.as_path())
+      .ok()??;
+    let side_effects = side_effects?;
+
+    package_json_path.pop();
+    let package_path = package_json_path;
+
+    let relative_path = module_path.relative(package_path);
+    let side_effects = Some(get_side_effects_from_package_json(
+      side_effects,
+      relative_path,
+    ));
+
     side_effects.map(SideEffect::Configuration)
   }
 }
