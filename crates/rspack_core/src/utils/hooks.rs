@@ -107,13 +107,13 @@ pub async fn resolve(
         ResolveError(
           runtime_message,
           TraceableError::from_real_file_path(
-            &importer,
+            importer,
             span.start as usize,
             span.end as usize,
             "Resolve error".to_string(),
             internal_message.clone(),
           )
-          .map(|e| Error::TraceableError(e))
+          .map(Error::TraceableError)
           .unwrap_or_else(|_| internal_error!(internal_message)),
         )
       } else {

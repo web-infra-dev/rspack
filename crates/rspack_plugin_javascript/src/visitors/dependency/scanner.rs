@@ -400,7 +400,7 @@ fn is_add_op_bin_expr(bin: &BinExpr) -> bool {
     return false;
   }
   match &bin.left {
-    box Expr::Bin(bin) => is_add_op_bin_expr(&bin),
+    box Expr::Bin(bin) => is_add_op_bin_expr(bin),
     _ => true,
   }
 }
@@ -445,7 +445,7 @@ fn is_concat_call(expr: &CallExpr) -> bool {
       }
 
       if let box Expr::Call(call) = &member_expr.obj {
-        return is_concat_call(&call);
+        return is_concat_call(call);
       }
       true
     }
@@ -463,7 +463,7 @@ fn find_concat_expr_prefix_string(expr: &CallExpr) -> Option<String> {
         return Some(num.value.to_string());
       }
       if let box Expr::Call(call) = &member_expr.obj {
-        return find_concat_expr_prefix_string(&call);
+        return find_concat_expr_prefix_string(call);
       }
       None
     }
