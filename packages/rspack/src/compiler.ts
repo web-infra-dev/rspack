@@ -76,12 +76,8 @@ class Compiler {
 	};
 	options: RspackOptionsNormalized;
 
-	constructor(
-		context: string,
-		options: RspackOptionsNormalized,
-		outputFileSystem: typeof import("fs")
-	) {
-		this.outputFileSystem = outputFileSystem;
+	constructor(context: string, options: RspackOptionsNormalized) {
+		this.outputFileSystem = fs;
 		this.options = options;
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
