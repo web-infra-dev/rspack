@@ -9,10 +9,10 @@ var loadStylesheet = (chunkId, url, done, hmr) => {
 		var links = document.getElementsByTagName("link");
 		for (var i = 0; i < links.length; i++) {
 			var l = links[i];
+			var href = l.getAttribute("href") || l.href;
 			if (
 				l.rel == "stylesheet" &&
-				(l.href.startsWith(url) ||
-					l.getAttribute("href").startsWith(url) ||
+				((href && href.startsWith(url)) ||
 					l.getAttribute("data-webpack") == uniqueName + ":" + key)
 			) {
 				link = l;
