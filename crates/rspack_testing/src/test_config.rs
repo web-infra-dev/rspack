@@ -67,6 +67,8 @@ fn true_by_default() -> bool {
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TestConfig {
+  #[serde(default)]
+  mode: String,
   #[serde(default = "default_entry")]
   pub entry: HashMap<String, EntryItem>,
   #[serde(default)]
@@ -93,6 +95,8 @@ pub struct Optimization {
   pub module_ids: String,
   #[serde(default = "default_optimization_side_effects")]
   pub side_effects: String,
+  #[serde(default)]
+  pub minimize: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -307,7 +311,7 @@ impl TestConfig {
         library: None,
         strict_module_error_handling: false,
       },
-      mode: c::Mode::None,
+      mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),
       resolve: c::Resolve {
         extensions: Some(
