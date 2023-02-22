@@ -340,7 +340,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       let mut visited = IdentifierSet::default();
       let context_entry_modules = self.bailout_modules.iter().filter_map(|(k, v)| {
         if v.contains(BailoutFlag::CONTEXT_MODULE) {
-          Some(k.clone())
+          Some(*k)
         } else {
           None
         }
