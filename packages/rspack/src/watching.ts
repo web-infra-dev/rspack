@@ -36,8 +36,8 @@ class Watching {
 		this.#invalidReported = true;
 		this.blocked = false;
 		this.isBlocked = () => false;
-		this.onChange = () => {};
-		this.onInvalid = () => {};
+		this.onChange = () => { };
+		this.onInvalid = () => { };
 		this.compiler = compiler;
 		this.running = false;
 		this.#initial = true;
@@ -214,9 +214,10 @@ class Watching {
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
 		}
-		this.compiler.modifiedFiles = changedFiles;
-		this.compiler.removedFiles = removedFiles;
-
+		const modifiedFiles = this.compiler.modifiedFiles = this.#collectedChangedFiles;
+		const deleteFiles = this.compiler.removedFiles = this.#collectedRemovedFiles;
+		this.#collectedChangedFiles = undefined;
+		this.#collectedRemovedFiles = undefined;
 		const begin = Date.now();
 		this.invalid = false;
 		this.#invalidReported = false;
@@ -226,9 +227,9 @@ class Watching {
 			const isRebuild = this.compiler.options.devServer && !this.#initial;
 			const print = isRebuild
 				? () =>
-						console.log("rebuild success, time cost", Date.now() - begin, "ms")
+					console.log("rebuild success, time cost", Date.now() - begin, "ms")
 				: () =>
-						console.log("build success, time cost", Date.now() - begin, "ms");
+					console.log("build success, time cost", Date.now() - begin, "ms");
 
 			const onBuild = (err: Error) => {
 				if (err) return this._done(err);
@@ -241,7 +242,7 @@ class Watching {
 			};
 
 			if (isRebuild) {
-				this.compiler.rebuild(changedFiles, removedFiles, onBuild as any);
+				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
 			} else {
 				// @ts-expect-error
 				this.compiler.build(onBuild);
@@ -280,16 +281,16 @@ class Watching {
 		stats = new Stats(this.compiler.compilation);
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
-			const hasPending =
-				this.#collectedChangedFiles || this.#collectedRemovedFiles;
-			// Rebuild again with the pending files
-			if (hasPending) {
-				const pendingChengedFiles = this.#collectedChangedFiles;
-				const pendingRemovedFiles = this.#collectedRemovedFiles;
-				this.#collectedChangedFiles = undefined;
-				this.#collectedRemovedFiles = undefined;
-				return this.#go(pendingChengedFiles, pendingRemovedFiles);
-			}
+			// const hasPending =
+			// 	this.#collectedChangedFiles || this.#collectedRemovedFiles;
+			// // Rebuild again with the pending files
+			// if (hasPending) {
+			// 	const pendingChengedFiles = this.#collectedChangedFiles;
+			// 	const pendingRemovedFiles = this.#collectedRemovedFiles;
+			// 	this.#collectedChangedFiles = undefined;
+			// 	this.#collectedRemovedFiles = undefined;
+			// 	return this.#go(pendingChengedFiles, pendingRemovedFiles);
+			// }
 			// @ts-expect-error
 			this.handler(null, stats);
 
