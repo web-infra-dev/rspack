@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use rspack_core::ModuleType;
 use rspack_error::{Error, Result};
 use swc_core::{
   base::{
     config::{IsModule, JsMinifyCommentOption, JsMinifyOptions, SourceMapsConfig},
-    BoolOr, TransformOutput,
+    try_with_handler, BoolOr, TransformOutput,
   },
   common::{
     collections::AHashMap,
     comments::{Comment, Comments, SingleThreadedComments},
+    errors::HANDLER,
     BytePos, FileName, Mark, SourceMap, GLOBALS,
   },
   ecma::{
@@ -37,150 +39,156 @@ use crate::utils::ecma_parse_error_to_rspack_error;
 pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<TransformOutput> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(&Default::default(), || -> Result<TransformOutput> {
-    let fm = cm.new_source_file(FileName::Custom(filename.to_string()), input);
-    let target = opts.ecma.clone().into();
+    let ret = try_with_handler(cm.clone(), Default::default(), |handler| {
+      let fm = cm.new_source_file(FileName::Custom(filename.to_string()), input);
+      let target = opts.ecma.clone().into();
 
-    let (source_map, _) = opts
-      .source_map
-      .as_ref()
-      .map(|obj| -> std::result::Result<_, anyhow::Error> {
-        let orig = obj
-          .content
-          .as_ref()
-          .map(|s| sourcemap::SourceMap::from_slice(s.as_bytes()));
-        let orig = match orig {
-          Some(v) => Some(v?),
-          None => None,
-        };
-        Ok((SourceMapsConfig::Bool(true), orig))
-      })
-      .unwrap_as_option(|v| {
-        Some(Ok(match v {
-          Some(true) => (SourceMapsConfig::Bool(true), None),
-          _ => (SourceMapsConfig::Bool(false), None),
-        }))
-      })
-      .expect("TODO:")?;
-
-    let mut min_opts = MinifyOptions {
-      compress: opts
-        .compress
-        .clone()
-        .unwrap_as_option(|default| match default {
-          Some(true) | None => Some(Default::default()),
-          _ => None,
+      let (source_map, _) = opts
+        .source_map
+        .as_ref()
+        .map(|obj| -> std::result::Result<_, anyhow::Error> {
+          let orig = obj
+            .content
+            .as_ref()
+            .map(|s| sourcemap::SourceMap::from_slice(s.as_bytes()));
+          let orig = match orig {
+            Some(v) => Some(v?),
+            None => None,
+          };
+          Ok((SourceMapsConfig::Bool(true), orig))
         })
-        .map(|v| v.into_config(cm.clone())),
-      mangle: opts
-        .mangle
-        .clone()
-        .unwrap_as_option(|default| match default {
-          Some(true) | None => Some(Default::default()),
-          _ => None,
-        }),
-      ..Default::default()
-    };
+        .unwrap_as_option(|v| {
+          Some(Ok(match v {
+            Some(true) => (SourceMapsConfig::Bool(true), None),
+            _ => (SourceMapsConfig::Bool(false), None),
+          }))
+        })
+        .expect("TODO:")?;
 
-    // top_level defaults to true if module is true
+      let mut min_opts = MinifyOptions {
+        compress: opts
+          .compress
+          .clone()
+          .unwrap_as_option(|default| match default {
+            Some(true) | None => Some(Default::default()),
+            _ => None,
+          })
+          .map(|v| v.into_config(cm.clone())),
+        mangle: opts
+          .mangle
+          .clone()
+          .unwrap_as_option(|default| match default {
+            Some(true) | None => Some(Default::default()),
+            _ => None,
+          }),
+        ..Default::default()
+      };
 
-    // https://github.com/swc-project/swc/issues/2254
+      // top_level defaults to true if module is true
 
-    if opts.module {
-      if let Some(opts) = &mut min_opts.compress {
-        if opts.top_level.is_none() {
-          opts.top_level = Some(TopLevelOptions { functions: true });
+      // https://github.com/swc-project/swc/issues/2254
+
+      if opts.module {
+        if let Some(opts) = &mut min_opts.compress {
+          if opts.top_level.is_none() {
+            opts.top_level = Some(TopLevelOptions { functions: true });
+          }
+        }
+
+        if let Some(opts) = &mut min_opts.mangle {
+          opts.top_level = Some(true);
         }
       }
 
-      if let Some(opts) = &mut min_opts.mangle {
-        opts.top_level = Some(true);
-      }
-    }
+      let comments = SingleThreadedComments::default();
 
-    let comments = SingleThreadedComments::default();
-
-    let module = parse_js(
-      fm.clone(),
-      target,
-      Syntax::Es(EsConfig {
-        jsx: true,
-        decorators: true,
-        decorators_before_export: true,
-        import_assertions: true,
-        ..Default::default()
-      }),
-      IsModule::Bool(true),
-      Some(&comments),
-    )
-    .map_err(|errs| {
-      Error::BatchErrors(
-        errs
-          .into_iter()
-          .map(|err| ecma_parse_error_to_rspack_error(err, &fm, &ModuleType::Js))
-          .collect::<Vec<_>>(),
+      let module = parse_js(
+        fm.clone(),
+        target,
+        Syntax::Es(EsConfig {
+          jsx: true,
+          decorators: true,
+          decorators_before_export: true,
+          import_assertions: true,
+          ..Default::default()
+        }),
+        IsModule::Bool(true),
+        Some(&comments),
       )
-    })?;
+      .map_err(|errs| {
+        Error::BatchErrors(
+          errs
+            .into_iter()
+            .map(|err| ecma_parse_error_to_rspack_error(err, &fm, &ModuleType::Js))
+            .collect::<Vec<_>>(),
+        )
+      })?;
 
-    let source_map_names = if source_map.enabled() {
-      let mut v = IdentCollector {
-        names: Default::default(),
+      let source_map_names = if source_map.enabled() {
+        let mut v = IdentCollector {
+          names: Default::default(),
+        };
+
+        module.visit_with(&mut v);
+
+        v.names
+      } else {
+        Default::default()
       };
 
-      module.visit_with(&mut v);
+      let unresolved_mark = Mark::new();
+      let top_level_mark = Mark::new();
 
-      v.names
-    } else {
-      Default::default()
-    };
+      let is_mangler_enabled = min_opts.mangle.is_some();
 
-    let unresolved_mark = Mark::new();
-    let top_level_mark = Mark::new();
+      let module = helpers::HELPERS.set(&Helpers::new(false), || {
+        HANDLER.set(handler, || {
+          let module = module.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
 
-    let is_mangler_enabled = min_opts.mangle.is_some();
+          let mut module = minifier::optimize(
+            module,
+            cm.clone(),
+            Some(&comments),
+            None,
+            &min_opts,
+            &minifier::option::ExtraOptions {
+              unresolved_mark,
+              top_level_mark,
+            },
+          );
 
-    let module = helpers::HELPERS.set(&Helpers::new(false), || {
-      let module = module.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
+          if !is_mangler_enabled {
+            module.visit_mut_with(&mut hygiene())
+          }
+          module.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
+        })
+      });
 
-      let mut module = minifier::optimize(
-        module,
+      let preserve_comments = opts
+        .format
+        .comments
+        .clone()
+        .into_inner()
+        .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
+      minify_file_comments(&comments, preserve_comments);
+
+      print(
+        &module,
         cm.clone(),
-        Some(&comments),
-        None,
-        &min_opts,
-        &minifier::option::ExtraOptions {
-          unresolved_mark,
-          top_level_mark,
+        target,
+        SourceMapConfig {
+          enable: source_map.enabled(),
+          inline_sources_content: opts.inline_sources_content,
+          emit_columns: opts.emit_source_map_columns,
+          names: source_map_names,
         },
-      );
-
-      if !is_mangler_enabled {
-        module.visit_mut_with(&mut hygiene())
-      }
-      module.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
+        true,
+        Some(&comments),
+        opts.format.ascii_only,
+      )
+      .map_err(|e| anyhow!(e))
     });
-
-    let preserve_comments = opts
-      .format
-      .comments
-      .clone()
-      .into_inner()
-      .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
-    minify_file_comments(&comments, preserve_comments);
-
-    print(
-      &module,
-      cm.clone(),
-      target,
-      SourceMapConfig {
-        enable: source_map.enabled(),
-        inline_sources_content: opts.inline_sources_content,
-        emit_columns: opts.emit_source_map_columns,
-        names: source_map_names,
-      },
-      true,
-      Some(&comments),
-      opts.format.ascii_only,
-    )
+    ret.map_err(|e| e.into())
   })
 }
 

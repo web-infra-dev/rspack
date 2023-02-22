@@ -2325,6 +2325,7 @@ dependencies = [
  "async-trait",
  "base64",
  "better_scoped_tls",
+ "crossbeam-channel",
  "dashmap",
  "either",
  "linked_hash_set",
