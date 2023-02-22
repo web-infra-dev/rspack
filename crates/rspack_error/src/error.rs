@@ -30,7 +30,9 @@ impl fmt::Display for InternalError {
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
 pub struct TraceableError {
+  /// path of a file (real file or virtual file)
   pub file_path: String,
+  /// source content of a file (real file or virtual file)
   pub file_src: String,
   pub start: usize,
   pub end: usize,
