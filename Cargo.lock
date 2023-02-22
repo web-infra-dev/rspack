@@ -2508,11 +2508,13 @@ dependencies = [
 name = "rspack_fs_node"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "napi",
  "napi-build",
  "napi-derive",
  "rspack_error",
  "rspack_fs",
+ "rspack_napi_utils",
 ]
 
 [[package]]
@@ -2587,6 +2589,7 @@ version = "0.1.0"
 dependencies = [
  "napi",
  "rspack_error",
+ "tokio",
 ]
 
 [[package]]
