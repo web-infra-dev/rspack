@@ -2164,6 +2164,7 @@ dependencies = [
  "rspack_binding_options",
  "rspack_core",
  "rspack_error",
+ "rspack_fs",
  "rspack_fs_node",
  "rspack_identifier",
  "rspack_napi_utils",

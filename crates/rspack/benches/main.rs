@@ -4,7 +4,7 @@ use std::{hint::black_box, path::PathBuf, time::Duration};
 use criterion::{criterion_group, criterion_main, Criterion};
 use mimalloc_rust::GlobalMiMalloc;
 use rspack_core::Compiler;
-use rspack_fs::NativeFileSystem;
+use rspack_fs::AsyncFileSystem;
 use rspack_testing::apply_from_fixture;
 use xshell::{cmd, Shell};
 
@@ -14,7 +14,7 @@ static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 
 async fn bench(cur_dir: &PathBuf) {
   let (options, plugins) = apply_from_fixture(cur_dir);
-  let mut compiler = Compiler::new(options, plugins, NativeFileSystem);
+  let mut compiler = Compiler::new(options, plugins, AsyncFileSystem);
 
   compiler
     .build()
