@@ -11,6 +11,7 @@ pub use queue::*;
 pub use resolver::*;
 use rspack_error::{Error, Result};
 use rspack_fs::AsyncWritableFileSystem;
+use rspack_futures::FuturesResults;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::RwLock;
 use tracing::instrument;
@@ -23,7 +24,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Compiler<T>
 where
-  T: AsyncWritableFileSystem,
+  T: AsyncWritableFileSystem + Send + Sync,
 {
   pub options: Arc<CompilerOptions>,
   pub output_filesystem: T,
@@ -35,7 +36,7 @@ where
 
 impl<T> Compiler<T>
 where
-  T: AsyncWritableFileSystem,
+  T: AsyncWritableFileSystem + Send + Sync,
 {
   #[instrument(skip_all)]
   pub fn new(
@@ -191,9 +192,12 @@ where
         .map_err(|e| Error::Anyhow { source: e })?;
     }
 
-    for (filename, asset) in self.compilation.assets() {
-      self.emit_asset(&output_path, filename, asset).await?;
-    }
+    let _ = self
+      .compilation
+      .assets()
+      .iter()
+      .map(|(filename, asset)| self.emit_asset(&output_path, filename, asset))
+      .collect::<FuturesResults<_>>();
 
     self
       .plugin_driver

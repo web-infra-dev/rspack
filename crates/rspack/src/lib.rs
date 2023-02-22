@@ -4,7 +4,7 @@ use rspack_core::{CompilerOptions, Plugin};
 use rspack_fs::AsyncWritableFileSystem;
 
 #[deprecated(note = "please use `rspack_core::Compiler::new` instead")]
-pub fn rspack<T: AsyncWritableFileSystem>(
+pub fn rspack<T: AsyncWritableFileSystem + Send + Sync>(
   options: CompilerOptions,
   plugins: Vec<Box<dyn Plugin>>,
   output_filesystem: T,

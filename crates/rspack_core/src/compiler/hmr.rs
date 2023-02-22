@@ -41,7 +41,7 @@ impl HotUpdateContent {
 
 impl<T> Compiler<T>
 where
-  T: AsyncWritableFileSystem,
+  T: AsyncWritableFileSystem + Send + Sync,
 {
   // TODO: remove this function when we had `record` in compiler.
   pub async fn rebuild(
