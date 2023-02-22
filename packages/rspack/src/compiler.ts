@@ -17,7 +17,7 @@ import { getRawOptions } from "./config/adapter";
 import {
 	createThreadsafeNodeFSFromRaw,
 	ThreadsafeWritableNodeFS
-} from "./filesystem";
+} from "./fileSystem";
 
 class EntryPlugin {
 	apply() {}

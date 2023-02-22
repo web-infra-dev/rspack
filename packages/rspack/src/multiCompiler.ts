@@ -202,7 +202,7 @@ export class MultiCompiler {
 	/**
 	 * @param {OutputFileSystem} value the new output file system
 	 */
-	set outputFileSystem(value: IFs) {
+	set outputFileSystem(value: typeof import("fs")) {
 		for (const compiler of this.compilers) {
 			compiler.outputFileSystem = value;
 		}
