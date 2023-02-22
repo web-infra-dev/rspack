@@ -95,8 +95,6 @@ pub struct Optimization {
   pub module_ids: String,
   #[serde(default = "default_optimization_side_effects")]
   pub side_effects: String,
-  #[serde(default)]
-  pub minimize: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
