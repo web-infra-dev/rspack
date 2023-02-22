@@ -802,10 +802,6 @@ impl Compilation {
       })
       .flatten()
       .collect();
-    println!(
-      "bailout_module_identifiers: {:?}\n\n",
-      self.bailout_module_identifiers
-    );
 
     if let Some(err) = errored {
       Err(err)
