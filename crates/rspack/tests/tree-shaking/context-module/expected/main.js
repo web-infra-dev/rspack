@@ -27,6 +27,16 @@ webpackContext.id = './child Sync  recursive ^.*.js$';
       },
 "./child/index.js": function (module, exports, __webpack_require__) {
 "use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "value", {
+    enumerable: true,
+    get: function() {
+        return value;
+    }
+});
+const value = "dynamic";
 },
 "./index.js": function (module, exports, __webpack_require__) {
 let a = "index";

@@ -43,10 +43,10 @@ pub struct CodeSizeOptimizer<'a> {
 impl<'a> CodeSizeOptimizer<'a> {
   pub fn new(compilation: &'a mut Compilation) -> Self {
     Self {
-      compilation,
-      bailout_modules: IdentifierMap::default(),
+      bailout_modules: compilation.bailout_module_identifiers.clone(),
       symbol_graph: SymbolGraph::default(),
       side_effects_free_modules: IdentifierSet::default(),
+      compilation,
     }
   }
 
@@ -84,15 +84,8 @@ impl<'a> CodeSizeOptimizer<'a> {
         evaluated_used_symbol_ref.extend(analyze_result.used_symbol_refs.iter().cloned());
       }
       // merge bailout module identifier
-      for (k, &v) in analyze_result.bail_out_module_identifiers.iter() {
-        match self.bailout_modules.entry(*k) {
-          Entry::Occupied(mut occ) => {
-            *occ.get_mut() |= v;
-          }
-          Entry::Vacant(vac) => {
-            vac.insert(v);
-          }
-        }
+      for (module_identifier, &reason) in analyze_result.bail_out_module_identifiers.iter() {
+        self.merge_bailout_modules_reason(module_identifier, reason);
       }
     }
 
@@ -174,6 +167,17 @@ impl<'a> CodeSizeOptimizer<'a> {
     )
   }
 
+  fn merge_bailout_modules_reason(&mut self, k: &Identifier, v: BailoutFlag) {
+    match self.bailout_modules.entry(*k) {
+      Entry::Occupied(mut occ) => {
+        *occ.get_mut() |= v;
+      }
+      Entry::Vacant(vac) => {
+        vac.insert(v);
+      }
+    }
+  }
+
   fn check_symbol_query(&self) {
     let symbol_list = match &std::env::var("SYMBOL_QUERY_PATH") {
       Ok(relative_path) => {
@@ -252,7 +256,10 @@ impl<'a> CodeSizeOptimizer<'a> {
       .filter_map(|(module_id, reason)| {
         if reason
           .intersection(
-            BailoutFlag::DYNAMIC_IMPORT | BailoutFlag::HELPER | BailoutFlag::COMMONJS_REQUIRE,
+            BailoutFlag::DYNAMIC_IMPORT
+              | BailoutFlag::HELPER
+              | BailoutFlag::COMMONJS_REQUIRE
+              | BailoutFlag::CONTEXT_MODULE,
           )
           .bits()
           .count_ones()
