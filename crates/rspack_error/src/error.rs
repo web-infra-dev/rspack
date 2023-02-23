@@ -175,7 +175,7 @@ impl fmt::Display for Error {
         reason,
         backtrace,
       } => write!(f, "napi error: {status} - {reason}\n{backtrace}"),
-      Error::Panic { message, backtrace } => write!(f, "unexpected panic: {message}\n{backtrace}"),
+      Error::Panic { message, backtrace } => write!(f, "Unexpected Panic: {message}\n{backtrace}\n\nPlease file an issue: https://github.com/modern-js-dev/rspack/issues/new?assignees=&labels=C-bug&template=1-bug-report.en-US.yml&title=%5BBug+Report%5D%3A+"),
     }
   }
 }
