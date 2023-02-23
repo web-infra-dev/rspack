@@ -5,11 +5,10 @@ mod resolver;
 
 use std::{path::Path, sync::Arc};
 
-use anyhow::Context;
 pub use compilation::*;
 pub use queue::*;
 pub use resolver::*;
-use rspack_error::{Error, Result};
+use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rustc_hash::FxHashSet as HashSet;
@@ -185,18 +184,13 @@ where
       .emit(&mut self.compilation)
       .await?;
 
-    let output_path = self.options.context.join(&self.options.output.path);
-    if !output_path.exists() {
-      std::fs::create_dir_all(&output_path)
-        .with_context(|| format!("failed to create dir: {:?}", &output_path))
-        .map_err(|e| Error::Anyhow { source: e })?;
-    }
+    let output_path = &self.options.output.path;
 
     let _ = self
       .compilation
       .assets()
       .iter()
-      .map(|(filename, asset)| self.emit_asset(&output_path, filename, asset))
+      .map(|(filename, asset)| self.emit_asset(output_path, filename, asset))
       .collect::<FuturesResults<_>>();
 
     self

@@ -259,11 +259,7 @@ where
     }
 
     // ----
-    let output_path = self
-      .compilation
-      .options
-      .context
-      .join(&self.compilation.options.output.path);
+    let output_path = &self.compilation.options.output.path;
 
     // TODO: hash
     // if old.hash == now.hash { return  } else { // xxxx}
@@ -405,7 +401,7 @@ where
             .get(&entry.path_options.chunk_ukey);
           let id = chunk.map_or(String::new(), |c| c.expect_id().to_string());
           self
-            .emit_asset(&output_path, &(id + ".hot-update.js"), &asset)
+            .emit_asset(output_path, &(id + ".hot-update.js"), &asset)
             .await?;
         }
 
@@ -429,7 +425,7 @@ where
         .collect();
       self
         .emit_asset(
-          &output_path,
+          output_path,
           &content.filename,
           &CompilationAsset::new(
             Some(
