@@ -33,7 +33,10 @@
 
 ## 链接
 
-- [Rspack 文档](https://rspack.org)
+- [rspack 文档](https://rspack.org)
+- [rspack 文档仓库](https://github.com/modern-js-dev/rspack-website)
+- [rspack-sources](https://github.com/modern-js-dev/rspack-sources): Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources).
+- [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase): 迁移到 rspack 的示例项目。
 
 ## 致谢
 
