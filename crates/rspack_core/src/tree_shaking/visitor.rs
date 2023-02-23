@@ -1424,7 +1424,7 @@ impl Visit for FirstIdentVisitor {
 
 fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
   match expr {
-    // Mark `exports.xxx = require('xxx')` as pure
+    // Mark `module.exports = require('xxx')` as pure
     Expr::Assign(AssignExpr {
       left: PatOrExpr::Expr(box left_expr),
       right: box Expr::Call(call_expr_right),
