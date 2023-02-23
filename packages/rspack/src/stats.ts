@@ -44,6 +44,9 @@ export class Stats {
 		if (options.hash) {
 			obj.hash = this.#inner.getHash();
 		}
+		if (options.publicPath) {
+			obj.publicPath = this.compilation.outputOptions.publicPath;
+		}
 		if (options.assets) {
 			obj.assets = this.#inner.getAssets();
 		}
