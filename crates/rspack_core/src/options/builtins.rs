@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use swc_core::ecma::transforms::react::Runtime;
+use swc_plugin_import::PluginImportConfig;
 
 use crate::AssetInfo;
 
@@ -38,6 +39,7 @@ pub struct Builtins {
   pub no_emit_assets: bool,
   pub emotion: Option<swc_emotion::EmotionOptions>,
   pub dev_friendly_split_chunks: bool,
+  pub plugin_import: Option<Vec<PluginImportConfig>>,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -151,6 +151,7 @@ exports[`normalize options snapshot react.development and react.refresh should b
       "pureFuncs": [],
     },
     "noEmitAssets": false,
+    "pluginImport": undefined,
     "postcss": {
       "pxtorem": undefined,
     },

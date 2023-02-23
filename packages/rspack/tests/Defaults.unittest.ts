@@ -93,6 +93,7 @@ describe("snapshots", () => {
 		    "html": [],
 		    "minifyOptions": undefined,
 		    "noEmitAssets": false,
+				"pluginImport": undefined,
 		    "postcss": {
 		      "pxtorem": undefined,
 		    },

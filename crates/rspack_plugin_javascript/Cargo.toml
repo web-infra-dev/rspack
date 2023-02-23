@@ -46,6 +46,7 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_emotion = "0.29.4"
+swc_plugin_import = "0.1.0"
 # swc = { workspace = true }
 # swc_atoms = { workspace = true }
 # swc_common = { workspace = true, features = ["concurrent"] }
