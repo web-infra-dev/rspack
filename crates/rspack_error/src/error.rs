@@ -138,6 +138,10 @@ pub enum Error {
     reason: String,
     backtrace: String,
   },
+  Panic {
+    message: String,
+    backtrace: String,
+  },
 }
 
 impl std::error::Error for Error {
@@ -171,6 +175,7 @@ impl fmt::Display for Error {
         reason,
         backtrace,
       } => write!(f, "napi error: {status} - {reason}\n{backtrace}"),
+      Error::Panic { message, backtrace } => write!(f, "unexpected panic: {message}\n{backtrace}"),
     }
   }
 }
@@ -196,6 +201,7 @@ impl Error {
       Error::Anyhow { .. } => DiagnosticKind::Internal,
       Error::BatchErrors(_) => DiagnosticKind::Internal,
       Error::Napi { .. } => DiagnosticKind::Internal,
+      Error::Panic { .. } => DiagnosticKind::Panic,
     }
   }
   pub fn severity(&self) -> Severity {
@@ -206,6 +212,7 @@ impl Error {
       Error::Anyhow { .. } => Severity::Error,
       Error::BatchErrors(_) => Severity::Error,
       Error::Napi { .. } => Severity::Error,
+      Error::Panic { .. } => Severity::Error,
     }
   }
 }
@@ -223,6 +230,7 @@ pub enum DiagnosticKind {
   Io,
   Json,
   Html,
+  Panic,
 }
 
 /// About the manually implementation,
@@ -240,6 +248,7 @@ impl std::fmt::Display for DiagnosticKind {
       DiagnosticKind::Io => write!(f, "io"),
       DiagnosticKind::Json => write!(f, "json"),
       DiagnosticKind::Html => write!(f, "html"),
+      DiagnosticKind::Panic => write!(f, "panic"),
     }
   }
 }

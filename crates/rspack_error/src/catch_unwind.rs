@@ -6,7 +6,7 @@ use std::{
 
 use futures::{future::BoxFuture, FutureExt};
 
-use super::{internal_error, Result};
+use super::{internal_error, Error, Result};
 
 #[allow(non_snake_case)]
 pub mod PanicStrategy {
@@ -57,6 +57,11 @@ fn panic_hook_handler<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> R {
   result
 }
 
+#[inline(always)]
+fn get_current_backtrace() -> String {
+  std::backtrace::Backtrace::force_capture().to_string()
+}
+
 pub fn catch_unwind<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> Result<R> {
   match panic_hook_handler::<S, _>(move || {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
@@ -64,10 +69,19 @@ pub fn catch_unwind<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> Result<R> 
     Ok(res) => Ok(res),
     Err(cause) => match cause.downcast_ref::<&'static str>() {
       None => match cause.downcast_ref::<String>() {
-        None => Err(internal_error!("Unknown panic message")),
-        Some(message) => Err(internal_error!("{message}")),
+        None => Err(Error::Panic {
+          message: "Unknown panic message".to_owned(),
+          backtrace: get_current_backtrace(),
+        }),
+        Some(message) => Err(Error::Panic {
+          message: format!("{message}"),
+          backtrace: get_current_backtrace(),
+        }),
       },
-      Some(message) => Err(internal_error!("{message}")),
+      Some(message) => Err(Error::Panic {
+        message: format!("{message}"),
+        backtrace: get_current_backtrace(),
+      }),
     },
   }
 }
