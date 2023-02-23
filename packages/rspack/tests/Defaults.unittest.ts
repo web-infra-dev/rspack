@@ -238,7 +238,9 @@ describe("snapshots", () => {
 		  "stats": {},
 		  "target": "web",
 		  "watch": false,
-		  "watchOptions": {},
+		  "watchOptions": {
+		    "poll": true,
+		  },
 		}
 	`);
 	});
