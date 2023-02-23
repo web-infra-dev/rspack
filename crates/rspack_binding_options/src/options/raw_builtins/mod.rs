@@ -11,6 +11,7 @@ mod raw_copy;
 mod raw_css;
 mod raw_decorator;
 mod raw_html;
+mod raw_plugin_import;
 mod raw_postcss;
 mod raw_progress;
 mod raw_react;
@@ -22,7 +23,7 @@ pub use raw_postcss::*;
 pub use raw_progress::*;
 pub use raw_react::*;
 
-use self::raw_copy::RawCopyConfig;
+use self::{raw_copy::RawCopyConfig, raw_plugin_import::RawPluginImportConfig};
 use crate::RawOptionsApply;
 
 #[derive(Debug, Deserialize)]
@@ -85,6 +86,7 @@ pub struct RawBuiltins {
   pub emotion: Option<String>,
   pub dev_friendly_split_chunks: bool,
   pub copy: Option<RawCopyConfig>,
+  pub plugin_import: Option<Vec<RawPluginImportConfig>>,
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -132,6 +134,9 @@ impl RawOptionsApply for RawBuiltins {
         .map(|i| serde_json::from_str(&i))
         .transpose()
         .map_err(|e| internal_error!(e.to_string()))?,
+      plugin_import: self
+        .plugin_import
+        .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
     })
   }
 }

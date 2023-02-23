@@ -9,7 +9,8 @@ import type {
 	RawCssPluginConfig,
 	RawCopyConfig,
 	RawPattern,
-	RawPresetEnv
+	RawPresetEnv,
+	RawPluginImportConfig
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
@@ -51,7 +52,21 @@ export interface Builtins {
 	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
 	copy?: CopyConfig;
+	pluginImport?: PluginImportConfig[];
 }
+
+export type PluginImportConfig = {
+	libraryName: string;
+	libraryDirectory?: string;
+	customName?: string;
+	customStyleName?: string;
+	style?: string | boolean;
+	styleLibraryDirectory?: string;
+	camelToDashComponentName?: boolean;
+	transformToDefaultImport?: boolean;
+	ignoreEsComponent?: Array<string>;
+	ignoreStyleComponent?: Array<string>;
+};
 
 export type CopyConfig = {
 	patterns:
@@ -78,6 +93,35 @@ function resolvePresetEnv(
 		mode: presetEnv?.mode,
 		coreJs: presetEnv?.coreJs
 	};
+}
+
+function resolvePluginImport(
+	pluginImport?: PluginImportConfig[]
+): RawPluginImportConfig[] | undefined {
+	if (!pluginImport) {
+		return undefined;
+	}
+
+	return pluginImport.map(config => {
+		const rawConfig: RawPluginImportConfig = {
+			...config,
+			style: {} // As babel-plugin-import style config is very flexible, we convert it to a more specific structure
+		};
+
+		if (typeof config.style === "boolean") {
+			rawConfig.style!.bool = config.style;
+		} else if (typeof config.style === "string") {
+			const isTpl = config.style.includes("{{");
+			rawConfig.style![isTpl ? "custom" : "css"] = config.style;
+		}
+
+		// This option will overrides the behavior of style
+		if (config.styleLibraryDirectory) {
+			rawConfig.style = { styleLibraryDirectory: config.styleLibraryDirectory };
+		}
+
+		return rawConfig;
+	});
 }
 
 function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
@@ -227,7 +271,8 @@ export function resolveBuiltinsOptions(
 		minifyOptions: resolveMinifyOptions(builtins, optimization),
 		emotion: resolveEmotion(builtins.emotion, production),
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
-		copy: resolveCopy(builtins.copy)
+		copy: resolveCopy(builtins.copy),
+		pluginImport: resolvePluginImport(builtins.pluginImport)
 	};
 }
 

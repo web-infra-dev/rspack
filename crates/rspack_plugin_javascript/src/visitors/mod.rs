@@ -7,8 +7,8 @@ mod clear_mark;
 
 mod inject_runtime_helper;
 use inject_runtime_helper::inject_runtime_helper;
+mod plugin_import;
 mod strict;
-
 use strict::strict_mode;
 mod format;
 use format::*;
@@ -28,6 +28,8 @@ use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use tree_shaking::tree_shaking_visitor;
+
+use crate::visitors::plugin_import::plugin_import;
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
@@ -94,6 +96,7 @@ pub fn run_before_pass(
           Either::Right(noop())
         }
       },
+      plugin_import(options.builtins.plugin_import.as_ref()),
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(

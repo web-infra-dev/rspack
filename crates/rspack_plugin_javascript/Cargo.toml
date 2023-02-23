@@ -45,6 +45,7 @@ swc_core = { workspace = true, features = [
   "ecma_quote",
 ] }
 swc_emotion = "0.29.4"
+swc_plugin_import = { path = "/Users/bytedance/libs/swc-plugins/crates/plugin_import" }
 # swc = { workspace = true }
 # swc_atoms = { workspace = true }
 # swc_common = { workspace = true, features = ["concurrent"] }
