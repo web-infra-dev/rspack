@@ -474,7 +474,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     match node {
       ModuleItem::ModuleDecl(decl) => match decl {
         ModuleDecl::Import(import) => {
-          let src: String = import.src.value.to_string();
+          let src = &import.src.value;
           let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmImport) {
             Some(module_identifier) => module_identifier,
             None => {
@@ -570,7 +570,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
         ModuleDecl::ExportAll(export_all) => {
           let resolved_uri = match self
-            .resolve_module_identifier(export_all.src.value.to_string(), &DependencyType::EsmExport)
+            .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
           {
             Some(module_identifier) => module_identifier,
             None => {
@@ -816,7 +816,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     // TODO: module.exports, exports.xxxxx
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
       match self
-        .resolve_module_identifier(require_lit.to_string(), &DependencyType::CjsRequire)
+        .resolve_module_identifier(&require_lit, &DependencyType::CjsRequire)
         .copied()
       {
         Some(module_identifier) => {
@@ -839,7 +839,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self
-        .resolve_module_identifier(import_str.to_string(), &DependencyType::DynamicImport)
+        .resolve_module_identifier(&import_str, &DependencyType::DynamicImport)
         .copied()
       {
         Some(module_identifier) => {
@@ -1078,6 +1078,8 @@ pub fn get_side_effects_from_package_json(
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
+  /// If we find a stmt that has side effects, we will skip the rest of the stmts.
+  /// And mark the module as having side effects.
   fn analyze_stmt_side_effects(&mut self, ele: &ModuleItem) {
     if !self.has_side_effects_stmt {
       match ele {
@@ -1219,7 +1221,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     }
   }
   fn analyze_named_export(&mut self, named_export: &NamedExport) {
-    let src: Option<String> = named_export.src.as_ref().map(|src| src.value.to_string());
+    let src = named_export.src.as_ref().map(|src| &src.value);
     if let Some(src) = src {
       let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmExport) {
         Some(module_identifier) => module_identifier,
@@ -1335,7 +1337,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// This function will panic if can't find
   fn resolve_module_identifier(
     &self,
-    src: String,
+    src: &str,
     dependency_type: &DependencyType,
   ) -> Option<&ModuleIdentifier> {
     self
@@ -1421,48 +1423,37 @@ impl Visit for FirstIdentVisitor {
 }
 
 fn is_pure_expression(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  if let Expr::Assign(assign) = expr {
-    // assign.left
-    if let box Expr::Call(ref right) = assign.right {
-      if is_module_exports(&assign.left, unresolved_ctxt)
-        && get_require_literal(right, unresolved_ctxt.outer()).is_some()
-      {
-        return true;
-      }
+  match expr {
+    // Mark `module.exports = require('xxx')` as pure
+    Expr::Assign(AssignExpr {
+      left: PatOrExpr::Expr(box left_expr),
+      right: box Expr::Call(call_expr_right),
+      op: op!("="),
+      ..
+    }) if is_module_exports_member_expr(left_expr, unresolved_ctxt)
+      && get_require_literal(call_expr_right, unresolved_ctxt.outer()).is_some() =>
+    {
+      true
     }
+    _ => !expr.may_have_side_effects(&ExprCtx {
+      unresolved_ctxt,
+      is_unresolved_ref_safe: false,
+    }),
   }
-  !expr.may_have_side_effects(&ExprCtx {
-    unresolved_ctxt,
-    is_unresolved_ref_safe: false,
-  })
 }
 
-fn is_module_exports(expr: &PatOrExpr, unresolved_ctxt: SyntaxContext) -> bool {
-  match expr {
-    PatOrExpr::Expr(box Expr::Member(MemberExpr { obj, prop, .. })) => {
-      match obj {
-        box Expr::Ident(
-          ident @ Ident {
-            sym: js_word!("module"),
-            ..
-          },
-        ) => {
-          if ident.span.ctxt != unresolved_ctxt {
-            return false;
-          }
-        }
-        _ => return false,
-      };
-
-      if let MemberProp::Ident(Ident { sym, .. }) = prop {
-        sym == "exports"
-      } else {
-        false
-      }
-    }
-    PatOrExpr::Pat(_) => false,
-    _ => false,
-  }
+/// Check if the expression is `module.exports`
+fn is_module_exports_member_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+  matches!(expr, Expr::Member(MemberExpr {
+    obj:
+      box Expr::Ident(Ident {
+        sym: js_word!("module"),
+        span: obj_span,
+        ..
+      }),
+    prop: MemberProp::Ident(Ident { sym: prop_sym, .. }),
+    ..
+  }) if obj_span.ctxt == unresolved_ctxt && prop_sym == "exports")
 }
 
 fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
