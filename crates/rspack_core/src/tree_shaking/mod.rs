@@ -24,10 +24,10 @@ pub struct OptimizeDependencyResult {
 }
 const ANALYZE_LOGGING: bool = true;
 static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
-  let log = std::env::current_dir().expect("");
+  let cwd = std::env::current_dir().expect("");
   match &std::env::var("CARE_ID") {
     Ok(relative_path) => {
-      let ab_path = log.join(relative_path);
+      let ab_path = cwd.join(relative_path);
       let file = std::fs::read_to_string(ab_path).expect("Failed to read target file into string");
       file
         .lines()
@@ -37,7 +37,9 @@ static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
     Err(_) => vec![],
   }
 });
-pub static CARED_MODULE_ID: &[&str] = &[];
+pub static CARED_MODULE_ID: &[&str] =
+  &["/Users/bytedance/Documents/rspack/rspack/examples/builder-rspack/src/one/App.tsx"];
+// &[];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {
