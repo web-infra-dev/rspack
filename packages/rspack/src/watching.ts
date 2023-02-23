@@ -42,9 +42,7 @@ class Watching {
 		this.running = false;
 		this.#initial = true;
 		this.#closed = false;
-		// poll by default, watchpack's default native watch mode uses fs.watch,
-		// which is slow for closing, issue: https://github.com/webpack/watchpack/issues/222
-		this.watchOptions = { poll: true, ...watchOptions };
+		this.watchOptions = watchOptions;
 		this.handler = handler;
 
 		process.nextTick(() => {

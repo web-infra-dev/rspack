@@ -63,6 +63,14 @@ export const applyRspackOptionsDefaults = (
 
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
+	F(options.watchOptions, 'poll', () => {
+		// poll by default, watchpack's default native watch mode
+		// uses fs.watch, which is slow for closing.
+		// issue: https://github.com/webpack/watchpack/issues/222
+		// seems `getResolveContext` in `/packages/rspack/config/adapter-rule-use.ts`
+		// can relief some of the slow closing, but will bring lots js <-> rust overhead
+		return true;
+	})
 
 	applyExperimentsDefaults(options.experiments);
 
