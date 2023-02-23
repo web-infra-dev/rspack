@@ -3,9 +3,9 @@
   <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
 </picture>
 
-# @rspack/dev-server
+# @rspack/binding-darwin-arm64
 
-Development server for rspack.
+Node binding for rspack.
 
 ## Documentation
 
