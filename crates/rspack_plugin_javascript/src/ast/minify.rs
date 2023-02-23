@@ -103,7 +103,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
       let comments = SingleThreadedComments::default();
 
       let module = parse_js(
-        fm,
+        fm.clone(),
         target,
         Syntax::Es(EsConfig {
           jsx: true,
@@ -119,7 +119,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
         Error::BatchErrors(
           errs
             .into_iter()
-            .map(|err| ecma_parse_error_to_rspack_error(err, filename, &ModuleType::Js))
+            .map(|err| ecma_parse_error_to_rspack_error(err, &fm, &ModuleType::Js))
             .collect::<Vec<_>>(),
         )
       })?;

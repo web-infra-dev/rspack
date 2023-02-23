@@ -1,4 +1,7 @@
-use std::{fmt, io};
+use std::{fmt, io, path::Path};
+
+use rspack_util::swc::normalize_custom_filename;
+use swc_core::common::SourceFile;
 
 use crate::Severity;
 
@@ -27,44 +30,83 @@ impl fmt::Display for InternalError {
 /// Because if the source code is missing when you construct a [TraceableError], we could read it from file system later
 /// when convert it into [crate::Diagnostic], but the reverse will not working.
 pub struct TraceableError {
-  pub path: String,
+  /// path of a file (real file or virtual file)
+  pub file_path: String,
+  /// source content of a file (real file or virtual file)
+  pub file_src: String,
   pub start: usize,
   pub end: usize,
   pub error_message: String,
   pub title: String,
-  pub source: Option<String>,
   pub kind: DiagnosticKind,
   pub severity: Severity,
 }
 
 impl TraceableError {
-  pub fn from_path(
-    path: String,
+  pub fn from_source_file(
+    source_file: &SourceFile,
+    start: usize,
+    end: usize,
+    title: String,
+    error_message: String,
+  ) -> Self {
+    let file_path = normalize_custom_filename(&source_file.name.to_string()).to_string();
+    let file_src = source_file.src.to_string();
+    Self {
+      file_path,
+      file_src,
+      start,
+      end,
+      error_message,
+      title,
+      kind: DiagnosticKind::Internal,
+      severity: Severity::Error,
+    }
+  }
+
+  pub fn from_file(
+    file_path: String,
+    file_src: String,
     start: usize,
     end: usize,
     title: String,
     error_message: String,
   ) -> Self {
     Self {
-      path,
+      file_path,
+      file_src,
       start,
       end,
       error_message,
-      source: None,
       title,
       kind: DiagnosticKind::Internal,
       severity: Severity::Error,
     }
   }
-  pub fn with_source(mut self, source: String) -> Self {
-    self.source = Some(source);
-    self
+
+  pub fn from_real_file_path(
+    path: &Path,
+    start: usize,
+    end: usize,
+    title: String,
+    error_message: String,
+  ) -> Result<Self, Error> {
+    let file_src = std::fs::read_to_string(path)?;
+    Ok(Self::from_file(
+      path.to_string_lossy().into_owned(),
+      file_src,
+      start,
+      end,
+      title,
+      error_message,
+    ))
   }
 
   pub fn with_kind(mut self, kind: DiagnosticKind) -> Self {
     self.kind = kind;
     self
   }
+
   pub fn with_severity(mut self, severity: Severity) -> Self {
     self.severity = severity;
     self
@@ -75,7 +117,7 @@ impl fmt::Display for TraceableError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     writeln!(f, "{}[{}]: {}", self.severity, self.kind, self.title)?;
     writeln!(f, "{}", self.error_message)?;
-    writeln!(f, "in {}", self.path)
+    writeln!(f, "in {}", self.file_path)
   }
 }
 

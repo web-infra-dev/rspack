@@ -12,10 +12,11 @@ anyhow             = { version = "1.0.61", features = ["backtrace"] }
 codespan-reporting = "0.11.1"
 futures            = "0.3.26"
 json               = "0.12.4"
+rspack_util        = { path = "../rspack_util" }
 sugar_path         = "0.0.9"
+swc_core           = { workspace = true, features = ["common"] }
 termcolor          = "1.1"
 thiserror          = "1.0.32"
-
 
 [dev-dependencies]
 insta = "1.19.0"

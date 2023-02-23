@@ -1,6 +1,7 @@
 use std::hash::{Hash, Hasher};
 
 use async_trait::async_trait;
+use crossbeam_channel::unbounded;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -13,7 +14,9 @@ use rspack_core::{
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestEntry,
   SourceType,
 };
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
@@ -505,53 +508,65 @@ impl Plugin for JsPlugin {
     let minify_options = &compilation.options.builtins.minify_options;
 
     if let Some(minify_options) = minify_options {
-      compilation
-      .assets
-      .par_iter_mut()
-      .filter(|(filename, _)| {
-        filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
-      })
-      .try_for_each(|(filename, original)| -> Result<()> {
-        // In theory, if a js source is minimized it has high possibility has been tree-shaked.
-        if original.get_info().minimized {
-          return Ok(());
-        }
+      let (tx, rx) = unbounded::<Vec<Diagnostic>>();
 
-        if let Some(original_source) = original.get_source() {
-          let input = original_source.source().to_string();
-          let input_source_map = original_source.map(&MapOptions::default());
-          let output = crate::ast::minify(&JsMinifyOptions {
-            compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
-              passes: minify_options.passes,
-              drop_console: minify_options.drop_console,
-              pure_funcs: minify_options.pure_funcs.clone(),
+      compilation
+        .assets
+        .par_iter_mut()
+        .filter(|(filename, _)| {
+          filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
+        })
+        .try_for_each(|(filename, original)| -> Result<()> {
+          // In theory, if a js source is minimized it has high possibility has been tree-shaked.
+          if original.get_info().minimized {
+            return Ok(());
+          }
+
+          if let Some(original_source) = original.get_source() {
+            let input = original_source.source().to_string();
+            let input_source_map = original_source.map(&MapOptions::default());
+            let output = match crate::ast::minify(&JsMinifyOptions {
+              compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
+                passes: minify_options.passes,
+                drop_console: minify_options.drop_console,
+                pure_funcs: minify_options.pure_funcs.clone(),
+                ..Default::default()
+              }),
+              source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
+              inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
+              emit_source_map_columns: !compilation.options.devtool.cheap(),
               ..Default::default()
-            }),
-            source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
-            inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
-            emit_source_map_columns: !compilation.options.devtool.cheap(),
-            ..Default::default()
-          }, input, filename)?;
-          let source = if let Some(map) = &output.map {
-            SourceMapSource::new(SourceMapSourceOptions {
-              value: output.code,
-              name: filename,
-              source_map: SourceMap::from_json(map)
-                .map_err(|e| internal_error!(e.to_string()))?,
-              original_source: None,
-              inner_source_map: input_source_map,
-              remove_original_source: true,
-            })
-            .boxed()
-          } else {
-            RawSource::from(output.code).boxed()
-          };
-          original.set_source(Some(source));
-        }
-        original.get_info_mut().minimized = true;
-        Ok(())
-      })?;
+            }, input, filename) {
+              Ok(r) => r,
+              Err(e) => {
+                tx.send(e.into()).map_err(|e| internal_error!(e.to_string()))?;
+                return Ok(())
+              },
+            };
+            let source = if let Some(map) = &output.map {
+              SourceMapSource::new(SourceMapSourceOptions {
+                value: output.code,
+                name: filename,
+                source_map: SourceMap::from_json(map)
+                  .map_err(|e| internal_error!(e.to_string()))?,
+                original_source: None,
+                inner_source_map: input_source_map,
+                remove_original_source: true,
+              })
+              .boxed()
+            } else {
+              RawSource::from(output.code).boxed()
+            };
+            original.set_source(Some(source));
+            original.get_info_mut().minimized = true;
+          }
+          Ok(())
+        })?;
+
+      drop(tx);
+      compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
     }
+
     Ok(())
   }
 }

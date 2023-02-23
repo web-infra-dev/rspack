@@ -102,40 +102,26 @@ impl From<Error> for Vec<Diagnostic> {
         ..Default::default()
       },
       Error::TraceableError(TraceableError {
-        path,
         start,
         end,
         error_message,
-        source,
         title,
-        ..
-      }) => {
-        let source = if let Some(source) = source {
-          Some(source)
-        } else {
-          std::fs::read_to_string(&path).ok()
-        };
-        match source {
-          Some(source) => Diagnostic {
-            message: error_message,
-            source_info: Some(DiagnosticSourceInfo { source, path }),
-            start,
-            end,
-            title,
-            kind,
-            severity,
-          },
-          // Fallback to internal diagnostic
-          None => Diagnostic {
-            message: error_message,
-            source_info: None,
-            start: 0,
-            end: 0,
-            severity,
-            ..Default::default()
-          },
-        }
-      }
+        kind,
+        severity,
+        file_path,
+        file_src,
+      }) => Diagnostic {
+        message: error_message,
+        source_info: Some(DiagnosticSourceInfo {
+          source: file_src,
+          path: file_path,
+        }),
+        start,
+        end,
+        title,
+        kind,
+        severity,
+      },
       Error::Io { source } => Diagnostic {
         message: source.to_string(),
         kind,

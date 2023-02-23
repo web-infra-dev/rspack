@@ -307,6 +307,60 @@ error[javascript]: JavaScript parsing error
 "
 `;
 
+exports[`StatsTestCases should print correct stats for minify-error-recovery 1`] = `
+{
+  "errors": [
+    {
+      "formatted": "error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+",
+      "message": "error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+",
+    },
+  ],
+  "errorsCount": 1,
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
+"
+error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+error[javascript]: JavaScript parsing error
+\`let\` cannot be used as an identifier in strict mode
+in bundle.js
+
+"
+`;
+
 exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 {
   "errors": [

@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rspack_core::{ErrorSpan, ModuleType};
 use rspack_error::{DiagnosticKind, Error};
-use swc_core::common::{Span, Spanned, SyntaxContext, DUMMY_SP};
+use swc_core::common::{SourceFile, Span, Spanned, SyntaxContext, DUMMY_SP};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, Str};
 use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::parser::Syntax;
@@ -129,7 +129,7 @@ pub fn is_dynamic_import_literal_expr(e: &CallExpr) -> bool {
 
 pub fn ecma_parse_error_to_rspack_error(
   error: swc_core::ecma::parser::error::Error,
-  path: &str,
+  fm: &SourceFile,
   module_type: &ModuleType,
 ) -> Error {
   let (file_type, diagnostic_kind) = match module_type {
@@ -141,14 +141,13 @@ pub fn ecma_parse_error_to_rspack_error(
   };
   let message = error.kind().msg().to_string();
   let span: ErrorSpan = error.span().into();
-  let traceable_error = rspack_error::TraceableError::from_path(
-    path.to_string(),
+  let traceable_error = rspack_error::TraceableError::from_source_file(
+    fm,
     span.start as usize,
     span.end as usize,
     format!("{file_type} parsing error"),
     message,
   )
   .with_kind(diagnostic_kind);
-  rspack_error::Error::TraceableError(traceable_error)
-  //Use this `Error` convertion could avoid eagerly clone source file.
+  Error::TraceableError(traceable_error)
 }

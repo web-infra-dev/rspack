@@ -581,7 +581,13 @@ fn make_traceable_error(title: &str, message: &str, span: &SourceSpan) -> Option
     .map(|(path, source)| {
       let start = utf16::to_byte_idx(&source, span.start.offset);
       let end = utf16::to_byte_idx(&source, span.end.offset);
-      TraceableError::from_path(path, start, end, title.to_string(), message.to_string())
-        .with_source(source)
+      TraceableError::from_file(
+        path,
+        source,
+        start,
+        end,
+        title.to_string(),
+        message.to_string(),
+      )
     })
 }
