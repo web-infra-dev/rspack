@@ -33,10 +33,12 @@ Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack t
 
 ## Links
 
-- [rspack website](https://rspack.org)
-- [rspack website repo](https://github.com/modern-js-dev/rspack-website)
-- [rspack-sources](https://github.com/modern-js-dev/rspack-sources): Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port.
-- [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase): Migration showcases for rspack.
+| Name                                                                                    | Description                                                                 |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [rspack website](https://rspack.org)                                                    | Official documentation for rspack                                           |
+| [rspack website repo](https://github.com/modern-js-dev/rspack-website)                  | Repository of official documentation                                        |
+| [rspack-sources](https://github.com/modern-js-dev/rspack-sources)                       | Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port |
+| [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase) | Migration showcases for rspack                                              |
 
 ## Credits
 
