@@ -185,7 +185,7 @@ where
       .emit(&mut self.compilation)
       .await?;
 
-    let output_path = self.options.context.join(&self.options.output.path);
+    let output_path = &self.options.output.path;
     if !output_path.exists() {
       std::fs::create_dir_all(&output_path)
         .with_context(|| format!("failed to create dir: {:?}", &output_path))
