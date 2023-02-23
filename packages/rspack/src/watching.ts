@@ -214,9 +214,12 @@ class Watching {
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
 		}
-		this.compiler.modifiedFiles = changedFiles;
-		this.compiler.removedFiles = removedFiles;
-
+		const modifiedFiles = (this.compiler.modifiedFiles =
+			this.#collectedChangedFiles);
+		const deleteFiles = (this.compiler.removedFiles =
+			this.#collectedRemovedFiles);
+		this.#collectedChangedFiles = undefined;
+		this.#collectedRemovedFiles = undefined;
 		const begin = Date.now();
 		this.invalid = false;
 		this.#invalidReported = false;
@@ -241,7 +244,7 @@ class Watching {
 			};
 
 			if (isRebuild) {
-				this.compiler.rebuild(changedFiles, removedFiles, onBuild as any);
+				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
 			} else {
 				// @ts-expect-error
 				this.compiler.build(onBuild);
@@ -280,16 +283,6 @@ class Watching {
 		stats = new Stats(this.compiler.compilation);
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
-			const hasPending =
-				this.#collectedChangedFiles || this.#collectedRemovedFiles;
-			// Rebuild again with the pending files
-			if (hasPending) {
-				const pendingChengedFiles = this.#collectedChangedFiles;
-				const pendingRemovedFiles = this.#collectedRemovedFiles;
-				this.#collectedChangedFiles = undefined;
-				this.#collectedRemovedFiles = undefined;
-				return this.#go(pendingChengedFiles, pendingRemovedFiles);
-			}
 			// @ts-expect-error
 			this.handler(null, stats);
 
