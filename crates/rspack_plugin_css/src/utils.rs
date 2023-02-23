@@ -47,8 +47,8 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
             local.hash(&mut hasher);
             let hash = hasher.finish();
             let hash = ENCODER.encode(&hash.to_le_bytes());
-            if matches!(hash.as_bytes()[0], b'0'..=b'9') {
-              format!("_{}", hash)
+            if hash.as_bytes()[0].is_ascii_digit() {
+              format!("_{hash}")
             } else {
               hash
             }
