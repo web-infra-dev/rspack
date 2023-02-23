@@ -154,6 +154,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "type": "module",
     },
   ],
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -243,6 +244,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "type": "module",
     },
   ],
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -488,6 +490,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
   },
   "errors": [],
   "errorsCount": 0,
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -594,6 +597,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
   },
   "errors": [],
   "errorsCount": 0,
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -687,6 +691,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
   },
   "errors": [],
   "errorsCount": 0,
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -793,6 +798,7 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
   },
   "errors": [],
   "errorsCount": 0,
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -943,6 +949,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "type": "module",
     },
   ],
+  "publicPath": "auto",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -950,6 +957,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
 "Hash: 599e9041e2141245
+PublicPath: auto
     Asset       Size  Chunks             Chunk Names
 bundle.js  363 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
@@ -1072,6 +1080,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "type": "module",
     },
   ],
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }
@@ -1205,6 +1214,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "type": "module",
     },
   ],
+  "publicPath": "",
   "warnings": [],
   "warningsCount": 0,
 }

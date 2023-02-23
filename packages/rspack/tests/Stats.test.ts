@@ -88,12 +88,14 @@ describe("Stats", () => {
 		      "type": "module",
 		    },
 		  ],
+		  "publicPath": "auto",
 		  "warnings": [],
 		  "warningsCount": 0,
 		}
 	`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
 		"Hash: ff293361e645d785
+		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  215 bytes    main  [emitted]  main
 		Entrypoint main = main.js
@@ -122,6 +124,7 @@ describe("Stats", () => {
 		});
 		expect(stats?.toString()).toMatchInlineSnapshot(`
 		"Hash: 2168fece27972fed
+		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main
 		Entrypoint main = main.js
