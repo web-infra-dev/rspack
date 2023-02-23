@@ -2,7 +2,7 @@
   "name": "example-solid",
   "version": "1.0.0",
   "description": "",
-  "private":true,
+  "private": true,
   "main": "index.js",
   "scripts": {
     "dev": "rspack serve"

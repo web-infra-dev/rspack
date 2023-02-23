@@ -1,5 +1,39 @@
 # @rspack/core
 
+## 0.0.23
+
+### Patch Changes
+
+- b67418968: chore: 🤖 use module path instead of module id in diagnositc
+- f3e0d8287: feat: support module.rule.oneOf
+- 962f8a251: fix: should create different module with different module rule
+- 327b600d6: fix wrong fallback value of sideEffects in production mode
+- 1c7ab6dfd: feat: rspack-cli and devServer support multiCompiler
+- 6b5555ee1: refactor: refactor builtins.preset_env option
+- 766c94042: fix rust test
+- 2315cad48: fix: lost chunk loading runtime when target is browserlist
+- e5d628ce3: feat: commonjs require context module
+- 2d395d6b0: fix: rspack postcss loader options.postcssOptions.plugin
+- 035c15953: basic implementation of compilation.hooks.optimizeChunkModules
+- 82aa28d6b: feat: add copy-plugin
+- b694d4a58: feat: add backtrace if either napi stack or message is failed to extract
+- c1f19b817: align webpack config optimization.sideEffects
+- Updated dependencies [b67418968]
+- Updated dependencies [962f8a251]
+- Updated dependencies [17bf167f6]
+- Updated dependencies [766c94042]
+- Updated dependencies [39f8a9c42]
+- Updated dependencies [e64506a51]
+- Updated dependencies [26e66549e]
+- Updated dependencies [c98bf5768]
+- Updated dependencies [035c15953]
+- Updated dependencies [82aa28d6b]
+- Updated dependencies [b694d4a58]
+- Updated dependencies [60fb4c5bf]
+- Updated dependencies [c1f19b817]
+  - @rspack/binding@0.0.23
+  - @rspack/dev-client@0.0.23
+
 ## 0.0.22
 
 ### Patch Changes

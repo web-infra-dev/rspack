@@ -1,5 +1,14 @@
 # create-rspack
 
+## 0.0.19
+
+### Patch Changes
+
+- b67418968: chore: 🤖 use module path instead of module id in diagnositc
+- 962f8a251: fix: should create different module with different module rule
+- 766c94042: fix rust test
+- c1f19b817: align webpack config optimization.sideEffects
+
 ## 0.0.18
 
 ### Patch Changes

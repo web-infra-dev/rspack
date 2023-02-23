@@ -1,5 +1,28 @@
 # rspack-plugin-postcss
 
+## 0.0.23
+
+### Patch Changes
+
+- b67418968: chore: 🤖 use module path instead of module id in diagnositc
+- 962f8a251: fix: should create different module with different module rule
+- 766c94042: fix rust test
+- 2d395d6b0: fix: rspack postcss loader options.postcssOptions.plugin
+- c1f19b817: align webpack config optimization.sideEffects
+- Updated dependencies [b67418968]
+- Updated dependencies [962f8a251]
+- Updated dependencies [17bf167f6]
+- Updated dependencies [766c94042]
+- Updated dependencies [39f8a9c42]
+- Updated dependencies [e64506a51]
+- Updated dependencies [26e66549e]
+- Updated dependencies [c98bf5768]
+- Updated dependencies [035c15953]
+- Updated dependencies [82aa28d6b]
+- Updated dependencies [b694d4a58]
+- Updated dependencies [c1f19b817]
+  - @rspack/binding@0.0.23
+
 ## 0.0.22
 
 ### Patch Changes

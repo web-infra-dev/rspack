@@ -1,5 +1,29 @@
 # @rspack/dev-middleware
 
+## 0.0.23
+
+### Patch Changes
+
+- b67418968: chore: 🤖 use module path instead of module id in diagnositc
+- 962f8a251: fix: should create different module with different module rule
+- 766c94042: fix rust test
+- c1f19b817: align webpack config optimization.sideEffects
+- Updated dependencies [b67418968]
+- Updated dependencies [f3e0d8287]
+- Updated dependencies [962f8a251]
+- Updated dependencies [327b600d6]
+- Updated dependencies [1c7ab6dfd]
+- Updated dependencies [6b5555ee1]
+- Updated dependencies [766c94042]
+- Updated dependencies [2315cad48]
+- Updated dependencies [e5d628ce3]
+- Updated dependencies [2d395d6b0]
+- Updated dependencies [035c15953]
+- Updated dependencies [82aa28d6b]
+- Updated dependencies [b694d4a58]
+- Updated dependencies [c1f19b817]
+  - @rspack/core@0.0.23
+
 ## 0.0.22
 
 ### Patch Changes

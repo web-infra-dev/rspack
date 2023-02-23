@@ -1,5 +1,15 @@
 # @rspack/dev-client
 
+## 0.0.23
+
+### Patch Changes
+
+- b67418968: chore: 🤖 use module path instead of module id in diagnositc
+- 962f8a251: fix: should create different module with different module rule
+- 766c94042: fix rust test
+- 60fb4c5bf: make react-refresh optional
+- c1f19b817: align webpack config optimization.sideEffects
+
 ## 0.0.22
 
 ### Patch Changes

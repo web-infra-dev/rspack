@@ -1,5 +1,28 @@
 # rspack-dev-server
 
+## 0.0.23
+
+### Patch Changes
+
+- b67418968: chore: 🤖 use module path instead of module id in diagnositc
+- 962f8a251: fix: should create different module with different module rule
+- 1c7ab6dfd: feat: rspack-cli and devServer support multiCompiler
+- 766c94042: fix rust test
+- 035c15953: basic implementation of compilation.hooks.optimizeChunkModules
+- 82aa28d6b: feat: add copy-plugin
+- c1f19b817: align webpack config optimization.sideEffects
+- Updated dependencies [b67418968]
+- Updated dependencies [962f8a251]
+- Updated dependencies [1c7ab6dfd]
+- Updated dependencies [766c94042]
+- Updated dependencies [035c15953]
+- Updated dependencies [82aa28d6b]
+- Updated dependencies [60fb4c5bf]
+- Updated dependencies [c1f19b817]
+  - @rspack/dev-client@0.0.23
+  - @rspack/dev-middleware@0.0.23
+  - @rspack/dev-server@0.0.23
+
 ## 0.0.22
 
 ### Patch Changes
