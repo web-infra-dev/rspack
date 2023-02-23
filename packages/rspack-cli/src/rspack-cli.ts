@@ -34,10 +34,11 @@ export class RspackCLI {
 		options: RspackCLIOptions,
 		rspackEnv: RspackEnv
 	): Promise<Compiler | MultiCompiler> {
+		let nodeEnv = process?.env?.NODE_ENV;
 		if (typeof options.nodeEnv === "string") {
-			process.env.NODE_ENV = options.nodeEnv;
+			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
 		} else {
-			process.env.NODE_ENV = rspackEnv;
+			process.env.NODE_ENV = nodeEnv || rspackEnv;
 		}
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackEnv);
