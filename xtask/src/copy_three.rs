@@ -22,7 +22,7 @@ pub fn copy_three(num: usize) {
     // let res = format!("");
     cmd!(
       sh,
-      "cp -r examples/.three/src benchcases/three/src/copy{ii}"
+      "cp -r benchcases/.three/src benchcases/three/src/copy{ii}"
     )
     .run()
     .expect("TODO:");
