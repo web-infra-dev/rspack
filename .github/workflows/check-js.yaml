@@ -39,8 +39,6 @@ jobs:
           pnpm --filter @rspack/fs run test
           pnpm --filter @rspack/dev-server run test
           pnpm --filter @rspack/plugin-html run test
-          pnpm run build:webpack
-
   # bundle-stats:
   #   name: Bundle stats compare
   #   runs-on: [self-hosted, rspack-common, ARM64]
