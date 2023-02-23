@@ -425,7 +425,7 @@ where
         .collect();
       self
         .emit_asset(
-          &output_path,
+          output_path,
           &content.filename,
           &CompilationAsset::new(
             Some(

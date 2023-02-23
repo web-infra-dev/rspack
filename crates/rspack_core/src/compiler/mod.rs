@@ -190,7 +190,7 @@ where
       .compilation
       .assets()
       .iter()
-      .map(|(filename, asset)| self.emit_asset(&output_path, filename, asset))
+      .map(|(filename, asset)| self.emit_asset(output_path, filename, asset))
       .collect::<FuturesResults<_>>();
 
     self
