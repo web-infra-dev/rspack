@@ -85,12 +85,17 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
         if is_promise {
           let p = unsafe { Promise::<P>::from_napi_value(self.env.raw(), raw) }?;
 
-          self.env.execute_tokio_future(p, |env, p| {
-            self
-              .tx
-              .send(resolver(env, p).into_rspack_result_with_detail(env))
-              .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
-          })?;
+          self
+            .env
+            .execute_tokio_future(async move { Ok(p.await) }, |env, p| {
+              self
+                .tx
+                .send(
+                  p.and_then(|r| resolver(env, r))
+                    .into_rspack_result_with_detail(env),
+                )
+                .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
+            })?;
 
           return Ok(());
         }
