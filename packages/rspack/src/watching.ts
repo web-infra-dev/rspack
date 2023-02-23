@@ -36,8 +36,8 @@ class Watching {
 		this.#invalidReported = true;
 		this.blocked = false;
 		this.isBlocked = () => false;
-		this.onChange = () => { };
-		this.onInvalid = () => { };
+		this.onChange = () => {};
+		this.onInvalid = () => {};
 		this.compiler = compiler;
 		this.running = false;
 		this.#initial = true;
@@ -229,9 +229,9 @@ class Watching {
 			const isRebuild = this.compiler.options.devServer && !this.#initial;
 			const print = isRebuild
 				? () =>
-					console.log("rebuild success, time cost", Date.now() - begin, "ms")
+						console.log("rebuild success, time cost", Date.now() - begin, "ms")
 				: () =>
-					console.log("build success, time cost", Date.now() - begin, "ms");
+						console.log("build success, time cost", Date.now() - begin, "ms");
 
 			const onBuild = (err: Error) => {
 				if (err) return this._done(err);
