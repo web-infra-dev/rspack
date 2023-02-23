@@ -1,7 +1,7 @@
 use futures::future::BoxFuture;
 use napi::Env;
 use rspack_fs::r#async::AsyncWritableFileSystem;
-use rspack_napi_utils::threadsafe_function::ThreadsafeFunctionCallMode;
+use rspack_napi_shared::threadsafe_function::ThreadsafeFunctionCallMode;
 
 use crate::node::{ThreadsafeFunctionRef, ThreadsafeNodeFS, TryIntoThreadsafeFunctionRef};
 

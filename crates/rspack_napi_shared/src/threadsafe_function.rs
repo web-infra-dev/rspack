@@ -17,7 +17,8 @@ use napi::bindgen_prelude::{FromNapiValue, Promise, ToNapiValue};
 use napi::{check_status, sys, Env, JsUnknown, NapiRaw, Result, Status};
 use napi::{JsError, JsFunction, NapiValue};
 use rspack_error::{internal_error, InternalError};
-use rspack_napi_utils::{NapiErrorExt, NapiResultExt};
+
+use super::{NapiErrorExt, NapiResultExt};
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method
@@ -66,9 +67,9 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
   /// Return an recoverable Rust error is not preferred as it will become a fatal error on the Node side. See `call_js_cb` for more details.
   /// Often, the result of the real call-in-js operation is passed as the `result`.
   pub fn resolve<P>(
-    self,
+    mut self,
     result: Result<impl NapiRaw>,
-    resolver: impl 'static + Send + FnOnce(P) -> Result<R>,
+    resolver: impl 'static + Send + Sync + FnOnce(&mut Env, P) -> Result<R>,
   ) -> Result<()>
   where
     // Pure return value without promise wrapper
@@ -84,25 +85,24 @@ impl<R: 'static + Send> ThreadSafeResolver<R> {
         if is_promise {
           let p = unsafe { Promise::<P>::from_napi_value(self.env.raw(), raw) }?;
 
-          self.env.execute_tokio_future(
-            async move {
-              let r = p.await.and_then(resolver);
-              Ok(r)
-            },
-            |env, r| {
+          self
+            .env
+            .execute_tokio_future(async move { Ok(p.await) }, |env, p| {
               self
                 .tx
-                .send(r.into_rspack_result_with_detail(env))
+                .send(
+                  p.and_then(|r| resolver(env, r))
+                    .into_rspack_result_with_detail(env),
+                )
                 .map_err(|_| napi::Error::from_reason("Failed to send resolved value".to_owned()))
-            },
-          )?;
+            })?;
 
           return Ok(());
         }
 
         let p = {
           let p = unsafe { P::from_napi_value(self.env.raw(), raw) }?;
-          resolver(p)
+          resolver(&mut self.env, p)
         };
 
         self
@@ -138,7 +138,7 @@ impl From<ThreadsafeFunctionCallMode> for sys::napi_threadsafe_function_call_mod
 /// ## Example
 /// An example of using `ThreadsafeFunction`:
 ///
-/// ```rust
+/// ```rust,ignore
 /// #[macro_use]
 /// extern crate napi_derive;
 ///

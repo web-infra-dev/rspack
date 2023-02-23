@@ -59,7 +59,7 @@ cfg_async! {
     Either,
   };
   use napi_derive::napi;
-  use rspack_napi_utils::threadsafe_function::ThreadsafeFunction;
+  use rspack_napi_shared::threadsafe_function::ThreadsafeFunction;
 
   #[napi(object)]
   pub struct ThreadsafeNodeFS {

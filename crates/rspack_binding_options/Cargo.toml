@@ -7,7 +7,7 @@ version    = "0.1.0"
 
 [features]
 default  = ["napi-derive/noop"]
-node-api = []
+node-api = ["dep:rspack_napi_shared"]
 
 [dependencies]
 anyhow = { version = "1", features = ["backtrace"] }
@@ -28,7 +28,6 @@ rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_ids = { path = "../rspack_ids" }
 rspack_loader_sass = { path = "../rspack_loader_sass" }
-rspack_napi_utils = { path = "../rspack_napi_utils" }
 rspack_plugin_asset = { path = "../rspack_plugin_asset" }
 rspack_plugin_copy = { path = "../rspack_plugin_copy" }
 rspack_plugin_css = { path = "../rspack_plugin_css" }
@@ -60,3 +59,7 @@ tokio = { version = "1.21.0", features = [
   "parking_lot",
 ] }
 tracing = "0.1.34"
+
+  [dependencies.rspack_napi_shared]
+  optional = true
+  path     = "../rspack_napi_shared"

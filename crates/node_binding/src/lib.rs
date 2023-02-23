@@ -14,6 +14,7 @@ use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
 use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
+use rspack_napi_shared::NAPI_ENV;
 
 mod js_values;
 mod plugins;

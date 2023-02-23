@@ -3,9 +3,9 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use napi::{Env, NapiRaw, Result};
 use rspack_error::internal_error;
-use rspack_napi_utils::NapiResultExt;
+use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
+use rspack_napi_shared::NapiResultExt;
 
-use crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use crate::{JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
@@ -244,7 +244,7 @@ impl JsHooksAdapter {
             let cb = ctx.callback;
             let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
 
-            resolver.resolve::<()>(result, |_| Ok(()))
+            resolver.resolve::<()>(result, |_, _| Ok(()))
           })?;
 
         // See the comment in `threadsafe_function.rs`

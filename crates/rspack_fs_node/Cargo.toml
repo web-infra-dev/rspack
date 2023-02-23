@@ -20,7 +20,7 @@ rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", default-features = false, features = [
   "rspack-error",
 ] }
-rspack_napi_utils = { path = "../rspack_napi_utils" }
+rspack_napi_shared = { path = "../rspack_napi_shared" }
 
 [build-dependencies]
 napi-build = { workspace = true }
