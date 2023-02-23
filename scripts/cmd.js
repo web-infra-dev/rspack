@@ -113,9 +113,6 @@ function createCLI() {
 				case "bundle":
 					command = "cargo run --package rspack --example bundle";
 					break;
-				case "webpack":
-					command = "cd webpack-examples && node buildAll.js && cd -";
-					break;
 				case "examples":
 					command = 'pnpm --filter "example-*" build';
 					break;
