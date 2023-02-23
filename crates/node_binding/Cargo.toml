@@ -32,7 +32,7 @@ rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async"] }
 rspack_fs_node = { path = "../rspack_fs_node" }
 rspack_identifier = { path = "../rspack_identifier" }
-rspack_napi_utils = { path = "../rspack_napi_utils" }
+rspack_napi_shared = { path = "../rspack_napi_shared" }
 rspack_plugin_html = { path = "../rspack_plugin_html" }
 rspack_tracing = { path = "../rspack_tracing" }
 serde = { version = "1", features = ["derive"] }

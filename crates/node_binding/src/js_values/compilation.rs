@@ -5,7 +5,7 @@ use napi::bindgen_prelude::*;
 use napi::NapiRaw;
 use rspack_core::{rspack_sources::SourceExt, AstOrSource, NormalModuleAstOrSource};
 use rspack_identifier::Identifier;
-use rspack_napi_utils::NapiResultExt;
+use rspack_napi_shared::NapiResultExt;
 
 use super::module::ToJsModule;
 use crate::js_values::module::JsModule;

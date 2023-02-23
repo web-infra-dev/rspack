@@ -10,10 +10,10 @@ use rspack_error::internal_error;
 use serde::Deserialize;
 #[cfg(feature = "node-api")]
 use {
-  crate::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
-  rspack_napi_utils::NapiResultExt,
+  rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
+  rspack_napi_shared::{NapiResultExt, NAPI_ENV},
 };
 
 use crate::RawResolveOptions;
@@ -238,7 +238,7 @@ impl TryFrom<JsLoader> for JsLoaderAdapter {
   fn try_from(js_loader: JsLoader) -> anyhow::Result<Self> {
     let js_loader_func = unsafe { js_loader.func.raw() };
 
-    let func = crate::NAPI_ENV.with(|env| -> anyhow::Result<_> {
+    let func = NAPI_ENV.with(|env| -> anyhow::Result<_> {
       let env = env
         .borrow()
         .expect("Failed to get env, did you forget to call it from node?");
@@ -261,7 +261,7 @@ impl TryFrom<JsLoader> for JsLoaderAdapter {
           .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) });
 
           let resolve_start = std::time::Instant::now();
-          resolver.resolve::<Option<JsLoaderResult>>(result, move |r| {
+          resolver.resolve::<Option<JsLoaderResult>>(result, move |_, r| {
             tracing::trace!(
               "Finish resolving loader result for {}, took {}ms",
               resource,

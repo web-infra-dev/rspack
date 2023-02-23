@@ -8,8 +8,7 @@ use napi::{check_status, Env, Error, JsFunction, JsUnknown, NapiRaw, Result};
 use napi_derive::napi;
 use once_cell::sync::OnceCell;
 use rspack_error::CatchUnwindFuture;
-
-use crate::threadsafe_function::{
+use rspack_napi_shared::threadsafe_function::{
   ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
 

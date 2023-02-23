@@ -2407,7 +2407,7 @@ dependencies = [
  "rspack_error",
  "rspack_ids",
  "rspack_loader_sass",
- "rspack_napi_utils",
+ "rspack_napi_shared",
  "rspack_plugin_asset",
  "rspack_plugin_copy",
  "rspack_plugin_css",
@@ -2529,7 +2529,7 @@ dependencies = [
  "napi-derive",
  "rspack_error",
  "rspack_fs",
- "rspack_napi_utils",
+ "rspack_napi_shared",
 ]
 
 [[package]]
@@ -2599,7 +2599,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_napi_utils"
+name = "rspack_napi_shared"
 version = "0.1.0"
 dependencies = [
  "napi",
