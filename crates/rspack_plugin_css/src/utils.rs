@@ -3,8 +3,10 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use data_encoding::{Encoding, Specification};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 use rspack_core::{runtime_globals::REQUIRE, Compilation, ModuleDependency};
 use rspack_error::{internal_error, Result};
 use swc_core::css::modules::CssClassName;
@@ -12,6 +14,14 @@ use swc_core::ecma::atoms::JsWord;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::plugin::{LocalIdentName, LocalIdentNameRenderOptions, LocalsConvention};
+
+static ENCODER: Lazy<Encoding> = Lazy::new(|| {
+  let mut spec = Specification::new();
+  spec
+    .symbols
+    .push_str("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-");
+  spec.encoding().expect("Invalid specification")
+});
 
 pub struct ModulesTransformConfig<'l> {
   pub name: Option<String>,
@@ -35,7 +45,13 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
             self.path.hash(&mut hasher);
             self.ext.hash(&mut hasher);
             local.hash(&mut hasher);
-            format!("{:x}", hasher.finish())
+            let hash = hasher.finish();
+            let hash = ENCODER.encode(&hash.to_le_bytes());
+            if hash.as_bytes()[0].is_ascii_digit() {
+              format!("_{hash}")
+            } else {
+              hash
+            }
           }),
           ..Default::default()
         },
@@ -81,18 +97,6 @@ pub fn css_modules_exports_to_string(
             })
             .expect("should have css from module");
 
-          // let from = Dependency {
-          //   parent_module_identifier: Some(module.identifier()),
-          //   detail: ModuleDependency {
-          //     specifier: from.to_string(),
-          //     kind: ResolveKind::AtImport,
-          //     span: None,
-          //   },
-          // };
-          // let from = compilation
-          //   .module_graph
-          //   .module_by_dependency(&from)
-          //   .expect("should have css from module");
           let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
           format!("{REQUIRE}({from})[{name}]")
         }

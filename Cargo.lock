@@ -751,6 +751,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-encoding"
+version = "2.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23d8666cb01533c39dde32bcbab8e227b4ed6679b2c925eba05feabea39508fb"
+
+[[package]]
 name = "derivative"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2655,6 +2661,7 @@ dependencies = [
  "better_scoped_tls",
  "bitflags",
  "dashmap",
+ "data-encoding",
  "heck",
  "hrx-parser",
  "indexmap",
