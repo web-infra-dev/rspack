@@ -371,7 +371,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       build_info,
       ..
     } = parse_context;
-    build_info.strict = true;
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let content = source.source().to_string();
     let css_modules = matches!(module_type, ModuleType::CssModule);
