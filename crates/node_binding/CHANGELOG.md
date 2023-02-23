@@ -1,5 +1,22 @@
 # @rspack/binding
 
+## 0.0.23
+
+### Patch Changes
+
+- b67418968: chore: 🤖 use module path instead of module id in diagnositc
+- 962f8a251: fix: should create different module with different module rule
+- 17bf167f6: Fix unstable order of generated files from chunks
+- 766c94042: fix rust test
+- 39f8a9c42: fix: wrong line number lead by CachedSource
+- e64506a51: fix side effects pattern match
+- 26e66549e: feat(crates/rspack): catch panics caused by spawned threads
+- c98bf5768: feat: trace a symbol in symbol graph
+- 035c15953: basic implementation of compilation.hooks.optimizeChunkModules
+- 82aa28d6b: feat: add copy-plugin
+- b694d4a58: feat: add backtrace if either napi stack or message is failed to extract
+- c1f19b817: align webpack config optimization.sideEffects
+
 ## 0.0.22
 
 ### Patch Changes
