@@ -176,8 +176,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       options,
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
-      // FIXME: just for swc react transform bug
-      potential_top_mark: HashSet::default(),
+      potential_top_mark: HashSet::from_iter([top_level_mark]),
     }
   }
 
@@ -447,9 +446,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_module(&mut self, node: &Module) {
+    // prescan import decl
     for module_item in &node.body {
-      self.analyze_stmt_side_effects(module_item);
-      module_item.visit_with(self);
+      if is_import_decl(module_item) {
+        module_item.visit_with(self);
+      }
+    }
+    for module_item in &node.body {
+      if !is_import_decl(module_item) {
+        self.analyze_stmt_side_effects(module_item);
+        module_item.visit_with(self);
+      }
     }
   }
 
@@ -1522,4 +1529,8 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
       true
     }
   })
+}
+
+fn is_import_decl(module_item: &ModuleItem) -> bool {
+  matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::Import(_)))
 }
