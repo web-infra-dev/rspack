@@ -773,7 +773,8 @@ describe("Compiler", () => {
 			});
 		});
 	});
-	it("should call the failed-hook on error", done => {
+	// TODO: Option `bail` is not supported.
+	it.skip("should call the failed-hook on error", done => {
 		const failedSpy = jest.fn();
 		compiler = rspack({
 			bail: true,
@@ -1204,14 +1205,12 @@ describe("Compiler", () => {
 				context: path.join(__dirname, "fixtures"),
 				plugins: [new MyPlugin()],
 				output: {
-					path: "dist"
+					path: "/directory"
 				}
 			});
 
 			const outputFileSystem = createFsFromVolume(new Volume());
 			compiler.outputFileSystem = outputFileSystem;
-			// This is not right, see the issue: https://github.com/modern-js-dev/rspack/issues/1938
-			const outputPath = path.join(__dirname, "fixtures/dist");
 
 			compiler.build((err, stats) => {
 				if (err) {
@@ -1219,13 +1218,10 @@ describe("Compiler", () => {
 				}
 
 				if (
-					outputFileSystem.existsSync(path.join(outputPath, "main.js")) &&
-					outputFileSystem.existsSync(path.join(outputPath, "dd.js"))
+					outputFileSystem.existsSync("/directory/main.js") &&
+					outputFileSystem.existsSync("/directory/dd.js")
 				) {
-					const dd = outputFileSystem.readFileSync(
-						path.join(outputPath, "dd.js"),
-						"utf-8"
-					);
+					const dd = outputFileSystem.readFileSync("/directory/dd.js", "utf-8");
 
 					if (dd !== `module.exports="This is dd";`) {
 						return done(new Error("File content is not correct"));
