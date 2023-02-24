@@ -30,7 +30,7 @@ export function describeCases(config: {
 					const filterPath = path.join(testDirectory, "test.filter.js");
 					if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
 						describe.skip(testName, () => {
-							it("filtered", () => { });
+							it("filtered", () => {});
 						});
 						return;
 					}
@@ -243,7 +243,7 @@ export function describeCases(config: {
 										let changed = [];
 										try {
 											changed = require(changedFiles);
-										} catch (err) { }
+										} catch (err) {}
 										if (changed.length === 0) {
 											throw Error("can not found changed files");
 										}
@@ -332,7 +332,8 @@ export function describeCases(config: {
 											if (file.name.endsWith(".js")) {
 												_require(`./${file.name}`);
 											} else {
-												const cssElement = window.document.createElement('link');
+												const cssElement =
+													window.document.createElement("link");
 												// @ts-expect-error
 												cssElement.href = file.name;
 												// @ts-expect-error
