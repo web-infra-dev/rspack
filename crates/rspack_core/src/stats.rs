@@ -81,7 +81,7 @@ impl Stats<'_> {
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
-    assets.sort_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
+    assets.sort_unstable_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
     assets
   }
 
@@ -134,7 +134,7 @@ impl Stats<'_> {
                 }
               })
               .collect();
-            reasons.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+            reasons.sort_unstable_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
             Ok(reasons)
           })
           .transpose()?;
@@ -175,7 +175,7 @@ impl Stats<'_> {
         })
       })
       .collect::<Result<_>>()?;
-    modules.sort_by(|a, b| {
+    modules.sort_unstable_by(|a, b| {
       if a.name.len() != b.name.len() {
         a.name.len().cmp(&b.name.len())
       } else {

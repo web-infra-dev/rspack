@@ -221,7 +221,7 @@ impl CssPlugin {
       return modules_by_chunk_group[0].list.clone();
     };
 
-    modules_by_chunk_group.sort_by(compare_module_lists);
+    modules_by_chunk_group.sort_unstable_by(compare_module_lists);
 
     let mut final_modules: Vec<ModuleIdentifier> = vec![];
 
@@ -295,7 +295,7 @@ impl CssPlugin {
         }
       }
 
-      modules_by_chunk_group.sort_by(compare_module_lists);
+      modules_by_chunk_group.sort_unstable_by(compare_module_lists);
     }
     final_modules
   }

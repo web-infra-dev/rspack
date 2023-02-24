@@ -112,7 +112,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
       } else {
         // Multiple chunks have the same name, we need to assign a unique name to each chunk
         let mut chunks = chunks.into_iter().collect::<Vec<_>>();
-        chunks.sort_by(|a, b| {
+        chunks.sort_unstable_by(|a, b| {
           // TODO: We might need use more filed in sorting
           let a_module_ids = compilation.chunk_graph.get_chunk_module_identifiers(a);
           let b_module_ids = compilation.chunk_graph.get_chunk_module_identifiers(b);
