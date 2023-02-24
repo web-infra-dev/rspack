@@ -525,7 +525,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         {
           format!("module.exports = {};\n", meta.rspack_postcss_modules)
         } else if generate_context.compilation.options.dev_server.hot  {
-          "module.hot.accpet();".to_string()
+          "module.hot.accept();".to_string()
         } else {
           "".to_string()
         };

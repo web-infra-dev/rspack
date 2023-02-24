@@ -30,7 +30,7 @@ export function describeCases(config: {
 					const filterPath = path.join(testDirectory, "test.filter.js");
 					if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
 						describe.skip(testName, () => {
-							it("filtered", () => {});
+							it("filtered", () => { });
 						});
 						return;
 					}
@@ -167,12 +167,26 @@ export function describeCases(config: {
 														removeChild(node) {
 															// ok
 														}
+													},
+													// css link
+													sheet: {
+														disabled: false
 													}
 												};
 											},
 											head: {
 												children: [],
+												insertBefore(element: any, before: any) {
+													element.parentNode = this;
+													this.children.unshift(element);
+													Promise.resolve().then(() => {
+														if (element.onload) {
+															element.onload({ type: "load", target: element });
+														}
+													});
+												},
 												appendChild(element: any) {
+													element.parentNode = this;
 													this.children.push(element);
 													if (element._type === "script") {
 														Promise.resolve().then(() => {
@@ -189,6 +203,10 @@ export function describeCases(config: {
 															element.onload({ type: "load", target: element });
 														}
 													}
+												},
+												removeChild(node) {
+													const index = this.children.indexOf(node);
+													this.children.splice(index, 1);
 												}
 											},
 											getElementsByTagName(name: string) {
@@ -225,7 +243,7 @@ export function describeCases(config: {
 										let changed = [];
 										try {
 											changed = require(changedFiles);
-										} catch (err) {}
+										} catch (err) { }
 										if (changed.length === 0) {
 											throw Error("can not found changed files");
 										}
@@ -310,8 +328,18 @@ export function describeCases(config: {
 									let promise = Promise.resolve();
 									const info = stats.toJson({});
 									if (config.target === "web") {
-										for (const file of info.entrypoints!.main.assets)
-											_require(`./${file.name}`);
+										for (const file of info.entrypoints!.main.assets) {
+											if (file.name.endsWith(".js")) {
+												_require(`./${file.name}`);
+											} else {
+												const cssElement = window.document.createElement('link');
+												// @ts-expect-error
+												cssElement.href = file.name;
+												// @ts-expect-error
+												cssElement.rel = "stylesheet";
+												window.document.head.appendChild(cssElement);
+											}
+										}
 									} else {
 										const assets = info.entrypoints!.main.assets;
 										const result = _require(
@@ -397,7 +425,7 @@ function getOptions(
 		options.module.rules = [];
 	}
 	options.module.rules.push({
-		test: /\.js/,
+		test: /\.(js|css)/,
 		use: [
 			{
 				loader: require(path.join(
