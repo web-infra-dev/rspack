@@ -78,7 +78,11 @@ pub fn three_production_config() {
 {
     "devtool": "source-map",
     "builtins": {
-      "minify": true
+      "minifyOptions": {
+        "passes": 1,
+        "dropConsole": true,
+        "pureFuncs": []
+      }
     },
     "optimization": {
       "moduleIds": "deterministic"

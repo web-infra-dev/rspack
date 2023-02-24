@@ -23,7 +23,7 @@ jobs:
       - name: Install toolchain
         run: rustup show
       - name: Run benchmark
-        run: cargo bench --bench main -- --output-format bencher | tee output.txt
+        run: set -o pipefail && cargo bench --bench main -- --output-format bencher | tee output.txt
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1.14.0
