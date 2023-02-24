@@ -15,6 +15,7 @@ pub struct RawCssPluginConfig {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawCssModulesConfig {
+  #[napi(ts_type = "\"asIs\" | \"camelCase\" | \"camelCaseOnly\" | \"dashes\" | \"dashesOnly\"")]
   pub locals_convention: String,
   pub local_ident_name: String,
   pub exports_only: bool,
