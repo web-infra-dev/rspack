@@ -639,35 +639,27 @@ impl Plugin for CssPlugin {
     let sources = ordered_modules
       .par_iter()
       .map(|module_id| {
-        let code_gen_result = compilation
+        if let Some(code_gen_result) = compilation
           .code_generation_results
-          .get(module_id, Some(&chunk.runtime))?;
-
-        code_gen_result
+          .get(module_id, Some(&chunk.runtime))
+          .expect("should have css code gen result")
           .get(&SourceType::Css)
-          .map(|result| result.ast_or_source.clone().try_into_source())
-          .transpose()
+        {
+          code_gen_result.ast_or_source.as_source()
+        } else {
+          None
+        }
       })
-      .collect::<Result<Vec<Option<BoxSource>>>>()?
-      .into_par_iter()
-      .enumerate()
-      .fold(ConcatSource::default, |mut output, (idx, cur)| {
+      .fold(ConcatSource::default, |mut output, cur| {
         if let Some(source) = cur {
-          if idx != 0 {
-            output.add(RawSource::from("\n\n"));
-          }
-          output.add(source);
+          output.add(source.clone());
+          output.add(RawSource::from("\n\n"));
         }
         output
       })
       .collect::<Vec<ConcatSource>>();
     let source = ConcatSource::new(sources);
 
-    // let hash = Some(get_hash(compilation).to_string());
-    // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    // let hash = None;
-    // let chunkhash = None;
-    // let contenthash = Some(chunk.hash.clone());
     let hash = Some(chunk.get_render_hash());
     if source.source().is_empty() {
       Ok(Default::default())

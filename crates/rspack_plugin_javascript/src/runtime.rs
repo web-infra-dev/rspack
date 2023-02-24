@@ -27,36 +27,36 @@ pub fn render_chunk_modules(
 
   ordered_modules.sort_unstable_by_key(|m| &m.module_identifier);
 
-  let module_code_array = ordered_modules
+  let module_sources = ordered_modules
     .par_iter()
     .filter(|mgm| mgm.used)
     .map(|mgm| {
-      let code_gen_result = compilation
+      if let Some(code_gen_result) = compilation
         .code_generation_results
-        .get(&mgm.module_identifier, Some(&chunk.runtime))?;
-
-      code_gen_result
+        .get(&mgm.module_identifier, Some(&chunk.runtime))
+        .expect("should get code generation result")
         .get(&SourceType::JavaScript)
-        .map(|result| {
-          let origin_source = result.ast_or_source.clone().try_into_source()?;
+      {
+        if let Some(origin_source) = code_gen_result.ast_or_source.as_source() {
           let module_source =
             if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
-              if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
+              if let Some(cached) = MODULE_RENDER_CACHE.get(origin_source) {
                 cached.value().clone()
               } else {
                 let module_source = if let Some(map) =
                   origin_source.map(&MapOptions::new(compilation.options.devtool.cheap()))
                 {
-                  wrap_eval_source_map(&origin_source.source(), map, compilation)?
+                  wrap_eval_source_map(&origin_source.source(), map, compilation)
+                    .expect("wrap eval source map failed")
                 } else {
                   origin_source.clone()
                 };
                 let module_source = CachedSource::new(module_source).boxed();
-                MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
+                MODULE_RENDER_CACHE.insert(origin_source.clone(), module_source.clone());
                 module_source
               }
             } else {
-              origin_source
+              origin_source.clone()
             };
           // module id isn't cacheable
           let strict = match compilation
@@ -67,18 +67,18 @@ pub fn render_chunk_modules(
             Some(normal_module) => normal_module.build_info.strict,
             None => false,
           };
-          Ok(render_module(
+          Some(render_module(
             module_source,
             strict,
             mgm.id(&compilation.chunk_graph),
           ))
-        })
-        .transpose()
+        } else {
+          None
+        }
+      } else {
+        None
+      }
     })
-    .collect::<Result<Vec<Option<BoxSource>>>>()?;
-
-  let module_sources = module_code_array
-    .into_par_iter()
     .flatten()
     .fold(ConcatSource::default, |mut output, cur| {
       output.add(cur);

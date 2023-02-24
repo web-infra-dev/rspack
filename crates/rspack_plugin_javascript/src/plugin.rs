@@ -460,11 +460,6 @@ impl Plugin for JsPlugin {
     } else {
       self.render_chunk(&args).await?
     };
-    // let hash = Some(get_hash(compilation).to_string());
-    // let hash = None;
-    // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    // let chunkhash = None;
-    // let contenthash = Some(chunk.hash.clone());
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
