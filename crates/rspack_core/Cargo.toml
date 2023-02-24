@@ -67,6 +67,7 @@ swc_core = { workspace = true, features = [
 ] }
 swc_css = { workspace = true }
 swc_emotion = "0.29.4"
+swc_plugin_import = "0.1.0"
 tokio = { version = "1.21.0", features = [
   "rt",
   "rt-multi-thread",
