@@ -368,10 +368,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
       resource_data,
       compiler_options,
       code_generation_dependencies,
-      build_info,
       ..
     } = parse_context;
-    build_info.strict = true;
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let content = source.source().to_string();
     let css_modules = matches!(module_type, ModuleType::CssModule);
@@ -526,6 +524,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
           && let Ok(meta) = serde_json::from_str::<RspackPostcssModules>(meta)
         {
           format!("module.exports = {};\n", meta.rspack_postcss_modules)
+        } else if generate_context.compilation.options.dev_server.hot  {
+          "module.hot.accept();".to_string()
         } else {
           "".to_string()
         };

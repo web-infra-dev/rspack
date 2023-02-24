@@ -10,6 +10,10 @@ var loadStylesheet = (chunkId, url, done, hmr) => {
 		for (var i = 0; i < links.length; i++) {
 			var l = links[i];
 			var href = l.getAttribute("href") || l.href;
+			if (href && !href.startsWith(__webpack_require__.p)) {
+				href =
+					__webpack_require__.p + (href.startsWith("/") ? href.slice(1) : href);
+			}
 			if (
 				l.rel == "stylesheet" &&
 				((href && href.startsWith(url)) ||

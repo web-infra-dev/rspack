@@ -39,7 +39,7 @@ pub fn render_chunk_modules(
         .get(&SourceType::JavaScript)
         .map(|result| {
           let origin_source = result.ast_or_source.clone().try_into_source()?;
-          let mut module_source =
+          let module_source =
             if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
               if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
                 cached.value().clone()
@@ -58,22 +58,6 @@ pub fn render_chunk_modules(
             } else {
               origin_source
             };
-          // css or js same content isn't cacheable
-          if mgm.module_type.is_css_like() && compilation.options.dev_server.hot {
-            // inject css hmr runtime
-            module_source = ConcatSource::new([
-              module_source,
-              RawSource::from(
-                r#"
-if (module.hot) {
-  module.hot.accept();
-}
-"#,
-              )
-              .boxed(),
-            ])
-            .boxed();
-          }
           // module id isn't cacheable
           let strict = match compilation
             .module_graph
