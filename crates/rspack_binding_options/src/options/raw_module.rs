@@ -13,7 +13,7 @@ use {
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-  rspack_napi_shared::{NapiResultExt, NAPI_ENV},
+  rspack_napi_shared::{NapiResultExt, RspackResultExt, NAPI_ENV},
 };
 
 use crate::RawResolveOptions;

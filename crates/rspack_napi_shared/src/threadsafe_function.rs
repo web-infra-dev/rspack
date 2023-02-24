@@ -19,6 +19,7 @@ use napi::{JsError, JsFunction, NapiValue};
 use rspack_error::{internal_error, InternalError};
 
 use super::{NapiErrorExt, NapiResultExt};
+use crate::RspackErrorExt;
 
 /// ThreadSafeFunction Context object
 /// the `value` is the value passed to `call` method

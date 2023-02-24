@@ -4,74 +4,16 @@ use std::ptr;
 
 use futures::Future;
 use napi::bindgen_prelude::*;
-use napi::{check_status, Env, Error, JsFunction, JsUnknown, NapiRaw, Result};
+use napi::{check_status, Env, Error, JsFunction, JsUnknown, NapiRaw};
 use napi_derive::napi;
 use once_cell::sync::OnceCell;
 use rspack_error::CatchUnwindFuture;
 use rspack_napi_shared::threadsafe_function::{
   ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
+use rspack_napi_shared::{Result, RspackErrorExt, RspackResultExt};
 
 static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
-
-/// Try to resolve the string value of a given named property
-#[allow(unused)]
-pub(crate) fn get_named_property_value_string<T: NapiRaw>(
-  env: Env,
-  object: T,
-  property_name: &str,
-) -> Result<String> {
-  let mut bytes_with_nul: Vec<u8> = Vec::with_capacity(property_name.len() + 1);
-
-  write!(&mut bytes_with_nul, "{property_name}")?;
-  write!(&mut bytes_with_nul, "\0")?;
-
-  let mut value_ptr = ptr::null_mut();
-
-  check_status!(
-    unsafe {
-      napi_sys::napi_get_named_property(
-        env.raw(),
-        object.raw(),
-        CStr::from_bytes_with_nul_unchecked(&bytes_with_nul).as_ptr(),
-        &mut value_ptr,
-      )
-    },
-    "failed to get the value"
-  )?;
-
-  let mut str_len = 0;
-  check_status!(
-    unsafe {
-      napi_sys::napi_get_value_string_utf8(env.raw(), value_ptr, ptr::null_mut(), 0, &mut str_len)
-    },
-    "failed to get the value"
-  )?;
-
-  str_len += 1;
-  let mut buf = Vec::with_capacity(str_len);
-  let mut copied_len = 0;
-
-  check_status!(
-    unsafe {
-      napi_sys::napi_get_value_string_utf8(
-        env.raw(),
-        value_ptr,
-        buf.as_mut_ptr(),
-        str_len,
-        &mut copied_len,
-      )
-    },
-    "failed to get the value"
-  )?;
-
-  // Vec<i8> -> Vec<u8> See: https://stackoverflow.com/questions/59707349/cast-vector-of-i8-to-vector-of-u8-in-rust
-  let mut buf = std::mem::ManuallyDrop::new(buf);
-
-  let buf = unsafe { Vec::from_raw_parts(buf.as_mut_ptr() as *mut u8, copied_len, copied_len) };
-
-  String::from_utf8(buf).map_err(|_| Error::from_reason("failed to get property"))
-}
 
 #[napi]
 pub fn init_custom_trace_subscriber(
@@ -131,7 +73,8 @@ where
     callback.call(None, &argv)?;
 
     Ok(())
-  })?;
+  })
+  .into_napi_result()?;
 
   napi::bindgen_prelude::spawn(async move {
     let fut = CatchUnwindFuture::create(fut);
@@ -145,7 +88,7 @@ where
       Err(e) => {
         tsfn
           .call(
-            Err(Error::from_reason(format!("{e}"))),
+            Err(Error::from_reason(format!("{e}")).into_napi_error()),
             ThreadsafeFunctionCallMode::NonBlocking,
           )
           .expect("Failed to send panic info");

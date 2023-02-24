@@ -1,4 +1,5 @@
 use napi::{Env, JsFunction, NapiRaw, Ref};
+use rspack_napi_shared::RspackResultExt;
 
 pub(crate) struct JsFunctionRef {
   env: Env,
@@ -6,15 +7,18 @@ pub(crate) struct JsFunctionRef {
 }
 
 impl JsFunctionRef {
-  fn new(env: Env, f: JsFunction) -> napi::Result<Self> {
+  fn new(env: Env, f: JsFunction) -> rspack_napi_shared::Result<Self> {
     Ok(Self {
       env,
-      reference: env.create_reference(f)?,
+      reference: env.create_reference(f).into_napi_result()?,
     })
   }
 
-  pub(crate) fn get(&self) -> napi::Result<JsFunction> {
-    self.env.get_reference_value(&self.reference)
+  pub(crate) fn get(&self) -> rspack_napi_shared::Result<JsFunction> {
+    self
+      .env
+      .get_reference_value(&self.reference)
+      .into_napi_result()
   }
 }
 
@@ -33,11 +37,11 @@ pub struct NodeFS {
 }
 
 pub(crate) trait TryIntoNodeFSRef {
-  fn try_into_node_fs_ref(self, env: &Env) -> napi::Result<NodeFSRef>;
+  fn try_into_node_fs_ref(self, env: &Env) -> rspack_napi_shared::Result<NodeFSRef>;
 }
 
 impl TryIntoNodeFSRef for NodeFS {
-  fn try_into_node_fs_ref(self, env: &Env) -> napi::Result<NodeFSRef> {
+  fn try_into_node_fs_ref(self, env: &Env) -> rspack_napi_shared::Result<NodeFSRef> {
     Ok(NodeFSRef {
       write_file: JsFunctionRef::new(*env, self.write_file)?,
       mkdir: JsFunctionRef::new(*env, self.mkdir)?,
@@ -113,17 +117,17 @@ cfg_async! {
   impl_js_value_tuple_to_vec!(A, B, C);
 
   pub(crate) trait TryIntoThreadsafeFunctionRef {
-    fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeFunctionRef>;
+    fn try_into_tsfn_ref(self, env: &Env) -> rspack_napi_shared::Result<ThreadsafeFunctionRef>;
   }
 
   pub(crate) trait TryIntoThreadsafeFunction<T, R> {
-    fn try_into_tsfn(self, env: &Env) -> napi::Result<ThreadsafeFunction<T, R>>;
+    fn try_into_tsfn(self, env: &Env) -> rspack_napi_shared::Result<ThreadsafeFunction<T, R>>;
   }
 
   impl<T: JsValuesTupleIntoVec, R: FromNapiValue + Send + 'static> TryIntoThreadsafeFunction<T, R>
     for JsFunction
   {
-    fn try_into_tsfn(self, env: &Env) -> napi::Result<ThreadsafeFunction<T, R>> {
+    fn try_into_tsfn(self, env: &Env) -> rspack_napi_shared::Result<ThreadsafeFunction<T, R>> {
       let mut tsfn: ThreadsafeFunction<T, R> =
         ThreadsafeFunction::create(env.raw(), unsafe { self.raw() }, 0, |ctx| {
           let (ctx, resolver) = ctx.split_into_parts();
@@ -134,16 +138,17 @@ cfg_async! {
           let result = cb.call(None, &result);
 
           resolver.resolve::<R>(result, |_, v| Ok(v))
-        })?;
+        })
+        .into_napi_result()?;
 
-      tsfn.unref(env)?;
+      tsfn.unref(env).into_napi_result()?;
 
       Ok(tsfn)
     }
   }
 
   impl TryIntoThreadsafeFunctionRef for ThreadsafeNodeFS {
-    fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeFunctionRef> {
+    fn try_into_tsfn_ref(self, env: &Env) -> rspack_napi_shared::Result<ThreadsafeFunctionRef> {
       Ok(ThreadsafeFunctionRef {
         write_file: self.write_file.try_into_tsfn(env)?,
         mkdir: self.mkdir.try_into_tsfn(env)?,

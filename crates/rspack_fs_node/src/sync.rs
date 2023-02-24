@@ -12,7 +12,7 @@ pub struct NodeWritableFileSystem {
 }
 
 impl NodeWritableFileSystem {
-  pub fn new(env: Env, fs: NodeFS) -> napi::Result<Self> {
+  pub fn new(env: Env, fs: NodeFS) -> rspack_napi_shared::Result<Self> {
     Ok(Self {
       env,
       fs_ref: fs.try_into_node_fs_ref(&env)?,

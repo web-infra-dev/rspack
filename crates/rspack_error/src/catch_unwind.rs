@@ -6,7 +6,7 @@ use std::{
 
 use futures::{future::BoxFuture, FutureExt};
 
-use super::{internal_error, Error, Result};
+use super::{Error, Result};
 
 #[allow(non_snake_case)]
 pub mod PanicStrategy {

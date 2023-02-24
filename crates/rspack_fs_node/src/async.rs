@@ -10,7 +10,7 @@ pub struct AsyncNodeWritableFileSystem {
 }
 
 impl AsyncNodeWritableFileSystem {
-  pub fn new(env: Env, fs_ts: ThreadsafeNodeFS) -> napi::Result<Self> {
+  pub fn new(env: Env, fs_ts: ThreadsafeNodeFS) -> rspack_napi_shared::Result<Self> {
     let fs_ts = fs_ts.try_into_tsfn_ref(&env)?;
     Ok(Self { fs_ts })
   }

@@ -14,7 +14,7 @@ use napi::bindgen_prelude::*;
 use once_cell::sync::Lazy;
 use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
-use rspack_napi_shared::NAPI_ENV;
+use rspack_napi_shared::{Error, Result, RspackErrorExt, RspackResultExt, NAPI_ENV};
 
 mod js_values;
 mod plugins;
@@ -44,11 +44,15 @@ where
   where
     F: FnOnce(&mut V) -> Result<R>,
   {
-    let mut inner = self.0.get_mut(key).ok_or_else(|| {
-      napi::Error::from_reason(format!(
-        "Failed to find key {key} for single-threaded hashmap",
-      ))
-    })?;
+    let mut inner = self
+      .0
+      .get_mut(key)
+      .ok_or_else(|| {
+        napi::Error::from_reason(format!(
+          "Failed to find key {key} for single-threaded hashmap",
+        ))
+      })
+      .into_napi_result()?;
 
     f(&mut *inner)
   }
@@ -61,11 +65,15 @@ where
   where
     F: FnOnce(&V) -> Result<R>,
   {
-    let inner = self.0.get(key).ok_or_else(|| {
-      napi::Error::from_reason(format!(
-        "Failed to find key {key} for single-threaded hashmap",
-      ))
-    })?;
+    let inner = self
+      .0
+      .get(key)
+      .ok_or_else(|| {
+        napi::Error::from_reason(format!(
+          "Failed to find key {key} for single-threaded hashmap",
+        ))
+      })
+      .into_napi_result()?;
 
     f(&*inner)
   }
@@ -79,9 +87,10 @@ where
       vacant.insert(value);
       Ok(())
     } else {
-      Err(napi::Error::from_reason(
-        "Failed to insert on single-threaded hashmap as it's not vacant",
-      ))
+      Err(
+        napi::Error::from_reason("Failed to insert on single-threaded hashmap as it's not vacant")
+          .into_napi_error(),
+      )
     }
   }
 
@@ -141,9 +150,7 @@ impl Rspack {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks)?.boxed());
     }
 
-    let compiler_options = options
-      .apply(&mut plugins)
-      .map_err(|e| Error::from_reason(format!("{e}")))?;
+    let compiler_options = options.apply(&mut plugins).into_napi_result()?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);
 
@@ -151,7 +158,10 @@ impl Rspack {
       compiler_options,
       plugins,
       AsyncNodeWritableFileSystem::new(env, output_filesystem)
-        .map_err(|e| Error::from_reason(format!("Failed to create writable filesystem: {e}",)))?,
+        .map_err(|e| {
+          napi::Error::from_reason(format!("Failed to create writable filesystem: {e:?}",))
+        })
+        .into_napi_result()?,
     );
 
     let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
@@ -176,10 +186,7 @@ impl Rspack {
         unsafe { std::mem::transmute::<&'_ mut _, &'static mut _>(compiler) };
 
       callbackify(env, f, async move {
-        compiler
-          .build()
-          .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+        compiler.build().await.into_napi_result()?;
         tracing::info!("build ok");
         Ok(())
       })
@@ -215,7 +222,7 @@ impl Rspack {
             HashSet::from_iter(removed_files.into_iter()),
           )
           .await
-          .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e:?}")))?;
+          .into_napi_result()?;
         tracing::info!("rebuild ok");
         Ok(())
       })

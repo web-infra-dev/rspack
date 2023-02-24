@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use napi::{Env, NapiRaw, Result};
+use napi::{Env, NapiRaw};
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
-use rspack_napi_shared::NapiResultExt;
+use rspack_napi_shared::{NapiResultExt, Result, RspackResultExt};
 
 use crate::{JsCompilation, JsHooks};
 
@@ -245,10 +245,11 @@ impl JsHooksAdapter {
             let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
 
             resolver.resolve::<()>(result, |_, _| Ok(()))
-          })?;
+          })
+          .into_napi_result()?;
 
         // See the comment in `threadsafe_function.rs`
-        tsfn.unref(&env)?;
+        tsfn.unref(&env).into_napi_result()?;
         tsfn
       }};
     }

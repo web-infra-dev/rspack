@@ -1,5 +1,5 @@
 mod errors;
-pub use errors::{NapiErrorExt, NapiResultExt};
+pub use errors::{Error, NapiErrorExt, NapiResultExt, Result, RspackErrorExt, RspackResultExt};
 
 pub mod threadsafe_function;
 
