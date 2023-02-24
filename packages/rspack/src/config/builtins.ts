@@ -6,11 +6,11 @@ import type {
 	RawReactOptions,
 	RawProgressPluginConfig,
 	RawPostCssConfig,
-	RawCssPluginConfig,
 	RawCopyConfig,
 	RawPattern,
 	RawPresetEnv,
-	RawPluginImportConfig
+	RawPluginImportConfig,
+	RawCssModulesConfig
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
@@ -36,8 +36,12 @@ export type EmotionConfig =
 			importMap?: EmotionConfigImportMap;
 	  };
 
+export type CssPluginConfig = {
+	modules?: Partial<RawCssModulesConfig>;
+};
+
 export interface Builtins {
-	css?: RawCssPluginConfig;
+	css?: CssPluginConfig;
 	postcss?: RawPostCssConfig;
 	treeShaking?: boolean;
 	progress?: boolean | RawProgressPluginConfig;
