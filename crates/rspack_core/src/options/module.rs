@@ -67,16 +67,12 @@ impl RuleSetLogicalConditions {
 #[derive(Default)]
 pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
-  /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
-  /// - Regexp: It's tested with the input.
   pub test: Option<RuleSetCondition>,
   pub include: Option<RuleSetCondition>,
   pub exclude: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
-  /// See `test` above
   pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
-  /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<RuleSetCondition>,
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.

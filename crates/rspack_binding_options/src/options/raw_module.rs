@@ -69,7 +69,6 @@ impl Debug for RawModuleRuleUse {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawRuleSetCondition {
-  /// Condition can be either a `string` or `Regexp`.
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
@@ -118,23 +117,38 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
 
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x.r#type.as_str() {
-      "string" => Self::String(
-        x.string_matcher
-          .expect("should have a string_matcher when RawRuleSetCondition.type is \"string\""),
-      ),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(&x.regexp_matcher.expect(
-        "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\"",
-      ))?),
+      "string" => Self::String(x.string_matcher.ok_or_else(|| {
+        internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
+      })?),
+      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
+        &x.regexp_matcher.ok_or_else(|| {
+          internal_error!(
+            "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
+          )
+        })?,
+      )?),
       "logical" => Self::Logical(Box::new(rspack_core::RuleSetLogicalConditions::try_from(
         x.logical_matcher
-          .expect("should have a logical_matcher when RawRuleSetCondition.type is \"logical\"")
+          .ok_or_else(|| {
+            internal_error!(
+              "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
+            )
+          })?
           .get(0)
-          .expect("TODO")
+          .ok_or_else(|| {
+            internal_error!(
+              "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
+            )
+          })?
           .to_owned(),
       )?)),
       "array" => Self::Array(
         x.array_matcher
-          .expect("should have a array_matcher when RawRuleSetCondition.type is \"array\"")
+          .ok_or_else(|| {
+            internal_error!(
+              "should have a array_matcher when RawRuleSetCondition.type is \"array\""
+            )
+          })?
           .into_iter()
           .map(|i| i.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()?,
