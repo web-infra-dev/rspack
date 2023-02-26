@@ -20,12 +20,12 @@ async function build() {
 			args.push("--release");
 		}
 
-		if (process.env.RUST_TARGET) {
-			args.push("--target", process.env.RUST_TARGET);
+		if (process.env.USE_ZIG) {
+			args.push("--zig");
 		}
 
-		if (process.env.ZIG_ABI_SUFFIX) {
-			args.push("--zig-abi-suffix", process.env.ZIG_ABI_SUFFIX);
+		if (process.env.RUST_TARGET) {
+			args.push("--target", process.env.RUST_TARGET);
 		}
 
 		let cp = spawn("napi", args, {

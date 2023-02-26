@@ -15,11 +15,11 @@
   "scripts": {
     "build:debug": "node scripts/build.js",
     "build:debug:x64": "RUST_TARGET=x86_64-apple-darwin node scripts/build.js",
-    "build:debug:linux": "RUST_TARGET=x86_64-unknown-linux-gnu ZIG_ABI_SUFFIX=2.17 node scripts/build.js",
+    "build:debug:linux": "RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js",
     "build:release:all": "run-p build:release build:release:x64 build:release:linux && pnpm move-binding",
     "build:release": "node scripts/build.js --release",
     "build:release:x64": "RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
-    "build:release:linux": "RUST_TARGET=x86_64-unknown-linux-gnu ZIG_ABI_SUFFIX=2.17 node scripts/build.js --release",
+    "build:release:linux": "RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release",
     "build:release:win": "RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",
     "move-binding": "node scripts/move-binding"
   },
