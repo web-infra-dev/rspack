@@ -13,13 +13,14 @@
     "binding.d.ts"
   ],
   "scripts": {
-    "build:debug": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json",
-    "build:debug:x64": "napi build --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",
+    "build:debug": "node scripts/build.js",
+    "build:debug:x64": "RUST_TARGET=x86_64-apple-darwin node scripts/build.js",
+    "build:debug:linux": "RUST_TARGET=x86_64-unknown-linux-gnu ZIG_ABI_SUFFIX=2.17 node scripts/build.js",
     "build:release:all": "run-p build:release build:release:x64 build:release:linux && pnpm move-binding",
-    "build:release": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json && pnpm move-binding",
-    "build:release:x64": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --target x86_64-apple-darwin",
-    "build:release:linux": "napi build --release --platform --js false --dts binding.d.ts --config napirs.rc.json --zig --target x86_64-unknown-linux-gnu --zig-abi-suffix=2.17",
-    "build:release:win": "napi build --target x86_64-pc-windows-msvc --release --platform --js false --dts binding.d.ts --config napirs.rc.json",
+    "build:release": "node scripts/build.js --release",
+    "build:release:x64": "RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
+    "build:release:linux": "RUST_TARGET=x86_64-unknown-linux-gnu ZIG_ABI_SUFFIX=2.17 node scripts/build.js --release",
+    "build:release:win": "RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",
     "move-binding": "node scripts/move-binding"
   },
   "homepage": "https://rspack.org",
@@ -29,6 +30,9 @@
     "@napi-rs/cli": "2.14.2",
     "why-is-node-running": "2.2.1",
     "npm-run-all": "4.1.5"
+  },
+  "napi": {
+    "name": "rspack"
   },
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
