@@ -183,15 +183,13 @@ class Watching {
 		removedFiles?: Set<string>
 	) {
 		// @ts-expect-error
+		this.#mergeWithCollected(changedFiles, removedFiles);
+		// @ts-expect-error
 		if (this.isBlocked() && (this.blocked = true)) {
-			// @ts-expect-error
-			this.#mergeWithCollected(changedFiles, removedFiles);
 			return;
 		}
 
 		if (this.running) {
-			// @ts-expect-error
-			this.#mergeWithCollected(changedFiles, removedFiles);
 			this.invalid = true;
 			console.log("hit change but rebuild is not finished, pending files: ", [
 				...(this.#collectedChangedFiles || new Set()),
