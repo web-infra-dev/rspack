@@ -2763,6 +2763,7 @@ name = "rspack_plugin_devtool"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "dashmap",
  "once_cell",
  "pathdiff",
  "rayon",
@@ -2832,6 +2833,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_futures",
  "rspack_identifier",
  "rspack_plugin_devtool",
  "rspack_regex",

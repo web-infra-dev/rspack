@@ -8,7 +8,6 @@ use tokio::task::JoinError;
 
 type FuturesResult<T> = Vec<Result<T, JoinError>>;
 
-/// A set of futures that are spawned and executed in parallel and the results are returned in the order they were.
 ///
 /// A rough demo of how this works:
 ///

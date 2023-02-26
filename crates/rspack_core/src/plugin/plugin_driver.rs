@@ -16,8 +16,9 @@ use crate::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
   PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
-  PluginRenderManifestHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs,
-  RenderChunkArgs, RenderManifestArgs, ResolverFactory, SourceType, Stats, ThisCompilationArgs,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, ResolverFactory,
+  SourceType, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -208,6 +209,18 @@ impl PluginDriver {
   pub fn render_chunk(&self, args: RenderChunkArgs) -> PluginRenderChunkHookOutput {
     for plugin in &self.plugins {
       if let Some(source) = plugin.render_chunk(PluginContext::new(), &args)? {
+        return Ok(Some(source));
+      }
+    }
+    Ok(None)
+  }
+
+  pub fn render_module_content(
+    &self,
+    args: RenderModuleContentArgs,
+  ) -> PluginRenderModuleContentOutput {
+    for plugin in &self.plugins {
+      if let Some(source) = plugin.render_module_content(PluginContext::new(), &args)? {
         return Ok(Some(source));
       }
     }
