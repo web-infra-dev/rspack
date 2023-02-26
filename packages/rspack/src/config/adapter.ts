@@ -1,8 +1,8 @@
 import {
 	RawCacheGroupOptions,
-	RawIssuerOptions,
 	RawModuleRule,
-	RawModuleRuleCondition,
+	RawRuleSetCondition,
+	RawRuleSetLogicalConditions,
 	RawOptions
 } from "@rspack/binding";
 import assert from "assert";
@@ -19,8 +19,7 @@ import {
 	OutputNormalized,
 	RspackOptionsNormalized,
 	RuleSetCondition,
-	RuleSetConditionAbsolute,
-	RuleSetLogicalConditionsAbsolute,
+	RuleSetLogicalConditions,
 	RuleSetRule,
 	SnapshotOptions,
 	Target
@@ -154,22 +153,12 @@ const getRawModuleRule = (
 	options: ComposeJsUseOptions
 ): RawModuleRule => {
 	return {
-		test: rule.test ? getRawModuleRuleCondition(rule.test) : undefined,
-		include: rule.include
-			? (Array.isArray(rule.include) ? rule.include : [rule.include]).map(i =>
-					getRawModuleRuleCondition(i)
-			  )
-			: undefined,
-		exclude: rule.exclude
-			? (Array.isArray(rule.exclude) ? rule.exclude : [rule.exclude]).map(i =>
-					getRawModuleRuleCondition(i)
-			  )
-			: undefined,
-		resource: rule.resource
-			? getRawModuleRuleCondition(rule.resource)
-			: undefined,
+		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
+		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
+		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
+		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
-			? getRawModuleRuleCondition(rule.resourceQuery)
+			? getRawRuleSetCondition(rule.resourceQuery)
 			: undefined,
 		sideEffects: rule.sideEffects,
 		use: createRawModuleRuleUses(rule.use ?? [], options),
@@ -177,39 +166,55 @@ const getRawModuleRule = (
 		parser: rule.parser,
 		generator: rule.generator,
 		resolve: rule.resolve,
-		issuer: getRawModuleRuleIsserOptions(rule.issuer),
+		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map(i => getRawModuleRule(i, options))
 			: undefined
 	};
 };
 
-function getRawModuleRuleCondition<
-	T extends RuleSetConditionAbsolute | RuleSetCondition
->(condition: T): RawModuleRuleCondition {
+function getRawRuleSetCondition(
+	condition: RuleSetCondition
+): RawRuleSetCondition {
 	if (typeof condition === "string") {
 		return {
 			type: "string",
-			matcher: condition
+			stringMatcher: condition
 		};
 	}
-	return {
-		type: "regexp",
-		matcher: condition.source
-	};
+	if (condition instanceof RegExp) {
+		return {
+			type: "regexp",
+			regexpMatcher: condition.source
+		};
+	}
+	if (Array.isArray(condition)) {
+		return {
+			type: "array",
+			arrayMatcher: condition.map(i => getRawRuleSetCondition(i))
+		};
+	}
+	if (condition instanceof Object && condition !== null) {
+		return {
+			type: "logical",
+			logicalMatcher: [getRawRuleSetLogicalConditions(condition)]
+		};
+	}
+	throw new Error(
+		"unreachable: condition should be one of string, RegExp, Array, Object"
+	);
 }
 
-// TODO: all the condition should have a universal way to adapte, and match at rust side.
-function getRawModuleRuleIsserOptions(
-	issuer: RuleSetLogicalConditionsAbsolute | undefined
-): RawIssuerOptions | undefined {
-	if (issuer && issuer.not) {
-		const not = issuer.not;
-		return {
-			not: not.map(i => getRawModuleRuleCondition(i))
-		};
-	}
-	return undefined;
+function getRawRuleSetLogicalConditions(
+	logical: RuleSetLogicalConditions
+): RawRuleSetLogicalConditions {
+	return {
+		and: logical.and
+			? logical.and.map(i => getRawRuleSetCondition(i))
+			: undefined,
+		or: logical.or ? logical.or.map(i => getRawRuleSetCondition(i)) : undefined,
+		not: logical.not ? getRawRuleSetCondition(logical.not) : undefined
+	};
 }
 
 function getRawExternals(externals: Externals): RawOptions["externals"] {

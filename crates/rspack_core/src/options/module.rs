@@ -24,32 +24,56 @@ pub struct AssetGeneratorOptions {
 }
 
 #[derive(Debug)]
-pub enum ModuleRuleCondition {
+pub enum RuleSetCondition {
   String(String),
   Regexp(RspackRegex),
-  // TODO: support logical conditions
-  // LogicalConditions
+  Logical(Box<RuleSetLogicalConditions>),
+  Array(Vec<RuleSetCondition>),
+}
+
+impl RuleSetCondition {
+  pub fn is_match(&self, data: &str) -> bool {
+    match self {
+      Self::String(s) => data.starts_with(s),
+      Self::Regexp(r) => r.test(data),
+      Self::Logical(g) => g.is_match(data),
+      Self::Array(l) => l.iter().any(|i| i.is_match(data)),
+    }
+  }
 }
 
 #[derive(Debug, Default)]
-pub struct IssuerOptions {
-  pub not: Option<Vec<ModuleRuleCondition>>,
+pub struct RuleSetLogicalConditions {
+  pub and: Option<Vec<RuleSetCondition>>,
+  pub or: Option<Vec<RuleSetCondition>>,
+  pub not: Option<RuleSetCondition>,
+}
+
+impl RuleSetLogicalConditions {
+  pub fn is_match(&self, data: &str) -> bool {
+    if let Some(and) = &self.and && and.iter().any(|i| !i.is_match(data)) {
+      return false
+    }
+    if let Some(or) = &self.or && or.iter().all(|i| !i.is_match(data)) {
+      return false
+    }
+    if let Some(not) = &self.not && not.is_match(data) {
+      return false
+    }
+    true
+  }
 }
 
 #[derive(Default)]
 pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
-  /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
-  /// - Regexp: It's tested with the input.
-  pub test: Option<ModuleRuleCondition>,
-  pub include: Option<Vec<ModuleRuleCondition>>,
-  pub exclude: Option<Vec<ModuleRuleCondition>>,
+  pub test: Option<RuleSetCondition>,
+  pub include: Option<RuleSetCondition>,
+  pub exclude: Option<RuleSetCondition>,
   /// A condition matcher matching an absolute path.
-  /// See `test` above
-  pub resource: Option<ModuleRuleCondition>,
+  pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
-  /// TODO: align with webpack's `?` prefixed `resourceQuery`
-  pub resource_query: Option<ModuleRuleCondition>,
+  pub resource_query: Option<RuleSetCondition>,
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
@@ -57,7 +81,7 @@ pub struct ModuleRule {
   pub parser: Option<AssetParserOptions>,
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
-  pub issuer: Option<IssuerOptions>,
+  pub issuer: Option<RuleSetCondition>,
   pub one_of: Option<Vec<ModuleRule>>,
 }
 

@@ -28,8 +28,8 @@ use super::{
   BailoutFlag,
 };
 use crate::{
-  module_rule_matcher_condition, CompilerOptions, Dependency, DependencyType, ModuleGraph,
-  ModuleIdentifier, ModuleSyntax, ResolverFactory,
+  CompilerOptions, Dependency, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax,
+  ResolverFactory,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1028,7 +1028,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       };
       match rule.test {
         Some(ref test_rule) => {
-          if !module_rule_matcher_condition(test_rule, &resource_path.to_string_lossy()) {
+          if !test_rule.is_match(&resource_path.to_string_lossy()) {
             continue;
           }
         }

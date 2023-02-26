@@ -3,8 +3,8 @@ use std::{fmt::Debug, sync::Arc};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
-  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, IssuerOptions,
-  ModuleOptions, ModuleRule, ParserOptions,
+  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, ModuleOptions,
+  ModuleRule, ParserOptions,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
@@ -65,47 +65,102 @@ impl Debug for RawModuleRuleUse {
   }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawModuleRuleCondition {
-  /// Condition can be either a `string` or `Regexp`.
-  #[napi(ts_type = r#""string" | "regexp""#)]
+pub struct RawRuleSetCondition {
+  #[napi(ts_type = r#""string" | "regexp" | "logical" | "array""#)]
   pub r#type: String,
-  /// Based on the condition type, the value can be either a `string` or `Regexp`.
-  ///  - "string": The value will be matched against the string.
-  ///  - "regexp": The value will be matched against the raw regexp source from JS side.
-  pub matcher: Option<String>,
+  pub string_matcher: Option<String>,
+  pub regexp_matcher: Option<String>,
+  pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
+  pub array_matcher: Option<Vec<RawRuleSetCondition>>,
 }
 
-impl TryFrom<RawModuleRuleCondition> for rspack_core::ModuleRuleCondition {
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawRuleSetLogicalConditions {
+  pub and: Option<Vec<RawRuleSetCondition>>,
+  pub or: Option<Vec<RawRuleSetCondition>>,
+  pub not: Option<RawRuleSetCondition>,
+}
+
+impl TryFrom<RawRuleSetLogicalConditions> for rspack_core::RuleSetLogicalConditions {
   type Error = rspack_error::Error;
 
-  fn try_from(x: RawModuleRuleCondition) -> std::result::Result<Self, Self::Error> {
-    let matcher = x
-      .matcher
-      .ok_or_else(|| internal_error!("Matcher is required."))?;
+  fn try_from(value: RawRuleSetLogicalConditions) -> rspack_error::Result<Self> {
+    Ok(Self {
+      and: value
+        .and
+        .map(|i| {
+          i.into_iter()
+            .map(TryFrom::try_from)
+            .collect::<rspack_error::Result<Vec<_>>>()
+        })
+        .transpose()?,
+      or: value
+        .or
+        .map(|i| {
+          i.into_iter()
+            .map(TryFrom::try_from)
+            .collect::<rspack_error::Result<Vec<_>>>()
+        })
+        .transpose()?,
+      not: value.not.map(TryFrom::try_from).transpose()?,
+    })
+  }
+}
 
+impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
+  type Error = rspack_error::Error;
+
+  fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x.r#type.as_str() {
-      "string" => Self::String(matcher),
-      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(&matcher)?),
-      _ => {
-        return Err(internal_error!(
-          "Failed to resolve the condition type {}. Expected type is either `string` or `regexp`.",
-          x.r#type
-        ));
-      }
+      "string" => Self::String(x.string_matcher.ok_or_else(|| {
+        internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
+      })?),
+      "regexp" => Self::Regexp(rspack_regex::RspackRegex::new(
+        &x.regexp_matcher.ok_or_else(|| {
+          internal_error!(
+            "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
+          )
+        })?,
+      )?),
+      "logical" => Self::Logical(Box::new(rspack_core::RuleSetLogicalConditions::try_from(
+        x.logical_matcher
+          .ok_or_else(|| {
+            internal_error!(
+              "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
+            )
+          })?
+          .get(0)
+          .ok_or_else(|| {
+            internal_error!(
+              "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
+            )
+          })?
+          .to_owned(),
+      )?)),
+      "array" => Self::Array(
+        x.array_matcher
+          .ok_or_else(|| {
+            internal_error!(
+              "should have a array_matcher when RawRuleSetCondition.type is \"array\""
+            )
+          })?
+          .into_iter()
+          .map(|i| i.try_into())
+          .collect::<rspack_error::Result<Vec<_>>>()?,
+      ),
+      _ => panic!(
+        "Failed to resolve the condition type {}. Expected type is either `string` or `regexp`.",
+        x.r#type
+      ),
     };
 
     Ok(result)
   }
-}
-
-#[derive(Deserialize, Default, Debug)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawIssuerOptions {
-  pub not: Option<Vec<RawModuleRuleCondition>>,
 }
 
 #[derive(Deserialize, Default)]
@@ -113,24 +168,20 @@ pub struct RawIssuerOptions {
 #[napi(object)]
 pub struct RawModuleRule {
   /// A condition matcher matching an absolute path.
-  /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
-  /// - Regexp: It's tested with the input.
-  pub test: Option<RawModuleRuleCondition>,
-  pub include: Option<Vec<RawModuleRuleCondition>>,
-  pub exclude: Option<Vec<RawModuleRuleCondition>>,
+  pub test: Option<RawRuleSetCondition>,
+  pub include: Option<RawRuleSetCondition>,
+  pub exclude: Option<RawRuleSetCondition>,
   /// A condition matcher matching an absolute path.
-  /// See `test` above
-  pub resource: Option<RawModuleRuleCondition>,
+  pub resource: Option<RawRuleSetCondition>,
   /// A condition matcher against the resource query.
-  /// TODO: align with webpack's `?` prefixed `resourceQuery`
-  pub resource_query: Option<RawModuleRuleCondition>,
+  pub resource_query: Option<RawRuleSetCondition>,
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   pub r#type: Option<String>,
   pub parser: Option<RawModuleRuleParser>,
   pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
-  pub issuer: Option<RawIssuerOptions>,
+  pub issuer: Option<RawRuleSetCondition>,
   pub one_of: Option<Vec<RawModuleRule>>,
 }
 
@@ -477,17 +528,6 @@ impl TryFrom<RawModuleRule> for ModuleRule {
 
     let module_type = value.r#type.map(|t| (&*t).try_into()).transpose()?;
 
-    let issuer = if let Some(issuer) = value.issuer {
-      Some(IssuerOptions {
-        not: issuer
-          .not
-          .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-          .transpose()?,
-      })
-    } else {
-      None
-    };
-
     let one_of = value
       .one_of
       .map(|one_of| {
@@ -500,14 +540,8 @@ impl TryFrom<RawModuleRule> for ModuleRule {
 
     Ok(ModuleRule {
       test: value.test.map(|raw| raw.try_into()).transpose()?,
-      include: value
-        .include
-        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-        .transpose()?,
-      exclude: value
-        .exclude
-        .map(|raw| raw.into_iter().map(|f| f.try_into()).collect())
-        .transpose()?,
+      include: value.include.map(|raw| raw.try_into()).transpose()?,
+      exclude: value.exclude.map(|raw| raw.try_into()).transpose()?,
       resource_query: value.resource_query.map(|raw| raw.try_into()).transpose()?,
       resource: value.resource.map(|raw| raw.try_into()).transpose()?,
       r#use: uses,
@@ -516,7 +550,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       generator: value.generator.map(|raw| raw.into()),
       resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
       side_effects: value.side_effects,
-      issuer,
+      issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
       one_of,
     })
   }

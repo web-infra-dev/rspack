@@ -1,9 +1,8 @@
-import { lib, lib1 } from "./lib";
+import { lib0, lib1, lib2, lib3 } from "./lib0";
 
 it("`issuer` should work", () => {
-	// should run loader and not run loader1
-	expect(lib).toEqual("aabc");
-
-	// should run loader and loader1
-	expect(lib1).toEqual("aabcc");
+	expect(lib0).toEqual("lib0(#)loader0");
+	expect(lib1).toEqual("lib1(#)loader0loader1");
+	expect(lib2).toEqual("lib2(#)loader0loader1loader2loader3");
+	expect(lib3).toEqual("lib3(#)loader0loader1loader3");
 });
