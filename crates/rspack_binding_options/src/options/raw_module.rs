@@ -168,16 +168,12 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
 #[napi(object)]
 pub struct RawModuleRule {
   /// A condition matcher matching an absolute path.
-  /// - String: To match the input must start with the provided string. I. e. an absolute directory path, or absolute path to the file.
-  /// - Regexp: It's tested with the input.
   pub test: Option<RawRuleSetCondition>,
   pub include: Option<RawRuleSetCondition>,
   pub exclude: Option<RawRuleSetCondition>,
   /// A condition matcher matching an absolute path.
-  /// See `test` above
   pub resource: Option<RawRuleSetCondition>,
   /// A condition matcher against the resource query.
-  /// TODO: align with webpack's `?` prefixed `resourceQuery`
   pub resource_query: Option<RawRuleSetCondition>,
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
