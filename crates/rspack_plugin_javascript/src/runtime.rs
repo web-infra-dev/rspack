@@ -168,7 +168,7 @@ pub fn render_runtime_modules(
     .iter()
     .filter_map(|identifier| compilation.runtime_modules.get(identifier))
     .collect();
-  runtime_modules.sort_by_key(|a| a.stage());
+  runtime_modules.sort_unstable_by_key(|a| a.stage());
   runtime_modules.iter().for_each(|module| {
     sources.add(RawSource::from(format!("// {}\n", module.identifier())));
     sources.add(RawSource::from("(function() {\n"));

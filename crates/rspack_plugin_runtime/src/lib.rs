@@ -55,7 +55,7 @@ impl Plugin for RuntimePlugin {
     let runtime_requirements = &mut args.runtime_requirements;
 
     let mut chunks = compilation.chunk_by_ukey.values().collect::<Vec<_>>();
-    chunks.sort_by_key(|c| &c.id);
+    chunks.sort_unstable_by_key(|c| &c.id);
     for chunk in &chunks {
       if !chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
         // TODO: use module async block instead of it at code generation

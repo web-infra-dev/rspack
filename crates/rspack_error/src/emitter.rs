@@ -106,7 +106,7 @@ impl DiagnosticDisplay for StringDiagnosticDisplay {
   ) -> Self::Output {
     emit_batch_diagnostic(diagnostics, self)?;
     if self.sorted {
-      self.diagnostic_vector.sort();
+      self.diagnostic_vector.sort_unstable();
     }
     Ok(self.diagnostic_vector.drain(..).collect())
   }

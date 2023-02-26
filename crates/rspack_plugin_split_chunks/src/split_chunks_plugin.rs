@@ -267,7 +267,7 @@ impl SplitChunksPlugin {
             .iter()
             .map(|c| c.ukey.as_usize().to_string())
             .collect::<Vec<_>>();
-          keys.sort();
+          keys.sort_unstable();
           keys.join("_")
         })
       }

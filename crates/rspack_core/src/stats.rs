@@ -72,16 +72,16 @@ impl Stats<'_> {
           .iter()
           .map(|chunk| chunk.id.clone().expect("Chunk should have id"))
           .collect();
-        asset.chunks.sort();
+        asset.chunks.sort_unstable();
         asset.chunk_names = chunks
           .iter()
           .filter_map(|chunk| chunk.name.clone())
           .collect();
-        asset.chunk_names.sort();
+        asset.chunk_names.sort_unstable();
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
-    assets.sort_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
+    assets.sort_unstable_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
     assets
   }
 
@@ -134,7 +134,7 @@ impl Stats<'_> {
                 }
               })
               .collect();
-            reasons.sort_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+            reasons.sort_unstable_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
             Ok(reasons)
           })
           .transpose()?;
@@ -155,7 +155,7 @@ impl Stats<'_> {
               .to_string()
           })
           .collect();
-        chunks.sort();
+        chunks.sort_unstable();
 
         Ok(StatsModule {
           r#type: "module",
@@ -175,7 +175,7 @@ impl Stats<'_> {
         })
       })
       .collect::<Result<_>>()?;
-    modules.sort_by(|a, b| {
+    modules.sort_unstable_by(|a, b| {
       if a.name.len() != b.name.len() {
         a.name.len().cmp(&b.name.len())
       } else {
@@ -193,7 +193,7 @@ impl Stats<'_> {
       .into_iter()
       .map(|c| {
         let mut files = Vec::from_iter(c.files.iter().cloned());
-        files.sort();
+        files.sort_unstable();
         StatsChunk {
           r#type: "chunk",
           files,
@@ -235,7 +235,7 @@ impl Stats<'_> {
           })
           .map(|c| c.expect_id().to_string())
           .collect();
-        chunks.sort();
+        chunks.sort_unstable();
         let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
           let chunk = self
             .compilation

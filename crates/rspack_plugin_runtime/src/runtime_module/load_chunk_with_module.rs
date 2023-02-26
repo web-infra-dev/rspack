@@ -44,7 +44,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
             })
             .collect::<Vec<_>>()
         };
-        chunk_ids.sort();
+        chunk_ids.sort_unstable();
         let module = compilation
           .module_graph
           .module_graph_module_by_identifier(identifier)

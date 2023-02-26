@@ -164,7 +164,7 @@ impl CssPlugin {
     let mut css_modules = chunk_graph
       .get_chunk_modules_iterable_by_source_type(&chunk.ukey, SourceType::Css, module_graph)
       .collect::<Vec<_>>();
-    css_modules.sort_by_key(|module| module.identifier());
+    css_modules.sort_unstable_by_key(|module| module.identifier());
 
     let css_modules: Vec<ModuleIdentifier> =
       Self::get_modules_in_order(chunk, css_modules, compilation);
@@ -221,7 +221,7 @@ impl CssPlugin {
       return modules_by_chunk_group[0].list.clone();
     };
 
-    modules_by_chunk_group.sort_by(compare_module_lists);
+    modules_by_chunk_group.sort_unstable_by(compare_module_lists);
 
     let mut final_modules: Vec<ModuleIdentifier> = vec![];
 
@@ -295,7 +295,7 @@ impl CssPlugin {
         }
       }
 
-      modules_by_chunk_group.sort_by(compare_module_lists);
+      modules_by_chunk_group.sort_unstable_by(compare_module_lists);
     }
     final_modules
   }

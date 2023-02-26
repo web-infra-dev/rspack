@@ -488,7 +488,7 @@ impl Plugin for CopyPlugin {
       .extend(context_dependencies);
     compilation.push_batch_diagnostic(diagnostics.into_iter().collect());
 
-    copied_result.sort_by(|a, b| a.0.cmp(&b.0));
+    copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     copied_result.into_iter().for_each(|(_priority, result)| {
       if let Some(exist_asset) = args.compilation.assets.get_mut(&result.filename) {
         if !result.force {
