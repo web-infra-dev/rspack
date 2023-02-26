@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        type: choice
+        description: "Release Version(canary, alpha, pre, latest)"
+        required: true
+        default: "canary"
+        options:
+          - canary
+          - alpha
+          - pre
+          - latest
+
+jobs:
+  release:
+    name: Release
+    runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@master
+        with:
+          # This makes Actions fetch only one branch to release
+          fetch-depth: 1
+      - name: Install rus toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2022-08-06
+          profile: default
+          components: rustfmt, clippy, cargo
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+          architecture: "arm64"
+      - name: install node_modules
+        run: |
+          npm install -g pnpm@7.25.0
+          pnpm -v
+          pnpm install
+      - name: release pull request
+        id: changesets
+        uses: changesets/action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: publish
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          pnpm run build:cli:release:all
+          pnpm run release --tag ${{github.event.inputs.tag}}
