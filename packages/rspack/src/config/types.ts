@@ -176,12 +176,11 @@ export interface ModuleOptions {
 }
 export type RuleSetRules = ("..." | RuleSetRule)[];
 export interface RuleSetRule {
-	test?: RuleSetConditionAbsolute;
-	exclude?: RuleSetConditionOrConditionsAbsolute;
-	include?: RuleSetConditionOrConditionsAbsolute;
-	// TODO: should be `RuleSetConditionOrConditionsAbsolute`
-	issuer?: RuleSetLogicalConditionsAbsolute;
-	resource?: RuleSetConditionAbsolute;
+	test?: RuleSetCondition;
+	exclude?: RuleSetCondition;
+	include?: RuleSetCondition;
+	issuer?: RuleSetCondition;
+	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;
 	oneOf?: RuleSetRule[];
@@ -196,19 +195,17 @@ export interface RuleSetRule {
 	resolve?: ResolveOptions;
 	sideEffects?: boolean;
 }
-export type RuleSetConditionOrConditionsAbsolute =
-	| RuleSetConditionAbsolute
-	| RuleSetConditionsAbsolute;
-export type RuleSetConditionAbsolute = RegExp | string;
-export type RuleSetConditionsAbsolute = RuleSetConditionAbsolute[];
-export interface RuleSetLogicalConditionsAbsolute {
-	// and?: RuleSetConditionsAbsolute;
-	not?: RuleSetConditionsAbsolute;
-	// or?: RuleSetConditionsAbsolute;
-}
-export type RuleSetConditionOrConditions = RuleSetCondition | RuleSetConditions;
-export type RuleSetCondition = RegExp | string;
+export type RuleSetCondition =
+	| RegExp
+	| string
+	| RuleSetConditions
+	| RuleSetLogicalConditions;
 export type RuleSetConditions = RuleSetCondition[];
+export interface RuleSetLogicalConditions {
+	and?: RuleSetConditions;
+	or?: RuleSetConditions;
+	not?: RuleSetCondition;
+}
 export type RuleSetUse = RuleSetUseItem[];
 export type RuleSetUseItem = {
 	// ident?: string;

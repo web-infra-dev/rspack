@@ -338,7 +338,7 @@ impl TestConfig {
           .into_iter()
           .map(|rule| c::ModuleRule {
             test: rule.test.map(|test| match test {
-              ModuleRuleTest::Regexp { matcher } => c::ModuleRuleCondition::Regexp(
+              ModuleRuleTest::Regexp { matcher } => c::RuleSetCondition::Regexp(
                 RspackRegex::new(&matcher).expect("should be valid regex"),
               ),
             }),

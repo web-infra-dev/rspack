@@ -11,7 +11,7 @@ module.exports = {
 				exclude: [/index\.js/],
 				use: [
 					{
-						loader: "./loader.js"
+						loader: "./loader0.js"
 					}
 				]
 			},
@@ -24,6 +24,28 @@ module.exports = {
 				],
 				issuer: {
 					not: [/index\.js/]
+				}
+			},
+			{
+				exclude: [/index\.js/],
+				use: [
+					{
+						loader: "./loader2.js"
+					}
+				],
+				issuer: {
+					and: [/1\.js/, path.resolve(__dirname, "lib")]
+				}
+			},
+			{
+				exclude: [/index\.js/],
+				use: [
+					{
+						loader: "./loader3.js"
+					}
+				],
+				issuer: {
+					or: [/1\.js/, /2\.js/]
 				}
 			}
 		]
