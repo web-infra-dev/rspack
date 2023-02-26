@@ -206,13 +206,14 @@ export interface RuleSetLogicalConditions {
 	or?: RuleSetConditions;
 	not?: RuleSetCondition;
 }
-export type RuleSetUse = RuleSetUseItem[];
-export type RuleSetUseItem = {
+export type RuleSetUse = RuleSetUseItem[] | RuleSetUseItem;
+export type RuleSetUseItem = RuleSetLoaderWithOptions | RuleSetLoader;
+export type RuleSetLoader = string;
+export type RuleSetLoaderWithOptions = {
 	// ident?: string;
 	loader: RuleSetLoader;
 	options?: RuleSetLoaderOptions;
 };
-export type RuleSetLoader = string;
 export type RuleSetLoaderOptions =
 	| string
 	| {
