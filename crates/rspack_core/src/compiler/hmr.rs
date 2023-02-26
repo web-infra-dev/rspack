@@ -49,6 +49,7 @@ where
     changed_files: std::collections::HashSet<String>,
     removed_files: std::collections::HashSet<String>,
   ) -> Result<()> {
+    assert!(!changed_files.is_empty() || !removed_files.is_empty());
     let old = self.compilation.get_stats();
     fn collect_changed_modules(
       compilation: &Compilation,
