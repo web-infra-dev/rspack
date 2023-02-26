@@ -1,12 +1,12 @@
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
-use rspack_core::rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, MapOptions, RawSource, SourceExt,
+use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
+use rspack_core::{
+  runtime_globals, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeModule, SourceType,
 };
-use rspack_core::{runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType};
 use rspack_error::Result;
-use rspack_plugin_devtool::wrap_eval_source_map;
+use rspack_futures::FuturesResults;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
@@ -15,7 +15,7 @@ pub fn render_chunk_modules(
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
   let module_graph = &compilation.module_graph;
-  let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
+  let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
     SourceType::JavaScript,
     module_graph,
@@ -25,63 +25,63 @@ pub fn render_chunk_modules(
     .get(chunk_ukey)
     .expect("chunk not found");
 
-  ordered_modules.sort_by_key(|m| &m.module_identifier);
-
-  let module_code_array = ordered_modules
-    .par_iter()
+  let mut module_code_array = ordered_modules
+    .iter()
     .filter(|mgm| mgm.used)
-    .map(|mgm| {
-      let code_gen_result = compilation
+    .map(|mgm| async {
+      let result = compilation
         .code_generation_results
-        .get(&mgm.module_identifier, Some(&chunk.runtime))?;
-
-      code_gen_result
+        .get(&mgm.module_identifier, Some(&chunk.runtime))
+        .expect("should have code generation result")
         .get(&SourceType::JavaScript)
-        .map(|result| {
-          let origin_source = result.ast_or_source.clone().try_into_source()?;
-          let module_source =
-            if compilation.options.devtool.eval() && compilation.options.devtool.source_map() {
-              if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
-                cached.value().clone()
-              } else {
-                let module_source = if let Some(map) =
-                  origin_source.map(&MapOptions::new(compilation.options.devtool.cheap()))
-                {
-                  wrap_eval_source_map(&origin_source.source(), map, compilation)?
-                } else {
-                  origin_source.clone()
-                };
-                let module_source = CachedSource::new(module_source).boxed();
-                MODULE_RENDER_CACHE.insert(origin_source, module_source.clone());
-                module_source
-              }
-            } else {
-              origin_source
-            };
-          // module id isn't cacheable
-          let strict = match compilation
-            .module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|m| m.as_normal_module())
-          {
-            Some(normal_module) => normal_module.build_info.strict,
-            None => false,
-          };
-          Ok(render_module(
-            module_source,
-            strict,
-            mgm.id(&compilation.chunk_graph),
-          ))
+        .expect("should have js code generation result");
+
+      let origin_source = result
+        .ast_or_source
+        .clone()
+        .try_into_source()
+        .expect("should be source");
+      let module_source = if let Some(source) = compilation
+        .plugin_driver
+        .read()
+        .await
+        .render_module_content(RenderModuleContentArgs {
+          compilation,
+          module_source: &origin_source,
         })
-        .transpose()
+        .expect("render_module_content failed")
+      {
+        source
+      } else {
+        origin_source
+      };
+
+      // module id isn't cacheable
+      let strict = match compilation
+        .module_graph
+        .module_by_identifier(&mgm.module_identifier)
+        .and_then(|m| m.as_normal_module())
+      {
+        Some(normal_module) => normal_module.build_info.strict,
+        None => false,
+      };
+      (
+        mgm.module_identifier,
+        render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
+      )
     })
-    .collect::<Result<Vec<Option<BoxSource>>>>()?;
+    .collect::<FuturesResults<_>>()
+    .into_inner()
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+
+  module_code_array.sort_unstable_by_key(|(module_identifier, _)| *module_identifier);
 
   let module_sources = module_code_array
     .into_par_iter()
-    .flatten()
-    .fold(ConcatSource::default, |mut output, cur| {
-      output.add(cur);
+    .fold(ConcatSource::default, |mut output, (_, source)| {
+      output.add(source);
       output
     })
     .collect::<Vec<ConcatSource>>();

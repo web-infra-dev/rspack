@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use rspack_error::{internal_error, Result};
+use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::ast::css::Ast as CssAst;
@@ -10,7 +11,6 @@ use crate::{
   Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, ModuleDependency,
   ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
 };
-
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
 //   pub uri: &'a str,
@@ -160,4 +160,10 @@ impl<'me> RenderChunkArgs<'me> {
       .get(self.chunk_ukey)
       .expect("chunk should exsit in chunk_by_ukey")
   }
+}
+
+#[derive(Debug)]
+pub struct RenderModuleContentArgs<'a> {
+  pub module_source: &'a BoxSource,
+  pub compilation: &'a Compilation,
 }

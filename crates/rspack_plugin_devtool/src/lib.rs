@@ -2,14 +2,15 @@
 
 use std::path::Path;
 
+use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, SourceExt, SourceMap},
+  rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
   AssetInfo, Compilation, CompilationAsset, Plugin, PluginContext, PluginProcessAssetsOutput,
-  ProcessAssetsArgs,
+  PluginRenderModuleContentOutput, ProcessAssetsArgs, RenderModuleContentArgs,
 };
 use rspack_error::{internal_error, Result};
 use rspack_util::swc::normalize_custom_filename;
@@ -55,10 +56,31 @@ impl DevtoolPlugin {
   }
 }
 
+static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
+
 #[async_trait::async_trait]
 impl Plugin for DevtoolPlugin {
   fn name(&self) -> &'static str {
     "devtool"
+  }
+
+  fn render_module_content(
+    &self,
+    _ctx: PluginContext,
+    args: &RenderModuleContentArgs,
+  ) -> PluginRenderModuleContentOutput {
+    let devtool = &args.compilation.options.devtool;
+    let origin_source = args.module_source.clone();
+    if devtool.eval() && devtool.source_map() {
+      if let Some(cached) = MODULE_RENDER_CACHE.get(&origin_source) {
+        return Ok(Some(cached.value().clone()));
+      } else if let Some(map) = origin_source.map(&MapOptions::new(devtool.cheap())) {
+        let source = wrap_eval_source_map(&origin_source.source(), map, args.compilation)?;
+        MODULE_RENDER_CACHE.insert(origin_source, source.clone());
+        return Ok(Some(source));
+      }
+    }
+    Ok(Some(origin_source))
   }
 
   async fn process_assets_stage_dev_tooling(
