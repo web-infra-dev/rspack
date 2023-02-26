@@ -21,7 +21,13 @@ import { createHash } from "../util/createHash";
 import Hash from "../util/hash";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
-import { Mode, Resolve, RuleSetUse, RuleSetUseItem } from "./types";
+import {
+	Mode,
+	Resolve,
+	RuleSetUse,
+	RuleSetUseItem,
+	RuleSetLoaderWithOptions
+} from "./types";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -127,14 +133,20 @@ export function createRawModuleRuleUses(
 	uses: RuleSetUse,
 	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
-	const allUses = [...uses].reverse();
+	const normalizeRuleSetUseItem = (
+		item: RuleSetUseItem
+	): RuleSetLoaderWithOptions =>
+		typeof item === "string" ? { loader: item } : item;
+	const allUses = Array.isArray(uses)
+		? [...uses].reverse().map(normalizeRuleSetUseItem)
+		: [normalizeRuleSetUseItem(uses)];
 	return createRawModuleRuleUsesImpl(allUses, options, allUses);
 }
 
 function createRawModuleRuleUsesImpl(
-	uses: RuleSetUse,
+	uses: RuleSetLoaderWithOptions[],
 	options: ComposeJsUseOptions,
-	allUses: RuleSetUse
+	allUses: RuleSetLoaderWithOptions[]
 ): RawModuleRuleUse[] {
 	if (!uses.length) {
 		return [];
@@ -159,9 +171,9 @@ function createRawModuleRuleUsesImpl(
 }
 
 function composeJsUse(
-	uses: RuleSetUse,
+	uses: RuleSetLoaderWithOptions[],
 	options: ComposeJsUseOptions,
-	allUses: RuleSetUse
+	allUses: RuleSetLoaderWithOptions[]
 ): RawModuleRuleUse | null {
 	if (!uses.length) {
 		return null;
@@ -621,7 +633,7 @@ function composeJsUse(
 	};
 }
 
-function createBuiltinUse(use: RuleSetUseItem): RawModuleRuleUse {
+function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {
 	assert(
 		typeof use.loader === "string" &&
 			use.loader.startsWith(BUILTIN_LOADER_PREFIX)

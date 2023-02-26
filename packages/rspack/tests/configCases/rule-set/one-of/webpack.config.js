@@ -9,36 +9,20 @@ module.exports = {
 		rules: [
 			{
 				test: /lib.js/,
-				use: [
-					{
-						loader: "./loader2.js"
-					}
-				]
+				use: ["./loader2.js"]
 			},
 			{
 				test: /lib.js/,
 				oneOf: [
 					{
 						resourceQuery: "/(__inline=false|url)/",
-						use: [
-							{
-								loader: "./loader1.js"
-							}
-						]
+						use: ["./loader1.js"]
 					},
 					{
-						use: [
-							{
-								loader: "./loader.js"
-							}
-						]
+						use: ["./loader.js"]
 					},
 					{
-						use: [
-							{
-								loader: "./loader1.js"
-							}
-						]
+						use: ["./loader1.js"]
 					}
 				]
 			}
