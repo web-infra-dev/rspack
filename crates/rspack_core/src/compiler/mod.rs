@@ -217,10 +217,11 @@ where
             .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
         )
         .await?;
-      self
-        .output_filesystem
-        .write(&file_path, source.buffer())
-        .await?;
+      let mut buf = Vec::new();
+      source
+        .to_writer(&mut buf)
+        .map_err(rspack_error::Error::from)?;
+      self.output_filesystem.write(&file_path, buf).await?;
 
       // let file = File::create(file_path).map_err(rspack_error::Error::from)?;
       // let mut writer = BufWriter::new(file);
