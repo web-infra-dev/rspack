@@ -27,7 +27,7 @@ use plugins::*;
 use rspack_binding_options::*;
 use utils::*;
 
-#[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
+#[cfg(all(not(all(target_os = "linux", target_env = "musl"))))]
 #[global_allocator]
 static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
 

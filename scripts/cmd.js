@@ -104,6 +104,9 @@ function createCLI() {
 				case "cli:release": // only build local release binary, for benchmark
 					command = `pnpm --filter @rspack/binding build:release && pnpm --filter "@rspack/*" build`;
 					break;
+				case "cli:release:ci": // build for ci, for release, a single binary is produced per run
+					command = `pnpm --filter @rspack/binding build:release && pnpm --filter "@rspack/*" build`;
+					break;
 				case "cli:release:all": // build for all cross platform, for release
 					command = `pnpm --filter @rspack/binding build:release:all && pnpm --filter "@rspack/*" build`;
 					break;

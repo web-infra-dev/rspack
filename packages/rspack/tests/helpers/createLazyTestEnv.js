@@ -1,3 +1,4 @@
+// There is a bug for running this script in Node.js 18 https://github.com/nodejs/node/pull/46458. So this hack won't work
 // copy from https://github.com/webpack/webpack/blob/main/test/helpers/createLazyTestEnv.js to align with webpack test suits
 const STATE_SYM = Object.getOwnPropertySymbols(global).find(
 	Symbol("x").description

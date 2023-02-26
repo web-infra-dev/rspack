@@ -156,10 +156,8 @@ dist
 .DS_Store
 
 
-## ignore rspack-style temp fold
-.rspack-style
-
-crates/node_binding/binding.d.ts
+# Do not ignore this for binding test
+# crates/node_binding/binding.d.ts
 
 .pnpm-store/
 
