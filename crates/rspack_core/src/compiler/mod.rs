@@ -189,19 +189,22 @@ where
 
     let output_path = &self.options.output.path;
 
+    let start = Instant::now();
     let _ = self
       .compilation
       .assets()
       .iter()
       .map(|(filename, asset)| self.emit_asset(output_path, filename, asset))
       .collect::<FuturesResults<_>>();
+    dbg!(start.elapsed());
 
     self
       .plugin_driver
       .write()
       .await
       .after_emit(&mut self.compilation)
-      .await
+      .await?;
+    Ok(())
   }
 
   async fn emit_asset(
