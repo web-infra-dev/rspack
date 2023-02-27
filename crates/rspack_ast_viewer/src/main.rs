@@ -1,6 +1,6 @@
 use std::{io::Read, sync::Arc};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use swc_core::{
   self,
@@ -85,7 +85,7 @@ fn handle_javascript(input: String, keep_span: bool) -> Result<()> {
   Ok(())
 }
 
-fn main() {
+fn main() -> Result<()> {
   let args = Args::parse();
   let module_type = args.r#type.unwrap_or(ModuleType::JavaScript);
   let keep_span = args.keep_span.unwrap_or(false);
@@ -93,14 +93,9 @@ fn main() {
   let mut input = String::new();
   std::io::stdin()
     .read_to_string(&mut input)
-    .expect("Failed to read from stdin");
+    .context("Failed to read from stdin")?;
 
-  let res = match module_type {
+  match module_type {
     ModuleType::JavaScript => handle_javascript(input, keep_span),
-  };
-
-  if let Err(err) = res {
-    eprintln!("{err}");
-    std::process::exit(1);
   }
 }
