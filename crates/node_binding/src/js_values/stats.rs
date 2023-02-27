@@ -206,6 +206,21 @@ impl From<rspack_core::StatsEntrypoint> for JsStatsEntrypoint {
   }
 }
 
+#[napi(object)]
+pub struct JsStatsAssetsByChunkName {
+  pub name: String,
+  pub files: Vec<String>,
+}
+
+impl From<rspack_core::StatsAssetsByChunkName> for JsStatsAssetsByChunkName {
+  fn from(stats: rspack_core::StatsAssetsByChunkName) -> Self {
+    Self {
+      name: stats.name,
+      files: stats.files,
+    }
+  }
+}
+
 #[napi]
 pub struct JsStats {
   inner: SharedReference<JsCompilation, Stats<'static>>,
@@ -220,7 +235,7 @@ impl JsStats {
 #[napi(object)]
 pub struct JsStatsGetAssets {
   pub assets: Vec<JsStatsAsset>,
-  pub assets_by_chunk_name: HashMap<String, Vec<String>>,
+  pub assets_by_chunk_name: Vec<JsStatsAssetsByChunkName>,
 }
 
 #[napi]
@@ -229,7 +244,7 @@ impl JsStats {
   pub fn get_assets(&self) -> JsStatsGetAssets {
     let (assets, assets_by_chunk_name) = self.inner.get_assets();
     let assets = assets.into_iter().map(Into::into).collect();
-    let assets_by_chunk_name = HashMap::from_iter(assets_by_chunk_name);
+    let assets_by_chunk_name = assets_by_chunk_name.into_iter().map(Into::into).collect();
     JsStatsGetAssets {
       assets,
       assets_by_chunk_name,
@@ -258,14 +273,13 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_entrypoints(&self) -> HashMap<String, JsStatsEntrypoint> {
-    HashMap::from_iter(
-      self
-        .inner
-        .get_entrypoints()
-        .into_iter()
-        .map(|(name, entrypoint)| (name, entrypoint.into())),
-    )
+  pub fn get_entrypoints(&self) -> Vec<JsStatsEntrypoint> {
+    self
+      .inner
+      .get_entrypoints()
+      .into_iter()
+      .map(Into::into)
+      .collect()
   }
 
   #[napi]

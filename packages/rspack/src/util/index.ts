@@ -27,10 +27,3 @@ export function indent(str: string, prefix: string) {
 	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
 	return prefix + rem;
 }
-
-export function sortObjectByKey<T extends Record<string, any>, K extends keyof T, V extends T[K]>(unordered: T): Record<string, V> {
-	return Object.keys(unordered).sort().reduce<Record<string, V>>((obj, key) => {
-		obj[key] = unordered[key]
-		return obj
-	}, {})
-}

@@ -2,24 +2,23 @@ import * as binding from "@rspack/binding";
 import { Compilation } from ".";
 import { StatsValue, StatsOptions } from "./config";
 import { LogType } from "./logging/Logger";
-import { sortObjectByKey } from "./util";
 
 export type StatsCompilation = {
 	name?: string;
 	hash?: string;
 	publicPath?: string;
-	assets?: binding.JsStatsAsset[],
-	assetsByChunkName?: Record<string, string[]>,
-	chunks?: binding.JsStatsChunk[],
-	modules?: binding.JsStatsModule[],
+	assets?: binding.JsStatsAsset[];
+	assetsByChunkName?: Record<string, string[]>;
+	chunks?: binding.JsStatsChunk[];
+	modules?: binding.JsStatsModule[];
 	entrypoints?: Record<string, binding.JsStatsEntrypoint>;
-	errors?: binding.JsStatsError[],
-	errorsCount?: number,
-	warnings?: binding.JsStatsWarning[],
-	warningsCount?: number,
+	errors?: binding.JsStatsError[];
+	errorsCount?: number;
+	warnings?: binding.JsStatsWarning[];
+	warningsCount?: number;
 	filteredModules?: number;
 	children?: StatsCompilation[];
-}
+};
 
 export class Stats {
 	#inner: binding.JsStats;
@@ -58,7 +57,12 @@ export class Stats {
 		if (options.assets) {
 			const { assets, assetsByChunkName } = this.#inner.getAssets();
 			obj.assets = assets;
-			obj.assetsByChunkName = sortObjectByKey(assetsByChunkName);
+			obj.assetsByChunkName = assetsByChunkName.reduce<
+				Record<string, string[]>
+			>((acc, cur) => {
+				acc[cur.name] = cur.files;
+				return acc;
+			}, {});
 		}
 		if (options.chunks) {
 			obj.chunks = this.#inner.getChunks();
@@ -67,7 +71,12 @@ export class Stats {
 			obj.modules = this.#inner.getModules(options.reasons ?? false);
 		}
 		if (options.entrypoints) {
-			obj.entrypoints = sortObjectByKey(this.#inner.getEntrypoints());
+			obj.entrypoints = this.#inner
+				.getEntrypoints()
+				.reduce<Record<string, binding.JsStatsEntrypoint>>((acc, cur) => {
+					acc[cur.name] = cur;
+					return acc;
+				}, {});
 		}
 		if (options.errors) {
 			obj.errors = this.#inner.getErrors();
@@ -117,7 +126,7 @@ export class Stats {
 						buf.push(
 							useColors === true || useColors[color] === undefined
 								? // @ts-expect-error
-								defaultColors[color]
+								  defaultColors[color]
 								: useColors[color]
 						);
 					}
@@ -440,7 +449,8 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${
+						module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -890,8 +900,9 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]
-			}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
+			abbreviations[index]
+		}`;
 	}
 };
 
@@ -899,7 +910,10 @@ const formatError = (e: binding.JsStatsError) => {
 	return e.formatted;
 };
 
-export const optionsOrFallback = (options: boolean | undefined, fallback: boolean) => options ?? fallback;
+export const optionsOrFallback = (
+	options: boolean | undefined,
+	fallback: boolean
+) => options ?? fallback;
 
 export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 	if (typeof options === "boolean" || typeof options === "string")
