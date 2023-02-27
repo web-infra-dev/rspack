@@ -279,7 +279,7 @@ impl Stats<'_> {
     StatsChunkGroup {
       name: name.to_string(),
       chunks,
-      assets_size: assets.iter().fold(0.0, |acc, cur| acc + cur.size),
+      assets_size: assets.iter().map(|i| i.size).sum(),
       assets,
     }
   }
