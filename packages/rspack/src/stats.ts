@@ -11,7 +11,8 @@ export type StatsCompilation = {
 	assetsByChunkName?: Record<string, string[]>;
 	chunks?: binding.JsStatsChunk[];
 	modules?: binding.JsStatsModule[];
-	entrypoints?: Record<string, binding.JsStatsEntrypoint>;
+	entrypoints?: Record<string, binding.JsStatsChunkGroup>;
+	namedChunkGroups?: Record<string, binding.JsStatsChunkGroup>;
 	errors?: binding.JsStatsError[];
 	errorsCount?: number;
 	warnings?: binding.JsStatsWarning[];
@@ -73,7 +74,15 @@ export class Stats {
 		if (options.entrypoints) {
 			obj.entrypoints = this.#inner
 				.getEntrypoints()
-				.reduce<Record<string, binding.JsStatsEntrypoint>>((acc, cur) => {
+				.reduce<Record<string, binding.JsStatsChunkGroup>>((acc, cur) => {
+					acc[cur.name] = cur;
+					return acc;
+				}, {});
+		}
+		if (options.chunkGroups) {
+			obj.namedChunkGroups = this.#inner
+				.getNamedChunkGroups()
+				.reduce<Record<string, binding.JsStatsChunkGroup>>((acc, cur) => {
 					acc[cur.name] = cur;
 					return acc;
 				}, {});

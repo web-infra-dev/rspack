@@ -173,13 +173,13 @@ impl From<rspack_core::StatsChunk> for JsStatsChunk {
 }
 
 #[napi(object)]
-pub struct JsStatsEntrypointAsset {
+pub struct JsStatsChunkGroupAsset {
   pub name: String,
   pub size: f64,
 }
 
-impl From<rspack_core::StatsEntrypointAsset> for JsStatsEntrypointAsset {
-  fn from(stats: rspack_core::StatsEntrypointAsset) -> Self {
+impl From<rspack_core::StatsChunkGroupAsset> for JsStatsChunkGroupAsset {
+  fn from(stats: rspack_core::StatsChunkGroupAsset) -> Self {
     Self {
       name: stats.name,
       size: stats.size,
@@ -188,15 +188,15 @@ impl From<rspack_core::StatsEntrypointAsset> for JsStatsEntrypointAsset {
 }
 
 #[napi(object)]
-pub struct JsStatsEntrypoint {
+pub struct JsStatsChunkGroup {
   pub name: String,
-  pub assets: Vec<JsStatsEntrypointAsset>,
+  pub assets: Vec<JsStatsChunkGroupAsset>,
   pub chunks: Vec<String>,
   pub assets_size: f64,
 }
 
-impl From<rspack_core::StatsEntrypoint> for JsStatsEntrypoint {
-  fn from(stats: rspack_core::StatsEntrypoint) -> Self {
+impl From<rspack_core::StatsChunkGroup> for JsStatsChunkGroup {
+  fn from(stats: rspack_core::StatsChunkGroup) -> Self {
     Self {
       name: stats.name,
       assets: stats.assets.into_iter().map(Into::into).collect(),
@@ -273,10 +273,20 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_entrypoints(&self) -> Vec<JsStatsEntrypoint> {
+  pub fn get_entrypoints(&self) -> Vec<JsStatsChunkGroup> {
     self
       .inner
       .get_entrypoints()
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
+
+  #[napi]
+  pub fn get_named_chunk_groups(&self) -> Vec<JsStatsChunkGroup> {
+    self
+      .inner
+      .get_named_chunk_groups()
       .into_iter()
       .map(Into::into)
       .collect()
