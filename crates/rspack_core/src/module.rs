@@ -9,9 +9,9 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsAny, CodeGenerationResult, Compilation, CompilerOptions, Context, ContextModule, DynEq,
-  DynHash, LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule, Resolve,
-  SourceType,
+  AsAny, CodeGenerationResult, Compilation, CompilerOptions, Context, ContextModule, Dependency,
+  DynEq, DynHash, LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule, RawModule,
+  Resolve, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -87,6 +87,10 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// e.g `Css` module may rely on the code generation result of `CssUrlDependency` to re-direct
   /// the url of the referenced assets.
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
+    None
+  }
+
+  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
     None
   }
 

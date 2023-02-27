@@ -1,10 +1,11 @@
 use rspack_core::{
-  CommonJsRequireContextDependency, ContextMode, ContextOptions, DependencyCategory,
-  ImportContextDependency, ModuleDependency, RequireContextDependency,
+  runtime_globals, CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode,
+  ContextOptions, Dependency, DependencyCategory, ImportContextDependency, ModuleDependency,
+  RequireContextDependency, ResourceData,
 };
 use rspack_regex::RspackRegex;
-use swc_core::common::pass::AstNodePath;
-use swc_core::common::{Mark, SyntaxContext};
+use sugar_path::SugarPath;
+use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
 use swc_core::ecma::ast::{
   BinExpr, BinaryOp, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, MetaPropKind,
   ModuleDecl, Tpl,
@@ -17,19 +18,31 @@ use crate::dependency::{
   ModuleHotAcceptDependency, ModuleHotDeclineDependency,
 };
 
+pub static WEBPACK_HASH: &str = "__webpack_hash__";
+pub static WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
+pub static DIR_NAME: &str = "__dirname";
+pub static WEBPACK_MODULES: &str = "__webpack_modules__";
+pub static WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
+
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
   ast_path.iter().map(|n| n.kind()).collect()
 }
 
-pub struct DependencyScanner {
+pub struct DependencyScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
-  // pub dyn_dependencies: HashSet<DynImportDesc>,
+  pub presentational_dependencies: Vec<Box<dyn Dependency>>,
+  pub compiler_options: &'a CompilerOptions,
+  pub resource_data: &'a ResourceData,
 }
 
-impl DependencyScanner {
+impl DependencyScanner<'_> {
   fn add_dependency(&mut self, dependency: Box<dyn ModuleDependency>) {
     self.dependencies.push(dependency);
+  }
+
+  fn add_presentational_dependency(&mut self, dependency: Box<dyn Dependency>) {
+    self.presentational_dependencies.push(dependency);
   }
 
   fn add_import(&mut self, module_decl: &ModuleDecl, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
@@ -277,7 +290,7 @@ impl DependencyScanner {
   }
 }
 
-impl VisitAstPath for DependencyScanner {
+impl VisitAstPath for DependencyScanner<'_> {
   fn visit_module_decl<'ast: 'r, 'r>(
     &mut self,
     node: &'ast ModuleDecl,
@@ -289,6 +302,7 @@ impl VisitAstPath for DependencyScanner {
     }
     node.visit_children_with_path(self, ast_path);
   }
+
   fn visit_call_expr<'ast: 'r, 'r>(
     &mut self,
     node: &'ast CallExpr,
@@ -300,13 +314,86 @@ impl VisitAstPath for DependencyScanner {
     self.scan_require_context(node, &*ast_path);
     node.visit_children_with_path(self, ast_path);
   }
+
+  fn visit_expr<'ast: 'r, 'r>(
+    &mut self,
+    expr: &'ast Expr,
+    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
+  ) {
+    if let Expr::Ident(ident) = expr {
+      if ident.span.ctxt == self.unresolved_ctxt {
+        if WEBPACK_HASH.eq(&ident.sym) {
+          self.add_presentational_dependency(box ConstDependency::new(
+            format!("{}()", runtime_globals::GET_FULL_HASH),
+            Some(runtime_globals::GET_FULL_HASH),
+            as_parent_path(ast_path),
+          ));
+        }
+        if WEBPACK_PUBLIC_PATH.eq(&ident.sym) {
+          self.add_presentational_dependency(box ConstDependency::new(
+            runtime_globals::PUBLIC_PATH.to_string(),
+            Some(runtime_globals::PUBLIC_PATH),
+            as_parent_path(ast_path),
+          ));
+        }
+        if WEBPACK_MODULES.eq(&ident.sym) {
+          self.add_presentational_dependency(box ConstDependency::new(
+            runtime_globals::MODULE_FACTORIES.to_string(),
+            Some(runtime_globals::MODULE_FACTORIES),
+            as_parent_path(ast_path),
+          ));
+        }
+        if WEBPACK_RESOURCE_QUERY.eq(&ident.sym) {
+          if let Some(resource_query) = &self.resource_data.resource_query {
+            self.add_presentational_dependency(box ConstDependency::new(
+              format!("'{resource_query}'"),
+              None,
+              as_parent_path(ast_path),
+            ));
+          }
+        }
+        if DIR_NAME.eq(&ident.sym) {
+          let dirname = match self.compiler_options.node.dirname.as_str() {
+            "mock" => Some("/".to_string()),
+            "warn-mock" => Some("/".to_string()),
+            "true" => Some(
+              self
+                .resource_data
+                .resource_path
+                .parent()
+                .expect("TODO:")
+                .relative(self.compiler_options.context.as_ref())
+                .to_string_lossy()
+                .to_string(),
+            ),
+            _ => None,
+          };
+          if let Some(dirname) = dirname {
+            self.add_presentational_dependency(box ConstDependency::new(
+              format!("'{dirname}'"),
+              None,
+              as_parent_path(ast_path),
+            ));
+          }
+        }
+      }
+    }
+    expr.visit_children_with_path(self, ast_path);
+  }
 }
 
-impl DependencyScanner {
-  pub fn new(unresolved_mark: Mark) -> Self {
+impl<'a> DependencyScanner<'a> {
+  pub fn new(
+    unresolved_mark: Mark,
+    resource_data: &'a ResourceData,
+    compiler_options: &'a CompilerOptions,
+  ) -> Self {
     Self {
       unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
       dependencies: Default::default(),
+      presentational_dependencies: Default::default(),
+      compiler_options,
+      resource_data,
     }
   }
 }

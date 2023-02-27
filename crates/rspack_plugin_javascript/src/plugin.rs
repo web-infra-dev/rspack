@@ -274,7 +274,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     )?;
 
     let dep_scanner = ast.visit(|program, context| {
-      let mut dep_scanner = DependencyScanner::new(context.unresolved_mark);
+      let mut dep_scanner =
+        DependencyScanner::new(context.unresolved_mark, resource_data, compiler_options);
       program.visit_with_path(&mut dep_scanner, &mut Default::default());
       dep_scanner
     });
@@ -290,6 +291,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
             d
           })
           .collect(),
+        presentational_dependencies: dep_scanner.presentational_dependencies,
       }
       .with_diagnostic(diagnostics),
     )

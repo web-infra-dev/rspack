@@ -88,6 +88,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
 
     Ok(
       rspack_core::ParseResult {
+        presentational_dependencies: vec![],
         dependencies: vec![],
         ast_or_source: box_source.into(),
       }

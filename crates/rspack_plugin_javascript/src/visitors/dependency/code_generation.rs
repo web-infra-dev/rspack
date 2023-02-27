@@ -47,7 +47,7 @@ pub fn collect_dependency_code_generation_visitors(
 
   let mut mappings = HashMap::default();
 
-  dependencies
+  let mut code_generatable_result = dependencies
     .iter()
     .map(|id| {
       compilation
@@ -56,22 +56,31 @@ pub fn collect_dependency_code_generation_visitors(
         .expect("should have dependency")
         .generate(&mut context)
     })
-    .collect::<Result<Vec<_>>>()?
-    .into_iter()
-    .for_each(|code_gen| {
-      let CodeGeneratableJavaScriptResult {
-        visitors: raw_visitors,
-        decl_mappings,
-      } = code_gen.into_javascript();
-      mappings.extend(decl_mappings);
-      raw_visitors.into_iter().for_each(|(ast_path, builder)| {
-        if ast_path.is_empty() {
-          root_visitors.push((ast_path, builder))
-        } else {
-          visitors.push((ast_path, builder))
-        }
-      });
+    .collect::<Result<Vec<_>>>()?;
+
+  if let Some(dependencies) = module.get_presentational_dependencies() {
+    code_generatable_result.extend(
+      dependencies
+        .iter()
+        .map(|dependency| dependency.generate(&mut context))
+        .collect::<Result<Vec<_>>>()?,
+    );
+  }
+
+  code_generatable_result.into_iter().for_each(|code_gen| {
+    let CodeGeneratableJavaScriptResult {
+      visitors: raw_visitors,
+      decl_mappings,
+    } = code_gen.into_javascript();
+    mappings.extend(decl_mappings);
+    raw_visitors.into_iter().for_each(|(ast_path, builder)| {
+      if ast_path.is_empty() {
+        root_visitors.push((ast_path, builder))
+      } else {
+        visitors.push((ast_path, builder))
+      }
     });
+  });
 
   Ok(DependencyCodeGenerationVisitors {
     visitors,

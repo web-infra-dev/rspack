@@ -90,12 +90,12 @@ impl CodeGeneratable for RequireContextDependency {
         let module_id = format!("'{module_id}'");
         code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-            std::mem::swap(n, &mut CallExpr {
-                span: DUMMY_SP,
-                callee: quote_ident!(DUMMY_SP, runtime_globals::REQUIRE).as_callee(),
-                args: vec![quote_ident!(DUMMY_SP, *module_id).as_arg()],
-                type_args: None,
-              });
+            *n = CallExpr {
+              span: DUMMY_SP,
+              callee: quote_ident!(DUMMY_SP, runtime_globals::REQUIRE).as_callee(),
+              args: vec![quote_ident!(DUMMY_SP, *module_id).as_arg()],
+              type_args: None,
+            }
           }),
         );
       }

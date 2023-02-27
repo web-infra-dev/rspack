@@ -445,6 +445,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     Ok(
       ParseResult {
         dependencies,
+        presentational_dependencies: vec![],
         ast_or_source: AstOrSource::Ast(ModuleAst::Css(CssAst::new(stylesheet, cm))),
       }
       .with_diagnostic(diagnostic),
