@@ -281,7 +281,7 @@ const applyOptimizationDefaults = (
 	optimization: Optimization,
 	{ production, development }: { production: boolean; development: boolean }
 ) => {
-	D(optimization, "removeAvailableModules", false);
+	D(optimization, "removeAvailableModules", true);
 	F(optimization, "moduleIds", () => {
 		if (production) return "deterministic";
 		return "named";
