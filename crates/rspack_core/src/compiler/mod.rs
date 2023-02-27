@@ -225,7 +225,7 @@ where
       let source_size: usize = flatten_source.iter().map(|item| item.size()).sum();
       let mut buffer = Vec::with_capacity(source_size);
       for s in flatten_source {
-        buffer.append(&mut s.buffer().to_vec());
+        buffer.extend_from_slice(&s.buffer());
       }
       // let buffer = source
       //   .flatten()

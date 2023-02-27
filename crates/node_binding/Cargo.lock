@@ -2488,7 +2488,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "dashmap",
  "dyn-clone",
