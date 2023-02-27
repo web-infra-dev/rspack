@@ -23,6 +23,9 @@ pub trait AsyncWritableFileSystem {
   /// Write a slice as the entire contents of a file.
   /// This function will create a file if it does not exist, and will entirely replace its contents if it does.
   fn write<P: AsRef<Path>, D: AsRef<[u8]>>(&self, file: P, data: D) -> BoxFuture<'_, Result<()>>;
+
+  fn write_owned_buffer<P: AsRef<Path>>(&self, file: P, data: Vec<u8>)
+    -> BoxFuture<'_, Result<()>>;
 }
 
 pub trait AsyncReadableFileSystem {

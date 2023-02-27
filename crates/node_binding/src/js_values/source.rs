@@ -90,6 +90,10 @@ impl Source for CompatSource {
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
     writer.write_all(&self.source)
   }
+
+  fn flatten(&self) -> Vec<&dyn Source> {
+    vec![self]
+  }
 }
 
 pub trait ToJsCompatSource {

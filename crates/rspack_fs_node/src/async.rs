@@ -86,4 +86,28 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     };
     Box::pin(fut)
   }
+
+  fn write_owned_buffer<P: AsRef<std::path::Path>>(
+    &self,
+    file: P,
+    data: Vec<u8>,
+  ) -> BoxFuture<'_, rspack_fs::Result<()>> {
+    let file = file.as_ref().to_string_lossy().to_string();
+    let fut = async move {
+      self
+        .fs_ts
+        .write_file
+        .call((file, data), ThreadsafeFunctionCallMode::NonBlocking)
+        .expect("Failed to call tsfn")
+        .await
+        .expect("Failed to poll")
+        .map_err(|e| {
+          rspack_fs::Error::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+          ))
+        })
+    };
+    Box::pin(fut)
+  }
 }

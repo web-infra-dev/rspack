@@ -15,6 +15,7 @@
   "editor.formatOnSave": true,
   "git.ignoreLimitWarning": true,
   "eslint.enable": false,
+  "rust-analyzer.checkOnSave": false,
   "cSpell.allowCompoundWords": true,
   "cSpell.caseSensitive": true,
   "json.schemas": [

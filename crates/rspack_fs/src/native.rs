@@ -57,6 +57,12 @@ cfg_async! {
       let fut = async move { tokio::fs::write(file, data).await.map_err(Error::from) };
       Box::pin(fut)
     }
+
+    fn write_owned_buffer<P: AsRef<Path>>(&self, file: P, data: Vec<u8>) -> BoxFuture<'_, Result<()>> {
+      let file = file.as_ref().to_string_lossy().to_string();
+      let fut = async move { tokio::fs::write(file, data).await.map_err(Error::from) };
+      Box::pin(fut)
+    }
   }
 
   impl AsyncReadableFileSystem for AsyncNativeFileSystem {

@@ -1,12 +1,15 @@
 mod compilation;
 mod hmr;
+
 mod queue;
 mod resolver;
 
-use std::{path::Path, sync::Arc};
+use std::{path::Path, sync::Arc, time::Instant};
 
 pub use compilation::*;
+use itertools::Itertools;
 pub use queue::*;
+use rayon::prelude::*;
 pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
@@ -217,9 +220,25 @@ where
             .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
         )
         .await?;
+      let start = Instant::now();
+      let flatten_source = source.flatten();
+      let source_size: usize = flatten_source.iter().map(|item| item.size()).sum();
+      let mut buffer = Vec::with_capacity(source_size);
+      for s in flatten_source {
+        buffer.append(&mut s.buffer().to_vec());
+      }
+      // let buffer = source
+      //   .flatten()
+      //   // .into_par_iter()
+      //   .iter()
+      //   .map(|item| item.buffer().to_vec().into_iter())
+      //   .flatten()
+      //   .collect::<Vec<_>>();
+      // dbg!(&start.elapsed());
+      // .concat();
       self
         .output_filesystem
-        .write(&file_path, source.buffer())
+        .write_owned_buffer(&file_path, buffer)
         .await?;
 
       // let file = File::create(file_path).map_err(rspack_error::Error::from)?;
