@@ -38,6 +38,11 @@ describe("Stats", () => {
 		      "type": "asset",
 		    },
 		  ],
+		  "assetsByChunkName": {
+		    "main": [
+		      "main.js",
+		    ],
+		  },
 		  "chunks": [
 		    {
 		      "entry": true,

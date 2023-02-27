@@ -33,7 +33,7 @@ impl<'compilation> Stats<'compilation> {
 }
 
 impl Stats<'_> {
-  pub fn get_assets(&self) -> Vec<StatsAsset> {
+  pub fn get_assets(&self) -> (Vec<StatsAsset>, Vec<StatsAssetsByChunkName>) {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     for chunk in self.compilation.chunk_by_ukey.values() {
       for file in &chunk.files {
@@ -41,6 +41,7 @@ impl Stats<'_> {
         chunks.push(chunk);
       }
     }
+
     let mut assets: HashMap<&String, StatsAsset> =
       HashMap::from_iter(self.compilation.assets.iter().filter_map(|(name, asset)| {
         asset.get_source().map(|source| {
@@ -82,7 +83,28 @@ impl Stats<'_> {
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
     assets.sort_unstable_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
-    assets
+
+    let mut assets_by_chunk_name: HashMap<String, Vec<String>> = HashMap::default();
+    for (file, chunks) in compilation_file_to_chunks {
+      for chunk in chunks {
+        if let Some(name) = &chunk.name {
+          if let Some(assets) = assets_by_chunk_name.get_mut(name) {
+            assets.push(file.to_string());
+          } else {
+            assets_by_chunk_name.insert(name.to_string(), vec![file.to_string()]);
+          }
+        }
+      }
+    }
+    let assets_by_chunk_name = assets_by_chunk_name
+      .into_iter()
+      .map(|(name, mut files)| {
+        files.sort_unstable();
+        StatsAssetsByChunkName { name, files }
+      })
+      .collect();
+
+    (assets, assets_by_chunk_name)
   }
 
   pub fn get_modules(&self, show_reasons: bool) -> Result<Vec<StatsModule>> {
@@ -332,6 +354,12 @@ pub struct StatsAsset {
   pub chunk_names: Vec<String>,
   pub info: StatsAssetInfo,
   pub emitted: bool,
+}
+
+#[derive(Debug)]
+pub struct StatsAssetsByChunkName {
+  pub name: String,
+  pub files: Vec<String>,
 }
 
 #[derive(Debug)]
