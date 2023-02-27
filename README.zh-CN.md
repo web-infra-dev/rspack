@@ -50,6 +50,8 @@
 - [SWC](https://swc.rs/) 项目（由 [@kdy1](https://github.com/kdy1) 创建）, 为 Rspack 的代码转译和压缩提供了支持。
 - [esbuild](https://github.com/evanw/esbuild) 项目（由 [@evanw](https://github.com/evanw) 创建）, 它启发了 Rspack 的并发架构。
 - [NAPI-RS](https://github.com/napi-rs/napi-rs) 项目（由 [@Brooooooklyn](https://github.com/Brooooooklyn) 创建），为 Rspack 的 node-binding 实现提供了支持。
+- [Parcel](https://github.com/parcel-bundler/parcel) 项目(由 [@devongovett](https://github.com/devongovett)创建), 他启发了 Rspack 的增量构建架构.
+- [Vite](https://github.com/vitejs/vite) 由[尤雨溪](https://github.com/yyx990803)创建，它和 rollup 社区的兼容性设计启发了 Rspack 和 Webpack 社区的兼容设计。
 - [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建）, 它启发了 Rspack 的 `@rspack/html-plugin`。
 
 ## License
