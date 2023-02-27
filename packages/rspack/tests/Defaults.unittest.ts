@@ -181,7 +181,20 @@ describe("snapshots", () => {
 		    "runtimeChunk": false,
 		    "sideEffects": "flag",
 		    "splitChunks": {
-		      "cacheGroups": {},
+		      "cacheGroups": {
+		        "default": {
+		          "idHint": "",
+		          "minChunks": 2,
+		          "priority": -20,
+		          "reuseExistingChunk": true,
+		        },
+		        "defaultVendors": {
+		          "idHint": "vendors",
+		          "priority": -10,
+		          "reuseExistingChunk": true,
+		          "test": /\\[\\\\\\\\/\\]node_modules\\[\\\\\\\\/\\]/i,
+		        },
+		      },
 		      "chunks": "async",
 		      "enforceSizeThreshold": 30000,
 		      "maxAsyncRequests": Infinity,
