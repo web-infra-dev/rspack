@@ -182,6 +182,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.entrypoints = optionOrLocalFallback(options.entrypoints, true);
+		options.chunkGroups = optionOrLocalFallback(
+			options.entrypoints,
+			!context.forToString
+		);
 		options.errors = optionOrLocalFallback(options.errors, true);
 		options.errorsCount = optionOrLocalFallback(options.errorsCount, true);
 		options.warnings = optionOrLocalFallback(options.warnings, true);

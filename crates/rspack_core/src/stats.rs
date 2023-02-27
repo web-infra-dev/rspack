@@ -6,7 +6,9 @@ use rspack_error::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{BoxModule, Chunk, Compilation, ModuleIdentifier, ModuleType, SourceType};
+use crate::{
+  BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType, SourceType,
+};
 
 #[derive(Debug, Clone)]
 pub struct Stats<'compilation> {
@@ -234,61 +236,74 @@ impl Stats<'_> {
     chunks
   }
 
-  pub fn get_entrypoints(&self) -> Vec<StatsEntrypoint> {
-    let mut entrypoints: Vec<StatsEntrypoint> = self
+  fn get_chunk_group(&self, name: &str, ukey: &ChunkGroupUkey) -> StatsChunkGroup {
+    let cg = self
+      .compilation
+      .chunk_group_by_ukey
+      .get(ukey)
+      .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
+    let mut chunks: Vec<String> = cg
+      .chunks
+      .iter()
+      .map(|c| {
+        self
+          .compilation
+          .chunk_by_ukey
+          .get(c)
+          .expect("compilation.chunk_by_ukey should have ukey from chunk_group")
+      })
+      .map(|c| c.expect_id().to_string())
+      .collect();
+    chunks.sort_unstable();
+    let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
+      let chunk = self
+        .compilation
+        .chunk_by_ukey
+        .get(c)
+        .expect("compilation.chunk_by_ukey should have ukey from chunk_group");
+      for file in &chunk.files {
+        acc.push(StatsChunkGroupAsset {
+          name: file.clone(),
+          size: self
+            .compilation
+            .assets()
+            .get(file)
+            .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
+            .get_source()
+            .map_or(-1f64, |s| s.size() as f64),
+        });
+      }
+      acc
+    });
+    assets.sort_by_cached_key(|v| v.name.to_string());
+    StatsChunkGroup {
+      name: name.to_string(),
+      chunks,
+      assets_size: assets.iter().map(|i| i.size).sum(),
+      assets,
+    }
+  }
+
+  pub fn get_entrypoints(&self) -> Vec<StatsChunkGroup> {
+    let mut entrypoints: Vec<StatsChunkGroup> = self
       .compilation
       .entrypoints
       .iter()
-      .map(|(name, ukey)| {
-        let cg = self
-          .compilation
-          .chunk_group_by_ukey
-          .get(ukey)
-          .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
-        let mut chunks: Vec<String> = cg
-          .chunks
-          .iter()
-          .map(|c| {
-            self
-              .compilation
-              .chunk_by_ukey
-              .get(c)
-              .expect("compilation.chunk_by_ukey should have ukey from chunk_group")
-          })
-          .map(|c| c.expect_id().to_string())
-          .collect();
-        chunks.sort_unstable();
-        let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
-          let chunk = self
-            .compilation
-            .chunk_by_ukey
-            .get(c)
-            .expect("compilation.chunk_by_ukey should have ukey from chunk_group");
-          for file in &chunk.files {
-            acc.push(StatsEntrypointAsset {
-              name: file.clone(),
-              size: self
-                .compilation
-                .assets()
-                .get(file)
-                .unwrap_or_else(|| panic!("Could not find asset by name: {file:?}"))
-                .get_source()
-                .map_or(-1f64, |s| s.size() as f64),
-            });
-          }
-          acc
-        });
-        assets.sort_by_cached_key(|v| v.name.to_string());
-        StatsEntrypoint {
-          name: name.clone(),
-          chunks,
-          assets_size: assets.iter().fold(0.0, |acc, cur| acc + cur.size),
-          assets,
-        }
-      })
+      .map(|(name, ukey)| self.get_chunk_group(name, ukey))
       .collect();
     entrypoints.sort_by_cached_key(|e| e.name.to_string());
     entrypoints
+  }
+
+  pub fn get_named_chunk_groups(&self) -> Vec<StatsChunkGroup> {
+    let mut named_chunk_groups: Vec<StatsChunkGroup> = self
+      .compilation
+      .named_chunk_groups
+      .iter()
+      .map(|(name, ukey)| self.get_chunk_group(name, ukey))
+      .collect();
+    named_chunk_groups.sort_by_cached_key(|e| e.name.to_string());
+    named_chunk_groups
   }
 
   pub fn get_errors(&self) -> Vec<StatsError> {
@@ -396,15 +411,15 @@ pub struct StatsChunk {
 }
 
 #[derive(Debug)]
-pub struct StatsEntrypointAsset {
+pub struct StatsChunkGroupAsset {
   pub name: String,
   pub size: f64,
 }
 
 #[derive(Debug)]
-pub struct StatsEntrypoint {
+pub struct StatsChunkGroup {
   pub name: String,
-  pub assets: Vec<StatsEntrypointAsset>,
+  pub assets: Vec<StatsChunkGroupAsset>,
   pub chunks: Vec<String>,
   pub assets_size: f64,
 }

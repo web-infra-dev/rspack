@@ -93,6 +93,21 @@ describe("Stats", () => {
 		      "type": "module",
 		    },
 		  ],
+		  "namedChunkGroups": {
+		    "main": {
+		      "assets": [
+		        {
+		          "name": "main.js",
+		          "size": 215,
+		        },
+		      ],
+		      "assetsSize": 215,
+		      "chunks": [
+		        "main",
+		      ],
+		      "name": "main",
+		    },
+		  },
 		  "publicPath": "auto",
 		  "warnings": [],
 		  "warningsCount": 0,

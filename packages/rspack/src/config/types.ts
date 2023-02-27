@@ -326,6 +326,7 @@ export interface StatsOptions {
 	chunks?: boolean;
 	modules?: boolean;
 	entrypoints?: boolean;
+	chunkGroups?: boolean;
 	warnings?: boolean;
 	warningsCount?: boolean;
 	errors?: boolean;
