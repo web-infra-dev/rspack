@@ -46,7 +46,7 @@ swc_core = { workspace = true, features = [
   "ecma_minifier_concurrent",
   "ecma_quote",
 ] }
-swc_emotion = "0.29.4"
+swc_emotion = "0.29.7"
 swc_plugin_import = "0.1.0"
 # swc = { workspace = true }
 # swc_atoms = { workspace = true }
