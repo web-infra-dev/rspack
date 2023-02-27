@@ -1,10 +1,9 @@
 import { describeCases } from "./HotTestCases.template";
 
-describe("HotTestCases", () => {
-	describeCases({
-		name: "node",
-		target: "node",
-		casesPath: "hotCases",
-		hot: true
-	});
+describeCases({
+	name: "HotTestCasesNode",
+	target: "node",
+	casesPath: "hotCases",
+	hot: true,
+	incrementalRebuild: false
 });
