@@ -292,15 +292,34 @@ const applyOptimizationDefaults = (
 	A(optimization, "minimizer", () => []);
 	const { splitChunks } = optimization;
 	if (splitChunks) {
+		// A(splitChunks, "defaultSizeTypes", () =>
+		// 	css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
+		// );
+		// D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
+		// D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);
 		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
 		F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
 		F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
 		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
 		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
-		const cacheGroups = splitChunks.cacheGroups!;
-		// TODO: default and defaultVendors cacheGroups
+		// D(splitChunks, "automaticNameDelimiter", "-");
+		const { cacheGroups } = splitChunks;
+		if (cacheGroups) {
+			F(cacheGroups, "default", () => ({
+				idHint: "",
+				reuseExistingChunk: true,
+				minChunks: 2,
+				priority: -20
+			}));
+			F(cacheGroups, "defaultVendors", () => ({
+				idHint: "vendors",
+				reuseExistingChunk: true,
+				test: /[\\/]node_modules[\\/]/i,
+				priority: -10
+			}));
+		}
 	}
 };
 
