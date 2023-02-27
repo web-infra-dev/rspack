@@ -1,9 +1,9 @@
 import { describeCases } from "./HotTestCases.template";
 
 describeCases({
-	name: "HotTestCasesWeb",
-	target: "web",
+	name: "HotTestCasesNodeWithIncrementalRebuild",
+	target: "node",
 	casesPath: "hotCases",
 	hot: true,
-	incrementalRebuild: false
+	incrementalRebuild: true
 });

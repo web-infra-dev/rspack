@@ -11,6 +11,7 @@ export function describeCases(config: {
 	target: string;
 	casesPath: string;
 	hot: boolean;
+	incrementalRebuild?: boolean;
 }) {
 	const casesPath = path.join(__dirname, config.casesPath);
 	const categories = fs
@@ -76,7 +77,8 @@ export function describeCases(config: {
 									outputDirectory,
 									fakeUpdateLoaderOptions,
 									config.target,
-									config.hot
+									config.hot,
+									config.incrementalRebuild
 								);
 								compiler = rspack(options);
 								compiler.build(err => {
@@ -387,7 +389,8 @@ function getOptions(
 	outputDirectory: string,
 	fakeUpdateLoaderOptions: any,
 	target: string,
-	hot: boolean
+	hot: boolean,
+	incrementalRebuild?: boolean
 ): Record<string, string> {
 	let options: any = {};
 	if (fs.existsSync(configPath)) {
@@ -444,6 +447,11 @@ function getOptions(
 	}
 	if (!options.plugins) {
 		options.plugins = [];
+	}
+	if (typeof incrementalRebuild === "boolean") {
+		options.experiments = {
+			incrementalRebuild
+		};
 	}
 
 	options.devServer = {
