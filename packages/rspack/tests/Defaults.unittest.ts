@@ -252,9 +252,7 @@ describe("snapshots", () => {
 		  "stats": {},
 		  "target": "web",
 		  "watch": false,
-		  "watchOptions": {
-		    "poll": true,
-		  },
+		  "watchOptions": {},
 		}
 	`);
 	});
