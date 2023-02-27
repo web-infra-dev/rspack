@@ -89,7 +89,7 @@ impl Module for ExternalModule {
           }
           TargetPlatform::Node(_) => {
             format!(
-              r#"module.exports = __rspack_require__.nr("{}")"#,
+              r#"module.exports = __webpack_require__.nr("{}")"#,
               self.specifier
             )
           }
