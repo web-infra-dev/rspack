@@ -2,16 +2,24 @@ import * as binding from "@rspack/binding";
 import { Compilation } from ".";
 import { StatsValue, StatsOptions } from "./config";
 import { LogType } from "./logging/Logger";
+import { sortObjectByKey } from "./util";
 
-export type StatsCompilation = Partial<
-	Omit<binding.JsStatsCompilation, "entrypoints"> & {
-		entrypoints: Record<string, binding.JsStatsEntrypoint>;
-		filteredModules?: number;
-		publicPath?: string;
-		children?: StatsCompilation[];
-		name?: string;
-	}
->;
+export type StatsCompilation = {
+	name?: string;
+	hash?: string;
+	publicPath?: string;
+	assets?: binding.JsStatsAsset[],
+	assetsByChunkName?: Record<string, string[]>,
+	chunks?: binding.JsStatsChunk[],
+	modules?: binding.JsStatsModule[],
+	entrypoints?: Record<string, binding.JsStatsEntrypoint>;
+	errors?: binding.JsStatsError[],
+	errorsCount?: number,
+	warnings?: binding.JsStatsWarning[],
+	warningsCount?: number,
+	filteredModules?: number;
+	children?: StatsCompilation[];
+}
 
 export class Stats {
 	#inner: binding.JsStats;
@@ -48,21 +56,18 @@ export class Stats {
 			obj.publicPath = this.compilation.outputOptions.publicPath;
 		}
 		if (options.assets) {
-			obj.assets = this.#inner.getAssets();
+			const { assets, assetsByChunkName } = this.#inner.getAssets();
+			obj.assets = assets;
+			obj.assetsByChunkName = sortObjectByKey(assetsByChunkName);
 		}
 		if (options.chunks) {
 			obj.chunks = this.#inner.getChunks();
 		}
 		if (options.modules) {
-			// @ts-expect-error
-			obj.modules = this.#inner.getModules(options.reasons);
+			obj.modules = this.#inner.getModules(options.reasons ?? false);
 		}
 		if (options.entrypoints) {
-			obj.entrypoints = this.#inner.getEntrypoints().reduce((acc, cur) => {
-				// @ts-expect-error
-				acc[cur.name] = cur;
-				return acc;
-			}, {});
+			obj.entrypoints = sortObjectByKey(this.#inner.getEntrypoints());
 		}
 		if (options.errors) {
 			obj.errors = this.#inner.getErrors();
@@ -89,11 +94,10 @@ export class Stats {
 		});
 		const useColors = optionsOrFallback(options.colors, false);
 		const obj: any = this.toJson(options, true);
-		// @ts-expect-error
 		return Stats.jsonToString(obj, useColors);
 	}
-	// @ts-expect-error
-	static jsonToString(obj, useColors: boolean) {
+
+	static jsonToString(obj: any, useColors: boolean): any {
 		const buf = [];
 
 		const defaultColors = {
@@ -113,7 +117,7 @@ export class Stats {
 						buf.push(
 							useColors === true || useColors[color] === undefined
 								? // @ts-expect-error
-								  defaultColors[color]
+								defaultColors[color]
 								: useColors[color]
 						);
 					}
@@ -436,8 +440,7 @@ export class Stats {
 			}
 			if (module.assets && module.assets.length) {
 				colors.magenta(
-					` [${module.assets.length} asset${
-						module.assets.length === 1 ? "" : "s"
+					` [${module.assets.length} asset${module.assets.length === 1 ? "" : "s"
 					}]`
 				);
 			}
@@ -845,7 +848,6 @@ export class Stats {
 		}
 		if (obj.children) {
 			for (const child of obj.children) {
-				// @ts-expect-error
 				const childString = Stats.jsonToString(child, useColors);
 				if (childString) {
 					if (child.name) {
@@ -888,9 +890,8 @@ const SizeFormatHelpers = {
 		const abbreviations = ["bytes", "KiB", "MiB", "GiB"];
 		const index = Math.floor(Math.log(size) / Math.log(1024));
 
-		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${
-			abbreviations[index]
-		}`;
+		return `${+(size / Math.pow(1024, index)).toPrecision(3)} ${abbreviations[index]
+			}`;
 	}
 };
 
@@ -898,11 +899,7 @@ const formatError = (e: binding.JsStatsError) => {
 	return e.formatted;
 };
 
-export const optionsOrFallback = (...args: (boolean | undefined)[]) => {
-	let optionValues = [];
-	optionValues.push(...args);
-	return optionValues.find(optionValue => optionValue !== undefined);
-};
+export const optionsOrFallback = (options: boolean | undefined, fallback: boolean) => options ?? fallback;
 
 export function normalizeStatsPreset(options?: StatsValue): StatsOptions {
 	if (typeof options === "boolean" || typeof options === "string")

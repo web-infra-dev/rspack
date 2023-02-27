@@ -65,6 +65,11 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "type": "asset",
     },
   ],
+  "assetsByChunkName": {
+    "main": [
+      "main.xxxx.js",
+    ],
+  },
   "chunks": [
     {
       "entry": false,
@@ -194,6 +199,11 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "type": "asset",
     },
   ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
   "chunks": [
     {
       "entry": true,
@@ -860,6 +870,11 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "type": "asset",
     },
   ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
   "chunks": [
     {
       "entry": true,
@@ -996,6 +1011,11 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "type": "asset",
     },
   ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
   "chunks": [
     {
       "entry": true,
@@ -1164,6 +1184,11 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "type": "asset",
     },
   ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
   "chunks": [
     {
       "entry": true,

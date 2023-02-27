@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use napi::bindgen_prelude::SharedReference;
 use rspack_core::Stats;
 
@@ -204,19 +206,6 @@ impl From<rspack_core::StatsEntrypoint> for JsStatsEntrypoint {
   }
 }
 
-#[napi(object)]
-pub struct JsStatsCompilation {
-  pub assets: Vec<JsStatsAsset>,
-  pub modules: Vec<JsStatsModule>,
-  pub chunks: Vec<JsStatsChunk>,
-  pub entrypoints: Vec<JsStatsEntrypoint>,
-  pub errors: Vec<JsStatsError>,
-  pub errors_count: u32,
-  pub warnings: Vec<JsStatsWarning>,
-  pub warnings_count: u32,
-  pub hash: String,
-}
-
 #[napi]
 pub struct JsStats {
   inner: SharedReference<JsCompilation, Stats<'static>>,
@@ -228,16 +217,23 @@ impl JsStats {
   }
 }
 
+#[napi(object)]
+pub struct JsStatsGetAssets {
+  pub assets: Vec<JsStatsAsset>,
+  pub assets_by_chunk_name: HashMap<String, Vec<String>>,
+}
+
 #[napi]
 impl JsStats {
   #[napi]
-  pub fn get_assets(&self) -> Vec<JsStatsAsset> {
-    self
-      .inner
-      .get_assets()
-      .into_iter()
-      .map(Into::into)
-      .collect()
+  pub fn get_assets(&self) -> JsStatsGetAssets {
+    let (assets, assets_by_chunk_name) = self.inner.get_assets();
+    let assets = assets.into_iter().map(Into::into).collect();
+    let assets_by_chunk_name = HashMap::from_iter(assets_by_chunk_name);
+    JsStatsGetAssets {
+      assets,
+      assets_by_chunk_name,
+    }
   }
 
   #[napi]
@@ -262,13 +258,14 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_entrypoints(&self) -> Vec<JsStatsEntrypoint> {
-    self
-      .inner
-      .get_entrypoints()
-      .into_iter()
-      .map(Into::into)
-      .collect()
+  pub fn get_entrypoints(&self) -> HashMap<String, JsStatsEntrypoint> {
+    HashMap::from_iter(
+      self
+        .inner
+        .get_entrypoints()
+        .into_iter()
+        .map(|(name, entrypoint)| (name, entrypoint.into())),
+    )
   }
 
   #[napi]

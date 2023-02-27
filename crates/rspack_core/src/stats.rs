@@ -33,7 +33,7 @@ impl<'compilation> Stats<'compilation> {
 }
 
 impl Stats<'_> {
-  pub fn get_assets(&self) -> Vec<StatsAsset> {
+  fn get_compilation_file_to_chunks(&self) -> HashMap<&String, Vec<&Chunk>> {
     let mut compilation_file_to_chunks: HashMap<&String, Vec<&Chunk>> = HashMap::default();
     for chunk in self.compilation.chunk_by_ukey.values() {
       for file in &chunk.files {
@@ -41,6 +41,11 @@ impl Stats<'_> {
         chunks.push(chunk);
       }
     }
+    compilation_file_to_chunks
+  }
+
+  pub fn get_assets(&self) -> (Vec<StatsAsset>, HashMap<String, Vec<String>>) {
+    let compilation_file_to_chunks = self.get_compilation_file_to_chunks();
     let mut assets: HashMap<&String, StatsAsset> =
       HashMap::from_iter(self.compilation.assets.iter().filter_map(|(name, asset)| {
         asset.get_source().map(|source| {
@@ -82,7 +87,21 @@ impl Stats<'_> {
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
     assets.sort_unstable_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
-    assets
+
+    let mut assets_by_chunk_name: HashMap<String, Vec<String>> = HashMap::default();
+    for (file, chunks) in compilation_file_to_chunks {
+      for chunk in chunks {
+        if let Some(name) = &chunk.name {
+          if let Some(assets) = assets_by_chunk_name.get_mut(name) {
+            assets.push(file.to_string());
+          } else {
+            assets_by_chunk_name.insert(name.to_string(), vec![file.to_string()]);
+          }
+        }
+      }
+    }
+
+    (assets, assets_by_chunk_name)
   }
 
   pub fn get_modules(&self, show_reasons: bool) -> Result<Vec<StatsModule>> {
@@ -212,8 +231,8 @@ impl Stats<'_> {
     chunks
   }
 
-  pub fn get_entrypoints(&self) -> Vec<StatsEntrypoint> {
-    let mut entrypoints: Vec<StatsEntrypoint> = self
+  pub fn get_entrypoints(&self) -> HashMap<String, StatsEntrypoint> {
+    self
       .compilation
       .entrypoints
       .iter()
@@ -257,16 +276,17 @@ impl Stats<'_> {
           acc
         });
         assets.sort_by_cached_key(|v| v.name.to_string());
-        StatsEntrypoint {
-          name: name.clone(),
-          chunks,
-          assets_size: assets.iter().fold(0.0, |acc, cur| acc + cur.size),
-          assets,
-        }
+        (
+          name.to_string(),
+          StatsEntrypoint {
+            name: name.clone(),
+            chunks,
+            assets_size: assets.iter().fold(0.0, |acc, cur| acc + cur.size),
+            assets,
+          },
+        )
       })
-      .collect();
-    entrypoints.sort_by_cached_key(|e| e.name.to_string());
-    entrypoints
+      .collect()
   }
 
   pub fn get_errors(&self) -> Vec<StatsError> {
