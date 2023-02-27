@@ -31,6 +31,10 @@ Read [Introduction](https://rspack.org/guide/introduction.html) for details.
 
 Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack together.
 
+### Code of Conduct
+
+This repo has adopted the Bytedance Open Source Code of Conduct. Please check [Code of Conduct](./CODE_OF_CONDUCT.md) for more details.
+
 ## Links
 
 | Name                                                                                    | Description                                                                 |
