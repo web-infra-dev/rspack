@@ -14,7 +14,7 @@ pub fn analyze_imports_with_path(ss: &Stylesheet) -> Vec<(JsWord, CssAstPath)> {
     imports: Default::default(),
   };
   ss.visit_with_path(&mut v, &mut Default::default());
-  v.imports.sort();
+  v.imports.sort_unstable();
   v.imports.dedup();
   v.imports
 }

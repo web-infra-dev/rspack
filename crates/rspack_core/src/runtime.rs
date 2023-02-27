@@ -24,15 +24,15 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
   let mut a: Vec<String> = Vec::from_iter(a.iter().cloned());
   let mut b: Vec<String> = Vec::from_iter(b.iter().cloned());
 
-  a.sort();
-  b.sort();
+  a.sort_unstable();
+  b.sort_unstable();
 
   a.into_iter().zip(b.into_iter()).all(|(a, b)| a == b)
 }
 
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
   let mut runtime: Vec<String> = Vec::from_iter(runtime.into_iter());
-  runtime.sort();
+  runtime.sort_unstable();
   runtime.join("\n")
 }
 

@@ -148,7 +148,7 @@ pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::
 //       assign_name(items[0], name.clone());
 //       used_ids.insert(name.clone());
 //     } else {
-//       items.sort_by(&comparator);
+//       items.sort_unstable_by(&comparator);
 //       let mut i = 0;
 //       for item in items {
 //         let formated_name = format!("{name}{i}");
@@ -161,7 +161,7 @@ pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::
 //       }
 //     }
 //   }
-//   unnamed_items.sort_by(comparator);
+//   unnamed_items.sort_unstable_by(comparator);
 //   unnamed_items
 // }
 
@@ -222,7 +222,7 @@ pub fn assign_names_par<T: Copy + Send>(
       assign_name(items[0], name.clone());
       used_ids.insert(name.clone());
     } else {
-      items.sort_by(&comparator);
+      items.sort_unstable_by(&comparator);
       let mut i = 0;
       for item in items {
         let formated_name = format!("{name}{i}");
@@ -235,7 +235,7 @@ pub fn assign_names_par<T: Copy + Send>(
       }
     }
   }
-  unnamed_items.sort_by(comparator);
+  unnamed_items.sort_unstable_by(comparator);
   unnamed_items
 }
 
@@ -250,7 +250,7 @@ pub fn assign_deterministic_ids<T: Copy>(
   extra_space: usize,
   salt: usize,
 ) {
-  items.sort_by(comparator);
+  items.sort_unstable_by(comparator);
 
   let optimal_range = usize::min(items.len() * 20 + extra_space, usize::MAX);
   let mut i = 0;
@@ -392,7 +392,7 @@ pub fn get_long_chunk_name(
     .map(|m| request_to_id(&get_long_module_name("", m, context)))
     .collect::<Vec<_>>();
   let mut id_name_hints = chunk.id_name_hints.iter().cloned().collect::<Vec<_>>();
-  id_name_hints.sort();
+  id_name_hints.sort_unstable();
 
   let chunk_name = {
     id_name_hints.extend(short_module_names);

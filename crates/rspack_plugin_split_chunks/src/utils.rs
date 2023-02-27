@@ -49,8 +49,8 @@ pub(crate) fn compare_entries(
 
   let mut modules_a = a.modules.iter().collect::<Vec<_>>();
   let mut modules_b = b.modules.iter().collect::<Vec<_>>();
-  modules_a.sort();
-  modules_b.sort();
+  modules_a.sort_unstable();
+  modules_b.sort_unstable();
   compare_modules(&modules_a, &modules_b) as usize as f64
 }
 

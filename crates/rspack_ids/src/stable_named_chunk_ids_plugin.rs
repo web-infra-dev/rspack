@@ -85,7 +85,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
         .map(|chunk| chunk.as_ref(&compilation.chunk_by_ukey))
         .filter_map(|c| c.id.as_deref())
         .collect::<Vec<_>>();
-      chunk_names_in_same_group.sort();
+      chunk_names_in_same_group.sort_unstable();
 
       if chunk_names_in_same_group.len() == 1 {
         // All modules of the chunk is from one group, to avoid conflict, we need to add a suffix
@@ -112,7 +112,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
       } else {
         // Multiple chunks have the same name, we need to assign a unique name to each chunk
         let mut chunks = chunks.into_iter().collect::<Vec<_>>();
-        chunks.sort_by(|a, b| {
+        chunks.sort_unstable_by(|a, b| {
           // TODO: We might need use more filed in sorting
           let a_module_ids = compilation.chunk_graph.get_chunk_module_identifiers(a);
           let b_module_ids = compilation.chunk_graph.get_chunk_module_identifiers(b);

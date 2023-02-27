@@ -111,7 +111,7 @@ pub fn find_graph_roots<Item: Clone + PartialEq + Eq + Hash + Send + Sync + Ord 
   let mut root_cycles: FxHashSet<Ukey<Cycle<Ukey<Node<Item>>>>> = FxHashSet::default();
 
   let mut select_nodes = db.keys().cloned().collect::<Vec<_>>();
-  select_nodes.sort_by_key(|node| &node.as_ref(&db).item);
+  select_nodes.sort_unstable_by_key(|node| &node.as_ref(&db).item);
   // For all non-marked nodes
   for select_node in db.keys().cloned().collect::<Vec<_>>() {
     if matches!(select_node.as_ref(&db).marker, Marker::NoMarker) {

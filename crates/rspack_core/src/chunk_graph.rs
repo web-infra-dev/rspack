@@ -414,7 +414,7 @@ impl ChunkGraph {
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.get_chunk_graph_chunk(chunk);
     let mut input = cgc.modules.iter().cloned().collect::<Vec<_>>();
-    input.sort();
+    input.sort_unstable();
     let mut modules = find_graph_roots(input, |module| {
       let mut set: IdentifierSet = Default::default();
       fn add_dependencies(
@@ -439,7 +439,7 @@ impl ChunkGraph {
       set.into_iter().collect()
     });
 
-    modules.sort();
+    modules.sort_unstable();
 
     modules
   }
