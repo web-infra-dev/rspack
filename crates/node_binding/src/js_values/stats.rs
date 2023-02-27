@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use napi::bindgen_prelude::SharedReference;
 use rspack_core::Stats;
 
