@@ -376,6 +376,7 @@ impl TestConfig {
       dev_server: Default::default(),
       node: c::NodeOption {
         dirname: "mock".to_string(),
+        global: "warn".to_string(),
       },
       optimization: c::Optimization {
         remove_available_modules: self.optimization.remove_available_modules,

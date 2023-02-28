@@ -172,6 +172,7 @@ describe("snapshots", () => {
 		  "name": undefined,
 		  "node": {
 		    "__dirname": "warn-mock",
+		    "global": "warn",
 		  },
 		  "optimization": {
 		    "minimize": false,
@@ -603,7 +604,9 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "global": false,
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
@@ -634,7 +637,9 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "global": false,
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
@@ -655,7 +660,9 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "global": false,
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",

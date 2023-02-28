@@ -25,6 +25,7 @@ pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const DIR_NAME: &str = "__dirname";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
+pub const GLOBAL: &str = "global";
 
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
   ast_path.iter().map(|n| n.kind()).collect()
@@ -378,6 +379,15 @@ impl VisitAstPath for DependencyScanner<'_> {
               self.add_presentational_dependency(box ConstDependency::new(
                 Expr::Lit(Lit::Str(quote_str!(dirname))),
                 None,
+                as_parent_path(ast_path),
+              ));
+            }
+          }
+          GLOBAL => {
+            if matches!(self.compiler_options.node.global.as_str(), "true" | "warn") {
+              self.add_presentational_dependency(box ConstDependency::new(
+                Expr::Ident(quote_ident!(runtime_globals::GLOBAL)),
+                Some(runtime_globals::GLOBAL),
                 as_parent_path(ast_path),
               ));
             }
