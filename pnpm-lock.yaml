@@ -463,6 +463,7 @@ importers:
       postcss-loader: ^7.0.2
       postcss-pxtorem: ^6.0.0
       react-refresh: 0.14.0
+      react-relay: ^14.1.0
       rimraf: 3.0.2
       sass: ^1.56.2
       sass-loader: ^13.2.0
@@ -520,6 +521,7 @@ importers:
       less-loader: 11.1.0_less@4.1.3
       postcss-loader: 7.0.2
       postcss-pxtorem: 6.0.0
+      react-relay: 14.1.0
       rimraf: 3.0.2
       sass: 1.56.2
       sass-loader: 13.2.0_sass@1.56.2
@@ -9027,6 +9029,10 @@ packages:
       bser: 2.1.1
     dev: true
 
+  /fbjs-css-vars/1.0.2:
+    resolution: {integrity: sha512-b2XGFAFdWZWg0phtAWLHCk836A1Xann+I+Dgd3Gk64MHKZO44FfoD1KxyvbSh0qZsIoXQGGlVztIY+oitJPpRQ==}
+    dev: true
+
   /fbjs/0.8.18:
     resolution: {integrity: sha512-EQaWFK+fEPSoibjNy8IxUtaFOMXcWsY0JaVrQoZR9zC8N2Ygf9iDITPWjUTVIax95b6I742JFLqASHfsag/vKA==}
     dependencies:
@@ -9037,6 +9043,20 @@ packages:
       promise: 7.3.1
       setimmediate: 1.0.5
       ua-parser-js: 0.7.33
+    dev: true
+
+  /fbjs/3.0.4:
+    resolution: {integrity: sha512-ucV0tDODnGV3JCnnkmoszb5lf4bNpzjv80K41wd4k798Etq+UYD0y0TIfalLjZoKgjive6/adkRnszwapiDgBQ==}
+    dependencies:
+      cross-fetch: 3.1.5
+      fbjs-css-vars: 1.0.2
+      loose-envify: 1.4.0
+      object-assign: 4.1.1
+      promise: 7.3.1
+      setimmediate: 1.0.5
+      ua-parser-js: 0.7.33
+    transitivePeerDependencies:
+      - encoding
     dev: true
 
   /fd-slicer/1.1.0:
@@ -9907,6 +9927,12 @@ packages:
   /interpret/2.2.0:
     resolution: {integrity: sha512-Ju0Bz/cEia55xDwUWEa8+olFpCiQoypjnQySseKtmjNrnps3P+xfpUmGr90T7yjlVJmOtybRvPXhKMbHr+fWnw==}
     engines: {node: '>= 0.10'}
+    dev: true
+
+  /invariant/2.2.4:
+    resolution: {integrity: sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==}
+    dependencies:
+      loose-envify: 1.4.0
     dev: true
 
   /ip-regex/4.3.0:
@@ -12140,6 +12166,10 @@ packages:
       boolbase: 1.0.0
     dev: true
 
+  /nullthrows/1.1.1:
+    resolution: {integrity: sha512-2vPPEi+Z7WqML2jZYddDIfy5Dqb0r2fze2zTxNNknZaFpVHU3mFB3R+DWeJWGVx0ecvttSGlJTI+WG+8Z4cDWw==}
+    dev: true
+
   /number-precision/1.6.0:
     resolution: {integrity: sha512-05OLPgbgmnixJw+VvEh18yNPUo3iyp4BEWJcrLu4X9W05KmMifN7Mu5exYvQXqxxeNWhvIF+j3Rij+HmddM/hQ==}
     dev: false
@@ -13323,6 +13353,20 @@ packages:
     resolution: {integrity: sha512-wViHqhAd8OHeLS/IRMJjTSDHF3U9eWi62F/MledQGPdJGDhodXJ9PBLNGr6WWL7qlH12Mt3TyTpbS+hGXMjCzQ==}
     engines: {node: '>=0.10.0'}
 
+  /react-relay/14.1.0:
+    resolution: {integrity: sha512-U4oHb5wn1LEi17x3AcZOy66MXs83tnYbsK7/YE1/3cQKCPrXhyVUQbEOC9L7jMX659jtS1NACae+7b03bryMCQ==}
+    peerDependencies:
+      react: ^16.9.0 || ^17 || ^18
+    dependencies:
+      '@babel/runtime': 7.18.9
+      fbjs: 3.0.4
+      invariant: 2.2.4
+      nullthrows: 1.1.1
+      relay-runtime: 14.1.0
+    transitivePeerDependencies:
+      - encoding
+    dev: true
+
   /react-router-dom/5.3.4_react@17.0.2:
     resolution: {integrity: sha512-m4EqFMHv/Ih4kpcBCONHbkT68KoAeHN4p3lAGoNryfHi0dMy0kCzEZakiKRsvg5wHZ/JLrLW8o8KomWiz/qbYQ==}
     peerDependencies:
@@ -13608,6 +13652,16 @@ packages:
   /relateurl/0.2.7:
     resolution: {integrity: sha512-G08Dxvm4iDN3MLM0EsP62EDV9IuhXPR6blNz6Utcp7zyV3tr4HVNINt6MpaRWbxoOHT3Q7YN2P+jaHX8vUbgog==}
     engines: {node: '>= 0.10'}
+
+  /relay-runtime/14.1.0:
+    resolution: {integrity: sha512-t2DR2hZviHrdEQrOvFqwmvRWvZ0SjI/r4bS5f3qvMyXt4g1kw3RTb2RNVmbKGg6zEQhf7Na/brdqE4roApmclQ==}
+    dependencies:
+      '@babel/runtime': 7.18.9
+      fbjs: 3.0.4
+      invariant: 2.2.4
+    transitivePeerDependencies:
+      - encoding
+    dev: true
 
   /remark-mdx/2.3.0:
     resolution: {integrity: sha512-g53hMkpM0I98MU266IzDFMrTD980gNF3BJnkyFcmN+dD873mQeD5rdMO3Y2X+x8umQfbSE0PcoEDl7ledSA+2g==}

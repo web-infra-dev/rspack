@@ -15,6 +15,7 @@ mod raw_plugin_import;
 mod raw_postcss;
 mod raw_progress;
 mod raw_react;
+mod raw_relay;
 
 pub use raw_css::*;
 pub use raw_decorator::*;
@@ -23,7 +24,9 @@ pub use raw_postcss::*;
 pub use raw_progress::*;
 pub use raw_react::*;
 
-use self::{raw_copy::RawCopyConfig, raw_plugin_import::RawPluginImportConfig};
+use self::{
+  raw_copy::RawCopyConfig, raw_plugin_import::RawPluginImportConfig, raw_relay::RawRelayConfig,
+};
 use crate::RawOptionsApply;
 
 #[derive(Debug, Deserialize)]
@@ -87,6 +90,7 @@ pub struct RawBuiltins {
   pub dev_friendly_split_chunks: bool,
   pub copy: Option<RawCopyConfig>,
   pub plugin_import: Option<Vec<RawPluginImportConfig>>,
+  pub relay: Option<RawRelayConfig>,
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -137,6 +141,7 @@ impl RawOptionsApply for RawBuiltins {
       plugin_import: self
         .plugin_import
         .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
+      relay: self.relay.map(Into::into),
     })
   }
 }

@@ -1,3 +1,5 @@
+import * as path from "path";
+
 import type {
 	RawBuiltins,
 	RawHtmlPluginConfig,
@@ -10,7 +12,8 @@ import type {
 	RawPattern,
 	RawPresetEnv,
 	RawPluginImportConfig,
-	RawCssModulesConfig
+	RawCssModulesConfig,
+	RawRelayConfig
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
@@ -57,6 +60,7 @@ export interface Builtins {
 	devFriendlySplitChunks?: boolean;
 	copy?: CopyConfig;
 	pluginImport?: PluginImportConfig[];
+	relay?: RelayConfig;
 }
 
 export type PluginImportConfig = {
@@ -79,6 +83,8 @@ export type CopyConfig = {
 				from: string;
 		  } & Partial<RawPattern>)[];
 };
+
+export type RelayConfig = boolean | RawRelayConfig;
 
 export type ResolvedBuiltins = Omit<RawBuiltins, "html"> & {
 	html?: Array<BuiltinsHtmlPluginConfig>;
@@ -244,6 +250,58 @@ function resolveCopy(copy?: Builtins["copy"]): RawCopyConfig | undefined {
 	return ret;
 }
 
+function resolveRelay(
+	relay: RelayConfig,
+	rootDir: string
+): RawRelayConfig | undefined {
+	if (!relay) {
+		return undefined;
+	}
+
+	// Search relay config based on
+	if (relay === true) {
+		return (
+			getRelayConfigFromProject(rootDir) || {
+				language: "javascript"
+			}
+		);
+	} else {
+		return relay;
+	}
+}
+
+function getRelayConfigFromProject(
+	rootDir: string
+): RawRelayConfig | undefined {
+	for (const configName of [
+		"relay.config.json",
+		"relay.config.js",
+		"package.json"
+	]) {
+		const configPath = path.join(rootDir, configName);
+		try {
+			let config = require(configPath) as
+				| Partial<RawRelayConfig>
+				| { relay?: Partial<RawRelayConfig> }
+				| undefined;
+
+			let finalConfig: Partial<RawRelayConfig> | undefined;
+			if (configName === "package.json") {
+				finalConfig = (config as { relay?: Partial<RawRelayConfig> })?.relay;
+			} else {
+				finalConfig = config as Partial<RawRelayConfig> | undefined;
+			}
+
+			if (finalConfig) {
+				return {
+					language: finalConfig.language!,
+					artifactDirectory: finalConfig.artifactDirectory
+				};
+			}
+		} catch (_) {}
+	}
+}
+
 export function resolveBuiltinsOptions(
 	builtins: Builtins,
 	{
@@ -276,7 +334,10 @@ export function resolveBuiltinsOptions(
 		emotion: resolveEmotion(builtins.emotion, production),
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
 		copy: resolveCopy(builtins.copy),
-		pluginImport: resolvePluginImport(builtins.pluginImport)
+		pluginImport: resolvePluginImport(builtins.pluginImport),
+		relay: builtins.relay
+			? resolveRelay(builtins.relay, contextPath)
+			: undefined
 	};
 }
 

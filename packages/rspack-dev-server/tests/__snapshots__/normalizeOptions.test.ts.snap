@@ -161,6 +161,7 @@ exports[`normalize options snapshot react.development and react.refresh should b
       "development": true,
       "refresh": true,
     },
+    "relay": undefined,
     "treeShaking": true,
   },
   "devServer": {
