@@ -1,3 +1,4 @@
 it("global true", function () {
-	expect(typeof global).toBe("object");
+	global;
+	expect(__webpack_require__.g).not.toBe("undefined");
 });
