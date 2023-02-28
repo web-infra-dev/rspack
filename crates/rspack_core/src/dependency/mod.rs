@@ -5,8 +5,10 @@ pub use code_generatable::*;
 mod context_element_dependency;
 pub use context_element_dependency::*;
 mod common_js_require_context_dependency;
+mod const_dependency;
 mod import_context_dependency;
 pub use common_js_require_context_dependency::*;
+pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
 mod require_context_dependency;
 pub use require_context_dependency::RequireContextDependency;
@@ -68,7 +70,7 @@ pub enum DependencyCategory {
 }
 
 pub trait Dependency:
-  CodeGeneratable + AsModuleDependency + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
+  CodeGeneratable + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
 {
   fn id(&self) -> Option<&DependencyId> {
     None
@@ -180,12 +182,6 @@ impl Hash for dyn Dependency + '_ {
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     None
-  }
-}
-
-impl AsModuleDependency for Box<dyn Dependency> {
-  fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
-    (**self).as_module_dependency()
   }
 }
 

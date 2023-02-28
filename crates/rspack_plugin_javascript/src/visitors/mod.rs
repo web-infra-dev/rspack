@@ -13,8 +13,6 @@ mod strict;
 use strict::strict_mode;
 mod format;
 use format::*;
-mod module_variables;
-use module_variables::*;
 use rspack_core::{BuildInfo, EsVersion, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
@@ -221,7 +219,6 @@ pub fn run_after_pass(
           Some(EsVersion::Es5)
         ),
         inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
-        module_variables(module, generate_context.compilation),
         finalize(module, generate_context.compilation, unresolved_mark),
         swc_visitor::hygiene(false, top_level_mark),
         swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),

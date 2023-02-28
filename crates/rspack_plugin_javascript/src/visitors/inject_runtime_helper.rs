@@ -6,9 +6,7 @@ use swc_core::ecma::transforms::base::helpers::HELPERS;
 use swc_core::ecma::utils::ExprFactory;
 use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, VisitMutWith};
 
-use super::module_variables::{WEBPACK_MODULES, WEBPACK_PUBLIC_PATH};
 use crate::utils::is_dynamic_import_literal_expr;
-use crate::visitors::module_variables::WEBPACK_HASH;
 
 pub fn inject_runtime_helper<'a>(
   unresolved_mark: Mark,
@@ -30,26 +28,6 @@ struct InjectRuntimeHelper<'a> {
 
 impl<'a> VisitMut for InjectRuntimeHelper<'a> {
   noop_visit_mut_type!();
-
-  fn visit_mut_ident(&mut self, n: &mut Ident) {
-    if n.span.has_mark(self.unresolved_mark) {
-      if WEBPACK_HASH.eq(&n.sym) {
-        self
-          .runtime_requirements
-          .insert(runtime_globals::GET_FULL_HASH);
-      }
-      if WEBPACK_PUBLIC_PATH.eq(&n.sym) {
-        self
-          .runtime_requirements
-          .insert(runtime_globals::PUBLIC_PATH);
-      }
-      if WEBPACK_MODULES.eq(&n.sym) {
-        self
-          .runtime_requirements
-          .insert(runtime_globals::MODULE_FACTORIES);
-      }
-    }
-  }
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     n.visit_mut_children_with(self);

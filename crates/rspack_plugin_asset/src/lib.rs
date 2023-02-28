@@ -239,6 +239,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         // Assets do not have dependencies
         dependencies: vec![],
         ast_or_source: source.into(),
+        presentational_dependencies: vec![],
       }
       .with_empty_diagnostic(),
     )

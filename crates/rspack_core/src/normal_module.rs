@@ -339,7 +339,7 @@ pub struct NormalModule {
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-
+  presentational_dependencies: Option<Vec<Box<dyn Dependency>>>,
   pub build_info: BuildInfo,
 }
 
@@ -404,6 +404,7 @@ impl NormalModule {
       options,
       cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
+      presentational_dependencies: None,
       build_info: Default::default(),
     }
   }
@@ -515,6 +516,7 @@ impl Module for NormalModule {
       ParseResult {
         ast_or_source,
         dependencies,
+        presentational_dependencies,
       },
       ds,
     ) = self
@@ -544,6 +546,7 @@ impl Module for NormalModule {
         })
         .collect::<Vec<_>>(),
     );
+    self.presentational_dependencies = Some(presentational_dependencies);
 
     self
       .build_info
@@ -650,6 +653,14 @@ impl Module for NormalModule {
 
   fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
     if let Some(deps) = self.code_generation_dependencies.as_deref() && !deps.is_empty() {
+      Some(deps)
+    } else {
+      None
+    }
+  }
+
+  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
+    if let Some(deps) = self.presentational_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {
       None

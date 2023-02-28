@@ -734,12 +734,6 @@ importers:
       util: 0.12.5
       vm-browserify: 1.1.2
 
-  webpack-examples:
-    specifiers:
-      '@rspack/core': workspace:*
-    devDependencies:
-      '@rspack/core': link:../packages/rspack
-
 packages:
 
   /@adobe/css-tools/4.1.0:

@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, Compilation, CompilerOptions,
-  GenerationResult, Module, ModuleDependency, ModuleIdentifier, ModuleType, SourceType,
+  Dependency, GenerationResult, Module, ModuleDependency, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug)]
@@ -26,6 +26,7 @@ pub struct ParseContext<'a> {
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
+  pub presentational_dependencies: Vec<Box<dyn Dependency>>,
   pub ast_or_source: AstOrSource,
 }
 
