@@ -1,3 +1,3 @@
-it("target web dirname should be mock", function () {
+it("global false", function () {
 	expect(typeof global).toBe("undefined");
 });
