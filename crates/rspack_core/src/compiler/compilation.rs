@@ -1176,21 +1176,29 @@ impl Compilation {
       .chain(runtime_chunk_ukeys.clone())
       .collect::<Vec<_>>();
 
-    for chunk_ukey in content_hash_chunks {
-      plugin_driver
-        .read()
-        .await
-        .content_hash(&ContentHashArgs {
-          chunk_ukey,
-          compilation: self,
-        })
-        .await?
-        .into_iter()
-        .for_each(|hash| {
-          if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
-            chunk.content_hash.insert(source_type, hash);
-          }
-        });
+    let hash_results = content_hash_chunks
+      .iter()
+      .map(|chunk_ukey| async {
+        let hashs = plugin_driver
+          .read()
+          .await
+          .content_hash(&ContentHashArgs {
+            chunk_ukey: *chunk_ukey,
+            compilation: self,
+          })
+          .await;
+        (*chunk_ukey, hashs)
+      })
+      .collect::<FuturesResults<_>>()
+      .into_inner();
+
+    for item in hash_results {
+      let (chunk_ukey, hashs) = item.expect("Failed to resolve content_hash results");
+      hashs?.into_iter().for_each(|hash| {
+        if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
+          chunk.content_hash.insert(source_type, hash);
+        }
+      });
     }
 
     tracing::trace!("calculate chunks content hash");

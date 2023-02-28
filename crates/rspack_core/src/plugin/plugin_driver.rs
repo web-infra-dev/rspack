@@ -5,7 +5,6 @@ use std::{
 
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
-use rspack_futures::FuturesResults;
 use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
@@ -166,20 +165,11 @@ impl PluginDriver {
     &self,
     args: &ContentHashArgs<'_>,
   ) -> Result<Vec<Option<(SourceType, String)>>> {
-    let result = self
-      .plugins
-      .iter()
-      .map(|plugin| plugin.content_hash(PluginContext::new(), args))
-      .collect::<FuturesResults<_>>();
-
-    let result = result
-      .into_inner()
-      .into_iter()
-      .collect::<std::result::Result<Vec<_>, _>>()
-      .expect("Failed to resolve content_hash results")
-      .into_iter()
-      .collect::<Result<Vec<_>>>()?;
-
+    let mut result = vec![];
+    for plugin in &self.plugins {
+      let hash = plugin.content_hash(PluginContext::new(), args).await?;
+      result.push(hash);
+    }
     Ok(result)
   }
 
