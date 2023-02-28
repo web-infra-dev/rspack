@@ -17,6 +17,7 @@ use rspack_core::{BuildInfo, EsVersion, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
+pub mod relay;
 mod swc_visitor;
 mod tree_shaking;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
@@ -26,9 +27,21 @@ use swc_core::common::{chain, comments::Comments};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
+use swc_emotion::EmotionOptions;
 use tree_shaking::tree_shaking_visitor;
 
 use crate::visitors::plugin_import::plugin_import;
+use crate::visitors::relay::relay;
+
+macro_rules! either {
+  ($config: expr, $f: expr) => {
+    if let Some(config) = &$config {
+      Either::Left($f(config))
+    } else {
+      Either::Right(noop())
+    }
+  };
+}
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
 pub fn run_before_pass(
@@ -83,18 +96,24 @@ pub fn run_before_pass(
         },
         should_transform_by_react
       ),
-      {
-        if let Some(emotion_options) = &options.builtins.emotion {
-          Either::Left(swc_emotion::emotion(
+      either!(
+        options.builtins.emotion,
+        |emotion_options: &EmotionOptions| {
+          swc_emotion::emotion(
             emotion_options.clone(),
             &resource_data.resource_path,
             cm.clone(),
             comments,
-          ))
-        } else {
-          Either::Right(noop())
+          )
         }
-      },
+      ),
+      either!(options.builtins.relay, |relay_option| {
+        relay(
+          relay_option,
+          resource_data.resource_path.as_path(),
+          options.context.to_path_buf(),
+        )
+      }),
       plugin_import(options.builtins.plugin_import.as_ref()),
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),

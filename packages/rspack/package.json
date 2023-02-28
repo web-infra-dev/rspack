@@ -40,6 +40,7 @@
     "less-loader": "^11.1.0",
     "postcss-loader": "^7.0.2",
     "postcss-pxtorem": "^6.0.0",
+    "react-relay": "^14.1.0",
     "rimraf": "3.0.2",
     "sass": "^1.56.2",
     "sass-loader": "^13.2.0",

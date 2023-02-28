@@ -40,6 +40,7 @@ pub struct Builtins {
   pub emotion: Option<swc_emotion::EmotionOptions>,
   pub dev_friendly_split_chunks: bool,
   pub plugin_import: Option<Vec<PluginImportConfig>>,
+  pub relay: Option<RelayConfig>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -109,5 +110,24 @@ pub fn string_to_mode(s: &str) -> Option<swc_core::ecma::preset_env::Mode> {
     "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
     "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
     _ => None,
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct RelayConfig {
+  pub artifact_directory: Option<PathBuf>,
+  pub language: RelayLanguageConfig,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum RelayLanguageConfig {
+  JavaScript,
+  TypeScript,
+  Flow,
+}
+
+impl Default for RelayLanguageConfig {
+  fn default() -> Self {
+    Self::Flow
   }
 }

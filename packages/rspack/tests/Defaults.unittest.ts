@@ -100,6 +100,7 @@ describe("snapshots", () => {
 		    "presetEnv": undefined,
 		    "progress": undefined,
 		    "react": {},
+		    "relay": undefined,
 		    "treeShaking": false,
 		  },
 		  "cache": false,
