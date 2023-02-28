@@ -18,11 +18,11 @@ use crate::dependency::{
   ModuleHotAcceptDependency, ModuleHotDeclineDependency,
 };
 
-pub static WEBPACK_HASH: &str = "__webpack_hash__";
-pub static WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
-pub static DIR_NAME: &str = "__dirname";
-pub static WEBPACK_MODULES: &str = "__webpack_modules__";
-pub static WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
+pub const WEBPACK_HASH: &str = "__webpack_hash__";
+pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
+pub const DIR_NAME: &str = "__dirname";
+pub const WEBPACK_MODULES: &str = "__webpack_modules__";
+pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
   ast_path.iter().map(|n| n.kind()).collect()
@@ -322,59 +322,62 @@ impl VisitAstPath for DependencyScanner<'_> {
   ) {
     if let Expr::Ident(ident) = expr {
       if ident.span.ctxt == self.unresolved_ctxt {
-        if WEBPACK_HASH.eq(&ident.sym) {
-          self.add_presentational_dependency(box ConstDependency::new(
-            format!("{}()", runtime_globals::GET_FULL_HASH),
-            Some(runtime_globals::GET_FULL_HASH),
-            as_parent_path(ast_path),
-          ));
-        }
-        if WEBPACK_PUBLIC_PATH.eq(&ident.sym) {
-          self.add_presentational_dependency(box ConstDependency::new(
-            runtime_globals::PUBLIC_PATH.to_string(),
-            Some(runtime_globals::PUBLIC_PATH),
-            as_parent_path(ast_path),
-          ));
-        }
-        if WEBPACK_MODULES.eq(&ident.sym) {
-          self.add_presentational_dependency(box ConstDependency::new(
-            runtime_globals::MODULE_FACTORIES.to_string(),
-            Some(runtime_globals::MODULE_FACTORIES),
-            as_parent_path(ast_path),
-          ));
-        }
-        if WEBPACK_RESOURCE_QUERY.eq(&ident.sym) {
-          if let Some(resource_query) = &self.resource_data.resource_query {
+        match ident.sym.as_ref() as &str {
+          WEBPACK_HASH => {
             self.add_presentational_dependency(box ConstDependency::new(
-              format!("'{resource_query}'"),
-              None,
+              format!("{}()", runtime_globals::GET_FULL_HASH),
+              Some(runtime_globals::GET_FULL_HASH),
               as_parent_path(ast_path),
             ));
           }
-        }
-        if DIR_NAME.eq(&ident.sym) {
-          let dirname = match self.compiler_options.node.dirname.as_str() {
-            "mock" => Some("/".to_string()),
-            "warn-mock" => Some("/".to_string()),
-            "true" => Some(
-              self
-                .resource_data
-                .resource_path
-                .parent()
-                .expect("TODO:")
-                .relative(self.compiler_options.context.as_ref())
-                .to_string_lossy()
-                .to_string(),
-            ),
-            _ => None,
-          };
-          if let Some(dirname) = dirname {
+          WEBPACK_PUBLIC_PATH => {
             self.add_presentational_dependency(box ConstDependency::new(
-              format!("'{dirname}'"),
-              None,
+              runtime_globals::PUBLIC_PATH.to_string(),
+              Some(runtime_globals::PUBLIC_PATH),
               as_parent_path(ast_path),
             ));
           }
+          WEBPACK_MODULES => {
+            self.add_presentational_dependency(box ConstDependency::new(
+              runtime_globals::MODULE_FACTORIES.to_string(),
+              Some(runtime_globals::MODULE_FACTORIES),
+              as_parent_path(ast_path),
+            ));
+          }
+          WEBPACK_RESOURCE_QUERY => {
+            if let Some(resource_query) = &self.resource_data.resource_query {
+              self.add_presentational_dependency(box ConstDependency::new(
+                format!("'{resource_query}'"),
+                None,
+                as_parent_path(ast_path),
+              ));
+            }
+          }
+          DIR_NAME => {
+            let dirname = match self.compiler_options.node.dirname.as_str() {
+              "mock" => Some("/".to_string()),
+              "warn-mock" => Some("/".to_string()),
+              "true" => Some(
+                self
+                  .resource_data
+                  .resource_path
+                  .parent()
+                  .expect("TODO:")
+                  .relative(self.compiler_options.context.as_ref())
+                  .to_string_lossy()
+                  .to_string(),
+              ),
+              _ => None,
+            };
+            if let Some(dirname) = dirname {
+              self.add_presentational_dependency(box ConstDependency::new(
+                format!("'{dirname}'"),
+                None,
+                as_parent_path(ast_path),
+              ));
+            }
+          }
+          _ => {}
         }
       }
     }
