@@ -264,7 +264,7 @@ export function resolveBuiltinsOptions(
 			}
 		},
 		postcss: { pxtorem: undefined, ...builtins.postcss },
-		treeShaking: builtins.treeShaking ?? production ? true : false,
+		treeShaking: builtins.treeShaking ?? !!production,
 		react: builtins.react ?? {},
 		noEmitAssets: builtins.noEmitAssets ?? false,
 		define: resolveDefine(builtins.define || {}),
