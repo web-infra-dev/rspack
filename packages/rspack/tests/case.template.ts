@@ -7,7 +7,6 @@ import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
 
 // most of these could be removed when we support external builtins by default
-const externalModule = ["uvu", "path", "fs", "expect", "source-map", "util"];
 export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
 	let categoriesDir = fs.readdirSync(casesPath);
@@ -45,9 +44,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 							if (fs.existsSync(configFile)) {
 								config = require(configFile);
 							}
-							const externals = Object.fromEntries(
-								externalModule.map(x => [x, x])
-							);
 							const options: RspackOptions = {
 								target: "node",
 								context: testRoot,
@@ -61,8 +57,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 								infrastructureLogging: {
 									debug: false
 								},
-								externals,
-								externalsType: "node-commonjs",
+								externals: { "source-map": "source-map" },
 								...config, // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 								output: {
 									publicPath: "/",

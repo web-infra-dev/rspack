@@ -88,10 +88,7 @@ impl Module for ExternalModule {
             format!("module.exports = {}", self.specifier)
           }
           TargetPlatform::Node(_) => {
-            format!(
-              r#"module.exports = __webpack_require__.nr("{}")"#,
-              self.specifier
-            )
+            format!(r#"module.exports = require("{}")"#, self.specifier)
           }
         },
       })
