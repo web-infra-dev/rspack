@@ -27,7 +27,7 @@ Read [Introduction](https://rspack.org/guide/introduction.html) for details.
 
 ## Contribution
 
-> New contributors welcome!
+> **Rspack is in active development and still missing lots of webpack APIs and and some APIs may not be stable at the moment, we are working on implementing these APIs and keep improving the stability of Rspack, if you have any suggestions or comments, please feel free to submit a PR or Issue, we would appreciate it.**
 
 Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack together.
 

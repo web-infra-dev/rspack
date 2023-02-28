@@ -27,7 +27,7 @@
 
 ## 参与贡献
 
-> 欢迎参与 Rspack 贡献！
+> **Rspack 项目目前仍在积极开发中，仍然缺失了很多的 webpack API 以及一些 API 目前可能不够稳定,我们正在努力补齐这些 API，并不断地提升 Rspack 的稳定性，如果您有任何建议或意见，欢迎随时提交 PR 或 Issue，我们将不胜感激。**
 
 请阅读 [贡献指南](./CONTRIBUTING.md) 来共同参与 Rspack 的建设。
 
