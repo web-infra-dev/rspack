@@ -263,6 +263,10 @@ const applyNodeDefaults = (
 	node: Node,
 	{ targetProperties }: { targetProperties: any }
 ) => {
+	F(node, "global", () => {
+		if (targetProperties && targetProperties.global) return false;
+		return "warn";
+	});
 	F(node, "__dirname", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";

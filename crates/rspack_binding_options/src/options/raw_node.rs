@@ -7,12 +7,14 @@ use serde::Deserialize;
 #[napi(object)]
 pub struct RawNodeOption {
   pub dirname: String,
+  pub global: String,
 }
 
 impl From<RawNodeOption> for NodeOption {
   fn from(value: RawNodeOption) -> Self {
     Self {
       dirname: value.dirname,
+      global: value.global,
     }
   }
 }

@@ -310,8 +310,9 @@ function getRawExperiments(
 }
 
 function getRawNode(node: Node): RawOptions["node"] {
-	assert(!isNil(node.__dirname));
+	assert(!isNil(node.__dirname) && !isNil(node.global));
 	return {
-		dirname: String(node.__dirname)
+		dirname: String(node.__dirname),
+		global: String(node.global)
 	};
 }
