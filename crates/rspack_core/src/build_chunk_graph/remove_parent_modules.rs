@@ -53,7 +53,6 @@ impl<'me> CodeSplitter<'me> {
       }
     }
 
-    #[tracing::instrument(skip_all)]
     fn analyze_loaded_modules(mut ctx: AnalyzeContext) -> Option<DefinitelyLoadedModules> {
       if let Some(loaded_modules) = ctx.cache.try_get(&ctx.target_ukey).try_unwrap() {
         return Some(loaded_modules.clone());
