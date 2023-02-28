@@ -10,7 +10,9 @@ use swc_core::ecma::ast::{
   BinExpr, BinaryOp, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, MetaPropKind,
   ModuleDecl, Tpl,
 };
+use swc_core::ecma::utils::{quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
+use swc_core::quote;
 
 use crate::dependency::{
   CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
@@ -325,21 +327,24 @@ impl VisitAstPath for DependencyScanner<'_> {
         match ident.sym.as_ref() as &str {
           WEBPACK_HASH => {
             self.add_presentational_dependency(box ConstDependency::new(
-              format!("{}()", runtime_globals::GET_FULL_HASH),
+              quote!(
+                "$name()" as Expr,
+                name = quote_ident!(runtime_globals::GET_FULL_HASH)
+              ),
               Some(runtime_globals::GET_FULL_HASH),
               as_parent_path(ast_path),
             ));
           }
           WEBPACK_PUBLIC_PATH => {
             self.add_presentational_dependency(box ConstDependency::new(
-              runtime_globals::PUBLIC_PATH.to_string(),
+              Expr::Ident(quote_ident!(runtime_globals::PUBLIC_PATH)),
               Some(runtime_globals::PUBLIC_PATH),
               as_parent_path(ast_path),
             ));
           }
           WEBPACK_MODULES => {
             self.add_presentational_dependency(box ConstDependency::new(
-              runtime_globals::MODULE_FACTORIES.to_string(),
+              Expr::Ident(quote_ident!(runtime_globals::MODULE_FACTORIES)),
               Some(runtime_globals::MODULE_FACTORIES),
               as_parent_path(ast_path),
             ));
@@ -347,7 +352,7 @@ impl VisitAstPath for DependencyScanner<'_> {
           WEBPACK_RESOURCE_QUERY => {
             if let Some(resource_query) = &self.resource_data.resource_query {
               self.add_presentational_dependency(box ConstDependency::new(
-                format!("'{resource_query}'"),
+                Expr::Lit(Lit::Str(quote_str!(resource_query.to_owned()))),
                 None,
                 as_parent_path(ast_path),
               ));
@@ -371,7 +376,7 @@ impl VisitAstPath for DependencyScanner<'_> {
             };
             if let Some(dirname) = dirname {
               self.add_presentational_dependency(box ConstDependency::new(
-                format!("'{dirname}'"),
+                Expr::Lit(Lit::Str(quote_str!(dirname))),
                 None,
                 as_parent_path(ast_path),
               ));

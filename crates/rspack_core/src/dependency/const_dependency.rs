@@ -1,5 +1,5 @@
 use rspack_error::Result;
-use swc_core::ecma::{ast::Expr, utils::quote_ident};
+use swc_core::ecma::ast::Expr;
 
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
@@ -8,7 +8,7 @@ use crate::{
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ConstDependency {
-  pub expression: String,
+  pub expression: Expr,
   pub runtime_requirements: Option<&'static str>,
   #[allow(unused)]
   pub ast_path: JsAstPath,
@@ -33,10 +33,10 @@ impl CodeGeneratable for ConstDependency {
         .insert(runtime_requirement);
     }
 
-    let str = self.expression.to_string();
+    let expr = self.expression.clone();
     cgr.visitors.push(
       create_javascript_visitor!(exact &self.ast_path, visit_mut_expr(n: &mut Expr) {
-        *n = Expr::Ident(quote_ident!(*str));
+        *n = expr.clone();
       }),
     );
 
@@ -46,7 +46,7 @@ impl CodeGeneratable for ConstDependency {
 
 impl ConstDependency {
   pub fn new(
-    expression: String,
+    expression: Expr,
     runtime_requirements: Option<&'static str>,
     ast_path: JsAstPath,
   ) -> Self {
