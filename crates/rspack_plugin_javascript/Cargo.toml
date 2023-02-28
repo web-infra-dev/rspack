@@ -24,7 +24,6 @@ rayon = "1.5.3"
 regex = "1.6.0"
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
-rspack_futures = { path = "../rspack_futures" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_plugin_devtool = { path = "../rspack_plugin_devtool" }
 rspack_regex = { path = "../rspack_regex" }
@@ -62,5 +61,6 @@ swc_plugin_import = "0.1.0"
 # ] }
 # swc_ecma_utils = { workspace = true }
 # swc_ecma_visit = { workspace = true }
+tokio       = { version = "1.21.0", features = ["rt"] }
 tracing     = "0.1.34"
 xxhash-rust = { version = "0.8.5", features = ["xxh3"] }

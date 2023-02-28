@@ -6,7 +6,6 @@ use rspack_core::{
   runtime_globals, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeModule, SourceType,
 };
 use rspack_error::Result;
-use rspack_futures::FuturesResults;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
@@ -25,10 +24,15 @@ pub fn render_chunk_modules(
     .get(chunk_ukey)
     .expect("chunk not found");
 
+  let plugin_driver = tokio::task::block_in_place(move || {
+    tokio::runtime::Handle::current()
+      .block_on(async move { compilation.plugin_driver.read().await })
+  });
+
   let mut module_code_array = ordered_modules
-    .iter()
+    .par_iter()
     .filter(|mgm| mgm.used)
-    .map(|mgm| async {
+    .map(|mgm| {
       let result = compilation
         .code_generation_results
         .get(&mgm.module_identifier, Some(&chunk.runtime))
@@ -41,10 +45,7 @@ pub fn render_chunk_modules(
         .clone()
         .try_into_source()
         .expect("should be source");
-      let module_source = if let Some(source) = compilation
-        .plugin_driver
-        .read()
-        .await
+      let module_source = if let Some(source) = plugin_driver
         .render_module_content(RenderModuleContentArgs {
           compilation,
           module_source: &origin_source,
@@ -70,10 +71,6 @@ pub fn render_chunk_modules(
         render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
       )
     })
-    .collect::<FuturesResults<_>>()
-    .into_inner()
-    .into_iter()
-    .flatten()
     .collect::<Vec<_>>();
 
   module_code_array.sort_unstable_by_key(|(module_identifier, _)| *module_identifier);
