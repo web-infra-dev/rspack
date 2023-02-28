@@ -33,7 +33,7 @@ Please read the [contributing guide](./CONTRIBUTING.md) and let's build Rspack t
 
 ### Code of Conduct
 
-This repo has adopted the Bytedance Open Source Code of Conduct. Please check [Code of Conduct](./CODE_OF_CONDUCT.md) for more details.
+This repo has adopted the ByteDance Open Source Code of Conduct. Please check [Code of Conduct](./CODE_OF_CONDUCT.md) for more details.
 
 ## Links
 
