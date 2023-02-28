@@ -2404,7 +2404,6 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
- "rspack_futures",
  "rspack_identifier",
  "rspack_plugin_devtool",
  "rspack_regex",
@@ -2416,6 +2415,7 @@ dependencies = [
  "swc_core",
  "swc_emotion",
  "swc_plugin_import",
+ "tokio",
  "tracing",
  "xxhash-rust",
 ]
