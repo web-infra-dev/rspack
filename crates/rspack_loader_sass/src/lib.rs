@@ -17,7 +17,8 @@ use rspack_core::{
   ResolverFactory,
 };
 use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, Error, Result, Severity, TraceableError,
+  internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
+  TraceableError,
 };
 use rspack_loader_runner::{Loader, LoaderContext};
 use sass_embedded::{
@@ -29,7 +30,6 @@ use sass_embedded::{
 };
 use serde::Deserialize;
 use str_indices::utf16;
-use tokio::sync::Mutex;
 
 static IS_SPECIAL_MODULE_IMPORT: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^~[^/]+$").expect("TODO:"));
@@ -368,29 +368,12 @@ impl Logger for RspackLogger {
 
 #[derive(Debug)]
 pub struct SassLoader {
-  compiler: Mutex<Sass>,
   options: SassLoaderOptions,
 }
 
 impl SassLoader {
   pub fn new(options: SassLoaderOptions) -> Self {
-    Self {
-      // js side should ensure exe_path is a correct dart-sass-embedded path.
-      compiler: Mutex::new(
-        Sass::new(&options.__exe_path)
-          .map_err(|e| {
-            format!(
-              "{}: The dart-sass-embedded path is {}, your OS is {}, your Arch is {}",
-              e.message(),
-              &options.__exe_path.display(),
-              get_os(),
-              get_arch(),
-            )
-          })
-          .expect("TODO:"),
-      ),
-      options,
-    }
+    Self { options }
   }
 
   fn get_sass_options(
@@ -491,10 +474,19 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
     let (tx, rx) = unbounded();
     let logger = RspackLogger { tx };
     let sass_options = self.get_sass_options(loader_context, content.try_into_string()?, logger);
-    let result = self
-      .compiler
-      .lock()
-      .await
+    let result = Sass::new(&self.options.__exe_path)
+      .map_err(|e| {
+        rspack_error::Error::InternalError(InternalError {
+          severity: Severity::Error,
+          error_message: format!(
+            "{}: The dart-sass-embedded path is {}, your OS is {}, your Arch is {}",
+            e.message(),
+            &self.options.__exe_path.display(),
+            get_os(),
+            get_arch(),
+          ),
+        })
+      })?
       .render(sass_options)
       .map_err(sass_exception_to_error)?;
     let source_map = result

@@ -1,6 +1,7 @@
-use std::sync::Arc;
-
-use tokio::sync::Mutex;
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc,
+};
 
 use crate::CompilerOptions;
 
@@ -17,7 +18,7 @@ use storage::new_storage;
 
 #[derive(Debug)]
 pub struct Cache {
-  is_idle: Mutex<bool>,
+  is_idle: AtomicBool,
   snapshot_manager: Arc<SnapshotManager>,
   pub resolve_module_occasion: ResolveModuleOccasion,
   pub build_module_occasion: BuildModuleOccasion,
@@ -29,7 +30,7 @@ impl Cache {
   pub fn new(options: Arc<CompilerOptions>) -> Self {
     let snapshot_manager = Arc::new(SnapshotManager::new(options.snapshot.clone()));
     Self {
-      is_idle: Mutex::new(true),
+      is_idle: true.into(),
       snapshot_manager: snapshot_manager.clone(),
       resolve_module_occasion: ResolveModuleOccasion::new(
         new_storage(&options.cache),
@@ -44,20 +45,17 @@ impl Cache {
     }
   }
 
-  pub async fn begin_idle(&self) {
-    let mut is_idle = self.is_idle.lock().await;
-    if *is_idle {
-      return;
+  pub fn begin_idle(&self) {
+    if self
+      .is_idle
+      .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+      .is_ok()
+    {
+      self.snapshot_manager.clear();
     }
-    self.snapshot_manager.clear().await;
-    *is_idle = true;
   }
 
-  pub async fn end_idle(&self) {
-    let mut is_idle = self.is_idle.lock().await;
-    if !*is_idle {
-      return;
-    }
-    *is_idle = false;
+  pub fn end_idle(&self) {
+    self.is_idle.store(false, Ordering::Release);
   }
 }

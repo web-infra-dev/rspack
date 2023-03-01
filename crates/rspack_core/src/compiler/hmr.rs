@@ -129,7 +129,7 @@ where
 
     // build without stats
     {
-      self.cache.end_idle().await;
+      self.cache.end_idle();
       self
         .plugin_driver
         .read()
@@ -207,7 +207,7 @@ where
         SetupMakeParam::ForceBuildDeps(deps)
       };
       self.compile(setup_make_params).await?;
-      self.cache.begin_idle().await;
+      self.cache.begin_idle();
     }
 
     // ----

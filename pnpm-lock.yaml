@@ -6125,7 +6125,7 @@ packages:
       webpack: 4.x.x || 5.x.x
       webpack-cli: 4.x.x
     dependencies:
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
+      webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
       webpack-cli: 4.10.0_webpack@5.74.0
     dev: true
 
@@ -15990,7 +15990,7 @@ packages:
       import-local: 3.1.0
       interpret: 2.2.0
       rechoir: 0.7.1
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
+      webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
       webpack-merge: 5.8.0
     dev: true
 
