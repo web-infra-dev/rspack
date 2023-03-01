@@ -1,5 +1,5 @@
 import type { RspackOptions } from "@rspack/core";
-import { RspackDevServer } from "@rspack/dev-server";
+import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import serializer from "jest-serializer-path";
 
@@ -19,13 +19,13 @@ describe("normalize options snapshot", () => {
 	});
 
 	it("additional entires should added", async () => {
-		await matchAdditionEntries({
+		await matchAdditionEntries({}, {
 			entry: ["something"]
 		});
 	});
 
 	it("react-refresh client added when react/refresh enabled", async () => {
-		await matchAdditionEntries({
+		await matchAdditionEntries({}, {
 			entry: ["something"],
 			builtins: {
 				react: {
@@ -35,22 +35,28 @@ describe("normalize options snapshot", () => {
 		});
 	});
 
-	it("react.development and react.refresh should be true in default when hot enabled", async () => {
+	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = createCompiler({
 			stats: "none",
-			devServer: {
-				hot: true
-			}
 		});
-		const server = new RspackDevServer(compiler.options.devServer!, compiler);
+		const server = new RspackDevServer({
+			hot: true
+		}, compiler);
 		await server.start();
-		expect({
-			builtins: compiler.options.builtins,
-			devServer: compiler.options.devServer
-		}).toMatchSnapshot();
+		expect(compiler.options.builtins.react?.refresh).toBe(true);
+		expect(compiler.options.builtins.react?.development).toBe(true);
 		await server.stop();
-		// should pointed to the same memory.
-		expect(compiler.options.devServer === server.options).toBeTruthy();
+	});
+
+	it("hot should be true by default", async () => {
+		const compiler = createCompiler({
+			stats: "none",
+		});
+		const server = new RspackDevServer({}, compiler);
+		await server.start();
+		expect(compiler.options.devServer?.hot).toBe(true);
+		expect(server.options.hot).toBe(true);
+		await server.stop();
 	});
 });
 
@@ -75,7 +81,7 @@ async function match(config: RspackOptions) {
 	await server.stop();
 }
 
-async function matchAdditionEntries(config: RspackOptions) {
+async function matchAdditionEntries(serverConfig: Configuration, config: RspackOptions) {
 	const compiler = createCompiler({
 		...config,
 		stats: "none",
@@ -87,7 +93,7 @@ async function matchAdditionEntries(config: RspackOptions) {
 		}
 	});
 	const server = new RspackDevServer(
-		compiler.options.devServer ?? {},
+		serverConfig,
 		compiler
 	);
 	await server.start();
@@ -95,7 +101,7 @@ async function matchAdditionEntries(config: RspackOptions) {
 	// some hack for snapshot
 	const value = Object.fromEntries(
 		entires.map(([key, item]) => {
-			const replaced = item.import.map(entry => {
+			const replaced = item.import?.map(entry => {
 				const array = entry.replace(/\\/g, "/").split("/");
 				return "<prefix>" + "/" + array.slice(-3).join("/");
 			});

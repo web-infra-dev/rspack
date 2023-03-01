@@ -1,6 +1,6 @@
 import { Compiler, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
-import type { FSWatcher, WatchOptions } from "chokidar";
+import type { FSWatcher } from "chokidar";
 import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
 import type { Server } from "http";
 import fs from "fs";
@@ -20,8 +20,7 @@ export class RspackDevServer extends WebpackDevServer {
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
-		// @ts-expect-error
-		super(options, compiler);
+		super(options, compiler as any);
 	}
 
 	addAdditionEntires(compiler: Compiler) {
@@ -197,31 +196,6 @@ export class RspackDevServer extends WebpackDevServer {
 		}
 	}
 
-	watchFiles(watchPath: string | string[], watchOptions?: WatchOptions): void {
-		const chokidar = require("chokidar");
-		const watcher = chokidar.watch(watchPath, watchOptions);
-
-		// disabling refreshing on changing the content
-		if (this.options.liveReload) {
-			// TODO: remove this after we had memory filesystem
-			if (this.options.hot) {
-				return;
-			}
-
-			watcher.on("change", item => {
-				if (this.webSocketServer) {
-					this.sendMessage(
-						this.webSocketServer.clients,
-						"static-changed",
-						item
-					);
-				}
-			});
-		}
-
-		this.staticWatchers.push(watcher);
-	}
-
 	getClientTransport(): string {
 		// WARNING: we can't use `super.getClientTransport`,
 		// because we doesn't had same directory structure.
@@ -296,8 +270,10 @@ export class RspackDevServer extends WebpackDevServer {
 				: [this.compiler];
 
 		compilers.forEach(compiler => {
-			compiler.options.builtins.react ??= {};
 			if (this.options.hot) {
+				compiler.options.devServer ??= {};
+				compiler.options.devServer.hot = true;
+				compiler.options.builtins.react ??= {};
 				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
 			} else if (compiler.options.builtins.react.refresh) {
@@ -446,7 +422,7 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 }
 
-// TODO: use WebpackDevServer.isWebTarget instead of this once we have a new webpack-dev-server version
+// TODO: use WebpackDevServer.isWebTarget instead of this once the webpack-dev-server release a new version
 function isWebTarget2(compiler: Compiler): boolean {
 	if (
 		compiler.options.resolve.conditionNames &&
