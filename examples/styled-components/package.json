@@ -1,12 +1,12 @@
 {
-  "name": "example-basic",
+  "name": "example-styled-components",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack serve -c rspack.config.js",
-    "build": "rspack build -c rspack.config.js"
+    "dev": "rspack serve",
+    "build": "rspack build"
   },
   "dependencies": {
     "styled-components": "5.3.6",

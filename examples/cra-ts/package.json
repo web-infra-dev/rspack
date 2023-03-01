@@ -1,5 +1,5 @@
 {
-  "name": "cra-app",
+  "name": "example-cra-app-ts",
   "version": "0.1.1",
   "private": true,
   "dependencies": {
