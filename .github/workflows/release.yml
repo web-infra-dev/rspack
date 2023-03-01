@@ -40,13 +40,12 @@ jobs:
           npm install -g pnpm@7.25.0
           pnpm -v
           pnpm install
-      - name: Create Release Pull Request
+      - name: Release
         uses: modern-js-dev/actions@feat/support-changeset
         with:
           # this expects you to have a script called release which does a build for your packages and calls changeset publish
           version: ${{ github.event.inputs.version }}
-          versionNumber: "auto"
-          type: "pull request with changeset"
+          type: "release with changeset"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
