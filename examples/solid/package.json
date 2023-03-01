@@ -5,7 +5,8 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "dev": "rspack serve"
+    "dev": "rspack serve",
+    "build": "rspack build"
   },
   "dependencies": {
     "@babel/core": "7.20.12",

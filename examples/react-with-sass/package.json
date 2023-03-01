@@ -5,8 +5,8 @@
   "main": "index.js",
   "private": true,
   "build": {
-    "build": "rspack build -c test.config.js",
-    "dev": "rspack serve -c test.config.js"
+    "build": "rspack build ",
+    "dev": "rspack serve"
   },
   "scripts": {},
   "keywords": [],
