@@ -2976,6 +2976,7 @@ dependencies = [
  "serde",
  "serde_json",
  "similar",
+ "swc_core",
  "testing_macros",
  "tokio",
 ]
