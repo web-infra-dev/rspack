@@ -3,6 +3,7 @@ use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv};
 use rspack_error::internal_error;
 use rspack_plugin_copy::CopyPlugin;
 use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
+use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
 use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use serde::Deserialize;
@@ -119,6 +120,9 @@ impl RawOptionsApply for RawBuiltins {
     }
     if let Some(progress) = self.progress {
       plugins.push(ProgressPlugin::new(progress.into()).boxed());
+    }
+    if self.dev_friendly_split_chunks {
+      plugins.push(DevFriendlySplitChunksPlugin::new().boxed());
     }
     if let Some(copy) = self.copy {
       plugins.push(CopyPlugin::new(copy.patterns.into_iter().map(Into::into).collect()).boxed());
