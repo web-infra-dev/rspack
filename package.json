@@ -54,5 +54,14 @@
     "why-is-node-running": "2.2.1",
     "is-ci": "3.0.1"
   },
+  "optionalDependencies": {
+    "sass-embedded-darwin-arm64": "1.58.3",
+    "sass-embedded-darwin-x64": "1.58.3",
+    "sass-embedded-linux-arm64": "1.58.3",
+    "sass-embedded-linux-ia32": "1.58.3",
+    "sass-embedded-linux-x64": "1.58.3",
+    "sass-embedded-win32-ia32": "1.58.3",
+    "sass-embedded-win32-x64": "1.58.3"
+  },
   "packageManager": "pnpm@7.3.0"
 }
