@@ -27,18 +27,21 @@ module.exports = {
 		rules: [
 			{
 				test: /\.less$/,
-				use: [{ loader: "less-loader" }],
+				use: "less-loader",
 				type: "css"
 			},
 			{
 				test: /\.module\.less$/,
-				use: [{ loader: "less-loader" }],
+				use: "less-loader",
 				type: "css/module"
 			},
 			{
 				test: /\.svg$/,
-				use: [{ loader: "@svgr/webpack" }],
-				type: "javascript/auto"
+				use: "@svgr/webpack"
+			},
+			{
+				test: /\.png$/,
+        type: "asset"
 			}
 		]
 	},
