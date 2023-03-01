@@ -2,11 +2,9 @@
 // @ts-ignored
 // @ts-nocheck
 if (module.hot) {
-	// var lastHash;
+	var lastHash;
 	var upToDate = function upToDate() {
-		// TODO: should use hash.
-		// return lastHash.indexOf(__webpack_hash__) >= 0;
-		return false;
+		return lastHash.indexOf(__webpack_require__.h) >= 0;
 	};
 	var log = function (_level, info) {
 		console.log(info);
@@ -61,10 +59,9 @@ if (module.hot) {
 				}
 			});
 	};
-	self.hotEmitter = self.hotEmitter || require("./emitter");
-	self.hotEmitter.on("hotUpdate", function (_currentHash) {
-		// TODO: should use hash
-		// lastHash = currentHash;
+	self.hotEmitter = self.hotEmitter || require("webpack/hot/emitter.js"); // MAKE SURE IT POINTED TO THE SAME `emitter` with `webpack-dev-server/reloadApp/hotEmitter`
+	self.hotEmitter.on("webpackHotUpdate", function (currentHash) {
+		lastHash = currentHash;
 		if (!upToDate() && module.hot.status() === "idle") {
 			log("info", "[HMR] Checking for updates on the server...");
 			check();

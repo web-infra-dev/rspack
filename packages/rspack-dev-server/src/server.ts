@@ -289,6 +289,7 @@ export class RspackDevServer extends WebpackDevServer {
 			});
 		}
 
+		// @ts-expect-error: `setupHooks` is private function in base class.
 		this.setupHooks();
 		// @ts-expect-error: `setupApp` is private function in base class.
 		this.setupApp();
@@ -410,18 +411,6 @@ export class RspackDevServer extends WebpackDevServer {
 
 		// @ts-expect-error
 		super.setupMiddlewares();
-	}
-
-	private setupHooks() {
-		this.compiler.hooks.done.tap("dev-server", stats => {
-			// send Message
-			if (this.webSocketServer) {
-				this.sendMessage(this.webSocketServer.clients, "ok"); // TODO: send hash
-			}
-
-			// @ts-expect-error
-			this.stats = stats;
-		});
 	}
 }
 
