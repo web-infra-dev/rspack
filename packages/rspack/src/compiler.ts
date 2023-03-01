@@ -275,9 +275,11 @@ class Compiler {
 	}
 
 	async #optimize_chunk_modules() {
-		await this.compilation.hooks.optimizeChunkModules.promise(
-			this.compilation.getModules()
-		);
+		if (this.compilation.hooks.optimizeChunkModules.taps.length != 0) {
+			await this.compilation.hooks.optimizeChunkModules.promise(
+				this.compilation.getModules()
+			);
+		}
 	}
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
