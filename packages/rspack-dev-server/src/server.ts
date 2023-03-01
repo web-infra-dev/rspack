@@ -418,6 +418,9 @@ export class RspackDevServer extends WebpackDevServer {
 			if (this.webSocketServer) {
 				this.sendMessage(this.webSocketServer.clients, "ok"); // TODO: send hash
 			}
+
+			// @ts-expect-error
+			this.stats = stats;
 		});
 	}
 }
