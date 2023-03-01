@@ -16,11 +16,26 @@ importers:
       jest: 29.0.3
       lint-staged: ^12.5.0
       prettier: 2.5.1
+      sass-embedded-darwin-arm64: 1.58.3
+      sass-embedded-darwin-x64: 1.58.3
+      sass-embedded-linux-arm64: 1.58.3
+      sass-embedded-linux-ia32: 1.58.3
+      sass-embedded-linux-x64: 1.58.3
+      sass-embedded-win32-ia32: 1.58.3
+      sass-embedded-win32-x64: 1.58.3
       ts-jest: 29.0.1
       typescript: 4.8.3
       webpack: 5.74.0
       webpack-cli: 4.10.0
       why-is-node-running: 2.2.1
+    optionalDependencies:
+      sass-embedded-darwin-arm64: 1.58.3
+      sass-embedded-darwin-x64: 1.58.3
+      sass-embedded-linux-arm64: 1.58.3
+      sass-embedded-linux-ia32: 1.58.3
+      sass-embedded-linux-x64: 1.58.3
+      sass-embedded-win32-ia32: 1.58.3
+      sass-embedded-win32-x64: 1.58.3
     devDependencies:
       '@changesets/cli': 2.24.4
       '@rspack/cli': link:packages/rspack-cli
@@ -458,13 +473,6 @@ importers:
       '@rspack/plugin-node-polyfill': workspace:^
       '@rspack/postcss-loader': workspace:^
       '@swc/helpers': 0.4.13
-      '@tmp-sass-embedded/darwin-arm64': 1.54.4
-      '@tmp-sass-embedded/darwin-x64': 1.54.4
-      '@tmp-sass-embedded/linux-arm64': 1.54.4
-      '@tmp-sass-embedded/linux-ia32': 1.54.4
-      '@tmp-sass-embedded/linux-x64': 1.54.4
-      '@tmp-sass-embedded/win32-ia32': 1.54.4
-      '@tmp-sass-embedded/win32-x64': 1.54.4
       '@types/jest': 29.0.2
       '@types/node': ^18.6.3
       '@types/rimraf': 3.0.2
@@ -515,14 +523,6 @@ importers:
       tapable: 2.2.1
       watchpack: 2.4.0
       webpack-sources: 3.2.3
-    optionalDependencies:
-      '@tmp-sass-embedded/darwin-arm64': 1.54.4
-      '@tmp-sass-embedded/darwin-x64': 1.54.4
-      '@tmp-sass-embedded/linux-arm64': 1.54.4
-      '@tmp-sass-embedded/linux-ia32': 1.54.4
-      '@tmp-sass-embedded/linux-x64': 1.54.4
-      '@tmp-sass-embedded/win32-ia32': 1.54.4
-      '@tmp-sass-embedded/win32-x64': 1.54.4
     devDependencies:
       '@rspack/core': 'link:'
       '@rspack/plugin-minify': link:../rspack-plugin-minify
@@ -4466,69 +4466,6 @@ packages:
     resolution: {integrity: sha512-6Sg10lt0fV9aHHWPycz4gzIsUodZihu68zAFZGWq0UDq+Gif2KMrAvNwjMbe+ZUKbnTJjvqJZcPvE4+UEyanAQ==}
     hasBin: true
     dev: true
-
-  /@tmp-sass-embedded/darwin-arm64/1.54.4:
-    resolution: {integrity: sha512-arr7kUSfrUevXigecwAxVf48/ay+iUzMCPxBCxKVmW74dYI9IGNsEp4v/rijhI8oDKBCR1neWTZEZi4MqO5BBQ==}
-    engines: {node: '>=14.0.0'}
-    cpu: [arm64]
-    os: [darwin]
-    requiresBuild: true
-    dev: false
-    optional: true
-
-  /@tmp-sass-embedded/darwin-x64/1.54.4:
-    resolution: {integrity: sha512-D8X8DeEZfdHPPI/gsZMILYOKwrM/dJLtsejcWOOHgTZYCYNntSBeevzEGUwmx6GNbSzEWVqejn21ecLBrbjsfA==}
-    engines: {node: '>=14.0.0'}
-    cpu: [x64]
-    os: [darwin]
-    requiresBuild: true
-    dev: false
-    optional: true
-
-  /@tmp-sass-embedded/linux-arm64/1.54.4:
-    resolution: {integrity: sha512-Mq09afThDvCqLLOZPBzIZGNsYyv9QW6uhQ7YHB+IqJubStLVRsilM+31AafNASEutQxDItty1Ak5OSy2WsptOA==}
-    engines: {node: '>=14.0.0'}
-    cpu: [arm64]
-    os: [linux]
-    requiresBuild: true
-    dev: false
-    optional: true
-
-  /@tmp-sass-embedded/linux-ia32/1.54.4:
-    resolution: {integrity: sha512-wtjHk75fZTpQvMoGpnN+yZeabzTbmaQXCT/brvTz07xCzxNsLFi0poToG7w5jmLqbAmtQyIoQ5SL+/B4/apiDw==}
-    engines: {node: '>=14.0.0'}
-    cpu: [ia32]
-    os: [linux]
-    requiresBuild: true
-    dev: false
-    optional: true
-
-  /@tmp-sass-embedded/linux-x64/1.54.4:
-    resolution: {integrity: sha512-7MuDVETnAmjLyrYnf7OF0Zbs+gO+qvfgdHQ0q4KSiSMusE8kV/XrB6vQ93rHQzUQKtJL9LE+wCrCftF8WtJaCg==}
-    engines: {node: '>=14.0.0'}
-    cpu: [x64]
-    os: [linux]
-    requiresBuild: true
-    dev: false
-    optional: true
-
-  /@tmp-sass-embedded/win32-ia32/1.54.4:
-    resolution: {integrity: sha512-7gyRYdjOnkDLkiRTUKfHQ4tB79aCBAfuVGOGtCcuBxCJuvP4lvNufk50a8EzN26zgf2ToRVp1RHt6hKFgbbvPw==}
-    engines: {node: '>=14.0.0'}
-    cpu: [ia32]
-    os: [win32]
-    requiresBuild: true
-    dev: false
-    optional: true
-
-  /@tmp-sass-embedded/win32-x64/1.54.4:
-    resolution: {integrity: sha512-N0SVUapliSJ9739WJv8bXJkkAjtIFxwAYBFsK5mIpm2Pe1F1hH3t7UosgilN4gwviTgvggFobT7KUBoBEooLYg==}
-    engines: {node: '>=14.0.0'}
-    cpu: [x64]
-    os: [win32]
-    requiresBuild: true
-    dev: false
-    optional: true
 
   /@trysound/sax/0.2.0:
     resolution: {integrity: sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==}
@@ -13996,6 +13933,69 @@ packages:
       mkdirp: 0.5.6
       rimraf: 2.7.1
     dev: true
+
+  /sass-embedded-darwin-arm64/1.58.3:
+    resolution: {integrity: sha512-6CrksxvM10xKAQJX3KTJzrW6gfz21ExxUQnV6w5Ggje0adsq+QQu+BBgoPO2ziBVq+UiupcP7apcbmEHvyuZ7w==}
+    engines: {node: '>=14.0.0'}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /sass-embedded-darwin-x64/1.58.3:
+    resolution: {integrity: sha512-clajXOWN0YP/WItxZJnmAvIiUBts6G28X8Oy/TPcNNzRSwRORHyHXKetbTazULWAkaSBJFFg95aP8sqJvmo+Iw==}
+    engines: {node: '>=14.0.0'}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /sass-embedded-linux-arm64/1.58.3:
+    resolution: {integrity: sha512-dDaYRmV2vWxxZTiVFosfcgA6qJ+VEmHCFIO2XPO03W+uUmIGxa0G9oxdWxhLWjtUu2Z4R57sKKLj3eHI8Lj38Q==}
+    engines: {node: '>=14.0.0'}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /sass-embedded-linux-ia32/1.58.3:
+    resolution: {integrity: sha512-UClCoXgaLNGHTLBRqUTQAgQXZQFkrGIaWVLIfkVN2AEyLmYJzZ31bQfq1B6mLZPBANuFQaeg3eOcdCTpNaXaOg==}
+    engines: {node: '>=14.0.0'}
+    cpu: [ia32]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /sass-embedded-linux-x64/1.58.3:
+    resolution: {integrity: sha512-/waLcKwkWQp4QJrNz6EqTS44IdGYup5TGh/qmv3iz9UeL4LtgeM4lVHrFsknsF7viDPLuCOARdrHNSjqKkLRPw==}
+    engines: {node: '>=14.0.0'}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /sass-embedded-win32-ia32/1.58.3:
+    resolution: {integrity: sha512-T6QYEf1NUDZY+9htvE7Zn9/Ixg0bXGQ54NcHBRSkyVY2n2KBLwQ2ZKp48AlSNxsvJiSOb9lqDE4U7VjH7WJSXg==}
+    engines: {node: '>=14.0.0'}
+    cpu: [ia32]
+    os: [win32]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /sass-embedded-win32-x64/1.58.3:
+    resolution: {integrity: sha512-Jc6Q1Rx5+cxk/yIsI8trkpNQEHjVM9I65p7ArpCLfMU33YRQWUm35QCFH2Szaue3HnTtwXl3ZDQdgo0ZHCHLzg==}
+    engines: {node: '>=14.0.0'}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: false
+    optional: true
 
   /sass-loader/13.2.0:
     resolution: {integrity: sha512-JWEp48djQA4nbZxmgC02/Wh0eroSUutulROUusYJO9P9zltRbNN80JCBHqRGzjd4cmZCa/r88xgfkjGD0TXsHg==}

@@ -641,7 +641,7 @@ function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {
 
 	if (use.loader === `${BUILTIN_LOADER_PREFIX}sass-loader`) {
 		(use.options ??= {} as any).__exePath = require.resolve(
-			`@tmp-sass-embedded/${process.platform}-${
+			`sass-embedded-${process.platform}-${
 				process.arch
 			}/dart-sass-embedded/dart-sass-embedded${
 				process.platform === "win32" ? ".bat" : ""

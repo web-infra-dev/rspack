@@ -62,7 +62,7 @@ fn dev_exe_path() -> PathBuf {
   let os = get_os();
   let arch = get_arch();
   PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR")))
-    .join(format!("../../node_modules/@tmp-sass-embedded/{os}-{arch}"))
+    .join(format!("../../node_modules/sass-embedded-{os}-{arch}"))
     .join("dart-sass-embedded/dart-sass-embedded")
 }
 
