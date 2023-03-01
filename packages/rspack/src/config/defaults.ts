@@ -166,6 +166,10 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 			},
 			{
 				test: /\.js$/i,
+				// TODO:
+				// descriptionData: {
+				// 	type: "module"
+				// },
 				...esm
 			},
 			{
@@ -174,7 +178,31 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 			},
 			{
 				test: /\.js$/i,
+				// TODO:
+				// descriptionData: {
+				// 	type: "commonjs"
+				// },
 				...commonjs
+			},
+			{
+				test: /\.js$/i,
+				// TODO:
+				// descriptionData: {
+				// 	type: "commonjs"
+				// },
+				...commonjs
+			},
+			{
+				test: /\.jsx$/i,
+				type: "jsx"
+			},
+			{
+				test: /\.ts$/i,
+				type: "ts"
+			},
+			{
+				test: /\.tsx$/i,
+				type: "tsx"
 			}
 		];
 		const cssRule = {

@@ -12,7 +12,8 @@ module.exports = {
 							modules: true
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: /\.css$/,
@@ -20,7 +21,8 @@ module.exports = {
 					{
 						loader: postcssLoader
 					}
-				]
+				],
+				type: "css"
 			}
 		]
 	}

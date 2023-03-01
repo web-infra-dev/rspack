@@ -2,6 +2,17 @@
   "optimization": {
     "sideEffects": "true"
   },
+  "module": {
+    "rules": [
+      {
+        "test": {
+          "type": "regexp",
+          "matcher": "\\.svg$"
+        },
+        "type": "asset/inline"
+      }
+    ]    
+  },
   "builtins": {
     "treeShaking": true,
     "define": {

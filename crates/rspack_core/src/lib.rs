@@ -158,8 +158,6 @@ impl TryFrom<&str> for ModuleType {
   type Error = rspack_error::Error;
 
   fn try_from(value: &str) -> Result<Self, Self::Error> {
-    // FIXME: Using a mixed version of Deserialize with extension and the name of ModuleType is definitely a not good idea.
-    // Change it in favor of default options apply.
     match value {
       "mjs" => Ok(Self::JsEsm),
       "cjs" => Ok(Self::JsDynamic),
@@ -171,8 +169,8 @@ impl TryFrom<&str> for ModuleType {
       "jsx/dynamic" | "javascriptx/dynamic" => Ok(Self::JsxDynamic),
       "jsx/esm" | "javascriptx/esm" => Ok(Self::JsxEsm),
 
-      "ts" => Ok(Self::Ts),
-      "tsx" => Ok(Self::Tsx),
+      "ts" | "typescript" => Ok(Self::Ts),
+      "tsx" | "typescriptx" => Ok(Self::Tsx),
 
       "css" => Ok(Self::Css),
       "css/module" => Ok(Self::CssModule),
@@ -184,14 +182,6 @@ impl TryFrom<&str> for ModuleType {
       "asset/source" => Ok(Self::AssetSource),
       "asset/inline" => Ok(Self::AssetInline),
 
-      // default
-      "png" => Ok(Self::Asset),
-      "jpeg" => Ok(Self::Asset),
-      "jpg" => Ok(Self::Asset),
-      "svg" => Ok(Self::Asset),
-      "txt" => Ok(Self::AssetSource),
-      // TODO: get module_type from module
-      "scss" | "sass" => Ok(Self::Css),
       _ => {
         use rspack_error::internal_error;
         Err(internal_error!("invalid module type: {value}"))

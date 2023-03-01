@@ -9,7 +9,7 @@
     "build": "tsc",
     "dev": "tsc -w",
     "example": "node -r ts-node/register ./example/basic.ts",
-    "test": "jest --verbose"
+    "test": "jest"
   },
   "files": [
     "dist"

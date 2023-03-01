@@ -146,6 +146,22 @@ describe("snapshots", () => {
 		        "type": "javascript/auto",
 		      },
 		      {
+		        "test": /\\\\\\.js\\$/i,
+		        "type": "javascript/auto",
+		      },
+		      {
+		        "test": /\\\\\\.jsx\\$/i,
+		        "type": "jsx",
+		      },
+		      {
+		        "test": /\\\\\\.ts\\$/i,
+		        "type": "ts",
+		      },
+		      {
+		        "test": /\\\\\\.tsx\\$/i,
+		        "type": "tsx",
+		      },
+		      {
 		        "oneOf": [
 		          {
 		            "test": /\\\\\\.module\\\\\\.css\\$/i,

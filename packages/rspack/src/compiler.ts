@@ -27,8 +27,7 @@ class HotModuleReplacementPlugin {
 }
 
 class Compiler {
-	// @ts-expect-error
-	#_instance: binding.Rspack;
+	#_instance?: binding.Rspack;
 
 	webpack: any;
 	// @ts-expect-error
@@ -139,7 +138,7 @@ class Compiler {
 	get #instance() {
 		const options = getRawOptions(this.options, this);
 		this.#_instance =
-			this.#_instance ||
+			this.#_instance ??
 			new binding.Rspack(
 				options,
 				{
@@ -405,13 +404,8 @@ class Compiler {
 		}
 	}
 
-	/**
-	 * @todo
-	 */
-	// @ts-expect-error
-	close(callback) {
-		// @ts-expect-error
-		this.#_instance = null;
+	close(callback: () => void) {
+		this.#_instance = undefined;
 		if (this.watching) {
 			// When there is still an active watching, close this first
 			this.watching.close(() => {
@@ -420,38 +414,6 @@ class Compiler {
 			return;
 		}
 		callback();
-	}
-	// @ts-expect-error
-	emitAssets(compilation: Compilation, callback) {
-		const outputPath = compilation.getPath(this.outputPath, {});
-		fs.mkdirSync(outputPath, { recursive: true });
-		const assets = compilation.getAssets();
-		asyncLib.forEachLimit(
-			assets,
-			15,
-			({ name: file, source, info }, callback) => {
-				let targetFile = file;
-				const absPath = path.resolve(outputPath, targetFile);
-				const getContent = () => {
-					if (typeof source.buffer === "function") {
-						return source.buffer();
-					} else {
-						const bufferOrString = source.source();
-						if (Buffer.isBuffer(bufferOrString)) {
-							return bufferOrString;
-						} else {
-							return Buffer.from(bufferOrString as string, "utf-8");
-						}
-					}
-				};
-				// @ts-expect-error
-				const doWrite = content => {
-					this.outputFileSystem.writeFile(absPath, content, callback);
-				};
-				let content = getContent();
-				doWrite(content);
-			}
-		);
 	}
 
 	getAsset(name: string) {

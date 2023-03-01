@@ -45,14 +45,6 @@ impl NormalModuleFactory {
     }
   }
 
-  pub fn calculate_module_type_by_resource(
-    &self,
-    resource_data: &ResourceData,
-  ) -> Option<ModuleType> {
-    // todo currently unreachable module types are temporarily unified with their importers
-    resolve_module_type_by_uri(&resource_data.resource_path)
-  }
-
   pub async fn factorize_normal_module(
     &mut self,
     data: ModuleFactoryCreateData,
@@ -175,10 +167,6 @@ impl NormalModuleFactory {
 
     let file_dependency = resource_data.resource_path.clone();
 
-    if self.context.module_type.is_none() {
-      self.context.module_type = self.calculate_module_type_by_resource(&resource_data);
-    }
-
     let resolved_module_rules = self.calculate_module_rules(&resource_data)?;
     let resolved_module_type =
       self.calculate_module_type(&resolved_module_rules, self.context.module_type);
@@ -290,11 +278,6 @@ impl NormalModuleFactory {
     module_rules: &[&ModuleRule],
     default_module_type: Option<ModuleType>,
   ) -> ModuleType {
-    // Progressive module type resolution:
-    // Stage 1: maintain the resolution logic via file extension
-    // TODO: Stage 2:
-    //           1. remove all extension based module type resolution, and let `module.rules[number].type` to handle this(everything is based on its config)
-    //           2. set default module type to `Js`, it equals to `javascript/auto` in webpack.
     let mut resolved_module_type = default_module_type.unwrap_or(ModuleType::Js);
 
     module_rules.iter().for_each(|module_rule| {
@@ -343,13 +326,6 @@ pub fn should_skip_resolve(s: &str) -> bool {
     || s.starts_with("http://")
     || s.starts_with("https://")
     || s.starts_with("//")
-}
-
-pub fn resolve_module_type_by_uri<T: AsRef<Path>>(uri: T) -> Option<ModuleType> {
-  let uri = uri.as_ref();
-  let ext = uri.extension()?.to_str()?;
-  let module_type: Option<ModuleType> = ext.try_into().ok();
-  module_type
 }
 
 #[derive(Debug, Clone)]
