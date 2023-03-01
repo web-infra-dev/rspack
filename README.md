@@ -61,6 +61,7 @@ Thanks to:
 - The [Vite](https://github.com/vitejs/vite) project created by [Evan You](https://github.com/yyx990803) which inspired Rspack's compatibility design of webpack's ecosystem.
 - The [Rolldown](https://github.com/rolldown-rs/rolldown) project created by [Rolldown team](https://github.com/sponsors/rolldown-rs), which explores the possibility of making a performant bundler in Rust with Rollup-compatible API. It inspires the design principles of Rspack.
 - The [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project created by [@jantimon](https://github.com/jantimon), which inspired `@rspack/html-plugin`.
+- The [Turbopack](https://github.com/vercel/turbo) project which inspired the ast path logic of Rspack.
 
 ## License
 

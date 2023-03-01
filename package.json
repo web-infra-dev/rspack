@@ -39,6 +39,7 @@
   "bugs": "https://github.com/modern-js-dev/rspack/issues",
   "repository": "modern-js-dev/rspack",
   "devDependencies": {
+    "@rspack/cli": "workspace:*",
     "@types/react": "17.0.52",
     "@types/react-dom": "17.0.19",
     "@changesets/cli": "2.24.4",

@@ -5,6 +5,7 @@ importers:
   .:
     specifiers:
       '@changesets/cli': 2.24.4
+      '@rspack/cli': workspace:*
       '@taplo/cli': ^0.5.2
       '@types/react': 17.0.52
       '@types/react-dom': 17.0.19
@@ -22,6 +23,7 @@ importers:
       why-is-node-running: 2.2.1
     devDependencies:
       '@changesets/cli': 2.24.4
+      '@rspack/cli': link:packages/rspack-cli
       '@taplo/cli': 0.5.2
       '@types/react': 17.0.52
       '@types/react-dom': 17.0.19
@@ -278,6 +280,9 @@ importers:
       '@rspack/cli': workspace:*
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+
+  examples/proxy:
+    specifiers: {}
 
   examples/react:
     specifiers:
