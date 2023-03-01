@@ -4,7 +4,8 @@ module.exports = {
 		rules: [
 			{
 				test: /\.png$/,
-				use: [{ loader: "./loader.js" }]
+				use: [{ loader: "./loader.js" }],
+				type: "asset"
 			}
 		]
 	}

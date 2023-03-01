@@ -3,7 +3,7 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.svg$/,
+				test: /\.png$/,
 				type: "asset"
 			}
 		],

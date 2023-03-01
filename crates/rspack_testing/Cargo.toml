@@ -34,6 +34,7 @@ rspack_tracing                    = { path = "../rspack_tracing" }
 schemars   = "0.8.11"
 serde      = { workspace = true }
 serde_json = { workspace = true }
+swc_core   = { workspace = true }
 
 # depdencies of rpsakc_test
 

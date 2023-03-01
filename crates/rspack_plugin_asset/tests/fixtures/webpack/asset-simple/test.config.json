@@ -1,0 +1,13 @@
+{
+  "module": {
+    "rules": [
+      {
+        "test": {
+          "type": "regexp",
+          "matcher": "\\.(png|svg|jpg)$"
+        },
+        "type": "asset"
+      }
+    ]    
+  }
+}

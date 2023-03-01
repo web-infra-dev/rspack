@@ -15,7 +15,8 @@ module.exports = {
 							modules: true
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: resolve("modules-false.module.css"),
@@ -26,7 +27,8 @@ module.exports = {
 							modules: false
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: resolve("auto-true.module.css"),
@@ -39,7 +41,8 @@ module.exports = {
 							}
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: resolve("auto-false.module.css"),
@@ -52,7 +55,8 @@ module.exports = {
 							}
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: resolve("auto-regex.css"),
@@ -65,7 +69,8 @@ module.exports = {
 							}
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: resolve("auto-function.css"),
@@ -80,7 +85,8 @@ module.exports = {
 							}
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: resolve("generateScopedName.module.css"),
@@ -93,7 +99,8 @@ module.exports = {
 							}
 						}
 					}
-				]
+				],
+				type: "css"
 			},
 			{
 				test: resolve("localsConvention.module.css"),
@@ -106,7 +113,8 @@ module.exports = {
 							}
 						}
 					}
-				]
+				],
+				type: "css"
 			}
 		]
 	}

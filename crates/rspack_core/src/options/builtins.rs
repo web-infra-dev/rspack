@@ -104,15 +104,6 @@ pub struct PresetEnv {
   pub core_js: Option<String>,
 }
 
-// This only used for rspack_test as rspack_test do not directly depend on swc_core, use this to convert string to mode
-pub fn string_to_mode(s: &str) -> Option<swc_core::ecma::preset_env::Mode> {
-  match s {
-    "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
-    "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
-    _ => None,
-  }
-}
-
 #[derive(Debug, Default, Clone)]
 pub struct RelayConfig {
   pub artifact_directory: Option<PathBuf>,

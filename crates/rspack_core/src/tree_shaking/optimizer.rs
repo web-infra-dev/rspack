@@ -29,8 +29,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, join_string_component, resolve_module_type_by_uri, tree_shaking::ConvertModulePath,
-  Compilation, ModuleGraph, ModuleIdentifier, NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, ModuleGraph,
+  ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -1301,6 +1301,12 @@ fn update_reachable_symbol(
 }
 
 fn is_js_like_uri(uri: &str) -> bool {
+  fn resolve_module_type_by_uri(uri: &str) -> Option<ModuleType> {
+    let uri = std::path::Path::new(uri);
+    let ext = uri.extension()?.to_str()?;
+    let module_type: Option<ModuleType> = ext.try_into().ok();
+    module_type
+  }
   match resolve_module_type_by_uri(uri) {
     Some(module_type) => matches!(
       module_type,

@@ -252,21 +252,75 @@ impl_serde_default!(EntryItem);
 impl_serde_default!(Module);
 impl_serde_default!(Optimization);
 
+impl From<PresetEnv> for rspack_core::PresetEnv {
+  fn from(preset_env: PresetEnv) -> Self {
+    Self {
+      mode: preset_env.mode.and_then(|mode| match mode.as_str() {
+        "entry" => Some(swc_core::ecma::preset_env::Mode::Entry),
+        "usage" => Some(swc_core::ecma::preset_env::Mode::Usage),
+        _ => None,
+      }),
+      targets: preset_env.targets,
+      core_js: preset_env.core_js,
+    }
+  }
+}
+
+macro_rules! rule {
+  ($test:expr, $type:literal) => {
+    rspack_core::ModuleRule {
+      test: Some(rspack_core::RuleSetCondition::Regexp(
+        RspackRegex::new($test).expect("should be valid regex"),
+      )),
+      r#type: ModuleType::try_from($type).ok(),
+      ..Default::default()
+    }
+  };
+}
+
 impl TestConfig {
   pub fn apply(self, context: PathBuf) -> (CompilerOptions, Vec<BoxPlugin>) {
     use rspack_core as c;
 
-    impl From<PresetEnv> for c::PresetEnv {
-      fn from(preset_env: PresetEnv) -> Self {
-        Self {
-          mode: preset_env
-            .mode
-            .and_then(|mode| c::string_to_mode(mode.as_str())),
-          targets: preset_env.targets,
-          core_js: preset_env.core_js,
-        }
+    let mut rules = vec![
+      rule!("\\.json$", "json"),
+      rule!("\\.mjs$", "js/esm"),
+      rule!("\\.cjs$", "js/auto"), // TODO: change to js/dynamic
+      rule!("\\.js$", "js/auto"),
+      rule!("\\.jsx$", "jsx"),
+      rule!("\\.ts$", "ts"),
+      rule!("\\.tsx$", "tsx"),
+      rule!("\\.css$", "css"),
+    ];
+    rules.extend(self.module.rules.into_iter().map(|rule| {
+      c::ModuleRule {
+        test: rule.test.map(|test| match test {
+          ModuleRuleTest::Regexp { matcher } => {
+            c::RuleSetCondition::Regexp(RspackRegex::new(&matcher).expect("should be valid regex"))
+          }
+        }),
+        r#use: rule
+          .r#use
+          .into_iter()
+          .map(|i| match i.builtin_loader.as_str() {
+            "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
+              i.options
+                .map(|options| {
+                  serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
+                    .expect("should give a right loader options")
+                })
+                .unwrap_or_default(),
+            )) as BoxLoader,
+            _ => panic!("should give a right loader"),
+          })
+          .collect::<Vec<BoxLoader>>(),
+        side_effects: rule.side_effect,
+        r#type: rule
+          .r#type
+          .map(|i| ModuleType::try_from(i.as_str()).expect("should give a right module_type")),
+        ..Default::default()
       }
-    }
+    }));
 
     let targets = self
       .builtins
@@ -276,6 +330,7 @@ impl TestConfig {
       .unwrap_or_default();
 
     assert!(context.is_absolute());
+
     let options = CompilerOptions {
       context: c::Context::new(context.clone()),
       entry: self
@@ -332,38 +387,7 @@ impl TestConfig {
         ..Default::default()
       },
       module: c::ModuleOptions {
-        rules: self
-          .module
-          .rules
-          .into_iter()
-          .map(|rule| c::ModuleRule {
-            test: rule.test.map(|test| match test {
-              ModuleRuleTest::Regexp { matcher } => c::RuleSetCondition::Regexp(
-                RspackRegex::new(&matcher).expect("should be valid regex"),
-              ),
-            }),
-            r#use: rule
-              .r#use
-              .into_iter()
-              .map(|i| match i.builtin_loader.as_str() {
-                "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
-                  i.options
-                    .map(|options| {
-                      serde_json::from_str::<rspack_loader_sass::SassLoaderOptions>(&options)
-                        .expect("should give a right loader options")
-                    })
-                    .unwrap_or_default(),
-                )) as BoxLoader,
-                _ => panic!("should give a right loader"),
-              })
-              .collect::<Vec<BoxLoader>>(),
-            side_effects: rule.side_effect,
-            r#type: rule
-              .r#type
-              .map(|i| ModuleType::try_from(i.as_str()).expect("should give a right module_type")),
-            ..Default::default()
-          })
-          .collect(),
+        rules,
         ..Default::default()
       },
       devtool: c::Devtool::from(self.devtool),
