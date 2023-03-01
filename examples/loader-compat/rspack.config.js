@@ -91,6 +91,14 @@ module.exports = {
           }
         ],
         type:'javascript/auto'
+      },
+      {
+        test: /\.png$/,
+        use: [
+          {
+            loader: 'file-loader'
+          }
+        ]
       }
     ]
   }

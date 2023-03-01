@@ -26,6 +26,10 @@ module.exports = {
         resourceQuery: /type=style/,
         use: [{loader: require.resolve('./vue-loader.js')}],
         type: 'css'
+      },
+      {
+        test: /\.svg/,
+        type: 'asset/resource'
       }
     ]
   }
