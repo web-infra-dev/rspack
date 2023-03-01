@@ -17,7 +17,7 @@
     "webpack-bundle-analyzer": "4.6.1"
   },
   "scripts": {
-    "build": "cross-env NODE_ENV=production rspack build",
+    "build": "rspack build",
     "dev": "rspack serve",
     "analyze": "cross-env NODE_ENV=production rspack build --analyze",
     "validate": "svelte-check"
