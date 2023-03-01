@@ -125,8 +125,6 @@ importers:
       style-loader: ^3.3.1
       swc-loader: ^0.2.3
       typescript: ^4.5.5
-      webpack: 5.74.0
-      webpack-cli: 4.10.0
     dependencies:
       '@antv/data-set': 0.11.8
       '@arco-design/color': 0.4.0
@@ -153,23 +151,21 @@ importers:
       redux: 4.2.0
       regenerator-runtime: 0.13.9
     devDependencies:
-      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10_webpack@5.74.0
+      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-html': link:../../packages/rspack-plugin-html
       '@svgr/webpack': 6.5.1
       '@swc/core': 1.3.23
       bundle-stats: 4.1.6
-      css-loader: 6.7.3_webpack@5.74.0
-      html-webpack-plugin: 5.5.0_webpack@5.74.0
-      less-loader: 11.1.0_webpack@5.74.0
-      mini-css-extract-plugin: 2.7.2_webpack@5.74.0
-      postcss-loader: 7.0.2_webpack@5.74.0
+      css-loader: 6.7.3
+      html-webpack-plugin: 5.5.0
+      less-loader: 11.1.0
+      mini-css-extract-plugin: 2.7.2
+      postcss-loader: 7.0.2
       serve: 14.1.2
-      style-loader: 3.3.1_webpack@5.74.0
-      swc-loader: 0.2.3_hzeag5wohmlrlexhcbrhkqzb4q
+      style-loader: 3.3.1
+      swc-loader: 0.2.3_@swc+core@1.3.23
       typescript: 4.8.3
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
-      webpack-cli: 4.10.0_webpack@5.74.0
 
   examples/basic:
     specifiers:
@@ -4107,7 +4103,7 @@ packages:
       fastq: 1.13.0
     dev: true
 
-  /@pmmmwh/react-refresh-webpack-plugin/0.5.10_webpack@5.74.0:
+  /@pmmmwh/react-refresh-webpack-plugin/0.5.10:
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
     engines: {node: '>= 10.13'}
     peerDependencies:
@@ -4142,7 +4138,6 @@ packages:
       loader-utils: 2.0.4
       schema-utils: 3.1.1
       source-map: 0.7.4
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /@polka/url/1.0.0-next.21:
@@ -6125,7 +6120,7 @@ packages:
       webpack: 4.x.x || 5.x.x
       webpack-cli: 4.x.x
     dependencies:
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
+      webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
       webpack-cli: 4.10.0_webpack@5.74.0
     dev: true
 
@@ -7794,7 +7789,7 @@ packages:
     engines: {node: '>=4'}
     dev: false
 
-  /css-loader/6.7.3_webpack@5.74.0:
+  /css-loader/6.7.3:
     resolution: {integrity: sha512-qhOH1KlBMnZP8FzRO6YCH9UHXQhVMcEGLyNdb7Hv2cpcmJbW0YrddO+tG1ab5nT41KpHIYGsbeHqxB9xPu1pKQ==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
@@ -7808,7 +7803,6 @@ packages:
       postcss-modules-values: 4.0.0_postcss@8.4.20
       postcss-value-parser: 4.2.0
       semver: 7.3.8
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /css-select/4.3.0:
@@ -9706,7 +9700,7 @@ packages:
       relateurl: 0.2.7
       terser: 5.16.1
 
-  /html-webpack-plugin/5.5.0_webpack@5.74.0:
+  /html-webpack-plugin/5.5.0:
     resolution: {integrity: sha512-sy88PC2cRTVxvETRgUHFrL4No3UxvcH8G1NepGhqaTT+GXN2kTamqasot0inS5hXeg1cMbFDt27zzo9p35lZVw==}
     engines: {node: '>=10.13.0'}
     peerDependencies:
@@ -9717,7 +9711,6 @@ packages:
       lodash: 4.17.21
       pretty-error: 4.0.0
       tapable: 2.2.1
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /htmlparser2/6.1.0:
@@ -11045,17 +11038,6 @@ packages:
       less: 4.1.3
     dev: true
 
-  /less-loader/11.1.0_webpack@5.74.0:
-    resolution: {integrity: sha512-C+uDBV7kS7W5fJlUjq5mPBeBVhYpTIm5gB09APT9o3n/ILeaXVsiSFTbZpTJCJwQ/Crczfn3DmfQFwxYusWFug==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      less: ^3.5.0 || ^4.0.0
-      webpack: ^5.0.0
-    dependencies:
-      klona: 2.0.5
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
-    dev: true
-
   /less/4.1.3:
     resolution: {integrity: sha512-w16Xk/Ta9Hhyei0Gpz9m7VS8F28nieJaL/VyShID7cYvP6IL5oHeL6p4TXSDJqZE/lNv0oJ2pGVjJsRkfwm5FA==}
     engines: {node: '>=6'}
@@ -11961,14 +11943,13 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-  /mini-css-extract-plugin/2.7.2_webpack@5.74.0:
+  /mini-css-extract-plugin/2.7.2:
     resolution: {integrity: sha512-EdlUizq13o0Pd+uCp+WO/JpkLvHRVGt97RqfeGhXqAcorYo1ypJSpkV+WDT0vY/kmh/p7wRdJNJtuyK540PXDw==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
       webpack: ^5.0.0
     dependencies:
       schema-utils: 4.0.0
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /minimalistic-assert/1.0.1:
@@ -12674,19 +12655,6 @@ packages:
       cosmiconfig: 7.1.0
       klona: 2.0.5
       semver: 7.3.8
-    dev: true
-
-  /postcss-loader/7.0.2_webpack@5.74.0:
-    resolution: {integrity: sha512-fUJzV/QH7NXUAqV8dWJ9Lg4aTkDCezpTS5HgJ2DvqznexTbSTxgi/dTECvTZ15BwKTtk8G/bqI/QTu2HPd3ZCg==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      postcss: ^7.0.0 || ^8.0.1
-      webpack: ^5.0.0
-    dependencies:
-      cosmiconfig: 7.1.0
-      klona: 2.0.5
-      semver: 7.3.8
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /postcss-modules-extract-imports/3.0.0_postcss@8.4.16:
@@ -14800,13 +14768,11 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /style-loader/3.3.1_webpack@5.74.0:
+  /style-loader/3.3.1:
     resolution: {integrity: sha512-GPcQ+LDJbrcxHORTRes6Jy2sfvK2kS6hpSfI/fXhPt+spVzxF6LJ1dHLN9zIGmVaaP044YKaIatFaufENRiDoQ==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
       webpack: ^5.0.0
-    dependencies:
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /style-to-object/0.4.1:
@@ -15036,14 +15002,13 @@ packages:
       stable: 0.1.8
     dev: true
 
-  /swc-loader/0.2.3_hzeag5wohmlrlexhcbrhkqzb4q:
+  /swc-loader/0.2.3_@swc+core@1.3.23:
     resolution: {integrity: sha512-D1p6XXURfSPleZZA/Lipb3A8pZ17fP4NObZvFCDjK/OKljroqDpPmsBdTraWhVBqUNpcWBQY1imWdoPScRlQ7A==}
     peerDependencies:
       '@swc/core': ^1.2.147
       webpack: '>=2'
     dependencies:
       '@swc/core': 1.3.23
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /tapable/2.2.1:
@@ -15102,31 +15067,6 @@ packages:
     dependencies:
       ansi-escapes: 4.3.2
       supports-hyperlinks: 2.3.0
-    dev: true
-
-  /terser-webpack-plugin/5.3.6_hzeag5wohmlrlexhcbrhkqzb4q:
-    resolution: {integrity: sha512-kfLFk+PoLUQIbLmB1+PZDMRSZS99Mp+/MHqDNmMA6tOItzRt+Npe3E+fsMs5mfcM0wCtrrdU387UnV+vnSffXQ==}
-    engines: {node: '>= 10.13.0'}
-    peerDependencies:
-      '@swc/core': '*'
-      esbuild: '*'
-      uglify-js: '*'
-      webpack: ^5.1.0
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      esbuild:
-        optional: true
-      uglify-js:
-        optional: true
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.15
-      '@swc/core': 1.3.23
-      jest-worker: 27.5.1
-      schema-utils: 3.1.1
-      serialize-javascript: 6.0.0
-      terser: 5.16.1
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
     dev: true
 
   /terser-webpack-plugin/5.3.6_k7xlqms7gtkxek3uz4vwbhfvde:
@@ -15990,7 +15930,7 @@ packages:
       import-local: 3.1.0
       interpret: 2.2.0
       rechoir: 0.7.1
-      webpack: 5.74.0_id63hl4ti3a2o54kosxu7nkk2i
+      webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
       webpack-merge: 5.8.0
     dev: true
 
@@ -16122,47 +16062,6 @@ packages:
       tapable: 2.2.1
       terser-webpack-plugin: 5.3.6_webpack@5.74.0
       watchpack: 2.4.0
-      webpack-sources: 3.2.3
-    transitivePeerDependencies:
-      - '@swc/core'
-      - esbuild
-      - uglify-js
-    dev: true
-
-  /webpack/5.74.0_id63hl4ti3a2o54kosxu7nkk2i:
-    resolution: {integrity: sha512-A2InDwnhhGN4LYctJj6M1JEaGL7Luj6LOmyBHjcI8529cm5p6VXiTIW2sn6ffvEAKmveLzvu4jrihwXtPojlAA==}
-    engines: {node: '>=10.13.0'}
-    hasBin: true
-    peerDependencies:
-      webpack-cli: '*'
-    peerDependenciesMeta:
-      webpack-cli:
-        optional: true
-    dependencies:
-      '@types/eslint-scope': 3.7.4
-      '@types/estree': 0.0.51
-      '@webassemblyjs/ast': 1.11.1
-      '@webassemblyjs/wasm-edit': 1.11.1
-      '@webassemblyjs/wasm-parser': 1.11.1
-      acorn: 8.8.0
-      acorn-import-assertions: 1.8.0_acorn@8.8.0
-      browserslist: 4.21.4
-      chrome-trace-event: 1.0.3
-      enhanced-resolve: 5.10.0
-      es-module-lexer: 0.9.3
-      eslint-scope: 5.1.1
-      events: 3.3.0
-      glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.10
-      json-parse-even-better-errors: 2.3.1
-      loader-runner: 4.3.0
-      mime-types: 2.1.35
-      neo-async: 2.6.2
-      schema-utils: 3.1.1
-      tapable: 2.2.1
-      terser-webpack-plugin: 5.3.6_hzeag5wohmlrlexhcbrhkqzb4q
-      watchpack: 2.4.0
-      webpack-cli: 4.10.0_webpack@5.74.0
       webpack-sources: 3.2.3
     transitivePeerDependencies:
       - '@swc/core'
