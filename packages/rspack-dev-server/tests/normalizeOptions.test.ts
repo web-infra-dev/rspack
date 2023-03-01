@@ -19,29 +19,38 @@ describe("normalize options snapshot", () => {
 	});
 
 	it("additional entires should added", async () => {
-		await matchAdditionEntries({}, {
-			entry: ["something"]
-		});
+		await matchAdditionEntries(
+			{},
+			{
+				entry: ["something"]
+			}
+		);
 	});
 
 	it("react-refresh client added when react/refresh enabled", async () => {
-		await matchAdditionEntries({}, {
-			entry: ["something"],
-			builtins: {
-				react: {
-					refresh: true
+		await matchAdditionEntries(
+			{},
+			{
+				entry: ["something"],
+				builtins: {
+					react: {
+						refresh: true
+					}
 				}
 			}
-		});
+		);
 	});
 
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = createCompiler({
-			stats: "none",
+			stats: "none"
 		});
-		const server = new RspackDevServer({
-			hot: true
-		}, compiler);
+		const server = new RspackDevServer(
+			{
+				hot: true
+			},
+			compiler
+		);
 		await server.start();
 		expect(compiler.options.builtins.react?.refresh).toBe(true);
 		expect(compiler.options.builtins.react?.development).toBe(true);
@@ -50,7 +59,7 @@ describe("normalize options snapshot", () => {
 
 	it("hot should be true by default", async () => {
 		const compiler = createCompiler({
-			stats: "none",
+			stats: "none"
 		});
 		const server = new RspackDevServer({}, compiler);
 		await server.start();
@@ -81,7 +90,10 @@ async function match(config: RspackOptions) {
 	await server.stop();
 }
 
-async function matchAdditionEntries(serverConfig: Configuration, config: RspackOptions) {
+async function matchAdditionEntries(
+	serverConfig: Configuration,
+	config: RspackOptions
+) {
 	const compiler = createCompiler({
 		...config,
 		stats: "none",
@@ -92,10 +104,7 @@ async function matchAdditionEntries(serverConfig: Configuration, config: RspackO
 			}
 		}
 	});
-	const server = new RspackDevServer(
-		serverConfig,
-		compiler
-	);
+	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
 	const entires = Object.entries(compiler.options.entry);
 	// some hack for snapshot
