@@ -4,15 +4,8 @@
   "description": "Arco Design Pro",
   "private": true,
   "scripts": {
-    "dev": "NODE_ENV=development ./node_modules/@rspack/cli/bin/rspack serve -c rspack.config.js",
-    "build": "NODE_ENV=production ./node_modules/@rspack/cli/bin/rspack build -c rspack.config.js",
-    "analyze": "pnpm run build --analyze",
-    "preview": "cd dist && serve -s",
-    "bundle-stats": "NODE_ENV=production ./node_modules/@rspack/cli/bin/rspack build -c rspack.config.js --json ./rspack-stats.json",
-    "webpack:dev": "NODE_ENV=development webpack serve -c webpack.config.js",
-    "webpack:build": "NODE_ENV=production webpack build -c webpack.config.js",
-    "webpack:bundle-stats": "NODE_ENV=production webpack build -c webpack.config.js --json ./webpack-stats.json",
-    "compare-bundle-stats": "pnpm run bundle-stats && pnpm run webpack:bundle-stats && bundle-stats ./rspack-stats.json ./webpack-stats.json"
+    "dev": "rspack serve",
+    "build": "rspack build"
   },
   "dependencies": {
     "@antv/data-set": "^0.11.8",
