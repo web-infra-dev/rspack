@@ -8,11 +8,7 @@
     "build": "NODE_ENV=production ./node_modules/@rspack/cli/bin/rspack build -c rspack.config.js",
     "analyze": "pnpm run build --analyze",
     "preview": "cd dist && serve -s",
-    "bundle-stats": "NODE_ENV=production ./node_modules/@rspack/cli/bin/rspack build -c rspack.config.js --json ./rspack-stats.json",
-    "webpack:dev": "NODE_ENV=development webpack serve -c webpack.config.js",
-    "webpack:build": "NODE_ENV=production webpack build -c webpack.config.js",
-    "webpack:bundle-stats": "NODE_ENV=production webpack build -c webpack.config.js --json ./webpack-stats.json",
-    "compare-bundle-stats": "pnpm run bundle-stats && pnpm run webpack:bundle-stats && bundle-stats ./rspack-stats.json ./webpack-stats.json"
+    "bundle-stats": "NODE_ENV=production ./node_modules/@rspack/cli/bin/rspack build -c rspack.config.js --json ./rspack-stats.json"
   },
   "dependencies": {
     "@antv/data-set": "^0.11.8",
@@ -56,8 +52,6 @@
     "style-loader": "^3.3.1",
     "swc-loader": "^0.2.3",
     "typescript": "^4.5.5",
-    "webpack": "5.74.0",
-    "webpack-cli": "4.10.0"
   },
   "browserslist": {
     "production": [
