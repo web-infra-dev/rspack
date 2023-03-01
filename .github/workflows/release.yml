@@ -1,4 +1,4 @@
-name: Release Pull Request
+name: Release
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ on:
 
 jobs:
   release:
-    name: Create Release Pull Request
+    name: Release
     runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
 
     steps:
