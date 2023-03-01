@@ -1,13 +1,13 @@
-name: Release
+name: Release Pull Request
 
 on:
   workflow_dispatch:
     inputs:
-      tag:
+      version:
         type: choice
-        description: "Release Version(canary, alpha, beta, latest)"
+        description: "Release Type(next, beta, alpha, latest)"
         required: true
-        default: "canary"
+        default: "latest"
         options:
           - canary
           - alpha
@@ -16,7 +16,7 @@ on:
 
 jobs:
   release:
-    name: Release
+    name: Create Release Pull Request
     runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
 
     steps:
@@ -40,13 +40,13 @@ jobs:
           npm install -g pnpm@7.25.0
           pnpm -v
           pnpm install
-      - name: Release
+      - name: Create Release Pull Request
         uses: modern-js-dev/actions@v2
         with:
           # this expects you to have a script called release which does a build for your packages and calls changeset publish
           version: ${{ github.event.inputs.version }}
-          type: "release"
-          branch: ${{ github.ref_name }}
+          versionNumber: "auto"
+          type: "pull request"
           tools: "changeset"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

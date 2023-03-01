@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  release:
-    name: Release
+  check-changeset:
+    name: Check Changeset
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
