@@ -15,9 +15,12 @@ English | [简体中文](./README.zh-CN.md)
 
 ## ✨ Features
 
-- 🚀 **Fast**: Based on Rust, the build speed is extremely fast, bringing you the ultimate development experience.
-- 📦 **Webpack Interoperable**: Targeted interoperability the Webpack ecosystem, no need to build your ecosystem from scratch.
+- 🚀 **Fast Startup**: Based on Rust, the build speed is extremely fast, bringing you the ultimate development experience.
+- ⚡ **Lightning HMR**: With a built-in incremental compilation mechanism, HMR is extremely fast and fully capable of developing large-scale projects.
+- 📦 **Webpack Interoperable**: Compatible with the architecture and ecology of webpack, no need to build the ecology from scratch.
 - 🎨 **Batteries Included**: Out-of-the-box support for Typescript, JSX, CSS, CSS Modules, Sass, and more.
+- 🛠️ **Production Optimization**: By default, various optimization strategies are built in, such as Tree Shaking, Minification, etc.
+- 🎯 **Framework Agnostic**: Not bound to any frontend framework, ensuring enough flexibility.
 
 Read [Introduction](https://rspack.org/guide/introduction.html) for details.
 
