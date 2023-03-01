@@ -14,6 +14,10 @@ module.exports = {
         type: 'css/module'
       },
       {
+        test: /\.svg$/,
+        type: 'asset/resource'
+      },
+      {
         test: /\.jsx$/,
         use: [
           {

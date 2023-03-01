@@ -18,6 +18,10 @@ module.exports = {
         test: /\.less$/,
         type: 'css'
       },
+      {
+        test: /\.(png|svg|jpg)$/,
+        type: 'asset/resource'
+      }
     ],
     parser: {
       asset: {

@@ -6,6 +6,14 @@ module.exports = {
   entry: {
     main: './src/index.jsx'
   },
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        type: 'asset/resource'
+      }
+    ]
+  },
   builtins: {
     html: [{
       template: './index.html'

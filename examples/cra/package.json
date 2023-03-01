@@ -12,7 +12,7 @@
     "copy-webpack-plugin": "5.1.2"
   },
   "scripts": {
-    "start": "rspack serve",
+    "dev": "rspack serve",
     "build": "rspack build"
   },
   "browserslist": {
