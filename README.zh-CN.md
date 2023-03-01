@@ -61,6 +61,7 @@
 - [Vite](https://github.com/vitejs/vite) 由[尤雨溪](https://github.com/yyx990803)创建，它和 rollup 社区的兼容性设计启发了 Rspack 和 Webpack 社区的兼容设计。
 - [Rolldown](https://github.com/rolldown-rs/rolldown) 项目(由 [Rolldown 团队](https://github.com/sponsors/rolldown-rs)创建)，它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
 - [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建）, 它启发了 Rspack 的 `@rspack/html-plugin`。
+- [Turbopack](https://github.com/vercel/turbo) 项目，它启发了 Rspack 里基于 AST 的路径重写逻辑。
 
 ## License
 
