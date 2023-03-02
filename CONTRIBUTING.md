@@ -90,7 +90,14 @@ We currently have two sets of test suits, one for Rust and one for Node.js.
 ### Node Testing
 
 ```sh
-# you need to build js package before running tests
+# In root path
+pnpm --filter "./packages/**" run build && pnpm --filter "./packages/**" run test
+```
+
+Or only test the package that you made the changes:
+
+```sh
+# In the Node.js package path
 pnpm run build && pnpm run test
 ```
 
