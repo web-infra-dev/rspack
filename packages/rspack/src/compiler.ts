@@ -275,11 +275,9 @@ class Compiler {
 	}
 
 	async #optimize_chunk_modules() {
-		if (this.compilation.hooks.optimizeChunkModules.taps.length != 0) {
-			await this.compilation.hooks.optimizeChunkModules.promise(
-				this.compilation.getModules()
-			);
-		}
+		await this.compilation.hooks.optimizeChunkModules.promise(
+			this.compilation.getModules()
+		);
 	}
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
@@ -295,6 +293,48 @@ class Compiler {
 	#compilation(native: binding.JsCompilation) {
 		// TODO: implement this based on the child compiler impl.
 		this.hooks.compilation.call(this.compilation);
+
+		if (!this.#instance) {
+			return;
+		}
+		const disabledHooks = [];
+		const hookMap = {
+			make: this.hooks.make,
+			emit: this.hooks.emit,
+			afterEmit: this.hooks.afterEmit,
+			processAssetsStageAdditional:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+				),
+			processAssetsStagePreProcess:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
+				),
+			processAssetsStageNone:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_NONE
+				),
+			processAssetsStageOptimizeInline:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+				),
+			processAssetsStageSummarize:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+				),
+			processAssetsStageReport:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_REPORT
+				),
+			compilation: this.hooks.compilation,
+			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules
+		};
+		for (const [name, hook] of Object.entries(hookMap)) {
+			if (hook.taps.length === 0) {
+				disabledHooks.push(name);
+			}
+		}
+		this.#instance.unsafe_set_disabled_hooks(disabledHooks);
 	}
 
 	#newCompilation(native: binding.JsCompilation) {

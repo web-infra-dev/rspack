@@ -6,9 +6,10 @@ use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
-use crate::{JsCompilation, JsHooks};
+use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
+  disabled_hooks: DisabledHooks,
   pub make_tsfn: ThreadsafeFunction<(), ()>,
   pub compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
@@ -39,6 +40,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     &mut self,
     args: rspack_core::CompilationArgs<'_>,
   ) -> rspack_core::PluginCompilationHookOutput {
+    if self.is_hook_disabled(&Hook::Compilation) {
+      return Ok(());
+    }
+
     let compilation = JsCompilation::from_compilation(unsafe {
       std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
         args.compilation,
@@ -57,6 +62,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     &mut self,
     args: rspack_core::ThisCompilationArgs<'_>,
   ) -> rspack_core::PluginThisCompilationHookOutput {
+    if self.is_hook_disabled(&Hook::ThisCompilation) {
+      return Ok(());
+    }
+
     let compilation = JsCompilation::from_compilation(unsafe {
       std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
         args.this_compilation,
@@ -77,6 +86,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     _compilation: &rspack_core::Compilation,
   ) -> rspack_core::PluginMakeHookOutput {
+    if self.is_hook_disabled(&Hook::Make) {
+      return Ok(());
+    }
+
     // We don't need to expose `compilation` to Node as it's already been exposed via `compilation` hook
     self
       .make_tsfn
@@ -91,6 +104,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageAdditional) {
+      return Ok(());
+    }
+
     self
       .process_assets_stage_additional_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
@@ -104,6 +121,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStagePreProcess) {
+      return Ok(());
+    }
+
     self
       .process_assets_stage_pre_process_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
@@ -117,6 +138,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageNone) {
+      return Ok(());
+    }
+
     self
       .process_assets_stage_none_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
@@ -130,6 +155,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeInline) {
+      return Ok(());
+    }
+
     self
       .process_assets_stage_optimize_inline_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
@@ -145,6 +174,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageSummarize) {
+      return Ok(());
+    }
+
     // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
       .process_assets_stage_summarize_tsfn
@@ -159,6 +192,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageReport) {
+      return Ok(());
+    }
     // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
       .process_assets_stage_report_tsfn
@@ -169,6 +205,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::Emit) {
+      return Ok(());
+    }
+
     self
       .emit_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
@@ -178,6 +218,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn after_emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::AfterEmit) {
+      return Ok(());
+    }
+
     self
       .after_emit_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
@@ -190,6 +234,10 @@ impl rspack_core::Plugin for JsHooksAdapter {
     &mut self,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::OptimizeChunkModules) {
+      return Ok(());
+    }
+
     let compilation = JsCompilation::from_compilation(unsafe {
       std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
         args.compilation,
@@ -206,7 +254,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
 }
 
 impl JsHooksAdapter {
-  pub fn from_js_hooks(env: Env, js_hooks: JsHooks) -> Result<Self> {
+  pub fn from_js_hooks(env: Env, js_hooks: JsHooks, disabled_hooks: DisabledHooks) -> Result<Self> {
     let JsHooks {
       make,
       process_assets_stage_additional,
@@ -275,6 +323,7 @@ impl JsHooksAdapter {
       create_hook_tsfn!(optimize_chunk_module);
 
     Ok(JsHooksAdapter {
+      disabled_hooks,
       make_tsfn,
       process_assets_stage_additional_tsfn,
       process_assets_stage_pre_process_tsfn,
@@ -288,5 +337,9 @@ impl JsHooksAdapter {
       after_emit_tsfn,
       optimize_chunk_modules_tsfn,
     })
+  }
+
+  fn is_hook_disabled(&self, hook: &Hook) -> bool {
+    self.disabled_hooks.read().unwrap().contains(hook)
   }
 }
