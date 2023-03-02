@@ -1,3 +1,4 @@
+// @ts-ignore
 const RefreshRuntime = require("react-refresh/runtime");
 
 if (process.env.NODE_ENV !== "production") {
