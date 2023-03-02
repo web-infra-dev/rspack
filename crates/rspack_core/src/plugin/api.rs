@@ -103,6 +103,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(vec![])
   }
 
+  // JavascriptModulesPlugin hook
   async fn render_chunk(
     &self,
     _ctx: PluginContext,
