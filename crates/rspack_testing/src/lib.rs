@@ -1,5 +1,7 @@
+mod eval_raw;
+mod run_fixture;
 mod test_config;
-pub use test_config::{add_entry_runtime, apply_from_fixture, TestConfig};
-mod snapshot_rst;
-pub use snapshot_rst::{test_fixture, test_fixture_with_modify};
+pub use eval_raw::evaluate_options;
+pub use run_fixture::{apply_from_fixture, test_fixture};
+pub use test_config::TestConfig;
 pub use testing_macros::{self, fixture};
