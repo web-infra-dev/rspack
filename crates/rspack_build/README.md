@@ -2,6 +2,14 @@
 
 This is only used for profiling
 
-## profiling
+## Prerequisite
 
-cargo run --bin rspack_build --release your_project_root_contains_test.config.json
+```sh
+cargo isntall cargo-instruments  # if this not working try to run `brew install cargo-instruments`
+```
+
+## Profiling
+
+```sh
+cargo instruments --bin rspack_build --release --template alloc your_project_root_contains_test.config.json
+```
