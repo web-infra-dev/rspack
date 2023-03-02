@@ -74,6 +74,7 @@ class Compiler {
 		make: tapable.AsyncParallelHook<[Compilation]>;
 	};
 	options: RspackOptionsNormalized;
+	#disabledHooks: string[];
 
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
@@ -131,7 +132,9 @@ class Compiler {
 		};
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
+		this.#disabledHooks = [];
 	}
+
 	/**
 	 * Lazy initialize instance so it could access the changed options
 	 */
@@ -268,35 +271,7 @@ class Compiler {
 		);
 	}
 
-	async #processAssets(stage: number) {
-		await this.compilation
-			.__internal_getProcessAssetsHookByStage(stage)
-			.promise(this.compilation.assets);
-	}
-
-	async #optimize_chunk_modules() {
-		await this.compilation.hooks.optimizeChunkModules.promise(
-			this.compilation.getModules()
-		);
-	}
-	async #make() {
-		await this.hooks.make.promise(this.compilation);
-	}
-	async #emit() {
-		await this.hooks.emit.promise(this.compilation);
-	}
-
-	async #afterEmit() {
-		await this.hooks.afterEmit.promise(this.compilation);
-	}
-
-	#compilation(native: binding.JsCompilation) {
-		// TODO: implement this based on the child compiler impl.
-		this.hooks.compilation.call(this.compilation);
-
-		if (!this.#instance) {
-			return;
-		}
+	#updateDisabledHooks() {
 		const disabledHooks = [];
 		const hookMap = {
 			make: this.hooks.make,
@@ -334,7 +309,46 @@ class Compiler {
 				disabledHooks.push(name);
 			}
 		}
-		this.#instance.unsafe_set_disabled_hooks(disabledHooks);
+
+		// disabledHooks is in order
+		if (this.#disabledHooks.join() !== disabledHooks.join()) {
+			this.#instance.unsafe_set_disabled_hooks(disabledHooks);
+			this.#disabledHooks = disabledHooks;
+		}
+	}
+
+	async #processAssets(stage: number) {
+		await this.compilation
+			.__internal_getProcessAssetsHookByStage(stage)
+			.promise(this.compilation.assets);
+		this.#updateDisabledHooks();
+	}
+
+	async #optimize_chunk_modules() {
+		await this.compilation.hooks.optimizeChunkModules.promise(
+			this.compilation.getModules()
+		);
+		this.#updateDisabledHooks();
+	}
+	async #make() {
+		await this.hooks.make.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+	async #emit() {
+		await this.hooks.emit.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+
+	async #afterEmit() {
+		await this.hooks.afterEmit.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+
+	#compilation(native: binding.JsCompilation) {
+		// TODO: implement this based on the child compiler impl.
+		this.hooks.compilation.call(this.compilation);
+
+		this.#updateDisabledHooks();
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
@@ -342,6 +356,7 @@ class Compiler {
 		compilation.name = this.name;
 		this.compilation = compilation;
 		this.hooks.thisCompilation.call(this.compilation);
+		this.#updateDisabledHooks();
 	}
 
 	run(callback: Callback<Error, Stats>) {
