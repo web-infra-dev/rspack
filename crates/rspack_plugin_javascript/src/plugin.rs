@@ -11,8 +11,8 @@ use rspack_core::{
   get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, FilenameRenderOptions,
   GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderChunkArgs, RenderManifestEntry,
-  SourceType,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestEntry, RenderStartupArgs, SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -157,7 +157,7 @@ impl JsPlugin {
     sources.boxed()
   }
 
-  pub fn render_main(&self, args: &rspack_core::RenderManifestArgs) -> Result<BoxSource> {
+  pub async fn render_main(&self, args: &rspack_core::RenderManifestArgs<'_>) -> Result<BoxSource> {
     let compilation = args.compilation;
     let chunk = args.chunk();
     let mut sources = ConcatSource::default();
@@ -169,8 +169,23 @@ impl JsPlugin {
     if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
+      if let Some(source) = compilation
+        .plugin_driver
+        .read()
+        .await
+        .render_startup(RenderStartupArgs { compilation })?
+      {
+        sources.add(source);
+      }
     }
-    Ok(self.render_iife(sources.boxed(), args))
+    let final_source = self.render_iife(sources.boxed());
+    if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
+      compilation,
+      source: &final_source,
+    })? {
+      return Ok(source);
+    }
+    Ok(final_source)
   }
 
   pub async fn render_chunk(
@@ -186,20 +201,14 @@ impl JsPlugin {
       .render_chunk(RenderChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,
-      })?
+      })
+      .await?
       .expect("should has a render_chunk plugin");
     Ok(source)
   }
 
-  pub fn render_iife(
-    &self,
-    content: BoxSource,
-    args: &rspack_core::RenderManifestArgs,
-  ) -> BoxSource {
+  pub fn render_iife(&self, content: BoxSource) -> BoxSource {
     let mut sources = ConcatSource::default();
-    if let Some(library) = &args.compilation.options.output.library && !library.is_empty() {
-      sources.add(RawSource::from(format!("var {library};\n")));
-    }
     sources.add(RawSource::from("(function() {\n"));
     sources.add(content);
     sources.add(RawSource::from("\n})();\n"));
@@ -458,7 +467,7 @@ impl Plugin for JsPlugin {
     let source = if matches!(chunk.kind, ChunkKind::HotUpdate) {
       self.render_chunk(&args).await?
     } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      self.render_main(&args)?
+      self.render_main(&args).await?
     } else {
       self.render_chunk(&args).await?
     };

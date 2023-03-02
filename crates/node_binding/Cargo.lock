@@ -2030,6 +2030,7 @@ dependencies = [
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
+ "rspack_plugin_library",
  "rspack_plugin_progress",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
@@ -2430,6 +2431,16 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_library"
+version = "0.1.0"
+dependencies = [
+ "rspack_core",
+ "rspack_error",
+ "rspack_util",
+ "rustc-hash",
 ]
 
 [[package]]

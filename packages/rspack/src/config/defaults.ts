@@ -49,8 +49,8 @@ export const applyRspackOptionsDefaults = (
 		target === false
 			? false
 			: typeof target === "string"
-			? getTargetProperties(target, options.context!)
-			: getTargetsProperties(target, options.context!);
+				? getTargetProperties(target, options.context!)
+				: getTargetsProperties(target, options.context!);
 
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
@@ -285,6 +285,17 @@ const applyOutputDefaults = (
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
 	D(output, "strictModuleErrorHandling", false);
+	if (output.library) {
+		F(output.library, "type", () => (output.module ? "module" : "var"));
+	}
+	A(output, "enabledLibraryTypes", () => {
+		const enabledLibraryTypes = [];
+		if (output.library) {
+			enabledLibraryTypes.push(output.library.type);
+		}
+		// TODO respect entryOptions.library
+		return enabledLibraryTypes;
+	});
 };
 
 const applyNodeDefaults = (

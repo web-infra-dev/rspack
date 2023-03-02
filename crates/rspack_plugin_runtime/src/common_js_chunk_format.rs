@@ -4,7 +4,7 @@ use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
   runtime_globals, AdditionalChunkRuntimeRequirementsArgs, FilenameRenderOptions, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderChunkHookOutput,
-  RenderChunkArgs,
+  RenderChunkArgs, RenderStartupArgs,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::runtime::{
@@ -55,7 +55,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
     Ok(())
   }
 
-  fn render_chunk(
+  async fn render_chunk(
     &self,
     _ctx: PluginContext,
     args: &RenderChunkArgs,
@@ -136,6 +136,18 @@ impl Plugin for CommonJsChunkFormatPlugin {
         runtime_globals::EXTERNAL_INSTALL_CHUNK,
       )));
       sources.add(generate_chunk_entry_code(args.compilation, args.chunk_ukey));
+      if let Some(s) =
+        args
+          .compilation
+          .plugin_driver
+          .read()
+          .await
+          .render_startup(RenderStartupArgs {
+            compilation: args.compilation,
+          })?
+      {
+        sources.add(s);
+      }
     }
     Ok(Some(sources.boxed()))
   }

@@ -107,6 +107,50 @@ export interface EntryDescriptionNormalized {
 }
 
 ///// Output /////
+export interface LibraryCustomUmdCommentObject {
+	amd?: string;
+	commonjs?: string;
+	commonjs2?: string;
+	root?: string;
+}
+export interface LibraryOptions {
+	auxiliaryComment?: string | LibraryCustomUmdCommentObject;
+	export?: string | string[];
+	name?: string | string[] | LibraryCustomUmdObject;
+	type: string;
+	umdNamedDefine?: boolean;
+}
+declare interface LibraryCustomUmdObject {
+	amd?: string;
+	commonjs?: string;
+	root?: string | string[];
+}
+export type LibraryExport = string[] | string;
+export type LibraryType =
+	| (
+		| "var"
+		| "module"
+		| "assign"
+		| "assign-properties"
+		| "this"
+		| "window"
+		| "self"
+		| "global"
+		| "commonjs"
+		| "commonjs2"
+		| "commonjs-module"
+		| "commonjs-static"
+		| "amd"
+		| "amd-require"
+		| "umd"
+		| "umd2"
+		| "jsonp"
+		| "system"
+	)
+	| string;
+export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
+export type UmdNamedDefine = boolean;
+export type EnabledLibraryTypes = LibraryType[];
 export interface Output {
 	path?: Path;
 	publicPath?: PublicPath;
@@ -116,8 +160,13 @@ export interface Output {
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
-	// TODO: align with webpack
-	library?: Library;
+	enabledLibraryTypes?: EnabledLibraryTypes;
+	libraryExport?: LibraryExport;
+	libraryTarget?: LibraryType;
+	auxiliaryComment?: AuxiliaryComment;
+	umdNamedDefine?: UmdNamedDefine;
+	module?: OutputModule;
+	library?: string | string[] | LibraryOptions | LibraryCustomUmdObject;
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 }
 export type Path = string;
@@ -132,7 +181,7 @@ export type FilenameTemplate = string;
 export type UniqueName = string;
 export type Library = string | undefined;
 export type StrictModuleErrorHandling = boolean;
-
+export type OutputModule = boolean;
 export interface OutputNormalized {
 	path?: Path;
 	publicPath?: PublicPath;
@@ -142,7 +191,9 @@ export interface OutputNormalized {
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
-	library?: Library;
+	enabledLibraryTypes?: EnabledLibraryTypes;
+	library?: LibraryOptions;
+	module?: OutputModule;
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 }
 
@@ -217,8 +268,8 @@ export type RuleSetLoaderWithOptions = {
 export type RuleSetLoaderOptions =
 	| string
 	| {
-			[k: string]: any;
-	  };
+		[k: string]: any;
+	};
 export type ParserOptionsByModuleType = ParserOptionsByModuleTypeKnown;
 export interface ParserOptionsByModuleTypeKnown {
 	asset?: AssetParserOptions;
@@ -373,13 +424,13 @@ export type OptimizationRuntimeChunk =
 	| ("single" | "multiple")
 	| boolean
 	| {
-			name?: string | Function;
-	  };
+		name?: string | Function;
+	};
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: Function;
-	  };
+		name: Function;
+	};
 
 ///// Plugins /////
 export type Plugins = (RspackPluginInstance | RspackPluginFunction)[];

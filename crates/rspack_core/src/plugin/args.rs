@@ -167,3 +167,15 @@ pub struct RenderModuleContentArgs<'a> {
   pub module_source: &'a BoxSource,
   pub compilation: &'a Compilation,
 }
+
+#[derive(Debug)]
+pub struct RenderStartupArgs<'a> {
+  // pub module_source: &'a BoxSource,
+  pub compilation: &'a Compilation,
+}
+
+#[derive(Debug)]
+pub struct RenderArgs<'a> {
+  pub source: &'a BoxSource,
+  pub compilation: &'a Compilation,
+}
