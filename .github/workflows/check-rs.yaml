@@ -97,5 +97,4 @@ jobs:
           node -e "console.log(process.arch)"  
           npm i -g pnpm
           pnpm i
-          pnpm build:js
           cargo test --all -- --nocapture
