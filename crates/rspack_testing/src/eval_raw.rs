@@ -3,7 +3,7 @@ use std::{
   process::{Command, Stdio},
 };
 
-pub fn evaluate_options(config_path: &Path) -> Vec<u8> {
+pub fn evaluate_to_json(config_path: &Path) -> Vec<u8> {
   let r = Command::new("node")
     .args(["-p", &get_evaluate_code(config_path)])
     .stdout(Stdio::piped())

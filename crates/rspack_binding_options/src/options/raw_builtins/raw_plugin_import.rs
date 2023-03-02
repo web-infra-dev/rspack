@@ -3,6 +3,7 @@ use serde::Deserialize;
 use swc_plugin_import::{CustomTransform, PluginImportConfig, StyleConfig};
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawStyleConfig {
   pub style_library_directory: Option<String>,

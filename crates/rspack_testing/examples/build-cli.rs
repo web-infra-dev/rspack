@@ -5,7 +5,7 @@ use std::{env, path::PathBuf};
 use rspack_binding_options::{RawOptions, RawOptionsApply};
 use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
-use rspack_testing::evaluate_options;
+use rspack_testing::evaluate_to_json;
 use rspack_tracing::enable_tracing_by_env;
 
 #[tokio::main]
@@ -22,7 +22,7 @@ async fn main() {
     cwd.join(config).canonicalize().expect("canonicalize")
   };
 
-  let raw = evaluate_options(&config);
+  let raw = evaluate_to_json(&config);
   if emit {
     println!("{}", String::from_utf8_lossy(&raw));
   }

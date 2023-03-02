@@ -5,6 +5,7 @@ use rspack_core::{RelayConfig, RelayLanguageConfig};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawRelayConfig {
   pub artifact_directory: Option<String>,

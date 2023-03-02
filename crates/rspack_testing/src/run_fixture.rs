@@ -6,12 +6,12 @@ use rspack_core::{BoxPlugin, Compiler, CompilerOptions};
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_tracing::enable_tracing_by_env;
 
-use crate::{eval_raw::evaluate_options, test_config::TestConfig};
+use crate::{eval_raw::evaluate_to_json, test_config::TestConfig};
 
 pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugin>) {
   let js_config = fixture_path.join("test.config.js");
   if js_config.exists() {
-    let raw = evaluate_options(&js_config);
+    let raw = evaluate_to_json(&js_config);
     let raw: RawOptions = serde_json::from_slice(&raw).expect("ok");
     let mut plugins = Vec::new();
     let compiler_options = raw.apply(&mut plugins).expect("should be ok");

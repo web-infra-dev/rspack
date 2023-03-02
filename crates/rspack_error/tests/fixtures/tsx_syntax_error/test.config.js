@@ -1,7 +1,4 @@
 module.exports = {
-	entry: {
-		main: {
-			import: ["./index.tsx"]
-		}
-	}
+	entry: "./index",
+	context: __dirname
 };
