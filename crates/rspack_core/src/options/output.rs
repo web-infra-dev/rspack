@@ -21,7 +21,8 @@ pub struct OutputOptions {
   pub chunk_filename: Filename,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
-  pub library: Option<String>,
+  pub library: Option<LibraryOptions>,
+  pub enabled_library_types: Option<Vec<String>>,
   pub strict_module_error_handling: bool,
 }
 
@@ -220,4 +221,20 @@ pub fn get_js_chunk_filename_template<'filename>(
   } else {
     &output_options.chunk_filename
   }
+}
+
+#[derive(Debug)]
+pub struct LibraryOptions {
+  pub name: Option<LibraryName>,
+  pub export: Option<Vec<String>>,
+  // webpack type
+  pub library_type: String,
+  pub umd_named_define: Option<bool>,
+}
+
+#[derive(Debug)]
+pub struct LibraryName {
+  pub amd: Option<String>,
+  pub commonjs: Option<String>,
+  pub root: Option<Vec<String>>,
 }

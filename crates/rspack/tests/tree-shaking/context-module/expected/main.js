@@ -57,6 +57,7 @@ __webpack_require__('./child Sync  recursive ^.*.js$')(`./child/${a}.js`.replace
 },
 
 },function(__webpack_require__) {
-__webpack_require__("./index.js");
+var __webpack_exports__ = __webpack_require__('./index.js');
+
 }
 ]);

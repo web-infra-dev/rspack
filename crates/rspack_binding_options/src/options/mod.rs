@@ -90,7 +90,7 @@ impl RawOptionsApply for RawOptions {
       .into_iter()
       .map(|(name, item)| (name, item.into()))
       .collect::<HashMap<String, EntryItem>>();
-    let output: OutputOptions = self.output.into();
+    let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();

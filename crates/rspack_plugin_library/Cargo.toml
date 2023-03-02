@@ -1,0 +1,13 @@
+[package]
+edition = "2021"
+license = "MIT"
+name    = "rspack_plugin_library"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core  = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_util  = { path = "../rspack_util" }
+rustc-hash   = { workspace = true }

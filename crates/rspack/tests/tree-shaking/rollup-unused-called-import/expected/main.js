@@ -28,6 +28,7 @@ assert.equal((0, _fooJs.default)(), "foo");
 },
 
 },function(__webpack_require__) {
-__webpack_require__("./index.js");
+var __webpack_exports__ = __webpack_require__('./index.js');
+
 }
 ]);

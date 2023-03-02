@@ -227,6 +227,7 @@ describe("snapshots", () => {
 		    "chunkFilename": "[name].js",
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",
+		    "enabledLibraryTypes": [],
 		    "filename": "[name].js",
 		    "library": undefined,
 		    "path": "<cwd>/dist",
@@ -476,10 +477,11 @@ describe("snapshots", () => {
 		-     "chunkFilename": "[name].js",
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		-     "filename": "[name].js",
 		+     "chunkFilename": "[id].bundle.js",
 		+     "cssChunkFilename": "[id].bundle.css",
 		+     "cssFilename": "bundle.css",
+		@@ ... @@
+		-     "filename": "[name].js",
 		+     "filename": "bundle.js",
 	`)
 	);
@@ -492,10 +494,11 @@ describe("snapshots", () => {
 		-     "chunkFilename": "[name].js",
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		-     "filename": "[name].js",
 		+     "chunkFilename": "[id].js",
 		+     "cssChunkFilename": "[id].css",
 		+     "cssFilename": "[id].css",
+		@@ ... @@
+		-     "filename": "[name].js",
 		+     "filename": [Function filename],
 	`)
 	);
@@ -505,11 +508,22 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
-		-     "library": undefined,
-		+     "library": Array [
-		+       "myLib",
-		+       "awesome",
+		-     "enabledLibraryTypes": Array [],
+		+     "enabledLibraryTypes": Array [
+		+       "var",
 		+     ],
+		@@ ... @@
+		-     "library": undefined,
+		+     "library": Object {
+		+       "auxiliaryComment": undefined,
+		+       "export": undefined,
+		+       "name": Array [
+		+         "myLib",
+		+         "awesome",
+		+       ],
+		+       "type": "var",
+		+       "umdNamedDefine": undefined,
+		+     },
 	`)
 	);
 	test(
@@ -525,11 +539,22 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
-			-     "library": undefined,
-			+     "library": Array [
-			+       "myLib",
-			+       "[name]",
+			-     "enabledLibraryTypes": Array [],
+			+     "enabledLibraryTypes": Array [
+			+       "var",
 			+     ],
+			@@ ... @@
+			-     "library": undefined,
+			+     "library": Object {
+			+       "auxiliaryComment": undefined,
+			+       "export": undefined,
+			+       "name": Array [
+			+         "myLib",
+			+         "[name]",
+			+       ],
+			+       "type": "var",
+			+       "umdNamedDefine": undefined,
+			+     },
 		`)
 	);
 	test(
@@ -548,14 +573,22 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "enabledLibraryTypes": Array [],
+			+     "enabledLibraryTypes": Array [
+			+       "var",
+			+     ],
+			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "auxiliaryComment": undefined,
+			+       "export": undefined,
 			+       "name": Array [
 			+         "my[name]Lib",
 			+         "[name]",
 			+         "lib",
 			+       ],
 			+       "type": "var",
+			+       "umdNamedDefine": undefined,
 			+     },
 		`)
 	);
@@ -577,8 +610,15 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "enabledLibraryTypes": Array [],
+			+     "enabledLibraryTypes": Array [
+			+       "var",
+			+     ],
+			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "auxiliaryComment": undefined,
+			+       "export": undefined,
 			+       "name": Object {
 			+         "root": Array [
 			+           "[name]",
@@ -586,6 +626,7 @@ describe("snapshots", () => {
 			+         ],
 			+       },
 			+       "type": "var",
+			+       "umdNamedDefine": undefined,
 			+     },
 		`)
 	);
@@ -607,8 +648,15 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "enabledLibraryTypes": Array [],
+			+     "enabledLibraryTypes": Array [
+			+       "var",
+			+     ],
+			@@ ... @@
 			-     "library": undefined,
 			+     "library": Object {
+			+       "auxiliaryComment": undefined,
+			+       "export": undefined,
 			+       "name": Object {
 			+         "root": Array [
 			+           "[\\\\name\\\\]",
@@ -617,6 +665,7 @@ describe("snapshots", () => {
 			+         ],
 			+       },
 			+       "type": "var",
+			+       "umdNamedDefine": undefined,
 			+     },
 		`)
 	);

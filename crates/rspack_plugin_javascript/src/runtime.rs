@@ -121,15 +121,14 @@ pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUk
         .map(|module| module.id(&compilation.chunk_graph))
     })
     .collect::<Vec<_>>();
-  // let namespace = &compilation.options.output.unique_name;
   let sources = entry_modules_id
     .iter()
     .map(|id| {
-      if let Some(library) = &compilation.options.output.library && !library.is_empty() {
-          RawSource::from(format!(r#"{} = {}("{}");"#, library, runtime_globals::REQUIRE, id))
-        } else {
-          RawSource::from(format!(r#"{}("{}");"#, runtime_globals::REQUIRE, id))
-        }
+      RawSource::from(format!(
+        "var __webpack_exports__ = {}('{}');\n",
+        runtime_globals::REQUIRE,
+        id
+      ))
     })
     .collect::<Vec<_>>();
   ConcatSource::new(sources).boxed()

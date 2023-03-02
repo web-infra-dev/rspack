@@ -55,6 +55,7 @@ var _default = _zhLocaleJs.default;
 },
 
 },function(__webpack_require__) {
-__webpack_require__("./index.ts");
+var __webpack_exports__ = __webpack_require__('./index.ts');
+
 }
 ]);

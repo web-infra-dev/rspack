@@ -9,8 +9,8 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
   ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, SourceType,
-  ThisCompilationArgs,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -29,6 +29,8 @@ pub type PluginProcessAssetsOutput = Result<()>;
 pub type PluginOptimizeChunksOutput = Result<()>;
 pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
 pub type PluginRenderModuleContentOutput = Result<Option<BoxSource>>;
+pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
+pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -101,7 +103,8 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(vec![])
   }
 
-  fn render_chunk(
+  // JavascriptModulesPlugin hook
+  async fn render_chunk(
     &self,
     _ctx: PluginContext,
     _args: &RenderChunkArgs,
@@ -109,6 +112,21 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  // JavascriptModulesPlugin hook
+  fn render(&self, _ctx: PluginContext, _args: &RenderArgs) -> PluginRenderStartupHookOutput {
+    Ok(None)
+  }
+
+  // JavascriptModulesPlugin hook
+  fn render_startup(
+    &self,
+    _ctx: PluginContext,
+    _args: &RenderStartupArgs,
+  ) -> PluginRenderStartupHookOutput {
+    Ok(None)
+  }
+
+  // JavascriptModulesPlugin hook
   fn render_module_content(
     &self,
     _ctx: PluginContext,

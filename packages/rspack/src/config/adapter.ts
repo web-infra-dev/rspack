@@ -12,6 +12,7 @@ import {
 	EntryNormalized,
 	Experiments,
 	Externals,
+	LibraryOptions,
 	ModuleOptionsNormalized,
 	Node,
 	Optimization,
@@ -24,7 +25,6 @@ import {
 	SnapshotOptions,
 	Target
 } from "./types";
-import * as oldBuiltins from "./builtins";
 import {
 	ComposeJsUseOptions,
 	createRawModuleRuleUses
@@ -113,6 +113,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			!isNil(output.cssFilename) &&
 			!isNil(output.cssChunkFilename) &&
 			!isNil(output.uniqueName) &&
+			!isNil(output.enabledLibraryTypes) &&
 			!isNil(output.strictModuleErrorHandling),
 		"fields should not be nil after defaults"
 	);
@@ -125,8 +126,40 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		cssFilename: output.cssFilename,
 		cssChunkFilename: output.cssChunkFilename,
 		uniqueName: output.uniqueName,
-		library: output.library,
+		enabledLibraryTypes: output.enabledLibraryTypes,
+		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling
+	};
+}
+
+function getRawLibrary(
+	library: LibraryOptions
+): RawOptions["output"]["library"] {
+	const { type, name, export: libraryExport, umdNamedDefine } = library;
+	return {
+		libraryType: type,
+		name:
+			name == null
+				? name
+				: typeof name === "object" && !Array.isArray(name)
+				? {
+						amd: name.amd,
+						commonjs: name.commonjs,
+						root:
+							Array.isArray(name.root) || name.root == null
+								? name.root
+								: [name.root]
+				  }
+				: {
+						amd: Array.isArray(name) ? name[0] : name,
+						commonjs: Array.isArray(name) ? name[0] : name,
+						root: Array.isArray(name) || name == null ? name : [name]
+				  },
+		export:
+			Array.isArray(libraryExport) || libraryExport == null
+				? libraryExport
+				: [libraryExport],
+		umdNamedDefine
 	};
 }
 

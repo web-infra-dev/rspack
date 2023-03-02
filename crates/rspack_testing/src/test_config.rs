@@ -362,6 +362,7 @@ impl TestConfig {
         unique_name: "__rspack_test__".to_string(),
         path: context.join("dist"),
         library: None,
+        enabled_library_types: None,
         strict_module_error_handling: false,
       },
       mode: c::Mode::from(self.mode),

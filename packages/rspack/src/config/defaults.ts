@@ -285,6 +285,17 @@ const applyOutputDefaults = (
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
 	D(output, "strictModuleErrorHandling", false);
+	if (output.library) {
+		F(output.library, "type", () => (output.module ? "module" : "var"));
+	}
+	A(output, "enabledLibraryTypes", () => {
+		const enabledLibraryTypes = [];
+		if (output.library) {
+			enabledLibraryTypes.push(output.library.type);
+		}
+		// TODO respect entryOptions.library
+		return enabledLibraryTypes;
+	});
 };
 
 const applyNodeDefaults = (

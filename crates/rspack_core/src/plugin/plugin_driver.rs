@@ -15,8 +15,9 @@ use crate::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
   PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginThisCompilationHookOutput,
-  ProcessAssetsArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, ResolverFactory,
+  PluginRenderHookOutput, PluginRenderManifestHookOutput, PluginRenderModuleContentOutput,
+  PluginRenderStartupHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory,
   SourceType, Stats, ThisCompilationArgs,
 };
 
@@ -196,9 +197,27 @@ impl PluginDriver {
     Ok(assets)
   }
 
-  pub fn render_chunk(&self, args: RenderChunkArgs) -> PluginRenderChunkHookOutput {
+  pub async fn render_chunk(&self, args: RenderChunkArgs<'_>) -> PluginRenderChunkHookOutput {
     for plugin in &self.plugins {
-      if let Some(source) = plugin.render_chunk(PluginContext::new(), &args)? {
+      if let Some(source) = plugin.render_chunk(PluginContext::new(), &args).await? {
+        return Ok(Some(source));
+      }
+    }
+    Ok(None)
+  }
+
+  pub fn render(&self, args: RenderArgs) -> PluginRenderHookOutput {
+    for plugin in &self.plugins {
+      if let Some(source) = plugin.render(PluginContext::new(), &args)? {
+        return Ok(Some(source));
+      }
+    }
+    Ok(None)
+  }
+
+  pub fn render_startup(&self, args: RenderStartupArgs) -> PluginRenderStartupHookOutput {
+    for plugin in &self.plugins {
+      if let Some(source) = plugin.render_startup(PluginContext::new(), &args)? {
         return Ok(Some(source));
       }
     }

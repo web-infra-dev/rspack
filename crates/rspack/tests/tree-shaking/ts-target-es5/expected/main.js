@@ -14,6 +14,7 @@ async function test() {}
 },
 
 },function(__webpack_require__) {
-__webpack_require__("./index.ts");
+var __webpack_exports__ = __webpack_require__('./index.ts');
+
 }
 ]);

@@ -11,6 +11,7 @@
 import type {
 	EntryStatic,
 	EntryStaticNormalized,
+	LibraryOptions,
 	OptimizationRuntimeChunk,
 	OptimizationRuntimeChunkNormalized,
 	RspackOptions,
@@ -30,6 +31,19 @@ export const getNormalizedRspackOptions = (
 				? { main: {} }
 				: getNormalizedEntryStatic(config.entry),
 		output: nestedConfig(config.output, output => {
+			const { library } = output;
+			const libraryAsName = library;
+			const libraryBase =
+				typeof library === "object" &&
+				library &&
+				!Array.isArray(library) &&
+				"type" in library
+					? library
+					: libraryAsName || output.libraryTarget
+					? ({
+							name: libraryAsName
+					  } as LibraryOptions)
+					: undefined;
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
@@ -39,7 +53,28 @@ export const getNormalizedRspackOptions = (
 				cssChunkFilename: output.cssChunkFilename,
 				assetModuleFilename: output.assetModuleFilename,
 				uniqueName: output.uniqueName,
-				library: output.library
+				enabledLibraryTypes: output.enabledLibraryTypes
+					? [...output.enabledLibraryTypes]
+					: ["..."],
+				library: libraryBase && {
+					type:
+						output.libraryTarget !== undefined
+							? output.libraryTarget
+							: libraryBase.type,
+					auxiliaryComment:
+						output.auxiliaryComment !== undefined
+							? output.auxiliaryComment
+							: libraryBase.auxiliaryComment,
+					export:
+						output.libraryExport !== undefined
+							? output.libraryExport
+							: libraryBase.export,
+					name: libraryBase.name,
+					umdNamedDefine:
+						output.umdNamedDefine !== undefined
+							? output.umdNamedDefine
+							: libraryBase.umdNamedDefine
+				}
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
