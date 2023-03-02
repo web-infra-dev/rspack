@@ -15,6 +15,12 @@ on:
       - "rust-toolchain.toml"
       - "rustfmt.toml"
       - "clippy.toml"
+
+# cancel previous job runs for the same workflow + pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 # env:
 #   TRACE: DEBUG
 
@@ -94,7 +100,7 @@ jobs:
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |
-          node -e "console.log(process.arch)"  
+          node -e "console.log(process.arch)"
           npm i -g pnpm
           pnpm i
           cargo test --all -- --nocapture

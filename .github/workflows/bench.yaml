@@ -3,6 +3,12 @@ name: Benchmark
 on:
   issue_comment:
     types: [created]
+
+# cancel previous job runs for the same workflow + pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   RUST_LOG: info
   CARGO_INCREMENTAL: 0
