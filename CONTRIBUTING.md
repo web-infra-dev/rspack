@@ -121,19 +121,7 @@ Cases are used to test your stats, By Default we will use jest's snapshot to sna
 
 ## Release
 
-### Prerequisite
-
-1. Making sure you have permission to access organization `@rspack` in npmjs.com
-2. `Zig` compiler, you could install it by running `brew install zig` on macOS, for other OS, please refer https://ziglang.org/learn/getting-started/#installing-zig
-3. Installing `Linux` target toolchain (for now, only two target macOS and Linux are fairly enough), install `linux` target with command `rustup target add x86_64-unknown-linux-gnu`, if you are using macOS with arm architecture, you also need to run `rustup target add x86_64-apple-darwin`.
-
-### Step
-
-1. Making sure you have logged into npm
-2. Building packages `./x build cli:release`.
-3. `pnpm changeset`
-4. `pnpm bump` (for stable release) or `pnpm version:snapshot` (for snapshot release)
-5. `pnpm release`
+To make releasing easier, Rspack use github action to automate creating versioning pull requests, and optionally publishing packages.
 
 # Debugging with VSCode
 
