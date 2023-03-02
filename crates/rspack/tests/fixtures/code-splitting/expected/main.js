@@ -6,6 +6,7 @@ __webpack_require__.el("./b.js").then(__webpack_require__.bind(__webpack_require
 },
 
 },function(__webpack_require__) {
-__webpack_require__("./index.js");
+var __webpack_exports__ = __webpack_require__('./index.js');
+
 }
 ]);

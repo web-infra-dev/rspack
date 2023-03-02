@@ -38,6 +38,7 @@ console.log(answer);
 },
 
 },function(__webpack_require__) {
-__webpack_require__("./index.js");
+var __webpack_exports__ = __webpack_require__('./index.js');
+
 }
 ]);
