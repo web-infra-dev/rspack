@@ -185,9 +185,14 @@ function resolveDecorator(
 }
 
 function resolveProgress(
-	progress: Builtins["progress"]
+	progress: Builtins["progress"],
+	isProduction: boolean
 ): RawProgressPluginConfig | undefined {
-	if (!progress) {
+	if (progress === undefined) {
+		return isProduction ? undefined : {};
+	}
+
+	if (progress === false) {
 		return undefined;
 	}
 
@@ -328,7 +333,7 @@ export function resolveBuiltinsOptions(
 		define: resolveDefine(builtins.define || {}),
 		html: resolveHtml(builtins.html || []),
 		presetEnv,
-		progress: resolveProgress(builtins.progress),
+		progress: resolveProgress(builtins.progress, production),
 		decorator: resolveDecorator(builtins.decorator),
 		minifyOptions: resolveMinifyOptions(builtins, optimization),
 		emotion: resolveEmotion(builtins.emotion, production),

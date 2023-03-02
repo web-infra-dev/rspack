@@ -98,7 +98,7 @@ describe("snapshots", () => {
 		      "pxtorem": undefined,
 		    },
 		    "presetEnv": undefined,
-		    "progress": undefined,
+		    "progress": {},
 		    "react": {},
 		    "relay": undefined,
 		    "treeShaking": false,
@@ -315,6 +315,9 @@ describe("snapshots", () => {
 		+       "pureFuncs": Array [],
 		+     },
 		@@ ... @@
+		-     "progress": Object {},
+		+     "progress": undefined,
+		@@ ... @@
 		-     "treeShaking": false,
 		+     "treeShaking": true,
 		@@ ... @@
@@ -362,6 +365,9 @@ describe("snapshots", () => {
 		+       "passes": 1,
 		+       "pureFuncs": Array [],
 		+     },
+		@@ ... @@
+		-     "progress": Object {},
+		+     "progress": undefined,
 		@@ ... @@
 		-     "treeShaking": false,
 		+     "treeShaking": true,
