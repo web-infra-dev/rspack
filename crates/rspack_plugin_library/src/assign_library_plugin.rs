@@ -84,7 +84,7 @@ impl Plugin for AssignLibraryPlugin {
     } else {
       false
     };
-    let full_name_resolved = self.get_resolved_full_name(&args.compilation);
+    let full_name_resolved = self.get_resolved_full_name(args.compilation);
     let export_access = property_library(library);
     if matches!(self.options.unnamed, Unnamed::Static) {
       let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
@@ -133,7 +133,7 @@ fn property_library(library: &Option<LibraryOptions>) -> String {
 fn property_access(o: &Vec<String>) -> String {
   let mut str = String::default();
   for property in o {
-    str.push_str(format!(r#"["{}"]"#, property).as_str());
+    str.push_str(format!(r#"["{property}"]"#).as_str());
   }
   str
 }
