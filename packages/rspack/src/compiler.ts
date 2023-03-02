@@ -74,6 +74,7 @@ class Compiler {
 		make: tapable.AsyncParallelHook<[Compilation]>;
 	};
 	options: RspackOptionsNormalized;
+	#disabledHooks: string[];
 
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
@@ -131,7 +132,9 @@ class Compiler {
 		};
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
+		this.#disabledHooks = [];
 	}
+
 	/**
 	 * Lazy initialize instance so it could access the changed options
 	 */
@@ -268,33 +271,84 @@ class Compiler {
 		);
 	}
 
+	#updateDisabledHooks() {
+		const disabledHooks = [];
+		const hookMap = {
+			make: this.hooks.make,
+			emit: this.hooks.emit,
+			afterEmit: this.hooks.afterEmit,
+			processAssetsStageAdditional:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+				),
+			processAssetsStagePreProcess:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
+				),
+			processAssetsStageNone:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_NONE
+				),
+			processAssetsStageOptimizeInline:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE
+				),
+			processAssetsStageSummarize:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+				),
+			processAssetsStageReport:
+				this.compilation.__internal_getProcessAssetsHookByStage(
+					Compilation.PROCESS_ASSETS_STAGE_REPORT
+				),
+			compilation: this.hooks.compilation,
+			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules
+		};
+		for (const [name, hook] of Object.entries(hookMap)) {
+			if (hook.taps.length === 0) {
+				disabledHooks.push(name);
+			}
+		}
+
+		// disabledHooks is in order
+		if (this.#disabledHooks.join() !== disabledHooks.join()) {
+			this.#instance.unsafe_set_disabled_hooks(disabledHooks);
+			this.#disabledHooks = disabledHooks;
+		}
+	}
+
 	async #processAssets(stage: number) {
 		await this.compilation
 			.__internal_getProcessAssetsHookByStage(stage)
 			.promise(this.compilation.assets);
+		this.#updateDisabledHooks();
 	}
 
 	async #optimize_chunk_modules() {
-		if (this.compilation.hooks.optimizeChunkModules.taps.length != 0) {
-			await this.compilation.hooks.optimizeChunkModules.promise(
-				this.compilation.getModules()
-			);
-		}
+		await this.compilation.hooks.optimizeChunkModules.promise(
+			this.compilation.getModules()
+		);
+		this.#updateDisabledHooks();
 	}
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
+		this.#updateDisabledHooks();
 	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);
+		this.#updateDisabledHooks();
 	}
 
 	async #afterEmit() {
 		await this.hooks.afterEmit.promise(this.compilation);
+		this.#updateDisabledHooks();
 	}
 
 	#compilation(native: binding.JsCompilation) {
 		// TODO: implement this based on the child compiler impl.
 		this.hooks.compilation.call(this.compilation);
+
+		this.#updateDisabledHooks();
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
@@ -302,6 +356,7 @@ class Compiler {
 		compilation.name = this.name;
 		this.compilation = compilation;
 		this.hooks.thisCompilation.call(this.compilation);
+		this.#updateDisabledHooks();
 	}
 
 	run(callback: Callback<Error, Stats>) {

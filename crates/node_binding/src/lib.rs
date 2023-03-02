@@ -16,10 +16,12 @@ use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 use rspack_napi_shared::NAPI_ENV;
 
+mod hook;
 mod js_values;
 mod plugins;
 mod utils;
 
+use hook::*;
 use js_values::*;
 use plugins::*;
 use rspack_binding_options::*;
@@ -120,6 +122,7 @@ type CompilerId = u32;
 #[napi]
 pub struct Rspack {
   id: CompilerId,
+  disabled_hooks: DisabledHooks,
 }
 
 #[napi]
@@ -136,9 +139,10 @@ impl Rspack {
     Self::prepare_environment(&env);
     tracing::info!("raw_options: {:#?}", &options);
 
+    let disabled_hooks: DisabledHooks = Default::default();
     let mut plugins = Vec::new();
     if let Some(js_hooks) = js_hooks {
-      plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks)?.boxed());
+      plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
     }
 
     let compiler_options = options
@@ -157,7 +161,18 @@ impl Rspack {
     let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
     unsafe { COMPILERS.insert_if_vacant(id, rspack) }?;
 
-    Ok(Self { id })
+    Ok(Self { id, disabled_hooks })
+  }
+
+  #[napi(
+    catch_unwind,
+    js_name = "unsafe_set_disabled_hooks",
+    ts_args_type = "hooks: Array<string>"
+  )]
+  pub fn set_disabled_hooks(&self, _env: Env, hooks: Vec<String>) -> Result<()> {
+    let mut disabled_hooks = self.disabled_hooks.write().unwrap();
+    *disabled_hooks = hooks.into_iter().map(Into::into).collect::<Vec<Hook>>();
+    Ok(())
   }
 
   /// Build with the given option passed to the constructor
