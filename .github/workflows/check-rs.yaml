@@ -21,7 +21,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# env:
+env:
+    RUSTFLAGS: -D warnings
 #   TRACE: DEBUG
 
 jobs:
@@ -67,11 +68,14 @@ jobs:
         run: rustup show
       #- name: Cache
       # uses: speedy-js/rust-cache-self-hosted@v1
+      - name: Run cargo check
+        run: cargo check --workspace --all-targets --all-features --release --locked
+
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --workspace --all-targets --verbose -- --deny warnings
+          args: --workspace --all-targets --verbose
       # - name: Check Dependencies
       # run: |
       # node ./scripts/check_rust_dependency.js
