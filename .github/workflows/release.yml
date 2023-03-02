@@ -40,6 +40,8 @@ jobs:
           npm install -g pnpm@7.25.0
           pnpm -v
           pnpm install
+      - name: build
+        run: ./x build cli:release
       - name: Release
         uses: modern-js-dev/actions@v2
         with:
