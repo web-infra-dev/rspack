@@ -41,7 +41,7 @@ jobs:
           pnpm -v
           pnpm install
       - name: Build
-        run: ./x build cli:release
+        run: ./x build cli:release:all
       - name: Release
         uses: modern-js-dev/actions@v2
         with:
