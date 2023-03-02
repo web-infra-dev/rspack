@@ -55,3 +55,10 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
+      - name: Write a new comment
+        uses: peter-evans/create-or-update-comment@v1.4.5
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            ${{ steps.release.outputs.comment }}
