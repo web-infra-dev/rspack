@@ -8,17 +8,14 @@ import reloadApp from "webpack-dev-server/client/utils/reloadApp";
 import sendMessage from "webpack-dev-server/client/utils/sendMessage";
 import stripAnsi from "webpack-dev-server/client/utils/stripAnsi";
 import { formatProblem, show, hide } from "webpack-dev-server/client/overlay";
-import { log, setLogLevel } from "webpack-dev-server/client/utils/log";
+import {
+	log,
+	setLogLevel,
+	logEnabledFeatures
+} from "webpack-dev-server/client/utils/log";
 
 declare const __resourceQuery: string;
 declare const __webpack_hash__: string;
-
-function setAllLogLevel(level) {
-	webpackHotLog.setLogLevel(
-		level === "verbose" || level === "log" ? "info" : level
-	);
-	setLogLevel(level);
-}
 
 const status = {
 	isUnloading: false,
@@ -34,15 +31,89 @@ type Options = {
 		| boolean
 		| { warnings?: boolean; errors?: boolean; trustedTypesPolicyName?: string };
 	reconnect: number;
+	logging: boolean;
 };
 
 const options: Options = {
-	hot: true,
-	liveReload: true,
-	progress: true,
-	overlay: true,
-	reconnect: 3
+	hot: false,
+	liveReload: false,
+	progress: false,
+	overlay: false,
+	reconnect: 3,
+	logging: false
 };
+
+const parsedResourceQuery = parseURL(__resourceQuery);
+
+const enabledFeatures = {
+	"Hot Module Replacement": false,
+	"Live Reloading": false,
+	Progress: false,
+	Overlay: false
+};
+
+if (parsedResourceQuery.hot === "true") {
+	options.hot = true;
+	enabledFeatures["Hot Module Replacement"] = true;
+}
+
+if (parsedResourceQuery["live-reload"] === "true") {
+	options.liveReload = true;
+	enabledFeatures["Live Reloading"] = true;
+}
+
+if (parsedResourceQuery.progress === "true") {
+	options.progress = true;
+	enabledFeatures.Progress = true;
+}
+
+if (parsedResourceQuery.overlay) {
+	try {
+		options.overlay = JSON.parse(parsedResourceQuery.overlay);
+	} catch (e) {
+		log.error("Error parsing overlay options from resource query:", e);
+	}
+
+	// Fill in default "true" params for partially-specified objects.
+	if (typeof options.overlay === "object") {
+		options.overlay = {
+			errors: true,
+			warnings: true,
+			...options.overlay
+		};
+	}
+	enabledFeatures.Overlay = true;
+}
+
+if (parsedResourceQuery.logging) {
+	options.logging = parsedResourceQuery.logging;
+}
+
+if (typeof parsedResourceQuery.reconnect !== "undefined") {
+	options.reconnect = Number(parsedResourceQuery.reconnect);
+}
+
+/**
+ * @param {string} level
+ */
+function setAllLogLevel(level) {
+	// This is needed because the HMR logger operate separately from dev server logger
+	webpackHotLog.setLogLevel(
+		level === "verbose" || level === "log" ? "info" : level
+	);
+	setLogLevel(level);
+}
+
+if (options.logging) {
+	setAllLogLevel(options.logging);
+}
+
+logEnabledFeatures(enabledFeatures);
+
+self.addEventListener("beforeunload", () => {
+	status.isUnloading = true;
+});
+
 // TODO: change `options` by the result of `parsedResourceQuery`.
 
 const onSocketMessage = {
@@ -242,7 +313,6 @@ const onSocketMessage = {
 	}
 };
 
-const parsedResourceQuery = parseURL(__resourceQuery);
 const socketURL = createSocketURL(parsedResourceQuery);
 
 socket(socketURL, onSocketMessage);
