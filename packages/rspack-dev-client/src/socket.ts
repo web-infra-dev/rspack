@@ -1,12 +1,6 @@
 import WebSocketClient from "webpack-dev-server/client/clients/WebSocketClient";
 import { log } from "webpack-dev-server/client/utils/log";
 
-export interface Handler {
-	ok(): void;
-	close(): void;
-	"static-changed"(): void;
-}
-
 // @ts-ignore
 const __webpack_dev_server_client__ = __webpack_modules__.$WsClient$;
 const Client =
@@ -22,7 +16,7 @@ export let client = null;
 
 const socket = function initSocket(
 	url: string,
-	handlers: Handler,
+	handlers: any,
 	reconnect?: number
 ) {
 	let client = new Client(url);
