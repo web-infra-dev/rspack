@@ -75,7 +75,8 @@ pnpm run init
 ### Final
 
 - Open Rspack project.
-- Run `cargo build` to see that is everthing ok.
+- Run `cargo build` to compile Rust code.
+- Run `pnpm run build:cli:debug` to compile both Node.js and Rust code.
 
 ## Testing
 
@@ -89,8 +90,15 @@ We currently have two sets of test suits, one for Rust and one for Node.js.
 ### Node Testing
 
 ```sh
-# you need to build js package before running tests
-pnpm run build && pnpm run test:js
+# In root path
+pnpm --filter "./packages/**" run build && pnpm --filter "./packages/**" run test
+```
+
+Or only test the package that you made the changes:
+
+```sh
+# In the Node.js package path
+pnpm run build && pnpm run test
 ```
 
 ### Node Testing Suit Overview
