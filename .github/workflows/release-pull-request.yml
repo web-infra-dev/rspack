@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: "16"
           architecture: "arm64"
-      - name: install node_modules
+      - name: Install node_modules
         run: |
           npm install -g pnpm@7.25.0
           pnpm -v

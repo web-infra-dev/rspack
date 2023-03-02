@@ -3,7 +3,7 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      tag:
+      version:
         type: choice
         description: "Release Version(canary, alpha, beta, latest)"
         required: true
@@ -35,12 +35,12 @@ jobs:
         with:
           node-version: "16"
           architecture: "arm64"
-      - name: install node_modules
+      - name: Install node_modules
         run: |
           npm install -g pnpm@7.25.0
           pnpm -v
           pnpm install
-      - name: build
+      - name: Build
         run: ./x build cli:release
       - name: Release
         uses: modern-js-dev/actions@v2
