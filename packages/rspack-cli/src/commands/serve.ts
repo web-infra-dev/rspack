@@ -43,6 +43,18 @@ export class ServeCommand implements RspackCommand {
 				for (const compiler of compilers) {
 					const devServer = (compiler.options.devServer ??= {});
 					devServer.hot ??= true;
+					if (devServer.client !== false) {
+						if (devServer.client === true || devServer.client == null) {
+							devServer.client = {};
+						}
+						devServer.client = {
+							overlay: {
+								errors: true,
+								warnings: false
+							},
+							...devServer.client
+						};
+					}
 				}
 
 				const result = (compilerForDevServer.options.devServer ??= {});
@@ -50,6 +62,18 @@ export class ServeCommand implements RspackCommand {
 				 * Enable this to tell Rspack that we need to enable React Refresh by default
 				 */
 				result.hot ??= true;
+				if (result.client !== false) {
+					if (result.client === true || result.client == null) {
+						result.client = {};
+					}
+					result.client = {
+						overlay: {
+							errors: true,
+							warnings: false
+						},
+						...result.client
+					};
+				}
 
 				const devServerOptions = result as DevServer;
 				if (devServerOptions.port) {
