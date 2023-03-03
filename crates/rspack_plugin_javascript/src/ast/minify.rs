@@ -233,6 +233,7 @@ fn minify_file_comments(
   }
 }
 
+// keep this private to make sure with_rspack_error_handler is safety
 struct RspackErrorEmitter {
   tx: crossbeam_channel::Sender<rspack_error::Error>,
   source_map: Arc<SourceMap>,
@@ -259,12 +260,12 @@ impl Emitter for RspackErrorEmitter {
           )
           .with_kind(self.kind),
         ))
-        .expect("should ok");
+        .expect("Sender should drop after emit called");
     } else {
       self
         .tx
         .send(internal_error!(db.message()))
-        .expect("should ok");
+        .expect("Sender should drop after emit called");
     }
   }
 }
