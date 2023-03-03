@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: ./x build cli:release:all
       - name: Release
-        uses: modern-js-dev/actions@v2
+        uses: web-infra-dev/actions@v2
         with:
           # this expects you to have a script called release which does a build for your packages and calls changeset publish
           version: ${{ github.event.inputs.version }}

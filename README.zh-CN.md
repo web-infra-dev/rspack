@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
   <img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" />
-  <a href="https://github.com/modern-js-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
+  <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
 </p>
 
 [English](./README.md) | 简体中文
@@ -43,9 +43,9 @@
 | 名称                                                                                    | 描述                                                                         |
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | [rspack 文档](https://rspack.org)                                                       | rspack 官方文档                                                              |
-| [rspack 文档仓库](https://github.com/modern-js-dev/rspack-website)                      | rspack 官方文档的代码仓库                                                    |
-| [rspack-sources](https://github.com/modern-js-dev/rspack-sources)                       | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase) | 迁移到 rspack 的示例项目                                                     |
+| [rspack 文档仓库](https://github.com/web-infra-dev/rspack-website)                      | rspack 官方文档的代码仓库                                                    |
+| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | 迁移到 rspack 的示例项目                                                     |
 
 ## 致谢
 
@@ -65,4 +65,4 @@
 
 ## License
 
-Rspack 项目基于 [MIT 协议](https://github.com/modern-js-dev/rspack/blob/main/LICENSE)，请自由地享受和参与开源。
+Rspack 项目基于 [MIT 协议](https://github.com/web-infra-dev/rspack/blob/main/LICENSE)，请自由地享受和参与开源。

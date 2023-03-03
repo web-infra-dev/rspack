@@ -41,7 +41,7 @@ jobs:
           pnpm -v
           pnpm install
       - name: Create Release Pull Request
-        uses: modern-js-dev/actions@v2
+        uses: web-infra-dev/actions@v2
         with:
           # this expects you to have a script called release which does a build for your packages and calls changeset publish
           version: ${{ github.event.inputs.version }}

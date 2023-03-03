@@ -5,8 +5,8 @@
   "description": "Node binding for rspack",
   "main": "rspack.linux-x64-gnu.node",
   "homepage": "https://rspack.org",
-  "bugs": "https://github.com/modern-js-dev/rspack/issues",
-  "repository": "modern-js-dev/rspack",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": "web-infra-dev/rspack",
   "publishConfig": {
     "access": "public"
   },

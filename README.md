@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
   <img src="https://img.shields.io/npm/dm/@rspack/core.svg?style=flat-square&colorA=564341&colorB=EDED91" alt="downloads" />
-  <a href="https://github.com/modern-js-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
+  <a href="https://github.com/web-infra-dev/rspack/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="license" /></a>
 </p>
 
 English | [简体中文](./README.zh-CN.md)
@@ -43,9 +43,9 @@ This repo has adopted the ByteDance Open Source Code of Conduct. Please check [C
 | Name                                                                                    | Description                                                                 |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | [rspack website](https://rspack.org)                                                    | Official documentation for rspack                                           |
-| [rspack website repo](https://github.com/modern-js-dev/rspack-website)                  | Repository of official documentation                                        |
-| [rspack-sources](https://github.com/modern-js-dev/rspack-sources)                       | Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port |
-| [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase) | Migration showcases for rspack                                              |
+| [rspack website repo](https://github.com/web-infra-dev/rspack-website)                  | Repository of official documentation                                        |
+| [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port |
+| [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | Migration showcases for rspack                                              |
 
 ## Credits
 
@@ -65,4 +65,4 @@ Thanks to:
 
 ## License
 
-Rspack is [MIT licensed](https://github.com/modern-js-dev/rspack/blob/main/LICENSE).
+Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).

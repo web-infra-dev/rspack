@@ -9,9 +9,8 @@ body:
         Thank you for taking the time to report this issue! Before submitting, please note:
 
          - Confirm that your problem cannot be solved by official documentation.
-         - Make sure you've searched in the [Issues](https://github.com/modern-js-dev/rspack/issues) and haven't found the same issue.
-         - If it's not bug report, please post on the [Discussions](https://github.com/modern-js-dev/rspack/discussions).
-
+         - Make sure you've searched in the [Issues](https://github.com/web-infra-dev/rspack/issues) and haven't found the same issue.
+         - If it's not bug report, please post on the [Discussions](https://github.com/web-infra-dev/rspack/discussions).
 
   - type: textarea
     id: system-info
