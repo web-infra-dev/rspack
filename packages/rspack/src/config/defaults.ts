@@ -120,7 +120,7 @@ const applyInfrastructureLoggingDefaults = (
 };
 
 const applyExperimentsDefaults = (experiments: Experiments) => {
-	D(experiments, "incrementalRebuild", false);
+	D(experiments, "incrementalRebuild", true);
 	D(experiments, "lazyCompilation", false);
 };
 
