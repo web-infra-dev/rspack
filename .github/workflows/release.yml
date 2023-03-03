@@ -13,8 +13,8 @@ on:
           - alpha
           - beta
           - latest
-    issue_comment:
-      types: [created]
+  issue_comment:
+    types: [created]
 
 jobs:
   issue_commentd:
