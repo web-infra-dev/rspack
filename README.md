@@ -44,8 +44,8 @@ This repo has adopted the ByteDance Open Source Code of Conduct. Please check [C
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | [Rspack website](https://rspack.org)                                                    | Official documentation for Rspack                                           |
 | [Rspack website repo](https://github.com/modern-js-dev/rspack-website)                  | Repository of official documentation                                        |
-| [Rspack Sources](https://github.com/modern-js-dev/rspack-sources)                       | Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port |
-| [Rspack Migration Showcase](https://github.com/modern-js-dev/rspack-migration-showcase) | Migration showcases for Rspack                                              |
+| [rspack-sources](https://github.com/modern-js-dev/rspack-sources)                       | Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port |
+| [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase) | Migration showcases for Rspack                                              |
 
 ## Credits
 
