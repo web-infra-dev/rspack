@@ -1,5 +1,15 @@
 # @rspack/binding
 
+## 0.0.24
+
+### Patch Changes
+
+- 3495d3d72: feat: add stats.namedChunkGroups
+- e2466248d: feat: add stats.assetsByChunkName
+- a22149e98: fix: css modules ident-name leading digits
+- 58b77bafc: feat: add plugin-import
+- b101fd41e: fix: update swc_emotion to avoid single line comment inside template string break the styles
+
 ## 0.0.23
 
 ### Patch Changes

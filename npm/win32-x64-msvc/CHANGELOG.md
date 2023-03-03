@@ -1,5 +1,7 @@
 # @rspack/binding-win32-x64-msvc
 
+## 0.0.24
+
 ## 0.0.23
 
 ### Patch Changes
