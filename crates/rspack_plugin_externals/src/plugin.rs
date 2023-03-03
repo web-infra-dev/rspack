@@ -1,10 +1,8 @@
 use rspack_core::{
-  ApplyContext, External, FactorizeArgs, ModuleExt, ModuleFactoryResult,
+  ApplyContext, External, ExternalModule, FactorizeArgs, ModuleExt, ModuleFactoryResult,
   NormalModuleFactoryContext, Plugin, PluginContext, PluginFactorizeHookOutput,
 };
 use rspack_error::Result;
-
-use crate::ExternalModule;
 
 #[derive(Debug, Default)]
 pub struct ExternalPlugin {}

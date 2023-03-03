@@ -49,8 +49,8 @@ export const applyRspackOptionsDefaults = (
 		target === false
 			? false
 			: typeof target === "string"
-			? getTargetProperties(target, options.context!)
-			: getTargetsProperties(target, options.context!);
+				? getTargetProperties(target, options.context!)
+				: getTargetsProperties(target, options.context!);
 
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
@@ -295,6 +295,13 @@ const applyOutputDefaults = (
 		}
 		// TODO respect entryOptions.library
 		return enabledLibraryTypes;
+	});
+	F(output, "globalObject", () => {
+		if (tp) {
+			if (tp.global) return "global";
+			if (tp.globalThis) return "globalThis";
+		}
+		return "self";
 	});
 };
 
