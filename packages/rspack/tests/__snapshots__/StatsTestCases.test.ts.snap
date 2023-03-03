@@ -354,33 +354,26 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
   "errors": [
     {
       "formatted": "error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
-
-error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
-
-error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
+  ┌─ bundle.js:1:5
+  │
+1 │ let let = let;
+  │     ^^^ \`let\` cannot be used as an identifier in strict mode
 
 ",
-      "message": "error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
+      "message": "\`let\` cannot be used as an identifier in strict mode",
+    },
+    {
+      "formatted": "error[javascript]: JavaScript parsing error
+  ┌─ bundle.js:1:11
+  │
+1 │ let let = let;
+  │           ^^^ \`let\` cannot be used as an identifier in strict mode
 
-error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
-
-error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
 ",
+      "message": "\`let\` cannot be used as an identifier in strict mode",
     },
   ],
-  "errorsCount": 1,
+  "errorsCount": 2,
   "warnings": [],
   "warningsCount": 0,
 }
@@ -389,16 +382,18 @@ in bundle.js
 exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
 "
 error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
+  ┌─ bundle.js:1:5
+  │
+1 │ let let = let;
+  │     ^^^ \`let\` cannot be used as an identifier in strict mode
+
+
 
 error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
-
-error[javascript]: JavaScript parsing error
-\`let\` cannot be used as an identifier in strict mode
-in bundle.js
+  ┌─ bundle.js:1:11
+  │
+1 │ let let = let;
+  │           ^^^ \`let\` cannot be used as an identifier in strict mode
 
 "
 `;
