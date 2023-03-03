@@ -1,5 +1,27 @@
 # @rspack/core
 
+## 0.0.24
+
+### Patch Changes
+
+- 3cc27e32a: feat: add publicPath on stats
+- 3495d3d72: feat: add stats.namedChunkGroups
+- c456aed7e: fix: use poll for default watching method
+- abf34dc3d: feat: normalize for RuleSetUse
+- e2466248d: feat: add stats.assetsByChunkName
+- a22149e98: fix: css modules ident-name leading digits
+- e9bf3de8b: feat: set builtins.progress default value to true while dev
+- a528a8e06: feat: more logical conditions matcher
+- 58b77bafc: feat: add plugin-import
+- 6316c28e7: feat: add swc relay plugin
+- Updated dependencies [3495d3d72]
+- Updated dependencies [e2466248d]
+- Updated dependencies [a22149e98]
+- Updated dependencies [58b77bafc]
+- Updated dependencies [b101fd41e]
+  - @rspack/binding@0.0.24
+  - @rspack/dev-client@0.0.24
+
 ## 0.0.23
 
 ### Patch Changes
