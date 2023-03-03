@@ -61,7 +61,7 @@ jobs:
   release:
     name: Release
     runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
-
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@master
