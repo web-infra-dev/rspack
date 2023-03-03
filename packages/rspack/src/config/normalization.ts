@@ -35,15 +35,15 @@ export const getNormalizedRspackOptions = (
 			const libraryAsName = library;
 			const libraryBase =
 				typeof library === "object" &&
-					library &&
-					!Array.isArray(library) &&
-					"type" in library
+				library &&
+				!Array.isArray(library) &&
+				"type" in library
 					? library
 					: libraryAsName || output.libraryTarget
-						? ({
+					? ({
 							name: libraryAsName
-						} as LibraryOptions)
-						: undefined;
+					  } as LibraryOptions)
+					: undefined;
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
@@ -246,14 +246,14 @@ const keyedNestedConfig = <T, R>(
 		value === undefined
 			? {}
 			: Object.keys(value).reduce(
-				(obj, key) => (
-					(obj[key] = (
-						customKeys && key in customKeys ? customKeys[key] : fn
-					)(value[key])),
-					obj
-				),
-				{} as Record<string, R>
-			);
+					(obj, key) => (
+						(obj[key] = (
+							customKeys && key in customKeys ? customKeys[key] : fn
+						)(value[key])),
+						obj
+					),
+					{} as Record<string, R>
+			  );
 	if (customKeys) {
 		for (const key of Object.keys(customKeys)) {
 			if (!(key in result)) {

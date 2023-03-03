@@ -364,6 +364,7 @@ impl TestConfig {
         library: None,
         enabled_library_types: None,
         strict_module_error_handling: false,
+        global_object: "self".to_string(),
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),

@@ -24,7 +24,7 @@ pub struct OutputOptions {
   pub library: Option<LibraryOptions>,
   pub enabled_library_types: Option<Vec<String>>,
   pub strict_module_error_handling: bool,
-  pub global_object: Option<String>,
+  pub global_object: String,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";
@@ -236,10 +236,10 @@ pub struct LibraryOptions {
 
 #[derive(Debug)]
 pub struct LibraryAuxiliaryComment {
-  pub root: String,
-  pub commonjs: String,
-  pub commonjs2: String,
-  pub amd: String,
+  pub root: Option<String>,
+  pub commonjs: Option<String>,
+  pub commonjs2: Option<String>,
+  pub amd: Option<String>,
 }
 
 #[derive(Debug)]

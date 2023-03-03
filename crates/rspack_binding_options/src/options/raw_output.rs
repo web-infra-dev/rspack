@@ -29,10 +29,10 @@ impl From<RawLibraryName> for LibraryName {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawLibraryAuxiliaryComment {
-  pub root: String,
-  pub commonjs: String,
-  pub commonjs2: String,
-  pub amd: String,
+  pub root: Option<String>,
+  pub commonjs: Option<String>,
+  pub commonjs2: Option<String>,
+  pub amd: Option<String>,
 }
 
 impl From<RawLibraryAuxiliaryComment> for LibraryAuxiliaryComment {
@@ -85,7 +85,7 @@ pub struct RawOutputOptions {
   pub library: Option<RawLibraryOptions>,
   pub strict_module_error_handling: bool,
   pub enabled_library_types: Option<Vec<String>>,
-  pub global_object: Option<String>,
+  pub global_object: String,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -177,10 +177,7 @@ impl RawOutputOptions {
               rspack_plugin_library::AssignLibraryPlugin::new(
                 rspack_plugin_library::AssignLibraryPluginOptions {
                   library_type: library.clone(),
-                  prefix: vec![self
-                    .global_object
-                    .clone()
-                    .expect("should have global object")],
+                  prefix: vec![self.global_object.clone()],
                   declare: false,
                   unnamed: rspack_plugin_library::Unnamed::Copy,
                   named: None,
