@@ -42,10 +42,10 @@
 
 | 名称                                                                                    | 描述                                                                         |
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [rspack 文档](https://rspack.org)                                                       | rspack 官方文档                                                              |
-| [rspack 文档仓库](https://github.com/modern-js-dev/rspack-website)                      | rspack 官方文档的代码仓库                                                    |
+| [Rspack 文档](https://rspack.org)                                                       | Rspack 官方文档                                                              |
+| [Rspack 文档仓库](https://github.com/modern-js-dev/rspack-website)                      | Rspack 官方文档的代码仓库                                                    |
 | [rspack-sources](https://github.com/modern-js-dev/rspack-sources)                       | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase) | 迁移到 rspack 的示例项目                                                     |
+| [rspack-migration-showcase](https://github.com/modern-js-dev/rspack-migration-showcase) | 迁移到 Rspack 的示例项目                                                     |
 
 ## 致谢
 
