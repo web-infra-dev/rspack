@@ -116,7 +116,7 @@ describe("snapshots", () => {
 		    },
 		  },
 		  "experiments": {
-		    "incrementalRebuild": false,
+		    "incrementalRebuild": true,
 		    "lazyCompilation": false,
 		  },
 		  "externals": undefined,

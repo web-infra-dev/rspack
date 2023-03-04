@@ -1,5 +1,24 @@
 # @rspack/cli
 
+## 0.0.24
+
+### Patch Changes
+
+- b061b7438: feat: remove unnecessary webpack and webpack-dev-server deps
+- Updated dependencies [3cc27e32a]
+- Updated dependencies [3495d3d72]
+- Updated dependencies [c456aed7e]
+- Updated dependencies [abf34dc3d]
+- Updated dependencies [e2466248d]
+- Updated dependencies [a22149e98]
+- Updated dependencies [e9bf3de8b]
+- Updated dependencies [a528a8e06]
+- Updated dependencies [58b77bafc]
+- Updated dependencies [4f432286b]
+- Updated dependencies [6316c28e7]
+  - @rspack/core@0.0.24
+  - @rspack/dev-server@0.0.24
+
 ## 0.0.23
 
 ### Patch Changes
