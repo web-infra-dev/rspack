@@ -10,8 +10,9 @@ const base = path.resolve(__dirname, "statsCases");
 const outputBase = path.resolve(__dirname, "stats");
 const tests = fs.readdirSync(base).filter(testName => {
 	return (
-		fs.existsSync(path.resolve(base, testName, "index.js")) ||
-		fs.existsSync(path.resolve(base, testName, "webpack.config.js"))
+		!testName.startsWith(".") &&
+		(fs.existsSync(path.resolve(base, testName, "index.js")) ||
+			fs.existsSync(path.resolve(base, testName, "webpack.config.js")))
 	);
 });
 // We do not support externalsType.node-commonjs yet, so I have to use eval to hack around the limitation
