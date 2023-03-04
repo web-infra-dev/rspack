@@ -6,6 +6,14 @@ module.exports = {
 	entry: {
 		main: "./src/main.jsx"
 	},
+	module: {
+		rules: [
+			{
+				test: /\.svg$/i,
+				type: "asset/inline"
+			}
+		]
+	},
 	builtins: {
 		html: [
 			{
