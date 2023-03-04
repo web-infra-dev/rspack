@@ -11,13 +11,13 @@ export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
 	let categoriesDir = fs.readdirSync(casesPath);
 	let categories = categoriesDir
-		.filter(x => x !== "dist" || x.includes("."))
+		.filter(x => x !== "dist" && !x.startsWith("."))
 		.map(cat => {
 			return {
 				name: cat,
 				tests: fs
 					.readdirSync(path.resolve(casesPath, cat))
-					.filter(folder => !folder.includes("_"))
+					.filter(folder => !folder.includes("_") && !folder.startsWith("."))
 			};
 		});
 	describe(config.name, () => {
