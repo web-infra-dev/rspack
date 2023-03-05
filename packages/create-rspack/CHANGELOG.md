@@ -1,5 +1,9 @@
 # create-rspack
 
+## 0.0.20
+
+- d30bbcc: fix build failed for svg
+
 ## 0.0.19
 
 ### Patch Changes
