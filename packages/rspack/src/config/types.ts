@@ -223,7 +223,7 @@ export interface ResolveOptions {
 	tsConfigPath?: string;
 }
 export type ResolveAlias = {
-	[k: string]: false | string;
+	[k: string]: false | string | Array<string | false>;
 };
 
 ///// Module /////

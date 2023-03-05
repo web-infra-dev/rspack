@@ -2,13 +2,15 @@ use std::{path::PathBuf, sync::Arc};
 
 pub type AliasMap = nodejs_resolver::AliasMap;
 
+pub type Alias = Vec<(String, Vec<AliasMap>)>;
+
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct Resolve {
   /// Tried detect file with this extension.
   pub extensions: Option<Vec<String>>,
   /// Maps key to value.
   /// The reason for using `Vec` instead `HashMap` to keep the order.
-  pub alias: Option<Vec<(String, AliasMap)>>,
+  pub alias: Option<Alias>,
   /// Prefer to resolve request as relative request and
   /// fallback to resolving as modules.
   pub prefer_relative: Option<bool>,
@@ -34,7 +36,7 @@ pub struct Resolve {
   pub modules: Option<Vec<String>>,
   // Same as `alias`, but only used if default resolving fails
   // Default is `[]`
-  pub fallback: Option<Vec<(String, AliasMap)>>,
+  pub fallback: Option<Alias>,
 }
 
 impl Resolve {
