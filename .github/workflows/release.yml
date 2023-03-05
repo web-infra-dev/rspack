@@ -32,14 +32,21 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          # - host: ubuntu-latest
-          #   target: x86_64-unknown-linux-gnu
-          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-          #   build: |
-          #     set -e
-          #     sudo apt-get -y install protobuf-compiler
-          #     RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
-          #     strip crates/node_binding/*.node
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+            build: |
+              set -e
+              sudo apt-get -y install protobuf-compiler
+              RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
+              strip crates/node_binding/*.node
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+            build: |
+              sudo apt-get -y install protobuf-compiler
+              RUST_TARGET=aarch64-unknown-linux-gnu pnpm build:binding:release
+              aarch64-unknown-linux-gnu-strip crates/node_binding/*.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
@@ -47,13 +54,6 @@ jobs:
               apk add --no-cache protoc
               RUST_TARGET=x86_64-unknown-linux-musl pnpm build:binding:release
               strip crates/node_binding/*.node
-          # - host: ubuntu-latest
-          #   target: aarch64-unknown-linux-gnu
-          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-          #   build: |
-          #     sudo apt-get -y install protobuf-compiler
-          #     RUST_TARGET=aarch64-unknown-linux-gnu pnpm build:binding:release
-          #     aarch64-unknown-linux-gnu-strip crates/node_binding/*.node
           - host: ubuntu-latest
             target: aarch64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
@@ -187,9 +187,6 @@ jobs:
       - build
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node }}
       - name: Download bindings
         uses: actions/download-artifact@v3
         with:
@@ -225,9 +222,6 @@ jobs:
       - build
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node }}
       - name: Download bindings
         uses: actions/download-artifact@v3
         with:
@@ -268,9 +262,6 @@ jobs:
       - build
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node }}
       - name: Download bindings
         uses: actions/download-artifact@v3
         with:
@@ -290,7 +281,7 @@ jobs:
             pnpm run build:js
             pnpm --filter @rspack/plugin-html run build
 
-            pnpm --filter @rspack/core run test --runInBand
+            pnpm --filter @rspack/core run test
             # pnpm --filter @rspack/dev-server run test
             pnpm --filter @rspack/plugin-html run test
   test-aarch64-unknown-linux-musl:
@@ -306,9 +297,6 @@ jobs:
       - build
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node }}
       - name: Download bindings
         uses: actions/download-artifact@v3
         with:
@@ -333,7 +321,7 @@ jobs:
             pnpm run build:js
             pnpm --filter @rspack/plugin-html run build
 
-            pnpm --filter @rspack/core run test --runInBand
+            pnpm --filter @rspack/core run test
             # pnpm --filter @rspack/dev-server run test
             pnpm --filter @rspack/plugin-html run test
   # test-x86_64-pc-windows-msvc:
@@ -406,9 +394,9 @@ jobs:
           pnpm --filter @rspack/plugin-html run test
   publish:
     needs:
-      # - test-x86_64-unknown-linux-gnu
+      - test-x86_64-unknown-linux-gnu
+      - test-aarch64-unknown-linux-gnu
       - test-x86_64-unknown-linux-musl
-      # - test-aarch64-unknown-linux-gnu
       - test-aarch64-unknown-linux-musl
       # - test-x86_64-apple-darwin
     runs-on: ubuntu-latest
