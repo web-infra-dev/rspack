@@ -119,7 +119,7 @@ static COMPILER_ID: AtomicU32 = AtomicU32::new(1);
 
 type CompilerId = u32;
 
-#[napi]
+#[napi(custom_finalize)]
 pub struct Rspack {
   id: CompilerId,
   disabled_hooks: DisabledHooks,
@@ -268,6 +268,12 @@ impl Rspack {
     unsafe { COMPILERS.remove(&self.id) };
 
     Ok(())
+  }
+}
+
+impl ObjectFinalize for Rspack {
+  fn finalize(self, _env: Env) -> Result<()> {
+    self.drop()
   }
 }
 
