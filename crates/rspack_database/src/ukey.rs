@@ -1,6 +1,6 @@
 use std::{
   any::{Any, TypeId},
-  fmt::Debug,
+  fmt::{Debug, Display},
   hash::Hash,
   sync::atomic::AtomicUsize,
 };
@@ -79,8 +79,17 @@ impl<Item> Eq for Ukey<Item> {}
 
 impl<Item> Hash for Ukey<Item> {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.0.hash(state);
+    /*
+     * As Ukey is always auto-increment, it is safe to just hash to itself.
+     */
+    state.write(&self.0.to_ne_bytes());
   }
 }
 
 impl<Item> Copy for Ukey<Item> {}
+
+impl<Item> Display for Ukey<Item> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.write_fmt(format_args!("{}", self.0))
+  }
+}

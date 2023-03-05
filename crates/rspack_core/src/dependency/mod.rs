@@ -12,6 +12,7 @@ pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
 mod require_context_dependency;
 pub use require_context_dependency::RequireContextDependency;
+use rspack_database::Ukey;
 mod css;
 use std::{any::Any, fmt::Debug, hash::Hash};
 
@@ -302,4 +303,6 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
   false
 }
 
-pub type DependencyId = usize;
+pub struct DummyDep;
+
+pub type DependencyId = Ukey<DummyDep>;

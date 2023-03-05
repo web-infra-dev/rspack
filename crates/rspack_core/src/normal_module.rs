@@ -28,9 +28,9 @@ use xxhash_rust::xxh3::Xxh3;
 use crate::{
   contextify, is_async_dependency, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
   BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions,
-  Context, Dependency, DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Resolve, SourceType,
+  ConnectionId, Context, Dependency, DependencyId, GenerateContext, LibIdentOptions, Module,
+  ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -74,8 +74,8 @@ impl ModuleIssuer {
 #[derive(Debug)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  pub outgoing_connections: HashSet<usize>,
-  pub incoming_connections: HashSet<usize>,
+  pub outgoing_connections: HashSet<ConnectionId>,
+  pub incoming_connections: HashSet<ConnectionId>,
 
   issuer: ModuleIssuer,
 
@@ -119,11 +119,11 @@ impl ModuleGraphModule {
     c.expect("module id not found").as_str()
   }
 
-  pub fn add_incoming_connection(&mut self, connection_id: usize) {
+  pub fn add_incoming_connection(&mut self, connection_id: ConnectionId) {
     self.incoming_connections.insert(connection_id);
   }
 
-  pub fn add_outgoing_connection(&mut self, connection_id: usize) {
+  pub fn add_outgoing_connection(&mut self, connection_id: ConnectionId) {
     self.outgoing_connections.insert(connection_id);
   }
 
