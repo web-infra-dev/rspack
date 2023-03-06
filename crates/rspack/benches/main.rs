@@ -1,5 +1,5 @@
 #![recursion_limit = "256"]
-use std::{hint::black_box, path::PathBuf, time::Duration};
+use std::{hint::black_box, path::PathBuf};
 
 use criterion::{criterion_group, criterion_main, Criterion};
 use mimalloc_rust::GlobalMiMalloc;
