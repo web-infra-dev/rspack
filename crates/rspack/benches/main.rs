@@ -37,7 +37,7 @@ fn criterion_benchmark(c: &mut Criterion) {
   group.finish();
 
   // High cost benchmark
-  // sample count reduce to 30
+  // sample count reduce to 50 to speed up CI
   let mut group = c.benchmark_group("high_cost_benchmark");
   group.sample_size(50);
   let sh = Shell::new().expect("TODO:");
