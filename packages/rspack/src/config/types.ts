@@ -107,6 +107,39 @@ export interface EntryDescriptionNormalized {
 }
 
 ///// Output /////
+export interface Output {
+	path?: Path;
+	publicPath?: PublicPath;
+	filename?: Filename;
+	chunkFilename?: ChunkFilename;
+	cssFilename?: CssFilename;
+	cssChunkFilename?: CssChunkFilename;
+	assetModuleFilename?: AssetModuleFilename;
+	uniqueName?: UniqueName;
+	enabledLibraryTypes?: EnabledLibraryTypes;
+	libraryExport?: LibraryExport;
+	libraryTarget?: LibraryType;
+	auxiliaryComment?: AuxiliaryComment;
+	umdNamedDefine?: UmdNamedDefine;
+	module?: OutputModule;
+	library?: Library;
+	strictModuleErrorHandling?: StrictModuleErrorHandling;
+	globalObject?: GlobalObject;
+	importFunctionName?: ImportFunctionName;
+}
+export type Path = string;
+export type PublicPath = "auto" | RawPublicPath;
+export type RawPublicPath = string;
+export type AssetModuleFilename = string;
+export type Filename = FilenameTemplate;
+export type ChunkFilename = FilenameTemplate;
+export type CssFilename = FilenameTemplate;
+export type CssChunkFilename = FilenameTemplate;
+export type FilenameTemplate = string;
+export type UniqueName = string;
+export type Library = LibraryName | LibraryOptions;
+export type StrictModuleErrorHandling = boolean;
+export type OutputModule = boolean;
 export interface LibraryCustomUmdCommentObject {
 	amd?: string;
 	commonjs?: string;
@@ -114,13 +147,14 @@ export interface LibraryCustomUmdCommentObject {
 	root?: string;
 }
 export interface LibraryOptions {
-	auxiliaryComment?: string | LibraryCustomUmdCommentObject;
-	export?: string | string[];
-	name?: string | string[] | LibraryCustomUmdObject;
+	auxiliaryComment?: AuxiliaryComment;
+	export?: LibraryExport;
+	name?: LibraryName;
 	type: LibraryType;
-	umdNamedDefine?: boolean;
+	umdNamedDefine?: UmdNamedDefine;
 }
-declare interface LibraryCustomUmdObject {
+export type LibraryName = string | string[] | LibraryCustomUmdObject;
+export interface LibraryCustomUmdObject {
 	amd?: string;
 	commonjs?: string;
 	root?: string | string[];
@@ -153,40 +187,6 @@ export type UmdNamedDefine = boolean;
 export type EnabledLibraryTypes = LibraryType[];
 export type GlobalObject = string;
 export type ImportFunctionName = string;
-
-export interface Output {
-	path?: Path;
-	publicPath?: PublicPath;
-	filename?: Filename;
-	chunkFilename?: ChunkFilename;
-	cssFilename?: CssFilename;
-	cssChunkFilename?: CssChunkFilename;
-	assetModuleFilename?: AssetModuleFilename;
-	uniqueName?: UniqueName;
-	globalObject?: GlobalObject;
-	importFunctionName?: ImportFunctionName;
-	enabledLibraryTypes?: EnabledLibraryTypes;
-	libraryExport?: LibraryExport;
-	libraryTarget?: LibraryType;
-	auxiliaryComment?: AuxiliaryComment;
-	umdNamedDefine?: UmdNamedDefine;
-	module?: OutputModule;
-	library?: string | string[] | LibraryOptions | LibraryCustomUmdObject;
-	strictModuleErrorHandling?: StrictModuleErrorHandling;
-}
-export type Path = string;
-export type PublicPath = "auto" | RawPublicPath;
-export type RawPublicPath = string;
-export type AssetModuleFilename = string;
-export type Filename = FilenameTemplate;
-export type ChunkFilename = FilenameTemplate;
-export type CssFilename = FilenameTemplate;
-export type CssChunkFilename = FilenameTemplate;
-export type FilenameTemplate = string;
-export type UniqueName = string;
-export type Library = string | undefined;
-export type StrictModuleErrorHandling = boolean;
-export type OutputModule = boolean;
 export interface OutputNormalized {
 	path?: Path;
 	publicPath?: PublicPath;
