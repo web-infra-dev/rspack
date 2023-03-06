@@ -7,6 +7,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "postinstall": "pnpm precompile-schema",
     "dev": "tsc -w",
     "test": "jest --runInBand",
     "precompile-schema": "node ./scripts/precompile-schema.js"
