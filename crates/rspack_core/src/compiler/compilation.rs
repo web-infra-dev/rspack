@@ -31,11 +31,7 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
-  tree_shaking::{
-    optimizer,
-    visitor::{SymbolRef, TreeShakingResult},
-    BailoutFlag, OptimizeDependencyResult,
-  },
+  tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
