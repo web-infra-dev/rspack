@@ -49,8 +49,8 @@ export const applyRspackOptionsDefaults = (
 		target === false
 			? false
 			: typeof target === "string"
-			? getTargetProperties(target, options.context!)
-			: getTargetsProperties(target, options.context!);
+				? getTargetProperties(target, options.context!)
+				: getTargetsProperties(target, options.context!);
 
 	const development = mode === "development";
 	const production = mode === "production" || !mode;
@@ -77,8 +77,14 @@ export const applyRspackOptionsDefaults = (
 		targetProperties
 	});
 
-	// TODO: align with webpack
-	D(options, "externalsType", undefined);
+	// @ts-expect-error
+	F(options, "externalsType", () => {
+		return options.output.library
+			? options.output.library.type
+			: options.output.module
+				? "module"
+				: "var";
+	});
 
 	applyNodeDefaults(options.node, { targetProperties });
 
@@ -303,6 +309,7 @@ const applyOutputDefaults = (
 		}
 		return "self";
 	});
+	D(output, "importFunctionName", "import");
 };
 
 const applyNodeDefaults = (

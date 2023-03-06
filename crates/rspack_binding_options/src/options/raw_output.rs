@@ -86,6 +86,7 @@ pub struct RawOutputOptions {
   pub strict_module_error_handling: bool,
   pub enabled_library_types: Option<Vec<String>>,
   pub global_object: String,
+  pub import_function_name: String,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -107,6 +108,7 @@ impl RawOptionsApply for RawOutputOptions {
       strict_module_error_handling: self.strict_module_error_handling,
       enabled_library_types: self.enabled_library_types,
       global_object: self.global_object,
+      import_function_name: self.import_function_name,
     })
   }
 }

@@ -67,8 +67,7 @@ pub struct RawOptions {
   pub builtins: RawBuiltins,
   #[napi(ts_type = "Record<string, string>")]
   pub externals: RawExternal,
-  #[napi(ts_type = "'' | 'node-commonjs' | 'window'")]
-  pub externals_type: RawExternalType,
+  pub externals_type: String,
   #[napi(ts_type = "string")]
   pub devtool: RawDevtool,
   pub optimization: RawOptimizationOptions,
@@ -97,7 +96,7 @@ impl RawOptionsApply for RawOptions {
     let module: ModuleOptions = self.module.try_into()?;
     let target = self.target.apply(plugins)?;
     let externals = vec![self.externals.into()];
-    let externals_type = self.externals_type.into();
+    let externals_type = self.externals_type;
     let experiments: Experiments = self.experiments.into();
     let stats = self.stats.into();
     let cache = self.cache.into();

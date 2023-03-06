@@ -25,6 +25,7 @@ pub struct OutputOptions {
   pub enabled_library_types: Option<Vec<String>>,
   pub strict_module_error_handling: bool,
   pub global_object: String,
+  pub import_function_name: String,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";

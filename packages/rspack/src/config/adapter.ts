@@ -106,16 +106,17 @@ function getRawTarget(target: Target | undefined): RawOptions["target"] {
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	assert(
 		!isNil(output.path) &&
-			!isNil(output.publicPath) &&
-			!isNil(output.assetModuleFilename) &&
-			!isNil(output.filename) &&
-			!isNil(output.chunkFilename) &&
-			!isNil(output.cssFilename) &&
-			!isNil(output.cssChunkFilename) &&
-			!isNil(output.uniqueName) &&
-			!isNil(output.enabledLibraryTypes) &&
-			!isNil(output.strictModuleErrorHandling) &&
-			!isNil(output.globalObject),
+		!isNil(output.publicPath) &&
+		!isNil(output.assetModuleFilename) &&
+		!isNil(output.filename) &&
+		!isNil(output.chunkFilename) &&
+		!isNil(output.cssFilename) &&
+		!isNil(output.cssChunkFilename) &&
+		!isNil(output.uniqueName) &&
+		!isNil(output.enabledLibraryTypes) &&
+		!isNil(output.strictModuleErrorHandling) &&
+		!isNil(output.globalObject) &&
+		!isNil(output.importFunctionName),
 		"fields should not be nil after defaults"
 	);
 	return {
@@ -130,7 +131,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling,
-		globalObject: output.globalObject
+		globalObject: output.globalObject,
+		importFunctionName: output.importFunctionName
 	};
 }
 
@@ -148,30 +150,30 @@ function getRawLibrary(
 		auxiliaryComment:
 			typeof auxiliaryComment === "string"
 				? {
-						commonjs: auxiliaryComment,
-						commonjs2: auxiliaryComment,
-						amd: auxiliaryComment,
-						root: auxiliaryComment
-				  }
+					commonjs: auxiliaryComment,
+					commonjs2: auxiliaryComment,
+					amd: auxiliaryComment,
+					root: auxiliaryComment
+				}
 				: auxiliaryComment,
 		libraryType: type,
 		name:
 			name == null
 				? name
 				: typeof name === "object" && !Array.isArray(name)
-				? {
+					? {
 						amd: name.amd,
 						commonjs: name.commonjs,
 						root:
 							Array.isArray(name.root) || name.root == null
 								? name.root
 								: [name.root]
-				  }
-				: {
+					}
+					: {
 						amd: Array.isArray(name) ? name[0] : name,
 						commonjs: Array.isArray(name) ? name[0] : name,
 						root: Array.isArray(name) || name == null ? name : [name]
-				  },
+					},
 		export:
 			Array.isArray(libraryExport) || libraryExport == null
 				? libraryExport
@@ -281,8 +283,8 @@ function getRawOptimization(
 ): RawOptions["optimization"] {
 	assert(
 		!isNil(optimization.moduleIds) &&
-			!isNil(optimization.removeAvailableModules) &&
-			!isNil(optimization.sideEffects),
+		!isNil(optimization.removeAvailableModules) &&
+		!isNil(optimization.sideEffects),
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.sideEffects should not be nil after defaults"
 	);
 	return {
@@ -301,17 +303,17 @@ function getRawSplitChunksOptions(
 	return {
 		cacheGroups: sc.cacheGroups
 			? Object.fromEntries(
-					Object.entries(sc.cacheGroups).map(([key, group]) => {
-						let normalizedGroup: RawCacheGroupOptions = {
-							test: group.test ? group.test.source : undefined,
-							name: group.name,
-							priority: group.priority,
-							minChunks: group.minChunks,
-							chunks: group.chunks
-						};
-						return [key, normalizedGroup];
-					})
-			  )
+				Object.entries(sc.cacheGroups).map(([key, group]) => {
+					let normalizedGroup: RawCacheGroupOptions = {
+						test: group.test ? group.test.source : undefined,
+						name: group.name,
+						priority: group.priority,
+						minChunks: group.minChunks,
+						chunks: group.chunks
+					};
+					return [key, normalizedGroup];
+				})
+			)
 			: {},
 		chunks: sc.chunks,
 		maxAsyncRequests: sc.maxAsyncRequests,
@@ -332,9 +334,9 @@ function getRawSnapshotOptions(
 	const { timestamp: moduleTimestamp, hash: moduleHash } = module;
 	assert(
 		!isNil(resolveTimestamp) &&
-			!isNil(resolveHash) &&
-			!isNil(moduleTimestamp) &&
-			!isNil(moduleHash)
+		!isNil(resolveHash) &&
+		!isNil(moduleTimestamp) &&
+		!isNil(moduleHash)
 	);
 	return {
 		resolve: {

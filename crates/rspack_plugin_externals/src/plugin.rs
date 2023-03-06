@@ -23,7 +23,6 @@ impl Plugin for ExternalPlugin {
     args: FactorizeArgs<'_>,
     job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
-    let target = &job_ctx.options.target;
     let external_type = &job_ctx.options.externals_type;
     for external_item in &job_ctx.options.externals {
       match external_item {
@@ -34,7 +33,6 @@ impl Plugin for ExternalPlugin {
             let external_module = ExternalModule::new(
               value.to_owned(),
               external_type.to_owned(),
-              target.to_owned(),
               specifier.to_string(),
             );
             return Ok(Some(ModuleFactoryResult::new(external_module.boxed())));

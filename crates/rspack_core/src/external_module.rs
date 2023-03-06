@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
   AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
-  LibIdentOptions, Module, ModuleType, SourceType, Target, TargetPlatform,
+  GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
 };
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -16,28 +16,57 @@ static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 pub struct ExternalModule {
   pub request: String,
   external_type: ExternalType,
-  target: Target,
-
-  cached_source: Option<BoxSource>,
   /// Request intended by user (without loaders from config)
   user_request: String,
 }
 
 impl ExternalModule {
-  pub fn new(
-    request: String,
-    external_type: ExternalType,
-    target: Target,
-    user_request: String,
-  ) -> Self {
+  pub fn new(request: String, external_type: ExternalType, user_request: String) -> Self {
     Self {
       request,
       external_type,
-      target,
-
-      cached_source: None,
       user_request,
     }
+  }
+
+  pub fn get_source(&self, compilation: &Compilation) -> BoxSource {
+    let source = match self.external_type.as_str() {
+      "this" => format!(
+        "module.exports = (function() {{ return this['{}']; }}())",
+        self.request
+      ),
+      "window" | "self" => format!(
+        "module.exports = {}['{}']",
+        self.external_type, self.request
+      ),
+      "global" => format!(
+        "module.exports = {}['{}']",
+        compilation.options.output.global_object, self.request
+      ),
+      "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
+        format!("module.exports = require('{}')", self.request)
+      }
+      "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
+        let id = compilation
+          .module_graph
+          .module_graph_module_by_identifier(&self.identifier())
+          .map(|m| m.id(&compilation.chunk_graph))
+          .unwrap_or_default();
+        format!("module.exports = __WEBPACK_EXTERNAL_MODULE_{id}__")
+      }
+      "import" => {
+        format!(
+          "module.exports = {}('{}')",
+          compilation.options.output.import_function_name, self.request
+        )
+      }
+      "var" | "promise" | "const" | "let" | "assgin" => {
+        format!("module.exports = {}", self.request)
+      }
+      // TODO "script" "module"
+      _ => "".to_string(),
+    };
+    RawSource::from(source).boxed()
   }
 }
 
@@ -76,40 +105,16 @@ impl Module for ExternalModule {
     &mut self,
     _build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    if self.cached_source.is_none() {
-      let source = RawSource::from(match self.external_type {
-        ExternalType::NodeCommonjs => {
-          format!(r#"module.exports = require("{}")"#, self.request)
-        }
-        ExternalType::Window => {
-          format!(r#"module.exports = window["{}"]"#, self.request)
-        }
-        ExternalType::Auto => match self.target.platform {
-          TargetPlatform::Web | TargetPlatform::WebWorker | TargetPlatform::None => {
-            format!("module.exports = {}", self.request)
-          }
-          TargetPlatform::Node(_) => {
-            format!(r#"module.exports = require("{}")"#, self.request)
-          }
-        },
-      })
-      .boxed();
-
-      self.cached_source = Some(source);
-    }
-
     Ok(BuildResult::default().with_empty_diagnostic())
   }
 
-  fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
-    let source: AstOrSource = self
-      .cached_source
-      .as_ref()
-      .ok_or_else(|| internal_error!("Source should exist"))?
-      .clone()
-      .into();
-    cgr.add(SourceType::JavaScript, source);
+
+    cgr.add(
+      SourceType::JavaScript,
+      GenerationResult::from(AstOrSource::from(self.get_source(compilation))),
+    );
 
     Ok(cgr)
   }
