@@ -1,4 +1,6 @@
 package.json
+
+# Ignore generated
 dist/
 packages/rspack/src/config/schema.check.js
 
