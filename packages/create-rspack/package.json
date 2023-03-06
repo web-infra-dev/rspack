@@ -7,8 +7,8 @@
     "create-rspack": "index.js"
   },
   "homepage": "https://rspack.org",
-  "bugs": "https://github.com/modern-js-dev/rspack/issues",
-  "repository": "modern-js-dev/rspack",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": "web-infra-dev/rspack",
   "dependencies": {
     "yargs": "17.6.2",
     "prompts": "2.4.2"

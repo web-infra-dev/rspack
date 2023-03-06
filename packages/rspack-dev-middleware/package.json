@@ -10,8 +10,8 @@
     "dev": "tsc -w"
   },
   "homepage": "https://rspack.org",
-  "bugs": "https://github.com/modern-js-dev/rspack/issues",
-  "repository": "modern-js-dev/rspack",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": "web-infra-dev/rspack",
   "dependencies": {
     "@rspack/core": "workspace:*",
     "webpack-dev-middleware": "6.0.0",
