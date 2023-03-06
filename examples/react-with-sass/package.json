@@ -4,11 +4,10 @@
   "description": "",
   "main": "index.js",
   "private": true,
-  "build": {
-    "build": "rspack build ",
+  "scripts": {
+    "build": "rspack build",
     "dev": "rspack serve"
   },
-  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "MIT",
