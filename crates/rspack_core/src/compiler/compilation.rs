@@ -27,15 +27,13 @@ use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
+#[cfg(debug_assertions)]
+use crate::tree_shaking::visitor::TreeShakingResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
-  tree_shaking::{
-    optimizer,
-    visitor::{SymbolRef, TreeShakingResult},
-    BailoutFlag, OptimizeDependencyResult,
-  },
+  tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
