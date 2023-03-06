@@ -11,7 +11,7 @@
     "access": "public"
   },
   "files": [
-    "*.node"
+    "rspack.win32-x64-msvc.node"
   ],
   "os": [
     "win32"

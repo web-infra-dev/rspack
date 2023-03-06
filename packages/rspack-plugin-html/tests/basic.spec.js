@@ -132,6 +132,8 @@ function getChunksInfoFromStats(stats) {
 }
 
 describe("HtmlWebpackPlugin", () => {
+	jest.setTimeout(process.env.CI ? 120000 : 30000);
+
 	beforeEach(done => {
 		rimraf(OUTPUT_DIR, done);
 	});

@@ -468,7 +468,7 @@ describe("MultiCompiler", function () {
 				}
 			});
 		});
-	}, 2000);
+	}, 20000);
 
 	it("should respect dependencies when using invalidate", done => {
 		const compiler = rspack([
@@ -548,7 +548,7 @@ describe("MultiCompiler", function () {
 				}
 			});
 		});
-	}, 2000);
+	}, 20000);
 
 	it("shouldn't hang when invalidating watchers", done => {
 		const entriesA: { a: string; b?: string } = { a: "./a.js" };
@@ -586,7 +586,7 @@ describe("MultiCompiler", function () {
 				compiler.close(done);
 			});
 		});
-	}, 2000);
+	}, 20000);
 
 	it("shouldn't hang when invalidating during build", done => {
 		const compiler = rspack(

@@ -14,7 +14,6 @@
     "build:cli:debug": "./x build cli:debug",
     "build:cli:release": "./x build cli:release",
     "build:cli:release:all": "./x build cli:release:all",
-    "build:cli:release:ci": "./x build cli:release:ci",
     "build:webpack": "./x build webpack",
     "format:rs": "./x format rs",
     "format:js": "./x format js",

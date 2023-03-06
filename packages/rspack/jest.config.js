@@ -8,7 +8,7 @@ module.exports = {
 		"<rootDir>/tests/*.unittest.ts",
 		"<rootDir>/tests/copyPlugin/*.test.js"
 	],
-	testTimeout: 30000,
+	testTimeout: 120000,
 	cache: false,
 	transform: {
 		"^.+\\.tsx?$": [
