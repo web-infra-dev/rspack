@@ -61,7 +61,7 @@ describe("MultiCompiler", function () {
 			compiler.close(done);
 		});
 	});
-	// Early bailing when error occurs will cause garbage collection, which results in a segmentation fault.
+	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
 	it.skip("should not be running twice at a time (run)", done => {
 		const compiler = createMultiCompiler();
 		compiler.run((err, stats) => {
@@ -73,7 +73,7 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Early bailing when error occurs will cause garbage collection, which results in a segmentation fault.
+	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
 	it.skip("should not be running twice at a time (watch)", done => {
 		const compiler = createMultiCompiler();
 		compiler.watch({}, (err, stats) => {
@@ -85,7 +85,7 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Early bailing when error occurs will cause garbage collection, which results in a segmentation fault.
+	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
 	it.skip("should not be running twice at a time (run - watch)", done => {
 		const compiler = createMultiCompiler();
 		compiler.run((err, stats) => {
@@ -97,7 +97,7 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Early bailing when error occurs will cause garbage collection, which results in a segmentation fault.
+	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
 	it.skip("should not be running twice at a time (watch - run)", done => {
 		const compiler = createMultiCompiler();
 		compiler.watch({}, (err, stats) => {
@@ -109,7 +109,7 @@ describe("MultiCompiler", function () {
 			}
 		});
 	});
-	// Early bailing when error occurs will cause garbage collection, which results in a segmentation fault.
+	// Running this will cause a segmentation fault in `RwLock` of compiler/mod.rs:119, more diagnostics are necessary.
 	it.skip("should not be running twice at a time (instance cb)", done => {
 		const compiler = rspack(
 			{

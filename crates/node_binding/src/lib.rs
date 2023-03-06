@@ -273,7 +273,8 @@ impl Rspack {
 
 impl ObjectFinalize for Rspack {
   fn finalize(self, _env: Env) -> Result<()> {
-    self.drop()
+    // WARNING: Don't try to destroy the compiler from the finalize method. The background thread may still be working and it's a COMPLETELY unsafe way.
+    Ok(())
   }
 }
 

@@ -281,7 +281,7 @@ impl JsHooksAdapter {
     // The creation of callback `this_compilation` is placed before the callback `compilation` because we want the JS hooks `this_compilation` to be called before the JS hooks `compilation`.
 
     macro_rules! create_hook_tsfn {
-      ($js_cb: expr) => {{
+      ($js_cb:ident) => {{
         let cb = unsafe { $js_cb.raw() };
 
         let mut tsfn: ThreadsafeFunction<_, _> =
