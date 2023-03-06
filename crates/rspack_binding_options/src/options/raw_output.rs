@@ -231,7 +231,7 @@ impl RawOutputOptions {
             );
           }
           "umd" | "umd2" => {
-            plugins.push(rspack_plugin_library::UmdLibrayPlugin::new("umd2".eq(library)).boxed());
+            plugins.push(rspack_plugin_library::UmdLibraryPlugin::new("umd2".eq(library)).boxed());
           }
           _ => {}
         }

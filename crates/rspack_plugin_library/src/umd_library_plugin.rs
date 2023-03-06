@@ -18,7 +18,7 @@ impl UmdLibrayPlugin {
   }
 }
 
-impl Plugin for UmdLibrayPlugin {
+impl Plugin for UmdLibraryPlugin {
   fn name(&self) -> &'static str {
     "UmdLibraryPlugin"
   }
