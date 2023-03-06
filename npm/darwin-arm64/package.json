@@ -11,7 +11,7 @@
     "access": "public"
   },
   "files": [
-    "*.node"
+    "rspack.darwin-arm64.node"
   ],
   "os": [
     "darwin"

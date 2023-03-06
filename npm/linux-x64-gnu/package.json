@@ -11,12 +11,15 @@
     "access": "public"
   },
   "files": [
-    "*.node"
+    "rspack.linux-x64-gnu.node"
   ],
   "os": [
     "linux"
   ],
   "cpu": [
     "x64"
+  ],
+  "libc": [
+    "glibc"
   ]
 }

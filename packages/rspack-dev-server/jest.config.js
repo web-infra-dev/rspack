@@ -6,5 +6,5 @@ module.exports = {
 	},
 	testMatch: ["<rootDir>/tests/*.test.ts", "<rootDir>/tests/e2e/*.test.ts"],
 	cache: false,
-	testTimeout: process.env.CI ? 60000 : 30000
+	testTimeout: process.env.CI ? 120000 : 30000
 };

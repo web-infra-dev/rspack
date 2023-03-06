@@ -1,63 +1,21 @@
-name: Release
-
+name: Test
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        type: choice
-        description: "Release Version(canary, alpha, beta, latest)"
-        required: true
-        default: "canary"
-        options:
-          - canary
-          - alpha
-          - beta
-          - latest
-  issue_comment:
-    types: [created]
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "**"
+      - "!release-**"
+    tags-ignore:
+      - "**"
+
+# cancel previous job runs for the same workflow + pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  issue_commentd:
-    name: Release with commentd
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
-    runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-        with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
-          ref: refs/pull/${{ github.event.issue.number }}/head
-      - name: Install rus toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2022-08-06
-          profile: default
-          components: rustfmt, clippy, cargo
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-          architecture: "arm64"
-      - name: Install node_modules
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm -v
-          pnpm install
-      - name: Build
-        run: ./x build cli:release:all
-      - name: Release
-        uses: modern-js-dev/actions@v2
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: "canary"
-          type: "release"
-          branch: ""
-          tools: "changeset"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
   artifact:
     runs-on: ubuntu-latest
     steps:
@@ -410,49 +368,30 @@ jobs:
           pnpm --filter @rspack/core run test
           # pnpm --filter @rspack/dev-server run test
           pnpm --filter @rspack/plugin-html run test
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs:
-      - test-x86_64-unknown-linux-gnu
-      - test-aarch64-unknown-linux-gnu
-      - test-x86_64-unknown-linux-musl
-      - test-aarch64-unknown-linux-musl
-      - test-x86_64-apple-darwin
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@master
-        with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Setup node dependencies
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm install
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-      - name: Build node packages
-        run: pnpm run build:js
-      - name: Move artifacts
-        run: node scripts/build-npm.js
-      - name: Show binding packages
-        run: ls -R npm
-      - name: Release
-        uses: modern-js-dev/actions@v2
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
-          type: "release"
-          branch: ${{ github.ref_name }}
-          tools: "changeset"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
+  # publish:
+  #   needs:
+  #     - test-x86_64-unknown-linux-gnu
+  #     - test-aarch64-unknown-linux-gnu
+  #     - test-x86_64-unknown-linux-musl
+  #     - test-aarch64-unknown-linux-musl
+  #     - test-x86_64-apple-darwin
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/setup-node@v3
+  #       with:
+  #         node-version: "16"
+  #     - name: Setup node dependencies
+  #       run: |
+  #         npm install -g pnpm@7.25.0
+  #         pnpm install
+  #         pnpm run build:js
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         path: artifacts
+  #     - name: Show artifacts
+  #       run: ls -R artifacts
+  #     - name: Create npm packages
+  #       run: |
+  #         echo "creating..."

@@ -186,4 +186,8 @@ esbuild.cpuprofile
 !crates/rspack/tests/tree-shaking/node_modules
 !packages/rspack/tests/configCases/less/resolve/node_modules
 
+# Binding artifacts
+artifacts
+
+# Node Addons
 npm/**/*.node
