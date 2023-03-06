@@ -29,5 +29,5 @@ export function indent(str: string, prefix: string) {
 }
 
 export function asArray<T>(item: T | T[]): T[] {
-	return Array.isArray(item) ? item : [item]
+	return Array.isArray(item) ? item : [item];
 }
