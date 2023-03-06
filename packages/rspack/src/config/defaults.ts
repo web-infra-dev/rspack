@@ -77,8 +77,14 @@ export const applyRspackOptionsDefaults = (
 		targetProperties
 	});
 
-	// TODO: align with webpack
-	D(options, "externalsType", undefined);
+	// @ts-expect-error
+	F(options, "externalsType", () => {
+		return options.output.library
+			? options.output.library.type
+			: options.output.module
+			? "module"
+			: "var";
+	});
 
 	applyNodeDefaults(options.node, { targetProperties });
 
@@ -296,6 +302,14 @@ const applyOutputDefaults = (
 		// TODO respect entryOptions.library
 		return enabledLibraryTypes;
 	});
+	F(output, "globalObject", () => {
+		if (tp) {
+			if (tp.global) return "global";
+			if (tp.globalThis) return "globalThis";
+		}
+		return "self";
+	});
+	D(output, "importFunctionName", "import");
 };
 
 const applyNodeDefaults = (

@@ -2883,6 +2883,7 @@ version = "0.1.0"
 dependencies = [
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_util",
  "rustc-hash",
 ]

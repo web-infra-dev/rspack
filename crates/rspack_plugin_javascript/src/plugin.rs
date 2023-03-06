@@ -181,6 +181,7 @@ impl JsPlugin {
     let final_source = self.render_iife(sources.boxed());
     if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
       compilation,
+      chunk: &args.chunk_ukey,
       source: &final_source,
     })? {
       return Ok(source);

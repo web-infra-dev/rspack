@@ -1,5 +1,7 @@
 use napi_derive::napi;
-use rspack_core::{BoxPlugin, LibraryName, LibraryOptions, OutputOptions, PluginExt};
+use rspack_core::{
+  BoxPlugin, LibraryAuxiliaryComment, LibraryName, LibraryOptions, OutputOptions, PluginExt,
+};
 use serde::Deserialize;
 
 use crate::RawOptionsApply;
@@ -26,12 +28,34 @@ impl From<RawLibraryName> for LibraryName {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+pub struct RawLibraryAuxiliaryComment {
+  pub root: Option<String>,
+  pub commonjs: Option<String>,
+  pub commonjs2: Option<String>,
+  pub amd: Option<String>,
+}
+
+impl From<RawLibraryAuxiliaryComment> for LibraryAuxiliaryComment {
+  fn from(value: RawLibraryAuxiliaryComment) -> Self {
+    Self {
+      amd: value.amd,
+      commonjs: value.commonjs,
+      root: value.root,
+      commonjs2: value.commonjs2,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
 pub struct RawLibraryOptions {
   pub name: Option<RawLibraryName>,
   pub export: Option<Vec<String>>,
   // webpack type
   pub library_type: String,
   pub umd_named_define: Option<bool>,
+  pub auxiliary_comment: Option<RawLibraryAuxiliaryComment>,
 }
 
 impl From<RawLibraryOptions> for LibraryOptions {
@@ -41,6 +65,7 @@ impl From<RawLibraryOptions> for LibraryOptions {
       export: value.export,
       library_type: value.library_type,
       umd_named_define: value.umd_named_define,
+      auxiliary_comment: value.auxiliary_comment.map(Into::into),
     }
   }
 }
@@ -60,6 +85,8 @@ pub struct RawOutputOptions {
   pub library: Option<RawLibraryOptions>,
   pub strict_module_error_handling: bool,
   pub enabled_library_types: Option<Vec<String>>,
+  pub global_object: String,
+  pub import_function_name: String,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -80,6 +107,8 @@ impl RawOptionsApply for RawOutputOptions {
       library: self.library.map(Into::into),
       strict_module_error_handling: self.strict_module_error_handling,
       enabled_library_types: self.enabled_library_types,
+      global_object: self.global_object,
+      import_function_name: self.import_function_name,
     })
   }
 }
@@ -150,8 +179,7 @@ impl RawOutputOptions {
               rspack_plugin_library::AssignLibraryPlugin::new(
                 rspack_plugin_library::AssignLibraryPluginOptions {
                   library_type: library.clone(),
-                  // TODO use self.global_object
-                  prefix: vec!["global".to_string()],
+                  prefix: vec![self.global_object.clone()],
                   declare: false,
                   unnamed: rspack_plugin_library::Unnamed::Copy,
                   named: None,
@@ -201,6 +229,9 @@ impl RawOutputOptions {
               )
               .boxed(),
             );
+          }
+          "umd" | "umd2" => {
+            plugins.push(rspack_plugin_library::UmdLibraryPlugin::new("umd2".eq(library)).boxed());
           }
           _ => {}
         }

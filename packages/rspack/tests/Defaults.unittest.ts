@@ -120,7 +120,7 @@ describe("snapshots", () => {
 		    "lazyCompilation": false,
 		  },
 		  "externals": undefined,
-		  "externalsType": undefined,
+		  "externalsType": "var",
 		  "infrastructureLogging": {},
 		  "mode": "none",
 		  "module": {
@@ -229,6 +229,8 @@ describe("snapshots", () => {
 		    "cssFilename": "[name].css",
 		    "enabledLibraryTypes": [],
 		    "filename": "[name].js",
+		    "globalObject": "self",
+		    "importFunctionName": "import",
 		    "library": undefined,
 		    "path": "<cwd>/dist",
 		    "publicPath": "auto",
@@ -680,6 +682,9 @@ describe("snapshots", () => {
 		+     "__dirname": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-     "globalObject": "self",
+		+     "globalObject": "global",
+		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
 		@@ ... @@
@@ -713,6 +718,9 @@ describe("snapshots", () => {
 		+     "__dirname": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-     "globalObject": "self",
+		+     "globalObject": "global",
+		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
 		@@ ... @@
@@ -735,6 +743,9 @@ describe("snapshots", () => {
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
 		+     "global": false,
+		@@ ... @@
+		-     "globalObject": "self",
+		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",

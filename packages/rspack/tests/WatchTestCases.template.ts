@@ -146,7 +146,7 @@ export const describeCases = (config: any) => {
 											fs: "fs",
 											path: "path"
 										};
-										options.externalsType = "node-commonjs";
+										options.externalsType = "commonjs";
 									}
 									if (!options.output) options.output = {};
 									if (!options.output.path)

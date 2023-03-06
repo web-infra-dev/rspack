@@ -56,6 +56,8 @@ export const getNormalizedRspackOptions = (
 				enabledLibraryTypes: output.enabledLibraryTypes
 					? [...output.enabledLibraryTypes]
 					: ["..."],
+				globalObject: output.globalObject,
+				importFunctionName: output.importFunctionName,
 				library: libraryBase && {
 					type:
 						output.libraryTarget !== undefined
