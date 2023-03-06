@@ -25,7 +25,7 @@ impl Drop for JsFunctionRef {
   }
 }
 
-#[napi(object)]
+#[napi(object, js_name = "NodeFS")]
 pub struct NodeFS {
   pub write_file: JsFunction,
   pub mkdir: JsFunction,
@@ -61,7 +61,7 @@ cfg_async! {
   use napi_derive::napi;
   use rspack_napi_shared::threadsafe_function::ThreadsafeFunction;
 
-  #[napi(object)]
+  #[napi(object, js_name = "ThreadsafeNodeFS")]
   pub struct ThreadsafeNodeFS {
     pub write_file: JsFunction,
     pub mkdir: JsFunction,
