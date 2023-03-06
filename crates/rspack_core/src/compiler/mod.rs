@@ -82,7 +82,7 @@ where
 
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
-    self.cache.end_idle().await;
+    self.cache.end_idle();
     // TODO: clear the outdate cache entires in resolver,
     // TODO: maybe it's better to use external entries.
     self
@@ -129,7 +129,7 @@ where
       .flat_map(|(_, deps)| deps.clone())
       .collect::<HashSet<_>>();
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
-    self.cache.begin_idle().await;
+    self.cache.begin_idle();
 
     Ok(())
   }

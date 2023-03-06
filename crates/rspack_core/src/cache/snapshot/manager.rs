@@ -116,7 +116,7 @@ impl SnapshotManager {
     Ok(true)
   }
 
-  pub async fn clear(&self) {
+  pub fn clear(&self) {
     self.update_time_cache.clear();
     self.hash_cache.clear();
   }
