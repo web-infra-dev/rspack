@@ -32,6 +32,7 @@ async fn main() {
 }
 
 async fn run(relative_path: &str) {
+  let _ = 3;
   #[cfg(feature = "tracing")]
   let guard = enable_tracing_by_env_with_chrome_layer();
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
