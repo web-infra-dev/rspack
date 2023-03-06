@@ -6,11 +6,11 @@ use rspack_core::{
 use rspack_identifier::Identifiable;
 
 #[derive(Debug)]
-pub struct UmdLibrayPlugin {
+pub struct UmdLibraryPlugin {
   _optional_amd_external_as_global: bool,
 }
 
-impl UmdLibrayPlugin {
+impl UmdLibraryPlugin {
   pub fn new(_optional_amd_external_as_global: bool) -> Self {
     Self {
       _optional_amd_external_as_global,
