@@ -101,7 +101,7 @@ function rspack(options: any, callback?: Callback<Error, any>) {
 		const detail = (rspackOptionsCheck as any).errors
 			.map((e: any) => e.message)
 			.join("\n");
-		const title = '** Invalidate Configuration **\n';
+		const title = "** Invalidate Configuration **\n";
 		throw new Error(title + detail);
 	}
 	let compiler: Compiler | MultiCompiler;
