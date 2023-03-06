@@ -98,11 +98,10 @@ function rspack(
 ): Compiler;
 function rspack(options: any, callback?: Callback<Error, any>) {
 	if (!asArray(options).every(i => rspackOptionsCheck(i))) {
-		const detail = (rspackOptionsCheck as any).errors
-			.map((e: any) => e.message)
-			.join("\n");
-		const title = "** Invalidate Configuration **\n";
-		throw new Error(title + detail);
+		// TODO: more readable error message
+		console.error("** Invalidate Configuration **");
+		console.error((rspackOptionsCheck as any).errors);
+		return;
 	}
 	let compiler: Compiler | MultiCompiler;
 	if (Array.isArray(options)) {

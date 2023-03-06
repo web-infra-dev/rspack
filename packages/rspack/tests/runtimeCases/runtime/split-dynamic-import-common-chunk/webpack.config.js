@@ -6,8 +6,8 @@ module.exports = {
 					chunks: "async",
 					test: /common/,
 					minChunks: 1,
-					reuseExistingChunk: false,
-					enforce: true
+					reuseExistingChunk: false
+					// enforce: true
 				}
 			}
 		}

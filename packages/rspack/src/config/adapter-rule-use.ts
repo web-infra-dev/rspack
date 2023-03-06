@@ -487,26 +487,19 @@ function composeJsUse(
 					_compilation: compiler.compilation
 				};
 
-				/**
-				 * support loader as string
-				 */
 				let loader;
-				if (typeof use.loader === "string") {
-					try {
-						const loaderPath = require.resolve(use.loader, {
-							paths: [options.context]
-						});
-						const loaderModule = require(loaderPath);
-						loader =
-							typeof loaderModule === "function"
-								? loaderModule
-								: loaderModule.default;
-					} catch (err) {
-						reject(err);
-						return;
-					}
-				} else {
-					loader = use.loader;
+				try {
+					const loaderPath = require.resolve(use.loader, {
+						paths: [options.context]
+					});
+					const loaderModule = require(loaderPath);
+					loader =
+						typeof loaderModule === "function"
+							? loaderModule
+							: loaderModule.default;
+				} catch (err) {
+					reject(err);
+					return;
 				}
 
 				let result: Promise<string | Buffer> | string | Buffer | undefined =

@@ -432,11 +432,7 @@ function getOptions(
 		test: /\.(js|css)/,
 		use: [
 			{
-				loader: require(path.join(
-					__dirname,
-					"hotCases",
-					"fake-update-loader.js"
-				)),
+				loader: path.join(__dirname, "hotCases", "fake-update-loader.js"),
 				options: fakeUpdateLoaderOptions
 			}
 		]

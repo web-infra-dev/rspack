@@ -9,12 +9,12 @@ module.exports = {
 		filename: "[name].js"
 	},
 	stats: {
-		hash: false,
-		timings: false,
-		builtAt: false,
-		assets: false,
-		modules: false,
-		reasons: false
+		all: false,
+		reasons: true,
+		chunks: true,
+		entrypoints: true,
+		chunkGroups: true,
+		errors: true,
 	},
 	optimization: {
 		runtimeChunk: "multiple"

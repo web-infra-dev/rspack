@@ -9,7 +9,10 @@ const configSchema = path.resolve(configDir, "./schema.json");
 const configCheck = path.resolve(configDir, "./schema.check.js");
 
 const ajv = new Ajv({
-	code: { source: true, optimize: true }
+	code: { source: true, optimize: true },
+	messages: false,
+	strictNumbers: false,
+	logger: false
 });
 
 ajv.addKeyword({

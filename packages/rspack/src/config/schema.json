@@ -229,6 +229,10 @@
       "description": "Specify dependency that shouldn't be resolved by rspack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
       "anyOf": [
         {
+          "description": "An exact matched dependency becomes external. The same string is used as external dependency.",
+          "type": "string"
+        },
+        {
           "description": "If an dependency matches exactly a property of the object, the property value is used as dependency.",
           "type": "object",
           "additionalProperties": {
@@ -257,8 +261,27 @@
     "ExternalsType": {
       "description": "Specifies the default type of externals ('amd*', 'umd*', 'system' and 'jsonp' depend on output.libraryTarget set to the same value).",
       "enum": [
-        "window",
-        "node-commonjs"
+	      "var",
+	      "module",
+	      "assign",
+	      "this",
+	      "window",
+	      "self",
+	      "global",
+	      "commonjs",
+	      "commonjs2",
+	      "commonjs-module",
+	      "commonjs-static",
+	      "amd",
+	      "amd-require",
+	      "umd",
+	      "umd2",
+	      "jsonp",
+	      "system",
+	      "promise",
+	      "import",
+	      "script",
+	      "node-commonjs"
       ]
     },
     "Filename": {
@@ -313,6 +336,15 @@
           "$ref": "#/definitions/FilterItemTypes"
         }
       ]
+    },
+    "GlobalObject": {
+      "description": "An expression which is used to address the global object/scope in runtime code.",
+      "type": "string",
+      "minLength": 1
+    },
+    "ImportFunctionName": {
+      "description": "The name of the native import() function (can be exchanged for a polyfill).",
+      "type": "string"
     },
     "InfrastructureLogging": {
       "description": "Options for infrastructure level logging.",
@@ -826,6 +858,12 @@
         "filename": {
           "$ref": "#/definitions/Filename"
         },
+        "globalObject": {
+          "$ref": "#/definitions/GlobalObject"
+        },
+        "importFunctionName": {
+          "$ref": "#/definitions/ImportFunctionName"
+        },
         "library": {
           "$ref": "#/definitions/Library"
         },
@@ -1040,6 +1078,10 @@
         "preferRelative": {
           "description": "Prefer to resolve module requests as relative request and fallback to resolving as module.",
           "type": "boolean"
+        },
+        "tsConfigPath": {
+          "description": "Path to tsconfig.json",
+          "type": "string"
         }
       }
     },

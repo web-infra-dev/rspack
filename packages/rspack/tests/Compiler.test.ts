@@ -23,7 +23,6 @@ describe("Compiler", () => {
 		options.entry = entry;
 		options.context = path.join(__dirname, "fixtures");
 		if (noOutputPath) options.output.path = "/";
-		options.output.pathinfo = true;
 		options.optimization = {
 			minimize: false
 		};
@@ -221,9 +220,7 @@ describe("Compiler", () => {
 			compiler = rspack({
 				entry: "./c",
 				context: path.join(__dirname, "fixtures"),
-				output: {
-					pathinfo: true
-				}
+				output: {}
 			});
 		});
 		afterEach(callback => {

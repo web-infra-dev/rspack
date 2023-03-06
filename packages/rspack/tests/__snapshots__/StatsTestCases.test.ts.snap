@@ -493,7 +493,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
     },
   },
   "errors": [],
-  "errorsCount": 0,
   "namedChunkGroups": {
     "e1": {
       "assets": [
@@ -532,15 +531,16 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "name": "e2",
     },
   },
-  "publicPath": "",
-  "warnings": [],
-  "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
 "Entrypoint e1 = e1.js e1~runtime.js
-Entrypoint e2 = e2.js e2~runtime.js"
+Entrypoint e2 = e2.js e2~runtime.js
+chunk {e1} e1.js (e1) 27 bytes [entry]
+chunk {e1~runtime} e1~runtime.js (e1~runtime) 0 bytes [initial]
+chunk {e2} e2.js (e2) 27 bytes [entry]
+chunk {e2~runtime} e2~runtime.js (e2~runtime) 0 bytes [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 1`] = `
@@ -638,7 +638,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
     },
   },
   "errors": [],
-  "errorsCount": 0,
   "namedChunkGroups": {
     "e1": {
       "assets": [
@@ -677,15 +676,16 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "name": "e2",
     },
   },
-  "publicPath": "",
-  "warnings": [],
-  "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
 "Entrypoint e1 = e1.js runtime~e1.js
-Entrypoint e2 = e2.js runtime~e2.js"
+Entrypoint e2 = e2.js runtime~e2.js
+chunk {e1} e1.js (e1) 27 bytes [entry]
+chunk {e2} e2.js (e2) 27 bytes [entry]
+chunk {runtime~e1} runtime~e1.js (runtime~e1) 0 bytes [initial]
+chunk {runtime~e2} runtime~e2.js (runtime~e2) 0 bytes [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 1`] = `
@@ -770,7 +770,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
     },
   },
   "errors": [],
-  "errorsCount": 0,
   "namedChunkGroups": {
     "e1": {
       "assets": [
@@ -809,15 +808,15 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "name": "e2",
     },
   },
-  "publicPath": "",
-  "warnings": [],
-  "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
 "Entrypoint e1 = e1.js runtime.js
-Entrypoint e2 = e2.js runtime.js"
+Entrypoint e2 = e2.js runtime.js
+chunk {e1} e1.js (e1) 27 bytes [entry]
+chunk {e2} e2.js (e2) 27 bytes [entry]
+chunk {runtime} runtime.js (runtime) 0 bytes [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 1`] = `
@@ -915,7 +914,6 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
     },
   },
   "errors": [],
-  "errorsCount": 0,
   "namedChunkGroups": {
     "e1": {
       "assets": [
@@ -954,15 +952,16 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "name": "e2",
     },
   },
-  "publicPath": "",
-  "warnings": [],
-  "warningsCount": 0,
 }
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
 "Entrypoint e1 = e1.js runtime~e1.js
-Entrypoint e2 = e2.js runtime~e2.js"
+Entrypoint e2 = e2.js runtime~e2.js
+chunk {e1} e1.js (e1) 27 bytes [entry]
+chunk {e2} e2.js (e2) 27 bytes [entry]
+chunk {runtime~e1} runtime~e1.js (runtime~e1) 0 bytes [initial]
+chunk {runtime~e2} runtime~e2.js (runtime~e2) 0 bytes [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `

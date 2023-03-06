@@ -1,4 +1,3 @@
-const postcssLoader = require("@rspack/postcss-loader");
 module.exports = {
 	builtins: {
 		treeShaking: true,
@@ -10,7 +9,7 @@ module.exports = {
 				test: /\.module\.css$/,
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: true
 						}
@@ -21,7 +20,7 @@ module.exports = {
 				test: /\.css$/,
 				use: [
 					{
-						loader: postcssLoader
+						loader: "@rspack/postcss-loader"
 					}
 				]
 			}

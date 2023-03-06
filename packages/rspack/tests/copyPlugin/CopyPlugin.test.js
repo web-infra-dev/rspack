@@ -392,9 +392,6 @@ describe("CopyPlugin", () => {
 					entry: path.resolve(__dirname, "./helpers/enter.js"),
 					output: {
 						path: path.resolve(__dirname, "./outputs/multi-compiler/dist/a")
-					},
-					stats: {
-						source: true
 					}
 				},
 				{
@@ -412,9 +409,6 @@ describe("CopyPlugin", () => {
 					entry: path.resolve(__dirname, "./helpers/enter.js"),
 					output: {
 						path: path.resolve(__dirname, "./outputs/multi-compiler/dist/b")
-					},
-					stats: {
-						source: true
 					}
 				}
 			]);
@@ -791,9 +785,6 @@ describe("CopyPlugin", () => {
 					output: {
 						path: path.resolve(__dirname, "./outputs/multi-compiler/dist/a")
 					},
-					stats: {
-						source: true
-					},
 					cache: {
 						type: "filesystem",
 						cacheDirectory: cacheDirectoryA
@@ -813,9 +804,6 @@ describe("CopyPlugin", () => {
 					entry: path.resolve(__dirname, "./helpers/enter.js"),
 					output: {
 						path: path.resolve(__dirname, "./outputs/multi-compiler/dist/b")
-					},
-					stats: {
-						source: true
 					},
 					cache: {
 						type: "filesystem",
