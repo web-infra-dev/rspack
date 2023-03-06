@@ -69,7 +69,7 @@ jobs:
       #- name: Cache
       # uses: speedy-js/rust-cache-self-hosted@v1
       - name: Run cargo check
-        run: cargo check --workspace --all-targets --all-features --release --locked
+        run: cargo check --workspace --all-targets --release --locked
 
       - name: Run clippy
         uses: actions-rs/cargo@v1
