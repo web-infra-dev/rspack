@@ -128,25 +128,25 @@ declare interface LibraryCustomUmdObject {
 export type LibraryExport = string[] | string;
 export type LibraryType =
 	| (
-		| "var"
-		| "module"
-		| "assign"
-		| "assign-properties"
-		| "this"
-		| "window"
-		| "self"
-		| "global"
-		| "commonjs"
-		| "commonjs2"
-		| "commonjs-module"
-		| "commonjs-static"
-		| "amd"
-		| "amd-require"
-		| "umd"
-		| "umd2"
-		| "jsonp"
-		| "system"
-	)
+			| "var"
+			| "module"
+			| "assign"
+			| "assign-properties"
+			| "this"
+			| "window"
+			| "self"
+			| "global"
+			| "commonjs"
+			| "commonjs2"
+			| "commonjs-module"
+			| "commonjs-static"
+			| "amd"
+			| "amd-require"
+			| "umd"
+			| "umd2"
+			| "jsonp"
+			| "system"
+	  )
 	| string;
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 export type UmdNamedDefine = boolean;
@@ -201,7 +201,7 @@ export interface OutputNormalized {
 	module?: OutputModule;
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
-	importFunctionName?: ImportFunctionName
+	importFunctionName?: ImportFunctionName;
 }
 
 ///// Resolve /////
@@ -275,8 +275,8 @@ export type RuleSetLoaderWithOptions = {
 export type RuleSetLoaderOptions =
 	| string
 	| {
-		[k: string]: any;
-	};
+			[k: string]: any;
+	  };
 export type ParserOptionsByModuleType = ParserOptionsByModuleTypeKnown;
 export interface ParserOptionsByModuleTypeKnown {
 	asset?: AssetParserOptions;
@@ -451,13 +451,13 @@ export type OptimizationRuntimeChunk =
 	| ("single" | "multiple")
 	| boolean
 	| {
-		name?: string | Function;
-	};
+			name?: string | Function;
+	  };
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-		name: Function;
-	};
+			name: Function;
+	  };
 
 ///// Plugins /////
 export type Plugins = (RspackPluginInstance | RspackPluginFunction)[];

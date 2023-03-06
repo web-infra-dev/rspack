@@ -65,7 +65,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 									...config.output,
 									path: outputPath
 								},
-								externalsType: "commonjs",
+								externalsType: "commonjs"
 							};
 							const stats = await util.promisify(rspack)(options);
 							const statsJson = stats!.toJson();
