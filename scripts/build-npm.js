@@ -169,7 +169,7 @@ See [https://rspack.org](https://rspack.org) for details.
 
 ## License
 
-Rspack is [MIT licensed](https://github.com/modern-js-dev/rspack/blob/main/LICENSE).
+Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).
 `;
 
 	fs.writeFileSync(`${output}/README.md`, README);
