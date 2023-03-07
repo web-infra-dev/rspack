@@ -7,7 +7,7 @@ module.exports = {
 			},
 			{
 				test: /\.scss$/,
-				use: [{ loader: "builtin:sass-loader" }],
+				use: [{ loader: "sass-loader" }],
 				type: "css/module"
 			},
 			{
