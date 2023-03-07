@@ -172,6 +172,17 @@ pub struct RenderModuleContentArgs<'a> {
 pub struct RenderStartupArgs<'a> {
   // pub module_source: &'a BoxSource,
   pub compilation: &'a Compilation,
+  pub chunk: &'a ChunkUkey,
+}
+
+impl<'me> RenderStartupArgs<'me> {
+  pub fn chunk(&self) -> &Chunk {
+    self
+      .compilation
+      .chunk_by_ukey
+      .get(self.chunk)
+      .expect("chunk should exsit in chunk_by_ukey")
+  }
 }
 
 #[derive(Debug)]
@@ -179,4 +190,14 @@ pub struct RenderArgs<'a> {
   pub source: &'a BoxSource,
   pub chunk: &'a ChunkUkey,
   pub compilation: &'a Compilation,
+}
+
+impl<'me> RenderArgs<'me> {
+  pub fn chunk(&self) -> &Chunk {
+    self
+      .compilation
+      .chunk_by_ukey
+      .get(self.chunk)
+      .expect("chunk should exsit in chunk_by_ukey")
+  }
 }

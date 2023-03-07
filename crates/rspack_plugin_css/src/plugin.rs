@@ -664,12 +664,6 @@ impl Plugin for CssPlugin {
       .collect::<Vec<ConcatSource>>();
     let source = ConcatSource::new(sources);
 
-    // let hash = Some(get_hash(compilation).to_string());
-    // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    // let hash = None;
-    // let chunkhash = None;
-    // let contenthash = Some(chunk.hash.clone());
-    let hash = Some(chunk.get_render_hash());
     if source.source().is_empty() {
       Ok(Default::default())
     } else {
@@ -679,21 +673,7 @@ impl Plugin for CssPlugin {
         &args.compilation.chunk_group_by_ukey,
       );
 
-      let output_path = filename_template.render(FilenameRenderOptions {
-        name: chunk.name_for_filename_template(),
-        extension: Some(".css".to_owned()),
-        id: chunk.id.to_owned(),
-        contenthash: Some(
-          chunk
-            .content_hash
-            .get(&SourceType::Css)
-            .expect("should have chunk css content hash")
-            .clone(),
-        ),
-        chunkhash: hash.clone(),
-        hash,
-        ..Default::default()
-      });
+      let output_path = filename_template.render_with_chunk(chunk, ".css", &SourceType::Css);
 
       let path_data = PathData {
         chunk_ukey: args.chunk_ukey,

@@ -2437,6 +2437,8 @@ dependencies = [
 name = "rspack_plugin_library"
 version = "0.1.0"
 dependencies = [
+ "once_cell",
+ "regex",
  "rspack_core",
  "rspack_error",
  "rspack_identifier",

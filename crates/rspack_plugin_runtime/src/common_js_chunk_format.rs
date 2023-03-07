@@ -144,6 +144,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
           .await
           .render_startup(RenderStartupArgs {
             compilation: args.compilation,
+            chunk: &chunk.ukey,
           })?
       {
         sources.add(s);

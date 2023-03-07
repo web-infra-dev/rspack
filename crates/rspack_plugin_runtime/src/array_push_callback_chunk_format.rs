@@ -111,6 +111,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
               .await
               .render_startup(RenderStartupArgs {
                 compilation: args.compilation,
+                chunk: &chunk.ukey,
               })?
           {
             source.add(s);
