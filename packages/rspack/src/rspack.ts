@@ -3,7 +3,7 @@ import {
 	RspackOptions,
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
-	RspackPluginFunction,
+	RspackPluginFunction
 } from "./config";
 import { Compiler } from "./compiler";
 import { Stats } from "./stats";
@@ -79,7 +79,7 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 }
 
 function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
-	return Array.isArray(o)
+	return Array.isArray(o);
 }
 
 function rspack(
@@ -90,7 +90,10 @@ function rspack(
 	options: RspackOptions,
 	callback?: Callback<Error, Stats>
 ): Compiler;
-function rspack(options: MultiRspackOptions | RspackOptions, callback?: Callback<Error, MultiStats> | Callback<Error, Stats>) {
+function rspack(
+	options: MultiRspackOptions | RspackOptions,
+	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
+) {
 	if (!asArray(options as any).every(i => rspackOptionsCheck(i))) {
 		// TODO: more readable error message
 		console.error("** Invalidate Configuration **");
@@ -102,13 +105,13 @@ function rspack(options: MultiRspackOptions | RspackOptions, callback?: Callback
 			const compiler = createMultiCompiler(options);
 			const watch = options.some(options => options.watch);
 			const watchOptions = options.map(options => options.watchOptions || {});
-			return { compiler, watch, watchOptions }
+			return { compiler, watch, watchOptions };
 		}
 		const compiler = createCompiler(options);
 		const watch = options.watch;
 		const watchOptions = options.watchOptions || {};
-		return { compiler, watch, watchOptions }
-	}
+		return { compiler, watch, watchOptions };
+	};
 
 	if (callback) {
 		try {
@@ -130,11 +133,8 @@ function rspack(options: MultiRspackOptions | RspackOptions, callback?: Callback
 	} else {
 		const { compiler, watch } = create();
 		if (watch) {
-			util.deprecate(
-				() => { },
-				"A 'callback' argument needs to be provided to the 'webpack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback.",
-				"DEP_WEBPACK_WATCH_WITHOUT_CALLBACK"
-			)();
+			util.deprecate(() => {},
+			"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback.")();
 		}
 		return compiler;
 	}
