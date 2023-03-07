@@ -60,6 +60,7 @@ jobs:
           PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
   artifact:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Poor kids' remove old artifacts
         uses: actions/github-script@v6
@@ -171,6 +172,7 @@ jobs:
           #     ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip *.node
     name: build-${{ matrix.settings.target }}
     runs-on: ${{ matrix.settings.host }}
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
@@ -242,6 +244,7 @@ jobs:
           - "14"
           - "16"
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs:
       - build
     steps:
@@ -275,6 +278,7 @@ jobs:
           - "14"
           # - "16"
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs:
       - build
     steps:
@@ -313,6 +317,7 @@ jobs:
           - "14"
           - "16"
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs:
       - build
     steps:
@@ -346,6 +351,7 @@ jobs:
           - "14"
           - "16"
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs:
       - build
     steps:
@@ -384,6 +390,7 @@ jobs:
           - "14"
           - "16"
     runs-on: macos-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs:
       - build
     steps:
