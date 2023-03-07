@@ -1,5 +1,7 @@
 # @rspack/plugin-minify
 
+## 0.0.26
+
 ## 0.0.25
 
 ### Patch Changes
