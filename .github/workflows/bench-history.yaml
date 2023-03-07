@@ -26,7 +26,7 @@ jobs:
         run: |
           set -o pipefail 
           cargo bench --bench main -- --output-format bencher | tee output.txt
-          export ROOT_DIR=$(pwd) cd benchcases/react-refresh && pnpm i && pnpm dev
+          export ROOT_DIR=$(pwd) && cd benchcases/react-refresh && pnpm i && pnpm dev
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1.14.0
