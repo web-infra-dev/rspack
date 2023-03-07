@@ -23,16 +23,7 @@ import { asArray, isNil } from "./util";
 import rspackOptionsCheck from "./config/schema.check.js";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
-	const compilers = options.map(option => {
-		const compiler = createCompiler(option);
-
-		/**
-		 * Missing features: WebpackOptionsApply
-		 * `compiler.name` should be set by WebpackOptionsApply.
-		 */
-		compiler.name = option.name;
-		return compiler;
-	});
+	const compilers = options.map(createCompiler);
 	const compiler = new MultiCompiler(
 		compilers,
 		options as MultiCompilerOptions
@@ -50,7 +41,6 @@ function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 }
 
 function createCompiler(userOptions: RspackOptions): Compiler {
-	// console.log("user:", userOptions);
 	const options = getNormalizedRspackOptions(userOptions);
 	applyRspackOptionsBaseDefaults(options);
 	assert(!isNil(options.context));
@@ -88,35 +78,68 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 	return compiler;
 }
 
+function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
+	return Array.isArray(o);
+}
+
 function rspack(
-	options: MultiCompilerOptions,
+	options: MultiRspackOptions,
 	callback?: Callback<Error, MultiStats>
 ): MultiCompiler;
 function rspack(
 	options: RspackOptions,
 	callback?: Callback<Error, Stats>
 ): Compiler;
-function rspack(options: any, callback?: Callback<Error, any>) {
-	if (!asArray(options).every(i => rspackOptionsCheck(i))) {
+function rspack(
+	options: MultiRspackOptions | RspackOptions,
+	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
+) {
+	if (!asArray(options as any).every(i => rspackOptionsCheck(i))) {
 		// TODO: more readable error message
 		console.error("** Invalidate Configuration **");
 		console.error((rspackOptionsCheck as any).errors);
 		return;
 	}
-	let compiler: Compiler | MultiCompiler;
-	if (Array.isArray(options)) {
-		compiler = createMultiCompiler(options);
-	} else {
-		compiler = createCompiler(options);
-	}
+	const create = () => {
+		if (isMultiRspackOptions(options)) {
+			const compiler = createMultiCompiler(options);
+			const watch = options.some(options => options.watch);
+			const watchOptions = options.map(options => options.watchOptions || {});
+			return { compiler, watch, watchOptions };
+		}
+		const compiler = createCompiler(options);
+		const watch = options.watch;
+		const watchOptions = options.watchOptions || {};
+		return { compiler, watch, watchOptions };
+	};
 
 	if (callback) {
-		compiler.run(callback);
-		return compiler;
+		try {
+			const { compiler, watch, watchOptions } = create();
+			if (watch) {
+				compiler.watch(watchOptions as any, callback as any);
+			} else {
+				compiler.run((err, stats) => {
+					compiler.close(() => {
+						callback(err, stats as any);
+					});
+				});
+			}
+			return compiler;
+		} catch (err: any) {
+			process.nextTick(() => callback(err));
+			return null;
+		}
 	} else {
+		const { compiler, watch } = create();
+		if (watch) {
+			util.deprecate(() => {},
+			"A 'callback' argument needs to be provided to the 'rspack(options, callback)' function when the 'watch' option is set. There is no way to handle the 'watch' option without a callback.")();
+		}
 		return compiler;
 	}
 }
 
 // deliberately alias rspack as webpack
 export { rspack, createCompiler, createMultiCompiler };
+export default rspack;
