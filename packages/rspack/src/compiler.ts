@@ -466,9 +466,9 @@ class Compiler {
 		// A hint is necessary for the compiler to know when it is safe to drop the instance.
 		// For example: register a callback to the background thread, and drop the instance when the callback is called (calling the `close` method queues the signal)
 		// See: https://github.com/webpack/webpack/blob/4ba225225b1348c8776ca5b5fe53468519413bc0/lib/Compiler.js#L1218
-		if (!this.running && this.watching) {
-			// Manually the instance.
-			this.#_instance = undefined;
+		if (!this.running) {
+			// Manually drop the instance.
+			// this.#_instance = undefined;
 		}
 
 		if (this.watching) {
