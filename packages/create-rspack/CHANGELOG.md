@@ -1,5 +1,11 @@
 # create-rspack
 
+## 0.0.21
+
+### Patch Changes
+
+- 6d6e65e4: feat: update packages repository config
+
 ## 0.0.20
 
 - d30bbcc: fix build failed for svg
