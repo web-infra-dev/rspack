@@ -421,7 +421,7 @@ export interface Optimization {
 	moduleIds?: "named" | "deterministic";
 	minimize?: boolean;
 	minimizer?: ("..." | RspackPluginInstance)[];
-	splitChunks?: OptimizationSplitChunksOptions;
+	splitChunks?: OptimizationSplitChunksOptions | false;
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
 	sideEffects?: "flag" | boolean;
