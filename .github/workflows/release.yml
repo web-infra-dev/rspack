@@ -449,7 +449,7 @@ jobs:
       - name: Show binding packages
         run: ls -R npm
       - name: Link optional dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
       - name: Release
         uses: web-infra-dev/actions@v2
         with:
