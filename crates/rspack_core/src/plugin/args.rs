@@ -177,5 +177,6 @@ pub struct RenderStartupArgs<'a> {
 #[derive(Debug)]
 pub struct RenderArgs<'a> {
   pub source: &'a BoxSource,
+  pub chunk: &'a ChunkUkey,
   pub compilation: &'a Compilation,
 }

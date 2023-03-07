@@ -24,6 +24,8 @@ pub struct OutputOptions {
   pub library: Option<LibraryOptions>,
   pub enabled_library_types: Option<Vec<String>>,
   pub strict_module_error_handling: bool,
+  pub global_object: String,
+  pub import_function_name: String,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";
@@ -230,6 +232,15 @@ pub struct LibraryOptions {
   // webpack type
   pub library_type: String,
   pub umd_named_define: Option<bool>,
+  pub auxiliary_comment: Option<LibraryAuxiliaryComment>,
+}
+
+#[derive(Debug)]
+pub struct LibraryAuxiliaryComment {
+  pub root: Option<String>,
+  pub commonjs: Option<String>,
+  pub commonjs2: Option<String>,
+  pub amd: Option<String>,
 }
 
 #[derive(Debug)]

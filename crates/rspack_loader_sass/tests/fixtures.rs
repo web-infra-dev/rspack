@@ -5,7 +5,7 @@ use std::{
 };
 
 use rspack_core::{
-  CompilationContext, CompilerContext, CompilerOptions, ExternalType, Loader, LoaderRunner,
+  CompilationContext, CompilerContext, CompilerOptions, Loader, LoaderRunner,
   LoaderRunnerAdditionalContext, ResourceData, SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
@@ -51,13 +51,15 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
             library: None,
             enabled_library_types: None,
             strict_module_error_handling: false,
+            global_object: "self".to_string(),
+            import_function_name: "import".to_string(),
           },
           target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
           resolve: rspack_core::Resolve::default(),
           builtins: Default::default(),
           module: Default::default(),
           externals: Default::default(),
-          externals_type: ExternalType::Auto,
+          externals_type: "commonjs".to_string(),
           stats: Default::default(),
           cache: Default::default(),
           snapshot: Default::default(),

@@ -117,7 +117,7 @@ export interface LibraryOptions {
 	auxiliaryComment?: string | LibraryCustomUmdCommentObject;
 	export?: string | string[];
 	name?: string | string[] | LibraryCustomUmdObject;
-	type: string;
+	type: LibraryType;
 	umdNamedDefine?: boolean;
 }
 declare interface LibraryCustomUmdObject {
@@ -151,6 +151,9 @@ export type LibraryType =
 export type AuxiliaryComment = string | LibraryCustomUmdCommentObject;
 export type UmdNamedDefine = boolean;
 export type EnabledLibraryTypes = LibraryType[];
+export type GlobalObject = string;
+export type ImportFunctionName = string;
+
 export interface Output {
 	path?: Path;
 	publicPath?: PublicPath;
@@ -160,6 +163,8 @@ export interface Output {
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	globalObject?: GlobalObject;
+	importFunctionName?: ImportFunctionName;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	libraryExport?: LibraryExport;
 	libraryTarget?: LibraryType;
@@ -195,6 +200,8 @@ export interface OutputNormalized {
 	library?: LibraryOptions;
 	module?: OutputModule;
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
+	globalObject?: GlobalObject;
+	importFunctionName?: ImportFunctionName;
 }
 
 ///// Resolve /////
@@ -299,8 +306,28 @@ export interface ExternalItemObjectUnknown {
 export type ExternalItemValue = string;
 
 ///// ExternalsType /////
-// TODO: align with webpack
-export type ExternalsType = "window" | "node-commonjs";
+export type ExternalsType =
+	| "var"
+	| "module"
+	| "assign"
+	| "this"
+	| "window"
+	| "self"
+	| "global"
+	| "commonjs"
+	| "commonjs2"
+	| "commonjs-module"
+	| "commonjs-static"
+	| "amd"
+	| "amd-require"
+	| "umd"
+	| "umd2"
+	| "jsonp"
+	| "system"
+	| "promise"
+	| "import"
+	| "script"
+	| "node-commonjs";
 
 ///// InfrastructureLogging /////
 export interface InfrastructureLogging {

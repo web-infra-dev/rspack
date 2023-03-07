@@ -42,12 +42,9 @@ async fn run(relative_path: &str) {
   #[cfg(feature = "hmr")]
   let options = {
     let mut options = options;
-    use rspack_core::{CacheOptions, MemoryCacheOptions, Minification};
+    use rspack_core::{CacheOptions, MemoryCacheOptions};
     // options.devtool = Default::default();
-    options.builtins.minify = Minification {
-      enable: false,
-      passes: 0,
-    };
+    options.builtins.minify_options = None;
     options.cache = CacheOptions::Memory(MemoryCacheOptions { max_generations: 0 });
     options.snapshot.resolve.timestamp = true;
     options.snapshot.module.timestamp = true;

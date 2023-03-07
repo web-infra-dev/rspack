@@ -7,7 +7,8 @@
 use std::{fmt, sync::Arc};
 
 use rspack_database::Database;
-
+pub mod external_module;
+pub use external_module::*;
 pub mod ast;
 pub mod cache;
 mod missing_module;

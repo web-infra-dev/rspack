@@ -114,7 +114,9 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			!isNil(output.cssChunkFilename) &&
 			!isNil(output.uniqueName) &&
 			!isNil(output.enabledLibraryTypes) &&
-			!isNil(output.strictModuleErrorHandling),
+			!isNil(output.strictModuleErrorHandling) &&
+			!isNil(output.globalObject) &&
+			!isNil(output.importFunctionName),
 		"fields should not be nil after defaults"
 	);
 	return {
@@ -128,15 +130,32 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		uniqueName: output.uniqueName,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
-		strictModuleErrorHandling: output.strictModuleErrorHandling
+		strictModuleErrorHandling: output.strictModuleErrorHandling,
+		globalObject: output.globalObject,
+		importFunctionName: output.importFunctionName
 	};
 }
 
 function getRawLibrary(
 	library: LibraryOptions
 ): RawOptions["output"]["library"] {
-	const { type, name, export: libraryExport, umdNamedDefine } = library;
+	const {
+		type,
+		name,
+		export: libraryExport,
+		umdNamedDefine,
+		auxiliaryComment
+	} = library;
 	return {
+		auxiliaryComment:
+			typeof auxiliaryComment === "string"
+				? {
+						commonjs: auxiliaryComment,
+						commonjs2: auxiliaryComment,
+						amd: auxiliaryComment,
+						root: auxiliaryComment
+				  }
+				: auxiliaryComment,
 		libraryType: type,
 		name:
 			name == null
