@@ -1,5 +1,13 @@
 # @rspack/plugin-html
 
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [c81fd863]
+- Updated dependencies [c81fd863]
+  - @rspack/core@0.0.26
+
 ## 0.0.25
 
 ### Patch Changes

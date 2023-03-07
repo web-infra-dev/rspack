@@ -1,5 +1,14 @@
 # @rspack/core
 
+## 0.0.26
+
+### Patch Changes
+
+- c81fd863: fix: umd library name template string
+- c81fd863: feat: json schema check for RspackOptions
+  - @rspack/binding@0.0.26
+  - @rspack/dev-client@0.0.26
+
 ## 0.0.25
 
 ### Patch Changes

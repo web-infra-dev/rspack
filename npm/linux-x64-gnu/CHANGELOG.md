@@ -1,5 +1,7 @@
 # @rspack/binding-linux-x64-gnu
 
+## 0.0.26
+
 ## 0.0.25
 
 ### Patch Changes
