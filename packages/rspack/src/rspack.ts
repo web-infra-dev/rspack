@@ -23,7 +23,7 @@ import { asArray, isNil } from "./util";
 import rspackOptionsCheck from "./config/schema.check.js";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
-	const compilers = options.map(option => createCompiler(option));
+	const compilers = options.map(createCompiler);
 	const compiler = new MultiCompiler(
 		compilers,
 		options as MultiCompilerOptions
