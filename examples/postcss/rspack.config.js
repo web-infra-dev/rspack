@@ -1,14 +1,10 @@
 module.exports = {
 	mode: "development",
-	entry: {
-		main: {
-			import: ["./index.js"],
-		}
-	},
-	define: {
-		"process.env.NODE_ENV": "'development'",
-	},
+	entry: "./index.js",
 	builtins: {
 		html: [{}],
+		define: {
+			"process.env.NODE_ENV": "'development'",
+		},
 	},
 };

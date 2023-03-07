@@ -9,12 +9,12 @@ module.exports = {
 		chunkFilename: "[name].chunk.js"
 	},
 	stats: {
-		hash: false,
-		timings: false,
-		builtAt: false,
-		assets: false,
-		modules: false,
-		reasons: true
+		all: false,
+		reasons: true,
+		chunks: true,
+		entrypoints: true,
+		chunkGroups: true,
+		errors: true,
 	},
 	optimization: {
 		runtimeChunk: "single"

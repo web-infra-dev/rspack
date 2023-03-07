@@ -54,7 +54,7 @@ module.exports = {
 			cacheGroups: {
 				someVendor: {
 					chunks: "all",
-					minChunk: 2
+					minChunks: 2
 				}
 			}
 		}

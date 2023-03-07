@@ -5,10 +5,10 @@ module.exports = {
       import: ["./index.js"],
     }
   },
-  define: {
-    "process.env.NODE_ENV": "'development'",
-  },
   builtins: {
     html: [{}],
+    define: {
+      "process.env.NODE_ENV": "'development'",
+    },
   },
 };

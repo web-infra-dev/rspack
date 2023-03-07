@@ -27,3 +27,7 @@ export function indent(str: string, prefix: string) {
 	const rem = str.replace(/\n([^\n])/g, "\n" + prefix + "$1");
 	return prefix + rem;
 }
+
+export function asArray<T>(item: T | T[]): T[] {
+	return Array.isArray(item) ? item : [item];
+}

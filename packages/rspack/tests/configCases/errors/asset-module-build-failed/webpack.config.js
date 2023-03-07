@@ -10,9 +10,9 @@ module.exports = {
 				use: [
 					{
 						loader: "./my-loader.js",
-            type: "asset"
 					}
-				]
+				],
+				type: "asset"
 			}
 		]
 	}

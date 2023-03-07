@@ -1,5 +1,4 @@
 const path = require("path");
-const postcssLoader = require("@rspack/postcss-loader");
 const resolve = filename => path.resolve(__dirname, filename);
 
 module.exports = {
@@ -10,7 +9,7 @@ module.exports = {
 				test: resolve("modules-true.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: true
 						}
@@ -22,7 +21,7 @@ module.exports = {
 				test: resolve("modules-false.module.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: false
 						}
@@ -34,7 +33,7 @@ module.exports = {
 				test: resolve("auto-true.module.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: {
 								auto: true
@@ -48,7 +47,7 @@ module.exports = {
 				test: resolve("auto-false.module.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: {
 								auto: false
@@ -62,7 +61,7 @@ module.exports = {
 				test: resolve("auto-regex.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: {
 								auto: /auto-regex.css$/
@@ -76,7 +75,7 @@ module.exports = {
 				test: resolve("auto-function.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: {
 								auto(p) {
@@ -92,7 +91,7 @@ module.exports = {
 				test: resolve("generateScopedName.module.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: {
 								generateScopedName: "[name]__[local]___[hash:base64:5]"
@@ -106,7 +105,7 @@ module.exports = {
 				test: resolve("localsConvention.module.css"),
 				use: [
 					{
-						loader: postcssLoader,
+						loader: "@rspack/postcss-loader",
 						options: {
 							modules: {
 								localsConvention: "camelCase"

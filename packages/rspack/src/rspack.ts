@@ -19,7 +19,8 @@ import {
 import { Callback } from "tapable";
 import MultiStats from "./multiStats";
 import assert from "assert";
-import { isNil } from "./util";
+import { asArray, isNil } from "./util";
+import rspackOptionsCheck from "./config/schema.check.js";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(option => {
@@ -96,6 +97,12 @@ function rspack(
 	callback?: Callback<Error, Stats>
 ): Compiler;
 function rspack(options: any, callback?: Callback<Error, any>) {
+	if (!asArray(options).every(i => rspackOptionsCheck(i))) {
+		// TODO: more readable error message
+		console.error("** Invalidate Configuration **");
+		console.error((rspackOptionsCheck as any).errors);
+		return;
+	}
 	let compiler: Compiler | MultiCompiler;
 	if (Array.isArray(options)) {
 		compiler = createMultiCompiler(options);
