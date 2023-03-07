@@ -338,10 +338,12 @@ importers:
       '@rspack/cli': workspace:*
       react: 17.0.0
       react-dom: 17.0.0
+      sass-loader: ^13.2.0
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
       react: 17.0.0
       react-dom: 17.0.0_react@17.0.0
+      sass-loader: 13.2.0
 
   examples/solid:
     specifiers:
@@ -13897,7 +13899,6 @@ packages:
     dependencies:
       klona: 2.0.5
       neo-async: 2.6.2
-    dev: true
 
   /sass-loader/13.2.0_sass@1.56.2:
     resolution: {integrity: sha512-JWEp48djQA4nbZxmgC02/Wh0eroSUutulROUusYJO9P9zltRbNN80JCBHqRGzjd4cmZCa/r88xgfkjGD0TXsHg==}

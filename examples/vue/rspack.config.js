@@ -19,12 +19,12 @@ module.exports = {
     rules: [
       {
         test: /\.vue$/,
-        use: [{loader: require.resolve('./vue-loader.js')}]
+        use: ['./vue-loader.js']
       },
       {
         test: /\.vue$/,
         resourceQuery: /type=style/,
-        use: [{loader: require.resolve('./vue-loader.js')}],
+        use: ['./vue-loader.js'],
         type: 'css'
       },
       {

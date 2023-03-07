@@ -11,9 +11,6 @@ module.exports = {
   output: {
     publicPath: "http://localhost:3000",
   },
-  define: {
-    "process.env.NODE_ENV": "'development'",
-  },
   module: {
     rules: [],
     parser: {
@@ -30,12 +27,15 @@ module.exports = {
         vendor: {
           chunks: "all",
           name: "vendor",
-          test: "common"
+          test: /common/
         }
       }
     }
   },
   builtins: {
     html: [{}],
+    define: {
+      "process.env.NODE_ENV": "'development'",
+    },
   },
 };

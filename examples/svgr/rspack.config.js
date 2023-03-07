@@ -6,22 +6,16 @@ module.exports = {
     main: './index.jsx'
   },
   module: {
-    rules: [{
-      test: /\.svg$/,
-      use: [
-        {
-          loader: '@svgr/webpack',
-        },
-        {
-          loader: 'url-loader'
-        }
-      ],
-      type: 'js'
-    }]
+    rules: [
+      {
+        test: /\.svg$/,
+        use: ['@svgr/webpack', 'url-loader']
+      }
+    ]
   },
   builtins: {
-    html: [{
-      template: './index.html'
-    }]
+    html: [
+      { template: './index.html' }
+    ]
   }
 }

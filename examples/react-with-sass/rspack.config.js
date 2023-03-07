@@ -1,9 +1,7 @@
 module.exports = {
   mode: "development",
   entry: {
-    main: {
-      import: ["./src/index.jsx"],
-    }
+    main: ["./src/index.jsx"],
   },
   output: {
     publicPath: "http://localhost:3000",
@@ -12,9 +10,7 @@ module.exports = {
     rules: [
       {
         test: /\.s[ac]ss$/,
-        use: [
-          { loader: "builtin:sass-loader" }
-        ],
+        use: ["sass-loader"],
         type: "css",
       },
     ],
