@@ -60,7 +60,7 @@
 - [webpack 团队和社区](https://webpack.js.org/) 创建了一个优秀的打包工具和丰富的生态。
 - [@sokra](https://github.com/sokra) 在 [webpack](https://github.com/webpack/webpack) 项目上的出色工作。
 - [@ScriptedAlchemy](https://github.com/ScriptedAlchemy) 创造了模块联邦，并帮助 Rspack 与社区建立联系。
-- [SWC](https://swc.rs/) 项目（由 [@kdy1](https://github.com/kdy1) 创建）, 为 Rspack 的代码转译和压缩提供了支持。
+- [SWC](https://swc.rs/) 项目（由 [@kdy1](https://github.com/kdy1) 创建）, 为 Rspack 的代码解析、转换和压缩提供了支持。
 - [esbuild](https://github.com/evanw/esbuild) 项目（由 [@evanw](https://github.com/evanw) 创建）, 它启发了 Rspack 的并发架构。
 - [NAPI-RS](https://github.com/napi-rs/napi-rs) 项目（由 [@Brooooooklyn](https://github.com/Brooooooklyn) 创建），为 Rspack 的 node-binding 实现提供了支持。
 - [Parcel](https://github.com/parcel-bundler/parcel) 项目(由 [@devongovett](https://github.com/devongovett)创建), 它是 Rust Bundler 的先行探索者并启发了 Rspack 的增量构建架构.
