@@ -1,7 +1,7 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Compilation, LibraryOptions, Plugin, PluginContext, PluginRenderHookOutput,
-  PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs,
+  Chunk, Compilation, Filename, LibraryOptions, Plugin, PluginContext, PluginRenderHookOutput,
+  PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
 };
 
 #[derive(Debug)]
@@ -37,12 +37,19 @@ impl AssignLibraryPlugin {
     Self { options }
   }
 
-  pub fn get_resolved_full_name(&self, compilation: &Compilation) -> Vec<String> {
+  pub fn get_resolved_full_name(&self, compilation: &Compilation, chunk: &Chunk) -> Vec<String> {
     if let Some(library) = &compilation.options.output.library {
       if let Some(name) = &library.name {
         if let Some(root) = &name.root {
           let mut prefix = self.options.prefix.clone();
-          prefix.extend(root.clone());
+          prefix.extend(
+            root
+              .iter()
+              .map(|v| {
+                Filename::from(v.clone()).render_with_chunk(chunk, ".js", &SourceType::JavaScript)
+              })
+              .collect::<Vec<_>>(),
+          );
           return prefix;
         }
       }
@@ -58,7 +65,7 @@ impl Plugin for AssignLibraryPlugin {
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     if self.options.declare {
-      let base = &self.get_resolved_full_name(args.compilation)[0];
+      let base = &self.get_resolved_full_name(args.compilation, args.chunk())[0];
       let mut source = ConcatSource::default();
       source.add(RawSource::from(format!("var {base};\n")));
       source.add(args.source.clone());
@@ -84,7 +91,7 @@ impl Plugin for AssignLibraryPlugin {
     } else {
       false
     };
-    let full_name_resolved = self.get_resolved_full_name(args.compilation);
+    let full_name_resolved = self.get_resolved_full_name(args.compilation, args.chunk());
     let export_access = property_library(library);
     if matches!(self.options.unnamed, Unnamed::Static) {
       let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);

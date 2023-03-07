@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use sugar_path::SugarPath;
 
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation};
+use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
 
 #[derive(Debug)]
 pub struct OutputOptions {
@@ -73,6 +73,31 @@ impl From<String> for Filename {
 }
 
 impl Filename {
+  pub fn render_with_chunk(
+    &self,
+    chunk: &Chunk,
+    extension: &str,
+    source_type: &SourceType,
+  ) -> String {
+    let hash = Some(chunk.get_render_hash());
+    self.render(FilenameRenderOptions {
+      // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
+      name: chunk.name_for_filename_template(),
+      extension: Some(extension.to_owned()),
+      id: chunk.id.clone(),
+      contenthash: Some(
+        chunk
+          .content_hash
+          .get(source_type)
+          .expect("should have chunk javascript content hash")
+          .clone(),
+      ),
+      chunkhash: hash.clone(),
+      hash,
+      ..Default::default()
+    })
+  }
+
   pub fn render(&self, options: FilenameRenderOptions) -> String {
     let mut filename = self.template.clone();
     if let Some(name) = options.name {

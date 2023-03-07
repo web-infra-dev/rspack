@@ -1,10 +1,13 @@
+use std::borrow::Cow;
+
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Compilation, ExternalModule, LibraryAuxiliaryComment, Plugin, PluginContext,
-  PluginRenderHookOutput, RenderArgs,
+  Chunk, Compilation, ExternalModule, Filename, LibraryAuxiliaryComment, Plugin, PluginContext,
+  PluginRenderHookOutput, RenderArgs, SourceType,
 };
 use rspack_identifier::Identifiable;
-
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
   _optional_amd_external_as_global: bool,
@@ -25,7 +28,7 @@ impl Plugin for UmdLibraryPlugin {
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let compilation = &args.compilation;
-
+    let chunk = args.chunk();
     let modules = compilation
       .chunk_graph
       .get_chunk_module_identifiers(args.chunk)
@@ -65,16 +68,9 @@ impl Plugin for UmdLibraryPlugin {
       (&None, &None, &None)
     };
 
-    let define = if required_externals.is_empty() {
-      if let (Some(amd), Some(_)) = &(amd, umd_named_define) {
-        format!("define({amd}, [], {amd_factory});\n")
-      } else {
-        format!("define([], {amd_factory});\n")
-      }
-    } else if let (Some(amd), Some(_)) = &(amd, umd_named_define) {
+    let define = if let (Some(amd), Some(_)) = &(amd, umd_named_define) {
       format!(
-        "define({}, {}, {amd_factory});\n",
-        amd,
+        "define({amd}, {}, {amd_factory});\n",
         external_dep_array(&required_externals)
       )
     } else {
@@ -91,8 +87,8 @@ impl Plugin for UmdLibraryPlugin {
         get_auxiliary_comment("commonjs", auxiliary_comment),
         &commonjs
           .clone()
-          .map(|commonjs| library_name(&[commonjs]))
-          .or_else(|| root.clone().map(|root| library_name(&root)))
+          .map(|commonjs| library_name(&[commonjs], chunk))
+          .or_else(|| root.clone().map(|root| library_name(&root, chunk)))
           .unwrap_or_default(),
         externals_require_array("commonjs", &externals),
       );
@@ -100,12 +96,15 @@ impl Plugin for UmdLibraryPlugin {
         "{}
         {} = factory({});",
         get_auxiliary_comment("root", auxiliary_comment),
-        accessor_access(
-          Some("root"),
-          &root
-            .clone()
-            .or_else(|| commonjs.clone().map(|commonjs| vec![commonjs]))
-            .unwrap_or_default(),
+        replace_keys(
+          accessor_access(
+            Some("root"),
+            &root
+              .clone()
+              .or_else(|| commonjs.clone().map(|commonjs| vec![commonjs]))
+              .unwrap_or_default(),
+          ),
+          chunk
         ),
         external_root_array(&externals)
       );
@@ -164,8 +163,13 @@ impl Plugin for UmdLibraryPlugin {
   }
 }
 
-fn library_name(v: &[String]) -> String {
-  format!("'{}'", v.last().expect("should have last"))
+fn library_name(v: &[String], chunk: &Chunk) -> String {
+  let value = format!("'{}'", v.last().expect("should have last"));
+  replace_keys(value, chunk)
+}
+
+fn replace_keys(v: String, chunk: &Chunk) -> String {
+  Filename::from(v).render_with_chunk(chunk, ".js", &SourceType::JavaScript)
 }
 
 fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {
@@ -181,11 +185,12 @@ fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {
 }
 
 fn external_dep_array(modules: &[&ExternalModule]) -> String {
-  modules
+  let value = modules
     .iter()
-    .map(|m| m.request.clone())
+    .map(|m| format!("'{}'", m.request))
     .collect::<Vec<_>>()
-    .join(", ")
+    .join(", ");
+  format!("[{value}]")
 }
 
 fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> String {
@@ -194,15 +199,24 @@ fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) ->
     .map(|m| {
       format!(
         "__WEBPACK_EXTERNAL_MODULE_{}__",
-        compilation
-          .module_graph
-          .module_graph_module_by_identifier(&m.identifier())
-          .expect("Module not found")
-          .id(&compilation.chunk_graph)
+        to_identifier(
+          compilation
+            .module_graph
+            .module_graph_module_by_identifier(&m.identifier())
+            .expect("Module not found")
+            .id(&compilation.chunk_graph)
+        )
       )
     })
     .collect::<Vec<_>>()
     .join(", ")
+}
+
+static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("TODO:"));
+
+#[inline]
+fn to_identifier(v: &str) -> Cow<'_, str> {
+  IDENTIFIER_REGEXP.replace_all(v, "_")
 }
 
 fn external_root_array(modules: &[&ExternalModule]) -> String {

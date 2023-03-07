@@ -8,11 +8,11 @@ use rspack_core::rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestEntry, RenderStartupArgs, SourceType,
+  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, GenerateContext,
+  GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  PathData, Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestEntry, RenderStartupArgs,
+  SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -169,11 +169,15 @@ impl JsPlugin {
     if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
-      if let Some(source) = compilation
-        .plugin_driver
-        .read()
-        .await
-        .render_startup(RenderStartupArgs { compilation })?
+      if let Some(source) =
+        compilation
+          .plugin_driver
+          .read()
+          .await
+          .render_startup(RenderStartupArgs {
+            compilation,
+            chunk: &chunk.ukey,
+          })?
       {
         sources.add(source);
       }
@@ -472,34 +476,14 @@ impl Plugin for JsPlugin {
     } else {
       self.render_chunk(&args).await?
     };
-    // let hash = Some(get_hash(compilation).to_string());
-    // let hash = None;
-    // let chunkhash = Some(get_chunkhash(compilation, &args.chunk_ukey, module_graph).to_string());
-    // let chunkhash = None;
-    // let contenthash = Some(chunk.hash.clone());
+
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,
     );
-    let hash = Some(chunk.get_render_hash());
 
-    let output_path = filename_template.render(FilenameRenderOptions {
-      // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
-      name: chunk.name_for_filename_template(),
-      extension: Some(".js".to_owned()),
-      id: chunk.id.clone(),
-      contenthash: Some(
-        chunk
-          .content_hash
-          .get(&SourceType::JavaScript)
-          .expect("should have chunk javascript content hash")
-          .clone(),
-      ),
-      chunkhash: hash.clone(),
-      hash,
-      ..Default::default()
-    });
+    let output_path = filename_template.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
 
     let path_options = PathData {
       chunk_ukey: args.chunk_ukey,
