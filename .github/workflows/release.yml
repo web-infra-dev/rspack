@@ -448,6 +448,8 @@ jobs:
         run: node scripts/build-npm.js
       - name: Show binding packages
         run: ls -R npm
+      - name: Link optional dependencies
+        run: pnpm install
       - name: Release
         uses: web-infra-dev/actions@v2
         with:
