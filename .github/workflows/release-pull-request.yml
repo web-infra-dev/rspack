@@ -17,7 +17,7 @@ on:
 jobs:
   release:
     name: Create Release Pull Request
-    runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repo
