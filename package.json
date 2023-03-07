@@ -10,6 +10,7 @@
     "clean": "pnpm --filter @rspack/cli run clean",
     "init": "./x i",
     "setup": "./x i && ./x build binding",
+    "build:js": "./x build js",
     "build:cli:debug": "./x build cli:debug",
     "build:cli:release": "./x build cli:release",
     "build:cli:release:all": "./x build cli:release:all",

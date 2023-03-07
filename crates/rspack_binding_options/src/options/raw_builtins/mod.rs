@@ -31,6 +31,7 @@ use self::{
 use crate::RawOptionsApply;
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawMinification {
   pub passes: u32,
@@ -39,6 +40,7 @@ pub struct RawMinification {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawPresetEnv {
   pub targets: Vec<String>,

@@ -1,4 +1,4 @@
-//! cargo run --example build-cli -- `pwd`/tests/fixtures/simple .
+//! cargo run --example test-cli -- `pwd`/tests/fixtures/simple
 
 use std::{env, path::PathBuf};
 

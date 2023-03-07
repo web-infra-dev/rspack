@@ -68,7 +68,7 @@ fn true_by_default() -> bool {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TestConfig {
   #[serde(default)]
-  mode: String,
+  pub mode: String,
   #[serde(default = "default_entry")]
   pub entry: HashMap<String, EntryItem>,
   #[serde(default)]
@@ -141,6 +141,8 @@ pub struct Builtins {
   pub preset_env: Option<PresetEnv>,
   #[serde(default)]
   pub css: Css,
+  #[serde(default)]
+  pub dev_friendly_split_chunks: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default)]
@@ -411,6 +413,10 @@ impl TestConfig {
       },
     };
     let mut plugins = Vec::new();
+    if self.builtins.dev_friendly_split_chunks {
+      plugins
+        .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
+    }
     for html in self.builtins.html {
       plugins.push(rspack_plugin_html::HtmlPlugin::new(html).boxed());
     }
@@ -488,28 +494,13 @@ impl TestConfig {
     (options, plugins)
   }
 
-  pub fn from_fixture(fixture_path: &Path) -> Self {
-    let config_path = fixture_path.join("test.config.json");
-    // let config = if config_path
-    let test_config: TestConfig = if config_path.exists() {
+  pub fn from_config_path(config_path: &Path) -> Self {
+    if config_path.exists() {
       let config_content =
         std::fs::read_to_string(config_path).expect("test.config.json should exist");
       serde_json::from_str(&config_content).expect("should be valid json")
     } else {
       serde_json::from_str("{}").expect("should be valid json")
-    };
-    test_config
+    }
   }
-}
-
-pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugin>) {
-  let test_config = TestConfig::from_fixture(fixture_path);
-  test_config.apply(fixture_path.to_path_buf())
-}
-
-pub fn add_entry_runtime(mut options: CompilerOptions) -> CompilerOptions {
-  for (_, entry) in options.entry.iter_mut() {
-    entry.runtime = Some("runtime".to_string());
-  }
-  options
 }

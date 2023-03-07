@@ -5,6 +5,7 @@ use rspack_core::{CopyPluginConfig, GlobOptions, Pattern, ToType};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawPattern {
   pub from: String,
@@ -18,6 +19,7 @@ pub struct RawPattern {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawGlobOptions {
   pub case_sensitive_match: Option<bool>,
@@ -25,6 +27,7 @@ pub struct RawGlobOptions {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawCopyConfig {
   pub patterns: Vec<RawPattern>,
