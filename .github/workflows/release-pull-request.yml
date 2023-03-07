@@ -25,6 +25,14 @@ jobs:
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - name: Install node_modules
+        run: |
+          npm install -g pnpm@7.25.0
+          pnpm -v
+          pnpm install
       - name: Create Release Pull Request
         uses: web-infra-dev/actions@v2
         with:
