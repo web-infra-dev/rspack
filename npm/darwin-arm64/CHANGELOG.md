@@ -1,5 +1,11 @@
 # @rspack/binding-darwin-arm64
 
+## 0.0.25
+
+### Patch Changes
+
+- 6d6e65e4: feat: update packages repository config
+
 ## 0.0.24
 
 ## 0.0.23

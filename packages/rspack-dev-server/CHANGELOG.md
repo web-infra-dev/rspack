@@ -1,5 +1,15 @@
 # rspack-dev-server
 
+## 0.0.25
+
+### Patch Changes
+
+- 6d6e65e4: feat: update packages repository config
+- Updated dependencies [6d6e65e4]
+  - @rspack/dev-client@0.0.25
+  - @rspack/dev-middleware@0.0.25
+  - @rspack/dev-server@0.0.25
+
 ## 0.0.24
 
 ### Patch Changes
