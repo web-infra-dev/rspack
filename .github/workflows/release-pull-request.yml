@@ -25,21 +25,6 @@ jobs:
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
-      - name: Install rus toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2022-08-06
-          profile: default
-          components: rustfmt, clippy, cargo
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-          architecture: "arm64"
-      - name: Install node_modules
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm -v
-          pnpm install
       - name: Create Release Pull Request
         uses: web-infra-dev/actions@v2
         with:
