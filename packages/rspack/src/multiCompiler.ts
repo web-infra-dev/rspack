@@ -52,7 +52,7 @@ interface Node<T> {
 		| "done";
 }
 
-export interface MultiCompilerOptions extends ReadonlyArray<RspackOptions> {
+export interface MultiCompilerOptions {
 	/**
 	 * how many Compilers are allows to run at the same time in parallel
 	 */
