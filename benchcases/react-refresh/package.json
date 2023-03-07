@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "name": "example-rspack-react-refresh",
+=======
+  "name": "benchmarkcase-rspack-react-refresh",
+>>>>>>> 395da9a6 (chore: 🤖 fix)
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
