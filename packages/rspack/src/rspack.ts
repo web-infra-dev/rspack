@@ -21,6 +21,8 @@ import MultiStats from "./multiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
 import rspackOptionsCheck from "./config/schema.check.js";
+import type { DefinedError } from "ajv";
+import InvalidateConfigurationError from "./error/InvalidateConfiguration";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -96,9 +98,10 @@ function rspack(
 ) {
 	if (!asArray(options as any).every(i => rspackOptionsCheck(i))) {
 		// TODO: more readable error message
-		console.error("** Invalidate Configuration **");
-		console.error((rspackOptionsCheck as any).errors);
-		return;
+		const msg = (rspackOptionsCheck as any).errors
+			.map((e: DefinedError) => `\n  ${e.instancePath}: ${e.message}`)
+			.join("");
+		throw new InvalidateConfigurationError(msg);
 	}
 	const create = () => {
 		if (isMultiRspackOptions(options)) {

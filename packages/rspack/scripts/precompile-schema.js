@@ -5,12 +5,11 @@ const standaloneCode = require("ajv/dist/standalone").default;
 const terser = require("terser");
 
 const configDir = path.resolve(__dirname, "../src/config");
-const configSchema = path.resolve(configDir, "./schema.json");
+const configSchema = path.resolve(configDir, "./schema.js");
 const configCheck = path.resolve(configDir, "./schema.check.js");
 
 const ajv = new Ajv({
 	code: { source: true, optimize: true },
-	messages: false,
 	strictNumbers: false,
 	logger: false
 });
