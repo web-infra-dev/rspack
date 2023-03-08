@@ -304,8 +304,8 @@ export interface RawResolveOptions {
   mainFields?: Array<string>
   browserField?: boolean
   conditionNames?: Array<string>
-  alias?: Record<string, string | false>
-  fallback?: Record<string, string | false>
+  alias?: Record<string, Array<string | false>>
+  fallback?: Record<string, Array<string | false>>
   symlinks?: boolean
   tsConfigPath?: string
   modules?: Array<string>

@@ -130,12 +130,12 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
 
   let alias = overwrite(base.alias, other.alias, |pre, mut now| {
     now.extend(pre.into_iter());
-    let now: indexmap::IndexSet<(String, AliasMap)> = now.into_iter().collect();
+    let now: indexmap::IndexSet<(String, Vec<AliasMap>)> = now.into_iter().collect();
     now.into_iter().collect()
   });
   let fallback = overwrite(base.fallback, other.fallback, |pre, mut now| {
     now.extend(pre.into_iter());
-    let now: indexmap::IndexSet<(String, AliasMap)> = now.into_iter().collect();
+    let now: indexmap::IndexSet<(String, Vec<AliasMap>)> = now.into_iter().collect();
     now.into_iter().collect()
   });
   let prefer_relative = overwrite(base.prefer_relative, other.prefer_relative, |_, value| {
@@ -201,7 +201,7 @@ mod test {
     use crate::AliasMap;
     let base = Resolve {
       extensions: Some(to_string(vec!["a", "b"])),
-      alias: Some(vec![("c".to_string(), AliasMap::Ignored)]),
+      alias: Some(vec![("c".to_string(), vec![AliasMap::Ignored])]),
       symlinks: Some(false),
       main_files: Some(to_string(vec!["d", "e", "f"])),
       main_fields: Some(to_string(vec!["g", "h", "i"])),
@@ -211,7 +211,7 @@ mod test {
     };
     let another = Resolve {
       extensions: Some(to_string(vec!["a1", "b1"])),
-      alias: Some(vec![("c2".to_string(), AliasMap::Ignored)]),
+      alias: Some(vec![("c2".to_string(), vec![AliasMap::Ignored])]),
       prefer_relative: Some(true),
       browser_field: Some(true),
       main_files: Some(to_string(vec!["d1", "e", "..."])),
@@ -237,8 +237,8 @@ mod test {
     assert_eq!(
       options.alias.expect("should be Ok"),
       vec![
-        ("c2".to_string(), AliasMap::Ignored),
-        ("c".to_string(), AliasMap::Ignored)
+        ("c2".to_string(), vec![AliasMap::Ignored]),
+        ("c".to_string(), vec![AliasMap::Ignored])
       ]
     );
     assert_eq!(options.condition_names.expect("should be Ok").len(), 3);

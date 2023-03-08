@@ -18,6 +18,7 @@ import {
 	Optimization,
 	OptimizationSplitChunksOptions,
 	OutputNormalized,
+	Resolve,
 	RspackOptionsNormalized,
 	RuleSetCondition,
 	RuleSetLogicalConditions,
@@ -46,7 +47,7 @@ export const getRawOptions = (
 		target: getRawTarget(options.target),
 		context: options.context,
 		output: getRawOutput(options.output),
-		resolve: options.resolve,
+		resolve: getRawResolve(options.resolve),
 		module: getRawModule(options.module, {
 			compiler,
 			devtool,
@@ -101,6 +102,27 @@ function getRawTarget(target: Target | undefined): RawOptions["target"] {
 		return [target];
 	}
 	return target;
+}
+
+function getRawAlias(
+	alias: Resolve["alias"] = {}
+): RawOptions["resolve"]["alias"] {
+	const entires = Object.entries(alias).map(([key, value]) => {
+		if (Array.isArray(value)) {
+			return [key, value];
+		} else {
+			return [key, [value]];
+		}
+	});
+	return Object.fromEntries(entires);
+}
+
+function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
+	return {
+		...resolve,
+		alias: getRawAlias(resolve.alias),
+		fallback: getRawAlias(resolve.fallback)
+	};
 }
 
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
@@ -217,7 +239,7 @@ const getRawModuleRule = (
 		type: rule.type,
 		parser: rule.parser,
 		generator: rule.generator,
-		resolve: rule.resolve,
+		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map(i => getRawModuleRule(i, options))
