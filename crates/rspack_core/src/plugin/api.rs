@@ -10,8 +10,7 @@ use crate::{
   ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, ResolveArgs, ResolveJsPluginArgs, ResolveResult, SourceType,
-  ThisCompilationArgs,
+  RenderStartupArgs, ResolveJsPluginArgs, ResolveResult, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};

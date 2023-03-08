@@ -87,11 +87,11 @@ impl NormalModuleFactory {
           let pd = plugin_driver.read().await;
           if let Some(res) = pd
             .resolve(crate::ResolveJsPluginArgs {
-              importer: args.importer.clone(),
+              importer: args.importer,
               context: args.context.clone(),
-              specifier: args.specifier.clone(),
+              specifier: args.specifier,
               resolve_options: args.resolve_options.clone(),
-              resolve_to_context: args.resolve_to_context.clone(),
+              resolve_to_context: args.resolve_to_context,
             })
             .await
             .map_err(|e| ResolveError(e.to_string(), e))?
