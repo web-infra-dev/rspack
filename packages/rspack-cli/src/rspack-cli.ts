@@ -124,6 +124,9 @@ export class RspackCLI {
 					: "cheap-module-source-map";
 			}
 			item.builtins = item.builtins || {};
+			if (isEnvDevelopment) {
+				item.builtins.progress = true;
+			}
 
 			// no emit assets when run dev server, it will use node_binding api get file content
 			if (typeof item.builtins.noEmitAssets === "undefined") {
