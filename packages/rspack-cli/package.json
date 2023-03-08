@@ -9,8 +9,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf dist/ && tsc -b --force",
-    "clean": "rm -rf dist/ && tsc -b --clean",
+    "build": "rimraf dist/ && tsc -b --force",
+    "clean": "rimraf dist/ && tsc -b --clean",
     "dev": "tsc -b -w",
     "test": "jest --verbose"
   },

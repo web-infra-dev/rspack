@@ -201,9 +201,9 @@ function createCLI() {
 		.option("npm", "clean node_modules")
 		.action(args => {
 			let commands = [];
-			let clean_npm = `rm -rf node_modules && rm -rf packages/**/node_modules`;
+			let clean_npm = `rimraf node_modules && rimraf packages/**/node_modules`;
 			let clean_rust = `cargo clean`;
-			let clean_dist = `rm -rf packages/**/{lib,dist}`;
+			let clean_dist = `rimraf packages/**/{lib,dist}`;
 			log.info("start clean");
 			switch (args) {
 				case "all":

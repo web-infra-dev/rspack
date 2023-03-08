@@ -6,9 +6,9 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf dist/ && tsc",
+    "build": "rimraf dist/ && tsc",
     "dev": "tsc -w",
-    "test": "rm -rf .test-temp && jest --verbose"
+    "test": "rimraf .test-temp && jest --verbose"
   },
   "homepage": "https://rspack.org",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
