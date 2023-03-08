@@ -28,11 +28,11 @@ English | [简体中文](./README.zh-CN.md)
 - 🛠️ **Production Optimization**: Various optimization strategies are built in by default, such as tree shaking, minification, etc.
 - 🎯 **Framework Agnostic**: Not bound to any frontend framework, ensuring enough flexibility.
 
-Read [Introduction](https://rspack.org/guide/introduction.html) for details.
+Read [Introduction](https://rspack.dev/guide/introduction.html) for details.
 
 ## Getting Started
 
-- [Quick Start](https://rspack.org/guide/getting-started.html)
+- [Quick Start](https://rspack.dev/guide/getting-started.html)
 
 ## Contribution
 
@@ -48,7 +48,7 @@ This repo has adopted the ByteDance Open Source Code of Conduct. Please check [C
 
 | Name                                                                                    | Description                                                                 |
 | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [Rspack website](https://rspack.org)                                                    | Official documentation for Rspack                                           |
+| [Rspack website](https://rspack.dev)                                                    | Official documentation for Rspack                                           |
 | [Rspack website repo](https://github.com/web-infra-dev/rspack-website)                  | Repository of official documentation                                        |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | Migration showcases for Rspack                                              |

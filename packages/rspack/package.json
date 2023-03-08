@@ -15,7 +15,7 @@
   "files": [
     "dist"
   ],
-  "homepage": "https://rspack.org",
+  "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {

@@ -4,7 +4,7 @@
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-x64-gnu.node",
-  "homepage": "https://rspack.org",
+  "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "publishConfig": {

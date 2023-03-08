@@ -23,7 +23,7 @@
     "build:release:win": "RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",
     "move-binding": "node scripts/move-binding"
   },
-  "homepage": "https://rspack.org",
+  "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
