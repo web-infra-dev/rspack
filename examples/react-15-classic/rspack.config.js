@@ -8,11 +8,14 @@ module.exports = {
         test: /\.(png|svg|jpg)$/,
         type: 'asset/resource'
       }
-    ],
+    ]
   },
   builtins: {
     html: [{
       template: './index.html'
     }],
+    react: {
+      runtime: 'classic'
+    }
   },
 };
