@@ -66,5 +66,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.3.0"
+  "packageManager": "pnpm@7.25.0"
 }
