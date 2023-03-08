@@ -16,9 +16,10 @@ use crate::{
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
   PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
   PluginRenderHookOutput, PluginRenderManifestHookOutput, PluginRenderModuleContentOutput,
-  PluginRenderStartupHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory,
-  SourceType, Stats, ThisCompilationArgs,
+  PluginRenderStartupHookOutput, PluginResolveHookOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, ResolveArgs, ResolveJsPluginArgs, ResolverFactory, SourceType, Stats,
+  ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -257,6 +258,16 @@ impl PluginDriver {
       tracing::trace!("running render runtime:{}", plugin.name());
       if let Some(module) = plugin.module(PluginContext::new(), &args).await? {
         return Ok(Some(module));
+      }
+    }
+    Ok(None)
+  }
+
+  pub async fn resolve<'a>(&self, args: ResolveJsPluginArgs<'a>) -> PluginResolveHookOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running render runtime:{}", plugin.name());
+      if let Some(r) = plugin.resolve(PluginContext::new(), &args).await? {
+        return Ok(Some(r));
       }
     }
     Ok(None)

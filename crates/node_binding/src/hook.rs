@@ -13,6 +13,7 @@ pub enum Hook {
   ProcessAssetsStageSummarize,
   ProcessAssetsStageReport,
   Emit,
+  Resolve,
   AfterEmit,
   OptimizeChunkModules,
 }
@@ -29,6 +30,7 @@ impl From<String> for Hook {
       "processAssetsStageOptimizeInline" => Hook::ProcessAssetsStageOptimizeInline,
       "processAssetsStageSummarize" => Hook::ProcessAssetsStageSummarize,
       "processAssetsStageReport" => Hook::ProcessAssetsStageReport,
+      "resolve" => Hook::Resolve,
       "emit" => Hook::Emit,
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,

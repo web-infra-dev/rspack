@@ -147,6 +147,7 @@ class Compiler {
 				{
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
+					resolve: this.#resolve.bind(this),
 					afterEmit: this.#afterEmit.bind(this),
 					processAssetsStageAdditional: this.#processAssets.bind(
 						this,
@@ -276,6 +277,7 @@ class Compiler {
 		const hookMap = {
 			make: this.hooks.make,
 			emit: this.hooks.emit,
+			resolve: this.compilation.hooks.resolve,
 			afterEmit: this.hooks.afterEmit,
 			processAssetsStageAdditional:
 				this.compilation.__internal_getProcessAssetsHookByStage(
@@ -333,6 +335,26 @@ class Compiler {
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
 		this.#updateDisabledHooks();
+	}
+	async #resolve(args: binding.JsResolveJsPluginArgs) {
+		const res = await this.compilation.hooks.resolve.promise(args);
+		this.#updateDisabledHooks();
+		let rawRes: binding.JsResolveResult;
+		if (res === undefined) {
+			rawRes = { type: "undefined" };
+		} else if (res === false) {
+			rawRes = { type: "false" };
+		} else {
+			rawRes = {
+				type: "info",
+				info: {
+					path: res.path,
+					query: res.query ?? "",
+					fragment: res.fragment ?? ""
+				}
+			};
+		}
+		return rawRes;
 	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);

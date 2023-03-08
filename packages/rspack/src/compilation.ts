@@ -8,7 +8,9 @@ import {
 	JsCompatSource,
 	JsAsset,
 	JsModule,
-	JsChunk
+	JsChunk,
+	JsResolveJsPluginArgs,
+	JsResolveResult
 } from "@rspack/binding";
 
 import {
@@ -53,6 +55,10 @@ export class Compilation {
 	#inner: JsCompilation;
 
 	hooks: {
+		resolve: tapable.AsyncSeriesBailHook<
+			[JsResolveJsPluginArgs],
+			{ path: string; query?: string; fragment?: string } | false | undefined
+		>;
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
@@ -71,6 +77,7 @@ export class Compilation {
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
 		this.hooks = {
+			resolve: new tapable.AsyncSeriesBailHook(["resolveData"]),
 			processAssets: createFakeProcessAssetsHook(this),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook(["modules"])

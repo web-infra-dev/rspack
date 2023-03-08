@@ -1,0 +1,13 @@
+{
+  "name": "example-resolve-hook",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack serve"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

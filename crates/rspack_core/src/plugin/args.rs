@@ -75,6 +75,15 @@ pub struct ResolveArgs<'a> {
 }
 
 #[derive(Debug, Clone)]
+pub struct ResolveJsPluginArgs<'a> {
+  pub importer: Option<&'a PathBuf>,
+  pub context: Option<String>,
+  pub specifier: &'a str,
+  pub resolve_options: Option<Resolve>,
+  pub resolve_to_context: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct LoadArgs<'a> {
   pub uri: &'a str,
 }

@@ -10,7 +10,8 @@ use crate::{
   ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, SourceType, ThisCompilationArgs,
+  RenderStartupArgs, ResolveArgs, ResolveJsPluginArgs, ResolveResult, SourceType,
+  ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -22,6 +23,7 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
+pub type PluginResolveHookOutput = Result<Option<ResolveResult>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
@@ -84,6 +86,14 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn module(&self, _ctx: PluginContext, _args: &ModuleArgs) -> PluginModuleHookOutput {
+    Ok(None)
+  }
+
+  async fn resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &ResolveJsPluginArgs,
+  ) -> PluginResolveHookOutput {
     Ok(None)
   }
 

@@ -2,11 +2,34 @@ use std::fmt::Debug;
 
 use async_trait::async_trait;
 use napi::{Env, NapiRaw, Result};
+use rspack_binding_options::RawResolveOptions;
+use rspack_core::ResolveInfo;
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
+
+#[napi(object)]
+pub struct JsResolveJsPluginArgs {
+  pub importer: Option<String>,
+  pub context: Option<String>,
+  pub specifier: String,
+  pub resolve_to_context: bool,
+}
+
+#[napi(object)]
+pub struct JsResolveResult {
+  pub r#type: String, // false/info/undefined
+  pub info: Option<JsResolveInfo>,
+}
+
+#[napi(object)]
+pub struct JsResolveInfo {
+  pub path: String,
+  pub query: String,
+  pub fragment: String,
+}
 
 pub struct JsHooksAdapter {
   disabled_hooks: DisabledHooks,
@@ -20,6 +43,7 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
+  pub resolve_tsfn: ThreadsafeFunction<JsResolveJsPluginArgs, JsResolveResult>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
 }
@@ -97,6 +121,45 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call make: {err}",))?
+  }
+
+  async fn resolve(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &rspack_core::ResolveJsPluginArgs,
+  ) -> rspack_core::PluginResolveHookOutput {
+    if self.is_hook_disabled(&Hook::Resolve) {
+      return Ok(None);
+    }
+
+    let res = self
+      .resolve_tsfn
+      .call(
+        JsResolveJsPluginArgs {
+          importer: args.importer.map(|i| i.to_string_lossy().into_owned()),
+          context: args.context.clone(),
+          specifier: args.specifier.to_string(),
+          resolve_to_context: args.resolve_to_context,
+        },
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call resolve hook: {err}"))??;
+    if res.r#type == "undefined" {
+      Ok(None)
+    } else if res.r#type == "false" {
+      Ok(Some(rspack_core::ResolveResult::Ignored))
+    } else {
+      let info = res.info.expect("should have info");
+      Ok(Some(rspack_core::ResolveResult::Info(
+        rspack_core::ResolveInfo {
+          path: std::path::PathBuf::from(info.path),
+          query: info.query,
+          fragment: info.fragment,
+        },
+      )))
+    }
   }
 
   async fn process_assets_stage_additional(
@@ -266,6 +329,7 @@ impl JsHooksAdapter {
       this_compilation,
       compilation,
       emit,
+      resolve,
       after_emit,
       optimize_chunk_module,
     } = js_hooks;
@@ -284,16 +348,15 @@ impl JsHooksAdapter {
       ($js_cb:ident) => {{
         let cb = unsafe { $js_cb.raw() };
 
-        let mut tsfn: ThreadsafeFunction<_, _> =
-          ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-            let (ctx, resolver) = ctx.split_into_parts();
+        let mut tsfn = ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
+          let (ctx, resolver) = ctx.split_into_parts();
 
-            let env = ctx.env;
-            let cb = ctx.callback;
-            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
+          let env = ctx.env;
+          let cb = ctx.callback;
+          let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
 
-            resolver.resolve::<()>(result, |_, _| Ok(()))
-          })?;
+          resolver.resolve(result, |_, v| Ok(v))
+        })?;
 
         // See the comment in `threadsafe_function.rs`
         tsfn.unref(&env)?;
@@ -314,6 +377,8 @@ impl JsHooksAdapter {
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
       create_hook_tsfn!(process_assets_stage_report);
     let emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(emit);
+    let resolve_tsfn: ThreadsafeFunction<JsResolveJsPluginArgs, JsResolveResult> =
+      create_hook_tsfn!(resolve);
     let after_emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(after_emit);
     let this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       create_hook_tsfn!(this_compilation);
@@ -334,6 +399,7 @@ impl JsHooksAdapter {
       compilation_tsfn,
       this_compilation_tsfn,
       emit_tsfn,
+      resolve_tsfn,
       after_emit_tsfn,
       optimize_chunk_modules_tsfn,
     })

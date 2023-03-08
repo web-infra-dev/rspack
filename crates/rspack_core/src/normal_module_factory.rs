@@ -82,7 +82,25 @@ impl NormalModuleFactory {
     let resource_data = self
       .cache
       .resolve_module_occasion
-      .use_cache(resolve_args, |args| resolve(args, plugin_driver))
+      .use_cache(resolve_args, |args| async {
+        {
+          let pd = plugin_driver.read().await;
+          if let Some(res) = pd
+            .resolve(crate::ResolveJsPluginArgs {
+              importer: args.importer.clone(),
+              context: args.context.clone(),
+              specifier: args.specifier.clone(),
+              resolve_options: args.resolve_options.clone(),
+              resolve_to_context: args.resolve_to_context.clone(),
+            })
+            .await
+            .map_err(|e| ResolveError(e.to_string(), e))?
+          {
+            return Ok(res);
+          }
+        }
+        resolve(args, plugin_driver).await
+      })
       .await;
     let resource_data = match resource_data {
       Ok(ResolveResult::Info(info)) => {
