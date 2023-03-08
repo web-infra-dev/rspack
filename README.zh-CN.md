@@ -28,11 +28,11 @@
 - 🛠️ **默认生产优化**: 默认内置多种优化策略，如 Tree Shaking、代码压缩等等。
 - 🎯 **框架无关**: 不和任何前端框架绑定，保证足够的灵活性。
 
-请阅读 [Rspack 介绍](https://rspack.org/zh/guide/introduction.html) 章节来了解更多。
+请阅读 [Rspack 介绍](https://rspack.dev/zh/guide/introduction.html) 章节来了解更多。
 
 ## 快速上手
 
-- [快速上手](https://rspack.org/zh/guide/getting-started.html)
+- [快速上手](https://rspack.dev/zh/guide/getting-started.html)
 
 ## 参与贡献
 
@@ -48,7 +48,7 @@
 
 | 名称                                                                                    | 描述                                                                         |
 | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [Rspack 文档](https://rspack.org)                                                       | Rspack 官方文档                                                              |
+| [Rspack 文档](https://rspack.dev)                                                       | Rspack 官方文档                                                              |
 | [Rspack 文档仓库](https://github.com/web-infra-dev/rspack-website)                      | Rspack 官方文档的代码仓库                                                    |
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | 迁移到 Rspack 的示例项目                                                     |

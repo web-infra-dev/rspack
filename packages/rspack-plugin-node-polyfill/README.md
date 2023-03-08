@@ -9,7 +9,7 @@ Node polyfill plugin for rspack.
 
 ## Documentation
 
-See [https://rspack.org](https://rspack.org) for details.
+See [https://rspack.dev](https://rspack.dev) for details.
 
 ## License
 
