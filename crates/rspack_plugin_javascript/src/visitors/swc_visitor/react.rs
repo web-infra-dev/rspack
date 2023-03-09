@@ -1,9 +1,7 @@
 use std::{path::Path, sync::Arc};
 
 use once_cell::sync::Lazy;
-use rspack_core::ModuleType;
-use rspack_core::ReactOptions;
-use sugar_path::SugarPath;
+use rspack_core::{contextify, ModuleType, ReactOptions};
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Module, Program};
 use swc_core::ecma::transforms::react::RefreshOptions;
@@ -45,10 +43,7 @@ pub fn react<'a>(
 
 pub fn fold_react_refresh(context: &Path, uri: &str) -> impl Fold {
   ReactHmrFolder {
-    id: Path::new(uri)
-      .relative(context)
-      .to_string_lossy()
-      .to_string(),
+    id: contextify(context, uri),
   }
 }
 
