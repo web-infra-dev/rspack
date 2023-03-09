@@ -212,6 +212,7 @@ where
 
     // ----
     if hot_update_main_content_by_runtime.is_empty() {
+      self.compile_done().await?;
       return Ok(());
     }
 
@@ -437,6 +438,8 @@ where
         ),
       );
     }
+
+    self.compile_done().await?;
 
     Ok(())
   }

@@ -130,7 +130,7 @@ where
       .collect::<HashSet<_>>();
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
     self.cache.begin_idle();
-
+    self.compile_done().await?;
     Ok(())
   }
 
@@ -166,12 +166,16 @@ where
       .compilation
       .push_batch_diagnostic(plugin_driver_diagnostics);
 
+    Ok(())
+  }
+
+  #[instrument(name = "compile_done", skip_all)]
+  async fn compile_done(&mut self) -> Result<()> {
     if !self.compilation.options.builtins.no_emit_assets {
       self.emit_assets().await?;
     }
 
     self.compilation.done(self.plugin_driver.clone()).await?;
-
     Ok(())
   }
 
