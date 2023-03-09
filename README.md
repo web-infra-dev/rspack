@@ -32,7 +32,7 @@ Read [Introduction](https://rspack.dev/guide/introduction.html) for details.
 
 ## Getting Started
 
-- [Quick Start](https://rspack.dev/guide/getting-started.html)
+- [Quick Start](https://rspack.dev/guide/quick-start.html)
 
 ## Contribution
 
