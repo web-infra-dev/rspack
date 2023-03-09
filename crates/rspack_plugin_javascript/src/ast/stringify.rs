@@ -51,22 +51,32 @@ pub fn print(
 
   let src = {
     let mut buf = vec![];
-    {
-      let mut wr = Box::new(text_writer::JsWriter::new(
-        source_map.clone(),
-        "\n",
-        &mut buf,
-        if source_map_config.enable {
-          Some(&mut src_map_buf)
-        } else {
-          None
+    let mut wr = text_writer::JsWriter::new(
+      source_map.clone(),
+      "\n",
+      &mut buf,
+      if source_map_config.enable {
+        Some(&mut src_map_buf)
+      } else {
+        None
+      },
+    );
+    if !minify {
+      let mut emitter = Emitter {
+        cfg: codegen::Config {
+          minify,
+          target,
+          ascii_only,
+          ..Default::default()
         },
-      )) as Box<dyn WriteJs>;
+        comments,
+        cm: source_map.clone(),
+        wr,
+      };
 
-      if minify {
-        wr = Box::new(text_writer::omit_trailing_semi(wr));
-      }
-
+      node.emit_with(&mut emitter)?;
+    } else {
+      let wr = text_writer::omit_trailing_semi(wr);
       let mut emitter = Emitter {
         cfg: codegen::Config {
           minify,
