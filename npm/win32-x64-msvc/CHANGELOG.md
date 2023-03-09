@@ -1,5 +1,7 @@
 # @rspack/binding-win32-x64-msvc
 
+## 0.1.0
+
 ## 0.0.26
 
 ## 0.0.25
