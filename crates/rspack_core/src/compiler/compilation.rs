@@ -1074,7 +1074,7 @@ impl Compilation {
       {
         if let Some(runtime_requirements) = self
           .chunk_graph
-          .get_module_runtime_requirements(module.module_identifier, &chunk.runtime)
+          .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
         {
           set.extend(runtime_requirements);
         }
@@ -1153,7 +1153,7 @@ impl Compilation {
           .chunk_graph
           .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
           .into_iter()
-          .filter_map(|mgm| self.module_graph.get_module_hash(&mgm.module_identifier))
+          .filter_map(|m| self.module_graph.get_module_hash(&m.identifier()))
           .inspect(|hash| hash.hash(&mut chunk.hash))
       })
       .collect::<Vec<_>>()

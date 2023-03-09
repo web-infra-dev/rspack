@@ -2,8 +2,8 @@ use rspack_identifier::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  find_graph_roots, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
-  Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap,
+  find_graph_roots, BoxModule, Chunk, ChunkByUkey, ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey,
+  ChunkUkey, Module, ModuleGraph, ModuleGraphModule, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap,
   RuntimeSpecSet, SourceType,
 };
 
@@ -168,12 +168,12 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module ModuleGraphModule> {
+  ) -> Vec<&'module BoxModule> {
     let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk);
     chunk_graph_chunk
       .modules
       .iter()
-      .filter_map(|uri| module_graph.module_graph_module_by_identifier(uri))
+      .filter_map(|uri| module_graph.module_by_identifier(uri))
       .collect()
   }
 
@@ -186,10 +186,10 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     module_graph: &'module ModuleGraph,
-  ) -> Vec<&'module ModuleGraphModule> {
+  ) -> Vec<&'module BoxModule> {
     let mut modules = self.get_chunk_modules(chunk, module_graph);
     // SAFETY: module identifier is unique
-    modules.sort_unstable_by_key(|m| m.module_identifier.as_str());
+    modules.sort_unstable_by_key(|m| m.identifier().as_str());
     modules
   }
 
@@ -234,14 +234,7 @@ impl ChunkGraph {
       .get_chunk_modules(chunk, module_graph)
       .iter()
       .fold(0.0, |acc, m| {
-        let module = module_graph
-          .module_by_identifier(&m.module_identifier)
-          .unwrap_or_else(|| panic!("Module({}) does not exist", m.module_identifier));
-        acc
-          + module
-            .source_types()
-            .iter()
-            .fold(0.0, |acc, t| acc + module.size(t))
+        acc + m.source_types().iter().fold(0.0, |acc, t| acc + m.size(t))
       })
   }
 
