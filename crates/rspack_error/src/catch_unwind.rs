@@ -55,8 +55,11 @@ fn panic_hook_handler<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> R {
         hook(info);
       }
     });
-    BACKTRACE.with(|bt| {
-      *bt.borrow_mut() = Some(std::backtrace::Backtrace::force_capture());
+    PANIC_INFO_AND_BACKTRACE.with(|bt| {
+      *bt.borrow_mut() = Some((
+        info.to_string(),
+        std::backtrace::Backtrace::force_capture().to_string(),
+      ));
     });
   }));
   let result = f();
@@ -70,7 +73,7 @@ fn panic_hook_handler<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> R {
 }
 
 thread_local! {
-  static BACKTRACE: RefCell<Option<Backtrace>> = RefCell::new(None);
+  static PANIC_INFO_AND_BACKTRACE: RefCell<Option<(String, String)>> = RefCell::new(None);
   static PANIC_HOOK: RefCell<Option<Box<dyn Fn(&std::panic::PanicInfo<'_>) + 'static + Sync + Send>>> = RefCell::new(None);
 }
 
@@ -80,21 +83,21 @@ pub fn catch_unwind<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> Result<R> 
   }) {
     Ok(res) => Ok(res),
     Err(cause) => {
-      let backtrace = BACKTRACE
-        .with(|b| b.borrow().as_ref().map(|b| b.to_string()))
+      let (info, backtrace) = PANIC_INFO_AND_BACKTRACE
+        .with(|b| b.borrow_mut().take())
         .unwrap_or_default();
 
       match cause.downcast_ref::<&'static str>() {
         None => match cause.downcast_ref::<String>() {
           None => Err(internal_error!(
-            "Unknown fatal error.\n {GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
+            "Unknown fatal error.\nRaw: {info}\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
           )),
           Some(message) => Err(internal_error!(
-            "Fatal error encountered: {message}.\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
+            "{message}.\nRaw: {info}\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
           )),
         },
         Some(message) => Err(internal_error!(
-          "Fatal error encountered: {message}.\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
+          "{message}.\nRaw: {info}\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
         )),
       }
     }
