@@ -20,9 +20,9 @@ use rspack_core::{
     BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
-  Chunk, ChunkGraph, Compilation, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
-  ModuleGraph, ModuleType, NormalModuleAstOrSource, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, Plugin, RenderManifestEntry, SourceType,
+  Chunk, ChunkGraph, ChunkKind, Compilation, FilenameRenderOptions, GenerateContext,
+  GenerationResult, Module, ModuleGraph, ModuleType, NormalModuleAstOrSource, ParseContext,
+  ParseResult, ParserAndGenerator, PathData, Plugin, RenderManifestEntry, SourceType,
 };
 use rspack_core::{
   AstOrSource, CssImportDependency, Filename, ModuleAst, ModuleDependency, ModuleIdentifier,
@@ -609,9 +609,10 @@ impl Plugin for CssPlugin {
     args: rspack_core::RenderManifestArgs<'_>,
   ) -> rspack_core::PluginRenderManifestHookOutput {
     let compilation = args.compilation;
-    // let module_graph = &compilation.module_graph;
     let chunk = args.chunk();
-
+    if matches!(chunk.kind, ChunkKind::HotUpdate) {
+      return Ok(vec![]);
+    }
     let ordered_modules = Self::get_ordered_chunk_css_modules(
       chunk,
       &compilation.chunk_graph,
