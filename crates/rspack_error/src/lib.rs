@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 mod catch_unwind;
