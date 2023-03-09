@@ -81,7 +81,7 @@ pub fn print(
 
       node.emit_with(&mut emitter)?;
     }
-    // SAFETY: Invalid utf8 is valid in javascript world.
+    // SAFETY: SWC will emit valid utf8 for sure
     unsafe { String::from_utf8_unchecked(buf) }
   };
 
