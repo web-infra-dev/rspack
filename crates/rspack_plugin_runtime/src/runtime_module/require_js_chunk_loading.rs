@@ -1,10 +1,11 @@
 use rspack_core::{
+  get_js_chunk_filename_template,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  runtime_globals, ChunkUkey, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType, RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rustc_hash::FxHashSet as HashSet;
 
-use super::utils::chunk_has_js;
+use super::utils::{chunk_has_js, get_undo_path};
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
 #[derive(Debug, Default)]
@@ -28,6 +29,10 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(&self.chunk.expect("The chunk should be attached."))
+      .expect("Chunk is not found, make sure you had attach chunkUkey successfully.");
     let with_hmr = self
       .runtime_requirements
       .contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS);
@@ -62,10 +67,24 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_loading {
+      let filename = get_js_chunk_filename_template(
+        chunk,
+        &compilation.options.output,
+        &compilation.chunk_group_by_ukey,
+      );
+      let output_dir = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
       source.add(RawSource::from(
         include_str!("runtime/require_chunk_loading_with_loading.js")
           // TODO
-          .replace("JS_MATCHER", "chunkId"),
+          .replace("JS_MATCHER", "chunkId")
+          .replace(
+            "$OUTPUT_DIR$",
+            &get_undo_path(
+              output_dir.as_str(),
+              compilation.options.output.path.display().to_string(),
+              true,
+            ),
+          ),
       ));
     }
 
