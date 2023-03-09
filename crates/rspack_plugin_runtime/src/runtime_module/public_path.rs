@@ -2,8 +2,10 @@ use rspack_core::{
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
   runtime_globals::PUBLIC_PATH,
-  ChunkUkey, Compilation, FilenameRenderOptions, OutputOptions, PublicPath, RuntimeModule,
+  ChunkUkey, Compilation, OutputOptions, PublicPath, RuntimeModule, SourceType,
 };
+
+use super::utils::get_undo_path;
 
 #[derive(Debug, Default)]
 pub struct PublicPathRuntimeModule {
@@ -43,16 +45,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
           &compilation.options.output,
           &compilation.chunk_group_by_ukey,
         );
-        let hash = Some(chunk.get_render_hash());
-        let filename = filename.render(FilenameRenderOptions {
-          name: chunk.name_for_filename_template(),
-          extension: Some(".js".to_string()),
-          id: chunk.id.clone(),
-          contenthash: hash.clone(),
-          chunkhash: hash.clone(),
-          hash,
-          ..Default::default()
-        });
+        let filename = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
         RawSource::from(auto_public_path_template(
           &filename,
           &compilation.options.output,
@@ -93,44 +86,6 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
   {assign}
   "#
   )
-}
-
-fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> String {
-  let mut depth: i32 = -1;
-  let mut append = String::new();
-  let mut p = p;
-  if p.ends_with('/') || p.ends_with('\\') {
-    p.pop();
-  }
-  for part in filename.split(&['/', '\\']) {
-    if part == ".." {
-      if depth > -1 {
-        depth -= 1
-      } else {
-        let pos = match (p.rfind('/'), p.rfind('\\')) {
-          (None, None) => {
-            p.push('/');
-            return p;
-          }
-          (None, Some(j)) => j,
-          (Some(i), None) => i,
-          (Some(i), Some(j)) => usize::max(i, j),
-        };
-        append = format!("{}/{append}", &p[pos + 1..]);
-        p = p[0..pos].to_string();
-      }
-    } else if part != "." {
-      depth += 1;
-    }
-  }
-
-  if depth > 0 {
-    format!("{}{append}", "../".repeat(depth as usize))
-  } else if enforce_relative {
-    format!("./{append}")
-  } else {
-    append
-  }
 }
 
 #[test]

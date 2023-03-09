@@ -102,3 +102,41 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
     )
     .is_empty()
 }
+
+pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> String {
+  let mut depth: i32 = -1;
+  let mut append = String::new();
+  let mut p = p;
+  if p.ends_with('/') || p.ends_with('\\') {
+    p.pop();
+  }
+  for part in filename.split(&['/', '\\']) {
+    if part == ".." {
+      if depth > -1 {
+        depth -= 1
+      } else {
+        let pos = match (p.rfind('/'), p.rfind('\\')) {
+          (None, None) => {
+            p.push('/');
+            return p;
+          }
+          (None, Some(j)) => j,
+          (Some(i), None) => i,
+          (Some(i), Some(j)) => usize::max(i, j),
+        };
+        append = format!("{}/{append}", &p[pos + 1..]);
+        p = p[0..pos].to_string();
+      }
+    } else if part != "." {
+      depth += 1;
+    }
+  }
+
+  if depth > 0 {
+    format!("{}{append}", "../".repeat(depth as usize))
+  } else if enforce_relative {
+    format!("./{append}")
+  } else {
+    append
+  }
+}
