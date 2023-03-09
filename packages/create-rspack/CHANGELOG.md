@@ -1,5 +1,11 @@
 # create-rspack
 
+## 0.1.0
+
+### Minor Changes
+
+- 2ba87f3a: chore: let's rspack
+
 ## 0.0.21
 
 ### Patch Changes

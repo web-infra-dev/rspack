@@ -1,6 +1,6 @@
 {
   "name": "create-rspack",
-  "version": "0.0.21",
+  "version": "0.1.0",
   "license": "Create a new rspack project",
   "main": "index.js",
   "bin": {

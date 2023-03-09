@@ -1,5 +1,16 @@
 # rspack-plugin-postcss
 
+## 0.1.0
+
+### Minor Changes
+
+- 2ba87f3a: chore: let's rspack
+
+### Patch Changes
+
+- Updated dependencies [2ba87f3a]
+  - @rspack/binding@0.1.0
+
 ## 0.0.26
 
 ### Patch Changes
