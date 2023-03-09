@@ -58,6 +58,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
+          COMMENT: ${{ toJson(github.event.comment) }}
   artifact:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' }}

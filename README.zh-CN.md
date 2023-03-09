@@ -32,7 +32,7 @@
 
 ## 快速上手
 
-- [快速上手](https://rspack.dev/zh/guide/getting-started.html)
+- [快速上手](https://rspack.dev/zh/guide/quick-start.html)
 
 ## 参与贡献
 
