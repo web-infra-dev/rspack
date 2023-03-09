@@ -2078,6 +2078,7 @@ dependencies = [
  "rspack_sources",
  "rspack_symbol",
  "rspack_tracing",
+ "rspack_util",
  "rustc-hash",
  "serde",
  "serde_json",

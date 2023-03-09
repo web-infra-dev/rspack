@@ -16,6 +16,7 @@ importers:
       jest: 29.0.3
       lint-staged: ^12.5.0
       prettier: 2.5.1
+      rimraf: 3.0.2
       sass-embedded-darwin-arm64: 1.58.3
       sass-embedded-darwin-x64: 1.58.3
       sass-embedded-linux-arm64: 1.58.3
@@ -49,6 +50,7 @@ importers:
       jest: 29.0.3
       lint-staged: 12.5.0
       prettier: 2.5.1
+      rimraf: 3.0.2
       ts-jest: 29.0.1_xqdqigz244m3lt4wgbpk45wbrm
       typescript: 4.8.3
       webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
@@ -13939,6 +13941,7 @@ packages:
 
   /rimraf/3.0.2:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
+    hasBin: true
     dependencies:
       glob: 7.2.3
 
