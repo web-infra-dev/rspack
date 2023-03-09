@@ -259,9 +259,6 @@ where
       }
     }
 
-    // ----
-    let output_path = &self.compilation.options.output.path;
-
     // TODO: hash
     // if old.hash == now.hash { return  } else { // xxxx}
 
@@ -391,7 +388,7 @@ where
 
         for entry in render_manifest {
           let asset = CompilationAsset::new(
-            Some(entry.source().clone()),
+            Some(entry.source),
             AssetInfo::default().with_hot_module_replacement(true),
           );
 
@@ -401,9 +398,7 @@ where
             .chunk_by_ukey
             .get(&entry.path_options.chunk_ukey);
           let id = chunk.map_or(String::new(), |c| c.expect_id().to_string());
-          self
-            .emit_asset(output_path, &(id + ".hot-update.js"), &asset)
-            .await?;
+          self.compilation.emit_asset(id + ".hot-update.js", asset);
         }
 
         new_runtime.iter().for_each(|runtime| {
@@ -424,26 +419,23 @@ where
         .iter()
         .map(|x| x.to_owned())
         .collect();
-      self
-        .emit_asset(
-          output_path,
-          &content.filename,
-          &CompilationAsset::new(
-            Some(
-              RawSource::Source(
-                serde_json::json!({
-                  "c": c,
-                  "r": r,
-                  "m": m,
-                })
-                .to_string(),
-              )
-              .boxed(),
-            ),
-            AssetInfo::default().with_hot_module_replacement(true),
+      self.compilation.emit_asset(
+        content.filename,
+        CompilationAsset::new(
+          Some(
+            RawSource::Source(
+              serde_json::json!({
+                "c": c,
+                "r": r,
+                "m": m,
+              })
+              .to_string(),
+            )
+            .boxed(),
           ),
-        )
-        .await?;
+          AssetInfo::default().with_hot_module_replacement(true),
+        ),
+      );
     }
 
     Ok(())
