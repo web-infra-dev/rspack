@@ -191,10 +191,6 @@ class Watching {
 
 		if (this.running) {
 			this.invalid = true;
-			console.log("hit change but rebuild is not finished, pending files: ", [
-				...(this.#collectedChangedFiles || new Set()),
-				...(this.#collectedRemovedFiles || new Set())
-			]);
 			return;
 		}
 		this.#go(changedFiles, removedFiles);
