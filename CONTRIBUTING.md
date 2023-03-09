@@ -12,8 +12,9 @@ Thank you for your interest in contributing to Rspack! Before starting your cont
 6. Make sure all the tests pass, you can read the "Testing" section below to learn about it.
 7. Run `pnpm run lint:js` and `pnpm run lint:rs` to check the code style.
 8. If you've changed some Node.js packages, you should add a new [changeset](https://github.com/changesets/changesets). Run `pnpm run changeset`, select the changed packages and add the changeset info.
-9. Submit the Pull Request, make sure all CI runs pass.
-10. The maintainers will review your Pull Request soon.
+9. If you've changed some Rust packages, you should add a new [changeset](https://github.com/changesets/changesets) for `@rspack/binding` package.
+10. Submit the Pull Request, make sure all CI runs pass.
+11. The maintainers will review your Pull Request soon.
 
 When submitting a Pull Request, please note the following:
 
