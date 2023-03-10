@@ -34,6 +34,7 @@ export class RspackCLI {
 		options: RspackCLIOptions,
 		rspackEnv: RspackEnv
 	): Promise<Compiler | MultiCompiler> {
+		process.env.RSPACK_CONFIG_VALIDATE = 'loose';
 		let nodeEnv = process?.env?.NODE_ENV;
 		if (typeof options.nodeEnv === "string") {
 			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
