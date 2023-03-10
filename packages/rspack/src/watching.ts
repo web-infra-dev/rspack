@@ -227,7 +227,7 @@ class Watching {
 				: () =>
 						console.log("build success, time cost", Date.now() - begin, "ms");
 
-			const onBuild = (err: Error) => {
+			const onBuild = (err?: Error) => {
 				if (err) return this._done(err);
 				// if (this.invalid) return this._done(null);
 				// @ts-expect-error
@@ -240,7 +240,6 @@ class Watching {
 			if (isRebuild) {
 				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
 			} else {
-				// @ts-expect-error
 				this.compiler.build(onBuild);
 			}
 		});
