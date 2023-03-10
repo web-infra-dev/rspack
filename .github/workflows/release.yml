@@ -20,7 +20,7 @@ jobs:
   issue_commentd:
     name: Release with commentd
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
-    runs-on: [macOS, ARM64, release]
+    runs-on: macos-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
