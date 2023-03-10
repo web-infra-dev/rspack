@@ -241,8 +241,7 @@ export class MultiCompiler {
 	validateDependencies(callback: Callback<Error, MultiStats>): boolean {
 		const edges = new Set<{ source: Compiler; target: Compiler }>();
 		const missing: string[] = [];
-		// @ts-expect-error
-		const targetFound = compiler => {
+		const targetFound = (compiler: Compiler) => {
 			for (const edge of edges) {
 				if (edge.target === compiler) {
 					return true;
