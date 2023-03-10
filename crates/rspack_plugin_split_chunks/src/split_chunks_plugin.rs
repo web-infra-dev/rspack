@@ -769,7 +769,7 @@ impl Plugin for SplitChunksPlugin {
           {
             let module = compilation
               .module_graph
-              .module_by_identifier(&module.module_identifier)
+              .module_by_identifier(&module.identifier())
               .expect("Module should exist");
             if !item.modules.contains(&module.identifier()) {
               for ty in module.source_types() {

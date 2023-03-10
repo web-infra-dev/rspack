@@ -176,6 +176,14 @@ export class Compilation {
 			options.chunks,
 			!context.forToString
 		);
+		options.chunkModules = optionOrLocalFallback(
+			options.chunkModules,
+			!context.forToString
+		);
+		options.chunkRelations = optionOrLocalFallback(
+			options.chunkRelations,
+			!context.forToString
+		);
 		options.modules = optionOrLocalFallback(options.modules, true);
 		options.reasons = optionOrLocalFallback(
 			options.reasons,
