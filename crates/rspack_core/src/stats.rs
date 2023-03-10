@@ -137,7 +137,7 @@ impl Stats<'_> {
           let mut chunk_modules = chunk_modules
             .into_iter()
             .map(|m| self.get_module(m, self.compilation.options.stats.reasons))
-            .collect::<Result<_>>()?;
+            .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
         } else {
@@ -270,7 +270,7 @@ impl Stats<'_> {
     self.compilation.hash.to_owned()
   }
 
-  fn sort_modules(modules: &mut Vec<StatsModule>) {
+  fn sort_modules(modules: &mut [StatsModule]) {
     // TODO: sort by module.depth
     modules.sort_unstable_by(|a, b| {
       if a.name.len() != b.name.len() {
@@ -369,31 +369,31 @@ impl Stats<'_> {
     let mut children = HashSet::default();
     let mut siblings = HashSet::default();
     for cg in &chunk.groups {
-      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(&cg) {
+      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
         for p in &cg.parents {
-          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(&p) {
+          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
             for c in &pg.chunks {
-              if let Some(c) = self.compilation.chunk_by_ukey.get(&c) && let Some(id) = &c.id {
+              if let Some(c) = self.compilation.chunk_by_ukey.get(c) && let Some(id) = &c.id {
                 parents.insert(id.to_string());
               }
             }
           }
         }
       }
-      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(&cg) {
+      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
         for p in &cg.children {
-          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(&p) {
+          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
             for c in &pg.chunks {
-              if let Some(c) = self.compilation.chunk_by_ukey.get(&c) && let Some(id) = &c.id {
+              if let Some(c) = self.compilation.chunk_by_ukey.get(c) && let Some(id) = &c.id {
                 children.insert(id.to_string());
               }
             }
           }
         }
       }
-      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(&cg) {
+      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
         for c in &cg.chunks {
-          if let Some(c) = self.compilation.chunk_by_ukey.get(&c) && c.id != chunk.id && let Some(id) = &c.id  {
+          if let Some(c) = self.compilation.chunk_by_ukey.get(c) && c.id != chunk.id && let Some(id) = &c.id  {
             siblings.insert(id.to_string());
           }
         }

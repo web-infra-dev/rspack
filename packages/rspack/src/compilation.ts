@@ -577,8 +577,8 @@ export class Compilation {
 		return this.#inner;
 	}
 
-	seal() { }
-	unseal() { }
+	seal() {}
+	unseal() {}
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
