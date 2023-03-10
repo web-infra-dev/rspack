@@ -11,11 +11,6 @@ on:
       - "!package.json"
       - "!pnpm-lock.yaml"
       - "!pnpm-workspace.yaml"
-    branches:
-      - "**"
-      - "!release-**"
-    tags:
-      - "**"
 
 # cancel previous job runs for the same workflow + pr
 concurrency:
@@ -25,25 +20,50 @@ concurrency:
 jobs:
   test-x86_64-unknown-linux-gnu:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+          - "14"
+          - "16"
     steps:
       - run: 'echo "Skipped"'
 
   test-aarch64-unknown-linux-gnu:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+          - "14"
+          # - "16"
     steps:
       - run: 'echo "Skipped"'
 
   test-x86_64-unknown-linux-musl:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+          - "14"
+          - "16"
     steps:
       - run: 'echo "Skipped"'
 
   test-aarch64-unknown-linux-musl:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+          - "14"
+          - "16"
     steps:
       - run: 'echo "Skipped"'
 
   test-x86_64-apple-darwin:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node:
+          - "14"
+          - "16"
     steps:
       - run: 'echo "Skipped"'
