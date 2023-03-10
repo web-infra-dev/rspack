@@ -25,10 +25,11 @@ yargs(hideBin(process.argv))
 		const templateDir = "template-react";
 		const srcFolder = path.resolve(__dirname, templateDir);
 		copyFolder(srcFolder, projectDir);
+		const pkgManager = getPkgManager();
 		console.log("\nDone. Now run:\n");
 		console.log(`cd ${projectDir}\n`);
-		console.log(`npm install\n`);
-		console.log(`npm run dev\n`);
+		console.log(`${pkgManager} install\n`);
+		console.log(`${pkgManager} run dev\n`);
 	})
 	.help()
 	.parse();
@@ -44,4 +45,12 @@ function copyFolder(src, dst) {
 			fs.copyFileSync(srcFile, dstFile);
 		}
 	}
+}
+
+function getPkgManager() {
+	const ua = process.env.npm_config_user_agent;
+	if (!ua) return "npm";
+	const [pkgInfo] = ua.split(" ");
+	const [name] = pkgInfo.split("/");
+	return name || "npm";
 }
