@@ -1,17 +1,19 @@
 name: Test-ignore
 on:
   pull_request:
-    paths-ignore: # Only run when changes are made to rust code or root Cargo
-      - "crates/**"
-      - "packages/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
+    paths: # Only run when changes are made to rust code or root Cargo
+      - "**"
+      - "!crates/**"
+      - "!packages/**"
+      - "!Cargo.toml"
+      - "!Cargo.lock"
+      - "!rust-toolchain.toml"
+      - "!package.json"
+      - "!pnpm-lock.yaml"
+      - "!pnpm-workspace.yaml"
     branches:
-      - "release-**"
+      - "**"
+      - "!release-**"
     tags:
       - "**"
 
