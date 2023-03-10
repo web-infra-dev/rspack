@@ -71,9 +71,11 @@ fn panic_hook_handler<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> R {
   result
 }
 
+type PanicHook = Box<dyn Fn(&std::panic::PanicInfo<'_>) + 'static + Sync + Send>;
+
 thread_local! {
   static PANIC_INFO_AND_BACKTRACE: RefCell<Option<(String, String)>> = RefCell::new(None);
-  static PANIC_HOOK: RefCell<Option<Box<dyn Fn(&std::panic::PanicInfo<'_>) + 'static + Sync + Send>>> = RefCell::new(None);
+  static PANIC_HOOK: RefCell<Option<PanicHook>> = RefCell::new(None);
 }
 
 pub fn catch_unwind<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> Result<R> {
