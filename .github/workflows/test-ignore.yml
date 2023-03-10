@@ -10,6 +10,10 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+    branches:
+      - "release-**"
+    tags:
+      - "**"
 
 # cancel previous job runs for the same workflow + pr
 concurrency:
