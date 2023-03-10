@@ -97,6 +97,6 @@ jobs:
         # We need to install sass first to enable sass-loader
         run: |
           node -e "console.log(process.arch)"
-          npm i -g pnpm
-          pnpm i
+          npm install -g pnpm@7.25.0
+          pnpm install
           cargo test --all -- --nocapture

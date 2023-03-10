@@ -24,6 +24,7 @@ jobs:
       - name: Install dependencies && and build lib
         run: |
           node -e "console.log(process.arch)"
+          npm install -g pnpm@7.25.0
           pnpm install
           pnpm run build:cli:release
       - name: Create rspack stats
