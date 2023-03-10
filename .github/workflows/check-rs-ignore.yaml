@@ -1,0 +1,40 @@
+name: check-rs-ignore
+
+on:
+  pull_request:
+    paths-ignore:
+      - "crates/**"
+      - "examples/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "rustfmt.toml"
+      - "clippy.toml"
+
+# cancel previous job runs for the same workflow + pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUSTFLAGS: -D warnings
+#   TRACE: DEBUG
+
+jobs:
+  format:
+    name: Format Rust Files
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
+
+  lint:
+    name: Lint Rust Files
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
+
+  test-rs:
+    name: Rust test
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
