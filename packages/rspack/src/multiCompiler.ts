@@ -96,9 +96,9 @@ export class MultiCompiler {
 		options?: MultiCompilerOptions
 	) {
 		if (!Array.isArray(compilers)) {
-			compilers = Object.entries(compilers).map(([name, complier]) => {
-				complier.name = name;
-				return complier;
+			compilers = Object.entries(compilers).map(([name, compiler]) => {
+				compiler.name = name;
+				return compiler;
 			});
 		}
 
