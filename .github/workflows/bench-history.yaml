@@ -26,6 +26,12 @@ jobs:
         run: |
           set -o pipefail 
           cargo bench --bench main -- --output-format bencher | tee output.txt
+      - name: Run Hmr benchmark
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+        node-version: 16
+        run: |
           pnpm i
           ./x build cli:release
           export ROOT_DIR=$(pwd) && cd benchcases/react-refresh && pnpm dev
