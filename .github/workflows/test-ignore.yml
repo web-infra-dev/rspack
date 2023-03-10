@@ -1,0 +1,49 @@
+name: Test-ignore
+on:
+  pull_request:
+    paths: # Only run when changes are made to rust code or root Cargo
+      - "**"
+      - "!crates/**"
+      - "!packages/**"
+      - "!Cargo.toml"
+      - "!Cargo.lock"
+      - "!rust-toolchain.toml"
+      - "!package.json"
+      - "!pnpm-lock.yaml"
+      - "!pnpm-workspace.yaml"
+    branches:
+      - "**"
+      - "!release-**"
+    tags:
+      - "**"
+
+# cancel previous job runs for the same workflow + pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-x86_64-unknown-linux-gnu:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
+
+  test-aarch64-unknown-linux-gnu:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
+
+  test-x86_64-unknown-linux-musl:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
+
+  test-aarch64-unknown-linux-musl:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
+
+  test-x86_64-apple-darwin:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'echo "Skipped"'
