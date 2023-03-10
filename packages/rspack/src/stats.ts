@@ -66,10 +66,13 @@ export class Stats {
 			}, {});
 		}
 		if (options.chunks) {
-			obj.chunks = this.#inner.getChunks();
+			obj.chunks = this.#inner.getChunks(
+				options.chunkModules!,
+				options.chunkRelations!
+			);
 		}
 		if (options.modules) {
-			obj.modules = this.#inner.getModules(options.reasons ?? false);
+			obj.modules = this.#inner.getModules();
 		}
 		if (options.entrypoints) {
 			obj.entrypoints = this.#inner

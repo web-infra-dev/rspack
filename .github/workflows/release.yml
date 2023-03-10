@@ -20,7 +20,7 @@ jobs:
   issue_commentd:
     name: Release with commentd
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
-    runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
+    runs-on: macos-latest
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -59,31 +59,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
           COMMENT: ${{ toJson(github.event.comment) }}
-  artifact:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    steps:
-      - name: Poor kids' remove old artifacts
-        uses: actions/github-script@v6
-        id: artifact
-        with:
-          script: |
-            const res = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            })
-
-            res.data.artifacts
-              .forEach(({ id }) => {
-                github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: id,
-                })
-              })
   build:
-    needs:
-      - artifact
     strategy:
       fail-fast: false
       matrix:

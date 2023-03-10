@@ -45,15 +45,32 @@ describe("Stats", () => {
 		  },
 		  "chunks": [
 		    {
+		      "children": [],
 		      "entry": true,
 		      "files": [
 		        "main.js",
 		      ],
 		      "id": "main",
 		      "initial": true,
+		      "modules": [
+		        {
+		          "chunks": [
+		            "main",
+		          ],
+		          "id": "777",
+		          "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/a.js",
+		          "issuerPath": [],
+		          "moduleType": "javascript/auto",
+		          "name": "./fixtures/a.js",
+		          "size": 55,
+		          "type": "module",
+		        },
+		      ],
 		      "names": [
 		        "main",
 		      ],
+		      "parents": [],
+		      "siblings": [],
 		      "size": 55,
 		      "type": "chunk",
 		    },
@@ -86,9 +103,6 @@ describe("Stats", () => {
 		      "issuerPath": [],
 		      "moduleType": "javascript/auto",
 		      "name": "./fixtures/a.js",
-		      "reasons": [
-		        {},
-		      ],
 		      "size": 55,
 		      "type": "module",
 		    },
@@ -120,8 +134,8 @@ describe("Stats", () => {
 		main.js  215 bytes    main  [emitted]  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
-		[777] ./fixtures/a.js 55 bytes {main}
-		    "
+		 [777] ./fixtures/a.js 55 bytes {main}
+		[777] ./fixtures/a.js 55 bytes {main}"
 	`);
 	});
 

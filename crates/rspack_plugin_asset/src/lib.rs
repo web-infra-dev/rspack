@@ -459,23 +459,23 @@ impl Plugin for AssetPlugin {
 
     let assets = ordered_modules
       .par_iter()
-      .filter(|mgm| {
+      .filter(|m| {
         let module = compilation
           .module_graph
-          .module_by_identifier(&mgm.module_identifier)
+          .module_by_identifier(&m.identifier())
           .ok_or_else(|| internal_error!("Failed to get module".to_owned()))
           // FIXME: use result
           .expect("Failed to get module");
         module.source_types().contains(&SourceType::Asset)
       })
-      .map(|mgm| {
+      .map(|m| {
         let code_gen_result = compilation
           .code_generation_results
-          .get(&mgm.module_identifier, Some(&chunk.runtime))?;
+          .get(&m.identifier(), Some(&chunk.runtime))?;
 
         let module = compilation
           .module_graph
-          .module_by_identifier(&mgm.module_identifier)
+          .module_by_identifier(&m.identifier())
           .ok_or_else(|| internal_error!("Failed to get module".to_owned()))
           .expect("Failed to get module")
           .as_normal_module()
@@ -488,7 +488,7 @@ impl Plugin for AssetPlugin {
           .map(|source| {
             let asset_filename = self
               .module_id_to_filename_without_ext
-              .get(&mgm.module_identifier)
+              .get(&m.identifier())
               .map(|s| s.clone());
             let contenthash = Some(get_contenthash(&source).to_string());
             let chunkhash = None;
