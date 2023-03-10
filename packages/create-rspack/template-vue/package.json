@@ -1,0 +1,20 @@
+{
+  "name": "example-vue",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  },
+  "devDependencies": {
+    "vue": "3.2.45",
+    "@rspack/cli": "workspace:*",
+    "@vue/compiler-sfc": "3.2.45",
+    "loader-utils": "3.2.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

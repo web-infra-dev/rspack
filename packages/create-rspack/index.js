@@ -4,6 +4,11 @@ const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
 const path = require("path");
 const prompts = require("prompts");
+
+const templateMap = {
+	react: "template-react",
+	vue: "template-vue"
+};
 yargs(hideBin(process.argv))
 	.command("$0", "init rspack project", async argv => {
 		const defaultProjectName = "rspack-project";
@@ -21,8 +26,20 @@ yargs(hideBin(process.argv))
 			throw new Error("project directory already exists");
 		}
 		fs.mkdirSync(root);
+		const { templateName } = await prompts([
+			{
+				type: "select",
+				name: "templateName",
+				choices: Object.keys(templateMap).map(key => ({
+					title: key,
+					value: key
+				})),
+				message: "Project framework"
+			}
+		]);
 		// TODO support more template in the future
-		const templateDir = "template-react";
+		const templateDir = templateMap[templateName];
+
 		const srcFolder = path.resolve(__dirname, templateDir);
 		copyFolder(srcFolder, projectDir);
 		console.log("\nDone. Now run:\n");
