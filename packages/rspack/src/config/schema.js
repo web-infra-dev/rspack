@@ -129,8 +129,7 @@ module.exports = {
 		EntryDescription: {
 			description: "An object with entry point description.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				import: {
 					$ref: "#/definitions/EntryItem"
@@ -647,8 +646,7 @@ module.exports = {
 		Optimization: {
 			description: "Enables/Disables integrated optimizations.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				chunkIds: {
 					description:
@@ -750,8 +748,7 @@ module.exports = {
 			description:
 				"Options object for describing behavior of a cache group selecting modules that should be cached together.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				chunks: {
 					description:
@@ -808,8 +805,7 @@ module.exports = {
 		OptimizationSplitChunksOptions: {
 			description: "Options object for splitting chunks into smaller chunks.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				cacheGroups: {
 					description:
@@ -893,8 +889,7 @@ module.exports = {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
@@ -1068,8 +1063,7 @@ module.exports = {
 		ResolveOptions: {
 			description: "Options object for resolving requests.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				alias: {
 					$ref: "#/definitions/ResolveAlias"
@@ -1698,8 +1692,7 @@ module.exports = {
 	title: "RspackOptions",
 	description: "Options object as provided by the user.",
 	type: "object",
-	// TODO: change to false once all properties is aligned with webpack
-	additionalProperties: true,
+	additionalProperties: false,
 	properties: {
 		cache: {
 			$ref: "#/definitions/CacheOptions"

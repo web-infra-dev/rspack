@@ -23,6 +23,7 @@ import { asArray, isNil } from "./util";
 import rspackOptionsCheck from "./config/schema.check.js";
 import type { DefinedError } from "ajv";
 import InvalidateConfigurationError from "./error/InvalidateConfiguration";
+import { validate, ValidationError } from "schema-utils";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -84,6 +85,24 @@ function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
 	return Array.isArray(o);
 }
 
+function revalidateWithStrategy(options: RspackOptions | MultiRspackOptions) {
+	try {
+		validate(require("./config/schema.js"), options);
+	} catch (e) {
+		if (!(e instanceof ValidationError)) {
+			throw e;
+		}
+		// 'strict', 'loose', 'loose-silent'
+		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+		if (strategy === "loose-silent") return;
+		if (strategy === "loose") {
+			console.error(e.message);
+			return;
+		}
+		throw new InvalidateConfigurationError(e.message);
+	}
+}
+
 function rspack(
 	options: MultiRspackOptions,
 	callback?: Callback<Error, MultiStats>
@@ -97,11 +116,8 @@ function rspack(
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	if (!asArray(options as any).every(i => rspackOptionsCheck(i))) {
-		// TODO: more readable error message
-		const msg = (rspackOptionsCheck as any).errors
-			.map((e: DefinedError) => `\n  ${e.instancePath}: ${e.message}`)
-			.join("");
-		throw new InvalidateConfigurationError(msg);
+		// slow path
+		revalidateWithStrategy(options);
 	}
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
