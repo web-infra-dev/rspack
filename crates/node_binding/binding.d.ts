@@ -413,6 +413,8 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  beforeCompile: (...args: any[]) => any
+  finishModules: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource

@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use napi::{Env, NapiRaw, Result};
+use napi::{Env, JsFunction, NapiRaw, Result};
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
@@ -22,6 +22,8 @@ pub struct JsHooksAdapter {
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub before_compile_tsfn: ThreadsafeFunction<(), ()>,
+  pub finish_modules_tsfn: ThreadsafeFunction<(), ()>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -230,6 +232,38 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call after emit: {err}",))?
   }
 
+  async fn before_compile(
+    &mut self,
+    // args: &mut rspack_core::CompilationArgs<'_>
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::BeforeCompile) {
+      return Ok(());
+    }
+
+    self
+      .before_compile_tsfn
+      .call({}, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call before compile: {err}",))?
+  }
+
+  async fn finish_modules(
+    &mut self,
+    // args: &mut rspack_core::CompilationArgs<'_>
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::BeforeCompile) {
+      return Ok(());
+    }
+
+    self
+      .finish_modules_tsfn
+      .call({}, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call finish modules: {err}",))?
+  }
+
   async fn optimize_chunk_modules(
     &mut self,
     args: rspack_core::OptimizeChunksArgs<'_>,
@@ -268,6 +302,8 @@ impl JsHooksAdapter {
       emit,
       after_emit,
       optimize_chunk_module,
+      before_compile,
+      finish_modules,
     } = js_hooks;
 
     // *Note* that the order of the creation of threadsafe function is important. There is a queue of threadsafe calls for each tsfn:
@@ -321,6 +357,8 @@ impl JsHooksAdapter {
     let make_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(make);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       create_hook_tsfn!(optimize_chunk_module);
+    let before_compile_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(before_compile);
+    let finish_modules_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(finish_modules);
 
     Ok(JsHooksAdapter {
       disabled_hooks,
@@ -336,6 +374,8 @@ impl JsHooksAdapter {
       emit_tsfn,
       after_emit_tsfn,
       optimize_chunk_modules_tsfn,
+      before_compile_tsfn,
+      finish_modules_tsfn,
     })
   }
 

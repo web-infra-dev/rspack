@@ -14,7 +14,7 @@ import {
 	Source,
 	SourceMapSource
 } from "webpack-sources";
-import { Compiler } from "../compiler";
+import { Compiler, NormalModule } from "../compiler";
 import { Logger } from "../logging/Logger";
 import { concatErrorMsgAndStack, isPromiseLike } from "../util";
 import { createHash } from "../util/createHash";
@@ -486,6 +486,10 @@ function composeJsUse(
 					_compiler: compiler,
 					_compilation: compiler.compilation
 				};
+
+				NormalModule.getCompilationHooks(compiler.compilation).loader.call(
+					loaderContext
+				);
 
 				let loader;
 				try {

@@ -15,7 +15,8 @@ import {
 	RspackOptionsNormalized,
 	StatsOptions,
 	OutputNormalized,
-	StatsValue
+	StatsValue,
+	RspackPluginInstance
 } from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { ChunkGroup } from "./chunk_group";
@@ -29,6 +30,7 @@ import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
 import { normalizeStatsPreset, Stats } from "./stats";
+import { createHash } from "crypto";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -59,6 +61,7 @@ export class Compilation {
 			[Array<JsModule>],
 			undefined
 		>;
+		finishModules: tapable.AsyncSeriesHook<[Array<JsModule>]>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -67,13 +70,15 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	childrenCounters: Record<string, number> = {};
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeChunkModules: new tapable.AsyncSeriesBailHook(["modules"])
+			optimizeChunkModules: new tapable.AsyncSeriesBailHook(["modules"]),
+			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -512,6 +517,22 @@ export class Compilation {
 
 	getStats() {
 		return new Stats(this);
+	}
+
+	createChildCompiler(
+		name: string,
+		outputOptions: OutputNormalized,
+		plugins: RspackPluginInstance[]
+	) {
+		const idx = this.childrenCounters[name] || 0;
+		this.childrenCounters[name] = idx + 1;
+		return this.compiler.createChildCompiler(
+			this,
+			name,
+			idx,
+			outputOptions,
+			plugins
+		);
 	}
 
 	/**
