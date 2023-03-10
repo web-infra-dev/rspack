@@ -24,6 +24,7 @@ import {
 	RuleSetLogicalConditions,
 	RuleSetRule,
 	SnapshotOptions,
+	StatsValue,
 	Target
 } from "./types";
 import {
@@ -58,7 +59,7 @@ export const getRawOptions = (
 			options.externalsType === undefined ? "" : options.externalsType,
 		devtool,
 		optimization: getRawOptimization(options.optimization),
-		stats: { colors: normalizeStatsPreset(options.stats).colors ?? false },
+		stats: getRawStats(options.stats),
 		devServer: {
 			hot: options.devServer?.hot ?? false
 		},
@@ -388,5 +389,13 @@ function getRawNode(node: Node): RawOptions["node"] {
 	return {
 		dirname: String(node.__dirname),
 		global: String(node.global)
+	};
+}
+
+function getRawStats(stats: StatsValue): RawOptions["stats"] {
+	const statsOptions = normalizeStatsPreset(stats);
+	return {
+		colors: statsOptions.colors ?? false,
+		reasons: statsOptions.reasons ?? false
 	};
 }
