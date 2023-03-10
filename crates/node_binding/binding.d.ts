@@ -26,6 +26,7 @@ export interface RawPattern {
 export interface RawGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
+  ignore?: Array<string>
 }
 export interface RawCopyConfig {
   patterns: Array<RawPattern>
