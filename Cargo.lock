@@ -2581,7 +2581,6 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "termcolor",
- "thiserror",
  "tokio",
 ]
 
