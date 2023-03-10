@@ -99,6 +99,7 @@ export interface LoaderContext
 		assetInfo?: JsAssetInfo
 	): void;
 	addDependency(file: string): void;
+	dependency(file: string): void;
 	addContextDependency(context: string): void;
 	addMissingDependency(missing: string): void;
 	clearDependencies(): void;
@@ -458,6 +459,9 @@ function composeJsUse(
 						buildDependencies.push(file);
 					},
 					addDependency(file) {
+						fileDependencies.push(file);
+					},
+					dependency(file) {
 						fileDependencies.push(file);
 					},
 					addContextDependency(context) {
