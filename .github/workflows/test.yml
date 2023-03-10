@@ -4,6 +4,15 @@ on:
     branches:
       - main
   pull_request:
+    paths: # Only run when changes are made to rust code or root Cargo
+      - "crates/**"
+      - "packages/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
     branches:
       - "**"
       - "!release-**"
@@ -16,30 +25,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  artifact:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Poor kids' remove old artifacts
-        uses: actions/github-script@v6
-        id: artifact
-        with:
-          script: |
-            const res = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            })
-
-            res.data.artifacts
-              .forEach(({ id }) => {
-                github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: id,
-                })
-              })
   build:
-    needs:
-      - artifact
     strategy:
       fail-fast: false
       matrix:

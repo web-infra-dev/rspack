@@ -12,17 +12,19 @@ permissions:
 jobs:
   bundle-stats:
     name: Bundle stats compare
-    runs-on: [self-hosted, rspack-common, ARM64]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
-          architecture: "arm64"
       - name: Install dependencies && and build lib
         run: |
           node -e "console.log(process.arch)"
+          npm install -g pnpm@7.25.0
           pnpm install
           pnpm run build:cli:release
       - name: Create rspack stats
