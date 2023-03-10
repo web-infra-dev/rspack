@@ -151,8 +151,7 @@ impl Plugin for UmdLibraryPlugin {
             {define}
             {factory}
         }})({}, function({}) {{
-            return 
-        ",
+            return ",
       get_auxiliary_comment("amd", auxiliary_comment),
       compilation.options.output.global_object,
       external_arguments(&externals, compilation)
