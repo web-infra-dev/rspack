@@ -96,11 +96,9 @@ export class MultiCompiler {
 		options?: MultiCompilerOptions
 	) {
 		if (!Array.isArray(compilers)) {
-			compilers = Object.keys(compilers).map(name => {
-				// @ts-expect-error
-				compilers[name].name = name;
-				// @ts-expect-error
-				return compilers[name];
+			compilers = Object.entries(compilers).map(([name, compiler]) => {
+				compiler.name = name;
+				return compiler;
 			});
 		}
 

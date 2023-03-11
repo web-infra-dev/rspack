@@ -170,10 +170,7 @@ export class Compilation {
 
 		let options: Partial<StatsOptions> = {};
 		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
-			for (const key in optionsOrPreset) {
-				// @ts-expect-error
-				options[key] = optionsOrPreset[key];
-			}
+			options = Object.assign({}, optionsOrPreset);
 		}
 
 		const all = options.all;
