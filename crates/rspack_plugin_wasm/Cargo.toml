@@ -1,0 +1,17 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_plugin_wasm"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rspack_core       = { path = "../rspack_core" }
+rspack_identifier = { path = "../rspack_identifier" }
+rspack_util       = { path = "../rspack_util" }
+rustc-hash        = { workspace = true }
+tracing           = "0.1.34"
+wasmparser        = "0.102.0"
+wast              = "55.0.0"
