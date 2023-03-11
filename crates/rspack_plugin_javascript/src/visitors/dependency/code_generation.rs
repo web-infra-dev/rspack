@@ -1,3 +1,11 @@
+/**
+ * Some code is modified based on
+ * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/crates/turbopack-ecmascript/src/path_visitor.rs
+ * MPL-2.0 Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c)
+ * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/LICENSE#L1
+ */
 use std::borrow::Cow;
 
 use rspack_core::{
