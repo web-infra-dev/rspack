@@ -869,9 +869,9 @@ impl<'a> CodeSizeOptimizer<'a> {
                   ModuleUsedType::INDIRECT,
                 );
 
-                // Only report diagnostic when these condition is satisfied:
+                // Only report diagnostic when these conditions is satisfied:
                 // 1. src module is not a bailout module and src module using ESM syntax to export some symbols.
-                // 2. src module has no reexport or any reexport src module is not bailout
+                // 2. src module has no reexport or any reexport src module is not bailouted
                 let should_diagnostic = !is_bailout_module_identifier
                   && module_result.export_syntax == ModuleSyntax::ES
                   && (module_result.inherit_export_maps.is_empty()
