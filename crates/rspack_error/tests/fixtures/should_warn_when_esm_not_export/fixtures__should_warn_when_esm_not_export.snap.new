@@ -1,8 +1,0 @@
----
-source: crates/rspack_error/tests/fixtures.rs
-assertion_line: 41
-expression: should_warn_when_esm_not_export
----
-warning[internal]: ./a.js did not export `b`, imported by ./index.js
-
-
