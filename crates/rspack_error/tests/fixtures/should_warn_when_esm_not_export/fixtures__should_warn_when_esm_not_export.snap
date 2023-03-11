@@ -2,6 +2,6 @@
 source: crates/rspack_error/tests/fixtures.rs
 expression: should_warn_when_esm_not_export
 ---
-warning[internal]: /home/victor/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/should_warn_when_esm_not_export/a.js did not export `b`, imported by javascript/auto|/home/victor/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/should_warn_when_esm_not_export/index.js
+warning[internal]: ./a.js did not export `b`, imported by javascript/auto|/home/victor/Documents/rspack/rspack/crates/rspack_error/tests/fixtures/should_warn_when_esm_not_export/index.js
 
 

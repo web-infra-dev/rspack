@@ -885,7 +885,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   if let Some(module_path) = module_path {
                     let error_message = format!(
                       "{} did not export `{}`, imported by {}",
-                      module_path,
+                      contextify(self.compilation.options.context.clone(), &module_path),
                       indirect_symbol.indirect_id(),
                       indirect_symbol.importer()
                     );
