@@ -1,2 +1,3 @@
 
-exports.test = 2000;
+// exports.test = 2000;
+export function test() {}

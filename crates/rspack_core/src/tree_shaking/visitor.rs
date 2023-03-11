@@ -132,7 +132,11 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
-  module_syntax: ModuleSyntax,
+  /// only care about the related export semantic.
+  /// # Examples
+  /// 1. `require()` -> CommonJs
+  /// 2. `export ` -> ESM
+  export_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects: SideEffect,
@@ -168,7 +172,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_id_set: HashSet::default(),
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
-      module_syntax: ModuleSyntax::empty(),
+      export_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver_factory,
       side_effects: SideEffect::Analyze(true),
@@ -284,6 +288,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
       && ((&obj.sym == "module" && prop == "exports") || &obj.sym == "exports")
     {
+      self.export_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .bail_out_module_identifiers
         .entry(self.module_identifier)
@@ -562,20 +567,24 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             self.state.remove(AnalyzeState::EXPORT_DECL);
           }
           Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-            todo!()
+            unreachable!("We have been converted Typescript to javascript already")
           }
         },
         ModuleDecl::ExportNamed(named_export) => {
+          self.export_syntax.insert(ModuleSyntax::ES);
           self.analyze_named_export(named_export);
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
+          self.export_syntax.insert(ModuleSyntax::ES);
           decl.visit_with(self);
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
           expr.visit_with(self);
+          self.export_syntax.insert(ModuleSyntax::ES);
         }
 
         ModuleDecl::ExportAll(export_all) => {
+          self.export_syntax.insert(ModuleSyntax::ES);
           let resolved_uri = match self
             .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
           {
@@ -593,7 +602,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ModuleDecl::TsImportEquals(_)
         | ModuleDecl::TsExportAssignment(_)
         | ModuleDecl::TsNamespaceExport(_) => {
-          // TODO: ignore ts related syntax visit for now
+          unreachable!("We have been converted Typescript to javascript already")
         }
       },
       ModuleItem::Stmt(stmt) => {
@@ -818,9 +827,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       node.class.visit_with(self);
     }
   }
-  // fn visit_span(&mut self, span: &Span) {}
   fn visit_call_expr(&mut self, node: &CallExpr) {
-    // TODO: module.exports, exports.xxxxx
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
       match self
         .resolve_module_identifier(&require_lit, &DependencyType::CjsRequire)
@@ -843,7 +850,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           );
         }
       };
-      self.module_syntax.insert(ModuleSyntax::COMMONJS);
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self
         .resolve_module_identifier(&import_str, &DependencyType::DynamicImport)
@@ -1002,7 +1008,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_decl(&mut self, node: &Decl) {
     match node {
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-        // TODO: Ignore ts related tree-shaking for now.
+        unreachable!("We have been transformed typescript to javascript before.")
       }
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
@@ -1386,6 +1392,7 @@ pub struct TreeShakingResult {
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) side_effects: SideEffect,
+  pub(crate) export_syntax: ModuleSyntax,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -1404,6 +1411,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       used_symbol_refs: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
       side_effects: analyze.side_effects,
+      export_syntax: analyze.export_syntax,
     }
   }
 }
