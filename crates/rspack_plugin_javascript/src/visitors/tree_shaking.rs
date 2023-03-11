@@ -448,13 +448,11 @@ impl<'a> TreeShaker<'a> {
     } else {
       let decl = match decl.decl {
         DefaultDecl::Class(class) => {
-          let ident = if let Some(ident) = class.ident {
-            ident
-          } else {
+          let ident = class.ident.unwrap_or_else(|| {
             let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
             named.span = named.span.with_ctxt(ctxt);
             named
-          };
+          });
           Decl::Class(ClassDecl {
             ident,
             declare: false,
@@ -462,13 +460,11 @@ impl<'a> TreeShaker<'a> {
           })
         }
         DefaultDecl::Fn(func) => {
-          let ident = if let Some(ident) = func.ident {
-            ident
-          } else {
+          let ident = func.ident.unwrap_or_else(|| {
             let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
             named.span = named.span.with_ctxt(ctxt);
             named
-          };
+          });
           Decl::Fn(FnDecl {
             ident,
             declare: false,
