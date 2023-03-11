@@ -73,6 +73,13 @@ pub(crate) fn get_named_property_value_string<T: NapiRaw>(
   String::from_utf8(buf).map_err(|_| Error::from_reason("failed to get property"))
 }
 
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+ */
 #[napi]
 pub fn init_custom_trace_subscriber(
   mut env: Env,

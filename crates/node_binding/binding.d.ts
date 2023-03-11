@@ -503,6 +503,13 @@ export interface JsStatsGetAssets {
   assets: Array<JsStatsAsset>
   assetsByChunkName: Array<JsStatsAssetsByChunkName>
 }
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+*/
 export function initCustomTraceSubscriber(): void
 export class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
