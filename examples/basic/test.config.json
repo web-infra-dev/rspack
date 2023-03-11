@@ -1,0 +1,13 @@
+{
+  "entry": {
+    "main": {
+      "import": ["./src/index.js"]
+    }
+  },
+  "builtins": {
+    "treeShaking": true
+  },
+  "optimization": {
+    "sideEffects": "true"
+  }
+}

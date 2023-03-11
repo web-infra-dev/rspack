@@ -878,7 +878,10 @@ impl<'a> CodeSizeOptimizer<'a> {
                 //   }
                 //   _ => {}
                 // }
-                if !is_bailout_module_identifier && !has_bailout_module_identifiers {
+                let should_diagnostic = !is_bailout_module_identifier
+                  && (module_result.inherit_export_maps.is_empty()
+                    || !has_bailout_module_identifiers);
+                if should_diagnostic {
                   let module_path = self
                     .compilation
                     .module_graph

@@ -2,14 +2,14 @@
  * @type {import('@rspack/cli').Configuration}
  */
 module.exports = {
+  mode: 'development',
   entry: {
     main: './src/index.js'
   },
   builtins: {
-    html: [
-      {
-        template: './index.html'
-      }
-    ]
+    treeShaking: true
+  },
+  stats: {
+    all: true
   }
 }
