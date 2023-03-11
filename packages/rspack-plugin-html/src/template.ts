@@ -1,3 +1,13 @@
+/**
+ * The following code is modified based on
+ * https://github.com/jantimon/html-webpack-plugin/blob/d5ce5a8f2d12a2450a65ec51c285dd54e36cd921/index.js
+ * https://github.com/jantimon/html-webpack-plugin/blob/d5ce5a8f2d12a2450a65ec51c285dd54e36cd921/lib/loader.js
+ *
+ * MIT Licensed
+ * Author Jan Nicklas
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/jantimon/html-webpack-plugin/blob/d5ce5a8f2d12a2450a65ec51c285dd54e36cd921/LICENSE
+ */
 import vm from "vm";
 
 /**
