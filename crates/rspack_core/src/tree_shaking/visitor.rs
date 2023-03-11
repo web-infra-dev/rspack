@@ -538,40 +538,44 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               }
             });
         }
-        ModuleDecl::ExportDecl(decl) => match &decl.decl {
-          Decl::Class(class) => {
-            class.visit_with(self);
-            self.add_export(
-              class.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::new(
-                self.module_identifier,
-                class.ident.to_id().into(),
-                SymbolType::Define,
-              )),
-            );
+        ModuleDecl::ExportDecl(decl) => {
+          self.export_syntax.insert(ModuleSyntax::ES);
+          match &decl.decl {
+            Decl::Class(class) => {
+              class.visit_with(self);
+              self.add_export(
+                class.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::new(
+                  self.module_identifier,
+                  class.ident.to_id().into(),
+                  SymbolType::Define,
+                )),
+              );
+            }
+            Decl::Fn(function) => {
+              function.visit_with(self);
+              self.add_export(
+                function.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::new(
+                  self.module_identifier,
+                  function.ident.to_id().into(),
+                  SymbolType::Define,
+                )),
+              );
+            }
+            Decl::Var(var) => {
+              self.state |= AnalyzeState::EXPORT_DECL;
+              var.visit_with(self);
+              self.state.remove(AnalyzeState::EXPORT_DECL);
+            }
+            Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+              unreachable!("We have been converted Typescript to javascript already")
+            }
           }
-          Decl::Fn(function) => {
-            function.visit_with(self);
-            self.add_export(
-              function.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::new(
-                self.module_identifier,
-                function.ident.to_id().into(),
-                SymbolType::Define,
-              )),
-            );
-          }
-          Decl::Var(var) => {
-            self.state |= AnalyzeState::EXPORT_DECL;
-            var.visit_with(self);
-            self.state.remove(AnalyzeState::EXPORT_DECL);
-          }
-          Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-            unreachable!("We have been converted Typescript to javascript already")
-          }
-        },
+        }
         ModuleDecl::ExportNamed(named_export) => {
           self.export_syntax.insert(ModuleSyntax::ES);
+          println!("fuck");
           self.analyze_named_export(named_export);
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
