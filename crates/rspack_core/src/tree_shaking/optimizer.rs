@@ -882,12 +882,18 @@ impl<'a> CodeSizeOptimizer<'a> {
                     .compilation
                     .module_graph
                     .normal_module_source_path_by_identifier(&module_result.module_identifier);
-                  if let Some(module_path) = module_path {
+                  let importer_module_path = self
+                    .compilation
+                    .module_graph
+                    .normal_module_source_path_by_identifier(&indirect_symbol.importer());
+                  if let (Some(module_path), Some(importer_module_path)) =
+                    (module_path, importer_module_path)
+                  {
                     let error_message = format!(
                       "{} did not export `{}`, imported by {}",
-                      contextify(self.compilation.options.context.clone(), &module_path),
+                      contextify(&self.compilation.options.context, &module_path),
                       indirect_symbol.indirect_id(),
-                      indirect_symbol.importer()
+                      contextify(&self.compilation.options.context, &importer_module_path),
                     );
                     errors.push(Error::InternalError(InternalError {
                       error_message,
