@@ -1,6 +1,6 @@
 const cp = require("child_process");
 const log = require("./log");
-const { Command, command } = require("commander");
+const { Command } = require("commander");
 
 const COMMANDER_VERSION = "2.20.3";
 
