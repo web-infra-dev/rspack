@@ -8,6 +8,7 @@ module.exports = {
 		"<rootDir>/tests/*.unittest.ts",
 		"<rootDir>/tests/copyPlugin/*.test.js"
 	],
+	bail: 1,
 	testTimeout: 120000,
 	cache: false,
 	transform: {

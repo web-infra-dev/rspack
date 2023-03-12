@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rimraf lib/ && tsc",
     "dev": "tsc -w",
-    "test": "jest --runInBand --verbose"
+    "test": "jest --runInBand --verbose --bail=1"
   },
   "keywords": [
     "rspack",
