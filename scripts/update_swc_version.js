@@ -22,12 +22,15 @@ function writeCargoToml(name, obj) {
 const pkg_version_cache = {};
 async function getPkgVersion(name) {
 	if (!pkg_version_cache[name]) {
+		const controller = new AbortController();
+		const id = setTimeout(() => controller.abort(), 10000);
 		const res = await fetch(
 			`https://raw.githubusercontent.com/swc-project/swc/${swc_version}/crates/${name}/Cargo.toml`,
 			{
-				timeout: 10000,
-			},
+				signal: controller.signal
+			}
 		);
+		clearTimeout(id);
 		const tomlString = await res.text();
 		const version = TOML.parse(tomlString).package.version;
 		pkg_version_cache[name] = version;
@@ -37,8 +40,8 @@ async function getPkgVersion(name) {
 }
 
 async function updateDependencies(name, deps = {}) {
-	const swc_pkgs = Object.keys(deps).filter((pkg) =>
-		swc_packages.some((item) => item.test(pkg)),
+	const swc_pkgs = Object.keys(deps).filter(pkg =>
+		swc_packages.some(item => item.test(pkg))
 	);
 	let hasChanged = false;
 	for (const pkg of swc_pkgs) {
@@ -66,8 +69,8 @@ async function main() {
 		const hasChanged = [
 			await updateDependencies(name, cargoToml.dependencies),
 			await updateDependencies(name, cargoToml["dev-dependencies"]),
-			await updateDependencies(name, cargoToml["build-dependencies"]),
-		].some((item) => !!item);
+			await updateDependencies(name, cargoToml["build-dependencies"])
+		].some(item => !!item);
 
 		if (hasChanged) {
 			writeCargoToml(name, cargoToml);
