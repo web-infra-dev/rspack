@@ -6,6 +6,7 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
+  "private": true,
   "dependencies": {
     "@changesets/read": "0.5.9",
     "@iarna/toml": "2.2.5",
