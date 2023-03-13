@@ -23,7 +23,7 @@ English | [简体中文](./README.zh-CN.md)
 
 - 🚀 **Fast Startup**: Based on Rust, the build speed is extremely fast, bringing you the ultimate development experience.
 - ⚡ **Lightning HMR**: With a built-in incremental compilation mechanism, HMR is extremely fast and fully capable of developing large-scale projects.
-- 📦 **Webpack Interoperable**: Compatible with the architecture and ecosystem of webpack, no need to build the ecosystem from scratch.
+- 📦 **Webpack Interoperable**: Compatible with the architecture and ecosystem of Webpack, no need to build the ecosystem from scratch.
 - 🎨 **Batteries Included**: Out-of-the-box support for TypeScript, JSX, CSS, CSS Modules, Sass, and more.
 - 🛠️ **Production Optimization**: Various optimization strategies are built in by default, such as tree shaking, minification, etc.
 - 🎯 **Framework Agnostic**: Not bound to any frontend framework, ensuring enough flexibility.
@@ -57,8 +57,8 @@ This repo has adopted the ByteDance Open Source Code of Conduct. Please check [C
 
 Thanks to:
 
-- [The webpack team and community](https://webpack.js.org/) for creating a great bundler and ecosystem from which we draw a lot of inspiration.
-- [@sokra](https://github.com/sokra) for the great work on the [webpack](https://github.com/webpack/webpack) project.
+- [The Webpack team and community](https://webpack.js.org/) for creating a great bundler and ecosystem from which we draw a lot of inspiration.
+- [@sokra](https://github.com/sokra) for the great work on the [Webpack](https://github.com/webpack/webpack) project.
 - [@ScriptedAlchemy](https://github.com/ScriptedAlchemy) for creating Module Federation and helping Rspack connect with the community.
 - The [SWC](https://github.com/swc-project/swc) project created by [@kdy1](https://github.com/kdy1), which powers Rspack's code parsing, transformation and minification.
 - The [esbuild](https://github.com/evanw/esbuild) project created by [@evanw](https://github.com/evanw), which inspired the concurrent architecture of Rspack.
