@@ -25,13 +25,8 @@ preset_env_base   = { version = "0.4.0" }
 rustc-hash        = { version = "1.1.0" }
 serde             = "1.0.152"
 serde_json        = "1.0.91"
-swc_core          = { version = "0.59.6", default-features = false }
-swc_css           = { version = "0.149.2" }
-swc_html          = { version = "0.105.1" }
-swc_html_minifier = { version = "0.102.1" }
+swc_core          = { version = "0.69.3", default-features = false }
+swc_css           = { version = "0.149.14" }
+swc_html          = { version = "0.118.2" }
+swc_html_minifier = { version = "0.115.2" }
 tracing           = "0.1.34"
-
-[patch.crates-io]
-# Use bucket instead of global mutex for dynamic set
-# See: https://github.com/servo/string-cache/pull/268
-string_cache = { git = "https://github.com/boshen/string-cache", rev = "33e00b3d9a60322251532a202390c6bc53b7ea45" }
