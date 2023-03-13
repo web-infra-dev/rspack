@@ -3,15 +3,19 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Default, Eq)]
 pub struct GlobalRuntimeModule {}
 
 impl RuntimeModule for GlobalRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/global".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/global".to_owned()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/global.js").to_string()).boxed()
+    RawSource::from(include_str!("runtime/global.js")).boxed()
   }
 }
+
+impl_runtime_module!(GlobalRuntimeModule);

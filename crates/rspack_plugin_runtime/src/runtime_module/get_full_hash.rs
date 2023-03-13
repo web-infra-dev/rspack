@@ -3,12 +3,14 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Default, Eq)]
 pub struct GetFullHashRuntimeModule {}
 
 impl RuntimeModule for GetFullHashRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/get_full_hash".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/get_full_hash".to_owned()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -18,3 +20,5 @@ impl RuntimeModule for GetFullHashRuntimeModule {
     .boxed()
   }
 }
+
+impl_runtime_module!(GetFullHashRuntimeModule);

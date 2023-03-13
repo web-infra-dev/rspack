@@ -3,14 +3,16 @@ use rspack_core::{
   ChunkUkey, Compilation, RuntimeModule, RuntimeSpec,
 };
 
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Default, Eq)]
 pub struct GetMainFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
 }
 
 impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/get_main_filename".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/get_main_filename".to_owned()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -33,6 +35,8 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
+
+impl_runtime_module!(GetMainFilenameRuntimeModule);
 
 #[inline]
 fn stringify_runtime(runtime: &RuntimeSpec) -> String {

@@ -68,7 +68,7 @@ pub struct Compilation {
   pub make_failed_dependencies: HashSet<DependencyId>,
   pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
-  pub runtime_module_hashes: IdentifierMap<u64>,
+  pub runtime_module_code_generation_results: IdentifierMap<(u64, BoxSource)>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
@@ -121,7 +121,7 @@ impl Compilation {
       make_failed_dependencies: HashSet::default(),
       has_module_import_export_change: true,
       runtime_modules: Default::default(),
-      runtime_module_hashes: Default::default(),
+      runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entry_dependencies: Default::default(),
@@ -1218,8 +1218,8 @@ impl Compilation {
           .chunk_graph
           .get_chunk_runtime_modules_in_order(&chunk.ukey)
           .iter()
-          .filter_map(|identifier| self.runtime_module_hashes.get(identifier))
-          .inspect(|hash| hash.hash(&mut chunk.hash))
+          .filter_map(|identifier| self.runtime_module_code_generation_results.get(identifier))
+          .inspect(|(hash, _)| hash.hash(&mut chunk.hash))
       })
       .collect::<Vec<_>>()
       .iter()
@@ -1260,13 +1260,15 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
   pub fn create_runtime_module_hash(&mut self) {
-    self.runtime_module_hashes = self
+    self.runtime_module_code_generation_results = self
       .runtime_modules
       .par_iter()
       .map(|(identifier, module)| {
+        let source = module.generate(self);
         let mut hasher = Xxh3::new();
-        module.hash(self, &mut hasher);
-        (*identifier, hasher.finish())
+        module.identifier().hash(&mut hasher);
+        source.source().hash(&mut hasher);
+        (*identifier, (hasher.finish(), source))
       })
       .collect();
   }
@@ -1277,8 +1279,8 @@ impl Compilation {
       .chunk_by_ukey
       .get(chunk_ukey)
       .expect("chunk not found by ukey");
-    let runtime_module_identifier = format!("{:?}/{}", chunk.runtime, module.identifier());
-    let runtime_module_identifier = ModuleIdentifier::from(runtime_module_identifier);
+    let runtime_module_identifier =
+      ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);
     self.chunk_graph.add_module(runtime_module_identifier);
     self

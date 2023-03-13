@@ -6,9 +6,10 @@ use rspack_core::{
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::{chunk_has_js, get_undo_path};
+use crate::impl_runtime_module;
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq)]
 pub struct RequireChunkLoadingRuntimeModule {
   chunk: Option<ChunkUkey>,
   runtime_requirements: HashSet<&'static str>,
@@ -24,8 +25,8 @@ impl RequireChunkLoadingRuntimeModule {
 }
 
 impl RuntimeModule for RequireChunkLoadingRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/require_chunk_loading".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/require_chunk_loading".to_owned()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -89,9 +90,9 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
-      source.add(RawSource::from(
-        include_str!("runtime/require_chunk_loading_with_hmr.js").to_string(),
-      ));
+      source.add(RawSource::from(include_str!(
+        "runtime/require_chunk_loading_with_hmr.js"
+      )));
       source.add(RawSource::from(
         include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
       ));
@@ -101,24 +102,24 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       .runtime_requirements
       .contains(runtime_globals::HMR_DOWNLOAD_MANIFEST)
     {
-      source.add(RawSource::from(
-        include_str!("runtime/require_chunk_loading_with_hmr_manifest.js").to_string(),
-      ));
+      source.add(RawSource::from(include_str!(
+        "runtime/require_chunk_loading_with_hmr_manifest.js"
+      )));
     }
 
     if self
       .runtime_requirements
       .contains(runtime_globals::ON_CHUNKS_LOADED)
     {
-      source.add(RawSource::from(
-        include_str!("runtime/require_chunk_loading_with_on_chunk_load.js").to_string(),
-      ));
+      source.add(RawSource::from(include_str!(
+        "runtime/require_chunk_loading_with_on_chunk_load.js"
+      )));
     }
 
     if with_external_install_chunk {
-      source.add(RawSource::from(
-        include_str!("runtime/require_chunk_loading_with_external_install_chunk.js").to_string(),
-      ));
+      source.add(RawSource::from(include_str!(
+        "runtime/require_chunk_loading_with_external_install_chunk.js"
+      )));
     }
 
     source.boxed()
@@ -132,3 +133,5 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     RUNTIME_MODULE_STAGE_ATTACH
   }
 }
+
+impl_runtime_module!(RequireChunkLoadingRuntimeModule);

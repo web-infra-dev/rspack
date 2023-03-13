@@ -3,15 +3,19 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Default, Eq)]
 pub struct HotModuleReplacementRuntimeModule {}
 
 impl RuntimeModule for HotModuleReplacementRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/hot_module_replacement".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/hot_module_replacement".to_owned()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/hot_module_replacement.js").to_string()).boxed()
+    RawSource::from(include_str!("runtime/hot_module_replacement.js")).boxed()
   }
 }
+
+impl_runtime_module!(HotModuleReplacementRuntimeModule);

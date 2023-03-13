@@ -8,13 +8,14 @@ use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::stringify_array;
+use crate::impl_runtime_module;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq)]
 pub struct LoadChunkWithModuleRuntimeModule {}
 
 impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
-  fn identifier(&self) -> String {
-    "rspack/runtime/load_chunk_with_module".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/load_chunk_with_module".to_owned()
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -77,6 +78,8 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
     source.boxed()
   }
 }
+
+impl_runtime_module!(LoadChunkWithModuleRuntimeModule);
 
 fn stringify_map(map: &HashMap<String, Vec<String>>) -> String {
   format!(

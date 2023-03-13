@@ -3,16 +3,20 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 
+use crate::impl_runtime_module;
+
 // TODO workaround for get_chunk_update_filename
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq)]
 pub struct GetChunkUpdateFilenameRuntimeModule {}
 
 impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/get_chunk_update_filename".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/get_chunk_update_filename".to_owned()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    RawSource::from(include_str!("runtime/get_chunk_update_filename.js").to_string()).boxed()
+    RawSource::from(include_str!("runtime/get_chunk_update_filename.js")).boxed()
   }
 }
+
+impl_runtime_module!(GetChunkUpdateFilenameRuntimeModule);

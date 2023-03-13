@@ -3,7 +3,9 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Default, Eq)]
 pub struct EnsureChunkRuntimeModule {
   has_ensure_chunk_handlers: bool,
 }
@@ -17,15 +19,17 @@ impl EnsureChunkRuntimeModule {
 }
 
 impl RuntimeModule for EnsureChunkRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/ensure_chunk".to_string()
+  fn name(&self) -> String {
+    "webpack/runtime/ensure_chunk".to_owned()
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
     RawSource::from(match self.has_ensure_chunk_handlers {
-      true => include_str!("runtime/ensure_chunk.js").to_string(),
-      false => include_str!("runtime/ensure_chunk_with_inline.js").to_string(),
+      true => include_str!("runtime/ensure_chunk.js"),
+      false => include_str!("runtime/ensure_chunk_with_inline.js"),
     })
     .boxed()
   }
 }
+
+impl_runtime_module!(EnsureChunkRuntimeModule);

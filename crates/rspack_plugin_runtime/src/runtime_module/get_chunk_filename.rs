@@ -5,20 +5,22 @@ use rspack_core::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-#[derive(Debug)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Eq)]
 pub struct GetChunkFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
-  content_type: String,
+  content_type: &'static str,
   source_type: SourceType,
-  global: String,
+  global: &'static str,
   all_chunks: bool,
 }
 
 impl GetChunkFilenameRuntimeModule {
   pub fn new(
-    content_type: String,
+    content_type: &'static str,
     source_type: SourceType,
-    global: String,
+    global: &'static str,
     all_chunks: bool,
   ) -> Self {
     Self {
@@ -32,7 +34,7 @@ impl GetChunkFilenameRuntimeModule {
 }
 
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn identifier(&self) -> String {
+  fn name(&self) -> String {
     format!("webpack/runtime/get_chunk_filename/{}", self.global)
   }
 
@@ -103,3 +105,5 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
+
+impl_runtime_module!(GetChunkFilenameRuntimeModule);
