@@ -60,7 +60,7 @@ impl ExternalModule {
           compilation.options.output.import_function_name, self.request
         )
       }
-      "var" | "promise" | "const" | "let" | "assgin" => {
+      "var" | "promise" | "const" | "let" | "assign" => {
         format!("module.exports = {}", self.request)
       }
       // TODO "script" "module"

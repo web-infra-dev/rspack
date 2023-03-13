@@ -89,7 +89,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
 
       if chunk_names_in_same_group.len() == 1 {
         // All modules of the chunk is from one group, to avoid conflict, we need to add a suffix
-        chunk_names_in_same_group.insert(0, "splitted");
+        chunk_names_in_same_group.insert(0, "split");
       }
 
       let name = shorten_long_string(

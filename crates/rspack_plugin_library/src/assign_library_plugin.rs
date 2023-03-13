@@ -9,13 +9,13 @@ pub enum Unnamed {
   Error,
   Static,
   Copy,
-  Assgin,
+  Assign,
 }
 
 #[derive(Debug)]
 pub enum Named {
   Copy,
-  Assgin,
+  Assign,
 }
 
 #[derive(Debug)]

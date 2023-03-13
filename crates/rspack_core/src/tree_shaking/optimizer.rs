@@ -947,7 +947,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // all
         // ```
         // then, all the exports in `test.js` including
-        // export defined in `test.js` and all realted
+        // export defined in `test.js` and all related
         // reexport should be marked as used
         let include_default_export = match star_symbol.ty() {
           StarSymbolKind::ReExportAllAs => false,
