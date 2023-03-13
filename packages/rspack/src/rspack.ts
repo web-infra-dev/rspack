@@ -30,7 +30,6 @@ import MultiStats from "./multiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
 import rspackOptionsCheck from "./config/schema.check.js";
-import type { DefinedError } from "ajv";
 import InvalidateConfigurationError from "./error/InvalidateConfiguration";
 import { validate, ValidationError } from "schema-utils";
 

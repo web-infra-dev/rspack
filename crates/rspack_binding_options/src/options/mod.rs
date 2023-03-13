@@ -65,8 +65,7 @@ pub struct RawOptions {
   pub resolve: RawResolveOptions,
   pub module: RawModuleOptions,
   pub builtins: RawBuiltins,
-  #[napi(ts_type = "Record<string, string>")]
-  pub externals: RawExternal,
+  pub externals: Option<Vec<RawExternalItem>>,
   pub externals_type: String,
   #[napi(ts_type = "string")]
   pub devtool: RawDevtool,
@@ -95,8 +94,6 @@ impl RawOptionsApply for RawOptions {
     let mode = self.mode.unwrap_or_default().into();
     let module: ModuleOptions = self.module.try_into()?;
     let target = self.target.apply(plugins)?;
-    let externals = vec![self.externals.into()];
-    let externals_type = self.externals_type;
     let experiments: Experiments = self.experiments.into();
     let stats = self.stats.into();
     let cache = self.cache.into();
@@ -136,7 +133,15 @@ impl RawOptionsApply for RawOptions {
     if experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }
-    plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
+    if let Some(externals) = self.externals {
+      plugins.push(
+        rspack_plugin_externals::ExternalPlugin::new(
+          self.externals_type,
+          externals.into_iter().map(Into::into).collect(),
+        )
+        .boxed(),
+      );
+    }
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(
       rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
@@ -164,8 +169,6 @@ impl RawOptionsApply for RawOptions {
       output,
       resolve,
       devtool,
-      externals,
-      externals_type,
       experiments,
       stats,
       cache,

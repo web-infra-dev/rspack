@@ -3,7 +3,8 @@ import {
 	RawModuleRule,
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions,
-	RawOptions
+	RawOptions,
+	RawExternalItem
 } from "@rspack/binding";
 import assert from "assert";
 import { normalizeStatsPreset } from "../stats";
@@ -11,6 +12,7 @@ import { isNil } from "../util";
 import {
 	EntryNormalized,
 	Experiments,
+	ExternalItem,
 	Externals,
 	LibraryOptions,
 	ModuleOptionsNormalized,
@@ -54,7 +56,9 @@ export const getRawOptions = (
 			devtool,
 			context: options.context
 		}),
-		externals: options.externals ? getRawExternals(options.externals) : {},
+		externals: options.externals
+			? getRawExternals(options.externals)
+			: undefined,
 		externalsType:
 			options.externalsType === undefined ? "" : options.externalsType,
 		devtool,
@@ -269,7 +273,7 @@ function getRawRuleSetCondition(
 			arrayMatcher: condition.map(i => getRawRuleSetCondition(i))
 		};
 	}
-	if (condition instanceof Object && condition !== null) {
+	if (typeof condition === "object" && condition !== null) {
 		return {
 			type: "logical",
 			logicalMatcher: [getRawRuleSetLogicalConditions(condition)]
@@ -293,12 +297,19 @@ function getRawRuleSetLogicalConditions(
 }
 
 function getRawExternals(externals: Externals): RawOptions["externals"] {
-	if (typeof externals === "string") {
-		return {
-			[externals]: externals
-		};
+	function getRawExternalItem(item: ExternalItem): RawExternalItem {
+		if (typeof item === "string") {
+			return { type: "string", stringPayload: item };
+		} else if (item instanceof RegExp) {
+			return { type: "regexp", regexpPayload: item.source };
+		}
+		return { type: "object", objectPayload: item };
 	}
-	return externals;
+
+	if (Array.isArray(externals)) {
+		return externals.map(i => getRawExternalItem(i));
+	}
+	return [getRawExternalItem(externals)];
 }
 
 function getRawOptimization(

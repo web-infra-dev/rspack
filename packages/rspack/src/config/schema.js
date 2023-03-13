@@ -247,6 +247,10 @@ module.exports = {
 				"Specify dependency that shouldn't be resolved by rspack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
 			anyOf: [
 				{
+					description: "Every matched dependency becomes external.",
+					instanceof: "RegExp"
+				},
+				{
 					description:
 						"An exact matched dependency becomes external. The same string is used as external dependency.",
 					type: "string"
@@ -274,6 +278,12 @@ module.exports = {
 			description:
 				"Specify dependencies that shouldn't be resolved by rspack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
 			anyOf: [
+				{
+					type: "array",
+					items: {
+						$ref: "#/definitions/ExternalItem"
+					}
+				},
 				{
 					$ref: "#/definitions/ExternalItem"
 				}
