@@ -869,14 +869,13 @@ impl<'a> CodeSizeOptimizer<'a> {
                   ModuleUsedType::INDIRECT,
                 );
 
-                // Only report diagnostic when these conditions is satisfied:
+                // Only report diagnostic when following conditions are satisfied:
                 // 1. src module is not a bailout module and src module using ESM syntax to export some symbols.
                 // 2. src module has no reexport or any reexport src module is not bailouted
                 let should_diagnostic = !is_bailout_module_identifier
                   && module_result.export_syntax == ModuleSyntax::ES
                   && (module_result.inherit_export_maps.is_empty()
                     || !has_bailout_module_identifiers);
-                dbg!(&should_diagnostic, module_result.export_syntax);
                 if should_diagnostic {
                   let module_path = self
                     .compilation
@@ -1240,16 +1239,16 @@ async fn par_analyze_module(
 
         // Keep this debug info until we stabilize the tree-shaking
         // if debug_care_module_id(&uri_key.as_str()) {
-        dbg!(
-          &uri_key,
-          // &analyzer.export_all_list,
-          &analyzer.export_map,
-          &analyzer.import_map,
-          &analyzer.maybe_lazy_reference_map,
-          &analyzer.immediate_evaluate_reference_map,
-          &analyzer.reachable_import_and_export,
-          &analyzer.used_symbol_ref
-        );
+        // dbg!(
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.maybe_lazy_reference_map,
+        //   &analyzer.immediate_evaluate_reference_map,
+        //   &analyzer.reachable_import_and_export,
+        //   &analyzer.used_symbol_ref
+        // );
         // }
 
         Some((uri_key, analyzer.into()))
