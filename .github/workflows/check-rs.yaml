@@ -22,6 +22,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: crate-ci/typos@master
+        with:
+          files: .
+
   format:
     name: Format Rust Files
     runs-on: ubuntu-latest

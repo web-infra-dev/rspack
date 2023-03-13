@@ -630,7 +630,7 @@ pub fn assert(p: PathBuf) {
 //     };
 
 //     /*
-//      * there is a misssing in the actual dir
+//      * there is a missing in the actual dir
 //      */
 //     let mut p = cwd;
 //     p.push("fixtures/diff/missing");

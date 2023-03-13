@@ -25,7 +25,7 @@ pub mod visitors;
 //   type Value = Value;
 // }
 
-// fn transofrm(mut ctx: TypeMap) {
+// fn transform(mut ctx: TypeMap) {
 //   // let mut map = TypeMap::new();
 //   ctx.insert::<JsAst>(Value(swc_ecma_ast::Program::Module(
 //     swc_ecma_ast::Module::dummy(),

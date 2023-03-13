@@ -346,7 +346,7 @@ impl<'a> TreeShaker<'a> {
 
   fn custom_fold_named_export(&mut self, mut named: NamedExport) -> ModuleItem {
     if let Some(ref src) = named.src {
-      let before_legnth = named.specifiers.len();
+      let before_length = named.specifiers.len();
       let module_identifier = self
         .resolve_module_identifier(src.value.to_string())
         .expect("TODO:");
@@ -393,14 +393,14 @@ impl<'a> TreeShaker<'a> {
       if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
         return Self::create_empty_stmt_module_item();
       }
-      let is_all_used = before_legnth == specifiers.len();
+      let is_all_used = before_length == specifiers.len();
       named.specifiers = specifiers;
       if !is_all_used {
         named.span = DUMMY_SP;
       }
       ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named))
     } else {
-      let before_legnth = named.specifiers.len();
+      let before_length = named.specifiers.len();
       let specifiers = named
         .specifiers
         .into_iter()
@@ -427,7 +427,7 @@ impl<'a> TreeShaker<'a> {
           },
         })
         .collect::<Vec<_>>();
-      let is_all_used = before_legnth == specifiers.len();
+      let is_all_used = before_length == specifiers.len();
       named.specifiers = specifiers;
       if !is_all_used {
         named.span = DUMMY_SP;

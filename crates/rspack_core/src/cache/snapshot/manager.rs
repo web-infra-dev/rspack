@@ -42,8 +42,8 @@ impl SnapshotManager {
     let strategy = f(&self.options);
     let mut file_update_times = HashMap::default();
     file_update_times.reserve(paths.len());
-    let mut file_hashs = HashMap::default();
-    file_hashs.reserve(paths.len());
+    let mut file_hashes = HashMap::default();
+    file_hashes.reserve(paths.len());
     if strategy.timestamp {
       for &path in paths {
         file_update_times.insert(path.to_owned(), SystemTime::now());
@@ -60,20 +60,20 @@ impl SnapshotManager {
             res
           }
         };
-        file_hashs.insert(path.to_owned(), hash);
+        file_hashes.insert(path.to_owned(), hash);
       }
     }
 
     Ok(Snapshot {
       file_update_times,
-      file_hashs,
+      file_hashes,
     })
   }
 
   pub async fn check_snapshot_valid(&self, snapshot: &Snapshot) -> Result<bool> {
     let Snapshot {
       file_update_times,
-      file_hashs,
+      file_hashes,
       ..
     } = snapshot;
     if !file_update_times.is_empty() {
@@ -95,10 +95,10 @@ impl SnapshotManager {
       }
     }
 
-    if !file_hashs.is_empty() {
+    if !file_hashes.is_empty() {
       // check file hash
       let hash_cache = &self.hash_cache;
-      for (path, snapshot_hash) in file_hashs {
+      for (path, snapshot_hash) in file_hashes {
         let current_hash = match hash_cache.get(path) {
           Some(h) => *h,
           None => {

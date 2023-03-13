@@ -323,7 +323,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .reachable_import_and_export
             .insert(key.clone(), reachable_import_and_export);
         }
-        // ignore any indrect symbol, because it will not generate binding, the reachable exports will
+        // ignore any indirect symbol, because it will not generate binding, the reachable exports will
         // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
       }
@@ -1207,7 +1207,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       Entry::Vacant(vac) => {
         // if import is a helper injection then we should ignore now tree-shaking with that module
-        // one more thing, only helper module inserted by swc transfomer will be ignored
+        // one more thing, only helper module inserted by swc transformer will be ignored
         // e.g. import ext from '@swc/helper/xxx'
         if vac.key().ctxt.outer() == self.helper_mark {
           match self
