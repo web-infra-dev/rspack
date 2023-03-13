@@ -50,6 +50,7 @@ export async function evaluate(
 	}
 	const vmContext = vm.createContext({
 		...global,
+		process,
 		HTML_WEBPACK_PLUGIN: true,
 		require: require,
 		htmlWebpackPluginPublicPath: publicPath,
