@@ -48,6 +48,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Install toolchain
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
@@ -68,6 +72,10 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install toolchain
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
       - name: Run cargo check
         run: cargo check --workspace --all-targets --release --locked
 
@@ -100,6 +108,10 @@ jobs:
           node-version: "16"
       - name: Install toolchain
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |

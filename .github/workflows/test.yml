@@ -127,6 +127,8 @@ jobs:
       - name: Install Rust
         if: ${{ !matrix.settings.docker }}
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
       - name: Setup rust target
         if: ${{ !matrix.settings.docker }}
         run: rustup target add ${{ matrix.settings.target }}
