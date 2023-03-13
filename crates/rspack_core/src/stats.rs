@@ -30,7 +30,7 @@ impl<'compilation> Stats<'compilation> {
     let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
     let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
     let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
-    Ok(warnings + &errors)
+    Ok(format!("{warnings}{errors}"))
   }
 }
 
