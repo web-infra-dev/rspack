@@ -136,7 +136,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// # Examples
   /// 1. `require()` -> CommonJs
   /// 2. `export ` -> ESM
-  export_syntax: ModuleSyntax,
+  module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects: SideEffect,
@@ -172,7 +172,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       used_id_set: HashSet::default(),
       used_symbol_ref: HashSet::default(),
       export_default_name: None,
-      export_syntax: ModuleSyntax::empty(),
+      module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
       resolver_factory,
       side_effects: SideEffect::Analyze(true),
@@ -288,7 +288,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
       && ((&obj.sym == "module" && prop == "exports") || &obj.sym == "exports")
     {
-      self.export_syntax.insert(ModuleSyntax::COMMONJS);
+      self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .bail_out_module_identifiers
         .entry(self.module_identifier)
@@ -539,7 +539,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             });
         }
         ModuleDecl::ExportDecl(decl) => {
-          self.export_syntax.insert(ModuleSyntax::ES);
+          self.module_syntax.insert(ModuleSyntax::ESM);
           match &decl.decl {
             Decl::Class(class) => {
               class.visit_with(self);
@@ -574,21 +574,20 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
         }
         ModuleDecl::ExportNamed(named_export) => {
-          self.export_syntax.insert(ModuleSyntax::ES);
-          println!("fuck");
+          self.module_syntax.insert(ModuleSyntax::ESM);
           self.analyze_named_export(named_export);
         }
         ModuleDecl::ExportDefaultDecl(decl) => {
-          self.export_syntax.insert(ModuleSyntax::ES);
+          self.module_syntax.insert(ModuleSyntax::ESM);
           decl.visit_with(self);
         }
         ModuleDecl::ExportDefaultExpr(expr) => {
           expr.visit_with(self);
-          self.export_syntax.insert(ModuleSyntax::ES);
+          self.module_syntax.insert(ModuleSyntax::ESM);
         }
 
         ModuleDecl::ExportAll(export_all) => {
-          self.export_syntax.insert(ModuleSyntax::ES);
+          self.module_syntax.insert(ModuleSyntax::ESM);
           let resolved_uri = match self
             .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
           {
@@ -1396,7 +1395,7 @@ pub struct TreeShakingResult {
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) side_effects: SideEffect,
-  pub(crate) export_syntax: ModuleSyntax,
+  pub(crate) module_syntax: ModuleSyntax,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -1415,7 +1414,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       used_symbol_refs: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
       side_effects: analyze.side_effects,
-      export_syntax: analyze.export_syntax,
+      module_syntax: analyze.module_syntax,
     }
   }
 }

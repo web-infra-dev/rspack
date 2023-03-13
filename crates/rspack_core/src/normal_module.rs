@@ -36,7 +36,7 @@ use crate::{
 bitflags! {
   pub struct ModuleSyntax: u8 {
     const COMMONJS = 1 << 0;
-    const ES = 1 << 1;
+    const ESM = 1 << 1;
   }
 }
 
