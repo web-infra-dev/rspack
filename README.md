@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610-dark.png">
-  <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
+  <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610.png">
 </picture>
 
 <h2 align="center">A fast Rust-based web bundler</h2>
