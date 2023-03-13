@@ -71,7 +71,13 @@ let hasRegisteredTS = false;
 function requireWithAdditionalExtension(resolvedPath: string) {
 	if (resolvedPath.endsWith("ts") && !hasRegisteredTS) {
 		hasRegisteredTS = true;
-		require("ts-node").register({ transpileOnly: true });
+		let tsNode: any;
+		try {
+			tsNode = require("ts-node");
+		} catch (e) {
+			throw new Error("`ts-node` is required to use TypeScript configuration.");
+		}
+		tsNode.register({ transpileOnly: true });
 	}
 	return require(resolvedPath);
 }
