@@ -62,8 +62,6 @@ impl ModuleGraphConnection {
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_id_to_module_identifier: HashMap<usize, ModuleIdentifier>,
-
   /// Module identifier to its module
   pub(crate) module_identifier_to_module: IdentifierMap<BoxModule>,
   /// Module identifier to its module graph module
@@ -75,6 +73,10 @@ pub struct ModuleGraph {
   /// The module graph connections
   connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
+
+  /// DependencyId -> ModuleIdentifier mapping
+  /// None means the module has been removed from the dependency
+  dependency_id_to_module_identifier: Vec<Option<ModuleIdentifier>>,
 }
 
 impl ModuleGraph {
@@ -94,15 +96,13 @@ impl ModuleGraph {
   }
 
   pub fn add_dependency(&mut self, mut dep: BoxModuleDependency) -> usize {
-    static NEXT_DEPENDENCY_ID: AtomicUsize = AtomicUsize::new(0);
-
     if let Some(id) = dep.id() {
       return *id;
     }
-    let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+    let id = self.dependency_id_to_module_identifier.len();
+    self.dependency_id_to_module_identifier.push(None);
     dep.set_id(Some(id));
     self.dependency_id_to_dependency.insert(id, dep);
-
     id
   }
 
@@ -125,7 +125,7 @@ impl ModuleGraph {
   }
 
   pub fn module_identifier_by_dependency_id(&self, id: &DependencyId) -> Option<&ModuleIdentifier> {
-    self.dependency_id_to_module_identifier.get(id)
+    self.dependency_id_to_module_identifier[*id].as_ref()
   }
 
   /// Return an unordered iterator of module graph modules
@@ -142,12 +142,10 @@ impl ModuleGraph {
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency_id: usize,
+    dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
-    self
-      .dependency_id_to_module_identifier
-      .insert(dependency_id, module_identifier);
+    self.dependency_id_to_module_identifier[dependency_id].replace(module_identifier);
     let new_connection =
       ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
 
@@ -314,7 +312,7 @@ impl ModuleGraph {
         removed = Some(conn);
       }
     }
-    self.dependency_id_to_module_identifier.remove(id);
+    self.dependency_id_to_module_identifier[*id] = None;
     self.dependency_id_to_dependency.remove(id);
 
     removed
@@ -362,9 +360,7 @@ impl ModuleGraph {
 
     // remove dependency
     self.dependency_id_to_connection_id.remove(&dependency_id);
-    self
-      .dependency_id_to_module_identifier
-      .remove(&dependency_id);
+    self.dependency_id_to_module_identifier[dependency_id] = None;
 
     // remove outgoing from original module graph module
     if let Some(original_module_identifier) = &original_module_identifier {
@@ -540,8 +536,7 @@ mod test {
     dep: Box<dyn ModuleDependency>,
   ) -> DependencyId {
     let dependency_id = mg.add_dependency(dep);
-    mg.dependency_id_to_module_identifier
-      .insert(dependency_id, *to);
+    mg.dependency_id_to_module_identifier[dependency_id].replace(*to);
     if let Some(p_id) = from && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id) {
       mgm.dependencies.push(dependency_id);
     }
@@ -549,9 +544,7 @@ mod test {
       .expect("failed to set resolved module");
 
     assert_eq!(
-      mg.dependency_id_to_module_identifier
-        .get(&dependency_id)
-        .copied(),
+      mg.dependency_id_to_module_identifier[dependency_id],
       Some(*to)
     );
     dependency_id
