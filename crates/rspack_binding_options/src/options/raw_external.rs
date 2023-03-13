@@ -31,7 +31,7 @@ impl From<RawExternalItem> for ExternalItem {
       "object" => Self::from(
         value
           .object_payload
-          .expect("should have a regexp_payload when RawExternalItem.type is \"regexp\""),
+          .expect("should have a object_payload when RawExternalItem.type is \"object\""),
       ),
       _ => unreachable!(),
     }
