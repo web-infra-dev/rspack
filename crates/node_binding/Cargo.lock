@@ -2021,6 +2021,7 @@ dependencies = [
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_split_chunks",
+ "rspack_plugin_wasm",
  "rspack_regex",
  "serde",
  "serde_json",
@@ -2477,6 +2478,26 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_wasm"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "derivative",
+ "rayon",
+ "rspack_core",
+ "rspack_error",
+ "rspack_identifier",
+ "rspack_plugin_asset",
+ "rspack_util",
+ "rustc-hash",
+ "serde_json",
+ "sugar_path",
+ "tracing",
+ "wasmparser",
 ]
 
 [[package]]
@@ -4524,6 +4545,16 @@ name = "wasm-bindgen-shared"
 version = "0.2.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c38c045535d93ec4f0b4defec448e4291638ee608530863b1e2ba115d4fff7f"
+
+[[package]]
+name = "wasmparser"
+version = "0.102.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48134de3d7598219ab9eaf6b91b15d8e50d31da76b8519fe4ecfcec2cf35104b"
+dependencies = [
+ "indexmap",
+ "url",
+]
 
 [[package]]
 name = "which"

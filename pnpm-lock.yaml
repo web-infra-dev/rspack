@@ -485,6 +485,18 @@ importers:
       '@vue/babel-plugin-jsx': 1.1.1_@babel+core@7.21.0
       babel-loader: 9.1.2_@babel+core@7.21.0
 
+  examples/wasm-complex:
+    specifiers:
+      '@rspack/cli': workspace:*
+    dependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+
+  examples/wasm-simple:
+    specifiers:
+      '@rspack/cli': workspace:*
+    dependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+
   npm/darwin-arm64:
     specifiers: {}
 

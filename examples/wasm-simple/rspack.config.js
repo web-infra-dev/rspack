@@ -1,13 +1,18 @@
+/**
+ * @type {import('@rspack/cli').Configuration}
+ */
 module.exports = {
 	// mode: "development || "production",
+	entry: {
+		main: './example.js'
+	},
 	output: {
-		publicPath: "dist/"
+		webassemblyModuleFilename: "[hash].wasm",
 	},
 	module: {
 		rules: [
 			{
-				test: /\.wat$/,
-				use: "wast-loader",
+				test: /\.wasm$/,
 				type: "webassembly/async"
 			}
 		]
@@ -16,7 +21,13 @@ module.exports = {
 		chunkIds: "deterministic" // To keep filename consistent between different modes (for example building only)
 	},
 	experiments: {
-		asyncWebAssembly: true,
-		topLevelAwait: true
+		asyncWebAssembly: true
+	},
+	builtins: {
+		html: [
+			{
+				template: './index.html'
+			}
+		]
 	}
 };

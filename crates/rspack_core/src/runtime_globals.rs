@@ -152,3 +152,8 @@ pub const GLOBAL: &str = "__webpack_require__.g";
  * runtime need to return the exports of the last entry module
  */
 pub const RETURN_EXPORTS_FROM_RUNTIME: &str = "return-exports-from-runtime";
+
+/**
+ * instantiate a wasm instance from module exports object, id, hash and importsObject
+ */
+pub const INSTANTIATE_WASM: &str = "__webpack_require__.v";

@@ -1,14 +1,16 @@
-pub fn add(left: usize, right: usize) -> usize {
-  left + right
-}
+#![feature(box_syntax)]
+#![feature(option_get_or_insert_default)]
+#![feature(let_chains)]
 
-#[cfg(test)]
-mod tests {
-  use super::*;
+mod ast;
+mod dependency;
+mod fetch_plugin;
+mod parser_and_generator;
+mod runtime;
+mod wasm_plugin;
 
-  #[test]
-  fn it_works() {
-    let result = add(2, 2);
-    assert_eq!(result, 4);
-  }
-}
+pub use ast::*;
+pub use fetch_plugin::*;
+pub use parser_and_generator::*;
+pub use runtime::*;
+pub use wasm_plugin::*;
