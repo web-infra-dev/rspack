@@ -124,7 +124,7 @@ function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
-	if (!asArray(options as any).every(i => rspackOptionsCheck(i))) {
+	if (!asArray(options).every(i => rspackOptionsCheck(i))) {
 		// slow path
 		revalidateWithStrategy(options);
 	}
