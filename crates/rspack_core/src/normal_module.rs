@@ -535,6 +535,8 @@ impl Module for NormalModule {
       .split_into_parts();
     diagnostics.extend(ds);
 
+    // Only side effects used in code_generate can stay here
+    // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
     self.code_generation_dependencies = Some(
@@ -548,23 +550,6 @@ impl Module for NormalModule {
     );
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self
-      .build_info
-      .file_dependencies
-      .extend(loader_result.file_dependencies);
-    self
-      .build_info
-      .context_dependencies
-      .extend(loader_result.context_dependencies);
-    self
-      .build_info
-      .missing_dependencies
-      .extend(loader_result.missing_dependencies);
-    self
-      .build_info
-      .build_dependencies
-      .extend(loader_result.build_dependencies);
-
     let mut hasher = Xxh3::new();
     self.hash(&mut hasher);
 
@@ -572,10 +557,10 @@ impl Module for NormalModule {
       BuildResult {
         hash: hasher.finish(),
         cacheable: loader_result.cacheable,
-        file_dependencies: self.build_info.file_dependencies.clone(),
-        context_dependencies: self.build_info.context_dependencies.clone(),
-        missing_dependencies: self.build_info.missing_dependencies.clone(),
-        build_dependencies: self.build_info.build_dependencies.clone(),
+        file_dependencies: loader_result.file_dependencies,
+        context_dependencies: loader_result.context_dependencies,
+        missing_dependencies: loader_result.missing_dependencies,
+        build_dependencies: loader_result.build_dependencies,
         dependencies,
       }
       .with_diagnostic(diagnostics),
@@ -665,6 +650,13 @@ impl Module for NormalModule {
     } else {
       None
     }
+  }
+
+  fn set_dependencies(&mut self, build_result: &BuildResult) {
+    self.build_info.file_dependencies = build_result.file_dependencies.clone();
+    self.build_info.context_dependencies = build_result.context_dependencies.clone();
+    self.build_info.missing_dependencies = build_result.missing_dependencies.clone();
+    self.build_info.build_dependencies = build_result.build_dependencies.clone();
   }
 
   fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
