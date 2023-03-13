@@ -296,7 +296,7 @@ mod test {
     ($ident: ident) => {
       impl Identifiable for $ident {
         fn identifier(&self) -> Identifier {
-          (stringify!($ident).to_owned() + &self.0).into()
+          (stringify!($ident).to_owned() + self.0).into()
         }
       }
 
@@ -319,7 +319,7 @@ mod test {
         }
 
         fn readable_identifier(&self, _context: &Context) -> Cow<str> {
-          (stringify!($ident).to_owned() + &self.0).into()
+          (stringify!($ident).to_owned() + self.0).into()
         }
 
         async fn build(

@@ -294,7 +294,7 @@ impl<'a> HmrApiRewrite<'a> {
         | Some(ExprOrSpread {
           expr:
             box Expr::Arrow(ArrowExpr {
-              body: BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
+              body: box BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
               ..
             }),
           ..
@@ -309,14 +309,14 @@ impl<'a> HmrApiRewrite<'a> {
           ..
         }) = n.args.get_mut(1)
         {
-          if let BlockStmtOrExpr::Expr(box expr) = body {
-            *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
+          if let box BlockStmtOrExpr::Expr(box expr) = body {
+            *body = Box::new(BlockStmtOrExpr::BlockStmt(BlockStmt {
               span: DUMMY_SP,
               stmts: vec![
                 create_auto_import_assign(value, module_id_tuple.0.clone()).into_stmt(),
                 std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
               ],
-            });
+            }));
           }
         }
       }

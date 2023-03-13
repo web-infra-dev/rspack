@@ -29,7 +29,7 @@ macro_rules! run_loader {
   (@base $loader:expr, $resource:tt, $expected:expr) => {{
     use rspack_loader_runner::*;
 
-    let resource = "file://".to_owned() + &fixtures!($resource);
+    let resource = format!("file://{}", fixtures!($resource));
 
     let url = url::Url::parse(&resource).expect("TODO:");
     LoaderRunner::new(

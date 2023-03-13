@@ -8,10 +8,7 @@ version = "0.1.0"
 rayon = ["dep:rayon"]
 
 [dependencies]
-dashmap    = "5.4.0"
-once_cell  = "1.17.0"
+dashmap    = { workspace = true }
+once_cell  = { workspace = true }
+rayon      = { workspace = true, optional = true }
 rustc-hash = { workspace = true }
-
-  [dependencies.rayon]
-  optional = true
-  version  = "1.5.3"
