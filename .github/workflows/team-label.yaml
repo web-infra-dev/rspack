@@ -5,8 +5,8 @@ on:
   issues:
 
 permissions:
-  content: read
-  pull_requests: write
+  contents: read
+  pull-requests: write
 
 jobs:
   team-labeler:
