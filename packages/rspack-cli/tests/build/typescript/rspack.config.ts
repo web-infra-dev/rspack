@@ -5,8 +5,8 @@ const config = {
 	entry: "./main.ts",
 	output: {
 		path: path.resolve(__dirname, "dist"),
-		filename: "foo.bundle.js",
-	},
+		filename: "foo.bundle.js"
+	}
 };
 
 export = config;
