@@ -63,4 +63,26 @@ describe("build command", () => {
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
 	});
+	it("should work with configuration return function", async () => {
+		const { exitCode, stderr, stdout } = await run(__dirname, [
+			"./src/index.js",
+			"./src/other.js",
+			"--config",
+			"./entry.function.js"
+		]);
+		expect(exitCode).toBe(0);
+		expect(stderr).toBeFalsy();
+		expect(stdout).toBeTruthy();
+	});
+	it("should work with configuration return promise", async () => {
+		const { exitCode, stderr, stdout } = await run(__dirname, [
+			"./src/index.js",
+			"./src/other.js",
+			"--config",
+			"./entry.promise.js"
+		]);
+		expect(exitCode).toBe(0);
+		expect(stderr).toBeFalsy();
+		expect(stdout).toBeTruthy();
+	});
 });

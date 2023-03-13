@@ -255,6 +255,12 @@ export class RspackCLI {
 
 		if (typeof loadedConfig === "function") {
 			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+			// if return promise we should await its result
+			if (
+				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
+			) {
+				loadedConfig = await loadedConfig;
+			}
 		}
 		return loadedConfig;
 	}
