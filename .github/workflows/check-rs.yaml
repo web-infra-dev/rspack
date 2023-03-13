@@ -21,10 +21,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  RUSTFLAGS: -D warnings
-#   TRACE: DEBUG
-
 jobs:
   format:
     name: Format Rust Files
@@ -70,7 +66,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --workspace --all-targets --verbose
+          args: --workspace --all-targets -- -D warnings
       # - name: Check Dependencies
       # run: |
       # node ./scripts/check_rust_dependency.js
