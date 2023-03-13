@@ -3,8 +3,9 @@ import fs from "fs";
 import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
 
-const defaultConfig = "rspack.config.js";
-const defaultEntry = "src/index.js";
+const supportedExtensions = [".js", ".ts"];
+const defaultConfig = "rspack.config";
+const defaultEntry = "src/index";
 
 export type LoadedRspackConfig =
 	| undefined
@@ -25,11 +26,13 @@ export function loadRspackConfig(
 		if (!fs.existsSync(resolvedConfigPath)) {
 			throw new Error(`config file "${resolvedConfigPath}" not exists`);
 		}
-		loadedConfig = require(resolvedConfigPath);
+		loadedConfig = requireWithAdditionalExtension(resolvedConfigPath);
 	} else {
-		let defaultConfigPath = path.resolve(process.cwd(), defaultConfig);
-		if (fs.existsSync(defaultConfigPath)) {
-			loadedConfig = require(defaultConfigPath);
+		let defaultConfigPath = findFileWithSupportedExtensions(
+			path.resolve(process.cwd(), defaultConfig)
+		);
+		if (defaultConfigPath != null) {
+			loadedConfig = requireWithAdditionalExtension(defaultConfigPath);
 		} else {
 			let entry: Record<string, string> = {};
 			if (options.entry) {
@@ -37,8 +40,12 @@ export function loadRspackConfig(
 					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
 				};
 			} else {
+				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
+				const defaultEntryPath =
+					findFileWithSupportedExtensions(defaultEntryBase) ||
+					defaultEntryBase + ".js"; // default entry is js
 				entry = {
-					main: path.resolve(process.cwd(), defaultEntry)
+					main: defaultEntryPath
 				};
 			}
 			loadedConfig = {
@@ -47,4 +54,24 @@ export function loadRspackConfig(
 		}
 	}
 	return loadedConfig;
+}
+
+// takes a basePath like `webpack.config`, return `webpack.config.{js,ts}` if
+// exists. returns null if none of them exists
+function findFileWithSupportedExtensions(basePath: string): string | null {
+	for (const extension of supportedExtensions) {
+		if (fs.existsSync(basePath + extension)) {
+			return basePath + extension;
+		}
+	}
+	return null;
+}
+
+let hasRegisteredTS = false;
+function requireWithAdditionalExtension(resolvedPath: string) {
+	if (resolvedPath.endsWith("ts") && !hasRegisteredTS) {
+		hasRegisteredTS = true;
+		require("ts-node").register({ transpileOnly: true });
+	}
+	return require(resolvedPath);
 }
