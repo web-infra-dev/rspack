@@ -38,6 +38,11 @@ jobs:
           submodules: false
           ref: ${{ steps.sha.outputs.result }}
 
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install toolchain
         run: rustup show
 
