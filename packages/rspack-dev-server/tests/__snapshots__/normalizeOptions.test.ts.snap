@@ -7,7 +7,7 @@ exports[`normalize options snapshot additional entires should added 1`] = `
     "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8080&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/rspack-dev-client/dist/devServer.js",
     "<prefix>/rspack-dev-client/dist/reactRefresh.js",
-    "<prefix>/something",
+    "<prefix>/./placeholder.js",
   ],
 }
 `;
@@ -133,7 +133,7 @@ exports[`normalize options snapshot react-refresh client added when react/refres
     "<prefix>/rspack-dev-client/dist/index.js?protocol=ws%3A&hostname=0.0.0.0&port=8080&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/rspack-dev-client/dist/devServer.js",
     "<prefix>/rspack-dev-client/dist/reactRefresh.js",
-    "<prefix>/something",
+    "<prefix>/./placeholder.js",
   ],
 }
 `;
