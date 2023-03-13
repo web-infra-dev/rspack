@@ -160,6 +160,12 @@ export interface RawExperiments {
   lazyCompilation: boolean
   incrementalRebuild: boolean
 }
+export interface RawExternalItem {
+  type: "string" | "regexp" | "object"
+  stringPayload?: string
+  regexpPayload?: string
+  objectPayload?: Record<string, string>
+}
 /**
  * `loader` is for js side loader, `builtin_loader` is for rust side loader,
  * which is mapped to real rust side loader by [get_builtin_loader].
@@ -351,7 +357,7 @@ export interface RawOptions {
   resolve: RawResolveOptions
   module: RawModuleOptions
   builtins: RawBuiltins
-  externals: Record<string, string>
+  externals?: Array<RawExternalItem>
   externalsType: string
   devtool: string
   optimization: RawOptimizationOptions
