@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::cmp::PartialEq;
 use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rspack_error::{internal_error, Result};
 use rspack_identifier::IdentifierMap;
@@ -12,8 +11,7 @@ use crate::{
   BoxModule, BoxModuleDependency, DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
 };
 
-// FIXME: placing this as global id is not acceptable, move it to somewhere else later
-static NEXT_MODULE_GRAPH_CONNECTION_ID: AtomicUsize = AtomicUsize::new(1);
+type ModuleGraphConnectionId = usize;
 
 #[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
@@ -23,9 +21,8 @@ pub struct ModuleGraphConnection {
   pub module_identifier: ModuleIdentifier,
   /// The referencing dependency id
   pub dependency_id: usize,
-
   /// The unique id of this connection
-  pub id: usize,
+  id: ModuleGraphConnectionId,
 }
 
 impl Hash for ModuleGraphConnection {
@@ -44,22 +41,6 @@ impl PartialEq for ModuleGraphConnection {
   }
 }
 
-impl ModuleGraphConnection {
-  pub fn new(
-    original_module_identifier: Option<ModuleIdentifier>,
-    dependency_id: usize,
-    module_identifier: ModuleIdentifier,
-  ) -> Self {
-    Self {
-      original_module_identifier,
-      module_identifier,
-      dependency_id,
-
-      id: NEXT_MODULE_GRAPH_CONNECTION_ID.fetch_add(1, Ordering::Relaxed),
-    }
-  }
-}
-
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   /// Module identifier to its module
@@ -67,12 +48,13 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  dependency_id_to_connection_id: HashMap<usize, usize>,
-  connection_id_to_dependency_id: HashMap<usize, usize>,
+  dependency_id_to_connection_id: HashMap<DependencyId, ModuleGraphConnectionId>,
+  connection_id_to_dependency_id: HashMap<ModuleGraphConnectionId, DependencyId>,
   pub dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
-  /// The module graph connections
-  connections: HashSet<ModuleGraphConnection>,
-  connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
+
+  /// ModuleGraphConnectionId -> ModuleGraphConnection mapping
+  /// None means the connection has been removed
+  module_graph_connections: Vec<Option<ModuleGraphConnection>>,
 
   /// DependencyId -> ModuleIdentifier mapping
   /// None means the module has been removed from the dependency
@@ -104,6 +86,23 @@ impl ModuleGraph {
     dep.set_id(Some(id));
     self.dependency_id_to_dependency.insert(id, dep);
     id
+  }
+
+  fn add_module_graph_connection(
+    &mut self,
+    original_module_identifier: Option<ModuleIdentifier>,
+    dependency_id: usize,
+    module_identifier: ModuleIdentifier,
+  ) -> &ModuleGraphConnection {
+    let id = self.module_graph_connections.len();
+    let connection = ModuleGraphConnection {
+      id,
+      original_module_identifier,
+      dependency_id,
+      module_identifier,
+    };
+    self.module_graph_connections.push(Some(connection));
+    self.module_graph_connections[id].as_ref().unwrap()
   }
 
   pub fn dependency_by_id(&self, id: &DependencyId) -> Option<&BoxModuleDependency> {
@@ -146,17 +145,13 @@ impl ModuleGraph {
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     self.dependency_id_to_module_identifier[dependency_id].replace(module_identifier);
-    let new_connection =
-      ModuleGraphConnection::new(original_module_identifier, dependency_id, module_identifier);
+    let new_connection = self.add_module_graph_connection(
+      original_module_identifier,
+      dependency_id,
+      module_identifier,
+    );
 
-    let connection_id = if let Some(connection) = self.connections.get(&new_connection) {
-      connection.id
-    } else {
-      let id = new_connection.id;
-      self.connections.insert(new_connection.clone());
-      self.connection_id_to_connection.insert(id, new_connection);
-      id
-    };
+    let connection_id = new_connection.id;
 
     self
       .dependency_id_to_connection_id
@@ -246,7 +241,7 @@ impl ModuleGraph {
     self
       .dependency_id_to_connection_id
       .get(id)
-      .and_then(|id| self.connection_id_to_connection.get(id))
+      .and_then(|connection_id| self.module_graph_connections[*connection_id].as_ref())
   }
 
   /// Get a list of all dependencies of a module by the module itself, if the module is not found, then None is returned
@@ -282,7 +277,7 @@ impl ModuleGraph {
     &self,
     connection_id: usize,
   ) -> Option<&ModuleGraphConnection> {
-    self.connection_id_to_connection.get(&connection_id)
+    self.module_graph_connections[connection_id].as_ref()
   }
 
   pub fn remove_connection_by_dependency(
@@ -293,10 +288,7 @@ impl ModuleGraph {
 
     if let Some(conn) = self.dependency_id_to_connection_id.remove(id) {
       self.connection_id_to_dependency_id.remove(&conn);
-
-      if let Some(conn) = self.connection_id_to_connection.remove(&conn) {
-        self.connections.remove(&conn);
-
+      if let Some(conn) = self.module_graph_connections[conn].take() {
         if let Some(mgm) = conn
           .original_module_identifier
           .as_ref()
@@ -345,11 +337,10 @@ impl ModuleGraph {
 
   /// Remove a connection and return connection origin module identifier and dependency
   fn revoke_connection(&mut self, cid: usize) -> Option<DependencyId> {
-    let connection = match self.connection_id_to_connection.remove(&cid) {
+    let connection = match self.module_graph_connections[cid].take() {
       Some(c) => c,
       None => return None,
     };
-    self.connections.remove(&connection);
 
     let ModuleGraphConnection {
       original_module_identifier,
