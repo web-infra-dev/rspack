@@ -1,11 +1,7 @@
-use std::borrow::Cow;
-
-use once_cell::sync::Lazy;
-use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, Compilation, ExternalModule, Filename, LibraryAuxiliaryComment, Plugin, PluginContext,
-  PluginRenderHookOutput, RenderArgs, SourceType,
+  to_identifier, Chunk, Compilation, ExternalModule, Filename, LibraryAuxiliaryComment, Plugin,
+  PluginContext, PluginRenderHookOutput, RenderArgs, SourceType,
 };
 use rspack_identifier::Identifiable;
 #[derive(Debug)]
@@ -209,13 +205,6 @@ fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) ->
     })
     .collect::<Vec<_>>()
     .join(", ")
-}
-
-static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("TODO:"));
-
-#[inline]
-fn to_identifier(v: &str) -> Cow<'_, str> {
-  IDENTIFIER_REGEXP.replace_all(v, "_")
 }
 
 fn external_root_array(modules: &[&ExternalModule]) -> String {

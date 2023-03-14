@@ -6,8 +6,8 @@ use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
-  GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
+  to_identifier, AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation,
+  Context, ExternalType, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
 };
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -52,7 +52,10 @@ impl ExternalModule {
           .module_graph_module_by_identifier(&self.identifier())
           .map(|m| m.id(&compilation.chunk_graph))
           .unwrap_or_default();
-        format!("module.exports = __WEBPACK_EXTERNAL_MODULE_{id}__")
+        format!(
+          "module.exports = __WEBPACK_EXTERNAL_MODULE_{}__",
+          to_identifier(id)
+        )
       }
       "import" => {
         format!(
