@@ -22,26 +22,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  typos:
-    name: Spell Check
+  lint-and-format:
+    name: lint, format and spell check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: crate-ci/typos@master
-        with:
-          files: .
-
-  format:
-    name: Format Rust Files
-    runs-on: ubuntu-latest
-    steps:
-      # - name: Cleanup workspace
-      #   uses: TooMuch4U/actions-clean@v2.1
-      #   if: ${{ always() }}
       - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:
           submodules: false
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Support longpaths
         run: git config core.longpaths true
       - name: Checkout repository
@@ -57,15 +46,6 @@ jobs:
         with:
           command: fmt
           args: --all --verbose -- --check
-
-  lint:
-    name: Lint Rust Files
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install protoc
         uses: arduino/setup-protoc@v1
         with:
@@ -87,6 +67,10 @@ jobs:
       # - name: Check Dependencies
       # run: |
       # node ./scripts/check_rust_dependency.js
+      - name: Spell Check
+        uses: crate-ci/typos@master
+        with:
+          files: .
 
   test-rs:
     name: Rust test
