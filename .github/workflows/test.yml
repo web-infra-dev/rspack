@@ -13,11 +13,6 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
 
-# cancel previous job runs for the same workflow + pr
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     strategy:
