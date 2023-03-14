@@ -1,9 +1,11 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  to_identifier, Chunk, Compilation, ExternalModule, Filename, LibraryAuxiliaryComment, Plugin,
-  PluginContext, PluginRenderHookOutput, RenderArgs, SourceType,
+  Chunk, ExternalModule, Filename, LibraryAuxiliaryComment, Plugin, PluginContext,
+  PluginRenderHookOutput, RenderArgs, SourceType,
 };
-use rspack_identifier::Identifiable;
+
+use super::utils::{external_arguments, external_dep_array};
+
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
   _optional_amd_external_as_global: bool,
@@ -174,34 +176,6 @@ fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {
       let request = &m.request;
       // TODO: check if external module is optional
       format!("require('{request}')")
-    })
-    .collect::<Vec<_>>()
-    .join(", ")
-}
-
-fn external_dep_array(modules: &[&ExternalModule]) -> String {
-  let value = modules
-    .iter()
-    .map(|m| format!("'{}'", m.request))
-    .collect::<Vec<_>>()
-    .join(", ");
-  format!("[{value}]")
-}
-
-fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> String {
-  modules
-    .iter()
-    .map(|m| {
-      format!(
-        "__WEBPACK_EXTERNAL_MODULE_{}__",
-        to_identifier(
-          compilation
-            .module_graph
-            .module_graph_module_by_identifier(&m.identifier())
-            .expect("Module not found")
-            .id(&compilation.chunk_graph)
-        )
-      )
     })
     .collect::<Vec<_>>()
     .join(", ")
