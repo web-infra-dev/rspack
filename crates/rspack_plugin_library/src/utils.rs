@@ -1,4 +1,4 @@
-use rspack_core::{Compilation, ExternalModule};
+use rspack_core::{to_identifier, Compilation, ExternalModule};
 use rspack_identifier::Identifiable;
 
 pub fn external_dep_array(modules: &[&ExternalModule]) -> String {

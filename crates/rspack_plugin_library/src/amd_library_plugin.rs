@@ -1,11 +1,11 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, Compilation, ExternalModule, Filename, LibraryOptions, Plugin, PluginContext,
-  PluginRenderHookOutput, PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
+  ExternalModule, Filename, LibraryOptions, Plugin, PluginContext, PluginRenderHookOutput,
+  RenderArgs, SourceType,
 };
 use rspack_error::Result;
 
-use super::utils::external_dep_array;
+use super::utils::{external_arguments, external_dep_array};
 
 #[derive(Debug)]
 pub struct AmdLibraryPlugin {
@@ -17,15 +17,13 @@ impl AmdLibraryPlugin {
     Self { require_as_wrapper }
   }
 
-  pub fn normalize_name(&self, o: &Option<LibraryOptions>) -> Result<Option<&String>> {
+  pub fn normalize_name(&self, o: &Option<LibraryOptions>) -> Result<Option<String>> {
     if let Some(library) = o {
       if let Some(name) = &library.name {
         if let Some(root) = &name.root {
-          if root.len() > 1 {
-            return Err("AMD library name must be a simple string or unset.".into());
-          }
+          // TODO error "AMD library name must be a simple string or unset."
           if let Some(name) = root.get(0) {
-            return Ok(Some(name));
+            return Ok(Some(name.to_string()));
           }
         }
       }
@@ -54,27 +52,32 @@ impl Plugin for AmdLibraryPlugin {
       })
       .collect::<Vec<&ExternalModule>>();
     let external_deps_array = external_dep_array(&modules);
+    let external_arguments = external_arguments(&modules, compilation);
+    let mut fn_start = format!("function({external_arguments}){{\n");
+    if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+      fn_start.push_str(" return ");
+    }
     let name = self.normalize_name(&compilation.options.output.library)?;
     let mut source = ConcatSource::default();
     if self.require_as_wrapper {
       source.add(RawSource::from(format!(
-        "require({external_deps_array}, function(){{\n"
+        "require({external_deps_array}, {fn_start}"
       )));
     } else if let Some(name) = name {
       let normalize_name =
         Filename::from(name).render_with_chunk(chunk, ".js", &SourceType::JavaScript);
       source.add(RawSource::from(format!(
-        "define('{normalize_name}', {external_deps_array}, function(){{\n"
+        "define('{normalize_name}', {external_deps_array}, {fn_start}"
       )));
     } else if modules.is_empty() {
-      source.add(RawSource::from(format!("define(function(){{\n")));
+      source.add(RawSource::from(format!("define({fn_start}, ")));
     } else {
       source.add(RawSource::from(format!(
-        "define({external_deps_array}, function(){{\n"
+        "define({external_deps_array}, {fn_start}"
       )));
     }
     source.add(args.source.clone());
-    source.add(RawSource::from("\n}"));
+    source.add(RawSource::from("\n});"));
     Ok(Some(source.boxed()))
   }
 }
