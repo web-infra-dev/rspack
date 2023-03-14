@@ -25,10 +25,20 @@ yargs(hideBin(process.argv))
 		const templateDir = "template-react";
 		const srcFolder = path.resolve(__dirname, templateDir);
 		copyFolder(srcFolder, projectDir);
+		const pkgInfo = pkgFromUserAgent(process.env.npm_config_user_agent);
+		const pkgManager = pkgInfo ? pkgInfo.name : "npm";
 		console.log("\nDone. Now run:\n");
 		console.log(`cd ${projectDir}\n`);
-		console.log(`npm install\n`);
-		console.log(`npm run dev\n`);
+		switch (pkgManager) {
+			case "yarn":
+				console.log("yarn");
+				console.log("yarn dev");
+				break;
+			default:
+				console.log(`${pkgManager} install\n`);
+				console.log(`${pkgManager} run dev\n`);
+				break;
+		}
 	})
 	.help()
 	.parse();
@@ -44,4 +54,14 @@ function copyFolder(src, dst) {
 			fs.copyFileSync(srcFile, dstFile);
 		}
 	}
+}
+
+function pkgFromUserAgent(userAgent) {
+	if (!userAgent) return undefined;
+	const pkgSpec = userAgent.split(" ")[0];
+	const pkgSpecArr = pkgSpec.split("/");
+	return {
+		name: pkgSpecArr[0],
+		version: pkgSpecArr[1]
+	};
 }
