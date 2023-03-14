@@ -29,6 +29,7 @@ export interface RspackOptions {
 	target?: Target;
 	externals?: Externals;
 	externalsType?: ExternalsType;
+	externalsPresets?: ExternalsPresets;
 	infrastructureLogging?: InfrastructureLogging;
 	devtool?: DevTool;
 	node?: Node;
@@ -56,6 +57,7 @@ export interface RspackOptionsNormalized {
 	target?: Target;
 	externals?: Externals;
 	externalsType?: ExternalsType;
+	externalsPresets: ExternalsPresets;
 	infrastructureLogging: InfrastructureLogging;
 	devtool?: DevTool;
 	node: Node;
@@ -298,8 +300,8 @@ export interface ModuleOptionsNormalized {
 export type Target = false | string[] | string;
 
 ///// Externals /////
-export type Externals = ExternalItem;
-export type ExternalItem = string | ExternalItemObjectUnknown;
+export type Externals = ExternalItem[] | ExternalItem;
+export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }
@@ -328,6 +330,11 @@ export type ExternalsType =
 	| "import"
 	| "script"
 	| "node-commonjs";
+
+///// ExternalsPresets /////
+export interface ExternalsPresets {
+	node?: boolean;
+}
 
 ///// InfrastructureLogging /////
 export interface InfrastructureLogging {

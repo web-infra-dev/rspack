@@ -225,7 +225,7 @@ impl<'a> HmrApiRewrite<'a> {
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-        // only visit module.hot.accpet callback with harmony import
+        // only visit module.hot.accept callback with harmony import
         if !self.esm_dependencies.contains(&origin_value) {
           return;
         }
@@ -276,7 +276,7 @@ impl<'a> HmrApiRewrite<'a> {
       })
     }
 
-    // module.hot.accpet with callback
+    // module.hot.accept with callback
     if n.args.len() > 1 {
       if let Some(value) = self.module_bindings.get(&module_id_tuple.1) {
         if let Some(ExprOrSpread {
@@ -294,7 +294,7 @@ impl<'a> HmrApiRewrite<'a> {
         | Some(ExprOrSpread {
           expr:
             box Expr::Arrow(ArrowExpr {
-              body: BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
+              body: box BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
               ..
             }),
           ..
@@ -309,14 +309,14 @@ impl<'a> HmrApiRewrite<'a> {
           ..
         }) = n.args.get_mut(1)
         {
-          if let BlockStmtOrExpr::Expr(box expr) = body {
-            *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
+          if let box BlockStmtOrExpr::Expr(box expr) = body {
+            *body = Box::new(BlockStmtOrExpr::BlockStmt(BlockStmt {
               span: DUMMY_SP,
               stmts: vec![
                 create_auto_import_assign(value, module_id_tuple.0.clone()).into_stmt(),
                 std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
               ],
-            });
+            }));
           }
         }
       }

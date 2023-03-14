@@ -6,14 +6,15 @@ use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, ExternalType,
-  GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
+  to_identifier, AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation,
+  Context, ExternalType, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
 };
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 
 #[derive(Debug)]
 pub struct ExternalModule {
+  id: Identifier,
   pub request: String,
   external_type: ExternalType,
   /// Request intended by user (without loaders from config)
@@ -23,6 +24,7 @@ pub struct ExternalModule {
 impl ExternalModule {
   pub fn new(request: String, external_type: ExternalType, user_request: String) -> Self {
     Self {
+      id: Identifier::from(format!("external {external_type} {request}")),
       request,
       external_type,
       user_request,
@@ -52,7 +54,10 @@ impl ExternalModule {
           .module_graph_module_by_identifier(&self.identifier())
           .map(|m| m.id(&compilation.chunk_graph))
           .unwrap_or_default();
-        format!("module.exports = __WEBPACK_EXTERNAL_MODULE_{id}__")
+        format!(
+          "module.exports = __WEBPACK_EXTERNAL_MODULE_{}__",
+          to_identifier(id)
+        )
       }
       "import" => {
         format!(
@@ -60,7 +65,7 @@ impl ExternalModule {
           compilation.options.output.import_function_name, self.request
         )
       }
-      "var" | "promise" | "const" | "let" | "assgin" => {
+      "var" | "promise" | "const" | "let" | "assign" => {
         format!("module.exports = {}", self.request)
       }
       // TODO "script" "module"
@@ -72,8 +77,7 @@ impl ExternalModule {
 
 impl Identifiable for ExternalModule {
   fn identifier(&self) -> Identifier {
-    let id = format!("external {} {}", self.external_type, self.request);
-    Identifier::from(id.as_str())
+    self.id
   }
 }
 

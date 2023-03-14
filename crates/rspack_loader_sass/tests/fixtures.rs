@@ -58,8 +58,6 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           resolve: rspack_core::Resolve::default(),
           builtins: Default::default(),
           module: Default::default(),
-          externals: Default::default(),
-          externals_type: "commonjs".to_string(),
           stats: Default::default(),
           cache: Default::default(),
           snapshot: Default::default(),

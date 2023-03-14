@@ -16,7 +16,7 @@ napi = { workspace = true, default-features = false, features = [
   "anyhow",
 ] }
 rspack_error = { path = "../rspack_error" }
-tokio = { version = "1.21.0", features = [
+tokio = { workspace = true, features = [
   "rt",
   "rt-multi-thread",
   "macros",

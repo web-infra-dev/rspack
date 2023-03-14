@@ -13,9 +13,12 @@ jobs:
   benchmark:
     name: Run Criterion.rs benchmark
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
+      - name: Setup Node16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
       - name: Install protoc
         uses: arduino/setup-protoc@v1
         with:
@@ -26,11 +29,8 @@ jobs:
         run: |
           set -o pipefail 
           cargo bench --bench main -- --output-format bencher | tee output.txt
+
       - name: Run Hmr benchmark
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
         run: |
           npm i -g pnpm
           pnpm i

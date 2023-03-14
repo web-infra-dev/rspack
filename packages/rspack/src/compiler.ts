@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compiler.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 import path from "path";
 import fs from "fs";
 import * as tapable from "tapable";
@@ -411,16 +420,15 @@ class Compiler {
 			if (err) {
 				cb(err);
 			} else {
-				// @ts-expect-error
-				cb(null);
+				cb(undefined);
 			}
 		});
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
 	rebuild(
-		modifiedFiles: ReadonlySet<string> | undefined,
-		removedFiles: ReadonlySet<string> | undefined,
-		cb: ((error?: Error) => void) | undefined
+		modifiedFiles?: ReadonlySet<string>,
+		removedFiles?: ReadonlySet<string>,
+		cb?: (error?: Error) => void
 	) {
 		const unsafe_rebuild = this.#instance.unsafe_rebuild;
 		const rebuild_cb = unsafe_rebuild.bind(
@@ -428,11 +436,9 @@ class Compiler {
 		) as typeof unsafe_rebuild;
 		rebuild_cb([...(modifiedFiles ?? [])], [...(removedFiles ?? [])], err => {
 			if (err) {
-				// @ts-expect-error
-				cb(err);
+				cb && cb(err);
 			} else {
-				// @ts-expect-error
-				cb(null);
+				cb && cb(undefined);
 			}
 		});
 	}

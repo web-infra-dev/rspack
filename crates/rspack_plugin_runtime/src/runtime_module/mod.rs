@@ -29,3 +29,6 @@ pub use load_script::LoadScriptRuntimeModule;
 pub use on_chunk_loaded::OnChunkLoadedRuntimeModule;
 pub use public_path::PublicPathRuntimeModule;
 pub use require_js_chunk_loading::RequireChunkLoadingRuntimeModule;
+mod module_macro;
+mod normal;
+pub use normal::NormalRuntimeModule;

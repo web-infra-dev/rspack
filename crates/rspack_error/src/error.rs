@@ -226,7 +226,7 @@ pub enum DiagnosticKind {
 }
 
 /// About the manually implementation,
-/// dispaly string should be snake, for consistency.
+/// display string should be snake, for consistency.
 impl std::fmt::Display for DiagnosticKind {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {

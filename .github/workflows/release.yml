@@ -166,6 +166,8 @@ jobs:
         if: ${{ !matrix.settings.docker }}
         run: rustup target add ${{ matrix.settings.target }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-and-test
       - name: Install Protoc
         if: ${{ !matrix.settings.docker }}
         uses: arduino/setup-protoc@v1

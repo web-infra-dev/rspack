@@ -162,6 +162,15 @@ export interface RawExperiments {
   lazyCompilation: boolean
   incrementalRebuild: boolean
 }
+export interface RawExternalItem {
+  type: "string" | "regexp" | "object"
+  stringPayload?: string
+  regexpPayload?: string
+  objectPayload?: Record<string, string>
+}
+export interface RawExternalsPresets {
+  node: boolean
+}
 /**
  * `loader` is for js side loader, `builtin_loader` is for rust side loader,
  * which is mapped to real rust side loader by [get_builtin_loader].
@@ -353,8 +362,9 @@ export interface RawOptions {
   resolve: RawResolveOptions
   module: RawModuleOptions
   builtins: RawBuiltins
-  externals: Record<string, string>
+  externals?: Array<RawExternalItem>
   externalsType: string
+  externalsPresets: RawExternalsPresets
   devtool: string
   optimization: RawOptimizationOptions
   stats: RawStatsOptions
@@ -505,6 +515,13 @@ export interface JsStatsGetAssets {
   assets: Array<JsStatsAsset>
   assetsByChunkName: Array<JsStatsAssetsByChunkName>
 }
+/**
+ * Some code is modified based on
+ * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
+ * Apache-2.0 licensed
+ * Author Donny/강동윤
+ * Copyright (c)
+*/
 export function initCustomTraceSubscriber(): void
 export class JsCompilation {
   updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void

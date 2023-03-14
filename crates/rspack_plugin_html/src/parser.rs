@@ -72,6 +72,6 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
     message.to_string(),
   )
   .with_kind(DiagnosticKind::Html);
-  //Use this `Error` convertion could avoid eagerly clone source file.
+  //Use this `Error` conversion could avoid eagerly clone source file.
   rspack_error::Error::TraceableError(traceable_error)
 }

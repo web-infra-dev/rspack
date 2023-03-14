@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/Watching.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 import { Callback } from "tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
@@ -227,7 +236,7 @@ class Watching {
 				: () =>
 						console.log("build success, time cost", Date.now() - begin, "ms");
 
-			const onBuild = (err: Error) => {
+			const onBuild = (err?: Error) => {
 				if (err) return this._done(err);
 				// if (this.invalid) return this._done(null);
 				// @ts-expect-error
@@ -240,7 +249,6 @@ class Watching {
 			if (isRebuild) {
 				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
 			} else {
-				// @ts-expect-error
 				this.compiler.build(onBuild);
 			}
 		});

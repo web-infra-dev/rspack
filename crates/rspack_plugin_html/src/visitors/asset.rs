@@ -155,7 +155,10 @@ impl VisitMut for AssetWriter<'_, '_> {
 
         // add favicon
         if let Some(favicon) = &self.config.favicon {
-          let favicon_path = self.config.get_public_path(self.compilation, favicon) + favicon;
+          let favicon_path = format!(
+            "{}{favicon}",
+            self.config.get_public_path(self.compilation, favicon)
+          );
           n.children.push(Child::Element(Element {
             tag_name: JsWord::from("link"),
             children: vec![],

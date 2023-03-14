@@ -49,7 +49,7 @@ impl<T: Clone + std::fmt::Debug> Clone for TWithDiagnosticArray<T> {
   }
 }
 
-// Helper trait to make `TWithDiagnosticArray` convertion more easily.
+// Helper trait to make `TWithDiagnosticArray` conversion more easily.
 pub trait IntoTWithDiagnosticArray {
   fn with_diagnostic(self, diagnostic: Vec<Diagnostic>) -> TWithDiagnosticArray<Self>
   where

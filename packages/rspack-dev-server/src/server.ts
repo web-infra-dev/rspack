@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/lib/Server.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/LICENSE
+ */
 import { Compiler, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher } from "chokidar";

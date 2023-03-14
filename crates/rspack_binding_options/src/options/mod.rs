@@ -2,9 +2,10 @@ use std::{collections::HashMap, fmt::Debug};
 
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
-  OutputOptions, PluginExt, TargetPlatform,
+  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ExternalItem,
+  ModuleOptions, OutputOptions, PluginExt, TargetPlatform,
 };
+use rspack_regex::RspackRegex;
 use serde::Deserialize;
 
 mod raw_builtins;
@@ -65,9 +66,9 @@ pub struct RawOptions {
   pub resolve: RawResolveOptions,
   pub module: RawModuleOptions,
   pub builtins: RawBuiltins,
-  #[napi(ts_type = "Record<string, string>")]
-  pub externals: RawExternal,
+  pub externals: Option<Vec<RawExternalItem>>,
   pub externals_type: String,
+  pub externals_presets: RawExternalsPresets,
   #[napi(ts_type = "string")]
   pub devtool: RawDevtool,
   pub optimization: RawOptimizationOptions,
@@ -95,8 +96,6 @@ impl RawOptionsApply for RawOptions {
     let mode = self.mode.unwrap_or_default().into();
     let module: ModuleOptions = self.module.try_into()?;
     let target = self.target.apply(plugins)?;
-    let externals = vec![self.externals.into()];
-    let externals_type = self.externals_type;
     let experiments: Experiments = self.experiments.into();
     let stats = self.stats.into();
     let cache = self.cache.into();
@@ -136,7 +135,18 @@ impl RawOptionsApply for RawOptions {
     if experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }
-    plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
+    if let Some(externals) = self.externals {
+      plugins.push(
+        rspack_plugin_externals::ExternalPlugin::new(
+          self.externals_type,
+          externals.into_iter().map(Into::into).collect(),
+        )
+        .boxed(),
+      );
+    }
+    if self.externals_presets.node {
+      plugins.push(node_target_plugin());
+    }
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(
       rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
@@ -164,8 +174,6 @@ impl RawOptionsApply for RawOptions {
       output,
       resolve,
       devtool,
-      externals,
-      externals_type,
       experiments,
       stats,
       cache,
@@ -176,4 +184,67 @@ impl RawOptionsApply for RawOptions {
       builtins,
     })
   }
+}
+
+fn node_target_plugin() -> BoxPlugin {
+  rspack_plugin_externals::ExternalPlugin::new(
+    "commonjs".to_string(), // TODO: should be "node-commonjs"
+    vec![
+      ExternalItem::from("assert".to_string()),
+      ExternalItem::from("assert/strict".to_string()),
+      ExternalItem::from("async_hooks".to_string()),
+      ExternalItem::from("buffer".to_string()),
+      ExternalItem::from("child_process".to_string()),
+      ExternalItem::from("cluster".to_string()),
+      ExternalItem::from("console".to_string()),
+      ExternalItem::from("constants".to_string()),
+      ExternalItem::from("crypto".to_string()),
+      ExternalItem::from("dgram".to_string()),
+      ExternalItem::from("diagnostics_channel".to_string()),
+      ExternalItem::from("dns".to_string()),
+      ExternalItem::from("dns/promises".to_string()),
+      ExternalItem::from("domain".to_string()),
+      ExternalItem::from("events".to_string()),
+      ExternalItem::from("fs".to_string()),
+      ExternalItem::from("fs/promises".to_string()),
+      ExternalItem::from("http".to_string()),
+      ExternalItem::from("http2".to_string()),
+      ExternalItem::from("https".to_string()),
+      ExternalItem::from("inspector".to_string()),
+      ExternalItem::from("module".to_string()),
+      ExternalItem::from("net".to_string()),
+      ExternalItem::from("os".to_string()),
+      ExternalItem::from("path".to_string()),
+      ExternalItem::from("path/posix".to_string()),
+      ExternalItem::from("path/win32".to_string()),
+      ExternalItem::from("perf_hooks".to_string()),
+      ExternalItem::from("process".to_string()),
+      ExternalItem::from("punycode".to_string()),
+      ExternalItem::from("querystring".to_string()),
+      ExternalItem::from("readline".to_string()),
+      ExternalItem::from("repl".to_string()),
+      ExternalItem::from("stream".to_string()),
+      ExternalItem::from("stream/promises".to_string()),
+      ExternalItem::from("stream/web".to_string()),
+      ExternalItem::from("string_decoder".to_string()),
+      ExternalItem::from("sys".to_string()),
+      ExternalItem::from("timers".to_string()),
+      ExternalItem::from("timers/promises".to_string()),
+      ExternalItem::from("tls".to_string()),
+      ExternalItem::from("trace_events".to_string()),
+      ExternalItem::from("tty".to_string()),
+      ExternalItem::from("url".to_string()),
+      ExternalItem::from("util".to_string()),
+      ExternalItem::from("util/types".to_string()),
+      ExternalItem::from("v8".to_string()),
+      ExternalItem::from("vm".to_string()),
+      ExternalItem::from("wasi".to_string()),
+      ExternalItem::from("worker_threads".to_string()),
+      ExternalItem::from("zlib".to_string()),
+      ExternalItem::from(RspackRegex::new("^node:").expect("Invalid regexp")),
+      // Yarn PnP adds pnpapi as "builtin"
+      ExternalItem::from("pnpapi".to_string()),
+    ],
+  )
+  .boxed()
 }

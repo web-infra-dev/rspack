@@ -6,25 +6,25 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anyhow = "1"
-async-scoped = { version = "0.7.1", features = ["use-tokio"] }
-async-trait = "0.1.53"
-bitflags = "1.3.2"
-crossbeam = "0.8.1"
-dashmap = "5.0.0"
-derivative = "2.2.0"
+anyhow = { workspace = true }
+async-scoped = { workspace = true, features = ["use-tokio"] }
+async-trait = { workspace = true }
+bitflags = { workspace = true }
+crossbeam = { workspace = true }
+dashmap = { workspace = true }
+derivative = { workspace = true }
 dyn-clone = "1.0.10"
-futures = "0.3.21"
+futures = { workspace = true }
 glob-match = "0.2.1"
-hashlink = "0.8.1"
-indexmap = "1.9.1"
-itertools = "0.10.1"
-nodejs-resolver = "0.0.68"
-once_cell = "1"
-paste = "1.0"
+hashlink = { workspace = true }
+indexmap = { workspace = true }
+itertools = { workspace = true }
+nodejs-resolver = "0.0.69"
+once_cell = { workspace = true }
+paste = { workspace = true }
 petgraph = "0.6.0"
-rayon = "1.5.3"
-regex = "1.6.0"
+rayon = { workspace = true }
+regex = { workspace = true }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async"] }
@@ -32,14 +32,14 @@ rspack_futures = { path = "../rspack_futures" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../loader_runner" }
 rspack_regex = { path = "../rspack_regex" }
-rspack_sources = "0.2.1"
+rspack_sources = { workspace = true }
 rspack_symbol = { path = "../rspack_symbol" }
 rspack_tracing = { path = "../rspack_tracing" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
-serde = "1"
-serde_json = "1"
-sugar_path = "0.0.9"
+serde = { workspace = true }
+serde_json = { workspace = true }
+sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__base",
   "__ecma",
@@ -67,16 +67,16 @@ swc_core = { workspace = true, features = [
   "css_modules",
 ] }
 swc_css = { workspace = true }
-swc_emotion = "0.29.7"
-swc_plugin_import = "0.1.0"
-tokio = { version = "1.21.0", features = [
+swc_emotion = { workspace = true }
+swc_plugin_import = { workspace = true }
+tokio = { workspace = true, features = [
   "rt",
   "rt-multi-thread",
   "macros",
   "test-util",
   "parking_lot",
 ] }
-tracing = "0.1.34"
-url = "2.2.2"
-ustr = "0.9.0"
-xxhash-rust = { version = "0.8.5", features = ["xxh3"] }
+tracing = { workspace = true }
+url = { workspace = true }
+ustr = { workspace = true }
+xxhash-rust = { workspace = true, features = ["xxh3"] }

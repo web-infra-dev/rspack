@@ -5,6 +5,11 @@ import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
 
+// The aims of use a cutstom value rather than
+// default is to avoid stack overflow trigged
+// by `webpack/schemas/WebpackOption.check.js` in debug mode
+const ENTRY = "./placeholder.js";
+
 describe("normalize options snapshot", () => {
 	it("no options", async () => {
 		await match({});
@@ -43,6 +48,7 @@ describe("normalize options snapshot", () => {
 
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = createCompiler({
+			entry: ENTRY,
 			stats: "none"
 		});
 		const server = new RspackDevServer(
@@ -59,6 +65,7 @@ describe("normalize options snapshot", () => {
 
 	it("hot should be true by default", async () => {
 		const compiler = createCompiler({
+			entry: ENTRY,
 			stats: "none"
 		});
 		const server = new RspackDevServer({}, compiler);
@@ -72,6 +79,7 @@ describe("normalize options snapshot", () => {
 async function match(config: RspackOptions) {
 	const compiler = createCompiler({
 		...config,
+		entry: ENTRY,
 		stats: "none",
 		infrastructureLogging: {
 			level: "info",
@@ -97,6 +105,7 @@ async function matchAdditionEntries(
 	const compiler = createCompiler({
 		...config,
 		stats: "none",
+		entry: ENTRY,
 		infrastructureLogging: {
 			stream: {
 				// @ts-expect-error
@@ -104,6 +113,7 @@ async function matchAdditionEntries(
 			}
 		}
 	});
+
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
 	const entires = Object.entries(compiler.options.entry);

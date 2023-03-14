@@ -448,8 +448,8 @@ impl Plugin for JsPlugin {
       .chunk_graph
       .get_chunk_runtime_modules_in_order(&args.chunk_ukey)
     {
-      if let Some(hash) = compilation
-        .runtime_module_hashes
+      if let Some((hash, _)) = compilation
+        .runtime_module_code_generation_results
         .get(runtime_module_identifier)
       {
         hash.hash(&mut hasher);

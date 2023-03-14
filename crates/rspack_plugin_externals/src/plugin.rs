@@ -1,11 +1,21 @@
 use rspack_core::{
-  ApplyContext, External, ExternalModule, FactorizeArgs, ModuleExt, ModuleFactoryResult,
-  NormalModuleFactoryContext, Plugin, PluginContext, PluginFactorizeHookOutput,
+  ApplyContext, ExternalItem, ExternalModule, ExternalType, FactorizeArgs, ModuleExt,
+  ModuleFactoryResult, NormalModuleFactoryContext, Plugin, PluginContext,
+  PluginFactorizeHookOutput,
 };
 use rspack_error::Result;
 
-#[derive(Debug, Default)]
-pub struct ExternalPlugin {}
+#[derive(Debug)]
+pub struct ExternalPlugin {
+  externals: Vec<ExternalItem>,
+  r#type: ExternalType,
+}
+
+impl ExternalPlugin {
+  pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>) -> Self {
+    Self { externals, r#type }
+  }
+}
 
 #[async_trait::async_trait]
 impl Plugin for ExternalPlugin {
@@ -21,25 +31,44 @@ impl Plugin for ExternalPlugin {
     &self,
     _ctx: PluginContext,
     args: FactorizeArgs<'_>,
-    job_ctx: &mut NormalModuleFactoryContext,
+    _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
-    let external_type = &job_ctx.options.externals_type;
-    for external_item in &job_ctx.options.externals {
+    let external_type = &self.r#type;
+    for external_item in &self.externals {
       match external_item {
-        External::Object(eh) => {
-          let specifier = args.dependency.request();
+        ExternalItem::Object(eh) => {
+          let request = args.dependency.request();
 
-          if let Some(value) = eh.get(specifier) {
+          if let Some(value) = eh.get(request) {
             let external_module = ExternalModule::new(
               value.to_owned(),
               external_type.to_owned(),
-              specifier.to_string(),
+              request.to_string(),
             );
             return Ok(Some(ModuleFactoryResult::new(external_module.boxed())));
           }
         }
-        _ => {
-          return Ok(None);
+        ExternalItem::RegExp(r) => {
+          let request = args.dependency.request();
+          if r.test(request) {
+            let external_module = ExternalModule::new(
+              request.to_owned(),
+              external_type.to_owned(),
+              request.to_string(),
+            );
+            return Ok(Some(ModuleFactoryResult::new(external_module.boxed())));
+          }
+        }
+        ExternalItem::String(s) => {
+          let request = args.dependency.request();
+          if s == request {
+            let external_module = ExternalModule::new(
+              request.to_owned(),
+              external_type.to_owned(),
+              request.to_string(),
+            );
+            return Ok(Some(ModuleFactoryResult::new(external_module.boxed())));
+          }
         }
       }
     }

@@ -6,8 +6,8 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-bitflags          = "1.3.2"
+bitflags          = { workspace = true }
 rspack_identifier = { path = "../rspack_identifier" }
-serde             = { version = "1.0.145" }
-serde_json        = { version = "1.0.86" }
+serde             = { workspace = true }
+serde_json        = { workspace = true }
 swc_core          = { workspace = true }
