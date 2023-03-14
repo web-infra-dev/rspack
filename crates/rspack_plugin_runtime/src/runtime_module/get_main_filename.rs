@@ -2,15 +2,28 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   ChunkUkey, Compilation, RuntimeModule, RuntimeSpec,
 };
+use rspack_identifier::Identifier;
 
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Eq)]
 pub struct GetMainFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
+  id: Identifier,
+}
+
+impl Default for GetMainFilenameRuntimeModule {
+  fn default() -> Self {
+    Self {
+      chunk: None,
+      id: Identifier::from("webpack/runtime/get_main_filename"),
+    }
+  }
 }
 
 impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/get_main_filename".to_string()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -33,6 +46,8 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
+
+impl_runtime_module!(GetMainFilenameRuntimeModule);
 
 #[inline]
 fn stringify_runtime(runtime: &RuntimeSpec) -> String {

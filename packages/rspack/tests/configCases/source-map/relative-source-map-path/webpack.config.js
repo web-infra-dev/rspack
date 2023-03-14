@@ -4,5 +4,7 @@ module.exports = {
 	output: {
 		chunkFilename: "js/chunks/c.js"
 	},
-	devtool: "source-map"
+	devtool: "source-map",
+	externals: ["source-map"],
+	externalsType: "commonjs"
 };

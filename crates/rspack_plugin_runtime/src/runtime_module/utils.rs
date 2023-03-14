@@ -140,3 +140,12 @@ pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> Strin
     append
   }
 }
+
+#[test]
+fn test_get_undo_path() {
+  assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
+  assert_eq!(
+    get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
+    "../../"
+  );
+}
