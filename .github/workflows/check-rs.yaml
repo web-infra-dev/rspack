@@ -22,16 +22,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  typos:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
   lint-and-format:
     name: Lint and format Rust Files
     runs-on: ubuntu-latest
     steps:
-        - name: Checkout PR Branch
+      - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:
           submodules: false
