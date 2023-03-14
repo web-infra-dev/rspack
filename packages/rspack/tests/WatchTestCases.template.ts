@@ -139,7 +139,7 @@ export const describeCases = (config: any) => {
 										options.context = path.join(tempDirectory, options.context);
 									}
 									if (!options.entry) options.entry = "./index.js";
-									// TODO: shoud be `if (!options.target) options.target = "async-node";`
+									// TODO: should be `if (!options.target) options.target = "async-node";`
 									if (!options.target) {
 										options.target = "node";
 									}
