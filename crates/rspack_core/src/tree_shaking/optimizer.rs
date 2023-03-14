@@ -30,7 +30,7 @@ use super::{
 };
 use crate::{
   contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -868,27 +868,31 @@ impl<'a> CodeSizeOptimizer<'a> {
                   current_symbol_ref.module_identifier(),
                   ModuleUsedType::INDIRECT,
                 );
-                // match bailout_module_identifiers.get(&module_result.module_identifier) {
-                //   Some(flag)
-                //     if flag.contains(BailoutFlog::COMMONJS_EXPORTS)
-                //       // && indirect_symbol.indirect_id() == "default"
-                //       =>
-                //   {
-                //     graph.add_edge(&current_symbol_ref, &current_symbol_ref);
-                //   }
-                //   _ => {}
-                // }
-                if !is_bailout_module_identifier && !has_bailout_module_identifiers {
+
+                // Only report diagnostic when following conditions are satisfied:
+                // 1. src module is not a bailout module and src module using ESM syntax to export some symbols.
+                // 2. src module has no reexport or any reexport src module is not bailouted
+                let should_diagnostic = !is_bailout_module_identifier
+                  && module_result.module_syntax == ModuleSyntax::ESM
+                  && (module_result.inherit_export_maps.is_empty()
+                    || !has_bailout_module_identifiers);
+                if should_diagnostic {
                   let module_path = self
                     .compilation
                     .module_graph
                     .normal_module_source_path_by_identifier(&module_result.module_identifier);
-                  if let Some(module_path) = module_path {
+                  let importer_module_path = self
+                    .compilation
+                    .module_graph
+                    .normal_module_source_path_by_identifier(&indirect_symbol.importer());
+                  if let (Some(module_path), Some(importer_module_path)) =
+                    (module_path, importer_module_path)
+                  {
                     let error_message = format!(
                       "{} did not export `{}`, imported by {}",
-                      module_path,
+                      contextify(&self.compilation.options.context, &module_path),
                       indirect_symbol.indirect_id(),
-                      indirect_symbol.importer()
+                      contextify(&self.compilation.options.context, &importer_module_path),
                     );
                     errors.push(Error::InternalError(InternalError {
                       error_message,
@@ -1235,16 +1239,16 @@ async fn par_analyze_module(
 
         // Keep this debug info until we stabilize the tree-shaking
         // if debug_care_module_id(&uri_key.as_str()) {
-        //   dbg!(
-        //     &uri_key,
-        //     // &analyzer.export_all_list,
-        //     &analyzer.export_map,
-        //     &analyzer.import_map,
-        //     &analyzer.maybe_lazy_reference_map,
-        //     &analyzer.immediate_evaluate_reference_map,
-        //     &analyzer.reachable_import_and_export,
-        //     &analyzer.used_symbol_ref
-        //   );
+        // dbg!(
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.maybe_lazy_reference_map,
+        //   &analyzer.immediate_evaluate_reference_map,
+        //   &analyzer.reachable_import_and_export,
+        //   &analyzer.used_symbol_ref
+        // );
         // }
 
         Some((uri_key, analyzer.into()))

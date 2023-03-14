@@ -132,6 +132,10 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
+  /// only care about the related export semantic.
+  /// # Examples
+  /// 1. `require()` -> CommonJs
+  /// 2. `export ` -> ESM
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
@@ -284,6 +288,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
       && ((&obj.sym == "module" && prop == "exports") || &obj.sym == "exports")
     {
+      self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .bail_out_module_identifiers
         .entry(self.module_identifier)
@@ -479,123 +484,127 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_module_item(&mut self, node: &ModuleItem) {
     match node {
-      ModuleItem::ModuleDecl(decl) => match decl {
-        ModuleDecl::Import(import) => {
-          let src = &import.src.value;
-          let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmImport) {
-            Some(module_identifier) => module_identifier,
-            None => {
-              // TODO: Ignore for now because swc helper interference.
-              return;
-            }
-          };
-          let resolved_uri_ukey = *resolved_uri;
-          import
-            .specifiers
-            .iter()
-            .for_each(|specifier| match specifier {
-              ImportSpecifier::Named(named) => {
-                let imported = named.imported.as_ref().map(|imported| match imported {
-                  ModuleExportName::Ident(ident) => ident.sym.clone(),
-                  ModuleExportName::Str(str) => str.value.clone(),
-                });
+      ModuleItem::ModuleDecl(decl) => {
+        self.module_syntax.insert(ModuleSyntax::ESM);
+        match decl {
+          ModuleDecl::Import(import) => {
+            let src = &import.src.value;
+            let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmImport)
+            {
+              Some(module_identifier) => module_identifier,
+              None => {
+                // TODO: Ignore for now because swc helper interference.
+                return;
+              }
+            };
+            let resolved_uri_ukey = *resolved_uri;
+            import
+              .specifiers
+              .iter()
+              .for_each(|specifier| match specifier {
+                ImportSpecifier::Named(named) => {
+                  let imported = named.imported.as_ref().map(|imported| match imported {
+                    ModuleExportName::Ident(ident) => ident.sym.clone(),
+                    ModuleExportName::Str(str) => str.value.clone(),
+                  });
 
-                let local = named.local.sym.clone();
+                  let local = named.local.sym.clone();
 
-                let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                  resolved_uri_ukey,
+                  let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                    resolved_uri_ukey,
+                    self.module_identifier,
+                    IndirectType::Import(local, imported),
+                  ));
+
+                  self.add_import(named.local.to_id().into(), symbol_ref);
+                }
+                ImportSpecifier::Default(default) => {
+                  self.add_import(
+                    default.local.to_id().into(),
+                    SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                      resolved_uri_ukey,
+                      self.module_identifier,
+                      IndirectType::ImportDefault(default.local.sym.clone()),
+                    )),
+                  );
+                }
+                ImportSpecifier::Namespace(namespace) => {
+                  self.add_import(
+                    namespace.local.to_id().into(),
+                    SymbolRef::Star(StarSymbol::new(
+                      resolved_uri_ukey,
+                      namespace.local.sym.clone(),
+                      self.module_identifier,
+                      StarSymbolKind::ImportAllAs,
+                    )),
+                  );
+                }
+              });
+          }
+          ModuleDecl::ExportDecl(decl) => match &decl.decl {
+            Decl::Class(class) => {
+              class.visit_with(self);
+              self.add_export(
+                class.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::new(
                   self.module_identifier,
-                  IndirectType::Import(local, imported),
-                ));
-
-                self.add_import(named.local.to_id().into(), symbol_ref);
-              }
-              ImportSpecifier::Default(default) => {
-                self.add_import(
-                  default.local.to_id().into(),
-                  SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                    resolved_uri_ukey,
-                    self.module_identifier,
-                    IndirectType::ImportDefault(default.local.sym.clone()),
-                  )),
-                );
-              }
-              ImportSpecifier::Namespace(namespace) => {
-                self.add_import(
-                  namespace.local.to_id().into(),
-                  SymbolRef::Star(StarSymbol::new(
-                    resolved_uri_ukey,
-                    namespace.local.sym.clone(),
-                    self.module_identifier,
-                    StarSymbolKind::ImportAllAs,
-                  )),
-                );
-              }
-            });
-        }
-        ModuleDecl::ExportDecl(decl) => match &decl.decl {
-          Decl::Class(class) => {
-            class.visit_with(self);
-            self.add_export(
-              class.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::new(
-                self.module_identifier,
-                class.ident.to_id().into(),
-                SymbolType::Define,
-              )),
-            );
-          }
-          Decl::Fn(function) => {
-            function.visit_with(self);
-            self.add_export(
-              function.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::new(
-                self.module_identifier,
-                function.ident.to_id().into(),
-                SymbolType::Define,
-              )),
-            );
-          }
-          Decl::Var(var) => {
-            self.state |= AnalyzeState::EXPORT_DECL;
-            var.visit_with(self);
-            self.state.remove(AnalyzeState::EXPORT_DECL);
-          }
-          Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-            todo!()
-          }
-        },
-        ModuleDecl::ExportNamed(named_export) => {
-          self.analyze_named_export(named_export);
-        }
-        ModuleDecl::ExportDefaultDecl(decl) => {
-          decl.visit_with(self);
-        }
-        ModuleDecl::ExportDefaultExpr(expr) => {
-          expr.visit_with(self);
-        }
-
-        ModuleDecl::ExportAll(export_all) => {
-          let resolved_uri = match self
-            .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
-          {
-            Some(module_identifier) => module_identifier,
-            None => {
-              // TODO: ignore for now, or three copy js will failed
-              return;
+                  class.ident.to_id().into(),
+                  SymbolType::Define,
+                )),
+              );
             }
-          };
-          let resolved_uri_key = *resolved_uri;
-          self
-            .inherit_export_maps
-            .insert(resolved_uri_key, HashMap::default());
+            Decl::Fn(function) => {
+              function.visit_with(self);
+              self.add_export(
+                function.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::new(
+                  self.module_identifier,
+                  function.ident.to_id().into(),
+                  SymbolType::Define,
+                )),
+              );
+            }
+            Decl::Var(var) => {
+              self.state |= AnalyzeState::EXPORT_DECL;
+              var.visit_with(self);
+              self.state.remove(AnalyzeState::EXPORT_DECL);
+            }
+            Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+              unreachable!("We have been converted Typescript to javascript already")
+            }
+          },
+          ModuleDecl::ExportNamed(named_export) => {
+            self.analyze_named_export(named_export);
+          }
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            decl.visit_with(self);
+          }
+          ModuleDecl::ExportDefaultExpr(expr) => {
+            expr.visit_with(self);
+          }
+
+          ModuleDecl::ExportAll(export_all) => {
+            let resolved_uri = match self
+              .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
+            {
+              Some(module_identifier) => module_identifier,
+              None => {
+                // TODO: ignore for now, or three copy js will failed
+                return;
+              }
+            };
+            let resolved_uri_key = *resolved_uri;
+            self
+              .inherit_export_maps
+              .insert(resolved_uri_key, HashMap::default());
+          }
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => {
+            unreachable!("We have been converted Typescript to javascript already")
+          }
         }
-        ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => {
-          // TODO: ignore ts related syntax visit for now
-        }
-      },
+      }
       ModuleItem::Stmt(stmt) => {
         stmt.visit_children_with(self);
       }
@@ -818,10 +827,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       node.class.visit_with(self);
     }
   }
-  // fn visit_span(&mut self, span: &Span) {}
   fn visit_call_expr(&mut self, node: &CallExpr) {
-    // TODO: module.exports, exports.xxxxx
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
+      self.module_syntax.insert(ModuleSyntax::ESM);
       match self
         .resolve_module_identifier(&require_lit, &DependencyType::CjsRequire)
         .copied()
@@ -843,7 +851,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           );
         }
       };
-      self.module_syntax.insert(ModuleSyntax::COMMONJS);
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self
         .resolve_module_identifier(&import_str, &DependencyType::DynamicImport)
@@ -1002,7 +1009,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_decl(&mut self, node: &Decl) {
     match node {
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-        // TODO: Ignore ts related tree-shaking for now.
+        unreachable!("We have been transformed typescript to javascript before.")
       }
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
@@ -1386,6 +1393,7 @@ pub struct TreeShakingResult {
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) side_effects: SideEffect,
+  pub(crate) module_syntax: ModuleSyntax,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -1404,6 +1412,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       used_symbol_refs: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
       side_effects: analyze.side_effects,
+      module_syntax: analyze.module_syntax,
     }
   }
 }
