@@ -289,6 +289,18 @@ module.exports = {
 				}
 			]
 		},
+		ExternalsPresets: {
+			description: "Enable presets of externals for specific targets.",
+			type: "object",
+			additionalProperties: false,
+			properties: {
+				node: {
+					description:
+						"Treat node.js built-in modules like fs, path or vm as external and load them via require() when used.",
+					type: "boolean"
+				}
+			}
+		},
 		ExternalsType: {
 			description:
 				"Specifies the default type of externals ('amd*', 'umd*', 'system' and 'jsonp' depend on output.libraryTarget set to the same value).",

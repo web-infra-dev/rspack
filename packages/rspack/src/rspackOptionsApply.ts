@@ -30,13 +30,13 @@ export class RspackOptionsApply {
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
 		// TODO: align externalsPresets with webpack
-		if (
-			compiler.options.target !== false &&
-			(compiler.options.target === "node" ||
-				compiler.options.target?.includes("node"))
-		) {
-			new NodeTargetPlugin().apply(compiler);
-		}
+		// if (
+		// 	compiler.options.target !== false &&
+		// 	(compiler.options.target === "node" ||
+		// 		compiler.options.target?.includes("node"))
+		// ) {
+		// 	new NodeTargetPlugin().apply(compiler);
+		// }
 
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
