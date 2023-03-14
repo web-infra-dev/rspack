@@ -23,9 +23,10 @@ fn get_evaluate_code(config_path: &Path) -> String {
     r#"
 const rspack = require("{rspack_path}");
 const config = require("{config_path}");
+config.context ??= "{test_dir}";
+config.output ??= {{}};
+config.output.path ??= "{test_dir}/dist";
 const normalized = rspack.getNormalizedRspackOptions(config);
-normalized.context="{test_dir}";
-normalized.output.path = `{test_dir}/dist`; //TODO:
 rspack.applyRspackOptionsDefaults(normalized);
 const raw = rspack.getRawOptions(normalized);
 JSON.stringify(raw)
