@@ -13,7 +13,6 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
 
-# cancel previous job runs for the same workflow + pr
 jobs:
   build:
     strategy:
