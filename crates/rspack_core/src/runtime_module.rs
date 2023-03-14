@@ -10,6 +10,10 @@ pub trait RuntimeModule: Module {
   fn stage(&self) -> u8 {
     0
   }
+  // webpack fullHash || dependentHash
+  fn cacheable(&self) -> bool {
+    true
+  }
 }
 
 /**

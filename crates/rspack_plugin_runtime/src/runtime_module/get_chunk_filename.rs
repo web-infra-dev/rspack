@@ -41,6 +41,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.id
   }
 
+  fn cacheable(&self) -> bool {
+    false
+  }
+
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let url = match self.chunk {
       Some(chunk) => match compilation.chunk_by_ukey.get(&chunk) {
