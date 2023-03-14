@@ -5,30 +5,33 @@ const fs = require("fs");
 const path = require("path");
 const prompts = require("prompts");
 yargs(hideBin(process.argv))
-	.command("$0", "init rspack project", async argv => {
+	.command("$0", "init rspack project", argv => {
+		const { help } = argv.argv;
+		if (help) return;
 		const defaultProjectName = "rspack-project";
-		let result = await prompts([
+		prompts([
 			{
 				type: "text",
 				name: "projectDir",
 				initial: defaultProjectName,
 				message: "Project folder"
 			}
-		]);
-		const { projectDir } = result;
-		const root = path.resolve(process.cwd(), projectDir);
-		if (fs.existsSync(root)) {
-			throw new Error("project directory already exists");
-		}
-		fs.mkdirSync(root);
-		// TODO support more template in the future
-		const templateDir = "template-react";
-		const srcFolder = path.resolve(__dirname, templateDir);
-		copyFolder(srcFolder, projectDir);
-		console.log("\nDone. Now run:\n");
-		console.log(`cd ${projectDir}\n`);
-		console.log(`npm install\n`);
-		console.log(`npm run dev\n`);
+		]).then(result => {
+			const { projectDir } = result;
+			const root = path.resolve(process.cwd(), projectDir);
+			if (fs.existsSync(root)) {
+				throw new Error("project directory already exists");
+			}
+			fs.mkdirSync(root);
+			// TODO support more template in the future
+			const templateDir = "template-react";
+			const srcFolder = path.resolve(__dirname, templateDir);
+			copyFolder(srcFolder, projectDir);
+			console.log("\nDone. Now run:\n");
+			console.log(`cd ${projectDir}\n`);
+			console.log(`npm install\n`);
+			console.log(`npm run dev\n`);
+		});
 	})
 	.help()
 	.parse();
