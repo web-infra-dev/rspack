@@ -1,7 +1,7 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  ExternalModule, Filename, LibraryOptions, Plugin, PluginContext, PluginRenderHookOutput,
-  RenderArgs, SourceType,
+  ExternalModule, Filename, LibraryName, LibraryOptions, Plugin, PluginContext,
+  PluginRenderHookOutput, RenderArgs, SourceType,
 };
 use rspack_error::Result;
 
@@ -18,14 +18,16 @@ impl AmdLibraryPlugin {
   }
 
   pub fn normalize_name(&self, o: &Option<LibraryOptions>) -> Result<Option<String>> {
-    if let Some(library) = o {
-      if let Some(name) = &library.name {
-        if let Some(root) = &name.root {
-          // TODO error "AMD library name must be a simple string or unset."
-          if let Some(name) = root.get(0) {
-            return Ok(Some(name.to_string()));
-          }
-        }
+    if let Some(LibraryOptions {
+      name: Some(LibraryName {
+        root: Some(root), ..
+      }),
+      ..
+    }) = o
+    {
+      // TODO error "AMD library name must be a simple string or unset."
+      if let Some(name) = root.get(0) {
+        return Ok(Some(name.to_string()));
       }
     }
     Ok(None)
