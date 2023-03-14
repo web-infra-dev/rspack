@@ -9,5 +9,5 @@ pub use manager::SnapshotManager;
 #[derive(Debug, Clone)]
 pub struct Snapshot {
   pub file_update_times: HashMap<PathBuf, SystemTime>,
-  pub file_hashs: HashMap<PathBuf, u64>,
+  pub file_hashes: HashMap<PathBuf, u64>,
 }

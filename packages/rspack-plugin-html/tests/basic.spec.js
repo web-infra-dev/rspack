@@ -53,6 +53,21 @@ function testHtmlPlugin(
 	expectWarnings
 ) {
 	outputFile = outputFile || "index.html";
+	const envSetup = () => {
+		let prevEnv = process.env.NODE_ENV;
+		process.env.NODE_ENV = webpackConfig.mode;
+		return () => {
+			process.env.NODE_ENV = prevEnv;
+		};
+	};
+
+	let restoreEnv = envSetup();
+	let prevDone = done;
+	done = (...args) => {
+		restoreEnv();
+		prevDone(...args);
+	};
+
 	rspack({ ...webpackConfig, builtins: { minify: false } }, (err, stats) => {
 		expect(err).toBeFalsy();
 		const statsJson = stats.toJson({ all: true });
@@ -92,26 +107,31 @@ function testHtmlPlugin(
 		let chunksInfo;
 		for (let i = 0; i < expectedResults.length; i++) {
 			const expectedResult = expectedResults[i];
-			if (expectedResult instanceof RegExp) {
-				expect(htmlContent).toMatch(expectedResult);
-			} else if (typeof expectedResult === "object") {
-				if (expectedResult.type === "chunkhash") {
-					if (!chunksInfo) {
-						chunksInfo = getChunksInfoFromStats(stats);
+			try {
+				if (expectedResult instanceof RegExp) {
+					expect(htmlContent).toMatch(expectedResult);
+				} else if (typeof expectedResult === "object") {
+					if (expectedResult.type === "chunkhash") {
+						if (!chunksInfo) {
+							chunksInfo = getChunksInfoFromStats(stats);
+						}
+						// TODO: stats.hash
+						// const chunkhash = chunksInfo[expectedResult.chunkName].hash;
+						expect(htmlContent).toContain(
+							// expectedResult.containStr.replace("%chunkhash%", chunkhash)
+							expectedResult
+						);
 					}
-					// TODO: stats.hash
-					// const chunkhash = chunksInfo[expectedResult.chunkName].hash;
+				} else {
 					expect(htmlContent).toContain(
-						// expectedResult.containStr.replace("%chunkhash%", chunkhash)
+						// TODO: stats.hash
+						// expectedResult.replace("%hash%", stats.hash)
 						expectedResult
 					);
 				}
-			} else {
-				expect(htmlContent).toContain(
-					// TODO: stats.hash
-					// expectedResult.replace("%hash%", stats.hash)
-					expectedResult
-				);
+			} catch (e) {
+				done(e);
+				return;
 			}
 		}
 		done();
@@ -132,7 +152,7 @@ function getChunksInfoFromStats(stats) {
 }
 
 describe("HtmlWebpackPlugin", () => {
-	jest.setTimeout(process.env.CI ? 120000 : 30000);
+	jest.setTimeout(process.env.CI ? 120000 : 10000);
 
 	beforeEach(done => {
 		rimraf(OUTPUT_DIR, done);
@@ -619,6 +639,28 @@ describe("HtmlWebpackPlugin", () => {
 				plugins: [new HtmlWebpackPlugin()]
 			},
 			['<script defer src="main_bundle.js"'],
+			null,
+			done
+		);
+	});
+
+	it("works with process (issue#2179)", done => {
+		testHtmlPlugin(
+			{
+				mode: "development",
+				devtool: "source-map",
+				entry: path.join(__dirname, "fixtures/index.js"),
+				output: {
+					path: OUTPUT_DIR,
+					filename: "[name]_bundle.js"
+				},
+				plugins: [
+					new HtmlWebpackPlugin({
+						template: path.join(__dirname, "fixtures/issue2179.html")
+					})
+				]
+			},
+			["console.log(1)"],
 			null,
 			done
 		);

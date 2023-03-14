@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
-  "main": "index.js",
   "private": true,
   "scripts": {
     "dev": "pnpm --filter @rspack/cli run dev",

@@ -1177,7 +1177,7 @@ impl Compilation {
     let hash_results = content_hash_chunks
       .iter()
       .map(|chunk_ukey| async {
-        let hashs = plugin_driver
+        let hashes = plugin_driver
           .read()
           .await
           .content_hash(&ContentHashArgs {
@@ -1185,14 +1185,14 @@ impl Compilation {
             compilation: self,
           })
           .await;
-        (*chunk_ukey, hashs)
+        (*chunk_ukey, hashes)
       })
       .collect::<FuturesResults<_>>()
       .into_inner();
 
     for item in hash_results {
-      let (chunk_ukey, hashs) = item.expect("Failed to resolve content_hash results");
-      hashs?.into_iter().for_each(|hash| {
+      let (chunk_ukey, hashes) = item.expect("Failed to resolve content_hash results");
+      hashes?.into_iter().for_each(|hash| {
         if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
           chunk.content_hash.insert(source_type, hash);
         }
@@ -1272,7 +1272,7 @@ impl Compilation {
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
-    // add chunk runtime to perfix module identifier to avoid multiple entry runtime modules conflict
+    // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self
       .chunk_by_ukey
       .get(chunk_ukey)

@@ -298,8 +298,8 @@ export interface ModuleOptionsNormalized {
 export type Target = false | string[] | string;
 
 ///// Externals /////
-export type Externals = ExternalItem;
-export type ExternalItem = string | ExternalItemObjectUnknown;
+export type Externals = ExternalItem[] | ExternalItem;
+export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }

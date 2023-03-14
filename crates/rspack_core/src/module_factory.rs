@@ -55,8 +55,8 @@ impl ModuleFactoryResult {
     self
   }
 
-  pub fn missing_dependencies(mut self, missings: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.missing_dependencies.extend(missings);
+  pub fn missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.missing_dependencies.extend(missing);
     self
   }
 }

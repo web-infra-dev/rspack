@@ -29,6 +29,14 @@
     "source-map-support": "^0.5.19",
     "ts-node": "10.9.1"
   },
+  "peerDependencies": {
+    "ts-node": ">= 10"
+  },
+  "peerDependenciesMeta": {
+    "ts-node": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/core": "workspace:*",

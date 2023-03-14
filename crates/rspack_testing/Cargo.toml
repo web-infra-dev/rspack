@@ -38,7 +38,7 @@ serde      = { workspace = true }
 serde_json = { workspace = true }
 swc_core   = { workspace = true }
 
-# depdencies of rpsakc_test
+# dependencies of rspack
 
 cargo-rst = { path = "../cargo-rst" }
 colored = "2.0.0"

@@ -21,11 +21,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-env:
-  RUSTFLAGS: -D warnings
-#   TRACE: DEBUG
-
 jobs:
+  typos:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: crate-ci/typos@master
+        with:
+          files: .
+
   format:
     name: Format Rust Files
     runs-on: ubuntu-latest
@@ -43,6 +48,10 @@ jobs:
         uses: actions/checkout@v3
       - name: Install toolchain
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
@@ -63,6 +72,10 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install toolchain
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
       - name: Run cargo check
         run: cargo check --workspace --all-targets --release --locked
 
@@ -70,7 +83,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --workspace --all-targets --verbose
+          args: --workspace --all-targets -- -D warnings
       # - name: Check Dependencies
       # run: |
       # node ./scripts/check_rust_dependency.js
@@ -95,6 +108,10 @@ jobs:
           node-version: "16"
       - name: Install toolchain
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |

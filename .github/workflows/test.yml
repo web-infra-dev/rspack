@@ -3,8 +3,7 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    paths: # Only run when changes are made to rust code or root Cargo
+    paths:
       - "crates/**"
       - "packages/**"
       - "Cargo.toml"
@@ -13,11 +12,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
-    branches:
-      - "**"
-      - "!release-**"
-    tags-ignore:
-      - "**"
 
 # cancel previous job runs for the same workflow + pr
 concurrency:
@@ -127,10 +121,13 @@ jobs:
       - name: Install Rust
         if: ${{ !matrix.settings.docker }}
         run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-and-test
       - name: Setup rust target
         if: ${{ !matrix.settings.docker }}
         run: rustup target add ${{ matrix.settings.target }}
-      - uses: Swatinem/rust-cache@v2
       - name: Install Protoc
         if: ${{ !matrix.settings.docker }}
         uses: arduino/setup-protoc@v1
@@ -205,11 +202,11 @@ jobs:
           run: |
             set -e
             npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
+            pnpm install
             pnpm run build:js
 
             pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
+            pnpm --filter @rspack/dev-server run test
             pnpm --filter @rspack/plugin-html run test
   test-aarch64-unknown-linux-gnu:
     strategy:
@@ -276,11 +273,11 @@ jobs:
           run: |
             set -e
             npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
+            pnpm install
             pnpm run build:js
 
             pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
+            pnpm --filter @rspack/dev-server run test
             pnpm --filter @rspack/plugin-html run test
   test-aarch64-unknown-linux-musl:
     strategy:
@@ -350,32 +347,5 @@ jobs:
           pnpm run build:js
 
           pnpm --filter @rspack/core run test
-          # pnpm --filter @rspack/dev-server run test
+          pnpm --filter @rspack/dev-server run test
           pnpm --filter @rspack/plugin-html run test
-  # publish:
-  #   needs:
-  #     - test-x86_64-unknown-linux-gnu
-  #     - test-aarch64-unknown-linux-gnu
-  #     - test-x86_64-unknown-linux-musl
-  #     - test-aarch64-unknown-linux-musl
-  #     - test-x86_64-apple-darwin
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-node@v3
-  #       with:
-  #         node-version: "16"
-  #     - name: Setup node dependencies
-  #       run: |
-  #         npm install -g pnpm@7.25.0
-  #         pnpm install
-  #         pnpm run build:js
-  #     - name: Download artifacts
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         path: artifacts
-  #     - name: Show artifacts
-  #       run: ls -R artifacts
-  #     - name: Create npm packages
-  #       run: |
-  #         echo "creating..."

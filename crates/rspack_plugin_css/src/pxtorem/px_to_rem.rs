@@ -112,7 +112,7 @@ impl PxToRem {
     normalized_num * sign
   }
 
-  /// TODO: Suppport regex pattern
+  /// TODO: Support regex pattern
   /// Regex supporting is none trivial, only support string pattern for now, main reasons are listed below:
   /// 1. Difference between ECMA regex and rust `regex` crate, some features of `ECMA regex` are not supported by `regex`
   /// 2. Hard to test, there is no way to represent a regex in json file

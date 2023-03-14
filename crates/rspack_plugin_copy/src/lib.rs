@@ -122,7 +122,7 @@ impl CopyPlugin {
       ToType::File
     };
 
-    LOGGER.log(&format!("'to' option '{to}' determinated as '{to_type}'"));
+    LOGGER.log(&format!("'to' option '{to}' determined as '{to_type}'"));
 
     let relative = pathdiff::diff_paths(&absolute_filename, context);
     let filename = if matches!(to_type, ToType::Dir) {

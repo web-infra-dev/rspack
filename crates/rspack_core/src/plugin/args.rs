@@ -42,7 +42,7 @@ impl<'me> RenderManifestArgs<'me> {
       .compilation
       .chunk_by_ukey
       .get(&self.chunk_ukey)
-      .expect("chunk should exsit in chunk_by_ukey")
+      .expect("chunk should exist in chunk_by_ukey")
   }
 }
 
@@ -158,7 +158,7 @@ impl<'me> RenderChunkArgs<'me> {
       .compilation
       .chunk_by_ukey
       .get(self.chunk_ukey)
-      .expect("chunk should exsit in chunk_by_ukey")
+      .expect("chunk should exist in chunk_by_ukey")
   }
 }
 
@@ -181,7 +181,7 @@ impl<'me> RenderStartupArgs<'me> {
       .compilation
       .chunk_by_ukey
       .get(self.chunk)
-      .expect("chunk should exsit in chunk_by_ukey")
+      .expect("chunk should exist in chunk_by_ukey")
   }
 }
 
@@ -198,6 +198,6 @@ impl<'me> RenderArgs<'me> {
       .compilation
       .chunk_by_ukey
       .get(self.chunk)
-      .expect("chunk should exsit in chunk_by_ukey")
+      .expect("chunk should exist in chunk_by_ukey")
   }
 }
