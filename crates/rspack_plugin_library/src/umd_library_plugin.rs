@@ -4,6 +4,9 @@ use rspack_core::{
   PluginContext, PluginRenderHookOutput, RenderArgs, SourceType,
 };
 use rspack_identifier::Identifiable;
+
+use super::utils::{external_arguments, external_dep_array};
+
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
   _optional_amd_external_as_global: bool,
@@ -205,6 +208,13 @@ fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) ->
     })
     .collect::<Vec<_>>()
     .join(", ")
+}
+
+static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("TODO:"));
+
+#[inline]
+fn to_identifier(v: &str) -> Cow<'_, str> {
+  IDENTIFIER_REGEXP.replace_all(v, "_")
 }
 
 fn external_root_array(modules: &[&ExternalModule]) -> String {
