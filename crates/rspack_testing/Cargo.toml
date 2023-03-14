@@ -33,22 +33,19 @@ rspack_plugin_runtime                   = { path = "../rspack_plugin_runtime" }
 rspack_regex                            = { path = "../rspack_regex" }
 rspack_tracing                          = { path = "../rspack_tracing" }
 
-schemars   = "0.8.11"
-serde      = { workspace = true }
-serde_json = { workspace = true }
-swc_core   = { workspace = true }
-
-# dependencies of rspack
-
 cargo-rst = { path = "../cargo-rst" }
-colored = "2.0.0"
-derive_builder = "0.11.2"
-glob = "0.3.0"
+colored = { workspace = true }
+derive_builder = { workspace = true }
+glob = { workspace = true }
 quick-js = "0.4.1"
-rayon = "1.5.3"
-similar = "2.1.0"
-testing_macros = { version = "0.2.5", features = [] }
-tokio = { version = "1.21.0", features = [
+rayon = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+similar = { workspace = true }
+swc_core = { workspace = true }
+testing_macros = { workspace = true, features = [] }
+tokio = { workspace = true, features = [
   "rt",
   "rt-multi-thread",
   "macros",
