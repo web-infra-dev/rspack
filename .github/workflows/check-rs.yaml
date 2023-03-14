@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   lint-and-format:
-    name: Lint and format Rust Files
+    name: lint, format and spell check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR Branch
