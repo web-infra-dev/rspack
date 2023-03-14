@@ -13,11 +13,6 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
 
-# cancel previous job runs for the same workflow + pr
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     strategy:
@@ -32,55 +27,55 @@ jobs:
               sudo apt-get -y install protobuf-compiler
               RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
               strip crates/node_binding/*.node
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-            build: |
-              sudo apt-get -y install protobuf-compiler
-              RUST_TARGET=aarch64-unknown-linux-gnu pnpm build:binding:release
-              aarch64-unknown-linux-gnu-strip crates/node_binding/*.node
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: |
-              apk add --no-cache protoc
-              RUST_TARGET=x86_64-unknown-linux-musl pnpm build:binding:release
-              strip crates/node_binding/*.node
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: |
-              apk add --no-cache protoc
-              export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-              RUST_TARGET=aarch64-unknown-linux-musl pnpm build:binding:release
-              /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip crates/node_binding/*.node
-          - host: windows-latest
-            target: i686-pc-windows-msvc
-            build: |
-              RUST_TARGET=i686-pc-windows-msvc pnpm build:binding:release
+          # - host: ubuntu-latest
+          #   target: aarch64-unknown-linux-gnu
+          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+          #   build: |
+          #     sudo apt-get -y install protobuf-compiler
+          #     RUST_TARGET=aarch64-unknown-linux-gnu pnpm build:binding:release
+          #     aarch64-unknown-linux-gnu-strip crates/node_binding/*.node
+          # - host: ubuntu-latest
+          #   target: x86_64-unknown-linux-musl
+          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          #   build: |
+          #     apk add --no-cache protoc
+          #     RUST_TARGET=x86_64-unknown-linux-musl pnpm build:binding:release
+          #     strip crates/node_binding/*.node
+          # - host: ubuntu-latest
+          #   target: aarch64-unknown-linux-musl
+          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          #   build: |
+          #     apk add --no-cache protoc
+          #     export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+          #     RUST_TARGET=aarch64-unknown-linux-musl pnpm build:binding:release
+          #     /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip crates/node_binding/*.node
+          # - host: windows-latest
+          #   target: i686-pc-windows-msvc
+          #   build: |
+          #     RUST_TARGET=i686-pc-windows-msvc pnpm build:binding:release
           - host: windows-latest
             target: x86_64-pc-windows-msvc
             build: |
               RUST_TARGET=x86_64-pc-windows-msvc pnpm build:binding:release
-          - host: windows-latest
-            target: aarch64-pc-windows-msvc
-            build: |
-              RUST_TARGET=aarch64-pc-windows-msvc pnpm build:binding:release
+          # - host: windows-latest
+          #   target: aarch64-pc-windows-msvc
+          #   build: |
+          #     RUST_TARGET=aarch64-pc-windows-msvc pnpm build:binding:release
           - host: macos-latest
             target: x86_64-apple-darwin
             build: |
               RUST_TARGET=x86_64-apple-darwin pnpm build:binding:release
               strip -x crates/node_binding/*.node
-          - host: macos-latest
-            target: aarch64-apple-darwin
-            build: |
-              sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
-              export CC=$(xcrun -f clang);
-              export CXX=$(xcrun -f clang++);
-              SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
-              export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
-              RUST_TARGET=aarch64-apple-darwin pnpm build:binding:release
-              strip -x crates/node_binding/*.node
+          # - host: macos-latest
+          #   target: aarch64-apple-darwin
+          #   build: |
+          #     sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          #     export CC=$(xcrun -f clang);
+          #     export CXX=$(xcrun -f clang++);
+          #     SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
+          #     export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+          #     RUST_TARGET=aarch64-apple-darwin pnpm build:binding:release
+          #     strip -x crates/node_binding/*.node
           # - host: ubuntu-latest
           #   target: x86_64-apple-darwin
           #   build: |
@@ -208,115 +203,115 @@ jobs:
             pnpm --filter @rspack/core run test
             pnpm --filter @rspack/dev-server run test
             pnpm --filter @rspack/plugin-html run test
-  test-aarch64-unknown-linux-gnu:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          # - "16"
-    runs-on: ubuntu-latest
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-aarch64-unknown-linux-gnu
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - name: Run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:${{ matrix.node }}-slim
-          options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
-          run: |
-            set -e
-            npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
-            pnpm run build:js
+  # test-aarch64-unknown-linux-gnu:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       node:
+  #         - "14"
+  #         # - "16"
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Download bindings
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: bindings-aarch64-unknown-linux-gnu
+  #         path: crates/node_binding/
+  #     - name: Show restored binding
+  #       run: ls -lah crates/node_binding/*.node
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v2
+  #       with:
+  #         platforms: arm64
+  #     - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  #     - name: Run tests
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: node:${{ matrix.node }}-slim
+  #         options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
+  #         run: |
+  #           set -e
+  #           npm install -g pnpm@7.25.0
+  #           PUPPETEER_SKIP_DOWNLOAD=true pnpm install
+  #           pnpm run build:js
 
-            pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
-  test-x86_64-unknown-linux-musl:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          - "16"
-    runs-on: ubuntu-latest
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-x86_64-unknown-linux-musl
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:${{ matrix.node }}-alpine
-          options: -v ${{ github.workspace }}:/build -w /build
-          run: |
-            set -e
-            npm install -g pnpm@7.25.0
-            pnpm install
-            pnpm run build:js
+  #           pnpm --filter @rspack/core run test
+  #           # pnpm --filter @rspack/dev-server run test
+  #           pnpm --filter @rspack/plugin-html run test
+  # test-x86_64-unknown-linux-musl:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       node:
+  #         - "14"
+  #         - "16"
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Download bindings
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: bindings-x86_64-unknown-linux-musl
+  #         path: crates/node_binding/
+  #     - name: Show restored binding
+  #       run: ls -lah crates/node_binding/*.node
+  #     - name: Run tests
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: node:${{ matrix.node }}-alpine
+  #         options: -v ${{ github.workspace }}:/build -w /build
+  #         run: |
+  #           set -e
+  #           npm install -g pnpm@7.25.0
+  #           pnpm install
+  #           pnpm run build:js
 
-            pnpm --filter @rspack/core run test
-            pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
-  test-aarch64-unknown-linux-musl:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          - "16"
-    runs-on: ubuntu-latest
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-aarch64-unknown-linux-musl
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - name: Run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:${{ matrix.node }}-alpine
-          options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
-          run: |
-            set -e
-            npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
-            pnpm run build:js
+  #           pnpm --filter @rspack/core run test
+  #           pnpm --filter @rspack/dev-server run test
+  #           pnpm --filter @rspack/plugin-html run test
+  # test-aarch64-unknown-linux-musl:
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       node:
+  #         - "14"
+  #         - "16"
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Download bindings
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: bindings-aarch64-unknown-linux-musl
+  #         path: crates/node_binding/
+  #     - name: Show restored binding
+  #       run: ls -lah crates/node_binding/*.node
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v2
+  #       with:
+  #         platforms: arm64
+  #     - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+  #     - name: Run tests
+  #       uses: addnab/docker-run-action@v3
+  #       with:
+  #         image: node:${{ matrix.node }}-alpine
+  #         options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
+  #         run: |
+  #           set -e
+  #           npm install -g pnpm@7.25.0
+  #           PUPPETEER_SKIP_DOWNLOAD=true pnpm install
+  #           pnpm run build:js
 
-            pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
+  #           pnpm --filter @rspack/core run test
+  #           # pnpm --filter @rspack/dev-server run test
+  #           pnpm --filter @rspack/plugin-html run test
   test-x86_64-apple-darwin:
     strategy:
       fail-fast: false

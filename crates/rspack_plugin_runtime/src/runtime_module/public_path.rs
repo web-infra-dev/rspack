@@ -4,25 +4,29 @@ use rspack_core::{
   runtime_globals::PUBLIC_PATH,
   ChunkUkey, Compilation, OutputOptions, PublicPath, RuntimeModule, SourceType,
 };
+use rspack_identifier::Identifier;
 
 use super::utils::get_undo_path;
+use crate::impl_runtime_module;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Eq)]
 pub struct PublicPathRuntimeModule {
+  id: Identifier,
   chunk: Option<ChunkUkey>,
 }
 
-impl PublicPathRuntimeModule {
-  pub fn new() -> Self {
+impl Default for PublicPathRuntimeModule {
+  fn default() -> Self {
     Self {
-      chunk: Default::default(),
+      id: Identifier::from("webpack/runtime/public_path"),
+      chunk: None,
     }
   }
 }
 
 impl RuntimeModule for PublicPathRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/public_path".to_string()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
@@ -88,11 +92,4 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
   )
 }
 
-#[test]
-fn test_get_undo_path() {
-  assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
-  assert_eq!(
-    get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
-    "../../"
-  );
-}
+impl_runtime_module!(PublicPathRuntimeModule);

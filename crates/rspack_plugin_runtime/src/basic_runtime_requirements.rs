@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, NormalRuntimeModule, Plugin,
+  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
@@ -8,7 +8,8 @@ use rspack_error::Result;
 use crate::runtime_module::{
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
   GetMainFilenameRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, PublicPathRuntimeModule,
+  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, NormalRuntimeModule,
+  PublicPathRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -42,8 +43,8 @@ impl Plugin for BasicRuntimeRequirementPlugin {
       compilation.add_runtime_module(
         chunk,
         NormalRuntimeModule::new(
-          runtime_globals::INTEROP_REQUIRE.to_string(),
-          include_str!("runtime/common/_interop_require.js").to_string(),
+          runtime_globals::INTEROP_REQUIRE,
+          include_str!("runtime/common/_interop_require.js"),
         )
         .boxed(),
       )
@@ -53,8 +54,8 @@ impl Plugin for BasicRuntimeRequirementPlugin {
       compilation.add_runtime_module(
         chunk,
         NormalRuntimeModule::new(
-          runtime_globals::EXPORT_STAR.to_string(),
-          include_str!("runtime/common/_export_star.js").to_string(),
+          runtime_globals::EXPORT_STAR,
+          include_str!("runtime/common/_export_star.js"),
         )
         .boxed(),
       )
@@ -65,14 +66,14 @@ impl Plugin for BasicRuntimeRequirementPlugin {
     for &runtime_requirement in sorted_runtime_requirement {
       match runtime_requirement {
         runtime_globals::PUBLIC_PATH => {
-          compilation.add_runtime_module(chunk, PublicPathRuntimeModule::new().boxed())
+          compilation.add_runtime_module(chunk, PublicPathRuntimeModule::default().boxed())
         }
         runtime_globals::GET_CHUNK_SCRIPT_FILENAME => compilation.add_runtime_module(
           chunk,
           GetChunkFilenameRuntimeModule::new(
-            "js".to_string(),
+            "js",
             SourceType::JavaScript,
-            runtime_globals::GET_CHUNK_SCRIPT_FILENAME.to_string(),
+            runtime_globals::GET_CHUNK_SCRIPT_FILENAME,
             false,
           )
           .boxed(),
@@ -80,9 +81,9 @@ impl Plugin for BasicRuntimeRequirementPlugin {
         runtime_globals::GET_CHUNK_CSS_FILENAME => compilation.add_runtime_module(
           chunk,
           GetChunkFilenameRuntimeModule::new(
-            "css".to_string(),
+            "css",
             SourceType::Css,
-            runtime_globals::GET_CHUNK_CSS_FILENAME.to_string(),
+            runtime_globals::GET_CHUNK_CSS_FILENAME,
             runtime_requirements.contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS),
           )
           .boxed(),
