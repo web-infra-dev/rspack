@@ -166,6 +166,9 @@ export interface RawExternalItem {
   regexpPayload?: string
   objectPayload?: Record<string, string>
 }
+export interface RawExternalsPresets {
+  node: boolean
+}
 /**
  * `loader` is for js side loader, `builtin_loader` is for rust side loader,
  * which is mapped to real rust side loader by [get_builtin_loader].
@@ -359,6 +362,7 @@ export interface RawOptions {
   builtins: RawBuiltins
   externals?: Array<RawExternalItem>
   externalsType: string
+  externalsPresets: RawExternalsPresets
   devtool: string
   optimization: RawOptimizationOptions
   stats: RawStatsOptions

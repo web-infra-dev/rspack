@@ -94,6 +94,7 @@ export const getNormalizedRspackOptions = (
 		target: config.target,
 		externals: config.externals,
 		externalsType: config.externalsType,
+		externalsPresets: cloneObject(config.externalsPresets),
 		infrastructureLogging: cloneObject(config.infrastructureLogging),
 		devtool: config.devtool,
 		node: nestedConfig(

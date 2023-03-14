@@ -15,17 +15,10 @@ const tests = fs.readdirSync(base).filter(testName => {
 			fs.existsSync(path.resolve(base, testName, "webpack.config.js")))
 	);
 });
-// We do not support externalsType.node-commonjs yet, so I have to use eval to hack around the limitation
-function toEval(modName: string) {
-	return `eval('require("${modName}")')`;
-}
-const externalModule = ["uvu", "path", "fs", "expect"];
+
 describe("StatsTestCases", () => {
 	tests.forEach(testName => {
 		it("should print correct stats for " + testName, async () => {
-			const external = Object.fromEntries(
-				externalModule.map(x => [x, toEval(x)])
-			);
 			const context = path.resolve(base, testName);
 			const outputPath = path.resolve(base, testName, "dist");
 			const configPath = path.resolve(base, testName, "webpack.config.js");
@@ -43,7 +36,6 @@ describe("StatsTestCases", () => {
 					path: outputPath,
 					filename: "bundle.js" // not working by now @Todo need fixed later
 				},
-				externals: external,
 				...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 			};
 			const stats = await util.promisify(rspack)(options);
