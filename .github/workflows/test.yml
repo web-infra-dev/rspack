@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+      - "**"
+      - "!release-**"
     paths:
       - "crates/**"
       - "packages/**"
@@ -22,6 +24,8 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+    tags-ignore:
+      - "**"
 
 jobs:
   build:
