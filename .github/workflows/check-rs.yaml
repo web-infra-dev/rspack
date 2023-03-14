@@ -118,4 +118,4 @@ jobs:
           node -e "console.log(process.arch)"
           npm install -g pnpm@7.25.0
           pnpm install
-          cargo test --all -- --nocapture
+          cargo test --all -- --nocapture --test-threads=1
