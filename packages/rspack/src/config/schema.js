@@ -1743,6 +1743,9 @@ module.exports = {
 		externalsType: {
 			$ref: "#/definitions/ExternalsType"
 		},
+		externalsPresets: {
+			$ref: "#/definitions/ExternalsPresets"
+		},
 		infrastructureLogging: {
 			$ref: "#/definitions/InfrastructureLogging"
 		},

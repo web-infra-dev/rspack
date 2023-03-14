@@ -6,8 +6,6 @@ it("`test` should work well with both `string` and `regex`", () => {
 it("support js regex", () => {
 	const cssModule = require("./a.module.less");
 	const css = require("./a.less");
-	console.log("css", css);
-	console.log("cssModule", cssModule);
 	expect(css).toEqual({});
 	expect(cssModule["module-test"]).toBeTruthy;
 });

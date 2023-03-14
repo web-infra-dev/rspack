@@ -188,7 +188,7 @@ impl RawOptionsApply for RawOptions {
 
 fn node_target_plugin() -> BoxPlugin {
   rspack_plugin_externals::ExternalPlugin::new(
-    "commonjs".to_string(),
+    "commonjs".to_string(), // TODO: shoud be "node-commonjs"
     vec![
       ExternalItem::from("assert".to_string()),
       ExternalItem::from("assert/strict".to_string()),

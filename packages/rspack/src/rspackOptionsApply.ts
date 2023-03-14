@@ -14,7 +14,6 @@ import {
 } from ".";
 import fs from "graceful-fs";
 
-import { NodeTargetPlugin } from "./node/NodeTargetPlugin";
 import { ResolveSwcPlugin } from "./web/ResolveSwcPlugin";
 import { cleverMerge } from "./util/cleverMerge";
 import assert from "assert";
@@ -29,14 +28,6 @@ export class RspackOptionsApply {
 		compiler.outputPath = options.output.path;
 		compiler.name = options.name;
 		compiler.outputFileSystem = fs;
-		// TODO: align externalsPresets with webpack
-		// if (
-		// 	compiler.options.target !== false &&
-		// 	(compiler.options.target === "node" ||
-		// 		compiler.options.target?.includes("node"))
-		// ) {
-		// 	new NodeTargetPlugin().apply(compiler);
-		// }
 
 		const { minimize, minimizer } = options.optimization;
 		if (minimize && minimizer) {
