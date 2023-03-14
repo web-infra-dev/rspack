@@ -177,7 +177,11 @@ pub fn render_runtime_modules(
   runtime_modules.iter().for_each(|((_, source), module)| {
     sources.add(RawSource::from(format!("// {}\n", module.identifier())));
     sources.add(RawSource::from("(function() {\n"));
-    sources.add(source.clone());
+    if module.cacheable() {
+      sources.add(source.clone());
+    } else {
+      sources.add(module.generate(compilation));
+    }
     sources.add(RawSource::from("\n})();\n"));
   });
   Ok(sources.boxed())

@@ -30,6 +30,10 @@ impl RuntimeModule for GetFullHashRuntimeModule {
     )
     .boxed()
   }
+
+  fn cacheable(&self) -> bool {
+    false
+  }
 }
 
 impl_runtime_module!(GetFullHashRuntimeModule);
