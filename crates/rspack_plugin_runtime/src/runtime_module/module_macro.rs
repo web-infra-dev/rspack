@@ -3,7 +3,7 @@ macro_rules! impl_runtime_module {
   ($ident: ident) => {
     impl rspack_identifier::Identifiable for $ident {
       fn identifier(&self) -> rspack_identifier::Identifier {
-        self.name().into()
+        self.name()
       }
     }
 
@@ -34,7 +34,7 @@ macro_rules! impl_runtime_module {
       }
 
       fn readable_identifier(&self, _context: &rspack_core::Context) -> std::borrow::Cow<str> {
-        self.name().into()
+        self.name().as_str().into()
       }
 
       fn original_source(&self) -> Option<&dyn rspack_core::rspack_sources::Source> {

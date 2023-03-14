@@ -1,9 +1,10 @@
+use rspack_identifier::Identifier;
 use rspack_sources::BoxSource;
 
 use crate::{ChunkUkey, Compilation, Module};
 
 pub trait RuntimeModule: Module {
-  fn name(&self) -> String;
+  fn name(&self) -> Identifier;
   fn generate(&self, compilation: &Compilation) -> BoxSource;
   fn attach(&mut self, _chunk: ChunkUkey) {}
   fn stage(&self) -> u8 {

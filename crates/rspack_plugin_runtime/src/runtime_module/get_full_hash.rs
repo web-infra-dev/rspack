@@ -2,15 +2,26 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
 };
+use rspack_identifier::Identifier;
 
 use crate::impl_runtime_module;
 
-#[derive(Debug, Default, Eq)]
-pub struct GetFullHashRuntimeModule {}
+#[derive(Debug, Eq)]
+pub struct GetFullHashRuntimeModule {
+  id: Identifier,
+}
+
+impl Default for GetFullHashRuntimeModule {
+  fn default() -> Self {
+    Self {
+      id: Identifier::from("webpack/runtime/get_full_hash"),
+    }
+  }
+}
 
 impl RuntimeModule for GetFullHashRuntimeModule {
-  fn name(&self) -> String {
-    "webpack/runtime/get_full_hash".to_owned()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {

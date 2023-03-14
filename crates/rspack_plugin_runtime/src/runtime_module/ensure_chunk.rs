@@ -2,25 +2,28 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
 };
+use rspack_identifier::Identifier;
 
 use crate::impl_runtime_module;
 
 #[derive(Debug, Default, Eq)]
 pub struct EnsureChunkRuntimeModule {
+  id: Identifier,
   has_ensure_chunk_handlers: bool,
 }
 
 impl EnsureChunkRuntimeModule {
   pub fn new(has_ensure_chunk_handlers: bool) -> Self {
     Self {
+      id: Identifier::from("webpack/runtime/ensure_chunk"),
       has_ensure_chunk_handlers,
     }
   }
 }
 
 impl RuntimeModule for EnsureChunkRuntimeModule {
-  fn name(&self) -> String {
-    "webpack/runtime/ensure_chunk".to_owned()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, _compilation: &Compilation) -> BoxSource {

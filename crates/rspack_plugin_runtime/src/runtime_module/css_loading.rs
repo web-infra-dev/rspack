@@ -3,12 +3,14 @@ use rspack_core::{
   runtime_globals, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeModule, SourceType,
   RUNTIME_MODULE_STAGE_ATTACH,
 };
+use rspack_identifier::Identifier;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::{stringify_chunks, stringify_chunks_to_array};
 use crate::impl_runtime_module;
 #[derive(Debug, Default, Eq)]
 pub struct CssLoadingRuntimeModule {
+  id: Identifier,
   chunk: Option<ChunkUkey>,
   runtime_requirements: HashSet<&'static str>,
 }
@@ -16,6 +18,7 @@ pub struct CssLoadingRuntimeModule {
 impl CssLoadingRuntimeModule {
   pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
     Self {
+      id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
       runtime_requirements,
     }
@@ -33,8 +36,8 @@ impl CssLoadingRuntimeModule {
 }
 
 impl RuntimeModule for CssLoadingRuntimeModule {
-  fn name(&self) -> String {
-    "webpack/runtime/css_loading".to_owned()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {

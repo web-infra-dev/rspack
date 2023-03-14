@@ -3,6 +3,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   runtime_globals, ChunkUkey, Compilation, RuntimeModule, SourceType, RUNTIME_MODULE_STAGE_ATTACH,
 };
+use rspack_identifier::Identifier;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::{chunk_has_js, get_undo_path};
@@ -11,6 +12,7 @@ use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
 #[derive(Debug, Default, Eq)]
 pub struct RequireChunkLoadingRuntimeModule {
+  id: Identifier,
   chunk: Option<ChunkUkey>,
   runtime_requirements: HashSet<&'static str>,
 }
@@ -18,6 +20,7 @@ pub struct RequireChunkLoadingRuntimeModule {
 impl RequireChunkLoadingRuntimeModule {
   pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
     Self {
+      id: Identifier::from("webpack/runtime/require_chunk_loading"),
       chunk: None,
       runtime_requirements,
     }
@@ -25,8 +28,8 @@ impl RequireChunkLoadingRuntimeModule {
 }
 
 impl RuntimeModule for RequireChunkLoadingRuntimeModule {
-  fn name(&self) -> String {
-    "webpack/runtime/require_chunk_loading".to_owned()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
