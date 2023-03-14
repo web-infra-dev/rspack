@@ -31,17 +31,15 @@ jobs:
         with:
           files: .
 
-  format:
-    name: Format Rust Files
+  lint-and-format:
+    name: Lint and format Rust Files
     runs-on: ubuntu-latest
     steps:
-      # - name: Cleanup workspace
-      #   uses: TooMuch4U/actions-clean@v2.1
-      #   if: ${{ always() }}
-      - name: Checkout PR Branch
+        - name: Checkout PR Branch
         uses: actions/checkout@v3
         with:
           submodules: false
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Support longpaths
         run: git config core.longpaths true
       - name: Checkout repository
@@ -57,15 +55,6 @@ jobs:
         with:
           command: fmt
           args: --all --verbose -- --check
-
-  lint:
-    name: Lint Rust Files
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install protoc
         uses: arduino/setup-protoc@v1
         with:
