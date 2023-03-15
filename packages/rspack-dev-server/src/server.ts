@@ -8,12 +8,13 @@
  * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/LICENSE
  */
 import { Compiler, MultiCompiler } from "@rspack/core";
-import type { Socket } from "net";
-import type { FSWatcher } from "chokidar";
 import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
-import type { Server } from "http";
 import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";
+
+import type { FSWatcher } from "chokidar";
+import type { Server } from "http";
+import type { Socket } from "net";
 import type { ResolvedDevServer, DevServer } from "./config";
 
 export class RspackDevServer extends WebpackDevServer {
@@ -30,6 +31,8 @@ export class RspackDevServer extends WebpackDevServer {
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
 		super(options, compiler as any);
+		// overwrite the log title
+		this.logger = this.compiler.getInfrastructureLogger("rspack-dev-server");
 	}
 
 	addAdditionEntires(compiler: Compiler) {
