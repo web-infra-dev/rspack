@@ -62,7 +62,7 @@ class Compiler {
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
-		compile: tapable.SyncHook<[any]>;
+		compile: tapable.SyncHook<[]>;
 		initialize: tapable.SyncHook<[]>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
@@ -119,7 +119,7 @@ class Compiler {
 			]),
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
-			compile: new SyncHook(["params"]),
+			compile: new SyncHook([]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
 			watchRun: new tapable.AsyncSeriesHook(["compiler"]),
@@ -364,6 +364,7 @@ class Compiler {
 	}
 
 	#newCompilation(native: binding.JsCompilation) {
+		this.hooks.compile.call();
 		const compilation = new Compilation(this, native);
 		compilation.name = this.name;
 		this.compilation = compilation;
