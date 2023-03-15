@@ -136,6 +136,7 @@ impl JsCompilation {
       .inner
       .module_graph
       .modules()
+      .values()
       .filter_map(|module| module.to_js_module().ok())
       .collect::<Vec<_>>()
   }

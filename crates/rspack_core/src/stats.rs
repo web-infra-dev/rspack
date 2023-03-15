@@ -114,6 +114,7 @@ impl Stats<'_> {
       .compilation
       .module_graph
       .modules()
+      .values()
       .map(|module| self.get_module(module, self.compilation.options.stats.reasons))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);

@@ -203,7 +203,7 @@ impl<'a> HmrApiRewrite<'a> {
             self
               .compilation
               .module_graph
-              .module_graph_module_by_dependency_id(dependency.id().expect("should have id"))
+              .module_graph_module_by_dependency_id(&dependency.id().expect("should have id"))
           } else {
             None
           }
