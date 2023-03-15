@@ -1,22 +1,20 @@
-use std::any::{Any, TypeId};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::OsStr;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 
 use dashmap::DashMap;
-use rspack_core::rspack_sources::{ConcatSource, OriginalSource, RawSource, Source, SourceExt};
+use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  calc_hash, runtime_globals, AsAny, AsModuleDependency, AstOrSource, Context, Dependency,
-  Filename, FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  SourceType, StaticExportsDependency,
+  runtime_globals, AstOrSource, Context, Dependency, Filename, FilenameRenderOptions,
+  GenerateContext, GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, SourceType, StaticExportsDependency,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_plugin_asset::ModuleIdToFileName;
 use sugar_path::SugarPath;
-use wasmparser::{Parser, Payload};
+use wasmparser::{Import, Parser, Payload};
 
 use crate::dependency::WasmImportDependency;
 
@@ -25,7 +23,7 @@ pub struct AsyncWasmParserAndGenerator {
   pub(crate) module_id_to_filename: ModuleIdToFileName,
 }
 
-pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 1] = &[SourceType::Wasm];
+pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
 
 impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
@@ -52,11 +50,10 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         }
         Payload::ImportSection(s) => {
           for import in s {
-            let import = import.expect("expected a correctly wasm import");
+            let Import { module, name, ty } = import.expect("expected a correctly wasm import");
 
-            let dep =
-              box WasmImportDependency::new(import.module.into(), import.name.into(), import.ty)
-                as Box<dyn ModuleDependency>;
+            let dep = box WasmImportDependency::new(module.into(), name.into(), ty)
+              as Box<dyn ModuleDependency>;
 
             dependencies.push(dep);
           }
@@ -151,7 +148,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let instantiate_call = format!(
           "{}(exports, module.id, {})",
           runtime_globals::INSTANTIATE_WASM,
-          hash
+          serde_json::to_string(&hash).expect("hash should be serializable")
         );
 
         Ok(GenerationResult {
