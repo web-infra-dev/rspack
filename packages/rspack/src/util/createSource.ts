@@ -19,6 +19,9 @@ function createSourceFromRaw(source: JsCompatSource): Source {
 		source() {
 			return source.source.toString("utf-8");
 		},
+		buffer() {
+			return source.source;
+		},
 		map(_) {
 			if (source.map) {
 				return JSON.parse(source.map.toString("utf-8"));
