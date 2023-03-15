@@ -56,7 +56,7 @@ where
     ) -> (IdentifierMap<(u64, String)>, IdentifierMap<String>) {
       let modules_map = compilation
         .module_graph
-        .module_identifier_to_module
+        .modules()
         .values()
         .map(|module| {
           let identifier = module.identifier();

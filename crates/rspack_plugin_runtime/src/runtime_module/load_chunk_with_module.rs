@@ -32,7 +32,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let async_modules = compilation
       .module_graph
-      .module_identifier_to_module_graph_module
+      .module_graph_modules()
       .par_iter()
       .map(|(_, mgm)| mgm.dynamic_depended_modules(&compilation.module_graph))
       .flatten()

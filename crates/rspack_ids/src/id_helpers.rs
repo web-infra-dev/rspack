@@ -34,18 +34,22 @@ pub fn get_used_module_ids_and_modules(
   //     }
   //   }
 
-  compilation.module_graph.modules().for_each(|module| {
-    let module_id = chunk_graph.get_module_id(module.identifier());
-    if let Some(module_id) = module_id {
-      used_ids.insert(module_id.clone());
-    } else {
-      if filter.as_ref().map_or(true, |f| (f)(module))
-        && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
-      {
-        modules.push(module.identifier());
+  compilation
+    .module_graph
+    .modules()
+    .values()
+    .for_each(|module| {
+      let module_id = chunk_graph.get_module_id(module.identifier());
+      if let Some(module_id) = module_id {
+        used_ids.insert(module_id.clone());
+      } else {
+        if filter.as_ref().map_or(true, |f| (f)(module))
+          && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+        {
+          modules.push(module.identifier());
+        }
       }
-    }
-  });
+    });
   (used_ids, modules)
 }
 

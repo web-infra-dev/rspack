@@ -308,7 +308,7 @@ impl SplitChunksPlugin {
   ) -> HashMap<String, ChunksInfoItem> {
     let mut chunks_info_map: HashMap<String, ChunksInfoItem> = Default::default();
 
-    for module in compilation.module_graph.modules() {
+    for module in compilation.module_graph.modules().values() {
       let cache_group_source_keys = self.get_cache_groups(module.as_ref());
       if cache_group_source_keys.is_empty() {
         tracing::debug!(

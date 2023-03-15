@@ -1196,7 +1196,7 @@ async fn par_analyze_module(
     let resolver_factory = &compilation.plugin_driver.read().await.resolver_factory;
     compilation
       .module_graph
-      .module_identifier_to_module_graph_module
+      .module_graph_modules()
       .par_iter()
       .filter_map(|(module_identifier, mgm)| {
         let uri_key = *module_identifier;

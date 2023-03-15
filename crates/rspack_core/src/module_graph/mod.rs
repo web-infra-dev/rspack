@@ -18,19 +18,34 @@ pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<usize, ModuleIdentifier>,
 
   /// Module identifier to its module
-  pub(crate) module_identifier_to_module: IdentifierMap<BoxModule>,
+  module_identifier_to_module: IdentifierMap<BoxModule>,
+
   /// Module identifier to its module graph module
-  pub module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
+  module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
   dependency_id_to_connection_id: HashMap<usize, usize>,
   connection_id_to_dependency_id: HashMap<usize, usize>,
-  pub dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
+  dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
+
   /// The module graph connections
   connections: HashSet<ModuleGraphConnection>,
   connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
 }
 
 impl ModuleGraph {
+  /// Return an unordered iterator of modules
+  pub fn modules(&self) -> &IdentifierMap<BoxModule> {
+    &self.module_identifier_to_module
+  }
+
+  pub fn modules_mut(&mut self) -> &mut IdentifierMap<BoxModule> {
+    &mut self.module_identifier_to_module
+  }
+
+  pub fn module_graph_modules(&self) -> &IdentifierMap<ModuleGraphModule> {
+    &self.module_identifier_to_module_graph_module
+  }
+
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
     if let Entry::Vacant(val) = self
       .module_identifier_to_module_graph_module
@@ -79,16 +94,6 @@ impl ModuleGraph {
 
   pub fn module_identifier_by_dependency_id(&self, id: &DependencyId) -> Option<&ModuleIdentifier> {
     self.dependency_id_to_module_identifier.get(id)
-  }
-
-  /// Return an unordered iterator of module graph modules
-  pub fn module_graph_modules(&self) -> impl Iterator<Item = &ModuleGraphModule> {
-    self.module_identifier_to_module_graph_module.values()
-  }
-
-  /// Return an unordered iterator of modules
-  pub fn modules(&self) -> impl Iterator<Item = &BoxModule> {
-    self.module_identifier_to_module.values()
   }
 
   /// Add a connection between two module graph modules, if a connection exists, then it will be reused.

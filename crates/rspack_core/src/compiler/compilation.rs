@@ -344,7 +344,7 @@ impl Compilation {
     fast_drop(
       self
         .module_graph
-        .module_identifier_to_module
+        .modules_mut()
         .values_mut()
         .map(|module| {
           if let Some(m) = module.as_normal_module_mut() {
@@ -366,20 +366,14 @@ impl Compilation {
     let mut origin_module_deps = HashMap::default();
     // handle setup params
     if let SetupMakeParam::ModifiedFiles(files) = &params {
-      force_build_module.extend(
-        self
-          .module_graph
-          .module_identifier_to_module
-          .values()
-          .filter_map(|module| {
-            // check has dependencies modified
-            if module.has_dependencies(files) {
-              Some(module.identifier())
-            } else {
-              None
-            }
-          }),
-      );
+      force_build_module.extend(self.module_graph.modules().values().filter_map(|module| {
+        // check has dependencies modified
+        if module.has_dependencies(files) {
+          Some(module.identifier())
+        } else {
+          None
+        }
+      }));
       // collect origin_module_deps
       for module_id in &force_build_module {
         let mgm = self
@@ -776,6 +770,7 @@ impl Compilation {
       self.bailout_module_identifiers = self
         .module_graph
         .modules()
+        .values()
         .par_bridge()
         .filter_map(|module| {
           if module.as_context_module().is_some() {
@@ -848,7 +843,7 @@ impl Compilation {
     ) -> Result<()> {
       let results = compilation
         .module_graph
-        .module_identifier_to_module
+        .modules()
         .par_iter()
         .filter(filter_op)
         .map(|(module_identifier, module)| {
@@ -1028,7 +1023,7 @@ impl Compilation {
   ) -> Result<()> {
     let mut module_runtime_requirements = self
       .module_graph
-      .module_identifier_to_module
+      .modules()
       .par_iter()
       .filter_map(|(_, module)| {
         if self
