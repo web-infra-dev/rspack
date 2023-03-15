@@ -15,7 +15,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
-  dependency_id_to_module_identifier: HashMap<usize, ModuleIdentifier>,
+  dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
 
   /// Module identifier to its module
   module_identifier_to_module: IdentifierMap<BoxModule>,
@@ -23,8 +23,8 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  dependency_id_to_connection_id: HashMap<usize, usize>,
-  connection_id_to_dependency_id: HashMap<usize, usize>,
+  dependency_id_to_connection_id: HashMap<DependencyId, usize>,
+  connection_id_to_dependency_id: HashMap<usize, DependencyId>,
   dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
 
   /// The module graph connections
@@ -61,13 +61,14 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(&mut self, mut dep: BoxModuleDependency) -> usize {
+  pub fn add_dependency(&mut self, mut dep: BoxModuleDependency) -> DependencyId {
     static NEXT_DEPENDENCY_ID: AtomicUsize = AtomicUsize::new(0);
 
     if let Some(id) = dep.id() {
-      return *id;
+      return id;
     }
     let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
+    let id = DependencyId::from(id);
     dep.set_id(Some(id));
     self.dependency_id_to_dependency.insert(id, dep);
 
@@ -100,7 +101,7 @@ impl ModuleGraph {
   pub fn set_resolved_module(
     &mut self,
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency_id: usize,
+    dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     self
@@ -202,10 +203,13 @@ impl ModuleGraph {
   }
 
   /// Uniquely identify a connection by a given dependency
-  pub fn connection_by_dependency(&self, id: &usize) -> Option<&ModuleGraphConnection> {
+  pub fn connection_by_dependency(
+    &self,
+    dependency_id: &DependencyId,
+  ) -> Option<&ModuleGraphConnection> {
     self
       .dependency_id_to_connection_id
-      .get(id)
+      .get(dependency_id)
       .and_then(|id| self.connection_id_to_connection.get(id))
   }
 

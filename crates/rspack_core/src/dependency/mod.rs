@@ -72,7 +72,7 @@ pub enum DependencyCategory {
 pub trait Dependency:
   CodeGeneratable + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
 {
-  fn id(&self) -> Option<&DependencyId> {
+  fn id(&self) -> Option<DependencyId> {
     None
   }
   fn set_id(&mut self, _id: Option<DependencyId>) {}
@@ -136,7 +136,7 @@ impl ModuleDependencyExt for dyn ModuleDependency + '_ {
     (
       (*parent, module_id, *self.category()),
       *module_graph
-        .module_identifier_by_dependency_id(self.id().expect("should have dependency"))
+        .module_identifier_by_dependency_id(&self.id().expect("should have dependency"))
         .expect("Failed to resolve module graph module"),
     )
   }
@@ -240,7 +240,7 @@ impl Dependency for Box<dyn ModuleDependency> {
     (**self).get_context()
   }
 
-  fn id(&self) -> Option<&DependencyId> {
+  fn id(&self) -> Option<DependencyId> {
     (**self).id()
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
@@ -302,4 +302,19 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
   false
 }
 
-pub type DependencyId = usize;
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct DependencyId(usize);
+
+impl std::ops::Deref for DependencyId {
+  type Target = usize;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<usize> for DependencyId {
+  fn from(id: usize) -> Self {
+    Self(id)
+  }
+}

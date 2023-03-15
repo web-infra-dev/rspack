@@ -2,7 +2,7 @@ use std::cmp::PartialEq;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::ModuleIdentifier;
+use crate::{DependencyId, ModuleIdentifier};
 
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
 static NEXT_MODULE_GRAPH_CONNECTION_ID: AtomicUsize = AtomicUsize::new(1);
@@ -14,7 +14,7 @@ pub struct ModuleGraphConnection {
   /// The referenced module identifier
   pub module_identifier: ModuleIdentifier,
   /// The referencing dependency id
-  pub dependency_id: usize,
+  pub dependency_id: DependencyId,
 
   /// The unique id of this connection
   pub id: usize,
@@ -39,7 +39,7 @@ impl PartialEq for ModuleGraphConnection {
 impl ModuleGraphConnection {
   pub fn new(
     original_module_identifier: Option<ModuleIdentifier>,
-    dependency_id: usize,
+    dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
