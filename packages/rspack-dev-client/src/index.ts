@@ -13,6 +13,25 @@ import {
 	setLogLevel,
 	logEnabledFeatures
 } from "webpack-dev-server/client/utils/log";
+import logger from 'webpack-dev-server/client/modules/logger/index'
+import createConsoleLogger from 'webpack/lib/logging/createConsoleLogger'
+const rpsName = 'rspack-dev-server'
+const wdsName = 'webpack-dev-server'
+let currentDefaultLoggerOptions = {
+	level: "info",
+	debug: false,
+	console
+};
+let currentDefaultLogger = createConsoleLogger(currentDefaultLoggerOptions);
+
+logger.hooks.log.call = (name: string, type, arg) => {
+	currentDefaultLogger(name === wdsName ? rpsName : name, type, arg)
+	return true
+}
+
+log.getChildLogger = (childName: string) => {
+	return logger.getLogger(`${rpsName}/${childName}`)
+}
 
 declare const __resourceQuery: string;
 declare const __webpack_hash__: string;
