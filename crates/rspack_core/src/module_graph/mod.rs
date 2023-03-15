@@ -7,7 +7,7 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 mod connection;
-pub use connection::ModuleGraphConnection;
+pub use connection::{ConnectionId, ModuleGraphConnection};
 
 use crate::{
   BoxModule, BoxModuleDependency, DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
@@ -23,13 +23,13 @@ pub struct ModuleGraph {
   /// Module identifier to its module graph module
   module_identifier_to_module_graph_module: IdentifierMap<ModuleGraphModule>,
 
-  dependency_id_to_connection_id: HashMap<DependencyId, usize>,
-  connection_id_to_dependency_id: HashMap<usize, DependencyId>,
+  dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
+  connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
   dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
 
   /// The module graph connections
   connections: HashSet<ModuleGraphConnection>,
-  connection_id_to_connection: HashMap<usize, ModuleGraphConnection>,
+  connection_id_to_connection: HashMap<ConnectionId, ModuleGraphConnection>,
 }
 
 impl ModuleGraph {
@@ -232,21 +232,24 @@ impl ModuleGraph {
     &self,
     connection: &ModuleGraphConnection,
   ) -> Option<&BoxModuleDependency> {
-    self.dependency_by_connection_id(connection.id)
+    self.dependency_by_connection_id(&connection.id)
   }
 
-  pub fn dependency_by_connection_id(&self, connection_id: usize) -> Option<&BoxModuleDependency> {
+  pub fn dependency_by_connection_id(
+    &self,
+    connection_id: &ConnectionId,
+  ) -> Option<&BoxModuleDependency> {
     self
       .connection_id_to_dependency_id
-      .get(&connection_id)
+      .get(connection_id)
       .and_then(|id| self.dependency_id_to_dependency.get(id))
   }
 
   pub fn connection_by_connection_id(
     &self,
-    connection_id: usize,
+    connection_id: &ConnectionId,
   ) -> Option<&ModuleGraphConnection> {
-    self.connection_id_to_connection.get(&connection_id)
+    self.connection_id_to_connection.get(connection_id)
   }
 
   pub fn remove_connection_by_dependency(
@@ -301,14 +304,14 @@ impl ModuleGraph {
         mgm
           .outgoing_connections
           .iter()
-          .filter_map(|id| self.connection_by_connection_id(*id))
+          .filter_map(|id| self.connection_by_connection_id(id))
           .collect()
       })
       .unwrap_or_default()
   }
 
   /// Remove a connection and return connection origin module identifier and dependency
-  fn revoke_connection(&mut self, cid: usize) -> Option<DependencyId> {
+  fn revoke_connection(&mut self, cid: ConnectionId) -> Option<DependencyId> {
     let connection = match self.connection_id_to_connection.remove(&cid) {
       Some(c) => c,
       None => return None,

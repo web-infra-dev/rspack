@@ -7,17 +7,36 @@ use crate::{DependencyId, ModuleIdentifier};
 // FIXME: placing this as global id is not acceptable, move it to somewhere else later
 static NEXT_MODULE_GRAPH_CONNECTION_ID: AtomicUsize = AtomicUsize::new(1);
 
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct ConnectionId(usize);
+
+impl std::ops::Deref for ConnectionId {
+  type Target = usize;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<usize> for ConnectionId {
+  fn from(id: usize) -> Self {
+    Self(id)
+  }
+}
+
 #[derive(Debug, Clone, Eq)]
 pub struct ModuleGraphConnection {
+  /// The unique id of this connection
+  pub id: ConnectionId,
+
   /// The referencing module identifier
   pub original_module_identifier: Option<ModuleIdentifier>,
+
   /// The referenced module identifier
   pub module_identifier: ModuleIdentifier,
+
   /// The referencing dependency id
   pub dependency_id: DependencyId,
-
-  /// The unique id of this connection
-  pub id: usize,
 }
 
 impl Hash for ModuleGraphConnection {
@@ -42,12 +61,12 @@ impl ModuleGraphConnection {
     dependency_id: DependencyId,
     module_identifier: ModuleIdentifier,
   ) -> Self {
+    let id = NEXT_MODULE_GRAPH_CONNECTION_ID.fetch_add(1, Ordering::Relaxed);
     Self {
+      id: ConnectionId::from(id),
       original_module_identifier,
       module_identifier,
       dependency_id,
-
-      id: NEXT_MODULE_GRAPH_CONNECTION_ID.fetch_add(1, Ordering::Relaxed),
     }
   }
 }
