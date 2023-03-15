@@ -1048,6 +1048,139 @@ error[javascript]: JavaScript parsing error
 "
 `;
 
+exports[`StatsTestCases should print correct stats for resolve-inexist-tsconfig 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.js",
+      "size": 299,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
+  "chunks": [
+    {
+      "children": [],
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "modules": [
+        {
+          "chunks": [
+            "main",
+          ],
+          "id": "850",
+          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig./index",
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "<PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig./index (missing)",
+          "size": 160,
+          "type": "module",
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 160,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 299,
+        },
+      ],
+      "assetsSize": 299,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [
+    {
+      "formatted": "error[internal]: <PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig/tsconfig is not a tsconfig
+
+",
+      "message": "error[internal]: <PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig/tsconfig is not a tsconfig
+",
+    },
+  ],
+  "errorsCount": 1,
+  "hash": "c77b3abb6f87acd9",
+  "modules": [
+    {
+      "chunks": [
+        "main",
+      ],
+      "id": "850",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig./index",
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "<PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig./index (missing)",
+      "size": 160,
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 299,
+        },
+      ],
+      "assetsSize": 299,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig/dist",
+  "publicPath": "",
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for resolve-inexist-tsconfig 2`] = `
+"Hash: c77b3abb6f87acd9
+    Asset       Size  Chunks             Chunk Names
+bundle.js  299 bytes    main  [emitted]  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 160 bytes [entry]
+ [850] <PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig./index (missing) 160 bytes {main}
+[850] <PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig./index (missing) 160 bytes {main}
+
+error[internal]: <PROJECT_ROOT>/tests/statsCases/resolve-inexist-tsconfig/tsconfig is not a tsconfig
+
+"
+`;
+
 exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 {
   "assets": [

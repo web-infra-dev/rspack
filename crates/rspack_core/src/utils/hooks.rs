@@ -49,9 +49,11 @@ pub async fn resolve(
       dependency_category: *args.dependency_category,
     });
   let result = resolver.resolve(base_dir, args.specifier);
-  let (file_dependencies, missing_dependencies) = resolver.dependencies();
-  args.file_dependencies.extend(file_dependencies);
-  args.missing_dependencies.extend(missing_dependencies);
+
+  // FIXME: nodejs_resolver do not support this.
+  // let (file_dependencies, missing_dependencies) = resolver.dependencies();
+  // args.file_dependencies.extend(file_dependencies);
+  // args.missing_dependencies.extend(missing_dependencies);
 
   result.map_err(|error| match error {
     nodejs_resolver::Error::Io(error) => {
@@ -72,10 +74,13 @@ pub async fn resolve(
         source: anyhow::Error::msg(error),
       },
     ),
+    nodejs_resolver::Error::CantFindTsConfig(path) => ResolveError(
+      format!("{} is not a tsconfig", path.display()),
+      internal_error!("{} is not a tsconfig", path.display()),
+    ),
     _ => {
       if let Some(importer) = args.importer {
         let span = args.span.unwrap_or_default();
-
         // Use relative path in runtime for stable hashing
         let (runtime_message, internal_message) = if let nodejs_resolver::Error::Overflow = error {
           (
@@ -122,7 +127,7 @@ pub async fn resolve(
           internal_error!(
             "Failed to resolve {} in {}",
             args.specifier,
-            plugin_driver.options.context.display()
+            base_dir.display()
           ),
         )
       }
