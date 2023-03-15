@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rspack_error::{internal_error, Result};
 use rspack_identifier::IdentifierMap;
@@ -25,7 +24,10 @@ pub struct ModuleGraph {
 
   dependency_id_to_connection_id: HashMap<DependencyId, ConnectionId>,
   connection_id_to_dependency_id: HashMap<ConnectionId, DependencyId>,
-  dependency_id_to_dependency: HashMap<DependencyId, BoxModuleDependency>,
+
+  /// Dependencies indexed by `DependencyId`
+  /// None means the dependency has been removed
+  dependencies: Vec<Option<BoxModuleDependency>>,
 
   /// The module graph connections
   connections: HashSet<ModuleGraphConnection>,
@@ -61,22 +63,23 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(&mut self, mut dep: BoxModuleDependency) -> DependencyId {
-    static NEXT_DEPENDENCY_ID: AtomicUsize = AtomicUsize::new(0);
-
-    if let Some(id) = dep.id() {
-      return id;
+  pub fn add_dependency(&mut self, mut dependency: BoxModuleDependency) -> DependencyId {
+    if let Some(dependency_id) = dependency.id() {
+      return dependency_id;
     }
-    let id = NEXT_DEPENDENCY_ID.fetch_add(1, Ordering::Relaxed);
-    let id = DependencyId::from(id);
-    dep.set_id(Some(id));
-    self.dependency_id_to_dependency.insert(id, dep);
-
-    id
+    let new_dependency_id = self.dependencies.len();
+    let new_dependency_id = DependencyId::from(new_dependency_id);
+    dependency.set_id(Some(new_dependency_id));
+    self.dependencies.push(Some(dependency));
+    new_dependency_id
   }
 
-  pub fn dependency_by_id(&self, id: &DependencyId) -> Option<&BoxModuleDependency> {
-    self.dependency_id_to_dependency.get(id)
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxModuleDependency> {
+    self.dependencies[**dependency_id].as_ref()
+  }
+
+  fn remove_dependency(&mut self, dependency_id: &DependencyId) {
+    self.dependencies[**dependency_id] = None;
   }
 
   /// Uniquely identify a module by its dependency
@@ -242,7 +245,7 @@ impl ModuleGraph {
     self
       .connection_id_to_dependency_id
       .get(connection_id)
-      .and_then(|id| self.dependency_id_to_dependency.get(id))
+      .and_then(|dependency_id| self.dependency_by_id(dependency_id))
   }
 
   pub fn connection_by_connection_id(
@@ -254,11 +257,11 @@ impl ModuleGraph {
 
   pub fn remove_connection_by_dependency(
     &mut self,
-    id: &DependencyId,
+    dependency_id: &DependencyId,
   ) -> Option<ModuleGraphConnection> {
     let mut removed = None;
 
-    if let Some(conn) = self.dependency_id_to_connection_id.remove(id) {
+    if let Some(conn) = self.dependency_id_to_connection_id.remove(dependency_id) {
       self.connection_id_to_dependency_id.remove(&conn);
 
       if let Some(conn) = self.connection_id_to_connection.remove(&conn) {
@@ -279,8 +282,10 @@ impl ModuleGraph {
         removed = Some(conn);
       }
     }
-    self.dependency_id_to_module_identifier.remove(id);
-    self.dependency_id_to_dependency.remove(id);
+    self
+      .dependency_id_to_module_identifier
+      .remove(dependency_id);
+    self.remove_dependency(dependency_id);
 
     removed
   }
