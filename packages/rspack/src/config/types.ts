@@ -421,6 +421,7 @@ export interface StatsOptions {
 	hash?: boolean;
 	reasons?: boolean;
 	publicPath?: boolean;
+	outputPath?: boolean;
 	chunkModules?: boolean;
 	chunkRelations?: boolean;
 }
