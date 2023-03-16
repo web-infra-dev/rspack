@@ -113,7 +113,7 @@ impl NormalModuleFactory {
       }
       Err(ResolveError(runtime_error, internal_error)) => {
         let ident = format!("{}{specifier}", importer_with_context.display());
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}{specifier}"));
+        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
         let missing_module = MissingModule::new(
           module_identifier,

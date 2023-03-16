@@ -93,8 +93,8 @@ impl ContextModuleFactory {
         return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
       }
       Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", data.context.expect("should have context"),);
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}{specifier}"));
+        let ident = format!("{}{specifier}", data.context.expect("should have context"));
+        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
         let missing_module = MissingModule::new(
           module_identifier,
