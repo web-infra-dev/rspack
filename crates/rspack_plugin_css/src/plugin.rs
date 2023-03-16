@@ -595,10 +595,8 @@ impl Plugin for CssPlugin {
       .iter()
       .map(|mgm| {
         (
-          compilation
-            .module_graph
-            .get_module_hash(&mgm.module_identifier),
-          compilation.chunk_graph.get_module_id(mgm.module_identifier),
+          compilation.module_graph.get_module_hash(mgm),
+          compilation.chunk_graph.get_module_id(*mgm),
         )
       })
       .for_each(|(current, id)| {
