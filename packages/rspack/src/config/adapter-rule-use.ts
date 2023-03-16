@@ -301,7 +301,7 @@ function composeJsUse(
 					// @ts-expect-error
 					createHash: type => {
 						return createHash(
-							// @ts-expect-error hashFunction should also avaiable in rust side, then we can make the type right
+							// @ts-expect-error hashFunction should also available in rust side, then we can make the type right
 							type || compiler.compilation.outputOptions.hashFunction
 						);
 					}
