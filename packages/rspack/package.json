@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
   "main": "./dist/index.js",
