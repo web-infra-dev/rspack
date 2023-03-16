@@ -26,36 +26,28 @@ jobs:
     name: lint, format and spell check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR Branch
-        uses: actions/checkout@v3
-        with:
-          submodules: false
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Support longpaths
-        run: git config core.longpaths true
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install toolchain
         run: rustup show
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: check
+
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all --verbose -- --check
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install toolchain
-        run: rustup show
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: check
+
       - name: Run cargo check
         run: cargo check --workspace --all-targets --release --locked
 
@@ -64,8 +56,10 @@ jobs:
         with:
           command: clippy
           args: --workspace --all-targets -- -D warnings
+
       - name: Check Dependencies
         run: node ./scripts/check_rust_dependency.js
+
       - name: Spell Check
         uses: crate-ci/typos@master
         with:
@@ -80,21 +74,24 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install protoc
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
+
       - name: Install toolchain
         run: rustup show
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: check
+
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |
