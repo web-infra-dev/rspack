@@ -16,3 +16,4 @@ napi = { workspace = true, default-features = false, features = [
   "napi5",
   "anyhow",
 ] }
+rspack_napi_shared = { path = "../rspack_napi_shared" }

@@ -191,11 +191,12 @@ export interface JsLoader {
   func: (...args: any[]) => any
 }
 export interface RawRuleSetCondition {
-  type: "string" | "regexp" | "logical" | "array"
+  type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
   regexpMatcher?: string
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
+  funcMatcher?: (value: string) => boolean
 }
 export interface RawRuleSetLogicalConditions {
   and?: Array<RawRuleSetCondition>

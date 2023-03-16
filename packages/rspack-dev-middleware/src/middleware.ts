@@ -9,15 +9,23 @@ export function getRspackMemoryAssets(
 	compiler: Compiler,
 	rdm: ReturnType<typeof wdm>
 ): RequestHandler {
-	const publicPath = compiler.options.output.publicPath ? compiler.options.output.publicPath.replace(/\/$/, '') + '/' : '/';
-	return function (req: IncomingMessage, res: ServerResponse, next: () => void) {
+	const publicPath = compiler.options.output.publicPath
+		? compiler.options.output.publicPath.replace(/\/$/, "") + "/"
+		: "/";
+	return function (
+		req: IncomingMessage,
+		res: ServerResponse,
+		next: () => void
+	) {
 		const { method, url } = req;
 		if (method !== "GET") {
 			return next();
 		}
 
 		// asset name is not start with /, so path need to slice 1
-		const filename = url.startsWith(publicPath) ? url.slice(publicPath.length) : url.slice(1);
+		const filename = url.startsWith(publicPath)
+			? url.slice(publicPath.length)
+			: url.slice(1);
 		let buffer =
 			compiler.getAsset(filename) ??
 			(() => {

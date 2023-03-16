@@ -2416,6 +2416,7 @@ name = "rspack_binding_macros"
 version = "0.1.0"
 dependencies = [
  "napi",
+ "rspack_napi_shared",
 ]
 
 [[package]]

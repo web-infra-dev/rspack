@@ -65,19 +65,35 @@ impl Debug for RawModuleRuleUse {
   }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawRuleSetCondition {
-  #[napi(ts_type = r#""string" | "regexp" | "logical" | "array""#)]
+  #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
   pub r#type: String,
   pub string_matcher: Option<String>,
   pub regexp_matcher: Option<String>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
   pub array_matcher: Option<Vec<RawRuleSetCondition>>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = r#"(value: string) => boolean"#)]
+  pub func_matcher: Option<JsFunction>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+impl Debug for RawRuleSetCondition {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("RawRuleSetCondition")
+      .field("r#type", &self.r#type)
+      .field("string_matcher", &self.string_matcher)
+      .field("regexp_matcher", &self.regexp_matcher)
+      .field("logical_matcher", &self.logical_matcher)
+      .field("array_matcher", &self.array_matcher)
+      .field("func_matcher", &"...")
+      .finish()
+  }
+}
+
+#[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawRuleSetLogicalConditions {
@@ -127,21 +143,22 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
           )
         })?,
       )?),
-      "logical" => Self::Logical(Box::new(rspack_core::RuleSetLogicalConditions::try_from(
-        x.logical_matcher
-          .ok_or_else(|| {
-            internal_error!(
-              "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
-            )
-          })?
-          .get(0)
-          .ok_or_else(|| {
-            internal_error!(
-              "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
-            )
-          })?
-          .to_owned(),
-      )?)),
+      "logical" => {
+        let mut logical_matcher = x.logical_matcher.ok_or_else(|| {
+          internal_error!(
+            "should have a logical_matcher when RawRuleSetCondition.type is \"logical\""
+          )
+        })?;
+        let logical_matcher = logical_matcher.get_mut(0).ok_or_else(|| {
+          internal_error!(
+            "TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed"
+          )
+        })?;
+        let logical_matcher = std::mem::take(logical_matcher);
+        Self::Logical(Box::new(rspack_core::RuleSetLogicalConditions::try_from(
+          logical_matcher,
+        )?))
+      }
       "array" => Self::Array(
         x.array_matcher
           .ok_or_else(|| {
@@ -153,8 +170,39 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
           .map(|i| i.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()?,
       ),
+      #[cfg(feature = "node-api")]
+      "function" => {
+        let func_matcher = x.func_matcher.ok_or_else(|| {
+          internal_error!(
+            "should have a func_matcher when RawRuleSetCondition.type is \"function\""
+          )
+        })?;
+        let func_matcher: ThreadsafeFunction<String, bool> =
+          NAPI_ENV.with(|env| -> anyhow::Result<_> {
+            let env = env
+              .borrow()
+              .expect("Failed to get env, did you forget to call it from node?");
+            let func_matcher =
+              rspack_binding_macros::js_fn_into_theadsafe_fn!(func_matcher, &Env::from(env));
+            Ok(func_matcher)
+          })?;
+
+        Self::Func(Box::new(move |data| {
+          tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async {
+              func_matcher
+                .call(data.to_string(), ThreadsafeFunctionCallMode::NonBlocking)
+                .into_rspack_result()?
+                .await
+                .map_err(|err| {
+                  internal_error!("Failed to call RuleSetCondition func_matcher: {err}")
+                })?
+            })
+          })
+        }))
+      }
       _ => panic!(
-        "Failed to resolve the condition type {}. Expected type is either `string` or `regexp`.",
+        "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
         x.r#type
       ),
     };
@@ -329,16 +377,6 @@ impl TryFrom<JsLoader> for JsLoaderAdapter {
       func,
       name: js_loader.name,
     })
-  }
-}
-
-#[cfg(feature = "node-api")]
-impl JsLoaderAdapter {
-  pub fn unref(&mut self, env: &napi::Env) -> anyhow::Result<()> {
-    self
-      .func
-      .unref(env)
-      .map_err(|e| anyhow::format_err!("failed to unref tsfn: {}", e))
   }
 }
 
