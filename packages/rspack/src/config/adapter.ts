@@ -14,6 +14,7 @@ import {
 	Experiments,
 	ExternalItem,
 	Externals,
+	ExternalsPresets,
 	LibraryOptions,
 	ModuleOptionsNormalized,
 	Node,
@@ -61,6 +62,7 @@ export const getRawOptions = (
 			: undefined,
 		externalsType:
 			options.externalsType === undefined ? "" : options.externalsType,
+		externalsPresets: getRawExternalsPresets(options.externalsPresets),
 		devtool,
 		optimization: getRawOptimization(options.optimization),
 		stats: getRawStats(options.stats),
@@ -160,6 +162,14 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		strictModuleErrorHandling: output.strictModuleErrorHandling,
 		globalObject: output.globalObject,
 		importFunctionName: output.importFunctionName
+	};
+}
+
+function getRawExternalsPresets(
+	presets: ExternalsPresets
+): RawOptions["externalsPresets"] {
+	return {
+		node: presets.node ?? false
 	};
 }
 

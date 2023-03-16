@@ -1,5 +1,16 @@
 # rspack-dev-server
 
+## 0.1.1
+
+### Patch Changes
+
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- Updated dependencies [f5f661a2]
+- Updated dependencies [a004765a]
+  - @rspack/dev-middleware@0.1.1
+  - @rspack/dev-client@0.1.1
+  - @rspack/dev-server@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

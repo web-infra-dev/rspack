@@ -139,14 +139,9 @@ export const describeCases = (config: any) => {
 										options.context = path.join(tempDirectory, options.context);
 									}
 									if (!options.entry) options.entry = "./index.js";
-									// TODO: shoud be `if (!options.target) options.target = "async-node";`
+									// TODO: should be `if (!options.target) options.target = "async-node";`
 									if (!options.target) {
 										options.target = "node";
-										options.externals = {
-											fs: "fs",
-											path: "path"
-										};
-										options.externalsType = "commonjs";
 									}
 									if (!options.output) options.output = {};
 									if (!options.output.path)
@@ -208,7 +203,7 @@ export const describeCases = (config: any) => {
 									compiler.watch(
 										{
 											aggregateTimeout: 1000,
-											poll: true
+											poll: 1000
 										},
 										(err, stats) => {
 											if (err) return compilationFinished(err);

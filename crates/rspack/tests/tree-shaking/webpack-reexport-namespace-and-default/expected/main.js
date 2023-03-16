@@ -29,9 +29,9 @@ Object.defineProperty(exports, "mod", {
         return mod;
     }
 });
-var _scriptJs = __webpack_require__.ir(__webpack_require__("./package1/script.js"));
-var _scriptJs1 = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
-const mod = _scriptJs1.default;
+__webpack_require__("./package1/script.js");
+var _scriptJs = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
+const mod = _scriptJs.default;
 },
 "./package1/script.js": function (module, exports, __webpack_require__) {
 "use strict";

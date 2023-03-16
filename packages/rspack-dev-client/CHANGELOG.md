@@ -1,5 +1,11 @@
 # @rspack/dev-client
 
+## 0.1.1
+
+### Patch Changes
+
+- a004765a: Avoid reporting warning the export when src module format is none esm
+
 ## 0.1.0
 
 ### Minor Changes

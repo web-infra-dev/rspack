@@ -37,3 +37,10 @@ impl From<RawExternalItem> for ExternalItem {
     }
   }
 }
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawExternalsPresets {
+  pub node: bool,
+}

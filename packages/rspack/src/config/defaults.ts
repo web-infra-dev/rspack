@@ -18,6 +18,7 @@ import {
 import type {
 	Context,
 	Experiments,
+	ExternalsPresets,
 	InfrastructureLogging,
 	Mode,
 	ModuleOptions,
@@ -74,6 +75,10 @@ export const applyRspackOptionsDefaults = (
 
 	applyOutputDefaults(options.output, {
 		context: options.context!,
+		targetProperties
+	});
+
+	applyExternalsPresetsDefaults(options.externalsPresets, {
 		targetProperties
 	});
 
@@ -310,6 +315,13 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+};
+
+const applyExternalsPresetsDefaults = (
+	externalsPresets: ExternalsPresets,
+	{ targetProperties }: { targetProperties: any }
+) => {
+	D(externalsPresets, "node", targetProperties && targetProperties.node);
 };
 
 const applyNodeDefaults = (

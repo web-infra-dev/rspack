@@ -3,12 +3,14 @@ use rspack_core::{
   runtime_globals, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeModule, SourceType,
   RUNTIME_MODULE_STAGE_ATTACH,
 };
+use rspack_identifier::Identifier;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::{stringify_chunks, stringify_chunks_to_array};
-
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+#[derive(Debug, Default, Eq)]
 pub struct CssLoadingRuntimeModule {
+  id: Identifier,
   chunk: Option<ChunkUkey>,
   runtime_requirements: HashSet<&'static str>,
 }
@@ -16,6 +18,7 @@ pub struct CssLoadingRuntimeModule {
 impl CssLoadingRuntimeModule {
   pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
     Self {
+      id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
       runtime_requirements,
     }
@@ -33,8 +36,8 @@ impl CssLoadingRuntimeModule {
 }
 
 impl RuntimeModule for CssLoadingRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/css_loading".to_string()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -69,7 +72,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .contains(runtime_globals::ENSURE_CHUNK_HANDLERS);
 
       if !with_hmr && !with_loading && async_chunk_ids_with_css.is_empty() {
-        return RawSource::from("".to_string()).boxed();
+        return RawSource::from("").boxed();
       }
 
       let mut initial_chunk_ids_with_css = HashSet::default();
@@ -114,10 +117,11 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       if with_hmr {
-        source.add(RawSource::from(
-          include_str!("runtime/css_loading_with_hmr.js").to_string(),
-        ));
+        source.add(RawSource::from(include_str!(
+          "runtime/css_loading_with_hmr.js"
+        )));
       }
+
       source.boxed()
     } else {
       unreachable!("should attach chunk for css_loading")
@@ -132,3 +136,5 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RUNTIME_MODULE_STAGE_ATTACH
   }
 }
+
+impl_runtime_module!(CssLoadingRuntimeModule);

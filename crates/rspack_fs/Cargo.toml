@@ -17,9 +17,9 @@ optional = true
 path     = "../rspack_error"
 
 [dependencies.futures]
-optional = true
-version  = "0.3.26"
+optional  = true
+workspace = true
 
 [dependencies.tokio]
-optional = true
-version  = "1.21.0"
+optional  = true
+workspace = true

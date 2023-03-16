@@ -8,24 +8,24 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow             = { version = "1.0.61", features = ["backtrace"] }
+anyhow             = { workspace = true, features = ["backtrace"] }
 codespan-reporting = "0.11.1"
-futures            = "0.3.26"
-json               = "0.12.4"
+futures            = { workspace = true }
+json               = { workspace = true }
 rspack_util        = { path = "../rspack_util" }
-sugar_path         = "0.0.9"
+sugar_path         = { workspace = true }
 swc_core           = { workspace = true, features = ["common"] }
 termcolor          = "1.1"
 
 [dev-dependencies]
-insta = "1.19.0"
+insta = { workspace = true }
 rspack = { path = "../rspack" }
 rspack_binding_options = { path = "../rspack_binding_options" }
 rspack_core = { path = "../rspack_core" }
 rspack_fs = { path = "../rspack_fs", features = ["async"] }
 rspack_testing = { path = "../rspack_testing" }
 rspack_tracing = { path = "../rspack_tracing" }
-tokio = { version = "1.21.0", features = [
+tokio = { workspace = true, features = [
   "rt",
   "rt-multi-thread",
   "macros",
