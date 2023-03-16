@@ -24,12 +24,14 @@ pub struct AssetGeneratorOptions {
   pub filename: Option<Filename>,
 }
 
+pub type RuleSetConditionFnMatcher = Box<dyn Fn(&str) -> Result<bool> + Sync + Send>;
+
 pub enum RuleSetCondition {
   String(String),
   Regexp(RspackRegex),
   Logical(Box<RuleSetLogicalConditions>),
   Array(Vec<RuleSetCondition>),
-  Func(Box<dyn Fn(&str) -> Result<bool> + Sync + Send>),
+  Func(RuleSetConditionFnMatcher),
 }
 
 impl fmt::Debug for RuleSetCondition {
