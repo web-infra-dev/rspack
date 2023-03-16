@@ -16,7 +16,7 @@ use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   contextify, runtime_globals, stringify_map, AstOrSource, BoxModuleDependency, BuildContext,
-  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  BuildInfo, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
   DependencyCategory, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
 };
 
@@ -434,14 +434,14 @@ impl ContextModule {
 
     Ok(
       BuildResult {
-        hash: hasher.finish(),
+        build_info: BuildInfo {
+          hash: hasher.finish(),
+          // TODO
+          cacheable: false,
+          ..Default::default()
+        },
         dependencies,
-        // TODO
-        cacheable: false,
-        file_dependencies: Default::default(),
-        context_dependencies: Default::default(),
-        missing_dependencies: Default::default(),
-        build_dependencies: Default::default(),
+        ..Default::default()
       }
       .with_diagnostic(vec![]),
     )

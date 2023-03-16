@@ -254,6 +254,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
       resource_data,
       compiler_options,
+      build_info,
+      build_meta,
       ..
     } = parse_context;
 
@@ -283,7 +285,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &mut ast,
       compiler_options,
       syntax,
-      parse_context.build_info,
+      build_info,
+      build_meta,
       module_type,
     )?;
 
