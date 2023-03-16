@@ -4,8 +4,6 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use rayon::prelude::ParallelBridge;
-use rayon::prelude::*;
 use rspack_identifier::IdentifierSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -74,7 +72,6 @@ impl<'me> CodeSplitter<'me> {
         let loaded_modules_of_parents = ctx
           .chunk_relation_graph
           .edges_directed(ctx.target_ukey, petgraph::Direction::Incoming)
-          .par_bridge()
           .map(|(parent, _me, _)| parent)
           .flat_map(|parent| {
             analyze_loaded_modules(AnalyzeContext {
@@ -90,16 +87,16 @@ impl<'me> CodeSplitter<'me> {
         }
 
         let loaded_modules = loaded_modules_of_parents
-          .into_par_iter()
-          .fold(IdentifierSet::default, |mut acc, cur| {
+          .into_iter()
+          .fold(IdentifierSet::default(), |mut acc, cur| {
             // The word `Definitely` in `DefinitelyLoadedModules` infers that
             // we need the intersection of all parent loaded modules.
             acc.retain(|x| cur.contains(x));
             acc
           })
-          .flatten()
+          .into_iter()
           // With the module itself
-          .chain(ctx.chunk_modules(&ctx.target_ukey).par_iter().cloned())
+          .chain(ctx.chunk_modules(&ctx.target_ukey).iter().cloned())
           .collect::<IdentifierSet>();
 
         Some(Arc::new(loaded_modules))
@@ -116,7 +113,6 @@ impl<'me> CodeSplitter<'me> {
       .compilation
       .chunk_by_ukey
       .values()
-      .par_bridge()
       .map(|chunk| {
         let loaded_modules = analyze_loaded_modules(AnalyzeContext {
           target_ukey: chunk.ukey,
@@ -144,7 +140,6 @@ impl<'me> CodeSplitter<'me> {
       .compilation
       .chunk_by_ukey
       .values()
-      .par_bridge()
       .filter(|chunk| {
         // Fast path and correctness: We only need to analyze the chunk which is not a root chunk.
         !self
@@ -170,20 +165,20 @@ impl<'me> CodeSplitter<'me> {
           .compilation
           .chunk_graph
           .get_chunk_module_identifiers(&chunk.ukey)
-          .into_par_iter()
-          .cloned()
-          .flat_map(move |module| {
+          .iter()
+          .flat_map(|module| {
             let is_all_parents_load_this_module = parents_loaded_modules
               .clone()
               .iter()
-              .all(|loaded_modules| loaded_modules.contains(&module));
+              .all(|loaded_modules| loaded_modules.contains(module));
 
             if is_all_parents_load_this_module {
-              Some((chunk.ukey, module))
+              Some((chunk.ukey, *module))
             } else {
               None
             }
           })
+          .collect::<Vec<_>>()
       })
       .collect::<Vec<_>>()
   }
