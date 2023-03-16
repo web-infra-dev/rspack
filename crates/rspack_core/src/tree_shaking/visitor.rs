@@ -1035,7 +1035,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       };
       match rule.test {
         Some(ref test_rule) => {
-          let is_match = test_rule.is_match(&resource_path.to_string_lossy()).ok()?;
+          let is_match = test_rule.try_match(&resource_path.to_string_lossy()).ok()?;
           if !is_match {
             continue;
           }

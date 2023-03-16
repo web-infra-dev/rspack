@@ -33,26 +33,26 @@ pub fn module_rule_matcher_inner<'a>(
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test
-    && !test_rule.is_match(&resource_data.resource_path.to_string_lossy())? {
+    && !test_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
     return Ok(None);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule.is_match(&resource_data.resource_path.to_string_lossy())? {
+    && !resource_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
     return Ok(None);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule.is_match(&resource_data.resource_path.to_string_lossy())? {
+    && !include_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
     return Ok(None);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule.is_match(&resource_data.resource_path.to_string_lossy())? {
+    && exclude_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
     return Ok(None);
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
     if let Some(resource_query) = &resource_data.resource_query {
-      if !resource_query_rule.is_match(resource_query)? {
+      if !resource_query_rule.try_match(resource_query)? {
         return Ok(None);
       }
     } else {
@@ -62,7 +62,7 @@ pub fn module_rule_matcher_inner<'a>(
 
   if let Some(issuer_rule) = &module_rule.issuer
     && let Some(issuer) = issuer
-    && !issuer_rule.is_match(issuer)? {
+    && !issuer_rule.try_match(issuer)? {
     return Ok(None);
   }
 

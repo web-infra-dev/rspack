@@ -47,12 +47,12 @@ impl fmt::Debug for RuleSetCondition {
 }
 
 impl RuleSetCondition {
-  pub fn is_match(&self, data: &str) -> Result<bool> {
+  pub fn try_match(&self, data: &str) -> Result<bool> {
     match self {
       Self::String(s) => Ok(data.starts_with(s)),
       Self::Regexp(r) => Ok(r.test(data)),
-      Self::Logical(g) => g.is_match(data),
-      Self::Array(l) => try_any(l, |i| i.is_match(data)),
+      Self::Logical(g) => g.try_match(data),
+      Self::Array(l) => try_any(l, |i| i.try_match(data)),
       Self::Func(f) => f(data),
     }
   }
@@ -66,14 +66,14 @@ pub struct RuleSetLogicalConditions {
 }
 
 impl RuleSetLogicalConditions {
-  pub fn is_match(&self, data: &str) -> Result<bool> {
-    if let Some(and) = &self.and && try_any(and, |i| i.is_match(data).map(|i| !i))? {
+  pub fn try_match(&self, data: &str) -> Result<bool> {
+    if let Some(and) = &self.and && try_any(and, |i| i.try_match(data).map(|i| !i))? {
       return Ok(false)
     }
-    if let Some(or) = &self.or && try_all(or, |i| i.is_match(data).map(|i| !i))? {
+    if let Some(or) = &self.or && try_all(or, |i| i.try_match(data).map(|i| !i))? {
       return Ok(false)
     }
-    if let Some(not) = &self.not && not.is_match(data)? {
+    if let Some(not) = &self.not && not.try_match(data)? {
       return Ok(false)
     }
     Ok(true)
