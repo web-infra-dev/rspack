@@ -202,7 +202,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
         }))
       }
       _ => panic!(
-        "Failed to resolve the condition type {}. Expected type is either `string` or `regexp`.",
+        "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
         x.r#type
       ),
     };
