@@ -6,7 +6,7 @@ use swc_core::common::pass::{AstKindPath, AstNodePath};
 use swc_core::common::{
   errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS,
 };
-use swc_core::ecma::ast::{Module, ModuleItem, Program as SwcProgram};
+use swc_core::ecma::ast::{Module, Program as SwcProgram};
 use swc_core::ecma::transforms::base::helpers;
 use swc_core::ecma::transforms::base::helpers::Helpers;
 use swc_core::ecma::visit::{
@@ -64,7 +64,6 @@ impl Program {
 
 /// Swc transform context
 pub struct Context {
-  pub is_esm: bool,
   pub globals: Globals,
   pub helpers: Helpers,
   pub top_level_mark: Mark,
@@ -74,14 +73,13 @@ pub struct Context {
 }
 
 impl Context {
-  pub fn new(is_esm: bool, source_map: Arc<SourceMap>) -> Self {
+  pub fn new(source_map: Arc<SourceMap>) -> Self {
     let globals: Globals = Default::default();
     // generate preset mark & helpers
     let (top_level_mark, unresolved_mark, helpers) =
       GLOBALS.set(&globals, || (Mark::new(), Mark::new(), Helpers::new(true)));
 
     Self {
-      is_esm,
       globals,
       helpers,
       top_level_mark,
@@ -118,16 +116,9 @@ impl Hash for Ast {
 
 impl Ast {
   pub fn new(program: SwcProgram, source_map: Arc<SourceMap>) -> Self {
-    let is_esm = match program {
-      SwcProgram::Module(ref module) => module
-        .body
-        .iter()
-        .any(|item| matches!(item, ModuleItem::ModuleDecl(_))),
-      SwcProgram::Script(_) => false,
-    };
     Self {
       program: Program(program),
-      context: Arc::new(Context::new(is_esm, source_map)),
+      context: Arc::new(Context::new(source_map)),
     }
   }
 

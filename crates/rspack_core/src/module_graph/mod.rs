@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
+use std::path::PathBuf;
 
 use rspack_error::{internal_error, Result};
 use rspack_identifier::IdentifierMap;
@@ -9,7 +10,8 @@ mod connection;
 pub use connection::{ConnectionId, ModuleGraphConnection};
 
 use crate::{
-  BoxModule, BoxModuleDependency, DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
+  BoxModule, BoxModuleDependency, BuildInfo, BuildMeta, DependencyId, Module, ModuleGraphModule,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -380,9 +382,15 @@ impl ModuleGraph {
     }
   }
 
-  pub fn set_module_hash(&mut self, module_identifier: &ModuleIdentifier, hash: u64) {
+  pub fn set_module_build_info_and_meta(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+    build_info: BuildInfo,
+    build_meta: BuildMeta,
+  ) {
     if let Some(mgm) = self.module_graph_module_by_identifier_mut(module_identifier) {
-      mgm.hash = Some(hash);
+      mgm.build_info = Some(build_info);
+      mgm.build_meta = Some(build_meta);
     }
   }
 
@@ -390,7 +398,30 @@ impl ModuleGraph {
   pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<u64> {
     self
       .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.hash)
+      .and_then(|mgm| mgm.build_info.as_ref().map(|i| i.hash))
+  }
+
+  pub fn has_dependencies(
+    &self,
+    module_identifier: &ModuleIdentifier,
+    files: &HashSet<PathBuf>,
+  ) -> bool {
+    if let Some(build_info) = self
+      .module_graph_module_by_identifier(module_identifier)
+      .and_then(|mgm| mgm.build_info.as_ref())
+    {
+      for item in files {
+        if build_info.file_dependencies.contains(item)
+          || build_info.build_dependencies.contains(item)
+          || build_info.context_dependencies.contains(item)
+          || build_info.missing_dependencies.contains(item)
+        {
+          return true;
+        }
+      }
+    }
+
+    false
   }
 }
 
