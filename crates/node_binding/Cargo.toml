@@ -62,8 +62,3 @@ testing_macros = { version = "0.2.5" }
 # debug = true
 # Automatically strip symbols from the binary.
 # lto = true   # disabled by now, because it will significantly increase our compile time.
-
-[patch.crates-io]
-# Use bucket instead of global mutex for dynamic set
-# See: https://github.com/servo/string-cache/pull/268
-string_cache = { git = "https://github.com/boshen/string-cache", rev = "33e00b3d9a60322251532a202390c6bc53b7ea45" }

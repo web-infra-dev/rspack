@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
@@ -56,7 +56,9 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   async fn build(
     &mut self,
     _build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>>;
+  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    Ok(BuildResult::default().with_empty_diagnostic())
+  }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
   /// The code generation result should not be cached as it is implemented elsewhere to
@@ -294,7 +296,7 @@ mod test {
     ($ident: ident) => {
       impl Identifiable for $ident {
         fn identifier(&self) -> Identifier {
-          (stringify!($ident).to_owned() + &self.0).into()
+          (stringify!($ident).to_owned() + self.0).into()
         }
       }
 
@@ -317,7 +319,7 @@ mod test {
         }
 
         fn readable_identifier(&self, _context: &Context) -> Cow<str> {
-          (stringify!($ident).to_owned() + &self.0).into()
+          (stringify!($ident).to_owned() + self.0).into()
         }
 
         async fn build(

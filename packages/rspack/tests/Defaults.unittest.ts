@@ -120,6 +120,9 @@ describe("snapshots", () => {
 		    "lazyCompilation": false,
 		  },
 		  "externals": undefined,
+		  "externalsPresets": {
+		    "node": false,
+		  },
 		  "externalsType": "var",
 		  "infrastructureLogging": {},
 		  "mode": "none",
@@ -671,6 +674,9 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "node": false,
+		+     "node": true,
+		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
@@ -707,6 +713,9 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "node": false,
+		+     "node": true,
+		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
@@ -732,6 +741,9 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-     "node": false,
+		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "global": "warn",

@@ -30,7 +30,7 @@ if (module.hot?.accept) module.hot.accept((module1)=>{
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
+__webpack_require__("./app.js");
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

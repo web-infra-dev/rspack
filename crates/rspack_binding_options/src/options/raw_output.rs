@@ -233,6 +233,11 @@ impl RawOutputOptions {
           "umd" | "umd2" => {
             plugins.push(rspack_plugin_library::UmdLibraryPlugin::new("umd2".eq(library)).boxed());
           }
+          "amd" | "amd-require" => {
+            plugins.push(
+              rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed(),
+            );
+          }
           _ => {}
         }
       }

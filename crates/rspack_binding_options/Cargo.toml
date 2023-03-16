@@ -10,10 +10,10 @@ default  = ["napi-derive/noop"]
 node-api = ["dep:rspack_napi_shared"]
 
 [dependencies]
-anyhow = { version = "1", features = ["backtrace"] }
-async-trait = "0.1.53"
+anyhow = { workspace = true, features = ["backtrace"] }
+async-trait = { workspace = true }
 cfg-if = "1.0.0"
-dashmap = "5.0.0"
+dashmap = { workspace = true }
 napi = { workspace = true, features = [
   "async",
   "tokio_rt",
@@ -21,8 +21,8 @@ napi = { workspace = true, features = [
   "anyhow",
 ] }
 napi-derive = { workspace = true, version = "2" }
-once_cell = "1"
-regex = "1.6.0"
+once_cell = { workspace = true }
+regex = { workspace = true }
 rspack_binding_macros = { path = "../rspack_binding_macros" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
@@ -43,24 +43,24 @@ rspack_plugin_remove_empty_chunks = { path = "../rspack_plugin_remove_empty_chun
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rspack_plugin_split_chunks = { path = "../rspack_plugin_split_chunks" }
 rspack_regex = { path = "../rspack_regex" }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 swc_core = { workspace = true, default-features = false, features = [
   "ecma_transforms_react",
 ] }
 # swc_ecma_transforms = { workspace = true, features = [
 #   "swc_ecma_transforms_react",
 # ] }
-swc_emotion = "0.29.7"
-swc_plugin_import = "0.1.0"
-tokio = { version = "1.21.0", features = [
+swc_emotion = { workspace = true }
+swc_plugin_import = { workspace = true }
+tokio = { workspace = true, features = [
   "rt",
   "rt-multi-thread",
   "macros",
   "test-util",
   "parking_lot",
 ] }
-tracing = "0.1.34"
+tracing = { workspace = true }
 
   [dependencies.rspack_napi_shared]
   optional = true

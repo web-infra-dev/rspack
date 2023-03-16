@@ -53,8 +53,8 @@ impl ModuleHotAcceptDependency {
 }
 
 impl Dependency for ModuleHotAcceptDependency {
-  fn id(&self) -> Option<&DependencyId> {
-    self.id.as_ref()
+  fn id(&self) -> Option<DependencyId> {
+    self.id
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;

@@ -39,6 +39,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
     let mut shared_modules = compilation
       .module_graph
       .modules()
+      .values()
       .par_bridge()
       .map(|m| m.identifier())
       .map(|module| {

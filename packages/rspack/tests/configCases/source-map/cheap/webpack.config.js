@@ -8,5 +8,7 @@ module.exports = {
 			}
 		]
 	},
-	devtool: "cheap-source-map"
+	devtool: "cheap-source-map",
+	externals: ["source-map"],
+	externalsType: "commonjs"
 };

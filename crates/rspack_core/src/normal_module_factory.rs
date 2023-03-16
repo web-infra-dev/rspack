@@ -152,13 +152,12 @@ impl NormalModuleFactory {
       .collect::<Vec<_>>();
 
     let request = if !loaders.is_empty() {
-      loaders
+      let s = loaders
         .iter()
         .map(|i| i.name())
         .collect::<Vec<_>>()
-        .join("!")
-        + "!"
-        + &resource_data.resource
+        .join("!");
+      format!("{s}!{}", resource_data.resource)
     } else {
       resource_data.resource.clone()
     };

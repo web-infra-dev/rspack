@@ -30,7 +30,7 @@ impl<'compilation> Stats<'compilation> {
     let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
     let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
     let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
-    Ok(warnings + &errors)
+    Ok(format!("{warnings}{errors}"))
   }
 }
 
@@ -114,6 +114,7 @@ impl Stats<'_> {
       .compilation
       .module_graph
       .modules()
+      .values()
       .map(|module| self.get_module(module, self.compilation.options.stats.reasons))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);

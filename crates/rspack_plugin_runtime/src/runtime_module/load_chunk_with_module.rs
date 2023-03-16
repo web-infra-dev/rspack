@@ -4,23 +4,35 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
   Compilation, RuntimeModule,
 };
+use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::stringify_array;
+use crate::impl_runtime_module;
 
-#[derive(Debug, Default)]
-pub struct LoadChunkWithModuleRuntimeModule {}
+#[derive(Debug, Eq)]
+pub struct LoadChunkWithModuleRuntimeModule {
+  id: Identifier,
+}
+
+impl Default for LoadChunkWithModuleRuntimeModule {
+  fn default() -> Self {
+    Self {
+      id: Identifier::from("webpack/runtime/load_chunk_with_module"),
+    }
+  }
+}
 
 impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
-  fn identifier(&self) -> String {
-    "rspack/runtime/load_chunk_with_module".to_string()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     let async_modules = compilation
       .module_graph
-      .module_identifier_to_module_graph_module
+      .module_graph_modules()
       .par_iter()
       .map(|(_, mgm)| mgm.dynamic_depended_modules(&compilation.module_graph))
       .flatten()
@@ -77,6 +89,8 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
     source.boxed()
   }
 }
+
+impl_runtime_module!(LoadChunkWithModuleRuntimeModule);
 
 fn stringify_map(map: &HashMap<String, Vec<String>>) -> String {
   format!(

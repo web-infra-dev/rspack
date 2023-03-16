@@ -1,7 +1,6 @@
 #![allow(clippy::unwrap_in_result)]
 
-#[macro_use]
-extern crate rspack_fs;
+use rspack_fs::cfg_async;
 
 cfg_async! {
   mod r#async;

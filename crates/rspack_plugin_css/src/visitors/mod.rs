@@ -227,7 +227,7 @@ impl RewriteUrl<'_> {
           .output
           .public_path
           .render(self.compilation, filename);
-        Some(public_path + filename)
+        Some(format!("{public_path}{filename}"))
       } else {
         None
       }

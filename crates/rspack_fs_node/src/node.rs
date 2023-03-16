@@ -1,4 +1,6 @@
 use napi::{Env, JsFunction, NapiRaw, Ref};
+use napi_derive::napi;
+use rspack_fs::cfg_async;
 
 pub(crate) struct JsFunctionRef {
   env: Env,
@@ -58,7 +60,6 @@ cfg_async! {
     JsUnknown,
     Either,
   };
-  use napi_derive::napi;
   use rspack_napi_shared::threadsafe_function::ThreadsafeFunction;
 
   #[napi(object, js_name = "ThreadsafeNodeFS")]

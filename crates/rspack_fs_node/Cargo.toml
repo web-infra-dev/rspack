@@ -13,7 +13,7 @@ async   = ["rspack_fs/async"]
 default = ["async"]
 
 [dependencies]
-futures = "0.3.21"
+futures = { workspace = true }
 napi = { workspace = true, features = ["napi4", "tokio_rt"] }
 napi-derive = { workspace = true }
 rspack_error = { path = "../rspack_error" }

@@ -9,6 +9,7 @@ use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::parser::{EsConfig, TsConfig};
 
 fn syntax_by_ext(filename: &Path, enable_decorators: bool) -> Syntax {
+  // swc_core::base::Compiler::process_js_with_custom_pass()
   let ext = filename
     .extension()
     .and_then(|ext| ext.to_str())

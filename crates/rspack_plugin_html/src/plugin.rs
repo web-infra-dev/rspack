@@ -118,7 +118,10 @@ impl Plugin for HtmlPlugin {
     let mut tags = vec![];
     for (asset_name, asset) in included_assets {
       if let Some(extension) = Path::new(&asset_name).extension() {
-        let asset_uri = config.get_public_path(compilation, &asset_name) + &asset_name;
+        let asset_uri = format!(
+          "{}{asset_name}",
+          config.get_public_path(compilation, &asset_name),
+        );
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
           tag = Some(HTMLPluginTag::create_style(

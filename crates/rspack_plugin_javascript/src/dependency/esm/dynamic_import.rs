@@ -60,8 +60,8 @@ impl EsmDynamicImportDependency {
 }
 
 impl Dependency for EsmDynamicImportDependency {
-  fn id(&self) -> Option<&DependencyId> {
-    self.id.as_ref()
+  fn id(&self) -> Option<DependencyId> {
+    self.id
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
@@ -113,7 +113,7 @@ impl CodeGeneratable for EsmDynamicImportDependency {
     if let Some(dependency_id) = self.id() {
       if let Some(referenced_module) = compilation
         .module_graph
-        .module_graph_module_by_dependency_id(dependency_id)
+        .module_graph_module_by_dependency_id(&dependency_id)
       {
         let module_id = referenced_module.id(&compilation.chunk_graph).to_string();
 

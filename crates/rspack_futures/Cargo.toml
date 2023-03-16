@@ -7,5 +7,5 @@ version    = "0.1.0"
 
 
 [dependencies]
-async-scoped = { version = "0.7.1", features = ["use-tokio"] }
-tokio        = { version = "1.21.0", features = ["rt"] }
+async-scoped = { workspace = true, features = ["use-tokio"] }
+tokio        = { workspace = true, features = ["rt"] }
