@@ -4,6 +4,11 @@ const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
 const path = require("path");
 const prompts = require("prompts");
+
+const ReNameFiles = {
+	_gitignore: ".gitignore"
+};
+
 yargs(hideBin(process.argv))
 	.command("$0", "init rspack project", async argv => {
 		const defaultProjectName = "rspack-project";
@@ -36,7 +41,10 @@ function copyFolder(src, dst) {
 	fs.mkdirSync(dst, { recursive: true });
 	for (const file of fs.readdirSync(src)) {
 		const srcFile = path.resolve(src, file);
-		const dstFile = path.resolve(dst, file);
+		const dstFile = path.resolve(
+			dst,
+			ReNameFiles[file] ? ReNameFiles[file] : file
+		);
 		const stat = fs.statSync(srcFile);
 		if (stat.isDirectory()) {
 			copyFolder(srcFile, dstFile);
