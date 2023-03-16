@@ -1,3 +1,3 @@
 import { IRspackCLI } from "./types";
 export * from "./types";
-export { RspackCLI } from "./rspack-cli";
+export { RspackCLI, defineConfig } from "./rspack-cli";

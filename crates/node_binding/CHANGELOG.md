@@ -1,5 +1,21 @@
 # @rspack/binding
 
+## 0.1.1
+
+### Patch Changes
+
+- 6f8706f0: fix: postcss modules warning when using postcss-loader
+- 0e32353d: fix(resolve): upgrade the version of nodejs_resolver to fix the error which will resolve failed when target is relative by tsconfig/baseUrl
+- 23048514: fix: incremental rebuild not work
+- 7b3167ca: feat: externalsPresets.node
+- f204c108: feat: array type of externals
+- bb22416a: feat: stats for chunkRelations and chunkModules
+- 44dc1e8b: fix: fix react fast-refresh module id on windows
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- 2f7ffb57: feat: support guided panic info with backtrace
+- 2d2c9624: fix: fix webpack-sources interoperation
+- 6bdc0840: pref(sourcemap): upgrade rspack_sources to improve the performance of line sourcemap'
+
 ## 0.1.0
 
 ### Minor Changes
