@@ -23,8 +23,8 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@master
         with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
+          # getting release note text need to get commit history
+          fetch-depth: 100
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
