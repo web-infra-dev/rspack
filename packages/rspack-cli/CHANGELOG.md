@@ -1,5 +1,31 @@
 # @rspack/cli
 
+## 0.1.1
+
+### Patch Changes
+
+- 7b3167ca: feat: externalsPresets.node
+- c4c20d66: Support TypeScript as configuration file.
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- 0909f15f: support config return promise
+- 3d459261: make ts-node as an optional peer dependency
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [d2072dd4]
+- Updated dependencies [706207a4]
+- Updated dependencies [62fca585]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [e463ebf0]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [98854e36]
+- Updated dependencies [a004765a]
+- Updated dependencies [a004268f]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [cdf6a52a]
+  - @rspack/core@0.1.1
+  - @rspack/dev-server@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

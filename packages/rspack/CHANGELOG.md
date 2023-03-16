@@ -1,5 +1,37 @@
 # @rspack/core
 
+## 0.1.1
+
+### Patch Changes
+
+- 6f8706f0: fix: postcss modules warning when using postcss-loader
+- 0e32353d: fix(resolve): upgrade the version of nodejs_resolver to fix the error which will resolve failed when target is relative by tsconfig/baseUrl
+- d2072dd4: fix: commonjs loading with extra output dir
+- 706207a4: feat: loader api add dependency
+- 62fca585: feat: config validate strategy
+- 7b3167ca: feat: externalsPresets.node
+- e463ebf0: refactor: runtime module
+- f204c108: feat: array type of externals
+- bb22416a: feat: stats for chunkRelations and chunkModules
+- 98854e36: fix: runtime module cacheable
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- a004268f: fix: library umd code excute
+- 2d2c9624: fix: fix webpack-sources interoperation
+- cdf6a52a: fix: normalize identifier for externalsType umd
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [23048514]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [44dc1e8b]
+- Updated dependencies [a004765a]
+- Updated dependencies [2f7ffb57]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [6bdc0840]
+  - @rspack/binding@0.1.1
+  - @rspack/dev-client@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
