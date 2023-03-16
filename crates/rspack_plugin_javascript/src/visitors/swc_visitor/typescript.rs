@@ -33,7 +33,6 @@ pub fn typescript<'a>(
         treat_const_enum_as_enum: false,
         ts_enum_is_readonly: assumptions.ts_enum_is_readonly,
       },
-      use_define_for_class_fields: !assumptions.set_public_class_fields,
       import_export_assign_config: TsImportExportAssignConfig::Classic,
       ..Default::default()
     },

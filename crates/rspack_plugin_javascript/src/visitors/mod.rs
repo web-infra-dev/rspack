@@ -130,6 +130,10 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
+      Optional::new(
+        swc_visitor::class_fields_use_set(assumptions.pure_getters),
+        assumptions.set_public_class_fields
+      ),
       swc_visitor::compat(
         options.builtins.preset_env.clone(),
         None,

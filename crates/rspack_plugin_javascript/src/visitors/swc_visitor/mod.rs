@@ -24,6 +24,7 @@ pub use hygiene::hygiene;
 pub use swc_core::ecma::transforms::base::fixer::{fixer, paren_remover};
 pub use swc_core::ecma::transforms::base::helpers::inject_helpers;
 pub use swc_core::ecma::transforms::base::resolver;
+pub use swc_core::ecma::transforms::compat::class_fields_use_set::class_fields_use_set;
 pub use swc_core::ecma::transforms::compat::es2022::private_in_object;
 pub use swc_core::ecma::transforms::compat::reserved_words::reserved_words;
 pub use swc_core::ecma::transforms::optimization::const_modules;

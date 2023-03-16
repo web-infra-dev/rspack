@@ -6,7 +6,7 @@ class Child extends Parent {
 	time: undefined | number;
 }
 
-it("should class use defined field", () => {
+it("should child class ignore defined field in ts", () => {
 	const parent = new Parent();
 	const child = new Child();
 	expect(typeof parent.time).toBe("number");
