@@ -229,3 +229,7 @@ export class RspackCLI {
 		return Boolean((compiler as MultiCompiler).compilers);
 	}
 }
+
+export function defineConfig(config: RspackOptions): RspackOptions {
+	return config;
+}
