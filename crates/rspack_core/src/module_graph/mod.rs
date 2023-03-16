@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::path::PathBuf;
 
 use rspack_error::{internal_error, Result};
 use rspack_identifier::IdentifierMap;
