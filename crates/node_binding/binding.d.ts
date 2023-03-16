@@ -102,8 +102,6 @@ export interface RawReactOptions {
   pragmaFrag?: string
   throwIfNamespace?: boolean
   development?: boolean
-  useBuiltins?: boolean
-  useSpread?: boolean
   refresh?: boolean
 }
 export interface RawRelayConfig {

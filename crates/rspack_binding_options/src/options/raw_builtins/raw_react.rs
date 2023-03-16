@@ -14,8 +14,6 @@ pub struct RawReactOptions {
   pub pragma_frag: Option<String>,
   pub throw_if_namespace: Option<bool>,
   pub development: Option<bool>,
-  pub use_builtins: Option<bool>,
-  pub use_spread: Option<bool>,
   pub refresh: Option<bool>,
 }
 
@@ -38,8 +36,6 @@ impl From<RawReactOptions> for ReactOptions {
       pragma_frag: value.pragma_frag,
       throw_if_namespace: value.throw_if_namespace,
       development: value.development,
-      use_builtins: value.use_builtins,
-      use_spread: value.use_spread,
       refresh: value.refresh,
     }
   }
