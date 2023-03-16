@@ -593,10 +593,16 @@ impl Plugin for CssPlugin {
 
     ordered_modules
       .iter()
-      .map(|module_identifier| compilation.module_graph.get_module_hash(module_identifier))
-      .for_each(|current| {
+      .map(|mgm| {
+        (
+          compilation.module_graph.get_module_hash(mgm),
+          compilation.chunk_graph.get_module_id(*mgm),
+        )
+      })
+      .for_each(|(current, id)| {
         if let Some(current) = current {
           current.hash(&mut hasher);
+          id.hash(&mut hasher);
         }
       });
 
