@@ -1,4 +1,5 @@
 ---
+"@rspack/binding": patch
 "@rspack/core": patch
 ---
 
