@@ -1,6 +1,7 @@
 mod asset;
 mod compilation;
 mod hmr;
+mod make;
 mod queue;
 mod resolver;
 
@@ -237,6 +238,7 @@ where
 
       self.compilation.emitted_assets.insert(filename.to_string());
     }
+
     Ok(())
   }
 }
