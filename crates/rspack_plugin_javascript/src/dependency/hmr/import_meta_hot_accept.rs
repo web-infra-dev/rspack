@@ -1,8 +1,9 @@
 use rspack_core::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
+  ModuleDependency, ModuleIdentifier,
 };
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::atoms::{Atom, JsWord};
 
 #[derive(Debug, Eq, Clone)]
 pub struct ImportMetaModuleHotAcceptDependency {
@@ -93,30 +94,26 @@ impl ModuleDependency for ImportMetaModuleHotAcceptDependency {
 impl CodeGeneratable for ImportMetaModuleHotAcceptDependency {
   fn generate(
     &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
-    // let CodeGeneratableContext { compilation, .. } = code_generatable_context;
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
-    let code_gen = CodeGeneratableResult::default();
+    let mut code_gen = CodeGeneratableResult::default();
 
-    // if let Some(module_id) = compilation
-    //   .module_graph
-    //   .module_graph_module_by_dependency_id(self.id().expect("should have id"))
-    //   .map(|m| m.id(&compilation.chunk_graph).to_string())
-    // {
-    //   code_gen.visitors.push(
-    //     create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-    //       if let Some(Lit::Str(str)) = n
-    //         .args
-    //         .get_mut(0)
-    //         .and_then(|first_arg| first_arg.expr.as_mut_lit())
-    //       {
-    //         str.value = JsWord::from(&*module_id);
-    //         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-    //       }
-    //     }),
-    //   );
-    // }
+    if let Some(id) = self.id() {
+      if let Some(module_id) = compilation
+        .module_graph
+        .module_graph_module_by_dependency_id(&id)
+        .map(|m| m.id(&compilation.chunk_graph).to_string())
+      {
+        code_gen.visitors.push(
+          create_javascript_visitor!(exact &self.ast_path, visit_mut_str(str: &mut Str) {
+            str.value = JsWord::from(&*module_id);
+            str.raw = Some(Atom::from(format!("\"{module_id}\"")));
+          }),
+        );
+      }
+    }
 
     Ok(code_gen)
   }

@@ -11,7 +11,7 @@ use swc_core::ecma::utils::{member_expr, ExprFactory};
 use {
   swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
   swc_core::ecma::ast::{self, *},
-  swc_core::ecma::atoms::{Atom, JsWord},
+  swc_core::ecma::atoms::JsWord,
   swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
 
@@ -49,9 +49,13 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
           .iter()
           .filter_map(|id| {
             let dependency = self.compilation.module_graph.dependency_by_id(id);
-            if let Some(dependency) = dependency {
+            let module = self
+              .compilation
+              .module_graph
+              .module_graph_module_by_dependency_id(id);
+            if let (Some(dependency), Some(module)) = (dependency, module) {
               if DependencyCategory::Esm.eq(dependency.category()) {
-                return Some(dependency.user_request().to_string());
+                return Some(module.id(&self.compilation.chunk_graph).to_string());
               }
             }
             None
@@ -211,28 +215,7 @@ impl<'a> HmrApiRewrite<'a> {
       })
   }
 
-  fn rewrite_module_hot_accept(&mut self, n: &mut CallExpr, dependency_type: &DependencyType) {
-    let mut module_id_tuple: (String, String) = Default::default();
-    if let Some(Lit::Str(str)) = n
-      .args
-      .get_mut(0)
-      .and_then(|first_arg| first_arg.expr.as_mut_lit())
-    {
-      if let Some(module) =
-        self.resolve_module_legacy(&self.module.identifier(), &str.value, dependency_type)
-      {
-        let origin_value: String = str.value.to_string();
-        let module_id = module.id(&self.compilation.chunk_graph);
-        str.value = JsWord::from(module_id);
-        str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-        // only visit module.hot.accept callback with harmony import
-        if !self.esm_dependencies.contains(&origin_value) {
-          return;
-        }
-        module_id_tuple = (module_id.to_string(), str.value.to_string());
-      }
-    }
-
+  fn rewrite_module_hot_accept(&mut self, n: &mut CallExpr) {
     fn create_auto_import_assign(
       value: &(JsWord, SyntaxContext, bool),
       str: String,
@@ -276,9 +259,67 @@ impl<'a> HmrApiRewrite<'a> {
       })
     }
 
-    // module.hot.accept with callback
-    if n.args.len() > 1 {
-      if let Some(value) = self.module_bindings.get(&module_id_tuple.1) {
+    let mut assgin_stmts = vec![];
+    if let Some(first_arg) = n.args.get(0) {
+      match first_arg.expr.as_ref() {
+        Expr::Lit(Lit::Str(str)) => {
+          let value = str.value.to_string();
+          if let Some(v) = self.module_bindings.get(&value) {
+            // only visit module.hot.accept callback with harmony import
+            if !self.esm_dependencies.contains(&value) {
+              return;
+            }
+            assgin_stmts.push(create_auto_import_assign(v, value).into_stmt());
+          }
+        }
+        Expr::Array(ArrayLit { elems, .. }) => {
+          elems.iter().for_each(|e| {
+            if let Some(ExprOrSpread {
+              expr: box Expr::Lit(Lit::Str(str)),
+              ..
+            }) = e
+            {
+              {
+                let value = str.value.to_string();
+                if let Some(v) = self.module_bindings.get(&value) {
+                  // only visit module.hot.accept callback with harmony import
+                  if !self.esm_dependencies.contains(&value) {
+                    return;
+                  }
+                  assgin_stmts.push(create_auto_import_assign(v, value).into_stmt());
+                }
+              }
+            }
+          });
+        }
+        _ => {}
+      }
+    }
+
+    match n.args.len() {
+      0 => {}
+      // module.hot.accept without callback
+      1 => n.args.push(
+        FnExpr {
+          function: Box::new(Function {
+            params: vec![],
+            decorators: vec![],
+            span: DUMMY_SP,
+            body: Some(BlockStmt {
+              span: DUMMY_SP,
+              stmts: assgin_stmts,
+            }),
+            is_generator: false,
+            is_async: false,
+            type_params: None,
+            return_type: None,
+          }),
+          ident: None,
+        }
+        .as_arg(),
+      ),
+      // module.hot.accept with callback
+      _ => {
         if let Some(ExprOrSpread {
           expr:
             box Expr::Fn(FnExpr {
@@ -300,49 +341,22 @@ impl<'a> HmrApiRewrite<'a> {
           ..
         }) = n.args.get_mut(1)
         {
-          stmts.insert(
-            0,
-            create_auto_import_assign(value, module_id_tuple.0.clone()).into_stmt(),
-          );
+          assgin_stmts.extend(std::mem::take(stmts));
+          *stmts = assgin_stmts;
         } else if let Some(ExprOrSpread {
           expr: box Expr::Arrow(ArrowExpr { body, .. }),
           ..
         }) = n.args.get_mut(1)
         {
           if let BlockStmtOrExpr::Expr(box expr) = body {
+            assgin_stmts
+              .push(std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt());
             *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
               span: DUMMY_SP,
-              stmts: vec![
-                create_auto_import_assign(value, module_id_tuple.0.clone()).into_stmt(),
-                std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
-              ],
+              stmts: assgin_stmts,
             });
           }
         }
-      }
-    }
-    // module.hot.accept without callback
-    if n.args.len() == 1 {
-      if let Some(value) = self.module_bindings.get(&module_id_tuple.1) {
-        n.args.push(
-          FnExpr {
-            function: Box::new(Function {
-              params: vec![],
-              decorators: vec![],
-              span: DUMMY_SP,
-              body: Some(BlockStmt {
-                span: DUMMY_SP,
-                stmts: vec![create_auto_import_assign(value, module_id_tuple.0.clone()).into_stmt()],
-              }),
-              is_generator: false,
-              is_async: false,
-              type_params: None,
-              return_type: None,
-            }),
-            ident: None,
-          }
-          .as_arg(),
-        );
       }
     }
   }
@@ -353,10 +367,10 @@ impl<'a> VisitMut for HmrApiRewrite<'a> {
 
   fn visit_mut_call_expr(&mut self, n: &mut CallExpr) {
     if is_module_hot_accept_call(n) {
-      self.rewrite_module_hot_accept(n, &DependencyType::ModuleHotAccept);
+      self.rewrite_module_hot_accept(n);
     }
     if is_import_meta_hot_accept_call(n) {
-      self.rewrite_module_hot_accept(n, &DependencyType::ImportMetaHotAccept);
+      self.rewrite_module_hot_accept(n);
     }
     n.visit_mut_children_with(self);
   }
