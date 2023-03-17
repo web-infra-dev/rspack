@@ -14,13 +14,13 @@
   ],
   "scripts": {
     "build:debug": "node scripts/build.js",
-    "build:debug:x64": "RUST_TARGET=x86_64-apple-darwin node scripts/build.js",
-    "build:debug:linux": "RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js",
+    "build:debug:x64": "cross_env RUST_TARGET=x86_64-apple-darwin node scripts/build.js",
+    "build:debug:linux": "cross_env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js",
     "build:release:all": "run-p build:release build:release:x64 build:release:linux && pnpm move-binding",
     "build:release": "node scripts/build.js --release",
-    "build:release:x64": "RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
-    "build:release:linux": "RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release",
-    "build:release:win": "RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",
+    "build:release:x64": "cross_env RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
+    "build:release:linux": "cross_env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release",
+    "build:release:win": "cross_env RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",
     "move-binding": "node scripts/move-binding"
   },
   "homepage": "https://rspack.dev",
@@ -28,16 +28,17 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@napi-rs/cli": "2.14.2",
-    "why-is-node-running": "2.2.1",
-    "npm-run-all": "4.1.5"
+    "cross-env": "^7.0.3",
+    "npm-run-all": "4.1.5",
+    "why-is-node-running": "2.2.1"
   },
   "napi": {
     "name": "rspack"
   },
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
-    "@rspack/binding-linux-x64-gnu": "workspace:*",
     "@rspack/binding-darwin-x64": "workspace:*",
+    "@rspack/binding-linux-x64-gnu": "workspace:*",
     "@rspack/binding-win32-x64-msvc": "workspace:*"
   }
 }
