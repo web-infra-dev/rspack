@@ -1,6 +1,6 @@
 use crate::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

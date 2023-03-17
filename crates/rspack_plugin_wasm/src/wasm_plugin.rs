@@ -2,9 +2,8 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, DoneArgs, Module, ModuleType, ParserAndGenerator, PathData, Plugin,
-  PluginBuildEndHookOutput, PluginContext, PluginRenderManifestHookOutput, RenderArgs,
-  RenderManifestArgs, RenderManifestEntry, SourceType,
+  ApplyContext, Module, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;
 use rspack_plugin_asset::ModuleIdToFileName;

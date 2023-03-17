@@ -32,6 +32,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
+    parse_context.build_info.is_async = true;
 
     let source = parse_context.source;
 
@@ -94,13 +95,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
     let hash = hash_for_ast_or_source(ast_or_source);
     let normal_module = module.as_normal_module();
-
     let wasm_filename = render_wasm_name(
       &compilation.options.context,
       normal_module,
       wasm_filename_template,
       hash.clone(),
     );
+
     self
       .module_id_to_filename
       .insert(module.identifier(), wasm_filename.clone());
@@ -112,31 +113,36 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .insert("filename".into(), wasm_filename);
 
         let runtime_requirements = &mut generate_context.runtime_requirements;
-
         runtime_requirements.insert(runtime_globals::MODULE);
         runtime_requirements.insert(runtime_globals::MODULE_ID);
         runtime_requirements.insert(runtime_globals::INSTANTIATE_WASM);
+
         let dep_modules = DashMap::<ModuleIdentifier, String>::new();
 
-        if let Some(dependencies) = module.get_code_generation_dependencies() {
-          let module_graph = &compilation.module_graph;
+        let module_graph = &compilation.module_graph;
+        let chunk_graph = &compilation.chunk_graph;
 
+        if let Some(dependencies) = module_graph
+          .module_graph_module_by_identifier(&module.identifier())
+          .map(|mgm| &mgm.dependencies)
+        {
           dependencies
-                        .iter()
-                        .filter(|dep| dep.dependency_type() == &WasmImport && dep.id().is_some())
-                        .map(|dep| {
-                            (
-                                module_graph.module_identifier_by_dependency_id(dep.id().unwrap()),
-                                dep,
-                            )
-                        })
-                        .for_each(|(id, dep)| {
-                            if let Some(id) = id && !dep_modules.contains_key(id) {
-                                let import_var = &format!("WEBPACK_IMPORTED_MODULE_${}", dep_modules.len() + 1);
-                                runtime_requirements.insert(runtime_globals::REQUIRE);
-                                dep_modules.insert(*id, render_import_stmt(import_var, id));
-                            }
-                        })
+            .into_iter()
+            .map(|id| module_graph.dependency_by_id(id).expect("TODO"))
+            .filter(|dep| dep.dependency_type() == &WasmImport)
+            .map(|dep| module_graph.module_graph_module_by_dependency_id(dep.id().expect("TODO")))
+            .for_each(|mgm| {
+              if let Some(mgm) = mgm {
+                if !dep_modules.contains_key(&mgm.module_identifier) {
+                  let import_var = &format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
+
+                  dep_modules.insert(
+                    mgm.module_identifier,
+                    render_import_stmt(import_var, &mgm.id(&chunk_graph)),
+                  );
+                }
+              }
+            })
         }
 
         let imports_code = dep_modules
@@ -194,14 +200,9 @@ fn render_wasm_name(
   })
 }
 
-fn render_import_stmt(import_var: &str, module_id: &ModuleIdentifier) -> String {
-  let module_id = &module_id.as_str();
-  /// dynamic import
-  //  [
-  // importContent,
-  // `/* harmony import */ ${optDeclaration}${importVar}_default = /*#__PURE__*/${RuntimeGlobals.compatGetDefaultExport}(${importVar});\n`
-  // ];
-  format!("/* harmony import */ var ${import_var} = __webpack_require__(${module_id});\n",)
+fn render_import_stmt(import_var: &str, module_id: &str) -> String {
+  let module_id = serde_json::to_string(&module_id).expect("TODO");
+  format!("var {import_var} = __webpack_require__({module_id});\n",)
 }
 
 fn hash_for_ast_or_source(ast_or_source: &AstOrSource) -> String {

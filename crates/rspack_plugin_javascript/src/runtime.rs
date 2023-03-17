@@ -63,7 +63,12 @@ pub fn render_chunk_modules(
         .unwrap_or_default();
       (
         mgm.module_identifier,
-        render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
+        render_module(
+          module_source,
+          &build_info,
+          mgm.is_async,
+          mgm.id(&compilation.chunk_graph),
+        ),
       )
     })
     .collect::<Vec<_>>();
@@ -86,7 +91,12 @@ pub fn render_chunk_modules(
   Ok(sources.boxed())
 }
 
-pub fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource {
+pub fn render_module(
+  source: BoxSource,
+  build_info: &BuildInfo,
+  is_async: bool,
+  module_id: &str,
+) -> BoxSource {
   let mut sources = ConcatSource::new([
     RawSource::from("\""),
     RawSource::from(module_id.to_string()),
@@ -96,10 +106,24 @@ pub fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSou
       runtime_globals::REQUIRE
     )),
   ]);
-  if strict {
+  if build_info.strict {
     sources.add(RawSource::from("\"use strict\";\n"));
   }
+  if is_async {
+    sources.add(RawSource::from(
+    format!("{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n"
+   ,runtime_globals::ASYNC_MODULE) ));
+  }
+
   sources.add(source);
+
+  if is_async {
+    sources.add(RawSource::from(format!(
+      "\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }} {});",
+      if build_info.is_async { ", 1" } else { "" }
+    )));
+  }
+
   sources.add(RawSource::from("},\n"));
 
   sources.boxed()

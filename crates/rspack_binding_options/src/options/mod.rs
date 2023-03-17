@@ -152,6 +152,7 @@ impl RawOptionsApply for RawOptions {
     }
     plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
+    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
     plugins.push(
       rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {
         inline: devtool.inline(),
