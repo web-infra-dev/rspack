@@ -1097,8 +1097,8 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           "chunks": [
             "main",
           ],
-          "id": "259",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/acycle-alias/a",
+          "id": "193",
+          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a",
           "issuer": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
           "issuerId": "2",
           "issuerName": "./index.js",
@@ -1170,8 +1170,8 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "chunks": [
         "main",
       ],
-      "id": "259",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/acycle-alias/a",
+      "id": "193",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a",
       "issuer": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
       "issuerId": "2",
       "issuerName": "./index.js",
@@ -1217,9 +1217,9 @@ bundle.js  363 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 211 bytes [entry]
  [2] ./index.js 51 bytes {main}
- [259] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
+ [193] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
 [2] ./index.js 51 bytes {main}
-[259] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
+[193] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
 
 error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
@@ -1281,8 +1281,8 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           "chunks": [
             "main",
           ],
-          "id": "805",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-apkg-a",
+          "id": "481",
+          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a",
           "issuer": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
           "issuerId": "2",
           "issuerName": "./index.js",
@@ -1349,8 +1349,8 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "chunks": [
         "main",
       ],
-      "id": "805",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-apkg-a",
+      "id": "481",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a",
       "issuer": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
       "issuerId": "2",
       "issuerName": "./index.js",
@@ -1395,9 +1395,9 @@ bundle.js  972 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 199 bytes [entry]
  [2] ./index.js 39 bytes {main}
- [805] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
+ [481] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
 [2] ./index.js 39 bytes {main}
-[805] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
+[481] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
 
 Export should be relative path and start with "./", but got ../../index.js
 "
