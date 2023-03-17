@@ -22,7 +22,6 @@ use crate::{
   SharedPluginDriver,
 };
 
-#[derive(Debug)]
 pub struct Compiler<T>
 where
   T: AsyncWritableFileSystem + Send + Sync,
@@ -48,28 +47,33 @@ where
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
+
     let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
       options.clone(),
       plugins,
       resolver_factory.clone(),
     )));
+
     let loader_runner_runner = Arc::new(LoaderRunnerRunner::new(
       options.clone(),
       resolver_factory,
       plugin_driver.clone(),
     ));
+
     let cache = Arc::new(Cache::new(options.clone()));
 
+    let compilation = Compilation::new(
+      options.clone(),
+      Default::default(),
+      Default::default(),
+      plugin_driver.clone(),
+      loader_runner_runner.clone(),
+      cache.clone(),
+    );
+
     Self {
-      options: options.clone(),
-      compilation: Compilation::new(
-        options,
-        Default::default(),
-        Default::default(),
-        plugin_driver.clone(),
-        loader_runner_runner.clone(),
-        cache.clone(),
-      ),
+      options,
+      compilation,
       output_filesystem,
       plugin_driver,
       loader_runner_runner,
@@ -78,8 +82,7 @@ where
   }
 
   pub async fn run(&mut self) -> Result<()> {
-    self.build().await?;
-    Ok(())
+    self.build().await
   }
 
   #[instrument(name = "build", skip_all)]
@@ -97,7 +100,6 @@ where
     fast_set(
       &mut self.compilation,
       Compilation::new(
-        // TODO: use Arc<T> instead
         self.options.clone(),
         self.options.entry.clone(),
         Default::default(),
@@ -130,16 +132,20 @@ where
       .iter()
       .flat_map(|(_, deps)| deps.clone())
       .collect::<HashSet<_>>();
+
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
+
     self.cache.begin_idle();
-    self.compile_done().await?;
-    Ok(())
+
+    self.compile_done().await
   }
 
   #[instrument(name = "compile", skip_all)]
   async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
     let option = self.options.clone();
+
     self.compilation.make(params).await?;
+
     if option.builtins.tree_shaking {
       let (analyze_result, diagnostics) = self
         .compilation
@@ -177,8 +183,7 @@ where
       self.emit_assets().await?;
     }
 
-    self.compilation.done(self.plugin_driver.clone()).await?;
-    Ok(())
+    self.compilation.done(self.plugin_driver.clone()).await
   }
 
   #[instrument(name = "emit_assets", skip_all)]
@@ -214,7 +219,8 @@ where
     asset: &CompilationAsset,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
-      let file_path = Path::new(&output_path).join(filename);
+      let file_path = Path::new(output_path).join(filename);
+
       self
         .output_filesystem
         .create_dir_all(
@@ -223,17 +229,11 @@ where
             .unwrap_or_else(|| panic!("The parent of {} can't found", file_path.display())),
         )
         .await?;
+
       self
         .output_filesystem
-        .write(&file_path, source.buffer())
+        .write(file_path, source.buffer())
         .await?;
-
-      // let file = File::create(file_path).map_err(rspack_error::Error::from)?;
-      // let mut writer = BufWriter::new(file);
-      // source
-      //   .as_ref()
-      //   .to_writer(&mut writer)
-      //   .map_err(rspack_error::Error::from)?;
 
       self.compilation.emitted_assets.insert(filename.to_string());
     }
