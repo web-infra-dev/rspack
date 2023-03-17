@@ -9,7 +9,9 @@ import {
 	MultiCompiler,
 	Compiler,
 	rspack,
-	MultiRspackOptions
+	MultiRspackOptions,
+	Stats,
+	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
@@ -25,7 +27,8 @@ export class RspackCLI {
 	}
 	async createCompiler(
 		options: RspackCLIOptions,
-		rspackEnv: RspackEnv
+		rspackEnv: RspackEnv,
+		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
@@ -36,8 +39,13 @@ export class RspackCLI {
 		}
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackEnv);
+
+		const isWatch = Array.isArray(config)
+			? (config as MultiRspackOptions).some(i => i.watch)
+			: (config as RspackOptions).watch;
+
 		// @ts-ignore
-		const compiler = rspack(config);
+		const compiler = rspack(config, isWatch ? callback : undefined);
 		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
@@ -101,6 +109,10 @@ export class RspackCLI {
 						}).apply(compiler as any);
 					}
 				});
+			}
+			// cli --watch overrides the watch config
+			if (options.watch) {
+				item.watch = options.watch;
 			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
@@ -227,6 +239,13 @@ export class RspackCLI {
 		compiler: Compiler | MultiCompiler
 	): compiler is MultiCompiler {
 		return Boolean((compiler as MultiCompiler).compilers);
+	}
+	isWatch(compiler: Compiler | MultiCompiler): boolean {
+		return Boolean(
+			this.isMultipleCompiler(compiler)
+				? compiler.compilers.some(compiler => compiler.options.watch)
+				: compiler.options.watch
+		);
 	}
 }
 
