@@ -48,3 +48,11 @@ function copyFolder(src, dst) {
 		}
 	}
 }
+
+function getPkgManager() {
+	const ua = process.env.npm_config_user_agent;
+	if (!ua) return "npm";
+	const [pkgInfo] = ua.split(" ");
+	const [name] = pkgInfo.split("/");
+	return name || "npm";
+}

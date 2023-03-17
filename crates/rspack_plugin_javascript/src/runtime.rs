@@ -56,14 +56,11 @@ pub fn render_chunk_modules(
       };
 
       // module id isn't cacheable
-      let strict = match compilation
-        .module_graph
-        .module_by_identifier(&mgm.module_identifier)
-        .and_then(|m| m.as_normal_module())
-      {
-        Some(normal_module) => normal_module.build_info.strict,
-        None => false,
-      };
+      let strict = mgm
+        .build_info
+        .as_ref()
+        .map(|m| m.strict)
+        .unwrap_or_default();
       (
         mgm.module_identifier,
         render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),

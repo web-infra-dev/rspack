@@ -3,7 +3,6 @@ use std::{
   fmt::Debug,
   hash::BuildHasherDefault,
   hash::{Hash, Hasher},
-  path::PathBuf,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -27,9 +26,9 @@ use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   contextify, is_async_dependency, module_graph::ConnectionId, AssetGeneratorOptions,
-  AssetParserOptions, BoxLoader, BoxModule, BuildContext, BuildResult, ChunkGraph,
-  CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency, DependencyId,
-  GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  AssetParserOptions, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
+  DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, Resolve, SourceType,
 };
@@ -89,7 +88,8 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
   pub used: bool,
-  pub hash: Option<u64>,
+  pub build_info: Option<BuildInfo>,
+  pub build_meta: Option<BuildMeta>,
 }
 
 impl ModuleGraphModule {
@@ -111,7 +111,8 @@ impl ModuleGraphModule {
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
       used: default_used,
-      hash: None,
+      build_info: None,
+      build_meta: None,
     }
   }
 
@@ -295,15 +296,6 @@ impl From<BoxSource> for AstOrSource {
   }
 }
 
-#[derive(Debug, Default)]
-pub struct BuildInfo {
-  pub strict: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
-}
-
 #[derive(Debug)]
 pub struct NormalModule {
   id: ModuleIdentifier,
@@ -341,7 +333,6 @@ pub struct NormalModule {
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn Dependency>>>,
-  pub build_info: BuildInfo,
 }
 
 #[derive(Debug)]
@@ -406,7 +397,6 @@ impl NormalModule {
       cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      build_info: Default::default(),
     }
   }
 
@@ -490,9 +480,8 @@ impl Module for NormalModule {
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    // clear build_info
-    self.build_info = Default::default();
-
+    let mut build_info = Default::default();
+    let mut build_meta = Default::default();
     let mut diagnostics = Vec::new();
     let loader_result = build_context
       .loader_runner_runner
@@ -531,7 +520,8 @@ impl Module for NormalModule {
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
         code_generation_dependencies: &mut code_generation_dependencies,
-        build_info: &mut self.build_info,
+        build_info: &mut build_info,
+        build_meta: &mut build_meta,
       })?
       .split_into_parts();
     diagnostics.extend(ds);
@@ -554,14 +544,19 @@ impl Module for NormalModule {
     let mut hasher = Xxh3::new();
     self.hash(&mut hasher);
 
+    build_info.hash = hasher.finish();
+    build_info.cacheable = loader_result.cacheable;
+    build_info.file_dependencies = loader_result.file_dependencies;
+    build_info.context_dependencies = loader_result.context_dependencies;
+    build_info.missing_dependencies = loader_result.missing_dependencies;
+    build_info.build_dependencies = loader_result.build_dependencies;
+
+    // TODO: match package.json type files
+    build_meta.strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm);
     Ok(
       BuildResult {
-        hash: hasher.finish(),
-        cacheable: loader_result.cacheable,
-        file_dependencies: loader_result.file_dependencies,
-        context_dependencies: loader_result.context_dependencies,
-        missing_dependencies: loader_result.missing_dependencies,
-        build_dependencies: loader_result.build_dependencies,
+        build_info,
+        build_meta,
         dependencies,
       }
       .with_diagnostic(diagnostics),
@@ -651,26 +646,6 @@ impl Module for NormalModule {
     } else {
       None
     }
-  }
-
-  fn set_dependencies(&mut self, build_result: &BuildResult) {
-    self.build_info.file_dependencies = build_result.file_dependencies.clone();
-    self.build_info.context_dependencies = build_result.context_dependencies.clone();
-    self.build_info.missing_dependencies = build_result.missing_dependencies.clone();
-    self.build_info.build_dependencies = build_result.build_dependencies.clone();
-  }
-
-  fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
-    for item in files {
-      if self.build_info.file_dependencies.contains(item)
-        || self.build_info.build_dependencies.contains(item)
-        || self.build_info.context_dependencies.contains(item)
-        || self.build_info.missing_dependencies.contains(item)
-      {
-        return true;
-      }
-    }
-    false
   }
 }
 

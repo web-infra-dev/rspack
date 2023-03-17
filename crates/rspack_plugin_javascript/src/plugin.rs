@@ -254,6 +254,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
       resource_data,
       compiler_options,
+      build_info,
+      build_meta,
       ..
     } = parse_context;
 
@@ -283,7 +285,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &mut ast,
       compiler_options,
       syntax,
-      parse_context.build_info,
+      build_info,
+      build_meta,
       module_type,
     )?;
 
@@ -434,13 +437,17 @@ impl Plugin for JsPlugin {
     ordered_modules
       .iter()
       .map(|mgm| {
-        compilation
-          .module_graph
-          .get_module_hash(&mgm.module_identifier)
+        (
+          compilation
+            .module_graph
+            .get_module_hash(&mgm.module_identifier),
+          compilation.chunk_graph.get_module_id(mgm.module_identifier),
+        )
       })
-      .for_each(|current| {
+      .for_each(|(current, id)| {
         if let Some(current) = current {
           current.hash(&mut hasher);
+          id.hash(&mut hasher);
         }
       });
 

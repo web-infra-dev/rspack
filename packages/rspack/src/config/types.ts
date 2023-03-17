@@ -259,7 +259,8 @@ export type RuleSetCondition =
 	| RegExp
 	| string
 	| RuleSetConditions
-	| RuleSetLogicalConditions;
+	| RuleSetLogicalConditions
+	| ((value: string) => boolean);
 export type RuleSetConditions = RuleSetCondition[];
 export interface RuleSetLogicalConditions {
 	and?: RuleSetConditions;

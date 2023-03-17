@@ -163,8 +163,7 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 			type: "javascript/esm"
 		};
 		const commonjs = {
-			// TODO: this is "javascript/dynamic" in webpack
-			type: "javascript/auto"
+			type: "javascript/dynamic"
 		};
 		const rules: RuleSetRules = [
 			{
@@ -175,34 +174,26 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 				test: /\.mjs$/i,
 				...esm
 			},
-			{
-				test: /\.js$/i,
-				// TODO:
-				// descriptionData: {
-				// 	type: "module"
-				// },
-				...esm
-			},
+			// {
+			// 	test: /\.js$/i,
+			// 	// TODO:
+			// 	// descriptionData: {
+			// 	// 	type: "module"
+			// 	// },
+			// 	...esm
+			// },
 			{
 				test: /\.cjs$/i,
 				...commonjs
 			},
-			{
-				test: /\.js$/i,
-				// TODO:
-				// descriptionData: {
-				// 	type: "commonjs"
-				// },
-				...commonjs
-			},
-			{
-				test: /\.js$/i,
-				// TODO:
-				// descriptionData: {
-				// 	type: "commonjs"
-				// },
-				...commonjs
-			},
+			// {
+			// 	test: /\.js$/i,
+			// 	// TODO:
+			// 	// descriptionData: {
+			// 	// 	type: "commonjs"
+			// 	// },
+			// 	...commonjs
+			// },
 			{
 				test: /\.jsx$/i,
 				type: "jsx"

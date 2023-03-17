@@ -8,8 +8,8 @@ use rustc_hash::FxHashSet as HashSet;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Context, Module, ModuleIdentifier,
-  ModuleType, SourceType,
+  AstOrSource, BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Context, Module,
+  ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug)]
@@ -75,13 +75,13 @@ impl Module for RawModule {
     self.hash(&mut hasher);
     Ok(
       BuildResult {
-        hash: hasher.finish(),
-        cacheable: true,
-        file_dependencies: Default::default(),
-        context_dependencies: Default::default(),
-        missing_dependencies: Default::default(),
-        build_dependencies: Default::default(),
+        build_info: BuildInfo {
+          hash: hasher.finish(),
+          cacheable: true,
+          ..Default::default()
+        },
         dependencies: vec![],
+        ..Default::default()
       }
       .with_empty_diagnostic(),
     )
