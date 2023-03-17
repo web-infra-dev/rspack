@@ -36,6 +36,19 @@ export class RspackDevServer extends WebpackDevServer {
 		const additionalEntries: string[] = [];
 		// @ts-expect-error
 		const isWebTarget = WebpackDevServer.isWebTarget(compiler);
+		// inject runtime first, avoid other additional entry after transfrom depend on it
+		if (this.options.hot) {
+			if (compiler.options.builtins.react?.refresh) {
+				const reactRefreshEntryPath = require.resolve(
+					"@rspack/dev-client/react-refresh"
+				);
+				additionalEntries.push(reactRefreshEntryPath);
+			}
+			const hotUpdateEntryPath = require.resolve(
+				"@rspack/dev-client/devServer"
+			);
+			additionalEntries.push(hotUpdateEntryPath);
+		}
 		if (this.options.client && isWebTarget) {
 			let webSocketURLStr = "";
 
@@ -187,20 +200,6 @@ export class RspackDevServer extends WebpackDevServer {
 			);
 		}
 
-		if (this.options.hot) {
-			const hotUpdateEntryPath = require.resolve(
-				"@rspack/dev-client/devServer"
-			);
-			additionalEntries.push(hotUpdateEntryPath);
-
-			if (compiler.options.builtins.react?.refresh) {
-				const reactRefreshEntryPath = require.resolve(
-					"@rspack/dev-client/react-refresh"
-				);
-				additionalEntries.push(reactRefreshEntryPath);
-			}
-		}
-
 		for (const key in compiler.options.entry) {
 			compiler.options.entry[key].import.unshift(...additionalEntries);
 		}
@@ -262,10 +261,9 @@ export class RspackDevServer extends WebpackDevServer {
 		}
 		if (!clientImplementationFound) {
 			throw new Error(
-				`${
-					!isKnownWebSocketServerImplementation
-						? "When you use custom web socket implementation you must explicitly specify client.webSocketTransport. "
-						: ""
+				`${!isKnownWebSocketServerImplementation
+					? "When you use custom web socket implementation you must explicitly specify client.webSocketTransport. "
+					: ""
 				}client.webSocketTransport must be a string denoting a default implementation (e.g. 'sockjs', 'ws') or a full path to a JS file via require.resolve(...) which exports a class `
 			);
 		}
@@ -280,16 +278,30 @@ export class RspackDevServer extends WebpackDevServer {
 				: [this.compiler];
 
 		compilers.forEach(compiler => {
+			const mode = process.env.NODE_ENV || compiler.options.mode;
 			if (this.options.hot) {
+				if (mode === "production") {
+					this.logger.warn(
+						"Hot Module Replacement (HMR) is enabled for the production build. \n" +
+						"Make sure to disable HMR for production by setting `devServer.hot` to `false` in the configuration."
+					);
+				}
 				compiler.options.devServer ??= {};
 				compiler.options.devServer.hot = true;
 				compiler.options.builtins.react ??= {};
 				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
 			} else if (compiler.options.builtins.react.refresh) {
-				this.logger.warn(
-					"builtins.react.refresh needs builtins.react.development and devServer.hot enabled"
-				);
+				if (mode === "production") {
+					this.logger.warn(
+						"React Refresh runtime should not be included in the production bundle.\n" +
+						"Make sure to disable React Refresh for production by setting `builtins.react.refresh` to `false` in the configuration."
+					);
+				} else {
+					this.logger.warn(
+						"The `builtins.react.refresh` needs `builtins.react.development` and `devServer.hot` enabled"
+					);
+				}
 			}
 		});
 
