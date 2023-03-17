@@ -85,7 +85,7 @@ async function match(config: RspackOptions) {
 			level: "info",
 			stream: {
 				// @ts-expect-error
-				write: () => {}
+				write: () => { }
 			}
 		}
 	});
@@ -94,6 +94,8 @@ async function match(config: RspackOptions) {
 		compiler
 	);
 	await server.start();
+	// it will break ci
+	delete server.options.port;
 	expect(server.options).toMatchSnapshot();
 	await server.stop();
 }
@@ -109,7 +111,7 @@ async function matchAdditionEntries(
 		infrastructureLogging: {
 			stream: {
 				// @ts-expect-error
-				write: () => {}
+				write: () => { }
 			}
 		}
 	});

@@ -30,7 +30,6 @@ exports[`normalize options snapshot no options 1`] = `
   "liveReload": true,
   "magicHtml": true,
   "open": [],
-  "port": 8082,
   "server": {
     "options": {},
     "type": "http",
@@ -87,7 +86,6 @@ exports[`normalize options snapshot port string 1`] = `
   "liveReload": true,
   "magicHtml": true,
   "open": [],
-  "port": 9000,
   "server": {
     "options": {},
     "type": "http",
