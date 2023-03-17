@@ -4,6 +4,7 @@ import type { Compiler } from "@rspack/core";
 import wdm from "webpack-dev-middleware";
 import type { RequestHandler } from "express";
 import mime from "mime-types";
+import { parse } from "url";
 
 export function getRspackMemoryAssets(
 	compiler: Compiler,
@@ -21,11 +22,12 @@ export function getRspackMemoryAssets(
 		if (method !== "GET") {
 			return next();
 		}
-
+		// css hmr will append query string, so here need to remove query string
+		const path = parse(url).path;
 		// asset name is not start with /, so path need to slice 1
-		const filename = url.startsWith(publicPath)
-			? url.slice(publicPath.length)
-			: url.slice(1);
+		const filename = path.startsWith(publicPath)
+			? path.slice(publicPath.length)
+			: path.slice(1);
 		let buffer =
 			compiler.getAsset(filename) ??
 			(() => {
@@ -44,7 +46,7 @@ export function getRspackMemoryAssets(
 			contentType = "text/html; charset=utf-8";
 		} else {
 			contentType =
-				mime.contentType(extname(url)) || "text/plain; charset=utf-8";
+				mime.contentType(extname(path)) || "text/plain; charset=utf-8";
 		}
 
 		res.setHeader("Content-Type", contentType);
