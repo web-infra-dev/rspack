@@ -1,3 +1,4 @@
+mod asset;
 mod compilation;
 mod hmr;
 mod queue;
@@ -5,6 +6,7 @@ mod resolver;
 
 use std::{path::Path, sync::Arc};
 
+pub use asset::*;
 pub use compilation::*;
 pub use queue::*;
 pub use resolver::*;
