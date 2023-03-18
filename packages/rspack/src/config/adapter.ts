@@ -277,6 +277,12 @@ function getRawRuleSetCondition(
 			regexpMatcher: condition.source
 		};
 	}
+	if (typeof condition === "function") {
+		return {
+			type: "function",
+			funcMatcher: condition
+		};
+	}
 	if (Array.isArray(condition)) {
 		return {
 			type: "array",

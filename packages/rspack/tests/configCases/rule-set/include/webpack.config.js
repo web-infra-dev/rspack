@@ -9,6 +9,10 @@ module.exports = {
 	module: {
 		rules: [
 			{
+				include: value => value === resolve("lib.js"),
+				use: "./loader-3.js"
+			},
+			{
 				include: /lib\.js/,
 				use: [
 					{

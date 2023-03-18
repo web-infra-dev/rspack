@@ -191,11 +191,12 @@ export interface JsLoader {
   func: (...args: any[]) => any
 }
 export interface RawRuleSetCondition {
-  type: "string" | "regexp" | "logical" | "array"
+  type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
   regexpMatcher?: string
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
+  funcMatcher?: (value: string) => boolean
 }
 export interface RawRuleSetLogicalConditions {
   and?: Array<RawRuleSetCondition>
@@ -527,6 +528,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
+  getChunks(): Array<JsChunk>
   /**
    * Only available for those none Js and Css source,
    * return true if set module source successfully, false if failed.

@@ -22,59 +22,57 @@ pub fn module_rule_matcher<'a>(
     ));
   }
 
-  Ok(module_rule_matcher_inner(
-    module_rule,
-    resource_data,
-    issuer,
-  ))
+  module_rule_matcher_inner(module_rule, resource_data, issuer)
 }
 
 pub fn module_rule_matcher_inner<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
   issuer: Option<&str>,
-) -> Option<&'a ModuleRule> {
+) -> Result<Option<&'a ModuleRule>> {
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
   if let Some(test_rule) = &module_rule.test
-    && !test_rule.is_match(&resource_data.resource_path.to_string_lossy()) {
-    return None;
+    && !test_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
+    return Ok(None);
   } else if let Some(resource_rule) = &module_rule.resource
-    && !resource_rule.is_match(&resource_data.resource_path.to_string_lossy()) {
-    return None;
+    && !resource_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
+    return Ok(None);
   }
 
   if let Some(include_rule) = &module_rule.include
-    && !include_rule.is_match(&resource_data.resource_path.to_string_lossy()) {
-    return None;
+    && !include_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
+    return Ok(None);
   }
 
   if let Some(exclude_rule) = &module_rule.exclude
-    && exclude_rule.is_match(&resource_data.resource_path.to_string_lossy()) {
-    return None;
+    && exclude_rule.try_match(&resource_data.resource_path.to_string_lossy())? {
+    return Ok(None);
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
     if let Some(resource_query) = &resource_data.resource_query {
-      if !resource_query_rule.is_match(resource_query) {
-        return None;
+      if !resource_query_rule.try_match(resource_query)? {
+        return Ok(None);
       }
     } else {
-      return None;
+      return Ok(None);
     }
   }
 
   if let Some(issuer_rule) = &module_rule.issuer
     && let Some(issuer) = issuer
-    && !issuer_rule.is_match(issuer) {
-    return None;
+    && !issuer_rule.try_match(issuer)? {
+    return Ok(None);
   }
 
   if let Some(one_of) = &module_rule.one_of {
-    return one_of
-      .iter()
-      .find_map(|module_rule| module_rule_matcher_inner(module_rule, resource_data, issuer));
+    for rule in one_of {
+      if let Some(rule) = module_rule_matcher_inner(rule, resource_data, issuer)? {
+        return Ok(Some(rule));
+      }
+    }
   }
 
-  Some(module_rule)
+  Ok(Some(module_rule))
 }

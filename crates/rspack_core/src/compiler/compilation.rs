@@ -368,7 +368,10 @@ impl Compilation {
     if let SetupMakeParam::ModifiedFiles(files) = &params {
       force_build_module.extend(self.module_graph.modules().values().filter_map(|module| {
         // check has dependencies modified
-        if module.has_dependencies(files) {
+        if self
+          .module_graph
+          .has_dependencies(&module.identifier(), files)
+        {
           Some(module.identifier())
         } else {
           None
@@ -648,16 +651,16 @@ impl Compilation {
 
               self
                 .file_dependencies
-                .extend(build_result.file_dependencies);
+                .extend(build_result.build_info.file_dependencies.clone());
               self
                 .context_dependencies
-                .extend(build_result.context_dependencies);
+                .extend(build_result.build_info.context_dependencies.clone());
               self
                 .missing_dependencies
-                .extend(build_result.missing_dependencies);
+                .extend(build_result.build_info.missing_dependencies.clone());
               self
                 .build_dependencies
-                .extend(build_result.build_dependencies);
+                .extend(build_result.build_info.build_dependencies.clone());
 
               let mut dep_ids = vec![];
               for dependency in build_result.dependencies {
@@ -677,9 +680,11 @@ impl Compilation {
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
               });
-              self
-                .module_graph
-                .set_module_hash(&module.identifier(), build_result.hash);
+              self.module_graph.set_module_build_info_and_meta(
+                &module.identifier(),
+                build_result.build_info,
+                build_result.build_meta,
+              );
               self.module_graph.add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {

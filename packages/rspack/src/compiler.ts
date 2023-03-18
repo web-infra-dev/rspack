@@ -335,6 +335,7 @@ class Compiler {
 
 	async #optimize_chunk_modules() {
 		await this.compilation.hooks.optimizeChunkModules.promise(
+			this.compilation.getChunks(),
 			this.compilation.getModules()
 		);
 		this.#updateDisabledHooks();

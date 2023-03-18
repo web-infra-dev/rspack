@@ -60,12 +60,40 @@ impl BuildModuleOccasion {
 
     // run generator and save to cache
     let data = generator(module).await?;
-    if need_cache && data.inner.cacheable {
+    if need_cache && data.inner.build_info.cacheable {
       let mut paths: Vec<&Path> = Vec::new();
-      paths.extend(data.inner.file_dependencies.iter().map(|i| i.as_path()));
-      paths.extend(data.inner.context_dependencies.iter().map(|i| i.as_path()));
-      paths.extend(data.inner.missing_dependencies.iter().map(|i| i.as_path()));
-      paths.extend(data.inner.build_dependencies.iter().map(|i| i.as_path()));
+      paths.extend(
+        data
+          .inner
+          .build_info
+          .file_dependencies
+          .iter()
+          .map(|i| i.as_path()),
+      );
+      paths.extend(
+        data
+          .inner
+          .build_info
+          .context_dependencies
+          .iter()
+          .map(|i| i.as_path()),
+      );
+      paths.extend(
+        data
+          .inner
+          .build_info
+          .missing_dependencies
+          .iter()
+          .map(|i| i.as_path()),
+      );
+      paths.extend(
+        data
+          .inner
+          .build_info
+          .build_dependencies
+          .iter()
+          .map(|i| i.as_path()),
+      );
 
       let snapshot = self
         .snapshot_manager

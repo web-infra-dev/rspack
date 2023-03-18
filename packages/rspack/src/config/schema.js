@@ -1186,6 +1186,9 @@ module.exports = {
 					type: "string"
 				},
 				{
+					instanceof: "Function"
+				},
+				{
 					$ref: "#/definitions/RuleSetLogicalConditions"
 				},
 				{
