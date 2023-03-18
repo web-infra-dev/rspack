@@ -306,7 +306,7 @@ impl ModuleGraph {
 
   pub fn is_async(&self, module: &ModuleIdentifier) -> bool {
     self
-      .module_graph_module_by_identifier(&module)
+      .module_graph_module_by_identifier(module)
       .map(|mgm| {
         mgm
           .build_meta
@@ -318,7 +318,7 @@ impl ModuleGraph {
   }
 
   pub fn set_async(&mut self, module: &ModuleIdentifier) {
-    if let Some(mgm) = self.module_graph_module_by_identifier_mut(&module) {
+    if let Some(mgm) = self.module_graph_module_by_identifier_mut(module) {
       mgm
         .build_meta
         .as_mut()

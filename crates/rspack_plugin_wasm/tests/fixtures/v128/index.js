@@ -1,3 +1,3 @@
-it("should support wasm compiled with v128", function () {
-	return import("./v128.wasm");
-});
+import v128 from "./v128.wasm";
+
+console.log(v128.x);

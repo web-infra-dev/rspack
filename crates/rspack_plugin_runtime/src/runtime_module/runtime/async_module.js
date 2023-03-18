@@ -16,7 +16,7 @@ var resolveQueue = queue => {
 	}
 };
 var wrapDeps = deps =>
-	deps.map(dep => {
+	depsdeps.map(dep=>dep["default"]?dep["default"]:dep).map(dep => {
 		if (dep !== null && typeof dep === "object") {
 			if (dep[webpackQueues]) return dep;
 			if (dep.then) {

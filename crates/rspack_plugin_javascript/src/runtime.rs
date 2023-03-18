@@ -123,9 +123,9 @@ pub fn render_module(
   sources.add(source);
 
   if is_async {
-    sources.add(RawSource::from(format!(
-      "\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }});",
-    )));
+    sources.add(RawSource::from(
+      "\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });",
+    ));
   }
 
   sources.add(RawSource::from("},\n"));

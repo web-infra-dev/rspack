@@ -1,4 +1,6 @@
 mod dependency;
+use std::collections::LinkedList;
+
 pub use dependency::*;
 mod finalize;
 use either::Either;
@@ -189,19 +191,6 @@ pub fn run_after_pass(
         decl_mappings,
       } = dependency_visitors;
 
-      let mut promises = vec![];
-      if build_meta.is_async {
-        let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(runtime_globals::MODULE);
-        runtime_requirements.insert(runtime_globals::ASYNC_MODULE);
-        decl_mappings
-          .iter()
-          .for_each(|((_, m_id, ..), referenced)| {
-            if compilation.module_graph.is_async(referenced) {
-              promises.push(m_id);
-            }
-          });
-      }
       {
         if !visitors.is_empty() {
           program.visit_mut_with_path(
@@ -218,6 +207,16 @@ pub fn run_after_pass(
         for (_, root_visitor) in root_visitors {
           program.visit_mut_with(&mut root_visitor.create());
         }
+      }
+
+      let mut promises = LinkedList::new();
+      if build_meta.is_async {
+        let runtime_requirements = &mut generate_context.runtime_requirements;
+        runtime_requirements.insert(runtime_globals::MODULE);
+        runtime_requirements.insert(runtime_globals::ASYNC_MODULE);
+        decl_mappings.iter().for_each(|(_, referenced)| {
+          promises.push_back(compilation.module_graph.is_async(referenced))
+        });
       }
 
       let mut pass = chain!(

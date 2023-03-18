@@ -621,13 +621,11 @@ impl Plugin for InferAsyncModulesPlugin {
 
     let module_graph = &mut compilation.module_graph;
 
-    while !queue.is_empty() {
-      let module = queue.pop_front().unwrap();
+    while let Some(module) = queue.pop_front() {
       module_graph.set_async(&module);
       if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module) {
         mgm
-          .incoming_connections_unordered(module_graph)
-          .expect("TODO:")
+          .incoming_connections_unordered(module_graph)?
           .filter(|con| {
             if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
               *dep.dependency_type() == DependencyType::EsmImport

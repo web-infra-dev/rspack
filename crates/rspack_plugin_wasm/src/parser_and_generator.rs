@@ -11,7 +11,7 @@ use rspack_core::{
   GenerateContext, GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule,
   ParseContext, ParseResult, ParserAndGenerator, SourceType, StaticExportsDependency,
 };
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
 use rspack_plugin_asset::ModuleIdToFileName;
 use sugar_path::SugarPath;
@@ -39,28 +39,52 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     let mut exports = Vec::with_capacity(1);
     let mut dependencies = Vec::with_capacity(1);
+    let mut diagnostic = Vec::with_capacity(1);
 
-    let buf = source.buffer();
-    for payload in Parser::new(0).parse_all(&*buf) {
-      match payload.expect("TODO:") {
-        Payload::ExportSection(s) => {
-          for export in s {
-            let export = export.expect("expected a correctly wasm export");
-
-            exports.push(export.name.to_string());
+    for payload in Parser::new(0).parse_all(&source.buffer()) {
+      match payload {
+        Ok(payload) => match payload {
+          Payload::ExportSection(s) => {
+            for export in s {
+              match export {
+                Ok(export) => exports.push(export.name.to_string()),
+                Err(err) => diagnostic.push(Diagnostic::error(
+                  "Wasm Export Parse Error".into(),
+                  err.to_string(),
+                  0,
+                  0,
+                )),
+              };
+            }
           }
-        }
-        Payload::ImportSection(s) => {
-          for import in s {
-            let Import { module, name, ty } = import.expect("expected a correctly wasm import");
+          Payload::ImportSection(s) => {
+            for import in s {
+              match import {
+                Ok(Import { module, name, ty }) => {
+                  let dep = box WasmImportDependency::new(module.into(), name.into(), ty)
+                    as Box<dyn ModuleDependency>;
 
-            let dep = box WasmImportDependency::new(module.into(), name.into(), ty)
-              as Box<dyn ModuleDependency>;
-
-            dependencies.push(dep);
+                  dependencies.push(dep);
+                }
+                Err(err) => diagnostic.push(Diagnostic::error(
+                  "Wasm Import Parse Error".into(),
+                  err.to_string(),
+                  0,
+                  0,
+                )),
+              }
+            }
           }
+          _ => {}
+        },
+        Err(err) => {
+          diagnostic.push(Diagnostic::error(
+            "Wasm Parse Error".into(),
+            err.to_string(),
+            0,
+            0,
+          ));
         }
-        _ => {}
       }
     }
 
@@ -73,7 +97,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         presentational_dependencies: vec![],
         ast_or_source: source.into(),
       }
-      .with_empty_diagnostic(),
+      .with_diagnostic(diagnostic),
     )
   }
 
@@ -86,6 +110,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     }
   }
 
+  #[allow(clippy::unwrap_in_result)]
   fn generate(
     &self,
     ast_or_source: &AstOrSource,
@@ -100,7 +125,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       &compilation.options.context,
       normal_module,
       wasm_filename_template,
-      hash.clone(),
+      hash,
     );
 
     self
@@ -109,10 +134,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        generate_context
-          .data
-          .insert("filename".into(), wasm_filename);
-
         let runtime_requirements = &mut generate_context.runtime_requirements;
         runtime_requirements.insert(runtime_globals::MODULE);
         runtime_requirements.insert(runtime_globals::MODULE_ID);
@@ -130,7 +151,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
           .map(|mgm| &mgm.dependencies)
         {
           dependencies
-            .into_iter()
+            .iter()
             .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
             .filter(|dep| dep.dependency_type() == &WasmImport)
             .map(|dep| {
@@ -143,7 +164,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               if let Some(mgm) = mgm {
                 if !dep_modules.contains_key(&mgm.module_identifier) {
                   let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
-                  let val = (import_var.clone(), mgm.id(&chunk_graph));
+                  let val = (import_var.clone(), mgm.id(chunk_graph));
 
                   if let Some(meta)=&mgm.build_meta&&meta.is_async{
                     promises.push(import_var);
@@ -182,7 +203,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .map(|(id, name)| {
                 let import_var = dep_modules.get(&id).expect("should be ok");
                 let import_var = &import_var.value().0;
-                format!("{}: {}[{}]", name, import_var, name)
+                format!("{name}: {import_var}[{name}]")
               })
               .collect::<Vec<_>>()
               .join(",\n");
@@ -203,11 +224,11 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let instantiate_call = format!(
           "{}(exports, module.id, {} {})",
           runtime_globals::INSTANTIATE_WASM,
-          serde_json::to_string(&hash).expect("should be ok"),
+          serde_json::to_string(&wasm_filename).expect("should be ok"),
           imports_obj.unwrap_or_default()
         );
 
-        let source = if promises.len() > 0 {
+        let source = if !promises.is_empty() {
           generate_context
             .runtime_requirements
             .insert(runtime_globals::ASYNC_MODULE);

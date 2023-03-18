@@ -26,21 +26,31 @@ export function describeCases(config: { name: string; casePath: string }) {
 			};
 		});
 	describe(config.name, () => {
-		for (const category of categories) {
-			for (const example of category.tests) {
+		categories.forEach(category=>{
+			category.tests
+				.filter(test => {
+					const testDirectory = path.join(casesPath, category.name, test);
+					const filterPath = path.join(testDirectory, "test.filter.js");
+					if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
+						describe.skip(test, () => {
+							it("filtered", () => {});
+						});
+						return false;
+					}
+					return true;
+				}).forEach(example=> {
 				const testRoot = path.resolve(
 					casesPath,
 					`./${category.name}/${example}/`
 				);
 				const outputPath = path.resolve(testRoot, `./dist`);
 				const bundlePath = path.resolve(outputPath, "main.js");
+
 				if (
-					[".js", ".jsx", ".ts", ".tsx"].every(ext => {
+					![".js", ".jsx", ".ts", ".tsx"].every(ext => {
 						return !fs.existsSync(path.resolve(testRoot, "index" + ext));
 					})
 				) {
-					continue;
-				}
 				describe(category.name, () => {
 					describe(example, () => {
 						it(`${example} should compile`, async () => {
@@ -125,9 +135,9 @@ export function describeCases(config: { name: string; casePath: string }) {
 						});
 					});
 				});
-
-				const { it: _it } = createLazyTestEnv(10000);
+				const {it: _it} = createLazyTestEnv(10000);
 			}
-		}
+			})
+		})
 	});
 }

@@ -1,9 +1,10 @@
+use std::collections::LinkedList;
+
 use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::Stmt;
 use swc_core::ecma::ast::{
   ArrayLit, ArrayPat, AssignExpr, AssignOp, AwaitExpr, BindingIdent, CallExpr, Callee, CondExpr,
   Decl, Expr, ExprOrSpread, ExprStmt, Ident, MemberExpr, MemberProp, ParenExpr, Pat, PatOrExpr,
-  VarDecl,
+  Stmt, VarDecl,
 };
 use swc_core::ecma::ast::{VarDeclKind, VarDeclarator};
 use swc_core::ecma::atoms::JsWord;
@@ -12,38 +13,40 @@ use swc_core::ecma::{
   visit::{as_folder, noop_visit_mut_type, Fold, VisitMut},
 };
 
-pub fn build_async_module<'a>(promises: Vec<&'a String>) -> impl Fold + 'a {
+pub fn build_async_module<'a>(promises: LinkedList<bool>) -> impl Fold + 'a {
   as_folder(AsyncModuleVisitor { promises })
 }
 
-struct AsyncModuleVisitor<'a> {
-  promises: Vec<&'a String>,
+struct AsyncModuleVisitor {
+  promises: LinkedList<bool>,
 }
 
-impl<'a> VisitMut for AsyncModuleVisitor<'a> {
+impl VisitMut for AsyncModuleVisitor {
   noop_visit_mut_type!();
 
   fn visit_mut_module_items(&mut self, items: &mut Vec<ModuleItem>) {
+    let mut args = vec![];
+    let mut elems = vec![];
+
     let last_import = items
       .iter()
       .enumerate()
       .skip_while(|(_, item)| !matches!(item, ModuleItem::Stmt(Stmt::Decl(Decl::Var(_)))))
       .take_while(|(_, item)| matches!(item, ModuleItem::Stmt(Stmt::Decl(Decl::Var(_)))))
-      .map(|(i, _)| i)
+      .map(|(i, item)| {
+        if let Some(is_async) = self.promises.pop_front() && is_async {
+          if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) = item {
+            let decl = unsafe { var.decls.get_unchecked(0) };
+            let var_name = decl.name.as_ident().expect("should be ok").sym.to_string();
+            args.push(make_arg(&var_name));
+            elems.push(make_elem(&var_name));
+          }
+        }
+        i
+      })
       .last()
       .map(|i| i + 1);
     if let Some(index) = last_import {
-      let mut args = vec![];
-      let mut elems = vec![];
-
-      for el in &self.promises {
-        let el = format!("_{el}");
-        let arg = make_arg(&el);
-        let elem = make_elem(&el);
-        args.push(arg);
-        elems.push(elem);
-      }
-
       let item = vec![make_var(args), make_stmt(elems)];
       items.splice(index..index, item);
     }
