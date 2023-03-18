@@ -630,14 +630,14 @@ impl Plugin for InferAsyncModulesPlugin {
           .expect("TODO:")
           .filter(|con| {
             if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
-              dep.dependency_type() == &DependencyType::EsmImport
+              *dep.dependency_type() == DependencyType::EsmImport
             } else {
               false
             }
           })
           .for_each(|con| {
             if let Some(id) = &con.original_module_identifier {
-              if !uniques.insert(*id) {
+              if uniques.insert(*id) {
                 queue.insert(*id);
               }
             }

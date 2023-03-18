@@ -129,8 +129,8 @@ export interface Output {
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
 	iife?: Iife;
-	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
-	wasmLoading?: WasmLoading;
+	// enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	// wasmLoading?: WasmLoading;
 	webassemblyModuleFilename?: WebassemblyModuleFilename;
 }
 export type Path = string;
@@ -217,8 +217,8 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
-	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
-	wasmLoading?: WasmLoading;
+	// enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	// wasmLoading?: WasmLoading;
 	webassemblyModuleFilename?: WebassemblyModuleFilename;
 	iife?: Iife;
 }

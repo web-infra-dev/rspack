@@ -12,6 +12,7 @@ use rspack_core::{
   ParseContext, ParseResult, ParserAndGenerator, SourceType, StaticExportsDependency,
 };
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_identifier::Identifier;
 use rspack_plugin_asset::ModuleIdToFileName;
 use sugar_path::SugarPath;
 use wasmparser::{Import, Parser, Payload};
@@ -117,7 +118,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         runtime_requirements.insert(runtime_globals::MODULE_ID);
         runtime_requirements.insert(runtime_globals::INSTANTIATE_WASM);
 
-        let dep_modules = DashMap::<ModuleIdentifier, String>::new();
+        let dep_modules = DashMap::<ModuleIdentifier, (String, &str)>::new();
+        let wasm_deps_by_request = DashMap::<&str, Vec<(Identifier, String)>>::new();
+        let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.module_graph;
         let chunk_graph = &compilation.chunk_graph;
@@ -128,41 +131,115 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         {
           dependencies
             .into_iter()
-            .map(|id| module_graph.dependency_by_id(id).expect("TODO"))
+            .map(|id| module_graph.dependency_by_id(id).expect("should be ok"))
             .filter(|dep| dep.dependency_type() == &WasmImport)
-            .map(|dep| module_graph.module_graph_module_by_dependency_id(&dep.id().expect("TODO")))
-            .for_each(|mgm| {
+            .map(|dep| {
+              (
+                dep,
+                module_graph.module_graph_module_by_dependency_id(&dep.id().expect("should be ok")),
+              )
+            })
+            .for_each(|(dep, mgm)| {
               if let Some(mgm) = mgm {
                 if !dep_modules.contains_key(&mgm.module_identifier) {
-                  let import_var = &format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
+                  let import_var = format!("WEBPACK_IMPORTED_MODULE_{}", dep_modules.len());
+                  let val = (import_var.clone(), mgm.id(&chunk_graph));
 
-                  dep_modules.insert(
-                    mgm.module_identifier,
-                    render_import_stmt(import_var, &mgm.id(&chunk_graph)),
-                  );
+                  if let Some(meta)=&mgm.build_meta&&meta.is_async{
+                    promises.push(import_var);
+                  }
+                  dep_modules.insert(mgm.module_identifier, val);
+                }
+
+                let dep = dep
+                  .as_any()
+                  .downcast_ref::<WasmImportDependency>()
+                  .expect("should be wasm import dependency");
+
+                let dep_name = serde_json::to_string(dep.name()).expect("should be ok.");
+                let request = dep.request();
+                let val = (mgm.module_identifier, dep_name);
+                if let Some(deps) = &mut wasm_deps_by_request.get_mut(&request) {
+                  deps.value_mut().push(val);
+                } else {
+                  wasm_deps_by_request.insert(request, vec![val]);
                 }
               }
             })
         }
 
         let imports_code = dep_modules
-          .into_iter()
-          .map(|(_, s)| s)
+          .iter()
+          .map(|val| render_import_stmt(&val.value().0, val.value().1))
           .collect::<Vec<_>>()
           .join("");
 
+        let import_obj_request_items = wasm_deps_by_request
+          .into_iter()
+          .map(|(request, deps)| {
+            let deps = deps
+              .into_iter()
+              .map(|(id, name)| {
+                let import_var = dep_modules.get(&id).expect("should be ok");
+                let import_var = &import_var.value().0;
+                format!("{}: {}[{}]", name, import_var, name)
+              })
+              .collect::<Vec<_>>()
+              .join(",\n");
+
+            format!(
+              "{}: {{{deps}}}",
+              serde_json::to_string(request).expect("should be ok")
+            )
+          })
+          .collect::<Vec<_>>();
+
+        let imports_obj = if !import_obj_request_items.is_empty() {
+          Some(format!(", {{{}}}", &import_obj_request_items.join(",\n")))
+        } else {
+          None
+        };
+
         let instantiate_call = format!(
-          "{}(exports, module.id, {})",
+          "{}(exports, module.id, {} {})",
           runtime_globals::INSTANTIATE_WASM,
-          serde_json::to_string(&hash).expect("hash should be serializable")
+          serde_json::to_string(&hash).expect("should be ok"),
+          imports_obj.unwrap_or_default()
         );
 
-        Ok(GenerationResult {
-          ast_or_source: RawSource::from(format!(
+        let source = if promises.len() > 0 {
+          generate_context
+            .runtime_requirements
+            .insert(runtime_globals::ASYNC_MODULE);
+          let promises = promises.join(", ");
+          let decl = format!(
+            "var __webpack_instantiate__=function([{promises}]){{ return {instantiate_call}}}\n",
+          );
+          let async_dependencies = format!(
+            "{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__){{ 
+                  try {{ 
+                    {imports_code}
+                    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
+                    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
+                    await {instantiate_call};
+
+                  __webpack_async_result__();
+
+                  }} catch(e) {{ __webpack_async_result__(e); }}
+                }}, 1);
+          ",
+            runtime_globals::ASYNC_MODULE,
+          );
+
+          RawSource::from(format!("{decl}{async_dependencies}"))
+        } else {
+          RawSource::from(format!(
             "{imports_code} module.exports = {instantiate_call};"
           ))
-          .boxed()
-          .into(),
+        };
+
+        Ok(GenerationResult {
+          ast_or_source: source.boxed().into(),
         })
       }
       _ => Ok(ast_or_source.clone().into()),

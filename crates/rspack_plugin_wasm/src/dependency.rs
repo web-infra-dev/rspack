@@ -33,6 +33,9 @@ impl WasmImportDependency {
       span: None,
     }
   }
+  pub fn name(&self) -> &str {
+    &self.name
+  }
 }
 
 impl Dependency for WasmImportDependency {

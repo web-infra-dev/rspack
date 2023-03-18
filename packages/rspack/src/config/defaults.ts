@@ -319,17 +319,17 @@ const applyOutputDefaults = (
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
 	}
-	F(output, "wasmLoading", () => {
-		if (tp) {
-			if (tp.fetchWasm) return "fetch";
-			if (tp.nodeBuiltins)
-				return output.module ? "async-node-module" : "async-node";
-			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
-				return "universal";
-			}
-		}
-		return false;
-	});
+	// F(output, "wasmLoading", () => {
+	// 	if (tp) {
+	// 		if (tp.fetchWasm) return "fetch";
+	// 		if (tp.nodeBuiltins)
+	// 			return output.module ? "async-node-module" : "async-node";
+	// 		if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
+	// 			return "universal";
+	// 		}
+	// 	}
+	// 	return false;
+	// });
 	A(output, "enabledLibraryTypes", () => {
 		const enabledLibraryTypes = [];
 		if (output.library) {
@@ -338,17 +338,17 @@ const applyOutputDefaults = (
 		// TODO respect entryOptions.library
 		return enabledLibraryTypes;
 	});
-	A(output, "enabledWasmLoadingTypes", () => {
-		const enabledWasmLoadingTypes = [];
-		if (output.wasmLoading) {
-			enabledWasmLoadingTypes.push(output.wasmLoading);
-		}
-		// if (output.workerWasmLoading) {
-		// 	enabledWasmLoadingTypes.push(output.workerWasmLoading);
-		// }
-		// TODO respect entryOptions.wasmLoading
-		return enabledWasmLoadingTypes;
-	});
+	// A(output, "enabledWasmLoadingTypes", () => {
+	// 	const enabledWasmLoadingTypes = [];
+	// 	if (output.wasmLoading) {
+	// 		enabledWasmLoadingTypes.push(output.wasmLoading);
+	// 	}
+	// 	// if (output.workerWasmLoading) {
+	// 	// 	enabledWasmLoadingTypes.push(output.workerWasmLoading);
+	// 	// }
+	// 	// TODO respect entryOptions.wasmLoading
+	// 	return enabledWasmLoadingTypes;
+	// });
 	F(output, "globalObject", () => {
 		if (tp) {
 			if (tp.global) return "global";
