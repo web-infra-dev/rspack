@@ -218,10 +218,6 @@ impl ModuleGraphModule {
     }
   }
 
-  pub fn set_async(&mut self, is_async: bool) {
-    self.is_async = is_async;
-  }
-
   pub fn set_issuer(&mut self, issuer: ModuleIssuer) {
     self.issuer = issuer;
   }

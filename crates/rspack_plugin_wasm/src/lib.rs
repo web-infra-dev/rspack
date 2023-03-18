@@ -1,5 +1,4 @@
 #![feature(box_syntax)]
-#![feature(option_get_or_insert_default)]
 #![feature(let_chains)]
 
 mod ast;

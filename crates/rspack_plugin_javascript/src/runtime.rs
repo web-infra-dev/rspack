@@ -61,12 +61,17 @@ pub fn render_chunk_modules(
         .as_ref()
         .map(|m| m.strict)
         .unwrap_or_default();
+      let is_async = mgm
+        .build_meta
+        .as_ref()
+        .map(|m| m.is_async)
+        .unwrap_or_default();
       (
         mgm.module_identifier,
         render_module(
           module_source,
-          &build_info,
-          mgm.is_async,
+          strict,
+          is_async,
           mgm.id(&compilation.chunk_graph),
         ),
       )
@@ -93,7 +98,7 @@ pub fn render_chunk_modules(
 
 pub fn render_module(
   source: BoxSource,
-  build_info: &BuildInfo,
+  strict: bool,
   is_async: bool,
   module_id: &str,
 ) -> BoxSource {
@@ -106,7 +111,7 @@ pub fn render_module(
       runtime_globals::REQUIRE
     )),
   ]);
-  if build_info.strict {
+  if strict {
     sources.add(RawSource::from("\"use strict\";\n"));
   }
   if is_async {
@@ -119,8 +124,7 @@ pub fn render_module(
 
   if is_async {
     sources.add(RawSource::from(format!(
-      "\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }} {});",
-      if build_info.is_async { ", 1" } else { "" }
+      "\n__webpack_async_result__();\n}} catch(e) {{ __webpack_async_result__(e); }} }});",
     )));
   }
 

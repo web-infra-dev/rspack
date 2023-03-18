@@ -36,8 +36,8 @@ impl WasmImportDependency {
 }
 
 impl Dependency for WasmImportDependency {
-  fn id(&self) -> Option<&DependencyId> {
-    self.id.as_ref()
+  fn id(&self) -> Option<DependencyId> {
+    self.id
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
@@ -92,5 +92,5 @@ impl PartialEq for WasmImportDependency {
 }
 impl Eq for WasmImportDependency {}
 impl Hash for WasmImportDependency {
-  fn hash<H: Hasher>(&self, state: &mut H) {}
+  fn hash<H: Hasher>(&self, _state: &mut H) {}
 }

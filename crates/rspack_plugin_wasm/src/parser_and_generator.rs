@@ -32,7 +32,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
-    parse_context.build_info.is_async = true;
+    parse_context.build_meta.is_async = true;
 
     let source = parse_context.source;
 
@@ -130,7 +130,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             .into_iter()
             .map(|id| module_graph.dependency_by_id(id).expect("TODO"))
             .filter(|dep| dep.dependency_type() == &WasmImport)
-            .map(|dep| module_graph.module_graph_module_by_dependency_id(dep.id().expect("TODO")))
+            .map(|dep| module_graph.module_graph_module_by_dependency_id(&dep.id().expect("TODO")))
             .for_each(|mgm| {
               if let Some(mgm) = mgm {
                 if !dep_modules.contains_key(&mgm.module_identifier) {

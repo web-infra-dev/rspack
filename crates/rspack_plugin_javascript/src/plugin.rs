@@ -605,15 +605,16 @@ impl Plugin for InferAsyncModulesPlugin {
 
     let mut modules: Vec<Identifier> = compilation
       .module_graph
-      .modules()
+      .module_graph_modules()
+      .values()
       .filter(|m| {
-        if let Some(m) = m.as_normal_module() {
-          m.build_info.is_async
+        if let Some(meta) = &m.build_meta {
+          meta.is_async
         } else {
           false
         }
       })
-      .map(|m| m.identifier())
+      .map(|m| m.module_identifier)
       .collect();
 
     modules.retain(|m| queue.insert(*m));
