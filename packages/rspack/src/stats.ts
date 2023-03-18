@@ -16,6 +16,7 @@ export type StatsCompilation = {
 	name?: string;
 	hash?: string;
 	publicPath?: string;
+	outputPath?: string;
 	assets?: binding.JsStatsAsset[];
 	assetsByChunkName?: Record<string, string[]>;
 	chunks?: binding.JsStatsChunk[];
@@ -63,6 +64,9 @@ export class Stats {
 		}
 		if (options.publicPath) {
 			obj.publicPath = this.compilation.outputOptions.publicPath;
+		}
+		if (options.outputPath) {
+			obj.outputPath = this.compilation.outputOptions.path;
 		}
 		if (options.assets) {
 			const { assets, assetsByChunkName } = this.#inner.getAssets();
