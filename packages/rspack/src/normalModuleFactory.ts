@@ -56,15 +56,5 @@ export class NormalModuleFactory {
 			// 	() => new SyncHook(["generator", "generatorOptions"])
 			// )
 		};
-
-		// setTimeout(() => {
-		// 	this.hooks.resolveForScheme.for("test").callAsync(
-		// 		{
-		// 			resource: "",
-		// 			path: ""
-		// 		},
-		// 		err => {}
-		// 	);
-		// }, 1000);
 	}
 }

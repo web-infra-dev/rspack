@@ -181,7 +181,9 @@ class Compiler {
 					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
-					optimizeChunkModule: this.#optimize_chunk_modules.bind(this)
+					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
+					normalModuleFactoryResolveForScheme:
+						this.#normalModuleFactoryResolveForScheme.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 			);
@@ -303,7 +305,7 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules
-			// normalModuleFactoryResolveForScheme: this.
+			// normalModuleFactoryResolveForScheme: this.#
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook.taps.length === 0) {
@@ -325,11 +327,13 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #normalModuleFactoryResolveForScheme() {
-		// await this.compilation
-		// 	.__internal_getProcessAssetsHookByStage(stage)
-		// 	.promise(this.compilation.assets);
-		// this.#updateDisabledHooks();
+	async #normalModuleFactoryResolveForScheme(
+		resourceData: binding.SchemeAndJsResourceData
+	) {
+		await this.compilation.normalModuleFactory?.hooks.resolveForScheme
+			.for(resourceData.scheme)
+			.promise(resourceData.resourceData);
+		return resourceData.resourceData;
 	}
 
 	async #optimize_chunk_modules() {
@@ -364,8 +368,11 @@ class Compiler {
 		const compilation = new Compilation(this, native);
 		compilation.name = this.name;
 		this.compilation = compilation;
+		// reset normalModuleFactory when create new compilation
+		let normalModuleFactory = new NormalModuleFactory();
+		this.compilation.normalModuleFactory = normalModuleFactory;
 		this.hooks.thisCompilation.call(this.compilation, {
-			normalModuleFactory: new NormalModuleFactory()
+			normalModuleFactory: normalModuleFactory
 		});
 		this.#updateDisabledHooks();
 	}

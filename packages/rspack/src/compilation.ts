@@ -85,6 +85,7 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	normalModuleFactory?: NormalModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
