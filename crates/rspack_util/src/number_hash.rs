@@ -67,10 +67,10 @@ fn test_number_hash() {
     let mut set = std::collections::HashSet::new();
     for i in 0..(*n * 200) {
       set.insert(get_number_hash(&format!("{i}"), *n));
-      if set.len() >= (*n - 1) as usize {
+      if set.len() >= (*n - 1) {
         break;
       }
     }
-    assert_eq!(set.len(), (*n - 1) as usize);
+    assert_eq!(set.len(), (*n - 1));
   }
 }

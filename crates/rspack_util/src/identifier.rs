@@ -107,3 +107,57 @@ pub fn relative_path_to_request(rel: &str) -> Cow<str> {
     Cow::Owned(format!("./{rel}"))
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  #[test]
+  fn test_make_paths_relative() {
+    let test_cases = vec![
+      (
+        "/some/dir/",
+        "/some/dir/to/somewhere|some/other/dir!../more/dir",
+        "./to/somewhere|some/other/dir!../more/dir",
+      ),
+      // (
+      //   "/dir/",
+      //   "/dir/to/somewhere|some/other/dir!../more/dir",
+      //   "./to/somewhere|some/other/dir!../more/dir",
+      // ),
+      // (
+      //   "/",
+      //   "/dir/to/somewhere|some/other/dir!../more/dir",
+      //   "./dir/to/somewhere|some/other/dir!../more/dir",
+      // ),
+      // (
+      //   "c:\\some\\dir\\",
+      //   "c:\\some\\dir\\to\\somewhere|some/other/dir!../more/dir",
+      //   "./to/somewhere|some/other/dir!../more/dir",
+      // ),
+      // (
+      //   "c:\\some\\dir\\",
+      //   "C:\\some\\dir\\to\\somewhere|some/other/dir!../more/dir",
+      //   "./to/somewhere|some/other/dir!../more/dir",
+      // ),
+      // (
+      //   "C:\\some\\dir",
+      //   "C:\\some\\dir\\to\\somewhere|some/other/dir!../more/dir",
+      //   "./to/somewhere|some/other/dir!../more/dir",
+      // ),
+      // (
+      //   "C:\\\\some\\dir",
+      //   "c:\\some\\\\dir\\to\\\\somewhere|some/other/dir!../more/dir",
+      //   "./to/somewhere|some/other/dir!../more/dir",
+      // ),
+      // (
+      //   "/dir",
+      //   "/dir/to/somewhere??ref-123",
+      //   "./to/somewhere??ref-123",
+      // ),
+    ];
+    for (context, path_construct, expected) in test_cases {
+      let result = make_paths_relative(context, path_construct);
+      assert_eq!(result, expected);
+    }
+  }
+}
