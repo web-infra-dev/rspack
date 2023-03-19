@@ -84,6 +84,9 @@ impl NormalModuleFactory {
       .resolve_module_occasion
       .use_cache(resolve_args, |args| resolve(args, plugin_driver))
       .await;
+    // with scheme
+    // with contextScheme
+    // default
     let resource_data = match resource_data {
       Ok(ResolveResult::Resource(resource)) => {
         let uri = resource.join().display().to_string();

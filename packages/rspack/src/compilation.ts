@@ -38,6 +38,7 @@ import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
 import { normalizeStatsPreset, Stats } from "./stats";
+import { NormalModuleFactory } from "./normalModuleFactory";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -49,6 +50,10 @@ export interface LogEntry {
 	args: any[];
 	time: number;
 	trace?: string[];
+}
+
+export interface CompilationParams {
+	normalModuleFactory: NormalModuleFactory;
 }
 
 export interface KnownCreateStatsOptionsContext {

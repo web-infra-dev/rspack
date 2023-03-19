@@ -262,6 +262,19 @@ impl PluginDriver {
     Ok(None)
   }
 
+  pub async fn normal_module_factory_resolve_for_scheme(
+    &self,
+    args: ModuleArgs,
+  ) -> PluginModuleHookOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(module) = plugin.module(PluginContext::new(), &args).await? {
+        return Ok(Some(module));
+      }
+    }
+    Ok(None)
+  }
+
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]
   pub fn additional_chunk_runtime_requirements(
     &self,

@@ -1,3 +1,4 @@
+const p = require('./plugins/scheme')
 /**
  * @type {import('@rspack/cli').Configuration}
  */
@@ -11,5 +12,8 @@ module.exports = {
         template: './index.html'
       }
     ]
-  }
+  },
+  plugins: [ 
+    new p()
+   ]
 }

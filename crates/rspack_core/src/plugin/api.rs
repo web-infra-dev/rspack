@@ -87,6 +87,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn normal_module_factory_resolve_for_scheme(
+    &self,
+    _ctx: PluginContext,
+    _args: &ModuleArgs,
+  ) -> PluginModuleHookOutput {
+    Ok(None)
+  }
+
   async fn content_hash(
     &self,
     _ctx: PluginContext,
