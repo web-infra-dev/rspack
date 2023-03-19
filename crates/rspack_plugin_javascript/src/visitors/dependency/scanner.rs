@@ -23,6 +23,7 @@ use crate::dependency::{
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const DIR_NAME: &str = "__dirname";
+pub const FILE_NAME: &str = "__filename";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 pub const GLOBAL: &str = "global";
@@ -378,6 +379,28 @@ impl VisitAstPath for DependencyScanner<'_> {
             if let Some(dirname) = dirname {
               self.add_presentational_dependency(box ConstDependency::new(
                 Expr::Lit(Lit::Str(quote_str!(dirname))),
+                None,
+                as_parent_path(ast_path),
+              ));
+            }
+          }
+          FILE_NAME => {
+            let filename = match self.compiler_options.node.filename.as_str() {
+              "mock" => Some("/index.js".to_string()),
+              "warn-mock" => Some("/index.js".to_string()),
+              "true" => Some(
+                self
+                  .resource_data
+                  .resource_path
+                  .relative(self.compiler_options.context.as_ref())
+                  .to_string_lossy()
+                  .to_string(),
+              ),
+              _ => None,
+            };
+            if let Some(filename) = filename {
+              self.add_presentational_dependency(box ConstDependency::new(
+                Expr::Lit(Lit::Str(quote_str!(filename))),
                 None,
                 as_parent_path(ast_path),
               ));

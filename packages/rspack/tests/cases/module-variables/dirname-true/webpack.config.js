@@ -5,6 +5,7 @@ module.exports = {
 		main: "./index"
 	},
 	node: {
-		__dirname: true
+		__dirname: true,
+		__filename: true
 	}
 };

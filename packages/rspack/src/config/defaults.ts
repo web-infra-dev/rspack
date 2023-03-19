@@ -327,6 +327,10 @@ const applyNodeDefaults = (
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
+	F(node, "__filename", () => {
+		if (targetProperties && targetProperties.node) return "eval-only";
+		return "warn-mock";
+	});
 };
 
 const applyOptimizationDefaults = (
