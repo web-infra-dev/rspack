@@ -266,6 +266,7 @@ export interface JsLoaderResult {
 }
 export interface RawNodeOption {
   dirname: string
+  filename: string
   global: string
 }
 export interface RawOptimizationOptions {
