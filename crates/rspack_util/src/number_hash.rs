@@ -60,3 +60,17 @@ pub fn get_number_hash(s: &str, range: usize) -> usize {
     (sum2 * SAFE_LIMIT + sum1) % range
   }
 }
+
+#[test]
+fn test_number_hash() {
+  for n in [10, 100, 1000, 10000].iter() {
+    let mut set = std::collections::HashSet::new();
+    for i in 0..(*n * 200) {
+      set.insert(get_number_hash(&format!("{i}"), *n));
+      if set.len() >= (*n - 1) as usize {
+        break;
+      }
+    }
+    assert_eq!(set.len(), (*n - 1) as usize);
+  }
+}

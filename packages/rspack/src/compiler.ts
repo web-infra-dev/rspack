@@ -7,11 +7,9 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import path from "path";
 import fs from "fs";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
-import asyncLib from "neo-async";
 import type { WatchOptions } from "watchpack";
 import Watching from "./watching";
 import * as binding from "@rspack/binding";
@@ -23,10 +21,7 @@ import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { getRawOptions } from "./config/adapter";
-import {
-	createThreadsafeNodeFSFromRaw,
-	ThreadsafeWritableNodeFS
-} from "./fileSystem";
+import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 
 class EntryPlugin {
 	apply() {}
