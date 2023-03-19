@@ -20,6 +20,7 @@ pub struct ResourceData {
   pub resource_query: Option<String>,
   /// Resource fragment with `#` prefix
   pub resource_fragment: Option<String>,
+  pub resource_description: Option<Arc<nodejs_resolver::DescriptionData>>,
 }
 
 #[derive(Debug)]

@@ -1193,7 +1193,6 @@ async fn par_analyze_module(
   std::hash::BuildHasherDefault<ustr::IdentityHasher>,
 > {
   let analyze_results = {
-    let resolver_factory = &compilation.plugin_driver.read().await.resolver_factory;
     compilation
       .module_graph
       .module_graph_modules()
@@ -1230,7 +1229,6 @@ async fn par_analyze_module(
             helper_mark,
             uri_key,
             &compilation.module_graph,
-            resolver_factory,
             &compilation.options,
           );
           program.visit_with(&mut analyzer);

@@ -38,6 +38,7 @@ macro_rules! run_loader {
         resource_path: url.to_file_path().unwrap(),
         resource_query: url.query().map(|q| q.to_owned()),
         resource_fragment: url.fragment().map(|f| f.to_owned()),
+        resource_description: None
       },
       vec![]
     )

@@ -292,11 +292,11 @@ fn start_resolving<'r, 'c, I: Iterator<Item = String>>(
 ) -> Option<PathBuf> {
   let resolution = resolutions.peek_mut()?;
   if let Some(possible_request) = resolution.possible_requests.next() {
-    if let Ok(ResolveResult::Info(info)) = resolution
+    if let Ok(ResolveResult::Resource(resource)) = resolution
       .resolve
       .resolve(resolution.context, &possible_request)
     {
-      Some(info.path)
+      Some(resource.path)
     } else {
       start_resolving(resolutions)
     }

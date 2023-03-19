@@ -29,7 +29,6 @@ use super::{
 };
 use crate::{
   CompilerOptions, Dependency, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax,
-  ResolverFactory,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -138,7 +137,6 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// 2. `export ` -> ESM
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects: SideEffect,
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
@@ -153,7 +151,6 @@ impl<'a> ModuleRefAnalyze<'a> {
     helper_mark: Mark,
     uri: ModuleIdentifier,
     dep_to_module_identifier: &'a ModuleGraph,
-    resolver_factory: &'a Arc<ResolverFactory>,
     options: &'a Arc<CompilerOptions>,
   ) -> Self {
     Self {
@@ -174,7 +171,6 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
-      resolver_factory,
       side_effects: SideEffect::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
@@ -1020,11 +1016,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
 impl<'a> ModuleRefAnalyze<'a> {
   fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
-    let resource_path = self
+    let resource_data = self
       .module_graph
       .module_by_identifier(&self.module_identifier)
       .and_then(|module| module.as_normal_module())
-      .map(|normal_module| &normal_module.resource_resolved_data().resource_path)?;
+      .map(|normal_module| normal_module.resource_resolved_data())?;
+
+    let resource_path = &resource_data.resource_path;
 
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
@@ -1046,19 +1044,11 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       return Some(SideEffect::Analyze(module_side_effects));
     }
-    let module_path = PathBuf::from(resource_path);
-    let (mut package_json_path, side_effects) = self
-      .resolver_factory
-      .resolver
-      .0
-      .load_side_effects(module_path.as_path())
-      .ok()??;
-    let side_effects = side_effects?;
+    let description = resource_data.resource_description.as_ref()?;
+    let package_path = description.dir().as_ref();
+    let side_effects = SideEffects::from_description(description)?;
 
-    package_json_path.pop();
-    let package_path = package_json_path;
-
-    let relative_path = module_path.relative(package_path);
+    let relative_path = resource_path.relative(package_path);
     let side_effects = Some(get_side_effects_from_package_json(
       side_effects,
       relative_path,
@@ -1069,12 +1059,12 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 pub fn get_side_effects_from_package_json(
-  side_effects: nodejs_resolver::SideEffects,
+  side_effects: SideEffects,
   relative_path: PathBuf,
 ) -> bool {
   match side_effects {
-    nodejs_resolver::SideEffects::Bool(s) => s,
-    nodejs_resolver::SideEffects::String(s) => {
+    SideEffects::Bool(s) => s,
+    SideEffects::String(s) => {
       let trim_start = s.trim_start_matches("./");
       let normalized_glob = if trim_start.contains('/') {
         trim_start.to_string()
@@ -1086,7 +1076,7 @@ pub fn get_side_effects_from_package_json(
         relative_path.to_string_lossy().trim_start_matches("./"),
       )
     }
-    nodejs_resolver::SideEffects::Array(patterns) => patterns
+    SideEffects::Array(patterns) => patterns
       .iter()
       .any(|pattern| glob_match::glob_match(pattern, &relative_path.to_string_lossy())),
   }
@@ -1543,4 +1533,39 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
 
 fn is_import_decl(module_item: &ModuleItem) -> bool {
   matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::Import(_)))
+}
+
+#[derive(Clone, Debug)]
+pub enum SideEffects {
+  Bool(bool),
+  String(String),
+  Array(Vec<String>),
+}
+
+impl SideEffects {
+  fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
+    description
+      .data()
+      .raw()
+      .get("sideEffects")
+      .and_then(|value| {
+        if let Some(b) = value.as_bool() {
+          Some(SideEffects::Bool(b))
+        } else if let Some(s) = value.as_str() {
+          Some(SideEffects::String(s.to_owned()))
+        } else if let Some(vec) = value.as_array() {
+          let mut ans = vec![];
+          for value in vec {
+            if let Some(str) = value.as_str() {
+              ans.push(str.to_string());
+            } else {
+              return None;
+            }
+          }
+          Some(SideEffects::Array(ans))
+        } else {
+          None
+        }
+      })
+  }
 }
