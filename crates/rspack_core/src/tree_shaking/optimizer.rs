@@ -1236,12 +1236,17 @@ async fn par_analyze_module(
 
         // Keep this debug info until we stabilize the tree-shaking
         // if debug_care_module_id(&uri_key.as_str()) {
-        // dbg!(
-        //   &uri_key,
-        //   // &analyzer.export_all_list,
-        //   &analyzer.export_map,
-        //   &analyzer.import_map,
-        //   &analyzer.maybe_lazy_reference_map, //   &analyzer.immediate_evaluate_reference_map, //   &analyzer.reachable_import_and_export, //   &analyzer.used_symbol_ref // ); // }
+        //   dbg!(
+        //     &uri_key,
+        //     // &analyzer.export_all_list,
+        //     &analyzer.export_map,
+        //     &analyzer.import_map,
+        //     &analyzer.maybe_lazy_reference_map,
+        //     &analyzer.immediate_evaluate_reference_map,
+        //     &analyzer.reachable_import_and_export,
+        //     &analyzer.used_symbol_ref
+        //   );
+        // }
 
         Some((uri_key, analyzer))
       })
