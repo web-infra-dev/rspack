@@ -15,6 +15,7 @@ dashmap = { workspace = true }
 derivative = { workspace = true }
 dyn-clone = "1.0.10"
 futures = { workspace = true }
+glob = "0.3.1"
 glob-match = "0.2.1"
 hashlink = { workspace = true }
 indexmap = { workspace = true }
