@@ -102,7 +102,6 @@ bitflags! {
     const STATIC_VAR_DECL = 1 << 4;
   }
 }
-#[derive()]
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
