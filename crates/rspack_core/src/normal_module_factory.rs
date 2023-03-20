@@ -79,7 +79,7 @@ impl NormalModuleFactory {
       missing_dependencies: &mut missing_dependencies,
     };
 
-    let scheme = url::Url::parse(&specifier)
+    let scheme = url::Url::parse(specifier)
       .map(|url| url.scheme().to_string())
       .ok();
     let plugin_driver = &self.plugin_driver;
@@ -170,8 +170,6 @@ impl NormalModuleFactory {
       }
     };
     //TODO: with contextScheme
-    dbg!(&resource_data);
-
     let loaders = self
       .context
       .options
