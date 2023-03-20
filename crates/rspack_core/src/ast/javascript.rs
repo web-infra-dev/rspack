@@ -1,7 +1,7 @@
 use std::{hash::Hash, sync::Arc};
 
 use anyhow::Error;
-use swc_core::base::try_with_handler;
+use swc_core::base::{try_with_handler, SwcComments};
 use swc_core::common::pass::{AstKindPath, AstNodePath};
 use swc_core::common::{
   errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS,
@@ -18,21 +18,44 @@ use swc_core::ecma::visit::{
 ///
 /// Use this to avoid using `use swc_ecma_visit::*`
 /// and save changes in self
-#[derive(Debug, Clone, Hash)]
-pub struct Program(SwcProgram);
+#[derive(Clone)]
+pub struct Program {
+  pub(crate) program: SwcProgram,
+  /// We don't have scenario that single program modified by multiple threads, so SingleThreadComments is enough
+  pub(crate) comments: Option<SwcComments>,
+}
+
+impl std::hash::Hash for Program {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.program.hash(state);
+  }
+}
+
+impl std::fmt::Debug for Program {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("Program")
+      .field("program", &self.program)
+      .field("comments", &"...")
+      .finish()
+  }
+}
 
 impl Program {
+  pub fn new(program: SwcProgram, comments: Option<SwcComments>) -> Self {
+    Self { program, comments }
+  }
+
   pub fn fold_with<V: ?Sized + Fold>(&mut self, v: &mut V) {
-    let p = std::mem::replace(&mut self.0, SwcProgram::Module(Module::dummy()));
-    self.0 = p.fold_with(v);
+    let p = std::mem::replace(&mut self.program, SwcProgram::Module(Module::dummy()));
+    self.program = p.fold_with(v);
   }
 
   pub fn visit_with<V: ?Sized + Visit>(&self, v: &mut V) {
-    self.0.visit_with(v)
+    self.program.visit_with(v)
   }
 
   pub fn visit_mut_with<V: ?Sized + VisitMut>(&mut self, v: &mut V) {
-    self.0.visit_mut_with(v)
+    self.program.visit_mut_with(v)
   }
 
   pub fn visit_with_path<'ast, 'r, V: ?Sized + VisitAstPath>(
@@ -42,7 +65,7 @@ impl Program {
   ) where
     'ast: 'r,
   {
-    self.0.visit_with_path(v, ast_path)
+    self.program.visit_with_path(v, ast_path)
   }
 
   pub fn visit_mut_with_path<V: ?Sized + VisitMutAstPath>(
@@ -50,15 +73,15 @@ impl Program {
     v: &mut V,
     ast_path: &mut AstKindPath<AstParentKind>,
   ) {
-    self.0.visit_mut_with_path(v, ast_path)
+    self.program.visit_mut_with_path(v, ast_path)
   }
 
   pub fn visit_all_with<V: ?Sized + VisitAll>(&self, v: &mut V) {
-    self.0.visit_all_with(v)
+    self.program.visit_all_with(v)
   }
 
   pub fn get_inner_program(&self) -> &SwcProgram {
-    &self.0
+    &self.program
   }
 }
 
@@ -117,7 +140,7 @@ impl Hash for Ast {
 impl Ast {
   pub fn new(program: SwcProgram, source_map: Arc<SourceMap>) -> Self {
     Self {
-      program: Program(program),
+      program: Program::new(program, None),
       context: Arc::new(Context::new(source_map)),
     }
   }
