@@ -412,9 +412,12 @@ function getRawExperiments(
 }
 
 function getRawNode(node: Node): RawOptions["node"] {
-	assert(!isNil(node.__dirname) && !isNil(node.global));
+	assert(
+		!isNil(node.__dirname) && !isNil(node.global) && !isNil(node.__filename)
+	);
 	return {
 		dirname: String(node.__dirname),
+		filename: String(node.__filename),
 		global: String(node.global)
 	};
 }
