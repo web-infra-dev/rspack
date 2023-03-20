@@ -278,7 +278,7 @@ export class RspackDevServer extends WebpackDevServer {
 				: [this.compiler];
 
 		compilers.forEach(compiler => {
-			const mode = process.env.NODE_ENV || compiler.options.mode;
+			const mode = compiler.options.mode || process.env.NODE_ENV;
 			if (this.options.hot) {
 				if (mode === "production") {
 					this.logger.warn(
