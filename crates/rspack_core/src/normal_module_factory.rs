@@ -85,13 +85,14 @@ impl NormalModuleFactory {
       .use_cache(resolve_args, |args| resolve(args, plugin_driver))
       .await;
     let resource_data = match resource_data {
-      Ok(ResolveResult::Info(info)) => {
-        let uri = info.join();
+      Ok(ResolveResult::Resource(resource)) => {
+        let uri = resource.join().display().to_string();
         ResourceData {
           resource: uri,
-          resource_path: info.path,
-          resource_query: (!info.query.is_empty()).then_some(info.query),
-          resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
+          resource_path: resource.path,
+          resource_query: resource.query,
+          resource_fragment: resource.fragment,
+          resource_description: resource.description,
         }
       }
       Ok(ResolveResult::Ignored) => {

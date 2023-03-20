@@ -2,9 +2,7 @@
 mod test_side_effects {
   use std::path::PathBuf;
 
-  use nodejs_resolver::SideEffects;
-
-  use crate::tree_shaking::visitor::get_side_effects_from_package_json;
+  use crate::tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects};
 
   fn wrap_get_side_effects_from_package_json(
     side_effects_config: Vec<&str>,
