@@ -57,12 +57,14 @@ impl Plugin for HtmlPlugin {
 
     let parser = HtmlCompiler::new(config);
     let (content, url) = match &config.template {
-      Some(_template) => {
-        let url = parse_to_url(_template);
-        let resolved_template = resolve_from_context(&compilation.options.context, url.path());
+      Some(template) => {
+        // TODO: support loader query form
+        let resolved_template =
+          resolve_from_context(&compilation.options.context, template.as_str());
+
         let content = fs::read_to_string(&resolved_template).context(format!(
           "failed to read `{}` from `{}`",
-          url.path(),
+          resolved_template.display(),
           &compilation.options.context.display()
         ))?;
         (content, resolved_template.to_string_lossy().to_string())
