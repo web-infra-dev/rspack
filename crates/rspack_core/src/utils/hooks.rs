@@ -72,6 +72,10 @@ pub async fn resolve(
         source: anyhow::Error::msg(error),
       },
     ),
+    nodejs_resolver::Error::CantFindTsConfig(path) => ResolveError(
+      format!("{} is not a tsconfig", path.display()),
+      internal_error!("{} is not a tsconfig", path.display()),
+    ),
     _ => {
       if let Some(importer) = args.importer {
         let span = args.span.unwrap_or_default();
@@ -95,7 +99,7 @@ pub async fn resolve(
             format!(
               "Failed to resolve {} in {}",
               args.specifier,
-              importer.relative(&plugin_driver.options.context).display()
+              base_dir.display()
             ),
             format!(
               "Failed to resolve {} in {}",

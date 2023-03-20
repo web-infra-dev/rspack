@@ -19,7 +19,7 @@ glob-match = "0.2.1"
 hashlink = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
-nodejs-resolver = "0.0.69"
+nodejs-resolver = { workspace = true }
 once_cell = { workspace = true }
 paste = { workspace = true }
 petgraph = "0.6.0"
