@@ -1,4 +1,4 @@
-import { answer } from 'file:///home/victor/Documents/rspack/rspack/examples/basic/src/answer.js';
+import { answer } from './answer';
 function render() {
   document.getElementById(
     'root'
