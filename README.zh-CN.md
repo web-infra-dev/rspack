@@ -75,3 +75,9 @@
 ## License
 
 Rspack 项目基于 [MIT 协议](https://github.com/web-infra-dev/rspack/blob/main/LICENSE)，请自由地享受和参与开源。
+
+## Community
+
+- Rspack 飞书交流群
+
+<img alt="飞书群" src="https://user-images.githubusercontent.com/8898718/226320091-e817106f-4a22-4e89-bdcd-f67e93bb960c.png" width="360" >
