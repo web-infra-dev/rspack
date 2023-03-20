@@ -11,6 +11,7 @@ use rspack_symbol::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
+use swc_core::base::SwcComments;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
@@ -101,7 +102,6 @@ bitflags! {
     const STATIC_VAR_DECL = 1 << 4;
   }
 }
-#[derive(Debug)]
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
@@ -142,21 +142,81 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
   pub(crate) potential_top_mark: HashSet<Mark>,
+  #[allow(dead_code)]
+  comments: Option<&'a SwcComments>,
 }
 
-impl<'a> ModuleRefAnalyze<'a> {
-  pub fn new(
-    top_level_mark: Mark,
-    unresolved_mark: Mark,
-    helper_mark: Mark,
-    uri: ModuleIdentifier,
-    dep_to_module_identifier: &'a ModuleGraph,
-    options: &'a Arc<CompilerOptions>,
-  ) -> Self {
+impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ModuleRefAnalyze")
+      .field("top_level_mark", &self.top_level_mark)
+      .field("unresolved_mark", &self.unresolved_mark)
+      .field("helper_mark", &self.helper_mark)
+      .field("module_identifier", &self.module_identifier)
+      .field("module_graph", &self.module_graph)
+      .field("export_map", &self.export_map)
+      .field("import_map", &self.import_map)
+      .field("inherit_export_maps", &self.inherit_export_maps)
+      .field(
+        "current_body_owner_symbol_ext",
+        &self.current_body_owner_symbol_ext,
+      )
+      .field("maybe_lazy_reference_map", &self.maybe_lazy_reference_map)
+      .field(
+        "immediate_evaluate_reference_map",
+        &self.immediate_evaluate_reference_map,
+      )
+      .field(
+        "reachable_import_and_export",
+        &self.reachable_import_and_export,
+      )
+      .field("state", &self.state)
+      .field("used_id_set", &self.used_id_set)
+      .field("used_symbol_ref", &self.used_symbol_ref)
+      .field("export_default_name", &self.export_default_name)
+      .field("module_syntax", &self.module_syntax)
+      .field(
+        "bail_out_module_identifiers",
+        &self.bail_out_module_identifiers,
+      )
+      .field("side_effects", &self.side_effects)
+      .field("options", &self.options)
+      .field("has_side_effects_stmt", &self.has_side_effects_stmt)
+      .field("unresolved_ctxt", &self.unresolved_ctxt)
+      .field("potential_top_mark", &self.potential_top_mark)
+      .field("comments", &"...")
+      .finish()
+  }
+}
+
+pub struct MarkInfo {
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
+  helper_mark: Mark,
+}
+
+impl MarkInfo {
+  pub fn new(top_level_mark: Mark, unresolved_mark: Mark, helper_mark: Mark) -> Self {
     Self {
       top_level_mark,
       unresolved_mark,
       helper_mark,
+    }
+  }
+}
+
+impl<'a> ModuleRefAnalyze<'a> {
+  pub fn new(
+    mark_info: MarkInfo,
+    uri: ModuleIdentifier,
+    dep_to_module_identifier: &'a ModuleGraph,
+    options: &'a Arc<CompilerOptions>,
+    comments: Option<&'a SwcComments>,
+  ) -> Self {
+    Self {
+      top_level_mark: mark_info.top_level_mark,
+      unresolved_mark: mark_info.unresolved_mark,
+      helper_mark: mark_info.helper_mark,
       module_identifier: uri,
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
@@ -176,7 +236,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       options,
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
-      potential_top_mark: HashSet::from_iter([top_level_mark]),
+      potential_top_mark: HashSet::from_iter([mark_info.top_level_mark]),
+      comments,
     }
   }
 
