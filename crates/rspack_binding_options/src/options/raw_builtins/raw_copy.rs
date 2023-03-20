@@ -24,6 +24,7 @@ pub struct RawPattern {
 pub struct RawGlobOptions {
   pub case_sensitive_match: Option<bool>,
   pub dot: Option<bool>,
+  pub ignore: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -70,6 +71,12 @@ impl From<RawPattern> for Pattern {
       glob_options: GlobOptions {
         case_sensitive_match: glob_options.case_sensitive_match,
         dot: glob_options.dot,
+        ignore: glob_options.ignore.map(|ignore| {
+          ignore
+            .into_iter()
+            .map(|filter| glob::Pattern::new(filter.as_ref()).expect("Invalid pattern option"))
+            .collect()
+        }),
       },
     }
   }

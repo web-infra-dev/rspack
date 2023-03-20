@@ -7,7 +7,7 @@ use std::{
 
 use async_trait::async_trait;
 use dashmap::DashSet;
-use glob::{GlobError, MatchOptions};
+use glob::MatchOptions;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, Filename, FromType, Pattern,
@@ -73,7 +73,7 @@ impl CopyPlugin {
   }
 
   async fn analyze_every_entry(
-    entry: Result<PathBuf, GlobError>,
+    entry: PathBuf,
     pattern: &Pattern,
     context: &Path,
     output_path: &Path,
@@ -81,15 +81,14 @@ impl CopyPlugin {
     file_dependencies: &DashSet<PathBuf>,
     diagnostics: &DashSet<Diagnostic>,
   ) -> Option<RunPatternResult> {
-    if entry.is_err() {
-      return None;
-    }
-
-    let entry = entry.expect("UNREACHABLE");
-
     // Exclude directories
     if entry.is_dir() {
       return None;
+    }
+    if let Some(ignore) = &pattern.glob_options.ignore && ignore.iter().any(|ignore| {
+      ignore.matches(&entry.to_string_lossy())
+    }) {
+      return None
     }
 
     let from = entry.as_path().to_path_buf();
@@ -342,11 +341,27 @@ impl CopyPlugin {
 
     match glob_entries {
       Ok(entries) => {
-        let entries: Vec<_> = entries.collect();
+        let entries: Vec<_> = entries
+          .filter_map(|entry| {
+            let entry = entry.ok()?;
+
+            let filters = pattern.glob_options.ignore.as_ref();
+
+            if let Some(filters) = filters {
+              // If filters length is 0, exist is true by default
+              let exist = filters
+                .iter()
+                .all(|filter| !filter.matches(&entry.to_string_lossy()));
+              exist.then_some(entry)
+            } else {
+              Some(entry)
+            }
+          })
+          .collect();
 
         if need_add_context_to_dependency &&
         let Some(common_dir) = get_closest_common_parent_dir(
-          &entries.iter().flatten().map(|it| it.as_path()).collect(),
+          &entries.iter().map(|it| it.as_path()).collect(),
         ) {
           context_dependencies.insert(common_dir);
         }
