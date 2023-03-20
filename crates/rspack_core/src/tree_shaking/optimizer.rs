@@ -1243,7 +1243,7 @@ async fn par_analyze_module(
         //   &analyzer.import_map,
         //   &analyzer.maybe_lazy_reference_map, //   &analyzer.immediate_evaluate_reference_map, //   &analyzer.reachable_import_and_export, //   &analyzer.used_symbol_ref // ); // }
 
-        Some((uri_key, analyzer.into()))
+        Some((uri_key, analyzer))
       })
       .collect::<IdentifierMap<TreeShakingResult>>()
   };

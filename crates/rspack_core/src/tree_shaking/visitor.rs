@@ -143,6 +143,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
   pub(crate) potential_top_mark: HashSet<Mark>,
+  #[allow(dead_code)]
   comments: Option<&'a SwcComments>,
 }
 
