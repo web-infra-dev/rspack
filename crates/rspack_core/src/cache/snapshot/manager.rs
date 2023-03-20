@@ -4,7 +4,7 @@ use std::{
   time::SystemTime,
 };
 
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHasher};
 
@@ -23,6 +23,8 @@ pub struct SnapshotManager {
   update_time_cache: DashMap<PathBuf, SystemTime, BuildHasherDefault<FxHasher>>,
   /// cache file hash
   hash_cache: DashMap<PathBuf, u64, BuildHasherDefault<FxHasher>>,
+  /// has modified file
+  modified_files: DashSet<PathBuf>,
 }
 
 impl SnapshotManager {
@@ -31,6 +33,7 @@ impl SnapshotManager {
       options,
       update_time_cache: Default::default(),
       hash_cache: Default::default(),
+      modified_files: Default::default(),
     }
   }
 
@@ -80,6 +83,10 @@ impl SnapshotManager {
       // check update time
       let update_time_cache = &self.update_time_cache;
       for (path, snapshot_time) in file_update_times {
+        if self.modified_files.contains(path) {
+          return Ok(false);
+        }
+
         let update_time = match update_time_cache.get(path) {
           Some(t) => *t,
           None => {
@@ -99,6 +106,10 @@ impl SnapshotManager {
       // check file hash
       let hash_cache = &self.hash_cache;
       for (path, snapshot_hash) in file_hashes {
+        if self.modified_files.contains(path) {
+          return Ok(false);
+        }
+
         let current_hash = match hash_cache.get(path) {
           Some(h) => *h,
           None => {
@@ -119,5 +130,12 @@ impl SnapshotManager {
   pub fn clear(&self) {
     self.update_time_cache.clear();
     self.hash_cache.clear();
+    self.modified_files.clear();
+  }
+
+  pub fn set_modified_files(&self, files: Vec<PathBuf>) {
+    for item in files {
+      self.modified_files.insert(item);
+    }
   }
 }
