@@ -2,7 +2,7 @@ use rspack_core::ErrorSpan;
 use rspack_error::{
   Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
-use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceFile, SourceMap};
+use swc_core::common::{sync::Lrc, FileName, FilePathMapping, SourceFile, SourceMap, GLOBALS};
 use swc_html::{
   ast::Document,
   codegen::{
@@ -48,7 +48,9 @@ impl<'a> HtmlCompiler<'a> {
     };
     if self.config.minify {
       // Minify can't leak to user land because it doesn't implement `ToNapiValue` Trait
-      minify_document(ast, &MinifyOptions::default());
+      GLOBALS.set(&Default::default(), || {
+        minify_document(ast, &MinifyOptions::default());
+      })
     }
 
     let mut output = String::new();
@@ -72,6 +74,6 @@ pub fn html_parse_error_to_traceable_error(error: Error, fm: &SourceFile) -> rsp
     message.to_string(),
   )
   .with_kind(DiagnosticKind::Html);
-  //Use this `Error` convertion could avoid eagerly clone source file.
+  //Use this `Error` conversion could avoid eagerly clone source file.
   rspack_error::Error::TraceableError(traceable_error)
 }

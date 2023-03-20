@@ -1,5 +1,12 @@
 # @rspack/binding-darwin-arm64
 
+## 0.1.1
+
+### Patch Changes
+
+- 6f8706f0: fix: postcss modules warning when using postcss-loader
+- a004765a: Avoid reporting warning the export when src module format is none esm
+
 ## 0.1.0
 
 ## 0.0.26

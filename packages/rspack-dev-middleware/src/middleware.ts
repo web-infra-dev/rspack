@@ -1,21 +1,33 @@
-import { extname, relative } from "path";
+import { extname } from "path";
+import type { IncomingMessage, ServerResponse } from "http";
 import type { Compiler } from "@rspack/core";
 import wdm from "webpack-dev-middleware";
 import type { RequestHandler } from "express";
 import mime from "mime-types";
+import { parse } from "url";
 
 export function getRspackMemoryAssets(
 	compiler: Compiler,
 	rdm: ReturnType<typeof wdm>
 ): RequestHandler {
-	return function (req, res, next) {
-		const { method, path } = req;
+	const publicPath = compiler.options.output.publicPath
+		? compiler.options.output.publicPath.replace(/\/$/, "") + "/"
+		: "/";
+	return function (
+		req: IncomingMessage,
+		res: ServerResponse,
+		next: () => void
+	) {
+		const { method, url } = req;
 		if (method !== "GET") {
 			return next();
 		}
-
+		// css hmr will append query string, so here need to remove query string
+		const path = parse(url).path;
 		// asset name is not start with /, so path need to slice 1
-		const filename = path.slice(1);
+		const filename = path.startsWith(publicPath)
+			? path.slice(publicPath.length)
+			: path.slice(1);
 		let buffer =
 			compiler.getAsset(filename) ??
 			(() => {
@@ -38,6 +50,6 @@ export function getRspackMemoryAssets(
 		}
 
 		res.setHeader("Content-Type", contentType);
-		res.send(buffer);
+		res.end(buffer);
 	};
 }

@@ -29,6 +29,7 @@ export interface RspackOptions {
 	target?: Target;
 	externals?: Externals;
 	externalsType?: ExternalsType;
+	externalsPresets?: ExternalsPresets;
 	infrastructureLogging?: InfrastructureLogging;
 	devtool?: DevTool;
 	node?: Node;
@@ -56,6 +57,7 @@ export interface RspackOptionsNormalized {
 	target?: Target;
 	externals?: Externals;
 	externalsType?: ExternalsType;
+	externalsPresets: ExternalsPresets;
 	infrastructureLogging: InfrastructureLogging;
 	devtool?: DevTool;
 	node: Node;
@@ -257,7 +259,8 @@ export type RuleSetCondition =
 	| RegExp
 	| string
 	| RuleSetConditions
-	| RuleSetLogicalConditions;
+	| RuleSetLogicalConditions
+	| ((value: string) => boolean);
 export type RuleSetConditions = RuleSetCondition[];
 export interface RuleSetLogicalConditions {
 	and?: RuleSetConditions;
@@ -298,8 +301,8 @@ export interface ModuleOptionsNormalized {
 export type Target = false | string[] | string;
 
 ///// Externals /////
-export type Externals = ExternalItem;
-export type ExternalItem = string | ExternalItemObjectUnknown;
+export type Externals = ExternalItem[] | ExternalItem;
+export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }
@@ -328,6 +331,11 @@ export type ExternalsType =
 	| "import"
 	| "script"
 	| "node-commonjs";
+
+///// ExternalsPresets /////
+export interface ExternalsPresets {
+	node?: boolean;
+}
 
 ///// InfrastructureLogging /////
 export interface InfrastructureLogging {
@@ -374,6 +382,7 @@ export type Node = NodeOptions;
 // | false;
 export interface NodeOptions {
 	__dirname?: false | true | "warn-mock" | "mock" | "eval-only";
+	__filename?: false | true | "warn-mock" | "mock" | "eval-only";
 	global?: boolean | "warn";
 }
 
@@ -414,6 +423,7 @@ export interface StatsOptions {
 	hash?: boolean;
 	reasons?: boolean;
 	publicPath?: boolean;
+	outputPath?: boolean;
 	chunkModules?: boolean;
 	chunkRelations?: boolean;
 }

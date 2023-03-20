@@ -3,7 +3,6 @@ use std::{
   fmt::Debug,
   hash::BuildHasherDefault,
   hash::{Hash, Hasher},
-  path::PathBuf,
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -26,17 +25,18 @@ use serde_json::json;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  contextify, is_async_dependency, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
-  BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions,
-  Context, Dependency, DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Resolve, SourceType,
+  contextify, is_async_dependency, module_graph::ConnectionId, AssetGeneratorOptions,
+  AssetParserOptions, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
+  DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
   pub struct ModuleSyntax: u8 {
     const COMMONJS = 1 << 0;
-    const DYNAMIC_IMPORT = 1 << 1;
+    const ESM = 1 << 1;
   }
 }
 
@@ -74,8 +74,8 @@ impl ModuleIssuer {
 #[derive(Debug)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  pub outgoing_connections: HashSet<usize>,
-  pub incoming_connections: HashSet<usize>,
+  pub outgoing_connections: HashSet<ConnectionId>,
+  pub incoming_connections: HashSet<ConnectionId>,
 
   issuer: ModuleIssuer,
 
@@ -88,7 +88,8 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
   pub used: bool,
-  pub hash: Option<u64>,
+  pub build_info: Option<BuildInfo>,
+  pub build_meta: Option<BuildMeta>,
 }
 
 impl ModuleGraphModule {
@@ -110,7 +111,8 @@ impl ModuleGraphModule {
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
       used: default_used,
-      hash: None,
+      build_info: None,
+      build_meta: None,
     }
   }
 
@@ -119,11 +121,11 @@ impl ModuleGraphModule {
     c.expect("module id not found").as_str()
   }
 
-  pub fn add_incoming_connection(&mut self, connection_id: usize) {
+  pub fn add_incoming_connection(&mut self, connection_id: ConnectionId) {
     self.incoming_connections.insert(connection_id);
   }
 
-  pub fn add_outgoing_connection(&mut self, connection_id: usize) {
+  pub fn add_outgoing_connection(&mut self, connection_id: ConnectionId) {
     self.outgoing_connections.insert(connection_id);
   }
 
@@ -136,10 +138,10 @@ impl ModuleGraphModule {
       .iter()
       .map(|connection_id| {
         module_graph
-          .connection_by_connection_id(*connection_id)
+          .connection_by_connection_id(connection_id)
           .ok_or_else(|| {
             internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id}"
+              "connection_id_to_connection does not have connection_id: {connection_id:?}"
             )
           })
       })
@@ -158,10 +160,10 @@ impl ModuleGraphModule {
       .iter()
       .map(|connection_id| {
         module_graph
-          .connection_by_connection_id(*connection_id)
+          .connection_by_connection_id(connection_id)
           .ok_or_else(|| {
             internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id}"
+              "connection_id_to_connection does not have connection_id: {connection_id:?}"
             )
           })
       })
@@ -294,15 +296,6 @@ impl From<BoxSource> for AstOrSource {
   }
 }
 
-#[derive(Debug, Default)]
-pub struct BuildInfo {
-  pub strict: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
-}
-
 #[derive(Debug)]
 pub struct NormalModule {
   id: ModuleIdentifier,
@@ -340,7 +333,6 @@ pub struct NormalModule {
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn Dependency>>>,
-  pub build_info: BuildInfo,
 }
 
 #[derive(Debug)]
@@ -405,7 +397,6 @@ impl NormalModule {
       cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      build_info: Default::default(),
     }
   }
 
@@ -489,9 +480,8 @@ impl Module for NormalModule {
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    // clear build_info
-    self.build_info = Default::default();
-
+    let mut build_info = Default::default();
+    let mut build_meta = Default::default();
     let mut diagnostics = Vec::new();
     let loader_result = build_context
       .loader_runner_runner
@@ -530,11 +520,14 @@ impl Module for NormalModule {
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
         code_generation_dependencies: &mut code_generation_dependencies,
-        build_info: &mut self.build_info,
+        build_info: &mut build_info,
+        build_meta: &mut build_meta,
       })?
       .split_into_parts();
     diagnostics.extend(ds);
 
+    // Only side effects used in code_generate can stay here
+    // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
     self.code_generation_dependencies = Some(
@@ -548,34 +541,22 @@ impl Module for NormalModule {
     );
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self
-      .build_info
-      .file_dependencies
-      .extend(loader_result.file_dependencies);
-    self
-      .build_info
-      .context_dependencies
-      .extend(loader_result.context_dependencies);
-    self
-      .build_info
-      .missing_dependencies
-      .extend(loader_result.missing_dependencies);
-    self
-      .build_info
-      .build_dependencies
-      .extend(loader_result.build_dependencies);
-
     let mut hasher = Xxh3::new();
     self.hash(&mut hasher);
 
+    build_info.hash = hasher.finish();
+    build_info.cacheable = loader_result.cacheable;
+    build_info.file_dependencies = loader_result.file_dependencies;
+    build_info.context_dependencies = loader_result.context_dependencies;
+    build_info.missing_dependencies = loader_result.missing_dependencies;
+    build_info.build_dependencies = loader_result.build_dependencies;
+
+    // TODO: match package.json type files
+    build_meta.strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm);
     Ok(
       BuildResult {
-        hash: hasher.finish(),
-        cacheable: loader_result.cacheable,
-        file_dependencies: self.build_info.file_dependencies.clone(),
-        context_dependencies: self.build_info.context_dependencies.clone(),
-        missing_dependencies: self.build_info.missing_dependencies.clone(),
-        build_dependencies: self.build_info.build_dependencies.clone(),
+        build_info,
+        build_meta,
         dependencies,
       }
       .with_diagnostic(diagnostics),
@@ -665,19 +646,6 @@ impl Module for NormalModule {
     } else {
       None
     }
-  }
-
-  fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
-    for item in files {
-      if self.build_info.file_dependencies.contains(item)
-        || self.build_info.build_dependencies.contains(item)
-        || self.build_info.context_dependencies.contains(item)
-        || self.build_info.missing_dependencies.contains(item)
-      {
-        return true;
-      }
-    }
-    false
   }
 }
 

@@ -1,27 +1,22 @@
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
-import path from "path";
-import fs from "fs";
 import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
 import {
 	RspackOptions,
-	MultiCompilerOptions,
-	createMultiCompiler,
-	createCompiler,
 	MultiCompiler,
 	Compiler,
 	rspack,
-	MultiRspackOptions
+	MultiRspackOptions,
+	Stats,
+	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
+import { loadRspackConfig } from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
 
-const defaultConfig = "rspack.config.js";
-const defaultEntry = "src/index.js";
-type Callback<T> = <T>(err: Error, res?: T) => void;
 type RspackEnv = "development" | "production";
 export class RspackCLI {
 	colors: RspackCLIColors;
@@ -32,8 +27,10 @@ export class RspackCLI {
 	}
 	async createCompiler(
 		options: RspackCLIOptions,
-		rspackEnv: RspackEnv
+		rspackEnv: RspackEnv,
+		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
+		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
 		if (typeof options.nodeEnv === "string") {
 			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
@@ -42,8 +39,13 @@ export class RspackCLI {
 		}
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackEnv);
+
+		const isWatch = Array.isArray(config)
+			? (config as MultiRspackOptions).some(i => i.watch)
+			: (config as RspackOptions).watch;
+
 		// @ts-ignore
-		const compiler = rspack(config);
+		const compiler = rspack(config, isWatch ? callback : undefined);
 		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
@@ -108,6 +110,10 @@ export class RspackCLI {
 					}
 				});
 			}
+			// cli --watch overrides the watch config
+			if (options.watch) {
+				item.watch = options.watch;
+			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
 				item.mode = rspackEnv ?? "none";
@@ -149,7 +155,7 @@ export class RspackCLI {
 			}
 
 			if (typeof item.stats === "undefined") {
-				item.stats = { preset: "normal" };
+				item.stats = { preset: "errors-warnings" };
 			} else if (typeof item.stats === "boolean") {
 				item.stats = item.stats ? { preset: "normal" } : { preset: "none" };
 			} else if (typeof item.stats === "string") {
@@ -180,42 +186,7 @@ export class RspackCLI {
 	async loadConfig(
 		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let loadedConfig:
-			| undefined
-			| RspackOptions
-			| MultiRspackOptions
-			| ((
-					env: Record<string, any>,
-					argv: Record<string, any>
-			  ) => RspackOptions | MultiRspackOptions);
-		// if we pass config paras
-		if (options.config) {
-			const resolvedConfigPath = path.resolve(process.cwd(), options.config);
-			if (!fs.existsSync(resolvedConfigPath)) {
-				throw new Error(`config file "${resolvedConfigPath}" not exists`);
-			}
-			loadedConfig = require(resolvedConfigPath);
-		} else {
-			let defaultConfigPath = path.resolve(process.cwd(), defaultConfig);
-			if (fs.existsSync(defaultConfigPath)) {
-				loadedConfig = require(defaultConfigPath);
-			} else {
-				let entry: Record<string, string> = {};
-				if (options.entry) {
-					entry = {
-						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
-					};
-				} else {
-					entry = {
-						main: path.resolve(process.cwd(), defaultEntry)
-					};
-				}
-				loadedConfig = {
-					entry
-				};
-			}
-		}
-
+		let loadedConfig = loadRspackConfig(options);
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
@@ -254,6 +225,12 @@ export class RspackCLI {
 
 		if (typeof loadedConfig === "function") {
 			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+			// if return promise we should await its result
+			if (
+				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
+			) {
+				loadedConfig = await loadedConfig;
+			}
 		}
 		return loadedConfig;
 	}
@@ -263,4 +240,15 @@ export class RspackCLI {
 	): compiler is MultiCompiler {
 		return Boolean((compiler as MultiCompiler).compilers);
 	}
+	isWatch(compiler: Compiler | MultiCompiler): boolean {
+		return Boolean(
+			this.isMultipleCompiler(compiler)
+				? compiler.compilers.some(compiler => compiler.options.watch)
+				: compiler.options.watch
+		);
+	}
+}
+
+export function defineConfig(config: RspackOptions): RspackOptions {
+	return config;
 }

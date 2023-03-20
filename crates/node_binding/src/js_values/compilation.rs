@@ -8,8 +8,8 @@ use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
 use super::module::ToJsModule;
-use crate::js_values::module::JsModule;
 use crate::{
+  js_values::{chunk::JsChunk, module::JsModule},
   CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
 };
 
@@ -136,7 +136,18 @@ impl JsCompilation {
       .inner
       .module_graph
       .modules()
+      .values()
       .filter_map(|module| module.to_js_module().ok())
+      .collect::<Vec<_>>()
+  }
+
+  #[napi]
+  pub fn get_chunks(&self) -> Vec<JsChunk> {
+    self
+      .inner
+      .chunk_by_ukey
+      .values()
+      .map(JsChunk::from)
       .collect::<Vec<_>>()
   }
 

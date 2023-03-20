@@ -39,6 +39,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
     let mut shared_modules = compilation
       .module_graph
       .modules()
+      .values()
       .par_bridge()
       .map(|m| m.identifier())
       .map(|module| {
@@ -79,7 +80,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
         let mut chunk = Chunk::new(None, None, rspack_core::ChunkKind::Normal);
         chunk
           .chunk_reasons
-          .push("Splitted with ref count> 1".to_string());
+          .push("Split with ref count> 1".to_string());
         let mut chunk_graph_chunk = ChunkGraphChunk::new();
         chunk_graph_chunk
           .modules

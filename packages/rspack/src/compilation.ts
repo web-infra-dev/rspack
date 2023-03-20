@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compilation.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 import * as tapable from "tapable";
 import { RawSource, Source } from "webpack-sources";
 import { Resolver } from "enhanced-resolve";
@@ -58,7 +67,7 @@ export class Compilation {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
-			[Array<JsModule>],
+			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
 		>;
 		finishModules: tapable.AsyncSeriesHook<[Array<JsModule>]>;
@@ -77,7 +86,10 @@ export class Compilation {
 		this.hooks = {
 			processAssets: createFakeProcessAssetsHook(this),
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeChunkModules: new tapable.AsyncSeriesBailHook(["modules"]),
+			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
+				"chunks",
+				"modules"
+			]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.compiler = compiler;
@@ -166,10 +178,7 @@ export class Compilation {
 
 		let options: Partial<StatsOptions> = {};
 		if (typeof optionsOrPreset === "object" && optionsOrPreset !== null) {
-			for (const key in optionsOrPreset) {
-				// @ts-expect-error
-				options[key] = optionsOrPreset[key];
-			}
+			options = Object.assign({}, optionsOrPreset);
 		}
 
 		const all = options.all;
@@ -205,6 +214,10 @@ export class Compilation {
 		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
 		options.hash = optionOrLocalFallback(options.hash, true);
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
+		options.outputPath = optionOrLocalFallback(
+			options.outputPath,
+			!context.forToString
+		);
 
 		return options;
 	}
@@ -513,6 +526,9 @@ export class Compilation {
 
 	getModules(): JsModule[] {
 		return this.#inner.getModules();
+	}
+	getChunks(): JsChunk[] {
+		return this.#inner.getChunks();
 	}
 
 	getStats() {

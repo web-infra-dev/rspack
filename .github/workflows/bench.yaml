@@ -6,7 +6,7 @@ on:
 
 # cancel previous job runs for the same workflow + pr
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -20,7 +20,6 @@ jobs:
     name: Bench
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!bench')
     runs-on: ubuntu-latest
-    timeout-minutes: 30
 
     steps:
       - name: Get PR SHA
@@ -37,6 +36,11 @@ jobs:
         with:
           submodules: false
           ref: ${{ steps.sha.outputs.result }}
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install toolchain
         run: rustup show

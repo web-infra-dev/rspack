@@ -203,7 +203,7 @@ impl<'a> HmrApiRewrite<'a> {
             self
               .compilation
               .module_graph
-              .module_graph_module_by_dependency_id(dependency.id().expect("should have id"))
+              .module_graph_module_by_dependency_id(&dependency.id().expect("should have id"))
           } else {
             None
           }
@@ -225,7 +225,7 @@ impl<'a> HmrApiRewrite<'a> {
         let module_id = module.id(&self.compilation.chunk_graph);
         str.value = JsWord::from(module_id);
         str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-        // only visit module.hot.accpet callback with harmony import
+        // only visit module.hot.accept callback with harmony import
         if !self.esm_dependencies.contains(&origin_value) {
           return;
         }
@@ -276,7 +276,7 @@ impl<'a> HmrApiRewrite<'a> {
       })
     }
 
-    // module.hot.accpet with callback
+    // module.hot.accept with callback
     if n.args.len() > 1 {
       if let Some(value) = self.module_bindings.get(&module_id_tuple.1) {
         if let Some(ExprOrSpread {

@@ -166,6 +166,8 @@ jobs:
         if: ${{ !matrix.settings.docker }}
         run: rustup target add ${{ matrix.settings.target }}
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-and-test
       - name: Install Protoc
         if: ${{ !matrix.settings.docker }}
         uses: arduino/setup-protoc@v1
@@ -394,6 +396,8 @@ jobs:
           pnpm --filter @rspack/plugin-html run test
   release:
     name: Release
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs:
       - test-x86_64-unknown-linux-gnu
@@ -440,3 +444,4 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
+          ONLY_RELEASE_TAG: true

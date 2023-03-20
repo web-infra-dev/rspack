@@ -5,7 +5,7 @@ This is only used for profiling
 ## Prerequisite
 
 ```sh
-cargo isntall cargo-instruments  # if this not working try to run `brew install cargo-instruments`
+cargo install cargo-instruments  # if this not working try to run `brew install cargo-instruments`
 ```
 
 ## Profiling

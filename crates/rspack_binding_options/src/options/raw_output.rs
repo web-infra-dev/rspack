@@ -223,7 +223,7 @@ impl RawOutputOptions {
                   library_type: library.clone(),
                   prefix: vec!["module".to_string(), "exports".to_string()],
                   declare: false,
-                  unnamed: rspack_plugin_library::Unnamed::Assgin,
+                  unnamed: rspack_plugin_library::Unnamed::Assign,
                   named: None,
                 },
               )
@@ -232,6 +232,11 @@ impl RawOutputOptions {
           }
           "umd" | "umd2" => {
             plugins.push(rspack_plugin_library::UmdLibraryPlugin::new("umd2".eq(library)).boxed());
+          }
+          "amd" | "amd-require" => {
+            plugins.push(
+              rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed(),
+            );
           }
           _ => {}
         }

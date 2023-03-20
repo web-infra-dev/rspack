@@ -3,4 +3,4 @@
 "@rspack/core": patch
 ---
 
-feat: stats for chunkRelations and chunkModules
+feat: add simple ignore options for copy-plugin

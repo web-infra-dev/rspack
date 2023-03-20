@@ -9,9 +9,6 @@ mod update;
 pub use rst::test;
 use update::update;
 
-#[macro_use]
-extern crate derive_builder;
-
 #[derive(Parser)]
 #[clap(version, name = "cargo_rst", about, long_about = None)]
 struct Cli {

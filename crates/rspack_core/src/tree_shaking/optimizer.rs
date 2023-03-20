@@ -25,12 +25,12 @@ use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
 use super::{
   symbol_graph::SymbolGraph,
-  visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
+  visitor::{MarkInfo, ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
   contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -868,27 +868,31 @@ impl<'a> CodeSizeOptimizer<'a> {
                   current_symbol_ref.module_identifier(),
                   ModuleUsedType::INDIRECT,
                 );
-                // match bailout_module_identifiers.get(&module_result.module_identifier) {
-                //   Some(flag)
-                //     if flag.contains(BailoutFlog::COMMONJS_EXPORTS)
-                //       // && indirect_symbol.indirect_id() == "default"
-                //       =>
-                //   {
-                //     graph.add_edge(&current_symbol_ref, &current_symbol_ref);
-                //   }
-                //   _ => {}
-                // }
-                if !is_bailout_module_identifier && !has_bailout_module_identifiers {
+
+                // Only report diagnostic when following conditions are satisfied:
+                // 1. src module is not a bailout module and src module using ESM syntax to export some symbols.
+                // 2. src module has no reexport or any reexport src module is not bailouted
+                let should_diagnostic = !is_bailout_module_identifier
+                  && module_result.module_syntax == ModuleSyntax::ESM
+                  && (module_result.inherit_export_maps.is_empty()
+                    || !has_bailout_module_identifiers);
+                if should_diagnostic {
                   let module_path = self
                     .compilation
                     .module_graph
                     .normal_module_source_path_by_identifier(&module_result.module_identifier);
-                  if let Some(module_path) = module_path {
+                  let importer_module_path = self
+                    .compilation
+                    .module_graph
+                    .normal_module_source_path_by_identifier(&indirect_symbol.importer());
+                  if let (Some(module_path), Some(importer_module_path)) =
+                    (module_path, importer_module_path)
+                  {
                     let error_message = format!(
                       "{} did not export `{}`, imported by {}",
-                      module_path,
+                      contextify(&self.compilation.options.context, &module_path),
                       indirect_symbol.indirect_id(),
-                      indirect_symbol.importer()
+                      contextify(&self.compilation.options.context, &importer_module_path),
                     );
                     errors.push(Error::InternalError(InternalError {
                       error_message,
@@ -947,7 +951,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // all
         // ```
         // then, all the exports in `test.js` including
-        // export defined in `test.js` and all realted
+        // export defined in `test.js` and all related
         // reexport should be marked as used
         let include_default_export = match star_symbol.ty() {
           StarSymbolKind::ReExportAllAs => false,
@@ -1189,10 +1193,9 @@ async fn par_analyze_module(
   std::hash::BuildHasherDefault<ustr::IdentityHasher>,
 > {
   let analyze_results = {
-    let resolver_factory = &compilation.plugin_driver.read().await.resolver_factory;
     compilation
       .module_graph
-      .module_identifier_to_module_graph_module
+      .module_graph_modules()
       .par_iter()
       .filter_map(|(module_identifier, mgm)| {
         let uri_key = *module_identifier;
@@ -1215,22 +1218,20 @@ async fn par_analyze_module(
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           return None;
         };
-        let analyzer = ast.visit(|program, context| {
+        let analyzer: TreeShakingResult = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
           let helper_mark = context.helpers.mark();
 
           let mut analyzer = ModuleRefAnalyze::new(
-            top_level_mark,
-            unresolved_mark,
-            helper_mark,
+            MarkInfo::new(top_level_mark, unresolved_mark, helper_mark),
             uri_key,
             &compilation.module_graph,
-            resolver_factory,
             &compilation.options,
+            program.comments.as_ref(),
           );
           program.visit_with(&mut analyzer);
-          analyzer
+          analyzer.into()
         });
 
         // Keep this debug info until we stabilize the tree-shaking
@@ -1247,7 +1248,7 @@ async fn par_analyze_module(
         //   );
         // }
 
-        Some((uri_key, analyzer.into()))
+        Some((uri_key, analyzer))
       })
       .collect::<IdentifierMap<TreeShakingResult>>()
   };

@@ -335,6 +335,12 @@ impl CssParserAndGenerator {
   }
 }
 
+/// Compat for @rspack/postcss-loader css modules
+#[derive(serde::Deserialize)]
+struct RspackPostcssModules {
+  rspack_postcss_modules: String,
+}
+
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
     if self.config.modules.exports_only {
@@ -438,7 +444,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
     self.exports = local_exports;
 
-    if self.meta.is_some() && self.exports.is_some() {
+    if self.exports.is_some() && let Some(meta) = &self.meta && serde_json::from_str::<RspackPostcssModules>(meta).is_ok() {
       diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));
     }
 
@@ -459,12 +465,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
-    /// Compat for @rspack/postcss-loader css modules
-    #[derive(serde::Deserialize)]
-    struct RspackPostcssModules {
-      rspack_postcss_modules: String,
-    }
-
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
         let devtool = &generate_context.compilation.options.devtool;
@@ -593,10 +593,16 @@ impl Plugin for CssPlugin {
 
     ordered_modules
       .iter()
-      .map(|module_identifier| compilation.module_graph.get_module_hash(module_identifier))
-      .for_each(|current| {
+      .map(|mgm| {
+        (
+          compilation.module_graph.get_module_hash(mgm),
+          compilation.chunk_graph.get_module_id(*mgm),
+        )
+      })
+      .for_each(|(current, id)| {
         if let Some(current) = current {
           current.hash(&mut hasher);
+          id.hash(&mut hasher);
         }
       });
 

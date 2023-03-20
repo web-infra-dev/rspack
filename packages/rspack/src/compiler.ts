@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Compiler.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 import path from "path";
 import fs from "fs";
 import * as tapable from "tapable";
@@ -24,13 +33,16 @@ import {
 } from "./fileSystem";
 import { createHash } from "./util/createHash";
 import { cleverMerge } from "./util/cleverMerge";
-import { NodeTargetPlugin } from "./node/NodeTargetPlugin";
 import { makePathsRelative } from "./util/identifier";
 
 class EntryPlugin {
 	apply() {}
 }
 class HotModuleReplacementPlugin {
+	apply() {}
+}
+
+class NodeTargetPlugin {
 	apply() {}
 }
 
@@ -530,6 +542,7 @@ class Compiler {
 
 	async #optimize_chunk_modules() {
 		await this.compilation.hooks.optimizeChunkModules.promise(
+			this.compilation.getChunks(),
 			this.compilation.getModules()
 		);
 		this.#updateDisabledHooks();

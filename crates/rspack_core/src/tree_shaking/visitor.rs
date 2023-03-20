@@ -11,6 +11,7 @@ use rspack_symbol::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
+use swc_core::base::SwcComments;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
@@ -29,7 +30,6 @@ use super::{
 };
 use crate::{
   CompilerOptions, Dependency, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax,
-  ResolverFactory,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -102,7 +102,6 @@ bitflags! {
     const STATIC_VAR_DECL = 1 << 4;
   }
 }
-#[derive(Debug)]
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
@@ -132,30 +131,92 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) used_symbol_ref: HashSet<SymbolRef>,
   // This field is used for duplicated export default checking
   pub(crate) export_default_name: Option<JsWord>,
+  /// only care about the related export semantic.
+  /// # Examples
+  /// 1. `require()` -> CommonJs
+  /// 2. `export ` -> ESM
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects: SideEffect,
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
   pub(crate) potential_top_mark: HashSet<Mark>,
+  #[allow(dead_code)]
+  comments: Option<&'a SwcComments>,
 }
 
-impl<'a> ModuleRefAnalyze<'a> {
-  pub fn new(
-    top_level_mark: Mark,
-    unresolved_mark: Mark,
-    helper_mark: Mark,
-    uri: ModuleIdentifier,
-    dep_to_module_identifier: &'a ModuleGraph,
-    resolver_factory: &'a Arc<ResolverFactory>,
-    options: &'a Arc<CompilerOptions>,
-  ) -> Self {
+impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ModuleRefAnalyze")
+      .field("top_level_mark", &self.top_level_mark)
+      .field("unresolved_mark", &self.unresolved_mark)
+      .field("helper_mark", &self.helper_mark)
+      .field("module_identifier", &self.module_identifier)
+      .field("module_graph", &self.module_graph)
+      .field("export_map", &self.export_map)
+      .field("import_map", &self.import_map)
+      .field("inherit_export_maps", &self.inherit_export_maps)
+      .field(
+        "current_body_owner_symbol_ext",
+        &self.current_body_owner_symbol_ext,
+      )
+      .field("maybe_lazy_reference_map", &self.maybe_lazy_reference_map)
+      .field(
+        "immediate_evaluate_reference_map",
+        &self.immediate_evaluate_reference_map,
+      )
+      .field(
+        "reachable_import_and_export",
+        &self.reachable_import_and_export,
+      )
+      .field("state", &self.state)
+      .field("used_id_set", &self.used_id_set)
+      .field("used_symbol_ref", &self.used_symbol_ref)
+      .field("export_default_name", &self.export_default_name)
+      .field("module_syntax", &self.module_syntax)
+      .field(
+        "bail_out_module_identifiers",
+        &self.bail_out_module_identifiers,
+      )
+      .field("side_effects", &self.side_effects)
+      .field("options", &self.options)
+      .field("has_side_effects_stmt", &self.has_side_effects_stmt)
+      .field("unresolved_ctxt", &self.unresolved_ctxt)
+      .field("potential_top_mark", &self.potential_top_mark)
+      .field("comments", &"...")
+      .finish()
+  }
+}
+
+pub struct MarkInfo {
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
+  helper_mark: Mark,
+}
+
+impl MarkInfo {
+  pub fn new(top_level_mark: Mark, unresolved_mark: Mark, helper_mark: Mark) -> Self {
     Self {
       top_level_mark,
       unresolved_mark,
       helper_mark,
+    }
+  }
+}
+
+impl<'a> ModuleRefAnalyze<'a> {
+  pub fn new(
+    mark_info: MarkInfo,
+    uri: ModuleIdentifier,
+    dep_to_module_identifier: &'a ModuleGraph,
+    options: &'a Arc<CompilerOptions>,
+    comments: Option<&'a SwcComments>,
+  ) -> Self {
+    Self {
+      top_level_mark: mark_info.top_level_mark,
+      unresolved_mark: mark_info.unresolved_mark,
+      helper_mark: mark_info.helper_mark,
       module_identifier: uri,
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
@@ -170,13 +231,13 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
-      resolver_factory,
       side_effects: SideEffect::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
-      potential_top_mark: HashSet::from_iter([top_level_mark]),
+      potential_top_mark: HashSet::from_iter([mark_info.top_level_mark]),
+      comments,
     }
   }
 
@@ -284,6 +345,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     if self.state.contains(AnalyzeState::ASSIGNMENT_LHS)
       && ((&obj.sym == "module" && prop == "exports") || &obj.sym == "exports")
     {
+      self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .bail_out_module_identifiers
         .entry(self.module_identifier)
@@ -323,7 +385,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             .reachable_import_and_export
             .insert(key.clone(), reachable_import_and_export);
         }
-        // ignore any indrect symbol, because it will not generate binding, the reachable exports will
+        // ignore any indirect symbol, because it will not generate binding, the reachable exports will
         // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
       }
@@ -479,123 +541,127 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_module_item(&mut self, node: &ModuleItem) {
     match node {
-      ModuleItem::ModuleDecl(decl) => match decl {
-        ModuleDecl::Import(import) => {
-          let src = &import.src.value;
-          let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmImport) {
-            Some(module_identifier) => module_identifier,
-            None => {
-              // TODO: Ignore for now because swc helper interference.
-              return;
-            }
-          };
-          let resolved_uri_ukey = *resolved_uri;
-          import
-            .specifiers
-            .iter()
-            .for_each(|specifier| match specifier {
-              ImportSpecifier::Named(named) => {
-                let imported = named.imported.as_ref().map(|imported| match imported {
-                  ModuleExportName::Ident(ident) => ident.sym.clone(),
-                  ModuleExportName::Str(str) => str.value.clone(),
-                });
+      ModuleItem::ModuleDecl(decl) => {
+        self.module_syntax.insert(ModuleSyntax::ESM);
+        match decl {
+          ModuleDecl::Import(import) => {
+            let src = &import.src.value;
+            let resolved_uri = match self.resolve_module_identifier(src, &DependencyType::EsmImport)
+            {
+              Some(module_identifier) => module_identifier,
+              None => {
+                // TODO: Ignore for now because swc helper interference.
+                return;
+              }
+            };
+            let resolved_uri_ukey = *resolved_uri;
+            import
+              .specifiers
+              .iter()
+              .for_each(|specifier| match specifier {
+                ImportSpecifier::Named(named) => {
+                  let imported = named.imported.as_ref().map(|imported| match imported {
+                    ModuleExportName::Ident(ident) => ident.sym.clone(),
+                    ModuleExportName::Str(str) => str.value.clone(),
+                  });
 
-                let local = named.local.sym.clone();
+                  let local = named.local.sym.clone();
 
-                let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                  resolved_uri_ukey,
+                  let symbol_ref = SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                    resolved_uri_ukey,
+                    self.module_identifier,
+                    IndirectType::Import(local, imported),
+                  ));
+
+                  self.add_import(named.local.to_id().into(), symbol_ref);
+                }
+                ImportSpecifier::Default(default) => {
+                  self.add_import(
+                    default.local.to_id().into(),
+                    SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                      resolved_uri_ukey,
+                      self.module_identifier,
+                      IndirectType::ImportDefault(default.local.sym.clone()),
+                    )),
+                  );
+                }
+                ImportSpecifier::Namespace(namespace) => {
+                  self.add_import(
+                    namespace.local.to_id().into(),
+                    SymbolRef::Star(StarSymbol::new(
+                      resolved_uri_ukey,
+                      namespace.local.sym.clone(),
+                      self.module_identifier,
+                      StarSymbolKind::ImportAllAs,
+                    )),
+                  );
+                }
+              });
+          }
+          ModuleDecl::ExportDecl(decl) => match &decl.decl {
+            Decl::Class(class) => {
+              class.visit_with(self);
+              self.add_export(
+                class.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::new(
                   self.module_identifier,
-                  IndirectType::Import(local, imported),
-                ));
-
-                self.add_import(named.local.to_id().into(), symbol_ref);
-              }
-              ImportSpecifier::Default(default) => {
-                self.add_import(
-                  default.local.to_id().into(),
-                  SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                    resolved_uri_ukey,
-                    self.module_identifier,
-                    IndirectType::ImportDefault(default.local.sym.clone()),
-                  )),
-                );
-              }
-              ImportSpecifier::Namespace(namespace) => {
-                self.add_import(
-                  namespace.local.to_id().into(),
-                  SymbolRef::Star(StarSymbol::new(
-                    resolved_uri_ukey,
-                    namespace.local.sym.clone(),
-                    self.module_identifier,
-                    StarSymbolKind::ImportAllAs,
-                  )),
-                );
-              }
-            });
-        }
-        ModuleDecl::ExportDecl(decl) => match &decl.decl {
-          Decl::Class(class) => {
-            class.visit_with(self);
-            self.add_export(
-              class.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::new(
-                self.module_identifier,
-                class.ident.to_id().into(),
-                SymbolType::Define,
-              )),
-            );
-          }
-          Decl::Fn(function) => {
-            function.visit_with(self);
-            self.add_export(
-              function.ident.sym.clone(),
-              SymbolRef::Direct(Symbol::new(
-                self.module_identifier,
-                function.ident.to_id().into(),
-                SymbolType::Define,
-              )),
-            );
-          }
-          Decl::Var(var) => {
-            self.state |= AnalyzeState::EXPORT_DECL;
-            var.visit_with(self);
-            self.state.remove(AnalyzeState::EXPORT_DECL);
-          }
-          Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-            todo!()
-          }
-        },
-        ModuleDecl::ExportNamed(named_export) => {
-          self.analyze_named_export(named_export);
-        }
-        ModuleDecl::ExportDefaultDecl(decl) => {
-          decl.visit_with(self);
-        }
-        ModuleDecl::ExportDefaultExpr(expr) => {
-          expr.visit_with(self);
-        }
-
-        ModuleDecl::ExportAll(export_all) => {
-          let resolved_uri = match self
-            .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
-          {
-            Some(module_identifier) => module_identifier,
-            None => {
-              // TODO: ignore for now, or three copy js will failed
-              return;
+                  class.ident.to_id().into(),
+                  SymbolType::Define,
+                )),
+              );
             }
-          };
-          let resolved_uri_key = *resolved_uri;
-          self
-            .inherit_export_maps
-            .insert(resolved_uri_key, HashMap::default());
+            Decl::Fn(function) => {
+              function.visit_with(self);
+              self.add_export(
+                function.ident.sym.clone(),
+                SymbolRef::Direct(Symbol::new(
+                  self.module_identifier,
+                  function.ident.to_id().into(),
+                  SymbolType::Define,
+                )),
+              );
+            }
+            Decl::Var(var) => {
+              self.state |= AnalyzeState::EXPORT_DECL;
+              var.visit_with(self);
+              self.state.remove(AnalyzeState::EXPORT_DECL);
+            }
+            Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+              unreachable!("We have been converted Typescript to javascript already")
+            }
+          },
+          ModuleDecl::ExportNamed(named_export) => {
+            self.analyze_named_export(named_export);
+          }
+          ModuleDecl::ExportDefaultDecl(decl) => {
+            decl.visit_with(self);
+          }
+          ModuleDecl::ExportDefaultExpr(expr) => {
+            expr.visit_with(self);
+          }
+
+          ModuleDecl::ExportAll(export_all) => {
+            let resolved_uri = match self
+              .resolve_module_identifier(&export_all.src.value, &DependencyType::EsmExport)
+            {
+              Some(module_identifier) => module_identifier,
+              None => {
+                // TODO: ignore for now, or three copy js will failed
+                return;
+              }
+            };
+            let resolved_uri_key = *resolved_uri;
+            self
+              .inherit_export_maps
+              .insert(resolved_uri_key, HashMap::default());
+          }
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => {
+            unreachable!("We have been converted Typescript to javascript already")
+          }
         }
-        ModuleDecl::TsImportEquals(_)
-        | ModuleDecl::TsExportAssignment(_)
-        | ModuleDecl::TsNamespaceExport(_) => {
-          // TODO: ignore ts related syntax visit for now
-        }
-      },
+      }
       ModuleItem::Stmt(stmt) => {
         stmt.visit_children_with(self);
       }
@@ -818,10 +884,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       node.class.visit_with(self);
     }
   }
-  // fn visit_span(&mut self, span: &Span) {}
   fn visit_call_expr(&mut self, node: &CallExpr) {
-    // TODO: module.exports, exports.xxxxx
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
+      self.module_syntax.insert(ModuleSyntax::ESM);
       match self
         .resolve_module_identifier(&require_lit, &DependencyType::CjsRequire)
         .copied()
@@ -843,7 +908,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           );
         }
       };
-      self.module_syntax.insert(ModuleSyntax::COMMONJS);
     } else if let Some(import_str) = get_dynamic_import_string_literal(node) {
       match self
         .resolve_module_identifier(&import_str, &DependencyType::DynamicImport)
@@ -1002,7 +1066,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   fn visit_decl(&mut self, node: &Decl) {
     match node {
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
-        // TODO: Ignore ts related tree-shaking for now.
+        unreachable!("We have been transformed typescript to javascript before.")
       }
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
@@ -1013,11 +1077,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
 impl<'a> ModuleRefAnalyze<'a> {
   fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
-    let resource_path = self
+    let resource_data = self
       .module_graph
       .module_by_identifier(&self.module_identifier)
       .and_then(|module| module.as_normal_module())
-      .map(|normal_module| &normal_module.resource_resolved_data().resource_path)?;
+      .map(|normal_module| normal_module.resource_resolved_data())?;
+
+    let resource_path = &resource_data.resource_path;
 
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
@@ -1028,7 +1094,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       };
       match rule.test {
         Some(ref test_rule) => {
-          if !test_rule.is_match(&resource_path.to_string_lossy()) {
+          let is_match = test_rule.try_match(&resource_path.to_string_lossy()).ok()?;
+          if !is_match {
             continue;
           }
         }
@@ -1038,19 +1105,11 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       return Some(SideEffect::Analyze(module_side_effects));
     }
-    let module_path = PathBuf::from(resource_path);
-    let (mut package_json_path, side_effects) = self
-      .resolver_factory
-      .resolver
-      .0
-      .load_side_effects(module_path.as_path())
-      .ok()??;
-    let side_effects = side_effects?;
+    let description = resource_data.resource_description.as_ref()?;
+    let package_path = description.dir().as_ref();
+    let side_effects = SideEffects::from_description(description)?;
 
-    package_json_path.pop();
-    let package_path = package_json_path;
-
-    let relative_path = module_path.relative(package_path);
+    let relative_path = resource_path.relative(package_path);
     let side_effects = Some(get_side_effects_from_package_json(
       side_effects,
       relative_path,
@@ -1061,12 +1120,12 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 pub fn get_side_effects_from_package_json(
-  side_effects: nodejs_resolver::SideEffects,
+  side_effects: SideEffects,
   relative_path: PathBuf,
 ) -> bool {
   match side_effects {
-    nodejs_resolver::SideEffects::Bool(s) => s,
-    nodejs_resolver::SideEffects::String(s) => {
+    SideEffects::Bool(s) => s,
+    SideEffects::String(s) => {
       let trim_start = s.trim_start_matches("./");
       let normalized_glob = if trim_start.contains('/') {
         trim_start.to_string()
@@ -1078,7 +1137,7 @@ pub fn get_side_effects_from_package_json(
         relative_path.to_string_lossy().trim_start_matches("./"),
       )
     }
-    nodejs_resolver::SideEffects::Array(patterns) => patterns
+    SideEffects::Array(patterns) => patterns
       .iter()
       .any(|pattern| glob_match::glob_match(pattern, &relative_path.to_string_lossy())),
   }
@@ -1207,7 +1266,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       Entry::Vacant(vac) => {
         // if import is a helper injection then we should ignore now tree-shaking with that module
-        // one more thing, only helper module inserted by swc transfomer will be ignored
+        // one more thing, only helper module inserted by swc transformer will be ignored
         // e.g. import ext from '@swc/helper/xxx'
         if vac.key().ctxt.outer() == self.helper_mark {
           match self
@@ -1359,7 +1418,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           if dep.request() == src && dependency_type == dep.dependency_type() {
             self
               .module_graph
-              .module_graph_module_by_dependency_id(dep.id().expect("should have id"))
+              .module_graph_module_by_dependency_id(&dep.id().expect("should have id"))
               .map(|module| &module.module_identifier)
           } else {
             None
@@ -1386,6 +1445,7 @@ pub struct TreeShakingResult {
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub(crate) side_effects: SideEffect,
+  pub(crate) module_syntax: ModuleSyntax,
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
@@ -1404,6 +1464,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       used_symbol_refs: std::mem::take(&mut analyze.used_symbol_ref),
       bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
       side_effects: analyze.side_effects,
+      module_syntax: analyze.module_syntax,
     }
   }
 }
@@ -1533,4 +1594,39 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
 
 fn is_import_decl(module_item: &ModuleItem) -> bool {
   matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::Import(_)))
+}
+
+#[derive(Clone, Debug)]
+pub enum SideEffects {
+  Bool(bool),
+  String(String),
+  Array(Vec<String>),
+}
+
+impl SideEffects {
+  fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
+    description
+      .data()
+      .raw()
+      .get("sideEffects")
+      .and_then(|value| {
+        if let Some(b) = value.as_bool() {
+          Some(SideEffects::Bool(b))
+        } else if let Some(s) = value.as_str() {
+          Some(SideEffects::String(s.to_owned()))
+        } else if let Some(vec) = value.as_array() {
+          let mut ans = vec![];
+          for value in vec {
+            if let Some(str) = value.as_str() {
+              ans.push(str.to_string());
+            } else {
+              return None;
+            }
+          }
+          Some(SideEffects::Array(ans))
+        } else {
+          None
+        }
+      })
+  }
 }

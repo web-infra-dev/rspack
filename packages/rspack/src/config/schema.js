@@ -129,8 +129,7 @@ module.exports = {
 		EntryDescription: {
 			description: "An object with entry point description.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				import: {
 					$ref: "#/definitions/EntryItem"
@@ -248,6 +247,10 @@ module.exports = {
 				"Specify dependency that shouldn't be resolved by rspack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
 			anyOf: [
 				{
+					description: "Every matched dependency becomes external.",
+					instanceof: "RegExp"
+				},
+				{
 					description:
 						"An exact matched dependency becomes external. The same string is used as external dependency.",
 					type: "string"
@@ -276,9 +279,27 @@ module.exports = {
 				"Specify dependencies that shouldn't be resolved by rspack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
 			anyOf: [
 				{
+					type: "array",
+					items: {
+						$ref: "#/definitions/ExternalItem"
+					}
+				},
+				{
 					$ref: "#/definitions/ExternalItem"
 				}
 			]
+		},
+		ExternalsPresets: {
+			description: "Enable presets of externals for specific targets.",
+			type: "object",
+			additionalProperties: false,
+			properties: {
+				node: {
+					description:
+						"Treat node.js built-in modules like fs, path or vm as external and load them via require() when used.",
+					type: "boolean"
+				}
+			}
 		},
 		ExternalsType: {
 			description:
@@ -638,6 +659,10 @@ module.exports = {
 					description: "Include a polyfill for the '__dirname' variable.",
 					enum: [false, true, "warn-mock", "mock", "eval-only"]
 				},
+				__filename: {
+					description: "Include a polyfill for the '__filename' variable.",
+					enum: [false, true, "warn-mock", "mock", "eval-only"]
+				},
 				global: {
 					description: "Include a polyfill for the 'global' variable.",
 					enum: [false, true, "warn"]
@@ -647,8 +672,7 @@ module.exports = {
 		Optimization: {
 			description: "Enables/Disables integrated optimizations.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				chunkIds: {
 					description:
@@ -750,8 +774,7 @@ module.exports = {
 			description:
 				"Options object for describing behavior of a cache group selecting modules that should be cached together.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				chunks: {
 					description:
@@ -808,8 +831,7 @@ module.exports = {
 		OptimizationSplitChunksOptions: {
 			description: "Options object for splitting chunks into smaller chunks.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				cacheGroups: {
 					description:
@@ -893,8 +915,7 @@ module.exports = {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
@@ -1068,8 +1089,7 @@ module.exports = {
 		ResolveOptions: {
 			description: "Options object for resolving requests.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				alias: {
 					$ref: "#/definitions/ResolveAlias"
@@ -1168,6 +1188,9 @@ module.exports = {
 				},
 				{
 					type: "string"
+				},
+				{
+					instanceof: "Function"
 				},
 				{
 					$ref: "#/definitions/RuleSetLogicalConditions"
@@ -1698,8 +1721,7 @@ module.exports = {
 	title: "RspackOptions",
 	description: "Options object as provided by the user.",
 	type: "object",
-	// TODO: change to false once all properties is aligned with webpack
-	additionalProperties: true,
+	additionalProperties: false,
 	properties: {
 		cache: {
 			$ref: "#/definitions/CacheOptions"
@@ -1727,6 +1749,9 @@ module.exports = {
 		},
 		externalsType: {
 			$ref: "#/definitions/ExternalsType"
+		},
+		externalsPresets: {
+			$ref: "#/definitions/ExternalsPresets"
 		},
 		infrastructureLogging: {
 			$ref: "#/definitions/InfrastructureLogging"

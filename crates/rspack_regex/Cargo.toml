@@ -9,10 +9,10 @@ version    = "0.1.0"
 
 [dependencies]
 regress      = "0.4.1"
-rspack_error = { version = "0.1.0", path = "../rspack_error" }
+rspack_error = { path = "../rspack_error" }
 swc_core     = { workspace = true, features = ["ecma_ast"] }
-[dev-dependencies]
 
+[dev-dependencies]
 swc_core = { workspace = true, features = [
   "ecma_ast",
   "__base",

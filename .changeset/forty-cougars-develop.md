@@ -2,4 +2,4 @@
 "@rspack/core": patch
 ---
 
-fix: library umd code excute
+feat: stats.outputPath

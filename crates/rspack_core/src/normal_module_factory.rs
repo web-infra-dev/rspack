@@ -85,13 +85,14 @@ impl NormalModuleFactory {
       .use_cache(resolve_args, |args| resolve(args, plugin_driver))
       .await;
     let resource_data = match resource_data {
-      Ok(ResolveResult::Info(info)) => {
-        let uri = info.join();
+      Ok(ResolveResult::Resource(resource)) => {
+        let uri = resource.join().display().to_string();
         ResourceData {
           resource: uri,
-          resource_path: info.path,
-          resource_query: (!info.query.is_empty()).then_some(info.query),
-          resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
+          resource_path: resource.path,
+          resource_query: resource.query,
+          resource_fragment: resource.fragment,
+          resource_description: resource.description,
         }
       }
       Ok(ResolveResult::Ignored) => {
@@ -113,7 +114,7 @@ impl NormalModuleFactory {
       }
       Err(ResolveError(runtime_error, internal_error)) => {
         let ident = format!("{}{specifier}", importer_with_context.display());
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}{specifier}"));
+        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
         let missing_module = MissingModule::new(
           module_identifier,
@@ -152,13 +153,12 @@ impl NormalModuleFactory {
       .collect::<Vec<_>>();
 
     let request = if !loaders.is_empty() {
-      loaders
+      let s = loaders
         .iter()
         .map(|i| i.name())
         .collect::<Vec<_>>()
-        .join("!")
-        + "!"
-        + &resource_data.resource
+        .join("!");
+      format!("{s}!{}", resource_data.resource)
     } else {
       resource_data.resource.clone()
     };

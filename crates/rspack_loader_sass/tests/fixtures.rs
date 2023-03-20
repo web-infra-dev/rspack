@@ -25,6 +25,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
       resource_path: url.to_file_path().expect("bad url file path"),
       resource_query: url.query().map(|q| q.to_owned()),
       resource_fragment: url.fragment().map(|f| f.to_owned()),
+      resource_description: None,
     },
     vec![],
   )
@@ -58,8 +59,6 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           resolve: rspack_core::Resolve::default(),
           builtins: Default::default(),
           module: Default::default(),
-          externals: Default::default(),
-          externals_type: "commonjs".to_string(),
           stats: Default::default(),
           cache: Default::default(),
           snapshot: Default::default(),

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
+use glob::Pattern as GlobPattern;
 use swc_core::ecma::transforms::react::Runtime;
 use swc_plugin_import::PluginImportConfig;
 
@@ -96,6 +97,7 @@ pub struct Pattern {
 pub struct GlobOptions {
   pub case_sensitive_match: Option<bool>,
   pub dot: Option<bool>,
+  pub ignore: Option<Vec<GlobPattern>>,
 }
 #[derive(Debug, Clone, Default)]
 pub struct PresetEnv {

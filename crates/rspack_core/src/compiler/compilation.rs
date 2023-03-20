@@ -68,7 +68,7 @@ pub struct Compilation {
   pub make_failed_dependencies: HashSet<DependencyId>,
   pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
-  pub runtime_module_hashes: IdentifierMap<u64>,
+  pub runtime_module_code_generation_results: IdentifierMap<(u64, BoxSource)>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
@@ -121,7 +121,7 @@ impl Compilation {
       make_failed_dependencies: HashSet::default(),
       has_module_import_export_change: true,
       runtime_modules: Default::default(),
-      runtime_module_hashes: Default::default(),
+      runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entry_dependencies: Default::default(),
@@ -344,7 +344,7 @@ impl Compilation {
     fast_drop(
       self
         .module_graph
-        .module_identifier_to_module
+        .modules_mut()
         .values_mut()
         .map(|module| {
           if let Some(m) = module.as_normal_module_mut() {
@@ -366,20 +366,17 @@ impl Compilation {
     let mut origin_module_deps = HashMap::default();
     // handle setup params
     if let SetupMakeParam::ModifiedFiles(files) = &params {
-      force_build_module.extend(
-        self
+      force_build_module.extend(self.module_graph.modules().values().filter_map(|module| {
+        // check has dependencies modified
+        if self
           .module_graph
-          .module_identifier_to_module
-          .values()
-          .filter_map(|module| {
-            // check has dependencies modified
-            if module.has_dependencies(files) {
-              Some(module.identifier())
-            } else {
-              None
-            }
-          }),
-      );
+          .has_dependencies(&module.identifier(), files)
+        {
+          Some(module.identifier())
+        } else {
+          None
+        }
+      }));
       // collect origin_module_deps
       for module_id in &force_build_module {
         let mgm = self
@@ -654,16 +651,16 @@ impl Compilation {
 
               self
                 .file_dependencies
-                .extend(build_result.file_dependencies);
+                .extend(build_result.build_info.file_dependencies.clone());
               self
                 .context_dependencies
-                .extend(build_result.context_dependencies);
+                .extend(build_result.build_info.context_dependencies.clone());
               self
                 .missing_dependencies
-                .extend(build_result.missing_dependencies);
+                .extend(build_result.build_info.missing_dependencies.clone());
               self
                 .build_dependencies
-                .extend(build_result.build_dependencies);
+                .extend(build_result.build_info.build_dependencies.clone());
 
               let mut dep_ids = vec![];
               for dependency in build_result.dependencies {
@@ -683,9 +680,11 @@ impl Compilation {
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
               });
-              self
-                .module_graph
-                .set_module_hash(&module.identifier(), build_result.hash);
+              self.module_graph.set_module_build_info_and_meta(
+                &module.identifier(),
+                build_result.build_info,
+                build_result.build_meta,
+              );
               self.module_graph.add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
@@ -776,6 +775,7 @@ impl Compilation {
       self.bailout_module_identifiers = self
         .module_graph
         .modules()
+        .values()
         .par_bridge()
         .filter_map(|module| {
           if module.as_context_module().is_some() {
@@ -848,7 +848,7 @@ impl Compilation {
     ) -> Result<()> {
       let results = compilation
         .module_graph
-        .module_identifier_to_module
+        .modules()
         .par_iter()
         .filter(filter_op)
         .map(|(module_identifier, module)| {
@@ -1030,7 +1030,7 @@ impl Compilation {
   ) -> Result<()> {
     let mut module_runtime_requirements = self
       .module_graph
-      .module_identifier_to_module
+      .modules()
       .par_iter()
       .filter_map(|(_, module)| {
         if self
@@ -1179,7 +1179,7 @@ impl Compilation {
     let hash_results = content_hash_chunks
       .iter()
       .map(|chunk_ukey| async {
-        let hashs = plugin_driver
+        let hashes = plugin_driver
           .read()
           .await
           .content_hash(&ContentHashArgs {
@@ -1187,14 +1187,14 @@ impl Compilation {
             compilation: self,
           })
           .await;
-        (*chunk_ukey, hashs)
+        (*chunk_ukey, hashes)
       })
       .collect::<FuturesResults<_>>()
       .into_inner();
 
     for item in hash_results {
-      let (chunk_ukey, hashs) = item.expect("Failed to resolve content_hash results");
-      hashs?.into_iter().for_each(|hash| {
+      let (chunk_ukey, hashes) = item.expect("Failed to resolve content_hash results");
+      hashes?.into_iter().for_each(|hash| {
         if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
           chunk.content_hash.insert(source_type, hash);
         }
@@ -1220,8 +1220,8 @@ impl Compilation {
           .chunk_graph
           .get_chunk_runtime_modules_in_order(&chunk.ukey)
           .iter()
-          .filter_map(|identifier| self.runtime_module_hashes.get(identifier))
-          .inspect(|hash| hash.hash(&mut chunk.hash))
+          .filter_map(|identifier| self.runtime_module_code_generation_results.get(identifier))
+          .inspect(|(hash, _)| hash.hash(&mut chunk.hash))
       })
       .collect::<Vec<_>>()
       .iter()
@@ -1262,25 +1262,27 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
   pub fn create_runtime_module_hash(&mut self) {
-    self.runtime_module_hashes = self
+    self.runtime_module_code_generation_results = self
       .runtime_modules
       .par_iter()
       .map(|(identifier, module)| {
+        let source = module.generate(self);
         let mut hasher = Xxh3::new();
-        module.hash(self, &mut hasher);
-        (*identifier, hasher.finish())
+        module.identifier().hash(&mut hasher);
+        source.source().hash(&mut hasher);
+        (*identifier, (hasher.finish(), source))
       })
       .collect();
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
-    // add chunk runtime to perfix module identifier to avoid multiple entry runtime modules conflict
+    // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self
       .chunk_by_ukey
       .get(chunk_ukey)
       .expect("chunk not found by ukey");
-    let runtime_module_identifier = format!("{:?}/{}", chunk.runtime, module.identifier());
-    let runtime_module_identifier = ModuleIdentifier::from(runtime_module_identifier);
+    let runtime_module_identifier =
+      ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);
     self.chunk_graph.add_module(runtime_module_identifier);
     self

@@ -1,7 +1,8 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use napi::{Env, JsFunction, NapiRaw, Result};
+use napi::{Env, Result};
+use rspack_binding_macros::js_fn_into_theadsafe_fn;
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
@@ -306,59 +307,31 @@ impl JsHooksAdapter {
       finish_modules,
     } = js_hooks;
 
-    // *Note* that the order of the creation of threadsafe function is important. There is a queue of threadsafe calls for each tsfn:
-    // For example:
-    // tsfn1: [call-in-js-task1, call-in-js-task2]
-    // tsfn2: [call-in-js-task3, call-in-js-task4]
-    // If the tsfn1 is created before tsfn2, and task1 is created(via `tsfn.call`) before task2(single tsfn level),
-    // and *if these tasks are created in the same tick*, tasks will be called on main thread in the order of `task1` `task2` `task3` `task4`
-    //
-    // In practice:
-    // The creation of callback `this_compilation` is placed before the callback `compilation` because we want the JS hooks `this_compilation` to be called before the JS hooks `compilation`.
-
-    macro_rules! create_hook_tsfn {
-      ($js_cb:ident) => {{
-        let cb = unsafe { $js_cb.raw() };
-
-        let mut tsfn: ThreadsafeFunction<_, _> =
-          ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-            let (ctx, resolver) = ctx.split_into_parts();
-
-            let env = ctx.env;
-            let cb = ctx.callback;
-            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
-
-            resolver.resolve::<()>(result, |_, _| Ok(()))
-          })?;
-
-        // See the comment in `threadsafe_function.rs`
-        tsfn.unref(&env)?;
-        tsfn
-      }};
-    }
-
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_additional);
+      js_fn_into_theadsafe_fn!(process_assets_stage_additional, env);
     let process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_pre_process);
+      js_fn_into_theadsafe_fn!(process_assets_stage_pre_process, env);
     let process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_none);
+      js_fn_into_theadsafe_fn!(process_assets_stage_none, env);
     let process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_optimize_inline);
+      js_fn_into_theadsafe_fn!(process_assets_stage_optimize_inline, env);
     let process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_summarize);
+      js_fn_into_theadsafe_fn!(process_assets_stage_summarize, env);
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_report);
-    let emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(emit);
-    let after_emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(after_emit);
+      js_fn_into_theadsafe_fn!(process_assets_stage_report, env);
+    let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(emit, env);
+    let after_emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(after_emit, env);
     let this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      create_hook_tsfn!(this_compilation);
-    let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = create_hook_tsfn!(compilation);
-    let make_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(make);
+      js_fn_into_theadsafe_fn!(this_compilation, env);
+    let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      js_fn_into_theadsafe_fn!(compilation, env);
+    let make_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(make, env);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      create_hook_tsfn!(optimize_chunk_module);
-    let before_compile_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(before_compile);
-    let finish_modules_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(finish_modules);
+      js_fn_into_theadsafe_fn!(optimize_chunk_module, env);
+    let before_compile_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_theadsafe_fn!(before_compile, env);
+    let finish_modules_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_theadsafe_fn!(finish_modules, env);
 
     Ok(JsHooksAdapter {
       disabled_hooks,

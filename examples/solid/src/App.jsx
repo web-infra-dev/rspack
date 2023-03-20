@@ -1,7 +1,7 @@
 import logo from './logo.svg';
 import styles from './App.module.css';
 import { createSignal } from "solid-js";
-
+import Message from './Message';
 function App() {
   const [count, setCount] = createSignal(1);
   const increment = () => setCount(count() + 1);
@@ -23,6 +23,7 @@ function App() {
         <button type="button" onClick={increment}>
           {count()}
         </button>
+        <Message/>
       </header>
     </div>
   );

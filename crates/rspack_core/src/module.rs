@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
-use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
@@ -20,14 +20,29 @@ pub struct BuildContext<'a> {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct BuildResult {
+pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
   pub hash: u64,
+  pub strict: bool,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct BuildMeta {
+  pub strict_harmony_module: bool,
+  // TODO webpack exportsType
+  pub esm: bool,
+}
+// webpack build info
+#[derive(Debug, Default, Clone)]
+pub struct BuildResult {
+  /// Whether the result is cacheable, i.e shared between builds.
+  pub build_meta: BuildMeta,
+  pub build_info: BuildInfo,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
 }
 
@@ -56,7 +71,9 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   async fn build(
     &mut self,
     _build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>>;
+  ) -> Result<TWithDiagnosticArray<BuildResult>> {
+    Ok(BuildResult::default().with_empty_diagnostic())
+  }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
   /// The code generation result should not be cached as it is implemented elsewhere to
@@ -99,10 +116,6 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
   fn get_resolve_options(&self) -> Option<&Resolve> {
     None
-  }
-
-  fn has_dependencies(&self, _files: &HashSet<PathBuf>) -> bool {
-    false
   }
 }
 
@@ -169,10 +182,6 @@ impl Module for Box<dyn Module> {
 
   fn get_resolve_options(&self) -> Option<&Resolve> {
     (**self).get_resolve_options()
-  }
-
-  fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
-    (**self).has_dependencies(files)
   }
 }
 
@@ -288,7 +297,7 @@ mod test {
     ($ident: ident) => {
       impl Identifiable for $ident {
         fn identifier(&self) -> Identifier {
-          (stringify!($ident).to_owned() + &self.0).into()
+          (stringify!($ident).to_owned() + self.0).into()
         }
       }
 
@@ -311,7 +320,7 @@ mod test {
         }
 
         fn readable_identifier(&self, _context: &Context) -> Cow<str> {
-          (stringify!($ident).to_owned() + &self.0).into()
+          (stringify!($ident).to_owned() + self.0).into()
         }
 
         async fn build(

@@ -10,6 +10,7 @@ use std::{
 };
 
 use colored::Colorize;
+use derive_builder::Builder;
 use glob::glob;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -630,7 +631,7 @@ pub fn assert(p: PathBuf) {
 //     };
 
 //     /*
-//      * there is a misssing in the actual dir
+//      * there is a missing in the actual dir
 //      */
 //     let mut p = cwd;
 //     p.push("fixtures/diff/missing");

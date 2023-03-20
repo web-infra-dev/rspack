@@ -1,1 +1,1 @@
-export default "src/file";
+export default {};

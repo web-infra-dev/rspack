@@ -2,9 +2,7 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{
-  runtime_globals, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeModule, SourceType,
-};
+use rspack_core::{runtime_globals, ChunkUkey, Compilation, RenderModuleContentArgs, SourceType};
 use rspack_error::Result;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
@@ -58,14 +56,11 @@ pub fn render_chunk_modules(
       };
 
       // module id isn't cacheable
-      let strict = match compilation
-        .module_graph
-        .module_by_identifier(&mgm.module_identifier)
-        .and_then(|m| m.as_normal_module())
-      {
-        Some(normal_module) => normal_module.build_info.strict,
-        None => false,
-      };
+      let strict = mgm
+        .build_info
+        .as_ref()
+        .map(|m| m.strict)
+        .unwrap_or_default();
       (
         mgm.module_identifier,
         render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
@@ -158,17 +153,32 @@ pub fn render_runtime_modules(
   chunk_ukey: &ChunkUkey,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  let mut runtime_modules: Vec<&Box<dyn RuntimeModule>> = compilation
+  let mut runtime_modules = compilation
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey)
     .iter()
-    .filter_map(|identifier| compilation.runtime_modules.get(identifier))
-    .collect();
-  runtime_modules.sort_unstable_by_key(|a| a.stage());
-  runtime_modules.iter().for_each(|module| {
+    .map(|identifier| {
+      (
+        compilation
+          .runtime_module_code_generation_results
+          .get(identifier)
+          .expect("should have runtime module result"),
+        compilation
+          .runtime_modules
+          .get(identifier)
+          .expect("should have runtime module"),
+      )
+    })
+    .collect::<Vec<_>>();
+  runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
+  runtime_modules.iter().for_each(|((_, source), module)| {
     sources.add(RawSource::from(format!("// {}\n", module.identifier())));
     sources.add(RawSource::from("(function() {\n"));
-    sources.add(module.generate(compilation));
+    if module.cacheable() {
+      sources.add(source.clone());
+    } else {
+      sources.add(module.generate(compilation));
+    }
     sources.add(RawSource::from("\n})();\n"));
   });
   Ok(sources.boxed())

@@ -23,6 +23,7 @@
     "zone.js": "~0.12.0"
   },
   "devDependencies": {
+    "@ngtools/webpack": "^15.2.1",
     "@angular-devkit/build-angular": "^15.2.1",
     "@angular/cli": "~15.2.1",
     "@angular/compiler-cli": "^15.2.0",

@@ -36,8 +36,8 @@ impl RequireContextDependency {
 }
 
 impl Dependency for RequireContextDependency {
-  fn id(&self) -> Option<&DependencyId> {
-    self.id.as_ref()
+  fn id(&self) -> Option<DependencyId> {
+    self.id
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
@@ -84,7 +84,7 @@ impl CodeGeneratable for RequireContextDependency {
     if let Some(id) = self.id() {
       if let Some(module_id) = compilation
         .module_graph
-        .module_graph_module_by_dependency_id(id)
+        .module_graph_module_by_dependency_id(&id)
         .map(|m| m.id(&compilation.chunk_graph).to_string())
       {
         let module_id = format!("'{module_id}'");

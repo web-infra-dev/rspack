@@ -31,7 +31,7 @@ _export(exports, {
         return result;
     }
 });
-var _libJs = __webpack_require__("./lib.js");
+__webpack_require__("./lib.js");
 function render() {}
 function result() {}
 },

@@ -56,7 +56,7 @@ where
     ) -> (IdentifierMap<(u64, String)>, IdentifierMap<String>) {
       let modules_map = compilation
         .module_graph
-        .module_identifier_to_module
+        .modules()
         .values()
         .map(|module| {
           let identifier = module.identifier();
@@ -129,7 +129,14 @@ where
 
     // build without stats
     {
+      let mut modified_files = HashSet::default();
+      modified_files.extend(changed_files.iter().map(PathBuf::from));
+      modified_files.extend(removed_files.iter().map(PathBuf::from));
+
       self.cache.end_idle();
+      self
+        .cache
+        .set_modified_files(modified_files.iter().cloned().collect::<Vec<_>>());
       self
         .plugin_driver
         .read()
@@ -193,9 +200,6 @@ where
         .await?;
 
       let setup_make_params = if is_incremental_rebuild {
-        let mut modified_files = HashSet::default();
-        modified_files.extend(changed_files.iter().map(PathBuf::from));
-        modified_files.extend(removed_files.iter().map(PathBuf::from));
         SetupMakeParam::ModifiedFiles(modified_files)
       } else {
         let deps = self

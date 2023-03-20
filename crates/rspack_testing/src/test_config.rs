@@ -396,8 +396,6 @@ impl TestConfig {
         ..Default::default()
       },
       devtool: c::Devtool::from(self.devtool),
-      externals: Default::default(),
-      externals_type: "commonjs".to_string(),
       stats: Default::default(),
       snapshot: Default::default(),
       cache: c::CacheOptions::Disabled,
@@ -405,6 +403,7 @@ impl TestConfig {
       dev_server: Default::default(),
       node: c::NodeOption {
         dirname: "mock".to_string(),
+        filename: "mock".to_string(),
         global: "warn".to_string(),
       },
       optimization: c::Optimization {
@@ -469,7 +468,7 @@ impl TestConfig {
     if options.experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }
-    plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
+    // plugins.push(rspack_plugin_externals::ExternalPlugin::default().boxed());
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(
       rspack_plugin_devtool::DevtoolPlugin::new(rspack_plugin_devtool::DevtoolPluginOptions {

@@ -28,6 +28,9 @@ export function indent(str: string, prefix: string) {
 	return prefix + rem;
 }
 
+export function asArray<T>(item: T[]): T[];
+export function asArray<T>(item: readonly T[]): readonly T[];
+export function asArray<T>(item: T): T[];
 export function asArray<T>(item: T | T[]): T[] {
 	return Array.isArray(item) ? item : [item];
 }
