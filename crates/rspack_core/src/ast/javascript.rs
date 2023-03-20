@@ -21,7 +21,6 @@ use swc_core::ecma::visit::{
 #[derive(Clone)]
 pub struct Program {
   pub(crate) program: SwcProgram,
-  /// We don't have scenario that single program modified by multiple threads, so SingleThreadComments is enough
   pub(crate) comments: Option<SwcComments>,
 }
 
@@ -138,9 +137,13 @@ impl Hash for Ast {
 }
 
 impl Ast {
-  pub fn new(program: SwcProgram, source_map: Arc<SourceMap>) -> Self {
+  pub fn new(
+    program: SwcProgram,
+    source_map: Arc<SourceMap>,
+    comments: Option<SwcComments>,
+  ) -> Self {
     Self {
-      program: Program::new(program, None),
+      program: Program::new(program, comments),
       context: Arc::new(Context::new(source_map)),
     }
   }

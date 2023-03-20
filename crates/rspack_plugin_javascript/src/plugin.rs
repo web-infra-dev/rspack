@@ -275,6 +275,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         rspack_core::ast::javascript::Ast::new(
           ast::Program::Module(ast::Module::dummy()),
           Default::default(),
+          None,
         ),
         diagnostics.into(),
       ),
