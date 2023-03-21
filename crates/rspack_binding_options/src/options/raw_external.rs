@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use napi_derive::napi;
 use rspack_core::ExternalItem;
+use rspack_regex::RspackRegex;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -23,11 +24,14 @@ impl From<RawExternalItem> for ExternalItem {
           .string_payload
           .expect("should have a string_payload when RawExternalItem.type is \"string\""),
       ),
-      "regexp" => Self::from(
-        value
+      "regexp" => {
+        let payload = value
           .regexp_payload
-          .expect("should have a regexp_payload when RawExternalItem.type is \"regexp\""),
-      ),
+          .expect("should have a regexp_payload when RawExternalItem.type is \"regexp\"");
+        let reg =
+          RspackRegex::new(&payload).expect("regex_payload is not a legal regex in rust side");
+        Self::from(reg)
+      }
       "object" => Self::from(
         value
           .object_payload

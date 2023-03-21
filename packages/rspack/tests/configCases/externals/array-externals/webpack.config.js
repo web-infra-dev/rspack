@@ -1,3 +1,3 @@
 module.exports = {
-	externals: ["foo", "bar"]
+	externals: ["foo", "bar", /^re/]
 };
