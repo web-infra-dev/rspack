@@ -216,61 +216,66 @@ impl<'a> HmrApiRewrite<'a> {
   }
 
   fn rewrite_module_hot_accept(&mut self, n: &mut CallExpr) {
-    fn create_auto_import_assign(
-      value: &(JsWord, SyntaxContext, bool),
-      str: String,
-    ) -> Box<AssignExpr> {
-      let (sym, ctxt, inter_op) = value;
-      let no_inter_op_call_expr = CallExpr {
-        span: DUMMY_SP,
-        callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
-        args: vec![Lit::Str(str.into()).as_arg()],
-        type_args: None,
-      };
-      let call_expr = match *inter_op {
-        true => Box::new(Expr::Call(CallExpr {
+    fn create_auto_import(value: Option<&(JsWord, SyntaxContext, bool)>, str: String) -> Stmt {
+      if let Some((sym, ctxt, inter_op)) = value {
+        let no_inter_op_call_expr = CallExpr {
           span: DUMMY_SP,
-          callee: MemberExpr {
-            span: DUMMY_SP,
-            obj: Box::new(Expr::Ident(Ident::new(
-              runtime_globals::REQUIRE.into(),
-              DUMMY_SP,
-            ))),
-            prop: MemberProp::Ident(Ident::new(
-              runtime_globals::INTEROP_REQUIRE.into(),
-              DUMMY_SP,
-            )),
-          }
-          .as_callee(),
-          args: vec![no_inter_op_call_expr.as_arg()],
+          callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
+          args: vec![Lit::Str(str.into()).as_arg()],
           type_args: None,
-        })),
-        false => Box::new(Expr::Call(no_inter_op_call_expr)),
-      };
-      Box::new(AssignExpr {
-        span: DUMMY_SP,
-        op: op!("="),
-        left: Pat::Ident(BindingIdent {
-          id: Ident::new(sym.clone(), DUMMY_SP.with_ctxt(*ctxt)),
-          type_ann: None,
-        })
-        .into(),
-        right: call_expr,
-      })
+        };
+        let call_expr = match *inter_op {
+          true => Box::new(Expr::Call(CallExpr {
+            span: DUMMY_SP,
+            callee: MemberExpr {
+              span: DUMMY_SP,
+              obj: Box::new(Expr::Ident(Ident::new(
+                runtime_globals::REQUIRE.into(),
+                DUMMY_SP,
+              ))),
+              prop: MemberProp::Ident(Ident::new(
+                runtime_globals::INTEROP_REQUIRE.into(),
+                DUMMY_SP,
+              )),
+            }
+            .as_callee(),
+            args: vec![no_inter_op_call_expr.as_arg()],
+            type_args: None,
+          })),
+          false => Box::new(Expr::Call(no_inter_op_call_expr)),
+        };
+        AssignExpr {
+          span: DUMMY_SP,
+          op: op!("="),
+          left: Pat::Ident(BindingIdent {
+            id: Ident::new(sym.clone(), DUMMY_SP.with_ctxt(*ctxt)),
+            type_ann: None,
+          })
+          .into(),
+          right: call_expr,
+        }
+        .into_stmt()
+      } else {
+        CallExpr {
+          span: DUMMY_SP,
+          callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
+          args: vec![Lit::Str(str.into()).as_arg()],
+          type_args: None,
+        }
+        .into_stmt()
+      }
     }
 
-    let mut assgin_stmts = vec![];
+    let mut auto_import_stmts = vec![];
     if let Some(first_arg) = n.args.get(0) {
       match first_arg.expr.as_ref() {
         Expr::Lit(Lit::Str(str)) => {
           let value = str.value.to_string();
-          if let Some(v) = self.module_bindings.get(&value) {
-            // only visit module.hot.accept callback with harmony import
-            if !self.esm_dependencies.contains(&value) {
-              return;
-            }
-            assgin_stmts.push(create_auto_import_assign(v, value).into_stmt());
+          // only visit module.hot.accept callback with harmony import
+          if !self.esm_dependencies.contains(&value) {
+            return;
           }
+          auto_import_stmts.push(create_auto_import(self.module_bindings.get(&value), value));
         }
         Expr::Array(ArrayLit { elems, .. }) => {
           elems.iter().for_each(|e| {
@@ -281,13 +286,11 @@ impl<'a> HmrApiRewrite<'a> {
             {
               {
                 let value = str.value.to_string();
-                if let Some(v) = self.module_bindings.get(&value) {
-                  // only visit module.hot.accept callback with harmony import
-                  if !self.esm_dependencies.contains(&value) {
-                    return;
-                  }
-                  assgin_stmts.push(create_auto_import_assign(v, value).into_stmt());
+                // only visit module.hot.accept callback with harmony import
+                if !self.esm_dependencies.contains(&value) {
+                  return;
                 }
+                auto_import_stmts.push(create_auto_import(self.module_bindings.get(&value), value));
               }
             }
           });
@@ -307,7 +310,7 @@ impl<'a> HmrApiRewrite<'a> {
             span: DUMMY_SP,
             body: Some(BlockStmt {
               span: DUMMY_SP,
-              stmts: assgin_stmts,
+              stmts: auto_import_stmts,
             }),
             is_generator: false,
             is_async: false,
@@ -341,19 +344,19 @@ impl<'a> HmrApiRewrite<'a> {
           ..
         }) = n.args.get_mut(1)
         {
-          assgin_stmts.extend(std::mem::take(stmts));
-          *stmts = assgin_stmts;
+          auto_import_stmts.extend(std::mem::take(stmts));
+          *stmts = auto_import_stmts;
         } else if let Some(ExprOrSpread {
           expr: box Expr::Arrow(ArrowExpr { body, .. }),
           ..
         }) = n.args.get_mut(1)
         {
           if let BlockStmtOrExpr::Expr(box expr) = body {
-            assgin_stmts
+            auto_import_stmts
               .push(std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt());
             *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
               span: DUMMY_SP,
-              stmts: assgin_stmts,
+              stmts: auto_import_stmts,
             });
           }
         }
