@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use rspack_error::{internal_error, Result};
+use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -58,6 +59,12 @@ pub struct ModuleArgs {
   pub dependency_type: DependencyType,
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NormalModuleFactoryResolveForSchemeArgs {
+  pub resource: ResourceData,
+  pub scheme: String,
 }
 
 #[derive(Debug)]

@@ -6,3 +6,4 @@ export * from "./rspack";
 export * from "./stats";
 export * from "./multiStats";
 export * from "./chunk_group";
+export * from "./normalModuleFactory";

@@ -16,12 +16,13 @@ import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
 import { RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
-import { Compilation } from "./compilation";
+import { Compilation, CompilationParams } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { getRawOptions } from "./config/adapter";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
+import { NormalModuleFactory } from "./normalModuleFactory";
 
 class EntryPlugin {
 	apply() {}
@@ -59,7 +60,7 @@ class Compiler {
 		// TODO: CompilationParams
 		compilation: tapable.SyncHook<Compilation>;
 		// TODO: CompilationParams
-		thisCompilation: tapable.SyncHook<[Compilation]>;
+		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
 		compile: tapable.SyncHook<[any]>;
 		initialize: tapable.SyncHook<[]>;
@@ -112,14 +113,9 @@ class Compiler {
 			run: new tapable.AsyncSeriesHook(["compiler"]),
 			emit: new tapable.AsyncSeriesHook(["compilation"]),
 			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
-			thisCompilation: new tapable.SyncHook<
-				[
-					Compilation
-					// CompilationParams
-				]
-			>([
-				"compilation"
-				// "params"
+			thisCompilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+				"compilation",
+				"params"
 			]),
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
@@ -185,7 +181,9 @@ class Compiler {
 					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
-					optimizeChunkModule: this.#optimize_chunk_modules.bind(this)
+					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
+					normalModuleFactoryResolveForScheme:
+						this.#normalModuleFactoryResolveForScheme.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 			);
@@ -307,6 +305,7 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules
+			// normalModuleFactoryResolveForScheme: this.#
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook.taps.length === 0) {
@@ -326,6 +325,15 @@ class Compiler {
 			.__internal_getProcessAssetsHookByStage(stage)
 			.promise(this.compilation.assets);
 		this.#updateDisabledHooks();
+	}
+
+	async #normalModuleFactoryResolveForScheme(
+		resourceData: binding.SchemeAndJsResourceData
+	) {
+		await this.compilation.normalModuleFactory?.hooks.resolveForScheme
+			.for(resourceData.scheme)
+			.promise(resourceData.resourceData);
+		return resourceData.resourceData;
 	}
 
 	async #optimize_chunk_modules() {
@@ -360,7 +368,12 @@ class Compiler {
 		const compilation = new Compilation(this, native);
 		compilation.name = this.name;
 		this.compilation = compilation;
-		this.hooks.thisCompilation.call(this.compilation);
+		// reset normalModuleFactory when create new compilation
+		let normalModuleFactory = new NormalModuleFactory();
+		this.compilation.normalModuleFactory = normalModuleFactory;
+		this.hooks.thisCompilation.call(this.compilation, {
+			normalModuleFactory: normalModuleFactory
+		});
 		this.#updateDisabledHooks();
 	}
 
