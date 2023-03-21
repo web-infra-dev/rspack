@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use rspack_core::ModuleDependency;
 use swc_core::common::pass::AstNodePath;
 use swc_core::ecma::ast::{CallExpr, Expr, Lit, Str};
@@ -12,9 +13,19 @@ use crate::dependency::{
   ModuleHotAcceptDependency, ModuleHotDeclineDependency,
 };
 
+bitflags! {
+  #[derive(Default)]
+  pub struct HmrScannerFlag: u8 {
+    const MODULE_HOT_ACCEPT = 1 << 0;
+    const MODULE_HOT_DECLINE = 1 << 1;
+    const IMPORT_META_MODULE_HOT_ACCEPT = 1 << 2;
+    const IMPORT_META_MODULE_HOT_DECLINE = 1 << 3;
+  }
+}
+
 pub struct HmrDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub flag: (bool, bool, bool, bool),
+  pub flag: HmrScannerFlag,
 }
 
 impl<'a> HmrDependencyScanner<'a> {
@@ -36,25 +47,31 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
     node: &'ast Str,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    if self.flag.0 {
+    if self.flag.contains(HmrScannerFlag::MODULE_HOT_ACCEPT) {
       self.add_dependency(box ModuleHotAcceptDependency::new(
         node.value.clone(),
         Some(node.span.into()),
         as_parent_path(ast_path),
       ));
-    } else if self.flag.1 {
+    } else if self.flag.contains(HmrScannerFlag::MODULE_HOT_DECLINE) {
       self.add_dependency(box ModuleHotDeclineDependency::new(
         node.value.clone(),
         Some(node.span.into()),
         as_parent_path(ast_path),
       ));
-    } else if self.flag.2 {
+    } else if self
+      .flag
+      .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT)
+    {
       self.add_dependency(box ImportMetaModuleHotAcceptDependency::new(
         node.value.clone(),
         Some(node.span.into()),
         as_parent_path(ast_path),
       ));
-    } else if self.flag.3 {
+    } else if self
+      .flag
+      .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE)
+    {
       self.add_dependency(box ImportMetaModuleHotDeclineDependency::new(
         node.value.clone(),
         Some(node.span.into()),
@@ -69,7 +86,15 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
     // avoid nested function call if already enter module.hot.x call
-    if self.flag.0 || self.flag.1 || self.flag.2 || self.flag.3 {
+    if self
+      .flag
+      .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT)
+      || self
+        .flag
+        .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE)
+      || self.flag.contains(HmrScannerFlag::MODULE_HOT_ACCEPT)
+      || self.flag.contains(HmrScannerFlag::MODULE_HOT_DECLINE)
+    {
       return;
     }
 
@@ -90,21 +115,29 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
     }
 
     if is_module_hot_accept_call(node) {
-      self.flag.0 = true;
+      self.flag.insert(HmrScannerFlag::MODULE_HOT_ACCEPT);
       visit_node_children!();
-      self.flag.0 = false;
+      self.flag.remove(HmrScannerFlag::MODULE_HOT_ACCEPT);
     } else if is_module_hot_decline_call(node) {
-      self.flag.1 = true;
+      self.flag.insert(HmrScannerFlag::MODULE_HOT_DECLINE);
       visit_node_children!();
-      self.flag.1 = false;
+      self.flag.insert(HmrScannerFlag::MODULE_HOT_DECLINE);
     } else if is_import_meta_hot_accept_call(node) {
-      self.flag.2 = true;
+      self
+        .flag
+        .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT);
       visit_node_children!();
-      self.flag.2 = false;
+      self
+        .flag
+        .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT);
     } else if is_import_meta_hot_decline_call(node) {
-      self.flag.3 = true;
+      self
+        .flag
+        .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE);
       visit_node_children!();
-      self.flag.3 = false;
+      self
+        .flag
+        .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE);
     } else {
       node.visit_children_with_path(self, ast_path);
     }
