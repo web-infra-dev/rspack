@@ -34,7 +34,8 @@ export class RspackDevServer extends WebpackDevServer {
 
 	addAdditionEntires(compiler: Compiler) {
 		const additionalEntries: string[] = [];
-		const isWebTarget = isWebTarget2(compiler);
+		// @ts-expect-error
+		const isWebTarget = WebpackDevServer.isWebTarget(compiler);
 		if (this.options.client && isWebTarget) {
 			let webSocketURLStr = "";
 
@@ -421,31 +422,4 @@ export class RspackDevServer extends WebpackDevServer {
 		// @ts-expect-error
 		super.setupMiddlewares();
 	}
-}
-
-// TODO: use WebpackDevServer.isWebTarget instead of this once the webpack-dev-server release a new version
-function isWebTarget2(compiler: Compiler): boolean {
-	if (
-		compiler.options.resolve.conditionNames &&
-		compiler.options.resolve.conditionNames.includes("browser")
-	) {
-		return true;
-	}
-	const target = compiler.options.target;
-	const webTargets = [
-		"web",
-		"webworker",
-		"electron-preload",
-		"electron-renderer",
-		"node-webkit",
-		undefined,
-		null
-	];
-	if (Array.isArray(target)) {
-		return target.some(r => webTargets.includes(r));
-	}
-	if (typeof target === "string") {
-		return webTargets.includes(target);
-	}
-	return false;
 }
