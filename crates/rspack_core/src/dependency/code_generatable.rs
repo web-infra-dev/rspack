@@ -1,8 +1,9 @@
 /**
  * Some code is modified based on
  * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/crates/turbopack-ecmascript/src/code_gen.rs
+ * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/crates/turbopack-css/src/code_gen.rs
  * MPL-2.0 Licensed
- * Author Alex Kirszenberg
+ * Author Alex Kirszenberg, ForsakenHarmony
  * Copyright (c)
  * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/LICENSE#L1
  */
@@ -215,7 +216,7 @@ macro_rules! create_javascript_visitor {
             visit_mut_program: T,
         }
 
-        impl<T: Fn(&mut swc_core::ecma::ast::Program) + Send + Sync> $crate::code_gen::VisitorFactory
+        impl<T: Fn(&mut swc_core::ecma::ast::Program) + Send + Sync> $crate::JavaScriptVisitorBuilder
             for Box<Visitor<T>>
         {
             fn create<'a>(&'a self) -> Box<dyn swc_core::ecma::visit::VisitMut + Send + Sync + 'a> {
@@ -232,10 +233,12 @@ macro_rules! create_javascript_visitor {
         }
 
         (
-            Vec::new(),
-            box box Visitor {
-                visit_mut_program: move |$arg: &mut swc_core::ecma::ast::Program| $b,
-            } as Box<dyn $crate::code_gen::VisitorFactory>,
+          $crate::CodeGeneratableAstPath::JavaScript(Vec::new()),
+          $crate::CodeGeneratableVisitorBuilder::Css(
+              box box Visitor {
+                  visit_mut_program: move |$arg: &mut swc_core::ecma::ast::Program| $b,
+              } as Box<dyn $crate::JavaScriptVisitorBuilder>,
+          ),
         )
     }};
 }
@@ -244,6 +247,90 @@ pub fn javascript_path_to(
   path: &[swc_core::ecma::visit::AstParentKind],
   f: impl FnMut(&swc_core::ecma::visit::AstParentKind) -> bool,
 ) -> Vec<swc_core::ecma::visit::AstParentKind> {
+  if let Some(pos) = path.iter().rev().position(f) {
+    let index = path.len() - pos - 1;
+    path[..index].to_vec()
+  } else {
+    path.to_vec()
+  }
+}
+
+#[macro_export]
+macro_rules! create_css_visitor {
+  (exact $ast_path:expr, $name:ident($arg:ident: &mut $ty:ident) $b:block) => {
+      $crate::create_css_visitor!(__ $ast_path.to_vec(), $name($arg: &mut $ty) $b)
+  };
+  ($ast_path:expr, $name:ident($arg:ident: &mut $ty:ident) $b:block) => {
+      $crate::create_css_visitor!(__ $crate::code_gen::path_to(&$ast_path, |n| {
+          matches!(n, swc_core::css::visit::AstParentKind::$ty(_))
+      }), $name($arg: &mut $ty) $b)
+  };
+  (__ $ast_path:expr, $name:ident($arg:ident: &mut $ty:ident) $b:block) => {{
+      struct Visitor<T: Fn(&mut swc_core::css::ast::$ty) + Send + Sync> {
+          $name: T,
+      }
+
+      impl<T: Fn(&mut swc_core::css::ast::$ty) + Send + Sync> $crate::CssVisitorBuilder
+          for Box<Visitor<T>>
+      {
+          fn create<'a>(&'a self) -> Box<dyn swc_core::css::visit::VisitMut + Send + Sync + 'a> {
+              Box::new(&**self)
+          }
+      }
+
+      impl<'a, T: Fn(&mut swc_core::css::ast::$ty) + Send + Sync> swc_core::css::visit::VisitMut
+          for &'a Visitor<T>
+      {
+          fn $name(&mut self, $arg: &mut swc_core::css::ast::$ty) {
+              (self.$name)($arg);
+          }
+      }
+
+      (
+        $crate::CodeGeneratableAstPath::from($ast_path),
+        $crate::CodeGeneratableVisitorBuilder::Css(
+          box box Visitor {
+            $name: move |$arg: &mut swc_core::css::ast::$ty| $b,
+          } as Box<dyn $crate::CssVisitorBuilder>
+        ),
+      )
+  }};
+  (visit_mut_stylesheet($arg:ident: &mut Stylesheet) $b:block) => {{
+      struct Visitor<T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> {
+          visit_mut_stylesheet: T,
+      }
+
+      impl<T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> $crate::CssVisitorBuilder
+          for Box<Visitor<T>>
+      {
+          fn create<'a>(&'a self) -> Box<dyn swc_core::css::visit::VisitMut + Send + Sync + 'a> {
+              Box::new(&**self)
+          }
+      }
+
+      impl<'a, T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> swc_core::css::visit::VisitMut
+          for &'a Visitor<T>
+      {
+          fn visit_mut_stylesheet(&mut self, $arg: &mut swc_core::css::ast::Stylesheet) {
+              (self.visit_mut_stylesheet)($arg);
+          }
+      }
+
+      (
+          $crate::CodeGeneratableAstPath::Css(Vec::new()),
+          $crate::CodeGeneratableVisitorBuilder::Css(
+              box box Visitor {
+                  visit_mut_stylesheet: move |$arg: &mut swc_core::css::ast::Stylesheet| $b,
+              } as Box<dyn $crate::CssVisitorBuilder>
+          ),
+      )
+  }};
+}
+
+pub fn css_path_to(
+  path: &[swc_core::css::visit::AstParentKind],
+  f: impl FnMut(&swc_core::css::visit::AstParentKind) -> bool,
+) -> Vec<swc_core::css::visit::AstParentKind> {
   if let Some(pos) = path.iter().rev().position(f) {
     let index = path.len() - pos - 1;
     path[..index].to_vec()
