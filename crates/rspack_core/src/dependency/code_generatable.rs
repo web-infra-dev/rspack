@@ -234,7 +234,7 @@ macro_rules! create_javascript_visitor {
 
         (
           $crate::CodeGeneratableAstPath::JavaScript(Vec::new()),
-          $crate::CodeGeneratableVisitorBuilder::Css(
+          $crate::CodeGeneratableVisitorBuilder::JavaScript(
               box box Visitor {
                   visit_mut_program: move |$arg: &mut swc_core::ecma::ast::Program| $b,
               } as Box<dyn $crate::JavaScriptVisitorBuilder>,
