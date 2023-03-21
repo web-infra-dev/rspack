@@ -12,7 +12,7 @@ permissions:
 jobs:
   benchmark:
     name: Run Criterion.rs benchmark
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, rspack-bench]
     steps:
       - uses: actions/checkout@v3
       - name: Setup Node16
