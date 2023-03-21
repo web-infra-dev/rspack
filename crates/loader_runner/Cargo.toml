@@ -24,6 +24,7 @@ tokio = { workspace = true, features = [
   "fs",
 ] }
 
+nodejs-resolver    = { workspace = true }
 rspack_error       = { path = "../rspack_error" }
 rspack_sources     = { workspace = true }
 tracing            = { workspace = true }

@@ -137,20 +137,8 @@ describe("snapshots", () => {
 		        "type": "javascript/esm",
 		      },
 		      {
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/esm",
-		      },
-		      {
 		        "test": /\\\\\\.cjs\\$/i,
-		        "type": "javascript/auto",
-		      },
-		      {
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/auto",
-		      },
-		      {
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/auto",
+		        "type": "javascript/dynamic",
 		      },
 		      {
 		        "test": /\\\\\\.jsx\\$/i,
@@ -192,6 +180,7 @@ describe("snapshots", () => {
 		  "name": undefined,
 		  "node": {
 		    "__dirname": "warn-mock",
+		    "__filename": "warn-mock",
 		    "global": "warn",
 		  },
 		  "optimization": {
@@ -678,8 +667,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",
@@ -717,8 +708,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",
@@ -746,8 +739,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",

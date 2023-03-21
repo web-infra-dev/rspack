@@ -122,6 +122,7 @@ describe("Stats", () => {
 		      "name": "main",
 		    },
 		  },
+		  "outputPath": "<PROJECT_ROOT>/dist",
 		  "publicPath": "auto",
 		  "warnings": [],
 		  "warningsCount": 0,

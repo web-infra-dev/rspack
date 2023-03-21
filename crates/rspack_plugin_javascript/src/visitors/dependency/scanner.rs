@@ -7,34 +7,28 @@ use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
 use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, MetaPropKind,
-  ModuleDecl, Tpl,
+  BinExpr, BinaryOp, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, ModuleDecl, Tpl,
 };
 use swc_core::ecma::utils::{quote_ident, quote_str};
-use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
+use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
+use super::{as_parent_path, is_require_context_call};
 use crate::dependency::{
   CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
-  ImportMetaModuleHotAcceptDependency, ImportMetaModuleHotDeclineDependency,
-  ModuleHotAcceptDependency, ModuleHotDeclineDependency,
 };
-
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const DIR_NAME: &str = "__dirname";
+pub const FILE_NAME: &str = "__filename";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 pub const GLOBAL: &str = "global";
 
-pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
-  ast_path.iter().map(|n| n.kind()).collect()
-}
-
 pub struct DependencyScanner<'a> {
   pub unresolved_ctxt: SyntaxContext,
-  pub dependencies: Vec<Box<dyn ModuleDependency>>,
-  pub presentational_dependencies: Vec<Box<dyn Dependency>>,
+  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
 }
@@ -130,55 +124,6 @@ impl DependencyScanner<'_> {
       }
     }
   }
-
-  fn add_module_hot(&mut self, node: &CallExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
-    let is_module_hot = is_module_hot_accept_call(node);
-    let is_module_decline = is_module_hot_decline_call(node);
-    let is_import_meta_hot_accept = is_import_meta_hot_accept_call(node);
-    let is_import_meta_hot_decline = is_import_meta_hot_decline_call(node);
-
-    if !is_module_hot
-      && !is_module_decline
-      && !is_import_meta_hot_accept
-      && !is_import_meta_hot_decline
-    {
-      return;
-    }
-
-    if let Some(Lit::Str(str)) = node
-      .args
-      .get(0)
-      .and_then(|first_arg| first_arg.expr.as_lit())
-    {
-      if is_module_hot {
-        // module.hot.accept(dependency_id, callback)
-        self.add_dependency(box ModuleHotAcceptDependency::new(
-          str.value.clone(),
-          Some(node.span.into()),
-          as_parent_path(ast_path),
-        ));
-      } else if is_module_decline {
-        self.add_dependency(box ModuleHotDeclineDependency::new(
-          str.value.clone(),
-          Some(node.span.into()),
-          as_parent_path(ast_path),
-        ));
-      } else if is_import_meta_hot_accept {
-        self.add_dependency(box ImportMetaModuleHotAcceptDependency::new(
-          str.value.clone(),
-          Some(node.span.into()),
-          as_parent_path(ast_path),
-        ));
-      } else if is_import_meta_hot_decline {
-        self.add_dependency(box ImportMetaModuleHotDeclineDependency::new(
-          str.value.clone(),
-          Some(node.span.into()),
-          as_parent_path(ast_path),
-        ));
-      }
-    }
-  }
-
   fn add_export(
     &mut self,
     module_decl: &ModuleDecl,
@@ -311,7 +256,6 @@ impl VisitAstPath for DependencyScanner<'_> {
     node: &'ast CallExpr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    self.add_module_hot(node, &*ast_path);
     self.add_dynamic_import(node, &*ast_path);
     self.add_require(node, &*ast_path);
     self.scan_require_context(node, &*ast_path);
@@ -383,6 +327,28 @@ impl VisitAstPath for DependencyScanner<'_> {
               ));
             }
           }
+          FILE_NAME => {
+            let filename = match self.compiler_options.node.filename.as_str() {
+              "mock" => Some("/index.js".to_string()),
+              "warn-mock" => Some("/index.js".to_string()),
+              "true" => Some(
+                self
+                  .resource_data
+                  .resource_path
+                  .relative(self.compiler_options.context.as_ref())
+                  .to_string_lossy()
+                  .to_string(),
+              ),
+              _ => None,
+            };
+            if let Some(filename) = filename {
+              self.add_presentational_dependency(box ConstDependency::new(
+                Expr::Lit(Lit::Str(quote_str!(filename))),
+                None,
+                as_parent_path(ast_path),
+              ));
+            }
+          }
           GLOBAL => {
             if matches!(self.compiler_options.node.global.as_str(), "true" | "warn") {
               self.add_presentational_dependency(box ConstDependency::new(
@@ -405,11 +371,13 @@ impl<'a> DependencyScanner<'a> {
     unresolved_mark: Mark,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
+    dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   ) -> Self {
     Self {
       unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
-      dependencies: Default::default(),
-      presentational_dependencies: Default::default(),
+      dependencies,
+      presentational_dependencies,
       compiler_options,
       resource_data,
     }
@@ -586,214 +554,4 @@ fn find_concat_expr_postfix_string(expr: &CallExpr) -> Option<String> {
     }
     None
   })
-}
-
-#[test]
-fn test_dependency_scanner() {
-  // TODO: temporarily disabled for new dependency impl
-
-  // use crate::ast::parse_js_code;
-  // use rspack_core::{ErrorSpan, ModuleType};
-  // use swc_core::ecma::visit::{VisitMutWith, VisitWith};
-
-  // let code = r#"
-  // const a = require('a');
-  // exports.b = require('b');
-  // module.hot.accept('e', () => {})
-  // import f from 'g';
-  // import * as h from 'i';
-  // import { j } from 'k';
-  // import { default as l } from 'm';
-  // "#;
-  // let mut ast = parse_js_code(code.to_string(), &ModuleType::Js).expect("TODO:");
-  // let dependencies = swc_core::common::GLOBALS.set(&Default::default(), || {
-  //   let unresolved_mark = Mark::new();
-  //   let mut resolver =
-  //     swc_core::ecma::transforms::base::resolver(unresolved_mark, Mark::new(), false);
-  //   ast.visit_mut_with(&mut resolver);
-  //   let mut scanner = DependencyScanner::new(unresolved_mark);
-  //   ast.visit_with(&mut scanner);
-  //   scanner.dependencies
-  // });
-  // let mut iter = dependencies.into_iter();
-  // assert_eq!(
-  //   iter.next().expect("TODO:"),
-  //   ModuleDependency {
-  //     specifier: "a".to_string(),
-  //     kind: ResolveKind::Require,
-  //     span: Some(ErrorSpan { start: 13, end: 25 },),
-  //   }
-  // );
-  // assert_eq!(
-  //   iter.next().expect("TODO:"),
-  //   ModuleDependency {
-  //     specifier: "b".to_string(),
-  //     kind: ResolveKind::Require,
-  //     span: Some(ErrorSpan { start: 41, end: 53 },),
-  //   },
-  // );
-  // assert_eq!(
-  //   iter.next().expect("TODO:"),
-  //   ModuleDependency {
-  //     specifier: "e".to_string(),
-  //     kind: ResolveKind::ModuleHotAccept,
-  //     span: Some(ErrorSpan { start: 57, end: 89 },),
-  //   },
-  // );
-  // assert_eq!(
-  //   iter.next().expect("TODO:"),
-  //   ModuleDependency {
-  //     specifier: "g".to_string(),
-  //     kind: ResolveKind::Import,
-  //     span: Some(ErrorSpan {
-  //       start: 92,
-  //       end: 110,
-  //     },),
-  //   },
-  // );
-  // assert_eq!(
-  //   iter.next().expect("TODO:"),
-  //   ModuleDependency {
-  //     specifier: "i".to_string(),
-  //     kind: ResolveKind::Import,
-  //     span: Some(ErrorSpan {
-  //       start: 113,
-  //       end: 136,
-  //     },),
-  //   },
-  // );
-  // assert_eq!(
-  //   iter.next().expect("TODO:"),
-  //   ModuleDependency {
-  //     specifier: "k".to_string(),
-  //     kind: ResolveKind::Import,
-  //     span: Some(ErrorSpan {
-  //       start: 139,
-  //       end: 161,
-  //     },),
-  //   },
-  // );
-  // assert_eq!(
-  //   iter.next().expect("TODO:"),
-  //   ModuleDependency {
-  //     specifier: "m".to_string(),
-  //     kind: ResolveKind::Import,
-  //     span: Some(ErrorSpan {
-  //       start: 164,
-  //       end: 197,
-  //     },),
-  //   },
-  // )
-}
-
-fn match_member_expr(mut expr: &Expr, value: &str) -> bool {
-  let mut parts = value.split('.');
-  let first = parts.next().expect("should have a last str");
-  for part in parts.rev() {
-    if let Expr::Member(member_expr) = expr {
-      if let MemberProp::Ident(ident) = &member_expr.prop {
-        if ident.sym.eq(part) {
-          expr = &member_expr.obj;
-          continue;
-        }
-      }
-    }
-    return false;
-  }
-  matches!(&expr, Expr::Ident(ident) if ident.sym.eq(first))
-}
-
-#[inline]
-fn is_hmr_api_call(node: &CallExpr, value: &str) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| match_member_expr(expr, value))
-    .unwrap_or_default()
-}
-
-fn is_require_context_call(node: &CallExpr) -> bool {
-  is_hmr_api_call(node, "require.context")
-}
-
-pub fn is_module_hot_accept_call(node: &CallExpr) -> bool {
-  is_hmr_api_call(node, "module.hot.accept")
-}
-
-pub fn is_module_hot_decline_call(node: &CallExpr) -> bool {
-  is_hmr_api_call(node, "module.hot.decline")
-}
-
-fn match_import_meta_member_expr(mut expr: &Expr, value: &str) -> bool {
-  let mut parts = value.split('.');
-  // pop import.meta
-  parts.next();
-  parts.next();
-  for part in parts.rev() {
-    if let Expr::Member(member_expr) = expr {
-      if let MemberProp::Ident(ident) = &member_expr.prop {
-        if ident.sym.eq(part) {
-          expr = &member_expr.obj;
-          continue;
-        }
-      }
-    }
-    return false;
-  }
-  matches!(&expr, Expr::MetaProp(meta) if meta.kind == MetaPropKind::ImportMeta)
-}
-
-fn is_hmr_import_meta_api_call(node: &CallExpr, value: &str) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| match_import_meta_member_expr(expr, value))
-    .unwrap_or_default()
-}
-
-pub fn is_import_meta_hot_accept_call(node: &CallExpr) -> bool {
-  is_hmr_import_meta_api_call(node, "import.meta.webpackHot.accept")
-}
-
-pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
-  is_hmr_import_meta_api_call(node, "import.meta.webpackHot.decline")
-}
-
-#[test]
-fn test() {
-  use swc_core::common::DUMMY_SP;
-  use swc_core::ecma::ast::{Ident, MemberExpr, MetaPropExpr};
-  use swc_core::ecma::utils::member_expr;
-  use swc_core::ecma::utils::ExprFactory;
-  let expr = *member_expr!(DUMMY_SP, module.hot.accept);
-  assert!(match_member_expr(&expr, "module.hot.accept"));
-  assert!(is_module_hot_accept_call(&CallExpr {
-    span: DUMMY_SP,
-    callee: expr.as_callee(),
-    args: vec![],
-    type_args: None
-  }));
-
-  let import_meta_expr = Expr::Member(MemberExpr {
-    span: DUMMY_SP,
-    obj: Box::new(Expr::Member(MemberExpr {
-      span: DUMMY_SP,
-      obj: Box::new(Expr::MetaProp(MetaPropExpr {
-        span: DUMMY_SP,
-        kind: MetaPropKind::ImportMeta,
-      })),
-      prop: MemberProp::Ident(Ident::new("webpackHot".into(), DUMMY_SP)),
-    })),
-    prop: MemberProp::Ident(Ident::new("accept".into(), DUMMY_SP)),
-  });
-  assert!(match_import_meta_member_expr(
-    &import_meta_expr,
-    "import.meta.webpackHot.accept"
-  ));
-  assert!(is_import_meta_hot_accept_call(&CallExpr {
-    span: DUMMY_SP,
-    callee: import_meta_expr.as_callee(),
-    args: vec![],
-    type_args: None
-  }));
 }

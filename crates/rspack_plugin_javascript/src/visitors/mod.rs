@@ -16,11 +16,14 @@ use format::*;
 use rspack_core::{BuildInfo, EsVersion, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
+use swc_core::ecma::transforms::module::util::ImportInterop;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 pub mod relay;
 mod swc_visitor;
 mod tree_shaking;
-use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
+use rspack_core::{
+  ast::javascript::Ast, BuildMeta, CompilerOptions, GenerateContext, ResourceData,
+};
 use rspack_error::{Error, Result};
 use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
@@ -50,6 +53,7 @@ pub fn run_before_pass(
   options: &CompilerOptions,
   syntax: Syntax,
   build_info: &mut BuildInfo,
+  build_meta: &mut BuildMeta,
   module_type: &ModuleType,
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
@@ -94,7 +98,7 @@ pub fn run_before_pass(
           let uri = resource_data.resource.as_str();
           swc_visitor::fold_react_refresh(context, uri)
         },
-        should_transform_by_react
+        should_transform_by_react && options.builtins.react.refresh.is_some()
       ),
       either!(
         options.builtins.emotion,
@@ -144,7 +148,7 @@ pub fn run_before_pass(
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
-      strict_mode(build_info, context),
+      strict_mode(build_info, build_meta),
     );
     program.fold_with(&mut pass);
 
@@ -170,13 +174,13 @@ pub fn run_after_pass(
       let comments = None;
       let dependency_visitors =
         collect_dependency_code_generation_visitors(module, generate_context)?;
-
-      let need_tree_shaking = generate_context
+      let mgm = generate_context
         .compilation
         .module_graph
         .module_graph_module_by_identifier(&module.identifier())
-        .map(|module| module.used)
-        .unwrap_or(false);
+        .expect("should have module graph module");
+      let need_tree_shaking = mgm.used;
+      let build_meta = mgm.build_meta.as_ref().expect("should have build meta");
       let DependencyCodeGenerationVisitors {
         visitors,
         root_visitors,
@@ -230,7 +234,13 @@ pub fn run_after_pass(
             ignore_dynamic: true,
             // here will remove `use strict`
             strict_mode: false,
-            no_interop: !context.is_esm,
+            import_interop: if build_meta.strict_harmony_module {
+              Some(ImportInterop::Node)
+            } else if build_meta.esm {
+              Some(ImportInterop::Swc)
+            } else {
+              None
+            },
             allow_top_level_this: true,
             ..Default::default()
           })),

@@ -42,6 +42,7 @@ napi               = { version = "=2.11.1" }
 napi-build         = { version = "=2.0.1" }
 napi-derive        = { version = "=2.11.0" }
 napi-sys           = { version = "=2.2.3" }
+nodejs-resolver    = { version = "0.0.73" }
 once_cell          = { version = "1.17.0" }
 paste              = { version = "1.0" }
 pathdiff           = { version = "0.2.1" }
