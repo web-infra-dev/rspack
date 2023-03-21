@@ -3,10 +3,7 @@ use rspack_core::{
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
   ModuleDependency, ModuleIdentifier,
 };
-use swc_core::ecma::{
-  ast::Lit,
-  atoms::{Atom, JsWord},
-};
+use swc_core::ecma::atoms::{Atom, JsWord};
 
 #[derive(Debug, Eq, Clone)]
 pub struct ModuleHotDeclineDependency {
@@ -110,15 +107,9 @@ impl CodeGeneratable for ModuleHotDeclineDependency {
         .map(|m| m.id(&compilation.chunk_graph).to_string())
       {
         code_gen.visitors.push(
-          create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
-            if let Some(Lit::Str(str)) = n
-              .args
-              .get_mut(0)
-              .and_then(|first_arg| first_arg.expr.as_mut_lit())
-            {
-              str.value = JsWord::from(&*module_id);
-              str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-            }
+          create_javascript_visitor!(exact &self.ast_path, visit_mut_str(str: &mut Str) {
+            str.value = JsWord::from(&*module_id);
+            str.raw = Some(Atom::from(format!("\"{module_id}\"")));
           }),
         );
       }

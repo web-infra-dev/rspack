@@ -25,7 +25,7 @@ use xxhash_rust::xxh3::Xxh3;
 
 use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};
 use crate::utils::syntax_by_module_type;
-use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
+use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
 
 #[derive(Debug)]
 pub struct JsPlugin {}
@@ -291,25 +291,26 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
     )?;
 
-    let dep_scanner = ast.visit(|program, context| {
-      let mut dep_scanner =
-        DependencyScanner::new(context.unresolved_mark, resource_data, compiler_options);
-      program.visit_with_path(&mut dep_scanner, &mut Default::default());
-      dep_scanner
+    let (dependencies, presentational_dependencies) = ast.visit(|program, context| {
+      scan_dependencies(
+        program,
+        context.unresolved_mark,
+        resource_data,
+        compiler_options,
+      )
     });
 
     Ok(
       ParseResult {
         ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
-        dependencies: dep_scanner
-          .dependencies
+        dependencies: dependencies
           .into_iter()
           .map(|mut d| {
             d.set_parent_module_identifier(Some(module_identifier));
             d
           })
           .collect(),
-        presentational_dependencies: dep_scanner.presentational_dependencies,
+        presentational_dependencies,
       }
       .with_diagnostic(diagnostics),
     )

@@ -2810,6 +2810,7 @@ dependencies = [
  "async-trait",
  "base64",
  "better_scoped_tls",
+ "bitflags",
  "crossbeam-channel",
  "dashmap",
  "either",
