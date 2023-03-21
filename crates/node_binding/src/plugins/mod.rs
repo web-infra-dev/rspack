@@ -125,6 +125,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
         resource_fragment: res.fragment,
         resource_path: PathBuf::from(res.path),
         resource_query: res.query,
+        resource_description: None,
       })
     })
   }
