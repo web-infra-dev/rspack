@@ -299,65 +299,69 @@ impl<'a> HmrApiRewrite<'a> {
       }
     }
 
-    match n.args.len() {
-      0 => {}
-      // module.hot.accept without callback
-      1 => n.args.push(
-        FnExpr {
-          function: Box::new(Function {
-            params: vec![],
-            decorators: vec![],
-            span: DUMMY_SP,
-            body: Some(BlockStmt {
+    // exclude self accept
+    if !auto_import_stmts.is_empty() {
+      match n.args.len() {
+        0 => {}
+        // module.hot.accept without callback
+        1 => n.args.push(
+          FnExpr {
+            function: Box::new(Function {
+              params: vec![],
+              decorators: vec![],
               span: DUMMY_SP,
-              stmts: auto_import_stmts,
+              body: Some(BlockStmt {
+                span: DUMMY_SP,
+                stmts: auto_import_stmts,
+              }),
+              is_generator: false,
+              is_async: false,
+              type_params: None,
+              return_type: None,
             }),
-            is_generator: false,
-            is_async: false,
-            type_params: None,
-            return_type: None,
-          }),
-          ident: None,
-        }
-        .as_arg(),
-      ),
-      // module.hot.accept with callback
-      _ => {
-        if let Some(ExprOrSpread {
-          expr:
-            box Expr::Fn(FnExpr {
-              function:
-                box Function {
-                  body: Some(BlockStmt { stmts, .. }),
-                  ..
-                },
-              ..
-            }),
-          ..
-        })
-        | Some(ExprOrSpread {
-          expr:
-            box Expr::Arrow(ArrowExpr {
-              body: BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
-              ..
-            }),
-          ..
-        }) = n.args.get_mut(1)
-        {
-          auto_import_stmts.extend(std::mem::take(stmts));
-          *stmts = auto_import_stmts;
-        } else if let Some(ExprOrSpread {
-          expr: box Expr::Arrow(ArrowExpr { body, .. }),
-          ..
-        }) = n.args.get_mut(1)
-        {
-          if let BlockStmtOrExpr::Expr(box expr) = body {
-            auto_import_stmts
-              .push(std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt());
-            *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
-              span: DUMMY_SP,
-              stmts: auto_import_stmts,
-            });
+            ident: None,
+          }
+          .as_arg(),
+        ),
+        // module.hot.accept with callback
+        _ => {
+          if let Some(ExprOrSpread {
+            expr:
+              box Expr::Fn(FnExpr {
+                function:
+                  box Function {
+                    body: Some(BlockStmt { stmts, .. }),
+                    ..
+                  },
+                ..
+              }),
+            ..
+          })
+          | Some(ExprOrSpread {
+            expr:
+              box Expr::Arrow(ArrowExpr {
+                body: BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
+                ..
+              }),
+            ..
+          }) = n.args.get_mut(1)
+          {
+            auto_import_stmts.extend(std::mem::take(stmts));
+            *stmts = auto_import_stmts;
+          } else if let Some(ExprOrSpread {
+            expr: box Expr::Arrow(ArrowExpr { body, .. }),
+            ..
+          }) = n.args.get_mut(1)
+          {
+            if let BlockStmtOrExpr::Expr(box expr) = body {
+              auto_import_stmts.push(
+                std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
+              );
+              *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
+                span: DUMMY_SP,
+                stmts: auto_import_stmts,
+              });
+            }
           }
         }
       }
