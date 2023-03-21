@@ -64,6 +64,10 @@ export class Compilation {
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
+		additionalAssets: tapable.AsyncSeriesHook<
+			Assets,
+			tapable.UnsetAdditionalOptions
+		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
@@ -79,8 +83,12 @@ export class Compilation {
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
+		let processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
-			processAssets: createFakeProcessAssetsHook(this),
+			processAssets: processAssetsHooks,
+			// TODO: webpack 6 deprecate, keep it just for compatibility
+			/** @deprecated */
+			additionalAssets: processAssetsHooks.stageAdditional,
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
