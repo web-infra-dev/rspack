@@ -15,7 +15,6 @@
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "typescript": "^4.7.4",
     "@types/ws": "8.5.3",
     "@types/node": "16.11.7",
     "@types/express": "4.17.14",
