@@ -7,7 +7,7 @@ use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
 use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, ModuleDecl, Tpl,
+  BinExpr, BinaryOp, CallExpr, Callee, Expr, Lit, MemberProp, ModuleDecl, Tpl,
 };
 use swc_core::ecma::utils::{quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
@@ -131,39 +131,14 @@ impl DependencyScanner<'_> {
   ) -> Result<(), anyhow::Error> {
     match module_decl {
       ModuleDecl::ExportNamed(node) => {
-        node.specifiers.iter().for_each(|specifier| {
-          match specifier {
-            ExportSpecifier::Named(_s) => {
-              if let Some(source_node) = &node.src {
-                // export { name } from './other'
-                // TODO: this should ignore from code generation or use a new dependency instead
-                self.add_dependency(box EsmExportDependency::new(
-                  source_node.value.clone(),
-                  Some(node.span.into()),
-                  as_parent_path(ast_path),
-                ));
-              }
-            }
-            ExportSpecifier::Namespace(_s) => {
-              // export * as name from './other'
-              let source = node
-                .src
-                .as_ref()
-                .map(|str| str.value.clone())
-                .expect("TODO:");
-              // TODO: this should ignore from code generation or use a new dependency instead
-              self.add_dependency(box EsmExportDependency::new(
-                source,
-                Some(node.span.into()),
-                as_parent_path(ast_path),
-              ));
-            }
-            ExportSpecifier::Default(_) => {
-              // export v from 'mod';
-              // Rollup doesn't support it.
-            }
-          };
-        });
+        if let Some(src) = &node.src {
+          // TODO: this should ignore from code generation or use a new dependency instead
+          self.add_dependency(box EsmExportDependency::new(
+            src.value.clone(),
+            Some(node.span.into()),
+            as_parent_path(ast_path),
+          ));
+        }
       }
       ModuleDecl::ExportAll(node) => {
         // export * from './other'
