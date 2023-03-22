@@ -1,6 +1,7 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, ExternalModule, Filename, LibraryAuxiliaryComment, Plugin, PluginContext,
+  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Chunk, ExternalModule, Filename,
+  LibraryAuxiliaryComment, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
   PluginRenderHookOutput, RenderArgs, SourceType,
 };
 
@@ -22,6 +23,17 @@ impl UmdLibraryPlugin {
 impl Plugin for UmdLibraryPlugin {
   fn name(&self) -> &'static str {
     "UmdLibraryPlugin"
+  }
+
+  fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args
+      .runtime_requirements
+      .insert(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME);
+    Ok(())
   }
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
