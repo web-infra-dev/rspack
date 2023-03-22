@@ -261,7 +261,7 @@ macro_rules! create_css_visitor {
       $crate::create_css_visitor!(__ $ast_path.to_vec(), $name($arg: &mut $ty) $b)
   };
   ($ast_path:expr, $name:ident($arg:ident: &mut $ty:ident) $b:block) => {
-      $crate::create_css_visitor!(__ $crate::code_gen::path_to(&$ast_path, |n| {
+      $crate::create_css_visitor!(__ $crate::css_path_to(&$ast_path, |n| {
           matches!(n, swc_core::css::visit::AstParentKind::$ty(_))
       }), $name($arg: &mut $ty) $b)
   };
@@ -287,12 +287,12 @@ macro_rules! create_css_visitor {
       }
 
       (
-        $crate::CodeGeneratableAstPath::from($ast_path),
-        $crate::CodeGeneratableVisitorBuilder::Css(
-          box box Visitor {
-            $name: move |$arg: &mut swc_core::css::ast::$ty| $b,
-          } as Box<dyn $crate::CssVisitorBuilder>
-        ),
+          $crate::CodeGeneratableAstPath::from($ast_path),
+          $crate::CodeGeneratableVisitorBuilder::Css(
+              box box Visitor {
+                  $name: move |$arg: &mut swc_core::css::ast::$ty| $b,
+              } as Box<dyn $crate::CssVisitorBuilder>
+          ),
       )
   }};
   (visit_mut_stylesheet($arg:ident: &mut Stylesheet) $b:block) => {{
