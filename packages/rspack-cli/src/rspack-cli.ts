@@ -187,7 +187,7 @@ export class RspackCLI {
 	async loadConfig(
 		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let loadedConfig = loadRspackConfig(options);
+		let loadedConfig = await loadRspackConfig(options);
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 

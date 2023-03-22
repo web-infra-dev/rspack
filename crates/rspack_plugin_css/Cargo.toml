@@ -22,6 +22,7 @@ indexmap = { workspace = true }
 itertools = { workspace = true }
 linked_hash_set = { workspace = true }
 once_cell = { workspace = true }
+paste = { workspace = true }
 preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }

@@ -2317,6 +2317,7 @@ dependencies = [
  "itertools",
  "linked_hash_set",
  "once_cell",
+ "paste",
  "preset_env_base",
  "rayon",
  "regex",
@@ -2514,9 +2515,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "379e313339cd0e3d6d46468ee7bab65bff237c0514366a911e3cdafc43c07947"
+checksum = "eef26ea42c91ec2b5ece56a192adc265f5b1036f4093af8dcd75ff7f0f95b24f"
 dependencies = [
  "dashmap",
  "dyn-clone",

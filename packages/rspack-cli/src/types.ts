@@ -2,6 +2,7 @@ import { Colorette } from "colorette";
 import { RspackCLI } from "./rspack-cli";
 import type { DevServer } from "@rspack/core";
 export type { Configuration } from "@rspack/core";
+
 export interface IRspackCLI {
 	runRspack(): Promise<void>;
 }

@@ -1,57 +1,43 @@
-use crate::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CssAstPath, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+use rspack_core::{
+  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
 };
 
-// #[derive(Derivative)]
 #[derive(Debug, Eq, Clone)]
-pub struct CssUrlDependency {
+pub struct CssComposeDependency {
   id: Option<DependencyId>,
   parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
-  category: &'static DependencyCategory,
-  dependency_type: &'static DependencyType,
-
   span: Option<ErrorSpan>,
-  #[allow(unused)]
-  ast_path: CssAstPath,
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for CssUrlDependency {
+impl PartialEq for CssComposeDependency {
   fn eq(&self, other: &Self) -> bool {
-    self.parent_module_identifier == other.parent_module_identifier
-      && self.request == other.request
-      && self.category == other.category
-      && self.dependency_type == other.dependency_type
+    self.parent_module_identifier == other.parent_module_identifier && self.request == other.request
   }
 }
 
 // Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for CssUrlDependency {
+impl std::hash::Hash for CssComposeDependency {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.parent_module_identifier.hash(state);
     self.request.hash(state);
-    self.category.hash(state);
-    self.dependency_type.hash(state);
   }
 }
 
-impl CssUrlDependency {
-  pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
+impl CssComposeDependency {
+  pub fn new(request: String, span: Option<ErrorSpan>) -> Self {
     Self {
+      id: None,
       parent_module_identifier: None,
       request,
-      category: &DependencyCategory::Url,
-      dependency_type: &DependencyType::CssUrl,
       span,
-      ast_path,
-      id: None,
     }
   }
 }
 
-impl Dependency for CssUrlDependency {
+impl Dependency for CssComposeDependency {
   fn id(&self) -> Option<DependencyId> {
     self.id
   }
@@ -67,15 +53,15 @@ impl Dependency for CssUrlDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Url
+    &DependencyCategory::CssCompose
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CssUrl
+    &DependencyType::CssCompose
   }
 }
 
-impl ModuleDependency for CssUrlDependency {
+impl ModuleDependency for CssComposeDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -89,7 +75,7 @@ impl ModuleDependency for CssUrlDependency {
   }
 }
 
-impl CodeGeneratable for CssUrlDependency {
+impl CodeGeneratable for CssComposeDependency {
   fn generate(
     &self,
     _code_generatable_context: &mut CodeGeneratableContext,
