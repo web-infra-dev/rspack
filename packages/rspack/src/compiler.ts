@@ -139,11 +139,10 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		const options = getRawOptions(this.options, this);
 		this.#_instance =
 			this.#_instance ??
 			new binding.Rspack(
-				options,
+				getRawOptions(this.options, this),
 				{
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
