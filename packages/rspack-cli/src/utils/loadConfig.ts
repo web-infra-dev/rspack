@@ -16,9 +16,9 @@ export type LoadedRspackConfig =
 			argv: Record<string, any>
 	  ) => RspackOptions | MultiRspackOptions);
 
-export function loadRspackConfig(
+export async function loadRspackConfig(
 	options: RspackCLIOptions
-): LoadedRspackConfig {
+): Promise<LoadedRspackConfig> {
 	let loadedConfig: LoadedRspackConfig;
 	// if we pass config paras
 	if (options.config) {
@@ -26,13 +26,13 @@ export function loadRspackConfig(
 		if (!fs.existsSync(resolvedConfigPath)) {
 			throw new Error(`config file "${resolvedConfigPath}" not exists`);
 		}
-		loadedConfig = requireWithAdditionalExtension(resolvedConfigPath);
+		loadedConfig = await requireWithAdditionalExtension(resolvedConfigPath);
 	} else {
 		let defaultConfigPath = findFileWithSupportedExtensions(
 			path.resolve(process.cwd(), defaultConfig)
 		);
 		if (defaultConfigPath != null) {
-			loadedConfig = requireWithAdditionalExtension(defaultConfigPath);
+			loadedConfig = await requireWithAdditionalExtension(defaultConfigPath);
 		} else {
 			let entry: Record<string, string> = {};
 			if (options.entry) {
@@ -68,7 +68,7 @@ function findFileWithSupportedExtensions(basePath: string): string | null {
 }
 
 let hasRegisteredTS = false;
-function requireWithAdditionalExtension(resolvedPath: string) {
+async function requireWithAdditionalExtension(resolvedPath: string) {
 	if (resolvedPath.endsWith("ts") && !hasRegisteredTS) {
 		hasRegisteredTS = true;
 		let tsNode: any;
@@ -79,5 +79,12 @@ function requireWithAdditionalExtension(resolvedPath: string) {
 		}
 		tsNode.register({ transpileOnly: true });
 	}
-	return require(resolvedPath);
+	let loadedConfig;
+	if (resolvedPath.endsWith("ts")) {
+		loadedConfig = require(resolvedPath);
+	} else {
+		// dynamic import can handle both cjs & mjs
+		loadedConfig = (await import(resolvedPath)).default;
+	}
+	return loadedConfig;
 }

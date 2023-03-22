@@ -261,9 +261,10 @@ export class RspackDevServer extends WebpackDevServer {
 		}
 		if (!clientImplementationFound) {
 			throw new Error(
-				`${!isKnownWebSocketServerImplementation
-					? "When you use custom web socket implementation you must explicitly specify client.webSocketTransport. "
-					: ""
+				`${
+					!isKnownWebSocketServerImplementation
+						? "When you use custom web socket implementation you must explicitly specify client.webSocketTransport. "
+						: ""
 				}client.webSocketTransport must be a string denoting a default implementation (e.g. 'sockjs', 'ws') or a full path to a JS file via require.resolve(...) which exports a class `
 			);
 		}
@@ -283,7 +284,7 @@ export class RspackDevServer extends WebpackDevServer {
 				if (mode === "production") {
 					this.logger.warn(
 						"Hot Module Replacement (HMR) is enabled for the production build. \n" +
-						"Make sure to disable HMR for production by setting `devServer.hot` to `false` in the configuration."
+							"Make sure to disable HMR for production by setting `devServer.hot` to `false` in the configuration."
 					);
 				}
 				compiler.options.devServer ??= {};
@@ -295,7 +296,7 @@ export class RspackDevServer extends WebpackDevServer {
 				if (mode === "production") {
 					this.logger.warn(
 						"React Refresh runtime should not be included in the production bundle.\n" +
-						"Make sure to disable React Refresh for production by setting `builtins.react.refresh` to `false` in the configuration."
+							"Make sure to disable React Refresh for production by setting `builtins.react.refresh` to `false` in the configuration."
 					);
 				} else {
 					this.logger.warn(
