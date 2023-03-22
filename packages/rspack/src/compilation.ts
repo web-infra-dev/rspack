@@ -85,10 +85,14 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	startTime?: number;
+	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
+		this.startTime = undefined;
+		this.endTime = undefined;
 		let processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
 			processAssets: processAssetsHooks,

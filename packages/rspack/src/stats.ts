@@ -15,6 +15,8 @@ import { LogType } from "./logging/Logger";
 export type StatsCompilation = {
 	name?: string;
 	hash?: string;
+	time?: number;
+	builtAt?: number;
 	publicPath?: string;
 	outputPath?: string;
 	assets?: binding.JsStatsAsset[];

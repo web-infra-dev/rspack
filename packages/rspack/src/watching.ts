@@ -207,7 +207,6 @@ class Watching {
 
 	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
 		this.running = true;
-		const logger = this.compiler.getInfrastructureLogger("watcher");
 		if (this.watcher) {
 			this.pausedWatcher = this.watcher;
 			this.lastWatcherStartTime = Date.now();
@@ -223,27 +222,18 @@ class Watching {
 			this.#collectedRemovedFiles);
 		this.#collectedChangedFiles = undefined;
 		this.#collectedRemovedFiles = undefined;
-		const begin = Date.now();
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) return this._done(err);
 
 			const isRebuild = this.compiler.options.devServer && !this.#initial;
-			const print = isRebuild
-				? () =>
-						console.log("rebuild success, time cost", Date.now() - begin, "ms")
-				: () =>
-						console.log("build success, time cost", Date.now() - begin, "ms");
 
 			const onBuild = (err?: Error) => {
 				if (err) return this._done(err);
 				// if (this.invalid) return this._done(null);
 				// @ts-expect-error
 				this._done(null);
-				if (!err && !this.#closed && !this.invalid) {
-					print();
-				}
 			};
 
 			if (isRebuild) {
