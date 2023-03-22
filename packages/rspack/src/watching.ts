@@ -28,6 +28,7 @@ class Watching {
 	onChange?: () => void;
 	onInvalid?: () => void;
 	invalid: boolean;
+	startTime?: number;
 	#invalidReported: boolean;
 	#closeCallbacks?: ((err?: Error) => void)[];
 	#initial: boolean;
@@ -206,8 +207,8 @@ class Watching {
 	}
 
 	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
+		if (this.startTime === undefined) this.startTime = Date.now();
 		this.running = true;
-		const logger = this.compiler.getInfrastructureLogger("watcher");
 		if (this.watcher) {
 			this.pausedWatcher = this.watcher;
 			this.lastWatcherStartTime = Date.now();
@@ -223,27 +224,18 @@ class Watching {
 			this.#collectedRemovedFiles);
 		this.#collectedChangedFiles = undefined;
 		this.#collectedRemovedFiles = undefined;
-		const begin = Date.now();
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) return this._done(err);
 
 			const isRebuild = this.compiler.options.devServer && !this.#initial;
-			const print = isRebuild
-				? () =>
-						console.log("rebuild success, time cost", Date.now() - begin, "ms")
-				: () =>
-						console.log("build success, time cost", Date.now() - begin, "ms");
 
 			const onBuild = (err?: Error) => {
 				if (err) return this._done(err);
 				// if (this.invalid) return this._done(null);
 				// @ts-expect-error
 				this._done(null);
-				if (!err && !this.#closed && !this.invalid) {
-					print();
-				}
 			};
 
 			if (isRebuild) {
@@ -260,13 +252,11 @@ class Watching {
 	 */
 	private _done(error?: Error) {
 		this.running = false;
-		let stats: Stats | null = null;
 		const handleError = (err?: Error, cbs?: Callback<Error, void>[]) => {
 			// @ts-expect-error
 			this.compiler.hooks.failed.call(err);
 			// this.compiler.cache.beginIdle();
 			// this.compiler.idle = true;
-			// @ts-expect-error
 			this.handler(err, stats);
 			if (!cbs) {
 				cbs = this.callbacks;
@@ -282,7 +272,10 @@ class Watching {
 		const cbs = this.callbacks;
 		this.callbacks = [];
 
-		stats = new Stats(this.compiler.compilation);
+		this.compiler.compilation.startTime = this.startTime;
+		this.compiler.compilation.endTime = Date.now();
+		const stats = new Stats(this.compiler.compilation);
+		this.startTime = undefined;
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
 			// @ts-expect-error
@@ -298,7 +291,6 @@ class Watching {
 				}
 			});
 			for (const cb of cbs) cb(null);
-			// @ts-expect-error
 			this.compiler.hooks.afterDone.call(stats);
 		});
 	}
