@@ -381,6 +381,7 @@ class Compiler {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
+		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
 			// @ts-expect-error
@@ -407,6 +408,8 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
+						this.compilation.startTime = startTime;
+						this.compilation.endTime = Date.now();
 						const stats = new Stats(this.compilation);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {

@@ -231,6 +231,8 @@ export class Compilation {
 			options.outputPath,
 			!context.forToString
 		);
+		options.timings = optionOrLocalFallback(options.timings, true);
+		options.builtAt = optionOrLocalFallback(options.builtAt, !context.forToString);
 
 		return options;
 	}

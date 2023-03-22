@@ -28,6 +28,7 @@ class Watching {
 	onChange?: () => void;
 	onInvalid?: () => void;
 	invalid: boolean;
+	startTime?: number;
 	#invalidReported: boolean;
 	#closeCallbacks?: ((err?: Error) => void)[];
 	#initial: boolean;
@@ -206,6 +207,7 @@ class Watching {
 	}
 
 	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
+		if (this.startTime === undefined) this.startTime = Date.now();
 		this.running = true;
 		if (this.watcher) {
 			this.pausedWatcher = this.watcher;
@@ -250,13 +252,11 @@ class Watching {
 	 */
 	private _done(error?: Error) {
 		this.running = false;
-		let stats: Stats | null = null;
 		const handleError = (err?: Error, cbs?: Callback<Error, void>[]) => {
 			// @ts-expect-error
 			this.compiler.hooks.failed.call(err);
 			// this.compiler.cache.beginIdle();
 			// this.compiler.idle = true;
-			// @ts-expect-error
 			this.handler(err, stats);
 			if (!cbs) {
 				cbs = this.callbacks;
@@ -272,7 +272,10 @@ class Watching {
 		const cbs = this.callbacks;
 		this.callbacks = [];
 
-		stats = new Stats(this.compiler.compilation);
+		this.compiler.compilation.startTime = this.startTime;
+		this.compiler.compilation.endTime = Date.now();
+		const stats = new Stats(this.compiler.compilation);
+		this.startTime = undefined;
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
 			// @ts-expect-error
@@ -288,7 +291,6 @@ class Watching {
 				}
 			});
 			for (const cb of cbs) cb(null);
-			// @ts-expect-error
 			this.compiler.hooks.afterDone.call(stats);
 		});
 	}

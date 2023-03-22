@@ -64,6 +64,12 @@ export class Stats {
 		if (options.hash) {
 			obj.hash = this.#inner.getHash();
 		}
+		if (options.timings) {
+			obj.time = this.compilation.endTime! - this.compilation.startTime!;
+		}
+		if (options.builtAt) {
+			obj.builtAt = this.compilation.endTime;
+		}
 		if (options.publicPath) {
 			obj.publicPath = this.compilation.outputOptions.publicPath;
 		}
