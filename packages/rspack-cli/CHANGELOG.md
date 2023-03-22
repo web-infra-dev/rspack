@@ -1,5 +1,35 @@
 # @rspack/cli
 
+## 0.1.2
+
+### Patch Changes
+
+- 38d5e01: fix(cli): set stats default to errors-warning to avoid server info flushhed by module stats
+- f2e5d92: support mjs config
+- 8f8e025: align optimizeChunkModules
+- a08d5d6: add defineConfig helper
+- a0994a8: fix(cli): rspack build --watch not work ([#2280](https://github.com/web-infra-dev/rspack/issues/2280))
+- Updated dependencies [68c4df8]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [2486b2a]
+- Updated dependencies [f562fa9]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [eb7051f]
+- Updated dependencies [cd011c1]
+- Updated dependencies [7431442]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [bfb1738]
+- Updated dependencies [2934f8f]
+- Updated dependencies [a0994a8]
+- Updated dependencies [2e9d331]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [bb4e6a6]
+  - @rspack/core@0.1.2
+  - @rspack/dev-server@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes

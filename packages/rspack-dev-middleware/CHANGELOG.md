@@ -1,5 +1,29 @@
 # @rspack/dev-middleware
 
+## 0.1.2
+
+### Patch Changes
+
+- d63e3fd: upgrade webpack-dev-server & webpack-dev-middleware
+- a6ac7da: feat: function type RuleSetCondition
+- deaca70: fix: css hmr memory middleware
+- bfb1738: fix: react refresh runtime injection
+- Updated dependencies [68c4df8]
+- Updated dependencies [2486b2a]
+- Updated dependencies [f562fa9]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [eb7051f]
+- Updated dependencies [cd011c1]
+- Updated dependencies [7431442]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [2934f8f]
+- Updated dependencies [a0994a8]
+- Updated dependencies [2e9d331]
+  - @rspack/core@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes

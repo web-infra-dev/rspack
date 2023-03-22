@@ -156,7 +156,7 @@ export class RspackCLI {
 			}
 
 			if (typeof item.stats === "undefined") {
-				item.stats = { preset: "errors-warnings" };
+				item.stats = { preset: "errors-warnings", timings: true };
 			} else if (typeof item.stats === "boolean") {
 				item.stats = item.stats ? { preset: "normal" } : { preset: "none" };
 			} else if (typeof item.stats === "string") {

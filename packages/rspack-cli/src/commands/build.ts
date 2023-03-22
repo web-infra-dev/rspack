@@ -83,12 +83,11 @@ export class BuildCommand implements RspackCommand {
 						}
 					}
 				};
-				console.time("build");
+
 				let rspackOptions = { ...options, argv: { ...options } };
 
 				const errorHandler = (err, Stats) => {
 					callback(err, Stats);
-					console.timeEnd("build");
 				};
 
 				const compiler = await cli.createCompiler(

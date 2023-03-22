@@ -15,6 +15,8 @@ import { LogType } from "./logging/Logger";
 export type StatsCompilation = {
 	name?: string;
 	hash?: string;
+	time?: number;
+	builtAt?: number;
 	publicPath?: string;
 	outputPath?: string;
 	assets?: binding.JsStatsAsset[];
@@ -61,6 +63,12 @@ export class Stats {
 
 		if (options.hash) {
 			obj.hash = this.#inner.getHash();
+		}
+		if (options.timings) {
+			obj.time = this.compilation.endTime! - this.compilation.startTime!;
+		}
+		if (options.builtAt) {
+			obj.builtAt = this.compilation.endTime;
 		}
 		if (options.publicPath) {
 			obj.publicPath = this.compilation.outputOptions.publicPath;

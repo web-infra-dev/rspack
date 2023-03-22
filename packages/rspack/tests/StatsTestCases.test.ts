@@ -40,7 +40,11 @@ describe("StatsTestCases", () => {
 			};
 			const stats = await util.promisify(rspack)(options);
 			if (!stats) return expect(false);
-			const statsOptions = options.stats ?? { all: true };
+			const statsOptions = options.stats ?? {
+				all: true,
+				timings: false,
+				builtAt: false
+			};
 			const statsJson = stats.toJson(statsOptions);
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {
