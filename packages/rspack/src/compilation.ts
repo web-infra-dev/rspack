@@ -232,7 +232,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.timings = optionOrLocalFallback(options.timings, true);
-		options.builtAt = optionOrLocalFallback(options.builtAt, !context.forToString);
+		options.builtAt = optionOrLocalFallback(
+			options.builtAt,
+			!context.forToString
+		);
 
 		return options;
 	}
