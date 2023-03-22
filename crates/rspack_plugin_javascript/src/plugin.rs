@@ -160,6 +160,9 @@ impl JsPlugin {
   pub async fn render_main(&self, args: &rspack_core::RenderManifestArgs<'_>) -> Result<BoxSource> {
     let compilation = args.compilation;
     let chunk = args.chunk();
+    let runtime_requirements = compilation
+      .chunk_graph
+      .get_tree_runtime_requirements(&args.chunk_ukey);
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("var __webpack_modules__ = "));
     sources.add(render_chunk_modules(compilation, &args.chunk_ukey)?);
@@ -169,6 +172,9 @@ impl JsPlugin {
     if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
+      if runtime_requirements.contains(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME) {
+        sources.add(RawSource::from("return __webpack_exports__;\n"));
+      }
       if let Some(source) =
         compilation
           .plugin_driver
