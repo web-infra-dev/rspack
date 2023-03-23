@@ -18,8 +18,7 @@ export class PreviewCommand implements RspackCommand {
 			"run the rspack server for build output",
 			previewOptions,
 			async options => {
-				console.log(options);
-
+                // config、configName are necessary for loadConfig
 				const rspackOptions = {
 					config: options.config,
 					configName: options.configName,
@@ -52,6 +51,8 @@ export class PreviewCommand implements RspackCommand {
 		);
 	}
 }
+
+// get the devServerOptions from the config
 async function getPreviewConfig(
 	item: RspackOptions | MultiRspackOptions,
 	options: RspackCLIPreviewOptions
@@ -60,6 +61,7 @@ async function getPreviewConfig(
 		if (!item.devServer) {
 			item.devServer = {};
 		}
+        // all of the options that a preview static server needs(maybe not all)
 		item.devServer = {
 			static: {
 				directory: options.root
@@ -82,6 +84,8 @@ async function getPreviewConfig(
 		return internalPreviewConfig(item as RspackOptions);
 	}
 }
+
+// transform dir to absolute path
 function transformPath(dir: string) {
 	return path.resolve(process.cwd(), dir);
 }
