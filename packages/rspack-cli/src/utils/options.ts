@@ -43,14 +43,14 @@ export const commonOptions = (yargs: yargs.Argv<{}>) => {
 
 export const previewOptions = (yargs: yargs.Argv<{}>) => {
 	return yargs
-		.positional("root", {
+		.positional("dir", {
 			type: "string",
-			describe: "root"
+			describe: "directory want to preview"
 		})
 		.options({
 			publicPath: {
 				type: "string",
-				describe: "public path"
+				describe: "static resource server path"
 			},
 			config: {
 				g: true,
@@ -60,11 +60,11 @@ export const previewOptions = (yargs: yargs.Argv<{}>) => {
 			},
 			port: {
 				type: "number",
-				describe: "port"
+				describe: "preview server port"
 			},
 			host: {
 				type: "string",
-				describe: "host"
+				describe: "preview server host"
 			},
 			open: {
 				type: "boolean",

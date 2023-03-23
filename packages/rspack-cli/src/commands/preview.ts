@@ -14,7 +14,7 @@ const defaultRoot = "dist";
 export class PreviewCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(
-			["preview [root]", "preview", "p"],
+			["preview [dir]", "preview", "p"],
 			"run the rspack server for build output",
 			previewOptions,
 			async options => {
@@ -64,8 +64,8 @@ async function getPreviewConfig(
         // all of the options that a preview static server needs(maybe not all)
 		item.devServer = {
 			static: {
-				directory: options.root
-					? transformPath(options.root)
+				directory: options.dir
+					? transformPath(options.dir)
 					: item.output.path || transformPath(defaultRoot),
 				publicPath: options.publicPath || "/"
 			},
