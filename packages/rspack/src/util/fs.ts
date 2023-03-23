@@ -7,7 +7,7 @@ export interface Watcher {
 	getAggregatedRemovals?(): Set<string>; // get current aggregated removals that have not yet send to callback
 	getFileTimeInfoEntries?(): Map<string, FileSystemInfoEntry | "ignore">; // get info about files
 	getContextTimeInfoEntries?(): Map<string, FileSystemInfoEntry | "ignore">; // get info about directories
-	getInfo?(): WatcherInfo; // get info about timestamps and changes
+	getInfo(): WatcherInfo; // get info about timestamps and changes
 }
 
 export interface WatcherInfo {

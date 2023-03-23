@@ -8,7 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import { Callback } from "tapable";
-import type { Compilation, Compiler } from ".";
+import type { Compiler } from ".";
 import { Stats } from ".";
 import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
@@ -35,6 +35,7 @@ class Watching {
 	#closed: boolean;
 	#collectedChangedFiles?: Set<string>;
 	#collectedRemovedFiles?: Set<string>;
+	suspended: boolean;
 
 	constructor(
 		compiler: Compiler,
@@ -54,6 +55,7 @@ class Watching {
 		this.#closed = false;
 		this.watchOptions = watchOptions;
 		this.handler = handler;
+		this.suspended = false;
 
 		process.nextTick(() => {
 			if (this.#initial) this.#invalidate();
@@ -195,7 +197,7 @@ class Watching {
 		// @ts-expect-error
 		this.#mergeWithCollected(changedFiles, removedFiles);
 		// @ts-expect-error
-		if (this.isBlocked() && (this.blocked = true)) {
+		if (this.suspended || (this.isBlocked() && (this.blocked = true))) {
 			return;
 		}
 
@@ -218,6 +220,14 @@ class Watching {
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
 		}
+
+		if (changedFiles && removedFiles) {
+			this.#mergeWithCollected(changedFiles, removedFiles);
+		} else if (this.pausedWatcher) {
+			const { changes, removals } = this.pausedWatcher.getInfo();
+			this.#mergeWithCollected(changes, removals);
+		}
+
 		const modifiedFiles = (this.compiler.modifiedFiles =
 			this.#collectedChangedFiles);
 		const deleteFiles = (this.compiler.removedFiles =
@@ -269,6 +279,7 @@ class Watching {
 		if (error) {
 			return handleError(error);
 		}
+
 		const cbs = this.callbacks;
 		this.callbacks = [];
 
@@ -314,6 +325,17 @@ class Watching {
 				// @ts-expect-error
 				this.#collectedRemovedFiles.add(file);
 			}
+		}
+	}
+
+	suspend() {
+		this.suspended = true;
+	}
+
+	resume() {
+		if (this.suspended) {
+			this.suspended = false;
+			this.#invalidate();
 		}
 	}
 }
