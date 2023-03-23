@@ -68,8 +68,7 @@ class Watching {
 		dirs: Iterable<string>,
 		missing: Iterable<string>
 	) {
-		// @ts-expect-error
-		this.pausedWatcher = null;
+		this.pausedWatcher = undefined;
 		this.watcher = this.compiler.watchFileSystem.watch(
 			files,
 			dirs,
@@ -215,8 +214,7 @@ class Watching {
 			this.pausedWatcher = this.watcher;
 			this.lastWatcherStartTime = Date.now();
 			this.watcher.pause();
-			// @ts-expect-error
-			this.watcher = null;
+			this.watcher = undefined;
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
 		}
