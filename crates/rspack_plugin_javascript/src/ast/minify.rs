@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
 
 use rspack_core::ModuleType;
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
@@ -235,7 +235,7 @@ fn minify_file_comments(
 
 // keep this private to make sure with_rspack_error_handler is safety
 struct RspackErrorEmitter {
-  tx: crossbeam_channel::Sender<rspack_error::Error>,
+  tx: mpsc::Sender<rspack_error::Error>,
   source_map: Arc<SourceMap>,
   title: String,
   kind: DiagnosticKind,
@@ -279,7 +279,7 @@ pub fn with_rspack_error_handler<F, Ret>(
 where
   F: FnOnce(&Handler) -> Result<Ret>,
 {
-  let (tx, rx) = crossbeam_channel::unbounded();
+  let (tx, rx) = mpsc::channel();
   let emitter = RspackErrorEmitter {
     title,
     kind,

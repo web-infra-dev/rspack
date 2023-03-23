@@ -11,8 +11,8 @@ use crate::{
   cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions,
   CompilerOptions, Dependency, FactorizeArgs, MissingModule, ModuleArgs, ModuleDependency,
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  ModuleRule, ModuleType, NormalModule, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveResult, ResourceData, SharedPluginDriver,
+  ModuleRule, ModuleType, NormalModule, NormalModuleFactoryResolveForSchemeArgs, RawModule,
+  Resolve, ResolveArgs, ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -78,56 +78,100 @@ impl NormalModuleFactory {
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
     };
+
+    let scheme = url::Url::parse(specifier)
+      .map(|url| url.scheme().to_string())
+      .ok();
     let plugin_driver = &self.plugin_driver;
-    let resource_data = self
-      .cache
-      .resolve_module_occasion
-      .use_cache(resolve_args, |args| resolve(args, plugin_driver))
-      .await;
-    let resource_data = match resource_data {
-      Ok(ResolveResult::Info(info)) => {
-        let uri = info.join();
-        ResourceData {
-          resource: uri,
-          resource_path: info.path,
-          resource_query: (!info.query.is_empty()).then_some(info.query),
-          resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
+
+    // with scheme
+    let resource_data = if let Some(scheme) = scheme {
+      let data = plugin_driver
+        .read()
+        .await
+        .normal_module_factory_resolve_for_scheme(NormalModuleFactoryResolveForSchemeArgs {
+          resource: ResourceData {
+            resource: specifier.to_string(),
+            resource_description: None,
+            ..Default::default()
+          },
+          scheme,
+        })
+        .await;
+      match data {
+        Ok(Some(data)) => data,
+        Ok(None) => {
+          let ident = format!("{}{specifier}", importer_with_context.display());
+          let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+          let missing_module = MissingModule::new(
+            module_identifier,
+            format!("{ident} (missing)"),
+            format!("Failed to resolve {specifier}"),
+          )
+          .boxed();
+          self.context.module_type = Some(*missing_module.module_type());
+          return Ok(Some(
+            ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
+          ));
+        }
+        Err(err) => {
+          return Err(err);
         }
       }
-      Ok(ResolveResult::Ignored) => {
-        let ident = format!("{}/{}", importer_with_context.display(), specifier);
-        let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
+    } else {
+      // default resolve
+      let resource_data = self
+        .cache
+        .resolve_module_occasion
+        .use_cache(resolve_args, |args| resolve(args, plugin_driver))
+        .await;
+      match resource_data {
+        Ok(ResolveResult::Resource(resource)) => {
+          let uri = resource.join().display().to_string();
+          ResourceData {
+            resource: uri,
+            resource_path: resource.path,
+            resource_query: resource.query,
+            resource_fragment: resource.fragment,
+            resource_description: resource.description,
+          }
+        }
+        Ok(ResolveResult::Ignored) => {
+          let ident = format!("{}/{}", importer_with_context.display(), specifier);
+          let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
-        let raw_module = RawModule::new(
-          "/* (ignored) */".to_owned(),
-          module_identifier,
-          format!("{ident} (ignored)"),
-          Default::default(),
-        )
-        .boxed();
-        self.context.module_type = Some(*raw_module.module_type());
+          let raw_module = RawModule::new(
+            "/* (ignored) */".to_owned(),
+            module_identifier,
+            format!("{ident} (ignored)"),
+            Default::default(),
+          )
+          .boxed();
+          self.context.module_type = Some(*raw_module.module_type());
 
-        return Ok(Some(
-          ModuleFactoryResult::new(raw_module).with_empty_diagnostic(),
-        ));
-      }
-      Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", importer_with_context.display());
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}{specifier}"));
+          return Ok(Some(
+            ModuleFactoryResult::new(raw_module).with_empty_diagnostic(),
+          ));
+        }
+        Err(ResolveError(runtime_error, internal_error)) => {
+          let ident = format!("{}{specifier}", importer_with_context.display());
+          let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
-        let missing_module = MissingModule::new(
-          module_identifier,
-          format!("{ident} (missing)"),
-          runtime_error,
-        )
-        .boxed();
-        self.context.module_type = Some(*missing_module.module_type());
-        return Ok(Some(
-          ModuleFactoryResult::new(missing_module).with_diagnostic(internal_error.into()),
-        ));
+          let missing_module = MissingModule::new(
+            module_identifier,
+            format!("{ident} (missing)"),
+            runtime_error,
+          )
+          .boxed();
+          self.context.module_type = Some(*missing_module.module_type());
+          return Ok(Some(
+            ModuleFactoryResult::new(missing_module).with_diagnostic(internal_error.into()),
+          ));
+        }
       }
     };
-
+    //TODO: with contextScheme
     let loaders = self
       .context
       .options

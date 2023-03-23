@@ -382,6 +382,7 @@ export type Node = NodeOptions;
 // | false;
 export interface NodeOptions {
 	__dirname?: false | true | "warn-mock" | "mock" | "eval-only";
+	__filename?: false | true | "warn-mock" | "mock" | "eval-only";
 	global?: boolean | "warn";
 }
 
@@ -422,8 +423,11 @@ export interface StatsOptions {
 	hash?: boolean;
 	reasons?: boolean;
 	publicPath?: boolean;
+	outputPath?: boolean;
 	chunkModules?: boolean;
 	chunkRelations?: boolean;
+	timings?: boolean;
+	builtAt?: boolean;
 }
 
 ///// Optimization /////

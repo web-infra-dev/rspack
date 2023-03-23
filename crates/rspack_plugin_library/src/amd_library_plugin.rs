@@ -1,6 +1,7 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  ExternalModule, Filename, LibraryName, LibraryOptions, Plugin, PluginContext,
+  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, LibraryName,
+  LibraryOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
   PluginRenderHookOutput, RenderArgs, SourceType,
 };
 use rspack_error::Result;
@@ -37,6 +38,17 @@ impl AmdLibraryPlugin {
 impl Plugin for AmdLibraryPlugin {
   fn name(&self) -> &'static str {
     "AmdLibraryPlugin"
+  }
+
+  fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args
+      .runtime_requirements
+      .insert(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME);
+    Ok(())
   }
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {

@@ -34,7 +34,21 @@ export class RspackDevServer extends WebpackDevServer {
 
 	addAdditionEntires(compiler: Compiler) {
 		const additionalEntries: string[] = [];
-		const isWebTarget = isWebTarget2(compiler);
+		// @ts-expect-error
+		const isWebTarget = WebpackDevServer.isWebTarget(compiler);
+		// inject runtime first, avoid other additional entry after transfrom depend on it
+		if (this.options.hot) {
+			if (compiler.options.builtins.react?.refresh) {
+				const reactRefreshEntryPath = require.resolve(
+					"@rspack/dev-client/react-refresh"
+				);
+				additionalEntries.push(reactRefreshEntryPath);
+			}
+			const hotUpdateEntryPath = require.resolve(
+				"@rspack/dev-client/devServer"
+			);
+			additionalEntries.push(hotUpdateEntryPath);
+		}
 		if (this.options.client && isWebTarget) {
 			let webSocketURLStr = "";
 
@@ -186,20 +200,6 @@ export class RspackDevServer extends WebpackDevServer {
 			);
 		}
 
-		if (this.options.hot) {
-			const hotUpdateEntryPath = require.resolve(
-				"@rspack/dev-client/devServer"
-			);
-			additionalEntries.push(hotUpdateEntryPath);
-
-			if (compiler.options.builtins.react?.refresh) {
-				const reactRefreshEntryPath = require.resolve(
-					"@rspack/dev-client/react-refresh"
-				);
-				additionalEntries.push(reactRefreshEntryPath);
-			}
-		}
-
 		for (const key in compiler.options.entry) {
 			compiler.options.entry[key].import.unshift(...additionalEntries);
 		}
@@ -279,16 +279,30 @@ export class RspackDevServer extends WebpackDevServer {
 				: [this.compiler];
 
 		compilers.forEach(compiler => {
+			const mode = compiler.options.mode || process.env.NODE_ENV;
 			if (this.options.hot) {
+				if (mode === "production") {
+					this.logger.warn(
+						"Hot Module Replacement (HMR) is enabled for the production build. \n" +
+							"Make sure to disable HMR for production by setting `devServer.hot` to `false` in the configuration."
+					);
+				}
 				compiler.options.devServer ??= {};
 				compiler.options.devServer.hot = true;
 				compiler.options.builtins.react ??= {};
 				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
 			} else if (compiler.options.builtins.react.refresh) {
-				this.logger.warn(
-					"builtins.react.refresh needs builtins.react.development and devServer.hot enabled"
-				);
+				if (mode === "production") {
+					this.logger.warn(
+						"React Refresh runtime should not be included in the production bundle.\n" +
+							"Make sure to disable React Refresh for production by setting `builtins.react.refresh` to `false` in the configuration."
+					);
+				} else {
+					this.logger.warn(
+						"The `builtins.react.refresh` needs `builtins.react.development` and `devServer.hot` enabled"
+					);
+				}
 			}
 		});
 
@@ -421,31 +435,4 @@ export class RspackDevServer extends WebpackDevServer {
 		// @ts-expect-error
 		super.setupMiddlewares();
 	}
-}
-
-// TODO: use WebpackDevServer.isWebTarget instead of this once the webpack-dev-server release a new version
-function isWebTarget2(compiler: Compiler): boolean {
-	if (
-		compiler.options.resolve.conditionNames &&
-		compiler.options.resolve.conditionNames.includes("browser")
-	) {
-		return true;
-	}
-	const target = compiler.options.target;
-	const webTargets = [
-		"web",
-		"webworker",
-		"electron-preload",
-		"electron-renderer",
-		"node-webkit",
-		undefined,
-		null
-	];
-	if (Array.isArray(target)) {
-		return target.some(r => webTargets.includes(r));
-	}
-	if (typeof target === "string") {
-		return webTargets.includes(target);
-	}
-	return false;
 }

@@ -11,12 +11,10 @@ pub use common_js_require_context_dependency::*;
 pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
 mod require_context_dependency;
-pub use require_context_dependency::RequireContextDependency;
-mod css;
 use std::{any::Any, fmt::Debug, hash::Hash};
 
-pub use css::*;
 use dyn_clone::{clone_trait_object, DynClone};
+pub use require_context_dependency::RequireContextDependency;
 
 use crate::{
   AsAny, ContextMode, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleIdentifier,
@@ -37,6 +35,8 @@ pub enum DependencyType {
   DynamicImport,
   // cjs require
   CjsRequire,
+  // new URL("./foo", import.meta.url)
+  NewUrl,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
   // import.meta.webpackHot.decline
@@ -49,6 +49,8 @@ pub enum DependencyType {
   CssUrl,
   // css @import
   CssImport,
+  // css modules compose
+  CssCompose,
   // context element
   ContextElement,
   // import context
@@ -67,6 +69,7 @@ pub enum DependencyCategory {
   CommonJS,
   Url,
   CssImport,
+  CssCompose,
 }
 
 pub trait Dependency:

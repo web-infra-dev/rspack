@@ -70,6 +70,18 @@ class MultiWatching {
 			}
 		);
 	}
+
+	suspend() {
+		for (const watching of this.watchings) {
+			watching.suspend();
+		}
+	}
+
+	resume() {
+		for (const watching of this.watchings) {
+			watching.resume();
+		}
+	}
 }
 
 export default MultiWatching;

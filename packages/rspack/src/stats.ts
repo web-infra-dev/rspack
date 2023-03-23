@@ -15,7 +15,10 @@ import { LogType } from "./logging/Logger";
 export type StatsCompilation = {
 	name?: string;
 	hash?: string;
+	time?: number;
+	builtAt?: number;
 	publicPath?: string;
+	outputPath?: string;
 	assets?: binding.JsStatsAsset[];
 	assetsByChunkName?: Record<string, string[]>;
 	chunks?: binding.JsStatsChunk[];
@@ -61,8 +64,17 @@ export class Stats {
 		if (options.hash) {
 			obj.hash = this.#inner.getHash();
 		}
+		if (options.timings) {
+			obj.time = this.compilation.endTime! - this.compilation.startTime!;
+		}
+		if (options.builtAt) {
+			obj.builtAt = this.compilation.endTime;
+		}
 		if (options.publicPath) {
 			obj.publicPath = this.compilation.outputOptions.publicPath;
+		}
+		if (options.outputPath) {
+			obj.outputPath = this.compilation.outputOptions.path;
 		}
 		if (options.assets) {
 			const { assets, assetsByChunkName } = this.#inner.getAssets();

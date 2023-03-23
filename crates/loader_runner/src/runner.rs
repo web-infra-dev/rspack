@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{Content, LoaderRunnerPlugin};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
   pub resource: String,
@@ -20,6 +20,7 @@ pub struct ResourceData {
   pub resource_query: Option<String>,
   /// Resource fragment with `#` prefix
   pub resource_fragment: Option<String>,
+  pub resource_description: Option<Arc<nodejs_resolver::DescriptionData>>,
 }
 
 #[derive(Debug)]

@@ -9,11 +9,14 @@ import {
 	MultiCompiler,
 	Compiler,
 	rspack,
-	MultiRspackOptions
+	MultiRspackOptions,
+	Stats,
+	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
+import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 
 type RspackEnv = "development" | "production";
 export class RspackCLI {
@@ -25,7 +28,8 @@ export class RspackCLI {
 	}
 	async createCompiler(
 		options: RspackCLIOptions,
-		rspackEnv: RspackEnv
+		rspackEnv: RspackEnv,
+		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
@@ -36,8 +40,13 @@ export class RspackCLI {
 		}
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackEnv);
+
+		const isWatch = Array.isArray(config)
+			? (config as MultiRspackOptions).some(i => i.watch)
+			: (config as RspackOptions).watch;
+
 		// @ts-ignore
-		const compiler = rspack(config);
+		const compiler = rspack(config, isWatch ? callback : undefined);
 		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
@@ -102,6 +111,10 @@ export class RspackCLI {
 					}
 				});
 			}
+			// cli --watch overrides the watch config
+			if (options.watch) {
+				item.watch = options.watch;
+			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
 				item.mode = rspackEnv ?? "none";
@@ -143,7 +156,7 @@ export class RspackCLI {
 			}
 
 			if (typeof item.stats === "undefined") {
-				item.stats = { preset: "normal" };
+				item.stats = { preset: "errors-warnings", timings: true };
 			} else if (typeof item.stats === "boolean") {
 				item.stats = item.stats ? { preset: "normal" } : { preset: "none" };
 			} else if (typeof item.stats === "string") {
@@ -174,7 +187,7 @@ export class RspackCLI {
 	async loadConfig(
 		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let loadedConfig = loadRspackConfig(options);
+		let loadedConfig = await loadRspackConfig(options);
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
@@ -228,8 +241,22 @@ export class RspackCLI {
 	): compiler is MultiCompiler {
 		return Boolean((compiler as MultiCompiler).compilers);
 	}
+	isWatch(compiler: Compiler | MultiCompiler): boolean {
+		return Boolean(
+			this.isMultipleCompiler(compiler)
+				? compiler.compilers.some(compiler => compiler.options.watch)
+				: compiler.options.watch
+		);
+	}
 }
 
 export function defineConfig(config: RspackOptions): RspackOptions {
 	return config;
+}
+
+// Note: use union type will make apply function's `compiler` type to be `any`
+export function definePlugin(plugin: RspackPluginFunction): RspackPluginFunction
+export function definePlugin(plugin: RspackPluginInstance): RspackPluginInstance
+export function definePlugin(plugin: any): any {
+	return plugin;
 }

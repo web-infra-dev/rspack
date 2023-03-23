@@ -180,6 +180,7 @@ describe("snapshots", () => {
 		  "name": undefined,
 		  "node": {
 		    "__dirname": "warn-mock",
+		    "__filename": "warn-mock",
 		    "global": "warn",
 		  },
 		  "optimization": {
@@ -666,8 +667,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",
@@ -705,8 +708,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",
@@ -734,8 +739,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",

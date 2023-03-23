@@ -659,6 +659,10 @@ module.exports = {
 					description: "Include a polyfill for the '__dirname' variable.",
 					enum: [false, true, "warn-mock", "mock", "eval-only"]
 				},
+				__filename: {
+					description: "Include a polyfill for the '__filename' variable.",
+					enum: [false, true, "warn-mock", "mock", "eval-only"]
+				},
 				global: {
 					description: "Include a polyfill for the 'global' variable.",
 					enum: [false, true, "warn"]
@@ -1579,6 +1583,27 @@ module.exports = {
 				},
 				warningsCount: {
 					description: "Add warnings count.",
+					type: "boolean"
+				},
+				outputPath: {
+					description: "Add output path information.",
+					type: "boolean"
+				},
+				chunkModules: {
+					description: "Add built modules information to chunk information.",
+					type: "boolean"
+				},
+				chunkRelations: {
+					description:
+						"Add information about parent, children and sibling chunks to chunk information.",
+					type: "boolean"
+				},
+				timings: {
+					description: "Add timing information.",
+					type: "boolean"
+				},
+				builtAt: {
+					description: "Add built at time information.",
 					type: "boolean"
 				}
 			}

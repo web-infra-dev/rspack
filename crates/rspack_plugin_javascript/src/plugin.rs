@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
+use std::sync::mpsc;
 
 use async_trait::async_trait;
-use crossbeam_channel::unbounded;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -25,7 +25,7 @@ use xxhash_rust::xxh3::Xxh3;
 
 use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};
 use crate::utils::syntax_by_module_type;
-use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
+use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
 
 #[derive(Debug)]
 pub struct JsPlugin {}
@@ -160,6 +160,9 @@ impl JsPlugin {
   pub async fn render_main(&self, args: &rspack_core::RenderManifestArgs<'_>) -> Result<BoxSource> {
     let compilation = args.compilation;
     let chunk = args.chunk();
+    let runtime_requirements = compilation
+      .chunk_graph
+      .get_tree_runtime_requirements(&args.chunk_ukey);
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("var __webpack_modules__ = "));
     sources.add(render_chunk_modules(compilation, &args.chunk_ukey)?);
@@ -169,6 +172,9 @@ impl JsPlugin {
     if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
+      if runtime_requirements.contains(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME) {
+        sources.add(RawSource::from("return __webpack_exports__;\n"));
+      }
       if let Some(source) =
         compilation
           .plugin_driver
@@ -275,6 +281,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         rspack_core::ast::javascript::Ast::new(
           ast::Program::Module(ast::Module::dummy()),
           Default::default(),
+          None,
         ),
         diagnostics.into(),
       ),
@@ -290,25 +297,26 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
     )?;
 
-    let dep_scanner = ast.visit(|program, context| {
-      let mut dep_scanner =
-        DependencyScanner::new(context.unresolved_mark, resource_data, compiler_options);
-      program.visit_with_path(&mut dep_scanner, &mut Default::default());
-      dep_scanner
+    let (dependencies, presentational_dependencies) = ast.visit(|program, context| {
+      scan_dependencies(
+        program,
+        context.unresolved_mark,
+        resource_data,
+        compiler_options,
+      )
     });
 
     Ok(
       ParseResult {
         ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
-        dependencies: dep_scanner
-          .dependencies
+        dependencies: dependencies
           .into_iter()
           .map(|mut d| {
             d.set_parent_module_identifier(Some(module_identifier));
             d
           })
           .collect(),
-        presentational_dependencies: dep_scanner.presentational_dependencies,
+        presentational_dependencies,
       }
       .with_diagnostic(diagnostics),
     )
@@ -511,7 +519,7 @@ impl Plugin for JsPlugin {
     let minify_options = &compilation.options.builtins.minify_options;
 
     if let Some(minify_options) = minify_options {
-      let (tx, rx) = unbounded::<Vec<Diagnostic>>();
+      let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
 
       compilation
         .assets
@@ -519,7 +527,7 @@ impl Plugin for JsPlugin {
         .filter(|(filename, _)| {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
         })
-        .try_for_each(|(filename, original)| -> Result<()> {
+        .try_for_each_with(tx, |tx, (filename, original)| -> Result<()> {
           // In theory, if a js source is minimized it has high possibility has been tree-shaked.
           if original.get_info().minimized {
             return Ok(());
@@ -566,7 +574,6 @@ impl Plugin for JsPlugin {
           Ok(())
         })?;
 
-      drop(tx);
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
     }
 

@@ -103,6 +103,13 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
         }
         if has_entry {
           source.add(generate_chunk_entry_code(args.compilation, args.chunk_ukey));
+          let runtime_requirements = args
+            .compilation
+            .chunk_graph
+            .get_tree_runtime_requirements(args.chunk_ukey);
+          if runtime_requirements.contains(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME) {
+            source.add(RawSource::from("return __webpack_exports__;\n"));
+          }
           if let Some(s) =
             args
               .compilation

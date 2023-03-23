@@ -310,20 +310,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2801af0d36612ae591caa9568261fddce32ce6e08a7275ea334a06a4ad021a2c"
-dependencies = [
- "cfg-if",
- "crossbeam-channel",
- "crossbeam-deque",
- "crossbeam-epoch",
- "crossbeam-queue",
- "crossbeam-utils",
-]
-
-[[package]]
 name = "crossbeam-channel"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -355,16 +341,6 @@ dependencies = [
  "crossbeam-utils",
  "memoffset",
  "scopeguard",
-]
-
-[[package]]
-name = "crossbeam-queue"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1cfb3ea8a53f37c40dea2c7bedcbd88bdfae54f5e2175d6ecaff1c988353add"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -1318,9 +1294,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.69"
+version = "0.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b48f51fc2f907f6781d71de0abecf456877d26a17ed7b4fa263dd52b60c4e46"
+checksum = "06ca52098904c39ede5f8f73340787321cf0b3aa4b2f19aa0195654366a24fbb"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -1973,7 +1949,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "crossbeam",
  "dashmap",
  "once_cell",
  "rspack_core",
@@ -2021,6 +1996,7 @@ dependencies = [
  "async-trait",
  "cfg-if",
  "dashmap",
+ "glob",
  "napi",
  "napi-derive",
  "once_cell",
@@ -2063,11 +2039,11 @@ dependencies = [
  "async-scoped",
  "async-trait",
  "bitflags",
- "crossbeam",
  "dashmap",
  "derivative",
  "dyn-clone",
  "futures",
+ "glob",
  "glob-match",
  "hashlink",
  "indexmap",
@@ -2185,6 +2161,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "nodejs-resolver",
  "rspack_error",
  "rspack_sources",
  "rustc-hash",
@@ -2198,7 +2175,6 @@ name = "rspack_loader_sass"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "crossbeam-channel",
  "itertools",
  "once_cell",
  "regex",
@@ -2314,6 +2290,7 @@ dependencies = [
  "itertools",
  "linked_hash_set",
  "once_cell",
+ "paste",
  "preset_env_base",
  "rayon",
  "regex",
@@ -2404,7 +2381,7 @@ dependencies = [
  "async-trait",
  "base64",
  "better_scoped_tls",
- "crossbeam-channel",
+ "bitflags",
  "dashmap",
  "either",
  "linked_hash_set",
@@ -2510,9 +2487,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "379e313339cd0e3d6d46468ee7bab65bff237c0514366a911e3cdafc43c07947"
+checksum = "eef26ea42c91ec2b5ece56a192adc265f5b1036f4093af8dcd75ff7f0f95b24f"
 dependencies = [
  "dashmap",
  "dyn-clone",

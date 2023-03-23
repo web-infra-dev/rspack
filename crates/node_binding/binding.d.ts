@@ -26,6 +26,7 @@ export interface RawPattern {
 export interface RawGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
+  ignore?: Array<string>
 }
 export interface RawCopyConfig {
   patterns: Array<RawPattern>
@@ -266,6 +267,7 @@ export interface JsLoaderResult {
 }
 export interface RawNodeOption {
   dirname: string
+  filename: string
   global: string
 }
 export interface RawOptimizationOptions {
@@ -424,11 +426,26 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  normalModuleFactoryResolveForScheme: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource
   resource: string
   moduleIdentifier: string
+}
+export interface SchemeAndJsResourceData {
+  resourceData: JsResourceData
+  scheme: string
+}
+export interface JsResourceData {
+  /** Resource with absolute path, query and fragment */
+  resource: string
+  /** Absolute resource path only */
+  path: string
+  /** Resource query with `?` prefix */
+  query?: string
+  /** Resource fragment with `#` prefix */
+  fragment?: string
 }
 export interface JsCompatSource {
   /** Whether the underlying data structure is a `RawSource` */
@@ -528,6 +545,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
+  getChunks(): Array<JsChunk>
   /**
    * Only available for those none Js and Css source,
    * return true if set module source successfully, false if failed.

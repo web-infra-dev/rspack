@@ -1,11 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "moduleResolution": "nodenext"
   },
   "ts-node": {
     "transpileOnly": true
