@@ -255,8 +255,12 @@ export function defineConfig(config: RspackOptions): RspackOptions {
 }
 
 // Note: use union type will make apply function's `compiler` type to be `any`
-export function definePlugin(plugin: RspackPluginFunction): RspackPluginFunction
-export function definePlugin(plugin: RspackPluginInstance): RspackPluginInstance
+export function definePlugin(
+	plugin: RspackPluginFunction
+): RspackPluginFunction;
+export function definePlugin(
+	plugin: RspackPluginInstance
+): RspackPluginInstance;
 export function definePlugin(plugin: any): any {
 	return plugin;
 }
