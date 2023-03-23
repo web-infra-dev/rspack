@@ -16,7 +16,7 @@ import {
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
 import { findFileWithSupportedExtensions, loadRspackConfig } from "./utils/loadConfig";
-import { DevServer, Mode } from "@rspack/core/src/config";
+import {  Mode } from "@rspack/core/src/config";
 import { PreviewCommand } from "./commands/preview";
 
 type RspackEnv = "development" | "production";
@@ -101,20 +101,22 @@ export class RspackCLI {
 			const isEnvProduction = rspackEnv === "production";
 			const isEnvDevelopment = rspackEnv === "development";
 			let entry: Record<string, string> = {};
-			if (options.entry) {
-				entry = {
-					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
-				};
-			} else {
-				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
-				const defaultEntryPath =
-					findFileWithSupportedExtensions(defaultEntryBase) ||
-					defaultEntryBase + ".js"; // default entry is js
-				entry = {
-					main: defaultEntryPath
-				};
+			if(!item.entry) {
+				if (options.entry) {
+					entry = {
+						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
+					};
+				} else {
+					const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
+					const defaultEntryPath =
+						findFileWithSupportedExtensions(defaultEntryBase) ||
+						defaultEntryBase + ".js"; // default entry is js
+					entry = {
+						main: defaultEntryPath
+					};
+				}
+				item.entry = entry;
 			}
-			item.entry = entry;
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
 					"webpack-bundle-analyzer"
@@ -201,8 +203,6 @@ export class RspackCLI {
 			return internalBuildConfig(item as RspackOptions);
 		}
 	}
-
-
 
 	async loadConfig(
 		options: RspackCLIOptions 

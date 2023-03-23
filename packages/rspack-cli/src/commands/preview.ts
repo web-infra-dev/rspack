@@ -1,34 +1,39 @@
 import type { RspackCLI } from "../rspack-cli";
 import { RspackDevServer } from "@rspack/dev-server";
-import {  RspackCommand } from "../types";
+import {  RspackCommand, RspackCLIPreviewOptions } from "../types";
 import {  previewOptions } from "../utils/options";
-import { Compiler, DevServer, rspack, RspackOptions } from "@rspack/core";
+import { Compiler, DevServer, rspack, RspackOptions, MultiRspackOptions } from "@rspack/core";
 import path from 'node:path';
 import sirv from 'sirv';
 import connect from 'connect'
+
+const defaultRoot = "dist"
 export class PreviewCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(
-			["preview [root..]", "preview", "p"],
+			["preview [root]", "preview", "p"],
 			"run the rspack server for build output",
 			previewOptions,
 			async options => {
+                console.log(options);
+                
                 const rspackOptions = {
-					...options,
+					config: options.config,
+                    configName: options.configName,
 					argv: {
 						...options
 					}
 				};
 
                 let config = await cli.loadConfig(rspackOptions);
+                config = await getPreviewConfig(config, options)
                 if(Array.isArray(config)) {
                     config = config[0]
                 }
                 config = config as RspackOptions;
-                const devServerOption = {...config.devServer ?? {}, static: {
-                    directory: path.resolve(process.cwd(), config.output?.path ?? 'dist'),
-                    publicPath: config.output?.publicPath ?? '/',
-                }};
+                
+                const devServerOption = config.devServer as DevServer;
+                console.log(devServerOption);
                 
                 let compiler = rspack({entry: {}})
                 try {
@@ -46,4 +51,35 @@ export class PreviewCommand implements RspackCommand {
 			}
 		);
 	}
+}
+async function getPreviewConfig(
+    item: RspackOptions | MultiRspackOptions,
+    options: RspackCLIPreviewOptions,
+): Promise<RspackOptions | MultiRspackOptions> {
+    const internalPreviewConfig = async (item: RspackOptions) => {
+        if(!item.devServer) {
+            item.devServer = {};
+        }
+        item.devServer = {
+            static: {
+                directory: options.root ? transformPath(options.root) : item.output.path || transformPath(defaultRoot),
+                publicPath: options.publicPath || "/",
+            },
+            port: options.port || 8080,
+            host: options.host || "localhost",
+            open: options.open || false,
+            server: options.server || "http",
+            historyApiFallback: item.devServer.historyApiFallback,
+        }
+        return item;
+    };
+
+    if (Array.isArray(item)) {
+        return Promise.all(item.map(internalPreviewConfig));
+    } else {
+        return internalPreviewConfig(item as RspackOptions);
+    }
+}
+function transformPath(dir: string) {
+    return path.resolve(process.cwd(), dir);
 }
