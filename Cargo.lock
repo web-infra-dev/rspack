@@ -2774,6 +2774,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
+ "rspack_regex",
  "tracing",
  "tracing-subscriber",
 ]
