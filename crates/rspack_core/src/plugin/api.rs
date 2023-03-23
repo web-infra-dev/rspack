@@ -8,9 +8,10 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
   ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, SourceType, ThisCompilationArgs,
+  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs,
+  NormalModuleReadResourceForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -66,7 +67,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn read_resource(&self, _resource_data: &ResourceData) -> PluginReadResourceOutput {
+  async fn read_resource(
+    &self,
+    _resource_data: &NormalModuleReadResourceForSchemeArgs,
+  ) -> PluginReadResourceOutput {
     Ok(None)
   }
   /**

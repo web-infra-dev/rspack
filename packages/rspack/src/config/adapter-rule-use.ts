@@ -591,7 +591,7 @@ function composeJsUse(
 						typeof sourceMap === "string"
 							? sourceMap
 							: JSON.stringify(sourceMap)
-					)
+				  )
 				: undefined,
 			additionalData: additionalData
 				? toBuffer(JSON.stringify(additionalData))

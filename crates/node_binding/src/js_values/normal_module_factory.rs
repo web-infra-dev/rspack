@@ -1,4 +1,6 @@
-use rspack_core::{NormalModuleFactoryResolveForSchemeArgs, ResourceData};
+use rspack_core::{
+  NormalModuleFactoryResolveForSchemeArgs, NormalModuleReadResourceForSchemeArgs, ResourceData,
+};
 
 #[napi(object)]
 pub struct SchemeAndJsResourceData {
@@ -34,6 +36,15 @@ impl From<NormalModuleFactoryResolveForSchemeArgs> for SchemeAndJsResourceData {
     Self {
       resource_data: value.resource.into(),
       scheme: value.scheme,
+    }
+  }
+}
+
+impl From<&NormalModuleReadResourceForSchemeArgs> for SchemeAndJsResourceData {
+  fn from(value: &NormalModuleReadResourceForSchemeArgs) -> Self {
+    Self {
+      resource_data: value.resource.clone().into(),
+      scheme: value.scheme.clone(),
     }
   }
 }

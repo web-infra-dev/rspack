@@ -12,10 +12,10 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
   Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
   Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
-  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
+  NormalModuleFactoryResolveForSchemeArgs, NormalModuleReadResourceForSchemeArgs,
+  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginBuildEndHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginMakeHookOutput, PluginModuleHookOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
@@ -88,9 +88,12 @@ impl PluginDriver {
   /// Warning:
   /// Webpack does not expose this as the documented API, even though you can reach this with `NormalModule.getCompilationHooks(compilation)`.
   /// For the most of time, you would not need this.
-  pub async fn read_resource(&self, resource_data: &ResourceData) -> Result<Option<Content>> {
+  pub async fn read_resource(
+    &self,
+    resource_data: NormalModuleReadResourceForSchemeArgs,
+  ) -> Result<Option<Content>> {
     for plugin in &self.plugins {
-      let result = plugin.read_resource(resource_data).await?;
+      let result = plugin.read_resource(&resource_data).await?;
       if result.is_some() {
         return Ok(result);
       }

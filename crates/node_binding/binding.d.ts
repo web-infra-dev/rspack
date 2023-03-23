@@ -427,6 +427,7 @@ export interface JsHooks {
   make: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
+  normalModuleReadResource: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource

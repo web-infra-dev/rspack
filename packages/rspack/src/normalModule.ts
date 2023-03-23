@@ -1,8 +1,12 @@
 import { AsyncSeriesBailHook, Hook, HookMap } from "tapable";
 import util from "util";
 import { Compilation, LoaderContext } from ".";
+import { JsResourceData } from "@rspack/binding";
 
-const compilationHooksMap = new WeakMap();
+const compilationHooksMap = new WeakMap<
+	Compilation,
+	Record<"readResourceForScheme" | "readResource", any>
+>();
 
 const createFakeHook = <T extends Record<string, any>>(
 	fakeHook: T,
@@ -70,26 +74,29 @@ export class NormalModule {
 				// beforeSnapshot: new SyncHook(["module"]),
 				// TODO webpack 6 deprecate
 				readResourceForScheme: new HookMap(scheme => {
+					// @ts-ignore because this code is copy from webpack
 					const hook = hooks.readResource.for(scheme);
 					return createFakeHook({
 						tap: (options: string, fn: any) =>
-							hook.tap(options, (loaderContext: LoaderContext) =>
-								fn(loaderContext.resource)
+							hook.tap(options, (resourceData: JsResourceData) =>
+								fn(resourceData.resource)
 							),
 						tapAsync: (options: string, fn: any) =>
 							hook.tapAsync(
 								options,
-								(loaderContext: LoaderContext, callback: any) =>
-									fn(loaderContext.resource, callback)
+								(resourceData: JsResourceData, callback: any) =>
+									fn(resourceData.resource, callback)
 							),
 						tapPromise: (options: string, fn: any) =>
-							hook.tapPromise(options, (loaderContext: LoaderContext) =>
-								fn(loaderContext.resource)
+							hook.tapPromise(options, (resourceData: JsResourceData) =>
+								fn(resourceData.resource)
 							)
 					});
 				}),
 				readResource: new HookMap(
-					() => new AsyncSeriesBailHook(["loaderContext"])
+					() => new AsyncSeriesBailHook(["resourceData"])
+					// TODO: align to webpack 5, passing loaderContext
+					// () => new AsyncSeriesBailHook(["loaderContext"])
 				)
 				// needBuild: new AsyncSeriesBailHook(["module", "context"])
 			};

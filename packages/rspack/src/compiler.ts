@@ -25,6 +25,7 @@ import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { getScheme } from "./util/scheme";
 import { LoaderResult } from "./config/adapter-rule-use";
+import { NormalModule } from "./normalModule";
 
 class EntryPlugin {
 	apply() {}
@@ -99,7 +100,8 @@ class Compiler {
 			},
 			get rspackVersion() {
 				return require("../package.json").version;
-			}
+			},
+			NormalModule
 		};
 		this.root = this;
 		this.running = false;
@@ -148,9 +150,8 @@ class Compiler {
 		) => {
 			const resource = loaderContext.resource;
 			const scheme = getScheme(resource);
-			this.compilation
-				.currentNormalModuleHooks()
-				.readResource.for(scheme)
+			this.compilation.currentNormalModuleHooks.readResource
+				.for(scheme)
 				.callAsync(loaderContext, (err: any, result: LoaderResult) => {
 					if (err) return callback(err);
 					if (typeof result !== "string" && !result) {
@@ -205,7 +206,8 @@ class Compiler {
 					compilation: this.#compilation.bind(this),
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
-						this.#normalModuleFactoryResolveForScheme.bind(this)
+						this.#normalModuleFactoryResolveForScheme.bind(this),
+					normalModuleReadResource: this.#normalModuleReadResource.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 			);
@@ -350,12 +352,25 @@ class Compiler {
 	}
 
 	async #normalModuleFactoryResolveForScheme(
-		resourceData: binding.SchemeAndJsResourceData
+		schemeResourceData: binding.SchemeAndJsResourceData
 	) {
 		await this.compilation.normalModuleFactory?.hooks.resolveForScheme
-			.for(resourceData.scheme)
-			.promise(resourceData.resourceData);
-		return resourceData.resourceData;
+			.for(schemeResourceData.scheme)
+			.promise(schemeResourceData.resourceData);
+		return schemeResourceData.resourceData;
+	}
+
+	async #normalModuleReadResource(
+		schemeResourceData: binding.SchemeAndJsResourceData
+	) {
+		let result = await this.compilation.currentNormalModuleHooks.readResource
+			.for(schemeResourceData.scheme)
+			.promise(schemeResourceData.resourceData);
+		if (result instanceof Buffer) {
+			return result;
+		} else if (result instanceof String) {
+			return Buffer.from(result);
+		}
 	}
 
 	async #optimize_chunk_modules() {

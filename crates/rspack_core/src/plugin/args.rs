@@ -66,6 +66,11 @@ pub struct NormalModuleFactoryResolveForSchemeArgs {
   pub resource: ResourceData,
   pub scheme: String,
 }
+#[derive(Debug, Clone)]
+pub struct NormalModuleReadResourceForSchemeArgs {
+  pub resource: ResourceData,
+  pub scheme: String,
+}
 
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {

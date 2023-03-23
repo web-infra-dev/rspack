@@ -2,11 +2,12 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
+use napi::bindgen_prelude::Buffer;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_theadsafe_fn;
 use rspack_core::{
-  NormalModuleFactoryResolveForSchemeArgs, PluginNormalModuleFactoryResolveForSchemeOutput,
-  ResourceData,
+  Content, NormalModuleFactoryResolveForSchemeArgs, NormalModuleReadResourceForSchemeArgs,
+  PluginNormalModuleFactoryResolveForSchemeOutput, PluginReadResourceOutput, ResourceData,
 };
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
@@ -31,6 +32,7 @@ pub struct JsHooksAdapter {
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<SchemeAndJsResourceData, JsResourceData>,
+  pub normal_module_read_resource: ThreadsafeFunction<SchemeAndJsResourceData, Option<Buffer>>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -118,7 +120,9 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+      .map_err(|err| {
+        internal_error!("Failed to call normal_module_factory_resolve_for_scheme: {err}")
+      })?;
     res.map(|res| {
       Some(ResourceData {
         resource: res.resource,
@@ -128,6 +132,24 @@ impl rspack_core::Plugin for JsHooksAdapter {
         resource_description: None,
       })
     })
+  }
+
+  async fn read_resource(
+    &self,
+    resource_data: &NormalModuleReadResourceForSchemeArgs,
+  ) -> PluginReadResourceOutput {
+    let res = self
+      .normal_module_read_resource
+      .call(
+        resource_data.into(),
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call read_resource: {err}"))?;
+    // res.map(op)
+    res.map(|content| content.map(|buffer| Content::Buffer(buffer.into())))
+    // res.map(|buffer| Some(Content::Buffer(res)))
   }
 
   async fn process_assets_stage_additional(
@@ -300,6 +322,7 @@ impl JsHooksAdapter {
       after_emit,
       optimize_chunk_module,
       normal_module_factory_resolve_for_scheme,
+      normal_module_read_resource,
     } = js_hooks;
 
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
@@ -329,6 +352,8 @@ impl JsHooksAdapter {
       JsResourceData,
     > = js_fn_into_theadsafe_fn!(normal_module_factory_resolve_for_scheme, env);
 
+    let normal_module_read_resource: ThreadsafeFunction<SchemeAndJsResourceData, Option<Buffer>> =
+      js_fn_into_theadsafe_fn!(normal_module_read_resource, env);
     Ok(JsHooksAdapter {
       disabled_hooks,
       make_tsfn,
@@ -344,6 +369,7 @@ impl JsHooksAdapter {
       after_emit_tsfn,
       optimize_chunk_modules_tsfn,
       normal_module_factory_resolve_for_scheme,
+      normal_module_read_resource,
     })
   }
 
