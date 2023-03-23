@@ -38,7 +38,7 @@ impl ExternalPlugin {
       }
     };
     let external_module_type = r#type.unwrap_or_else(|| {
-      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(&external_module_config)
+      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(external_module_config)
         && let Some((t, c)) = external_module_config.split_once(' ') {
         external_module_config = c;
         return t.to_owned();
