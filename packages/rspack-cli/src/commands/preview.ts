@@ -70,9 +70,9 @@ async function getPreviewConfig(
 				publicPath: options.publicPath || "/"
 			},
 			port: options.port || 8080,
-			host: options.host || "localhost",
-			open: options.open || false,
-			server: options.server || "http",
+			host: options.host || item.devServer.host,
+			open: options.open || item.devServer.open,
+			server: options.server || item.devServer.server,
 			historyApiFallback: item.devServer.historyApiFallback
 		};
 		return item;
