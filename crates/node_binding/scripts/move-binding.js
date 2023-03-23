@@ -19,7 +19,7 @@ let abslutePathBindingList = fs
 abslutePathBindingList.forEach(bindingInfo => {
 	let npmPath = path.join(__dirname, "../../../npm");
 	let packagePath = path.join(npmPath, bindingInfo.platform);
-	fs.copyFileSync(
+	fs.renameSync(
 		bindingInfo.path,
 		path.join(packagePath, bindingInfo.fileName)
 	);
