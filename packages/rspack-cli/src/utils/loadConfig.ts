@@ -85,7 +85,7 @@ async function requireWithAdditionalExtension(resolvedPath: string) {
 		loadedConfig = require(resolvedPath);
 	} else {
 		// dynamic import can handle both cjs & mjs
-		const fileUrl = pathToFileURL(path.isAbsolute(path.normalize(resolvedPath))).href;
+		const fileUrl = path.isAbsolute(resolvedPath) ? pathToFileURL(resolvedPath).href : pathToFileURL(path.normalize(resolvedPath)).href;
 		loadedConfig = (await import(fileUrl)).default;
 	}
 	return loadedConfig;
