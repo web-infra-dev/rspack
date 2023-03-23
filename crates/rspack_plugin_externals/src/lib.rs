@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod node_target_plugin;
 mod plugin;
 

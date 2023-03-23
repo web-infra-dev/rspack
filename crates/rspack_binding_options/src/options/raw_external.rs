@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::ExternalItem;
+use rspack_core::{ExternalItem, ExternalItemObject, ExternalItemValue};
 use rspack_regex::RspackRegex;
 use serde::Deserialize;
 
@@ -13,7 +13,35 @@ pub struct RawExternalItem {
   pub r#type: String,
   pub string_payload: Option<String>,
   pub regexp_payload: Option<String>,
-  pub object_payload: Option<HashMap<String, String>>,
+  pub object_payload: Option<HashMap<String, RawExternalItemValue>>,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawExternalItemValue {
+  #[napi(ts_type = r#""string" | "bool""#)]
+  pub r#type: String,
+  pub string_payload: Option<String>,
+  pub bool_payload: Option<bool>,
+}
+
+impl From<RawExternalItemValue> for ExternalItemValue {
+  fn from(value: RawExternalItemValue) -> Self {
+    match value.r#type.as_str() {
+      "string" => Self::String(
+        value
+          .string_payload
+          .expect("should have a string_payload when RawExternalItemValue.type is \"string\""),
+      ),
+      "bool" => Self::Bool(
+        value
+          .bool_payload
+          .expect("should have a bool_payload when RawExternalItemValue.type is \"bool\""),
+      ),
+      _ => unreachable!(),
+    }
+  }
 }
 
 impl From<RawExternalItem> for ExternalItem {
@@ -32,11 +60,15 @@ impl From<RawExternalItem> for ExternalItem {
           RspackRegex::new(&payload).expect("regex_payload is not a legal regex in rust side");
         Self::from(reg)
       }
-      "object" => Self::from(
-        value
+      "object" => {
+        let payload: ExternalItemObject = value
           .object_payload
-          .expect("should have a object_payload when RawExternalItem.type is \"object\""),
-      ),
+          .expect("should have a object_payload when RawExternalItem.type is \"object\"")
+          .into_iter()
+          .map(|(k, v)| (k, v.into()))
+          .collect();
+        payload.into()
+      }
       _ => unreachable!(),
     }
   }
