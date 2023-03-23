@@ -36,7 +36,6 @@ export class PreviewCommand implements RspackCommand {
 				config = config as RspackOptions;
 
 				const devServerOption = config.devServer as DevServer;
-				console.log(devServerOption);
 
 				let compiler = rspack({ entry: {} });
 				try {
