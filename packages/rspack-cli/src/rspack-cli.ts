@@ -16,6 +16,7 @@ import {
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
+import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 
 type RspackEnv = "development" | "production";
 export class RspackCLI {
@@ -251,4 +252,11 @@ export class RspackCLI {
 
 export function defineConfig(config: RspackOptions): RspackOptions {
 	return config;
+}
+
+// Note: use union type will make apply function's `compiler` type to be `any`
+export function definePlugin(plugin: RspackPluginFunction): RspackPluginFunction
+export function definePlugin(plugin: RspackPluginInstance): RspackPluginInstance
+export function definePlugin(plugin: any): any {
+	return plugin;
 }
