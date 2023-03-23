@@ -14,7 +14,7 @@ import type { WatchOptions } from "watchpack";
 import Watching from "./watching";
 import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
-import { RspackOptionsNormalized } from "./config";
+import { LoaderContext, RspackOptionsNormalized } from "./config";
 import { Stats } from "./stats";
 import { Compilation, CompilationParams } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
@@ -23,6 +23,8 @@ import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { getRawOptions } from "./config/adapter";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import { NormalModuleFactory } from "./normalModuleFactory";
+import { getScheme } from "./util/scheme";
+import { LoaderResult } from "./config/adapter-rule-use";
 
 class EntryPlugin {
 	apply() {}
@@ -139,11 +141,31 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		const options = getRawOptions(this.options, this);
+		const processResource = (
+			loaderContext: LoaderContext,
+			resourcePath: string,
+			callback: any
+		) => {
+			const resource = loaderContext.resource;
+			const scheme = getScheme(resource);
+			this.compilation
+				.currentNormalModuleHooks()
+				.readResource.for(scheme)
+				.callAsync(loaderContext, (err: any, result: LoaderResult) => {
+					if (err) return callback(err);
+					if (typeof result !== "string" && !result) {
+						return callback(new Error(`Unhandled ${scheme} resource`));
+					}
+					return callback(null, result);
+				});
+		};
+		const options = getRawOptions(this.options, this, processResource);
+
 		this.#_instance =
 			this.#_instance ??
 			new binding.Rspack(
 				options,
+
 				{
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
