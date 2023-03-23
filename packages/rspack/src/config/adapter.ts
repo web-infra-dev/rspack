@@ -45,7 +45,12 @@ import {
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
-	compiler: Compiler
+	compiler: Compiler,
+	processResource: (
+		loaderContext: LoaderContext,
+		resourcePath: string,
+		callback: any
+	) => void
 ): RawOptions => {
 	assert(
 		!isNil(options.context) && !isNil(options.devtool) && !isNil(options.cache),
