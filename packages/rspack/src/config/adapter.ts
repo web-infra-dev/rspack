@@ -4,7 +4,8 @@ import {
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions,
 	RawOptions,
-	RawExternalItem
+	RawExternalItem,
+	RawExternalItemValue
 } from "@rspack/binding";
 import assert from "assert";
 import { normalizeStatsPreset } from "../stats";
@@ -13,6 +14,7 @@ import {
 	EntryNormalized,
 	Experiments,
 	ExternalItem,
+	ExternalItemValue,
 	Externals,
 	ExternalsPresets,
 	LibraryOptions,
@@ -319,7 +321,22 @@ function getRawExternals(externals: Externals): RawOptions["externals"] {
 		} else if (item instanceof RegExp) {
 			return { type: "regexp", regexpPayload: item.source };
 		}
-		return { type: "object", objectPayload: item };
+		return {
+			type: "object",
+			objectPayload: Object.fromEntries(
+				Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
+			)
+		};
+	}
+	function getRawExternalItemValue(
+		value: ExternalItemValue
+	): RawExternalItemValue {
+		if (typeof value === "string") {
+			return { type: "string", stringPayload: value };
+		} else if (typeof value === "boolean") {
+			return { type: "bool", boolPayload: value };
+		}
+		throw new Error("unreachable");
 	}
 
 	if (Array.isArray(externals)) {

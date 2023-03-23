@@ -165,7 +165,12 @@ export interface RawExternalItem {
   type: "string" | "regexp" | "object"
   stringPayload?: string
   regexpPayload?: string
-  objectPayload?: Record<string, string>
+  objectPayload?: Record<string, RawExternalItemValue>
+}
+export interface RawExternalItemValue {
+  type: "string" | "bool"
+  stringPayload?: string
+  boolPayload?: boolean
 }
 export interface RawExternalsPresets {
   node: boolean
