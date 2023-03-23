@@ -271,6 +271,11 @@ module.exports = {
 				{
 					description: "The target of the external.",
 					type: "string"
+				},
+				{
+					description:
+						"`true`: The dependency name is used as target of the external.",
+					type: "boolean"
 				}
 			]
 		},
