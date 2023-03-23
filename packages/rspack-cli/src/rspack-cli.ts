@@ -16,6 +16,7 @@ import {
 import { normalizeEnv } from "./utils/options";
 import { loadRspackConfig } from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
+import { PreviewCommand } from "./commands/preview";
 
 type RspackEnv = "development" | "production";
 export class RspackCLI {
@@ -83,7 +84,7 @@ export class RspackCLI {
 		await this.program.parseAsync(hideBin(argv));
 	}
 	async registerCommands() {
-		const builtinCommands = [new BuildCommand(), new ServeCommand()];
+		const builtinCommands = [new BuildCommand(), new ServeCommand(), new PreviewCommand];
 		for (const command of builtinCommands) {
 			command.apply(this);
 		}
