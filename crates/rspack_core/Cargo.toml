@@ -10,7 +10,6 @@ anyhow = { workspace = true }
 async-scoped = { workspace = true, features = ["use-tokio"] }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
-crossbeam = { workspace = true }
 dashmap = { workspace = true }
 derivative = { workspace = true }
 dyn-clone = "1.0.10"
