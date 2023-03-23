@@ -1,7 +1,9 @@
+const p = require('./plugins/scheme')
 /**
  * @type {import('@rspack/cli').Configuration}
  */
 module.exports = {
+	mode: 'development',
 	context: __dirname,
 	entry: {
 		main: './src/index.js'
@@ -12,5 +14,6 @@ module.exports = {
 				template: './index.html'
 			}
 		]
-	}
+	},
+	plugins: [new p()]
 }

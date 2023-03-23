@@ -1,4 +1,4 @@
-import { answer } from './answer';
+import { answer } from 'file://../src/answer.js';
 function render() {
   document.getElementById(
     'root'
