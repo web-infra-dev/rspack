@@ -43,14 +43,14 @@ export const commonOptions = (yargs: yargs.Argv<{}>) => {
 
 export const previewOptions = (yargs: yargs.Argv<{}>) => {
 	return yargs
-		.positional('root',{
+		.positional("root", {
 			type: "string",
-			describe: "root",
+			describe: "root"
 		})
 		.options({
 			publicPath: {
 				type: "string",
-				describe: "public path",
+				describe: "public path"
 			},
 			config: {
 				g: true,
@@ -73,7 +73,7 @@ export const previewOptions = (yargs: yargs.Argv<{}>) => {
 			// same as devServer.server
 			server: {
 				type: "string",
-				describe: "Configuration items for the server.",
+				describe: "Configuration items for the server."
 			},
 			configName: {
 				type: "array",
@@ -81,8 +81,7 @@ export const previewOptions = (yargs: yargs.Argv<{}>) => {
 				describe: "Name of the configuration to use."
 			}
 		});
-
-}
+};
 
 export function normalizeEnv(argv) {
 	function parseValue(previous, value) {

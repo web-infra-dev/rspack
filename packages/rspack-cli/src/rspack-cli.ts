@@ -1,8 +1,13 @@
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
-import path from 'node:path';
-import { RspackCLIBuildOptions, RspackCLIColors, RspackCLILogger, RspackCLIOptions, RspackCLIPreviewOptions } from "./types";
+import path from "node:path";
+import {
+	RspackCLIBuildOptions,
+	RspackCLIColors,
+	RspackCLILogger,
+	RspackCLIOptions,
+} from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
 import {
@@ -15,8 +20,11 @@ import {
 	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import { findFileWithSupportedExtensions, loadRspackConfig } from "./utils/loadConfig";
-import {  Mode } from "@rspack/core/src/config";
+import {
+	findFileWithSupportedExtensions,
+	loadRspackConfig
+} from "./utils/loadConfig";
+import { Mode } from "@rspack/core/src/config";
 import { PreviewCommand } from "./commands/preview";
 
 type RspackEnv = "development" | "production";
@@ -87,7 +95,11 @@ export class RspackCLI {
 		await this.program.parseAsync(hideBin(argv));
 	}
 	async registerCommands() {
-		const builtinCommands = [new BuildCommand(), new ServeCommand(), new PreviewCommand];
+		const builtinCommands = [
+			new BuildCommand(),
+			new ServeCommand(),
+			new PreviewCommand()
+		];
 		for (const command of builtinCommands) {
 			command.apply(this);
 		}
@@ -101,7 +113,7 @@ export class RspackCLI {
 			const isEnvProduction = rspackEnv === "production";
 			const isEnvDevelopment = rspackEnv === "development";
 			let entry: Record<string, string> = {};
-			if(!item.entry) {
+			if (!item.entry) {
 				if (options.entry) {
 					entry = {
 						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
@@ -205,7 +217,7 @@ export class RspackCLI {
 	}
 
 	async loadConfig(
-		options: RspackCLIOptions 
+		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
 		let loadedConfig = await loadRspackConfig(options);
 		if (options.configName) {

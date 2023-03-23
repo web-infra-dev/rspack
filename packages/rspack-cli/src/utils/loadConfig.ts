@@ -16,7 +16,7 @@ export type LoadedRspackConfig =
 	  ) => RspackOptions | MultiRspackOptions);
 
 export async function loadRspackConfig(
-	options: RspackCLIOptions 
+	options: RspackCLIOptions
 ): Promise<LoadedRspackConfig> {
 	let loadedConfig: LoadedRspackConfig;
 	// if we pass config paras
@@ -41,7 +41,9 @@ export async function loadRspackConfig(
 
 // takes a basePath like `webpack.config`, return `webpack.config.{js,ts}` if
 // exists. returns null if none of them exists
-export function findFileWithSupportedExtensions(basePath: string): string | null {
+export function findFileWithSupportedExtensions(
+	basePath: string
+): string | null {
 	for (const extension of supportedExtensions) {
 		if (fs.existsSync(basePath + extension)) {
 			return basePath + extension;

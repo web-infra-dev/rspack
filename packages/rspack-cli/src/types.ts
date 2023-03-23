@@ -34,7 +34,7 @@ export interface RspackCLIBuildOptions extends RspackCLIOptions {
 	env?: Record<string, any>;
 	nodeEnv: string;
 }
-export interface RspackCLIPreviewOptions extends RspackCLIOptions{
+export interface RspackCLIPreviewOptions extends RspackCLIOptions {
 	root?: string;
 	port?: number;
 	host?: string;
