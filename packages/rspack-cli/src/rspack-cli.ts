@@ -1,7 +1,8 @@
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
-import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
+import path from 'node:path';
+import { RspackCLIBuildOptions, RspackCLIColors, RspackCLILogger, RspackCLIOptions, RspackCLIPreviewOptions } from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
 import {
@@ -14,11 +15,13 @@ import {
 	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import { loadRspackConfig } from "./utils/loadConfig";
-import { Mode } from "@rspack/core/src/config";
+import { findFileWithSupportedExtensions, loadRspackConfig } from "./utils/loadConfig";
+import { DevServer, Mode } from "@rspack/core/src/config";
 import { PreviewCommand } from "./commands/preview";
 
 type RspackEnv = "development" | "production";
+const defaultEntry = "src/index";
+
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv<{}>;
@@ -27,7 +30,7 @@ export class RspackCLI {
 		this.program = yargs();
 	}
 	async createCompiler(
-		options: RspackCLIOptions,
+		options: RspackCLIBuildOptions,
 		rspackEnv: RspackEnv,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
@@ -91,13 +94,27 @@ export class RspackCLI {
 	}
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
-		options: RspackCLIOptions,
+		options: RspackCLIBuildOptions,
 		rspackEnv: RspackEnv
 	): Promise<RspackOptions | MultiRspackOptions> {
 		const internalBuildConfig = async (item: RspackOptions) => {
 			const isEnvProduction = rspackEnv === "production";
 			const isEnvDevelopment = rspackEnv === "development";
-
+			let entry: Record<string, string> = {};
+			if (options.entry) {
+				entry = {
+					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
+				};
+			} else {
+				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
+				const defaultEntryPath =
+					findFileWithSupportedExtensions(defaultEntryBase) ||
+					defaultEntryBase + ".js"; // default entry is js
+				entry = {
+					main: defaultEntryPath
+				};
+			}
+			item.entry = entry;
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
 					"webpack-bundle-analyzer"
@@ -184,8 +201,11 @@ export class RspackCLI {
 			return internalBuildConfig(item as RspackOptions);
 		}
 	}
+
+
+
 	async loadConfig(
-		options: RspackCLIOptions
+		options: RspackCLIOptions 
 	): Promise<RspackOptions | MultiRspackOptions> {
 		let loadedConfig = await loadRspackConfig(options);
 		if (options.configName) {
