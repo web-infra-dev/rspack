@@ -58,6 +58,8 @@ export const getNormalizedRspackOptions = (
 					: ["..."],
 				globalObject: output.globalObject,
 				importFunctionName: output.importFunctionName,
+				iife: output.iife,
+				module: output.module,
 				library: libraryBase && {
 					type:
 						output.libraryTarget !== undefined
