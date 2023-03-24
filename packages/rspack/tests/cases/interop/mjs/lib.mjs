@@ -6,5 +6,5 @@ import a from "./a.js";
 // });
 
 it("should exports babel mode", function () {
-	expect(a.value).toBe('a');
+	expect(a).toBe('a');
 });
