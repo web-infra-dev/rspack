@@ -3,7 +3,7 @@ use std::env::args;
 
 #[allow(clippy::dbg_macro)]
 fn main() {
-  let args = args().into_iter().skip(1).collect::<Vec<_>>();
+  let args = args().skip(1).collect::<Vec<_>>();
   // dbg!(&args);
   let command = &args[0];
   match command.as_ref() {

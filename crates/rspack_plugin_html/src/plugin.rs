@@ -96,7 +96,6 @@ impl Plugin for HtmlPlugin {
     let included_assets = compilation
       .entrypoints
       .keys()
-      .into_iter()
       .filter(|&entry_name| {
         let mut included = true;
         if let Some(included_chunks) = &config.chunks {

@@ -36,15 +36,10 @@ pub struct FileSystemCacheOptions {
   pub version: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub enum CacheOptions {
+  #[default]
   Disabled,
   Memory(MemoryCacheOptions),
   FileSystem(FileSystemCacheOptions),
-}
-
-impl Default for CacheOptions {
-  fn default() -> Self {
-    CacheOptions::Disabled
-  }
 }
