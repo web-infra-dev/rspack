@@ -42,8 +42,8 @@ use crate::{
   EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
   FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType,
   NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
-  TaskResult, WorkerTask,
+  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals, RuntimeModule,
+  SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -1043,8 +1043,7 @@ impl Compilation {
           .get_number_of_module_chunks(module.identifier())
           > 0
         {
-          let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<&'static str>)> =
-            vec![];
+          let mut module_runtime_requirements: Vec<(HashSet<String>, RuntimeGlobals)> = vec![];
           for runtime in self
             .chunk_graph
             .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
@@ -1074,7 +1073,7 @@ impl Compilation {
 
     let mut chunk_requirements = HashMap::default();
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
-      let mut set = HashSet::default();
+      let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
         .get_chunk_modules(chunk_ukey, &self.module_graph)
@@ -1083,7 +1082,7 @@ impl Compilation {
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
         {
-          set.extend(runtime_requirements);
+          set.add(*runtime_requirements);
         }
       }
       chunk_requirements.insert(*chunk_ukey, set);
@@ -1110,14 +1109,14 @@ impl Compilation {
         .get(entry_ukey)
         .expect("chunk not found by ukey");
 
-      let mut set = HashSet::default();
+      let mut set = RuntimeGlobals::default();
 
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
         .iter()
       {
         let runtime_requirements = self.chunk_graph.get_chunk_runtime_requirements(chunk_ukey);
-        set.extend(runtime_requirements.clone());
+        set.add(runtime_requirements.clone());
       }
 
       plugin_driver

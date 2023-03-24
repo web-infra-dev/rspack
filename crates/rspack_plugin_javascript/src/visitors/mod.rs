@@ -15,7 +15,7 @@ mod strict;
 use strict::strict_mode;
 mod format;
 use format::*;
-use rspack_core::{runtime_globals, BuildInfo, EsVersion, Module, ModuleType};
+use rspack_core::{RuntimeGlobals, BuildInfo, EsVersion, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::module::util::ImportInterop;
@@ -213,8 +213,8 @@ pub fn run_after_pass(
       let mut promises = LinkedList::new();
       if build_meta.is_async {
         let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(runtime_globals::MODULE);
-        runtime_requirements.insert(runtime_globals::ASYNC_MODULE);
+        runtime_requirements.insert(RuntimeGlobals::MODULE);
+        runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
         decl_mappings.iter().for_each(|(_, referenced)| {
           promises.push_back(compilation.module_graph.is_async(referenced))
         });
@@ -251,7 +251,7 @@ pub fn run_after_pass(
             strict_mode: false,
             import_interop: // if build_meta.strict_harmony_module {
             //  Some(ImportInterop::Node)
-            // } else 
+            // } else
             if build_meta.esm {
               Some(ImportInterop::Swc)
             } else {

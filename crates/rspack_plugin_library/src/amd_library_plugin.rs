@@ -1,8 +1,8 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, LibraryName,
-  LibraryOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginRenderHookOutput, RenderArgs, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, LibraryName, LibraryOptions,
+  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderHookOutput,
+  RenderArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
 
@@ -47,7 +47,7 @@ impl Plugin for AmdLibraryPlugin {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     args
       .runtime_requirements
-      .insert(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME);
+      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
     Ok(())
   }
 

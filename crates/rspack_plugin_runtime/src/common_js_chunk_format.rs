@@ -2,9 +2,9 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, FilenameRenderOptions, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, FilenameRenderOptions, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderChunkHookOutput,
-  RenderChunkArgs, RenderStartupArgs,
+  RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::runtime::{
@@ -48,8 +48,8 @@ impl Plugin for CommonJsChunkFormatPlugin {
       .get_number_of_entry_modules(chunk_ukey)
       > 0
     {
-      runtime_requirements.insert(runtime_globals::REQUIRE);
-      runtime_requirements.insert(runtime_globals::EXTERNAL_INSTALL_CHUNK);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     }
 
     Ok(())
@@ -128,12 +128,12 @@ impl Plugin for CommonJsChunkFormatPlugin {
 
       sources.add(RawSource::from(format!(
         "\nvar {} = require('./{}')",
-        runtime_globals::REQUIRE,
+        RuntimeGlobals::REQUIRE,
         runtime_chunk_filename
       )));
       sources.add(RawSource::from(format!(
         "\n{}(exports)\n",
-        runtime_globals::EXTERNAL_INSTALL_CHUNK,
+        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
       )));
       sources.add(generate_chunk_entry_code(args.compilation, args.chunk_ukey));
       if let Some(s) =

@@ -1,9 +1,8 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  runtime_globals, ChunkUkey, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
-use rustc_hash::FxHashSet as HashSet;
 
 use super::utils::chunk_has_js;
 use crate::impl_runtime_module;
@@ -13,11 +12,11 @@ use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 pub struct JsonpChunkLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
-  runtime_requirements: HashSet<&'static str>,
+  runtime_requirements: RuntimeGlobals,
 }
 
 impl JsonpChunkLoadingRuntimeModule {
-  pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
+  pub fn new(runtime_requirements: RuntimeGlobals) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/jsonp_chunk_loading"),
       chunk: None,
@@ -51,7 +50,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     let with_loading = self
       .runtime_requirements
-      .contains(runtime_globals::ENSURE_CHUNK_HANDLERS);
+      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
     if with_loading {
       source.add(RawSource::from(
@@ -63,7 +62,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if self
       .runtime_requirements
-      .contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     {
       source.add(RawSource::from(include_str!(
         "runtime/jsonp_chunk_loading_with_hmr.js"
@@ -75,7 +74,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if self
       .runtime_requirements
-      .contains(runtime_globals::HMR_DOWNLOAD_MANIFEST)
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
     {
       source.add(RawSource::from(include_str!(
         "runtime/jsonp_chunk_loading_with_hmr_manifest.js"
@@ -84,7 +83,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if self
       .runtime_requirements
-      .contains(runtime_globals::ON_CHUNKS_LOADED)
+      .contains(RuntimeGlobals::ON_CHUNKS_LOADED)
     {
       source.add(RawSource::from(include_str!(
         "runtime/jsonp_chunk_loading_with_on_chunk_load.js"
@@ -93,7 +92,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if self
       .runtime_requirements
-      .contains(runtime_globals::CHUNK_CALLBACK)
+      .contains(RuntimeGlobals::CHUNK_CALLBACK)
       || with_loading
     {
       source.add(RawSource::from(include_str!(

@@ -1,7 +1,7 @@
 use rspack_core::{
-  create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableDeclMappings, CodeGeneratableResult, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableDeclMappings,
+  CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier, RuntimeGlobals,
 };
 use swc_core::{
   common::DUMMY_SP,
@@ -123,9 +123,9 @@ impl CodeGeneratable for EsmDynamicImportDependency {
         }
 
         // Add interop require to runtime requirements, as dynamic imports have been transformed so `inject_runtime_helper` will not be able to detect this.
-        runtime_requirements.insert(runtime_globals::INTEROP_REQUIRE);
-        runtime_requirements.insert(runtime_globals::ENSURE_CHUNK);
-        runtime_requirements.insert(runtime_globals::LOAD_CHUNK_WITH_MODULE);
+        runtime_requirements.insert(RuntimeGlobals::INTEROP_REQUIRE);
+        runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
+        runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
 
         code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
@@ -133,7 +133,7 @@ impl CodeGeneratable for EsmDynamicImportDependency {
               if import.spread.is_none() && let Expr::Lit(Lit::Str(_)) = import.expr.as_mut() {
                   let call_expr = CallExpr {
                         span: DUMMY_SP,
-                        callee: Ident::new(runtime_globals::LOAD_CHUNK_WITH_MODULE.into(), DUMMY_SP).as_callee(),
+                        callee: Ident::new(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE.into(), DUMMY_SP).as_callee(),
                         args: vec![Expr::Lit(Lit::Str(Atom::from(&*module_id).into())).as_arg()],
                         type_args: None,
                       };
@@ -152,14 +152,14 @@ impl CodeGeneratable for EsmDynamicImportDependency {
                         callee: MemberExpr {
                           span: DUMMY_SP,
                           obj: Box::new(Expr::Ident(Ident::new(
-                            runtime_globals::REQUIRE.into(),
+                            RuntimeGlobals::REQUIRE.into(),
                             DUMMY_SP,
                           ))),
                           prop: MemberProp::Ident(Ident::new("bind".into(), DUMMY_SP)),
                         }
                         .as_callee(),
                         args: vec![
-                          Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_arg(),
+                          Ident::new(RuntimeGlobals::REQUIRE.into(), DUMMY_SP).as_arg(),
                           Lit::Str(Atom::from(&*module_id).into()).as_arg(),
                         ],
                         type_args: None,
@@ -173,11 +173,11 @@ impl CodeGeneratable for EsmDynamicImportDependency {
                   n.args = vec![MemberExpr {
                     span: DUMMY_SP,
                     obj: Box::new(Expr::Ident(Ident::new(
-                      runtime_globals::REQUIRE.into(),
+                      RuntimeGlobals::REQUIRE.into(),
                       DUMMY_SP,
                     ))),
                     prop: MemberProp::Ident(Ident::new(
-                      runtime_globals::INTEROP_REQUIRE.into(),
+                      RuntimeGlobals::INTEROP_REQUIRE.into(),
                       DUMMY_SP,
                     )),
                   }

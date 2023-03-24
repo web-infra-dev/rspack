@@ -10,11 +10,11 @@ use rspack_core::rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, Compilation,
+  get_js_chunk_filename_template, AstOrSource, ChunkKind, Compilation,
   DependencyType, GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext,
   ParseResult, ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestEntry, RenderStartupArgs, SourceType,
+  RenderManifestEntry, RenderStartupArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -68,7 +68,7 @@ impl JsPlugin {
       "#,
     ));
 
-    if runtime_requirements.contains(runtime_globals::INTERCEPT_MODULE_EXECUTION) {
+    if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
       sources.add(RawSource::from("id: moduleId,"));
     }
 
@@ -81,7 +81,7 @@ impl JsPlugin {
     ));
 
     let module_execution = match runtime_requirements
-      .contains(runtime_globals::INTERCEPT_MODULE_EXECUTION)
+      .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
       true => RawSource::from(
         r#"var execOptions = { id: moduleId, module: module, factory: __webpack_modules__[moduleId], require: __webpack_require__ };
@@ -125,7 +125,7 @@ impl JsPlugin {
       .chunk_graph
       .get_chunk_runtime_requirements(&args.chunk_ukey);
 
-    let module_factories = runtime_requirements.contains(runtime_globals::MODULE_FACTORIES);
+    let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
 
     let mut sources = ConcatSource::default();
 
@@ -138,20 +138,20 @@ impl JsPlugin {
     sources.add(self.render_require(args));
     sources.add(RawSource::from("\n}\n"));
 
-    if module_factories || runtime_requirements.contains(runtime_globals::MODULE_FACTORIES_ADD_ONLY)
+    if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
     {
       sources.add(RawSource::from(
         "// expose the modules object (__webpack_modules__)\n __webpack_require__.m = __webpack_modules__;\n",
       ));
     }
 
-    if runtime_requirements.contains(runtime_globals::MODULE_CACHE) {
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
       sources.add(RawSource::from(
         "// expose the module cache\n __webpack_require__.c = __webpack_module_cache__;\n",
       ));
     }
 
-    if runtime_requirements.contains(runtime_globals::INTERCEPT_MODULE_EXECUTION) {
+    if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
       sources.add(RawSource::from(
         "// expose the module execution interceptor\n __webpack_require__.i = [];\n",
       ));
@@ -175,7 +175,7 @@ impl JsPlugin {
     if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
-      if runtime_requirements.contains(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME) {
+      if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
         sources.add(RawSource::from("return __webpack_exports__;\n"));
       }
       if let Some(source) =

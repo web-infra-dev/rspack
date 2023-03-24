@@ -8,15 +8,15 @@
  * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/LICENSE#L1
  */
 use rspack_error::Result;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
-use crate::{Compilation, DependencyCategory, Module, ModuleIdentifier};
+use crate::{Compilation, DependencyCategory, Module, ModuleIdentifier, RuntimeGlobals};
 
 pub struct CodeGeneratableContext<'a> {
   pub compilation: &'a Compilation,
   /// Current referenced module
   pub module: &'a dyn Module,
-  pub runtime_requirements: &'a mut HashSet<&'static str>,
+  pub runtime_requirements: &'a mut RuntimeGlobals,
 }
 
 pub trait CodeGeneratable {

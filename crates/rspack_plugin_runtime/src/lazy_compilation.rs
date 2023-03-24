@@ -4,8 +4,8 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  runtime_globals, ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs,
-  ModuleType, Plugin, PluginContext, PluginModuleHookOutput, SourceType,
+  ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin,
+  PluginContext, PluginModuleHookOutput, RuntimeGlobals, SourceType,
 };
 use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
 use rspack_error::Result;
@@ -51,9 +51,7 @@ impl Module for LazyCompilationProxyModule {
         .boxed(),
       ),
     );
-    cgr
-      .runtime_requirements
-      .insert(runtime_globals::LOAD_SCRIPT);
+    cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
     Ok(cgr)
   }
 }

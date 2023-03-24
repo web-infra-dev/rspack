@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Compilation, RuntimeModule,
+  Compilation, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 
@@ -13,9 +13,9 @@ pub struct NormalRuntimeModule {
 }
 
 impl NormalRuntimeModule {
-  pub fn new(identifier: &'static str, sources: &'static str) -> Self {
+  pub fn new(identifier: RuntimeGlobals, sources: &'static str) -> Self {
     Self {
-      identifier: Identifier::from(identifier),
+      identifier: Identifier::from(identifier.name()),
       sources,
     }
   }

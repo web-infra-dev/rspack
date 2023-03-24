@@ -4,12 +4,11 @@ use std::{borrow::Cow, hash::Hasher};
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
-use rustc_hash::FxHashSet as HashSet;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   AstOrSource, BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Context, Module,
-  ModuleIdentifier, ModuleType, SourceType,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -17,7 +16,7 @@ pub struct RawModule {
   source: BoxSource,
   identifier: ModuleIdentifier,
   readable_identifier: String,
-  runtime_requirements: HashSet<&'static str>,
+  runtime_requirements: RuntimeGlobals,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -27,7 +26,7 @@ impl RawModule {
     source: String,
     identifier: ModuleIdentifier,
     readable_identifier: String,
-    runtime_requirements: HashSet<&'static str>,
+    runtime_requirements: RuntimeGlobals,
   ) -> Self {
     Self {
       // TODO: useSourceMap, etc...
@@ -91,9 +90,7 @@ impl Module for RawModule {
     let mut cgr = CodeGenerationResult::default();
     let ast_or_source: AstOrSource = self.source.clone().into();
     cgr.add(SourceType::JavaScript, ast_or_source);
-    cgr
-      .runtime_requirements
-      .extend(self.runtime_requirements.iter().cloned());
+    cgr.runtime_requirements.add(self.runtime_requirements);
     Ok(cgr)
   }
 }
