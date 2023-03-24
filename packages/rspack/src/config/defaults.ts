@@ -476,7 +476,7 @@ const getResolveDefaults = ({
 		// TODO: align with webpack, we need resolve.byDependency!
 		mainFields: [browserField && "browser", "module", "main"].filter(Boolean)
 	};
-
+console.log(resolveOptions)
 	return resolveOptions;
 };
 

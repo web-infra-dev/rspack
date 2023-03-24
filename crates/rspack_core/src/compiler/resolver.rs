@@ -143,6 +143,9 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     other.condition_names,
     |base, value| normalize_string_array(&base, value),
   );
+  let by_dependency = overwrite(base.by_dependency, other.by_dependency, |pre, now| {
+    pre.merge(now)
+  });
   let tsconfig = other.tsconfig;
 
   Resolve {
@@ -157,6 +160,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     main_fields,
     condition_names,
     tsconfig,
+    by_dependency,
   }
 }
 

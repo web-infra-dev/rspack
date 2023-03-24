@@ -1,5 +1,9 @@
 use std::{path::PathBuf, sync::Arc};
 
+use hashlink::LinkedHashMap;
+
+use crate::DependencyCategory;
+
 pub type AliasMap = nodejs_resolver::AliasMap;
 
 pub type Alias = Vec<(String, Vec<AliasMap>)>;
@@ -37,6 +41,8 @@ pub struct Resolve {
   // Same as `alias`, but only used if default resolving fails
   // Default is `[]`
   pub fallback: Option<Alias>,
+
+  pub by_dependency: Option<ByDependency>,
 }
 
 impl Resolve {
@@ -44,7 +50,9 @@ impl Resolve {
     self,
     cache: Arc<nodejs_resolver::Cache>,
     resolve_to_context: bool,
+    dependency_type: DependencyCategory,
   ) -> nodejs_resolver::Options {
+    // let by_dependency = self.by_dependency.map(|| {});
     let tsconfig = self.tsconfig;
     let enforce_extension = nodejs_resolver::EnforceExtension::Auto;
     let external_cache = Some(cache);
@@ -65,11 +73,13 @@ impl Resolve {
       .main_fields
       .unwrap_or_else(|| vec![String::from("module"), String::from("main")]);
     let browser_field = self.browser_field.unwrap_or(true);
+    dbg!(&self.condition_names);
     let condition_names = std::collections::HashSet::from_iter(
       self
         .condition_names
         .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]),
     );
+    dbg!(&condition_names);
     let modules = self
       .modules
       .unwrap_or_else(|| vec!["node_modules".to_string()]);
@@ -91,5 +101,18 @@ impl Resolve {
       tsconfig,
       resolve_to_context,
     }
+  }
+}
+
+#[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
+pub struct ByDependency(LinkedHashMap<DependencyCategory, Resolve>);
+
+impl ByDependency {
+  // TODO: maybe a Merge trait for implement cleverMerge in rust side?
+  pub fn merge(mut self, value: Self) -> Self {
+    for (k, v) in value.0 {
+      self.0.insert(k, v);
+    }
+    self
   }
 }
