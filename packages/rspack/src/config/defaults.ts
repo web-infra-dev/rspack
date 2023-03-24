@@ -306,6 +306,8 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	F(output, "iife", () => !output.module);
+	F(output, "module", () => false); // TODO experiments.outputModule
 };
 
 const applyExternalsPresetsDefaults = (

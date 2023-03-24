@@ -308,6 +308,8 @@ export interface RawOutputOptions {
   enabledLibraryTypes?: Array<string>
   globalObject: string
   importFunctionName: string
+  iife: boolean
+  module: boolean
 }
 export interface RawResolveOptions {
   preferRelative?: boolean

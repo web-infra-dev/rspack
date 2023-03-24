@@ -145,7 +145,9 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			!isNil(output.enabledLibraryTypes) &&
 			!isNil(output.strictModuleErrorHandling) &&
 			!isNil(output.globalObject) &&
-			!isNil(output.importFunctionName),
+			!isNil(output.importFunctionName) &&
+			!isNil(output.module) &&
+			!isNil(output.iife),
 		"fields should not be nil after defaults"
 	);
 	return {
@@ -161,7 +163,9 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling,
 		globalObject: output.globalObject,
-		importFunctionName: output.importFunctionName
+		importFunctionName: output.importFunctionName,
+		iife: output.iife,
+		module: output.module
 	};
 }
 
