@@ -370,6 +370,8 @@ class Compiler {
 				const err = new Error(`compiler.runAsChild callback error: ${e}`);
 				// err.details = e.stack;
 				this.parentCompilation!.errors.push(err);
+				// TODO: remove once this works
+				console.log(e);
 			}
 		};
 
@@ -377,7 +379,7 @@ class Compiler {
 			if (err) return finalCallback(err);
 			const compilation: Compilation = stats!.compilation;
 
-			// this.parentCompilation!.children.push(compilation);
+			this.parentCompilation!.children.push(compilation);
 			for (const { name, source, info } of compilation.getAssets()) {
 				this.parentCompilation!.emitAsset(name, source, info);
 			}

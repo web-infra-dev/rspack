@@ -92,6 +92,7 @@ export class Compilation {
 	startTime?: number;
 	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
+	children: Compilation[];
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
@@ -117,6 +118,7 @@ export class Compilation {
 		this.outputOptions = compiler.options.output;
 		this.logging = new Map();
 		this.#inner = inner;
+		this.children = [];
 	}
 
 	get hash() {
