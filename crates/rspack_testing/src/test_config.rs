@@ -368,6 +368,8 @@ impl TestConfig {
         strict_module_error_handling: false,
         global_object: "self".to_string(),
         import_function_name: "import".to_string(),
+        iife: true,
+        module: false,
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),
