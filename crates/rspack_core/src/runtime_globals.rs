@@ -237,7 +237,9 @@ impl RuntimeGlobals {
       R::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
       R::INSTANTIATE_WASM => "__webpack_require__.v",
       R::ASYNC_MODULE => "__webpack_require__.a",
-      _ => unreachable!(),
+      r => panic!(
+        "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
+      ),
     }
   }
 
@@ -261,5 +263,43 @@ impl RuntimeGlobals {
 impl From<RuntimeGlobals> for string_cache::Atom<JsWordStaticSet> {
   fn from(value: RuntimeGlobals) -> Self {
     value.name().into()
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_iter() {
+    let flags = RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
+    let flags: Vec<_> = flags.iter().collect();
+    assert_eq!(flags.len(), 2);
+    assert_eq!(flags[0], RuntimeGlobals::PUBLIC_PATH);
+    assert_eq!(flags[1], RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+  }
+
+  #[test]
+  fn test_pretty_print() {
+    let flags = RuntimeGlobals::PUBLIC_PATH;
+    assert_eq!(format!("{flags}"), "__webpack_require__.p");
+    let flags = RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
+    assert_eq!(format!("{flags}"), "__webpack_require__.k");
+  }
+
+  #[test]
+  fn test_runtime_globals_operation() {
+    let mut runtime = RuntimeGlobals::default();
+    assert!(runtime.is_empty());
+    runtime.add(RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+    assert!(!runtime.is_empty());
+    assert!(runtime.contains(RuntimeGlobals::PUBLIC_PATH));
+  }
+
+  #[test]
+  #[should_panic]
+  fn test_panic_when_print_multiple_flags() {
+    let flags = RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
+    print!("{flags}");
   }
 }
