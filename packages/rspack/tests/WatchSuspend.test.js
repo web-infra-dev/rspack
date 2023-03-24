@@ -49,7 +49,7 @@ describe("WatchSuspend", () => {
 					filename: "bundle.js"
 				}
 			});
-			watching = compiler.watch({ aggregateTimeout: 50 }, () => {});
+			watching = compiler.watch({ aggregateTimeout: 50, poll: 200 }, () => {});
 			compiler.hooks.done.tap("WatchSuspendTest", () => {
 				if (onChange) onChange();
 			});
@@ -59,12 +59,12 @@ describe("WatchSuspend", () => {
 			watching.close();
 			compiler = null;
 			try {
-				// fs.unlinkSync(filePath);
+				fs.unlinkSync(filePath);
 			} catch (e) {
 				// skip
 			}
 			try {
-				// fs.rmdirSync(fixturePath);
+				fs.rmdirSync(fixturePath);
 			} catch (e) {
 				// skip
 			}
@@ -106,9 +106,12 @@ describe("WatchSuspend", () => {
 					//  So set-up new watcher and wait when initial compilation is done
 					await new Promise(resolve => {
 						watching.close(() => {
-							watching = compiler.watch({ aggregateTimeout: 1000 }, () => {
-								resolve();
-							});
+							watching = compiler.watch(
+								{ aggregateTimeout: 1000, poll: 200 },
+								() => {
+									resolve();
+								}
+							);
 						});
 					});
 					return new Promise(resolve => {
