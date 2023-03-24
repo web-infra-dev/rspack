@@ -554,6 +554,10 @@ export class Compilation {
 		return this.#inner.getChunks();
 	}
 
+	get chunks() {
+		return this.getChunks();
+	}
+
 	getStats() {
 		return new Stats(this);
 	}
