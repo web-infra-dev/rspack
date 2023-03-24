@@ -126,11 +126,17 @@ function getRawAlias(
 	return Object.fromEntries(entires);
 }
 
+function getRawResolveByDependency(byDependency: Resolve["byDependency"]): RawOptions["resolve"]["byDependency"] {
+	if (byDependency === undefined) return byDependency;
+	return Object.fromEntries(Object.entries(byDependency).map(([k, v]) => [k, getRawResolve(v)]))
+}
+
 function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
-		fallback: getRawAlias(resolve.fallback)
+		fallback: getRawAlias(resolve.fallback),
+		byDependency: getRawResolveByDependency(resolve.byDependency),
 	};
 }
 
