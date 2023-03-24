@@ -163,6 +163,7 @@ dist
 
 !packages/rspack/tests/configCases/target
 packages/rspack/tests/js
+packages/rspack/tests/fixtures/temp-*
 packages/rspack-dev-server/.test-temp
 
 # Ignore local integrate debug file

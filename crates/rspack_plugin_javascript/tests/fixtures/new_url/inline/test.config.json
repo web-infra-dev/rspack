@@ -1,0 +1,13 @@
+{
+    "module": {
+        "rules": [
+            {
+                "test": {
+                    "matcher": "\\.svg",
+                    "type": "regexp"
+                },
+                "type": "asset/inline"
+            }
+        ]
+    }
+}

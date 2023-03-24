@@ -1,7 +1,7 @@
 use std::hash::{Hash, Hasher};
+use std::sync::mpsc;
 
 use async_trait::async_trait;
-use crossbeam_channel::unbounded;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -519,7 +519,7 @@ impl Plugin for JsPlugin {
     let minify_options = &compilation.options.builtins.minify_options;
 
     if let Some(minify_options) = minify_options {
-      let (tx, rx) = unbounded::<Vec<Diagnostic>>();
+      let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
 
       compilation
         .assets
@@ -527,7 +527,7 @@ impl Plugin for JsPlugin {
         .filter(|(filename, _)| {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
         })
-        .try_for_each(|(filename, original)| -> Result<()> {
+        .try_for_each_with(tx, |tx, (filename, original)| -> Result<()> {
           // In theory, if a js source is minimized it has high possibility has been tree-shaked.
           if original.get_info().minimized {
             return Ok(());
@@ -574,7 +574,6 @@ impl Plugin for JsPlugin {
           Ok(())
         })?;
 
-      drop(tx);
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
     }
 

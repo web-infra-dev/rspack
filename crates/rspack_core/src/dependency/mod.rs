@@ -35,6 +35,8 @@ pub enum DependencyType {
   DynamicImport,
   // cjs require
   CjsRequire,
+  // new URL("./foo", import.meta.url)
+  NewUrl,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
   // import.meta.webpackHot.decline

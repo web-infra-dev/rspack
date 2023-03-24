@@ -28,7 +28,7 @@ export interface RspackCLIOptions {
 	analyze?: boolean;
 	argv?: Record<string, any>;
 	env?: Record<string, any>;
-	nodeEnv: string;
+	nodeEnv?: string;
 	configName?: string[];
 }
 

@@ -456,14 +456,10 @@ class Compiler {
 
 	watch(
 		watchOptions: WatchOptions,
-		handler: (error: Error, stats: Stats) => void
+		handler: (error: Error, stats?: Stats) => Watching
 	): Watching {
 		if (this.running) {
-			return handler(
-				new ConcurrentCompilationError(),
-				// @ts-expect-error
-				null
-			) as unknown as Watching;
+			return handler(new ConcurrentCompilationError());
 		}
 		this.running = true;
 		this.watchMode = true;

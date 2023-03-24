@@ -310,20 +310,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2801af0d36612ae591caa9568261fddce32ce6e08a7275ea334a06a4ad021a2c"
-dependencies = [
- "cfg-if",
- "crossbeam-channel",
- "crossbeam-deque",
- "crossbeam-epoch",
- "crossbeam-queue",
- "crossbeam-utils",
-]
-
-[[package]]
 name = "crossbeam-channel"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -355,16 +341,6 @@ dependencies = [
  "crossbeam-utils",
  "memoffset",
  "scopeguard",
-]
-
-[[package]]
-name = "crossbeam-queue"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1cfb3ea8a53f37c40dea2c7bedcbd88bdfae54f5e2175d6ecaff1c988353add"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -1973,7 +1949,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "crossbeam",
  "dashmap",
  "once_cell",
  "rspack_core",
@@ -2064,7 +2039,6 @@ dependencies = [
  "async-scoped",
  "async-trait",
  "bitflags",
- "crossbeam",
  "dashmap",
  "derivative",
  "dyn-clone",
@@ -2201,7 +2175,6 @@ name = "rspack_loader_sass"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "crossbeam-channel",
  "itertools",
  "once_cell",
  "regex",
@@ -2370,9 +2343,12 @@ name = "rspack_plugin_externals"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "once_cell",
+ "regex",
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
+ "rspack_regex",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2409,7 +2385,6 @@ dependencies = [
  "base64",
  "better_scoped_tls",
  "bitflags",
- "crossbeam-channel",
  "dashmap",
  "either",
  "linked_hash_set",

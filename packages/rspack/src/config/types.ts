@@ -306,7 +306,7 @@ export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }
-export type ExternalItemValue = string;
+export type ExternalItemValue = string | boolean;
 
 ///// ExternalsType /////
 export type ExternalsType =
