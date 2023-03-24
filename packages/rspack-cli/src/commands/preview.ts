@@ -29,10 +29,14 @@ export class PreviewCommand implements RspackCommand {
 
 				let config = await cli.loadConfig(rspackOptions);
 				config = await getPreviewConfig(config, options);
-				if (Array.isArray(config)) {
-					config = config[0];
-				}
-				config = config as RspackOptions;
+				if(!Array.isArray(config)){
+					config = [config as RspackOptions];
+				}	
+	
+				config = config as MultiRspackOptions;
+
+				// find the possible devServer config
+				config = config.find(item => item.devServer) || config[0];
 
 				const devServerOption = config.devServer as DevServer;
 
