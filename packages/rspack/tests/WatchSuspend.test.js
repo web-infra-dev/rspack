@@ -49,7 +49,10 @@ describe("WatchSuspend", () => {
 					filename: "bundle.js"
 				}
 			});
-			watching = compiler.watch({ aggregateTimeout: 50, poll: 200 }, () => {});
+			watching = compiler.watch(
+				{ aggregateTimeout: 50, poll: false },
+				() => {}
+			);
 			compiler.hooks.done.tap("WatchSuspendTest", () => {
 				if (onChange) onChange();
 			});
@@ -107,7 +110,7 @@ describe("WatchSuspend", () => {
 					await new Promise(resolve => {
 						watching.close(() => {
 							watching = compiler.watch(
-								{ aggregateTimeout: 1000, poll: 200 },
+								{ aggregateTimeout: 1000, poll: false },
 								() => {
 									resolve();
 								}
