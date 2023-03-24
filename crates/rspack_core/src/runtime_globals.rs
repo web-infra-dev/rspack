@@ -258,8 +258,8 @@ impl RuntimeGlobals {
   }
 }
 
-impl Into<string_cache::Atom<JsWordStaticSet>> for RuntimeGlobals {
-  fn into(self) -> string_cache::Atom<JsWordStaticSet> {
-    self.name().into()
+impl From<RuntimeGlobals> for string_cache::Atom<JsWordStaticSet> {
+  fn from(value: RuntimeGlobals) -> Self {
+    value.name().into()
   }
 }

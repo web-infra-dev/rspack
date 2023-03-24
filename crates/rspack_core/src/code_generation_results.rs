@@ -145,7 +145,7 @@ impl CodeGenerationResults {
     runtime: Option<&RuntimeSpec>,
   ) -> RuntimeGlobals {
     match self.get(module_identifier, runtime) {
-      Ok(result) => result.runtime_requirements.clone(),
+      Ok(result) => result.runtime_requirements,
       Err(_) => {
         eprint!("Failed to get runtime requirements for {module_identifier}");
         Default::default()

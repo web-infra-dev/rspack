@@ -33,7 +33,7 @@ impl Plugin for CommonJsChunkLoadingPlugin {
     let runtime_requirements = &mut args.runtime_requirements;
 
     let mut has_chunk_loading = false;
-    for runtime_requirement in runtime_requirements.clone().iter() {
+    for runtime_requirement in runtime_requirements.iter() {
       match runtime_requirement {
         RuntimeGlobals::ENSURE_CHUNK_HANDLERS => {
           has_chunk_loading = true;
@@ -65,7 +65,7 @@ impl Plugin for CommonJsChunkLoadingPlugin {
       runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
       compilation.add_runtime_module(
         chunk,
-        RequireChunkLoadingRuntimeModule::new(runtime_requirements.clone()).boxed(),
+        RequireChunkLoadingRuntimeModule::new(**runtime_requirements).boxed(),
       );
     }
 

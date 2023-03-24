@@ -41,7 +41,7 @@ impl Plugin for CssModulesPlugin {
       runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       compilation.add_runtime_module(
         chunk,
-        CssLoadingRuntimeModule::new(runtime_requirements.clone()).boxed(),
+        CssLoadingRuntimeModule::new(**runtime_requirements).boxed(),
       );
     }
 
