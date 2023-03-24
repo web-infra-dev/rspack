@@ -11,14 +11,16 @@ use tracing::instrument;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
   Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
+  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
-  PluginRenderHookOutput, PluginRenderManifestHookOutput, PluginRenderModuleContentOutput,
-  PluginRenderStartupHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory,
-  SourceType, Stats, ThisCompilationArgs,
+  PluginModuleHookOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
+  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory, SourceType,
+  Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -279,6 +281,22 @@ impl PluginDriver {
       tracing::trace!("running render runtime:{}", plugin.name());
       if let Some(module) = plugin.module(PluginContext::new(), &args).await? {
         return Ok(Some(module));
+      }
+    }
+    Ok(None)
+  }
+
+  pub async fn normal_module_factory_resolve_for_scheme(
+    &self,
+    args: NormalModuleFactoryResolveForSchemeArgs,
+  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin
+        .normal_module_factory_resolve_for_scheme(PluginContext::new(), &args)
+        .await?
+      {
+        return Ok(Some(data));
       }
     }
     Ok(None)

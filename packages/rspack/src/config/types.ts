@@ -128,6 +128,7 @@ export interface Output {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	iife?: Iife;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -142,6 +143,7 @@ export type UniqueName = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
+export type Iife = boolean;
 export interface LibraryCustomUmdCommentObject {
 	amd?: string;
 	commonjs?: string;
@@ -204,6 +206,7 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	iife?: Iife;
 }
 
 ///// Resolve /////
@@ -306,7 +309,7 @@ export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }
-export type ExternalItemValue = string;
+export type ExternalItemValue = string | boolean;
 
 ///// ExternalsType /////
 export type ExternalsType =
@@ -426,6 +429,8 @@ export interface StatsOptions {
 	outputPath?: boolean;
 	chunkModules?: boolean;
 	chunkRelations?: boolean;
+	timings?: boolean;
+	builtAt?: boolean;
 }
 
 ///// Optimization /////

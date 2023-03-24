@@ -13,7 +13,7 @@ anyhow = { workspace = true }
 async-trait = { workspace = true }
 base64 = "0.13"
 better_scoped_tls = { workspace = true }
-crossbeam-channel = { workspace = true }
+bitflags = { workspace = true }
 dashmap = { workspace = true }
 either = "1"
 linked_hash_set = { workspace = true }

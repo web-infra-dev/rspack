@@ -1,5 +1,11 @@
 # @rspack/dev-client
 
+## 0.1.2
+
+### Patch Changes
+
+- bfb1738: fix: react refresh runtime injection
+
 ## 0.1.1
 
 ### Patch Changes

@@ -429,7 +429,7 @@ function getOptions(
 		options.module.rules = [];
 	}
 	options.module.rules.push({
-		test: /\.(js|css)/,
+		test: /\.(js|css|json)/,
 		use: [
 			{
 				loader: path.join(__dirname, "hotCases", "fake-update-loader.js"),

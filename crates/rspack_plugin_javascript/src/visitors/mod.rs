@@ -98,7 +98,7 @@ pub fn run_before_pass(
           let uri = resource_data.resource.as_str();
           swc_visitor::fold_react_refresh(context, uri)
         },
-        should_transform_by_react
+        should_transform_by_react && options.builtins.react.refresh.is_some()
       ),
       either!(
         options.builtins.emotion,

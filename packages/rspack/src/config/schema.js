@@ -271,6 +271,11 @@ module.exports = {
 				{
 					description: "The target of the external.",
 					type: "string"
+				},
+				{
+					description:
+						"`true`: The dependency name is used as target of the external.",
+					type: "boolean"
 				}
 			]
 		},
@@ -911,12 +916,20 @@ module.exports = {
 				}
 			]
 		},
+		Iife: {
+			description:
+				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
+			type: "boolean"
+		},
 		Output: {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				iife: {
+					$ref: "#/definitions/Iife"
+				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
 				},
@@ -1583,6 +1596,27 @@ module.exports = {
 				},
 				warningsCount: {
 					description: "Add warnings count.",
+					type: "boolean"
+				},
+				outputPath: {
+					description: "Add output path information.",
+					type: "boolean"
+				},
+				chunkModules: {
+					description: "Add built modules information to chunk information.",
+					type: "boolean"
+				},
+				chunkRelations: {
+					description:
+						"Add information about parent, children and sibling chunks to chunk information.",
+					type: "boolean"
+				},
+				timings: {
+					description: "Add timing information.",
+					type: "boolean"
+				},
+				builtAt: {
+					description: "Add built at time information.",
 					type: "boolean"
 				}
 			}

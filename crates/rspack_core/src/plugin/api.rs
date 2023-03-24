@@ -8,9 +8,9 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
   ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, SourceType, ThisCompilationArgs,
+  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -22,6 +22,7 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
+pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<Option<ResourceData>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
@@ -84,6 +85,14 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn module(&self, _ctx: PluginContext, _args: &ModuleArgs) -> PluginModuleHookOutput {
+    Ok(None)
+  }
+
+  async fn normal_module_factory_resolve_for_scheme(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleFactoryResolveForSchemeArgs,
+  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
     Ok(None)
   }
 

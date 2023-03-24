@@ -147,3 +147,8 @@ pub const GET_FULL_HASH: &str = "__webpack_require__.h";
  * the global object
  */
 pub const GLOBAL: &str = "__webpack_require__.g";
+
+/**
+ * runtime need to return the exports of the last entry module
+ */
+pub const RETURN_EXPORTS_FROM_RUNTIME: &str = "return-exports-from-runtime";

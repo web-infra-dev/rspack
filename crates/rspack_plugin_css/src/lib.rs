@@ -2,6 +2,7 @@
 #![feature(box_patterns)]
 #![feature(box_syntax)]
 
+pub mod dependency;
 pub mod plugin;
 pub mod pxtorem;
 mod utils;

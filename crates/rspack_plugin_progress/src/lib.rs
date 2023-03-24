@@ -28,7 +28,7 @@ impl ProgressPlugin {
   pub fn new(options: ProgressPluginConfig) -> Self {
     let progress_bar = ProgressBar::new(100);
     progress_bar.set_style(
-      ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {percent} {wide_msg}")
+      ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {percent}% {wide_msg}")
         .expect("TODO:"),
     );
     progress_bar.set_prefix(

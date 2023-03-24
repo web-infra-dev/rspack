@@ -79,7 +79,6 @@ impl SymbolGraph {
     let edges_list = self
       .graph
       .edge_indices()
-      .into_iter()
       .map(|edge_index| {
         self
           .graph

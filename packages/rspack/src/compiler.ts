@@ -7,11 +7,9 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import path from "path";
 import fs from "fs";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
-import asyncLib from "neo-async";
 import type { WatchOptions } from "watchpack";
 import Watching from "./watching";
 import * as binding from "@rspack/binding";
@@ -22,18 +20,16 @@ import {
 	RspackPluginInstance
 } from "./config";
 import { Stats } from "./stats";
-import { Compilation } from "./compilation";
+import { Compilation, CompilationParams } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
 import { WatchFileSystem } from "./util/fs";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { getRawOptions } from "./config/adapter";
-import {
-	createThreadsafeNodeFSFromRaw,
-	ThreadsafeWritableNodeFS
-} from "./fileSystem";
+import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import { createHash } from "./util/createHash";
 import { cleverMerge } from "./util/cleverMerge";
 import { makePathsRelative } from "./util/identifier";
+import { NormalModuleFactory } from "./normalModuleFactory";
 
 class EntryPlugin {
 	apply() {}
@@ -131,7 +127,7 @@ class Compiler {
 		// TODO: CompilationParams
 		compilation: tapable.SyncHook<Compilation>;
 		// TODO: CompilationParams
-		thisCompilation: tapable.SyncHook<[Compilation]>;
+		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
 		compile: tapable.SyncHook<[any]>;
 		initialize: tapable.SyncHook<[]>;
@@ -201,14 +197,9 @@ class Compiler {
 			run: new tapable.AsyncSeriesHook(["compiler"]),
 			emit: new tapable.AsyncSeriesHook(["compilation"]),
 			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
-			thisCompilation: new tapable.SyncHook<
-				[
-					Compilation
-					// CompilationParams
-				]
-			>([
-				"compilation"
-				// "params"
+			thisCompilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+				"compilation",
+				"params"
 			]),
 			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
 			invalid: new SyncHook(["filename", "changeTime"]),
@@ -234,11 +225,10 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		const options = getRawOptions(this.options, this);
 		this.#_instance =
 			this.#_instance ??
 			new binding.Rspack(
-				options,
+				getRawOptions(this.options, this),
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
 					make: this.#make.bind(this),
@@ -278,7 +268,9 @@ class Compiler {
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
-					finishModules: this.#finishModules.bind(this)
+					finishModules: this.#finishModules.bind(this),
+					normalModuleFactoryResolveForScheme:
+						this.#normalModuleFactoryResolveForScheme.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 			);
@@ -519,6 +511,7 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules
+			// normalModuleFactoryResolveForScheme: this.#
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook.taps.length === 0) {
@@ -538,6 +531,15 @@ class Compiler {
 			.__internal_getProcessAssetsHookByStage(stage)
 			.promise(this.compilation.assets);
 		this.#updateDisabledHooks();
+	}
+
+	async #normalModuleFactoryResolveForScheme(
+		resourceData: binding.SchemeAndJsResourceData
+	) {
+		await this.compilation.normalModuleFactory?.hooks.resolveForScheme
+			.for(resourceData.scheme)
+			.promise(resourceData.resourceData);
+		return resourceData.resourceData;
 	}
 
 	async #optimize_chunk_modules() {
@@ -586,7 +588,12 @@ class Compiler {
 		const compilation = new Compilation(this, native);
 		compilation.name = this.name;
 		this.compilation = compilation;
-		this.hooks.thisCompilation.call(this.compilation);
+		// reset normalModuleFactory when create new compilation
+		let normalModuleFactory = new NormalModuleFactory();
+		this.compilation.normalModuleFactory = normalModuleFactory;
+		this.hooks.thisCompilation.call(this.compilation, {
+			normalModuleFactory: normalModuleFactory
+		});
 		this.#updateDisabledHooks();
 	}
 
@@ -594,6 +601,7 @@ class Compiler {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
+		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
 			// @ts-expect-error
@@ -620,6 +628,8 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
+						this.compilation.startTime = startTime;
+						this.compilation.endTime = Date.now();
 						const stats = new Stats(this.compilation);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
@@ -667,14 +677,10 @@ class Compiler {
 
 	watch(
 		watchOptions: WatchOptions,
-		handler: (error: Error, stats: Stats) => void
+		handler: (error: Error, stats?: Stats) => Watching
 	): Watching {
 		if (this.running) {
-			return handler(
-				new ConcurrentCompilationError(),
-				// @ts-expect-error
-				null
-			) as unknown as Watching;
+			return handler(new ConcurrentCompilationError());
 		}
 		this.running = true;
 		this.watchMode = true;
