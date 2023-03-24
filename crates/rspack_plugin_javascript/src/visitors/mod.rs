@@ -234,9 +234,10 @@ pub fn run_after_pass(
             ignore_dynamic: true,
             // here will remove `use strict`
             strict_mode: false,
-            import_interop: if build_meta.strict_harmony_module {
-              Some(ImportInterop::Node)
-            } else if build_meta.esm {
+            import_interop: // if build_meta.strict_harmony_module {
+            //  Some(ImportInterop::Node)
+            // } else 
+            if build_meta.esm {
               Some(ImportInterop::Swc)
             } else {
               None
