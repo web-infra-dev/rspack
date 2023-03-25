@@ -59,7 +59,7 @@ nvm use 16
 Install Node.js dependencies via [pnpm](https://pnpm.io/).
 
 ```bash
-# enable pnpm with corepack
+# enable pnpm with corepack, only available on node >= `v14.19.0`
 corepack enable
 
 # or install pnpm directly

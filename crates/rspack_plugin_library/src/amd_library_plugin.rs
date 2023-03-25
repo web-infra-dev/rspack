@@ -68,7 +68,7 @@ impl Plugin for AmdLibraryPlugin {
     let external_deps_array = external_dep_array(&modules);
     let external_arguments = external_arguments(&modules, compilation);
     let mut fn_start = format!("function({external_arguments}){{\n");
-    if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    if compilation.options.output.iife && !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       fn_start.push_str(" return ");
     }
     let name = self.normalize_name(&compilation.options.output.library)?;

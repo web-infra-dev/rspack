@@ -375,6 +375,14 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:finish_modules", skip_all)]
+  pub async fn finish_modules(&mut self, modules: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.finish_modules(modules).await?;
+    }
+    Ok(())
+  }
+
   pub async fn build_module(&self, module: &mut dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.build_module(module).await?;

@@ -979,6 +979,13 @@ impl Compilation {
       .get(ukey)
       .expect("entrypoint not found by ukey")
   }
+
+  #[instrument(name = "compilation:finish", skip_all)]
+  pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver.write().await.finish_modules(self).await?;
+    Ok(())
+  }
+
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     use_code_splitting_cache(self, |compilation| async {

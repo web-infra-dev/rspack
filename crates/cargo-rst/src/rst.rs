@@ -21,16 +21,11 @@ use crate::{
   terminal_inline::diff_and_print,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub enum Mode {
   Strict,
+  #[default]
   Partial,
-}
-
-impl Default for Mode {
-  fn default() -> Self {
-    Mode::Partial
-  }
 }
 
 #[derive(Debug, Default)]
