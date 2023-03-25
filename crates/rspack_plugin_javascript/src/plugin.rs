@@ -188,7 +188,11 @@ impl JsPlugin {
         sources.add(source);
       }
     }
-    let final_source = self.render_iife(sources.boxed());
+    let final_source = if compilation.options.output.iife {
+      self.render_iife(sources.boxed())
+    } else {
+      sources.boxed()
+    };
     if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,

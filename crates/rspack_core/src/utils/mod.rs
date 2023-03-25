@@ -112,7 +112,6 @@ pub fn find_module_graph_roots(
 
   graph
     .nodes()
-    .into_iter()
     .filter(|from| {
       graph
         .neighbors_directed(*from, petgraph::Direction::Incoming)

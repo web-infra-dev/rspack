@@ -916,12 +916,20 @@ module.exports = {
 				}
 			]
 		},
+		Iife: {
+			description:
+				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
+			type: "boolean"
+		},
 		Output: {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				iife: {
+					$ref: "#/definitions/Iife"
+				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
 				},

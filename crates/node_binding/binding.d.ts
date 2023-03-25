@@ -313,6 +313,8 @@ export interface RawOutputOptions {
   enabledLibraryTypes?: Array<string>
   globalObject: string
   importFunctionName: string
+  iife: boolean
+  module: boolean
 }
 export interface RawResolveOptions {
   preferRelative?: boolean
@@ -431,6 +433,7 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  finishModules: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
 }
 export interface JsModule {
