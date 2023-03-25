@@ -274,10 +274,6 @@ class Watching {
 			for (const cb of cbs) cb(err);
 		};
 
-		if (error) {
-			return handleError(error);
-		}
-
 		const cbs = this.callbacks;
 		this.callbacks = [];
 
@@ -285,6 +281,9 @@ class Watching {
 		this.compiler.compilation.endTime = Date.now();
 		const stats = new Stats(this.compiler.compilation);
 		this.startTime = undefined;
+		if (error) {
+			return handleError(error);
+		}
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
 			// @ts-expect-error
