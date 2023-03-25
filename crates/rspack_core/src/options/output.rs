@@ -26,6 +26,8 @@ pub struct OutputOptions {
   pub strict_module_error_handling: bool,
   pub global_object: String,
   pub import_function_name: String,
+  pub iife: bool,
+  pub module: bool,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";
