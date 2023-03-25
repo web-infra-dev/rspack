@@ -77,6 +77,7 @@ export class Compilation {
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
 		>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -103,7 +104,8 @@ export class Compilation {
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
-			])
+			]),
+			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
