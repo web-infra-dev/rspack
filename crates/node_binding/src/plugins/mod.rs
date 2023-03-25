@@ -29,6 +29,7 @@ pub struct JsHooksAdapter {
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<SchemeAndJsResourceData, JsResourceData>,
 }
@@ -257,6 +258,28 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to compilation: {err}"))?
   }
 
+  async fn finish_modules(
+    &mut self,
+    compilation: &mut rspack_core::Compilation,
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::FinishModules) {
+      return Ok(());
+    }
+
+    let compilation = JsCompilation::from_compilation(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    });
+
+    self
+      .finish_modules_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to finish modules: {err}"))?
+  }
+
   async fn emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::Emit) {
       return Ok(());
@@ -300,6 +323,7 @@ impl JsHooksAdapter {
       after_emit,
       optimize_chunk_module,
       normal_module_factory_resolve_for_scheme,
+      finish_modules,
     } = js_hooks;
 
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
@@ -323,7 +347,8 @@ impl JsHooksAdapter {
     let make_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(make, env);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(optimize_chunk_module, env);
-
+    let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      js_fn_into_theadsafe_fn!(finish_modules, env);
     let normal_module_factory_resolve_for_scheme: ThreadsafeFunction<
       SchemeAndJsResourceData,
       JsResourceData,
@@ -344,6 +369,7 @@ impl JsHooksAdapter {
       after_emit_tsfn,
       optimize_chunk_modules_tsfn,
       normal_module_factory_resolve_for_scheme,
+      finish_modules_tsfn,
     })
   }
 
