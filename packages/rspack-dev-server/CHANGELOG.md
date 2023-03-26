@@ -1,5 +1,23 @@
 # rspack-dev-server
 
+## 0.1.2
+
+### Patch Changes
+
+- d63e3fd: upgrade webpack-dev-server & webpack-dev-middleware
+- bfb1738: fix: react refresh runtime injection
+- d63e3fd: upgrade webpack-dev-server
+- bb4e6a6: use super isWebTarget in dev-server
+- Updated dependencies [d63e3fd]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [deaca70]
+- Updated dependencies [bfb1738]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [bb4e6a6]
+  - @rspack/dev-middleware@0.1.2
+  - @rspack/dev-server@0.1.2
+  - @rspack/dev-client@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes

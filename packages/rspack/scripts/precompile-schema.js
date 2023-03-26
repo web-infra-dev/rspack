@@ -77,18 +77,23 @@ ajv.addKeyword({
 
 const validate = ajv.compile(require(configSchema));
 const code = standaloneCode(ajv, validate);
-terser
-	.minify(code, {
-		compress: {
-			passes: 3
-		},
-		mangle: true,
-		ecma: 2015,
-		toplevel: true
-	})
-	.then(minified => {
-		const code =
-			"/** This file was automatically generated, Run `pnpm precompile-schema` to update */\n" +
-			minified.code;
-		fs.promises.writeFile(configCheck, code);
-	});
+const generated =
+	"/** This file was automatically generated, Run `pnpm precompile-schema` to update */\n" +
+	code;
+fs.writeFileSync(configCheck, generated);
+
+// terser
+// 	.minify(code, {
+// 		compress: {
+// 			passes: 3
+// 		},
+// 		mangle: true,
+// 		ecma: 2015,
+// 		toplevel: true
+// 	})
+// 	.then(minified => {
+// 		const code =
+// 			"/** This file was automatically generated, Run `pnpm precompile-schema` to update */\n" +
+// 			minified.code;
+// 		fs.promises.writeFile(configCheck, code);
+// 	});

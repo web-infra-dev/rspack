@@ -1,22 +1,25 @@
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
+use std::sync::mpsc;
 
 use async_trait::async_trait;
-use crossbeam_channel::unbounded;
+use linked_hash_set::LinkedHashSet;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, GenerateContext,
-  GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestEntry, RenderStartupArgs,
-  SourceType,
+  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, Compilation,
+  DependencyType, GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestEntry, RenderStartupArgs, SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
+use rspack_identifier::Identifier;
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
@@ -188,7 +191,11 @@ impl JsPlugin {
         sources.add(source);
       }
     }
-    let final_source = self.render_iife(sources.boxed());
+    let final_source = if compilation.options.output.iife {
+      self.render_iife(sources.boxed())
+    } else {
+      sources.boxed()
+    };
     if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -519,7 +526,7 @@ impl Plugin for JsPlugin {
     let minify_options = &compilation.options.builtins.minify_options;
 
     if let Some(minify_options) = minify_options {
-      let (tx, rx) = unbounded::<Vec<Diagnostic>>();
+      let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
 
       compilation
         .assets
@@ -527,7 +534,7 @@ impl Plugin for JsPlugin {
         .filter(|(filename, _)| {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
         })
-        .try_for_each(|(filename, original)| -> Result<()> {
+        .try_for_each_with(tx, |tx, (filename, original)| -> Result<()> {
           // In theory, if a js source is minimized it has high possibility has been tree-shaked.
           if original.get_info().minimized {
             return Ok(());
@@ -574,10 +581,66 @@ impl Plugin for JsPlugin {
           Ok(())
         })?;
 
-      drop(tx);
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
     }
 
+    Ok(())
+  }
+}
+
+#[derive(Debug)]
+pub struct InferAsyncModulesPlugin;
+
+#[async_trait::async_trait]
+impl Plugin for InferAsyncModulesPlugin {
+  fn name(&self) -> &'static str {
+    "InferAsyncModulesPlugin"
+  }
+
+  async fn finish_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
+    // fix: mut for-in
+    let mut queue = LinkedHashSet::new();
+    let mut uniques = HashSet::new();
+
+    let mut modules: Vec<Identifier> = compilation
+      .module_graph
+      .module_graph_modules()
+      .values()
+      .filter(|m| {
+        if let Some(meta) = &m.build_meta {
+          meta.is_async
+        } else {
+          false
+        }
+      })
+      .map(|m| m.module_identifier)
+      .collect();
+
+    modules.retain(|m| queue.insert(*m));
+
+    let module_graph = &mut compilation.module_graph;
+
+    while let Some(module) = queue.pop_front() {
+      module_graph.set_async(&module);
+      if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module) {
+        mgm
+          .incoming_connections_unordered(module_graph)?
+          .filter(|con| {
+            if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
+              *dep.dependency_type() == DependencyType::EsmImport
+            } else {
+              false
+            }
+          })
+          .for_each(|con| {
+            if let Some(id) = &con.original_module_identifier {
+              if uniques.insert(*id) {
+                queue.insert(*id);
+              }
+            }
+          });
+      }
+    }
     Ok(())
   }
 }

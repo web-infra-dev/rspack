@@ -464,20 +464,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2801af0d36612ae591caa9568261fddce32ce6e08a7275ea334a06a4ad021a2c"
-dependencies = [
- "cfg-if",
- "crossbeam-channel",
- "crossbeam-deque",
- "crossbeam-epoch",
- "crossbeam-queue",
- "crossbeam-utils",
-]
-
-[[package]]
 name = "crossbeam-channel"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -509,16 +495,6 @@ dependencies = [
  "crossbeam-utils",
  "memoffset",
  "scopeguard",
-]
-
-[[package]]
-name = "crossbeam-queue"
-version = "0.3.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1cfb3ea8a53f37c40dea2c7bedcbd88bdfae54f5e2175d6ecaff1c988353add"
-dependencies = [
- "cfg-if",
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -2360,7 +2336,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "criterion",
- "crossbeam",
  "dashmap",
  "insta",
  "mimalloc-rust",
@@ -2452,6 +2427,7 @@ dependencies = [
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_split_chunks",
+ "rspack_plugin_wasm",
  "rspack_regex",
  "serde",
  "serde_json",
@@ -2483,7 +2459,6 @@ dependencies = [
  "async-scoped",
  "async-trait",
  "bitflags",
- "crossbeam",
  "dashmap",
  "derivative",
  "dyn-clone",
@@ -2630,7 +2605,6 @@ name = "rspack_loader_sass"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "crossbeam-channel",
  "itertools",
  "once_cell",
  "regex",
@@ -2771,9 +2745,12 @@ name = "rspack_plugin_externals"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "once_cell",
+ "regex",
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
+ "rspack_regex",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2812,7 +2789,6 @@ dependencies = [
  "base64",
  "better_scoped_tls",
  "bitflags",
- "crossbeam-channel",
  "dashmap",
  "either",
  "linked_hash_set",
@@ -2910,6 +2886,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_wasm"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "rayon",
+ "rspack_core",
+ "rspack_error",
+ "rspack_identifier",
+ "rspack_plugin_asset",
+ "rspack_plugin_runtime",
+ "rspack_testing",
+ "rspack_util",
+ "rustc-hash",
+ "serde_json",
+ "sugar_path",
+ "tracing",
+ "wasmparser",
+]
+
+[[package]]
 name = "rspack_regex"
 version = "0.1.0"
 dependencies = [
@@ -2973,6 +2970,7 @@ dependencies = [
  "rspack_plugin_progress",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
+ "rspack_plugin_wasm",
  "rspack_regex",
  "rspack_tracing",
  "schemars",
@@ -5119,6 +5117,16 @@ name = "wasm-bindgen-shared"
 version = "0.2.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c38c045535d93ec4f0b4defec448e4291638ee608530863b1e2ba115d4fff7f"
+
+[[package]]
+name = "wasmparser"
+version = "0.102.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48134de3d7598219ab9eaf6b91b15d8e50d31da76b8519fe4ecfcec2cf35104b"
+dependencies = [
+ "indexmap",
+ "url",
+]
 
 [[package]]
 name = "web-sys"

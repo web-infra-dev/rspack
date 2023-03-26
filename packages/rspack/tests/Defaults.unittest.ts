@@ -116,6 +116,7 @@ describe("snapshots", () => {
 		    },
 		  },
 		  "experiments": {
+		    "asyncWebAssembly": false,
 		    "incrementalRebuild": true,
 		    "lazyCompilation": false,
 		  },
@@ -222,12 +223,15 @@ describe("snapshots", () => {
 		    "enabledLibraryTypes": [],
 		    "filename": "[name].js",
 		    "globalObject": "self",
+		    "iife": true,
 		    "importFunctionName": "import",
 		    "library": undefined,
+		    "module": false,
 		    "path": "<cwd>/dist",
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
 		    "uniqueName": "@rspack/core",
+		    "webassemblyModuleFilename": "[hash].module.wasm",
 		  },
 		  "plugins": [],
 		  "resolve": {
@@ -239,6 +243,7 @@ describe("snapshots", () => {
 		      ".js",
 		      ".json",
 		      ".d.ts",
+		      ".wasm",
 		    ],
 		    "mainFields": [
 		      "browser",
@@ -430,18 +435,33 @@ describe("snapshots", () => {
 		+     "outputModule": true,
 	`)
 	);
-	/**
-	 * not support yet
-	 */
+
 	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
 
 		@@ ... @@
+		-     "asyncWebAssembly": false,
 		+     "asyncWebAssembly": true,
+		@@ ... @@
+		+       },
+		+       Object {
+		+         "rules": Array [
+		+           Object {
+		+             "descriptionData": Object {
+		+               "type": "module",
+		+             },
+		+             "resolve": Object {
+		+               "fullySpecified": true,
+		+             },
+		+           },
+		+         ],
+		+         "test": /\\.wasm$/i,
+		+         "type": "webassembly/async",
 	`)
 	);
+
 	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
@@ -451,9 +471,25 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "asyncWebAssembly": false,
 			+     "asyncWebAssembly": true,
 			@@ ... @@
 			+     "syncWebAssembly": true,
+			@@ ... @@
+			+       },
+			+       Object {
+			+         "rules": Array [
+			+           Object {
+			+             "descriptionData": Object {
+			+               "type": "module",
+			+             },
+			+             "resolve": Object {
+			+               "fullySpecified": true,
+			+             },
+			+           },
+			+         ],
+			+         "test": /\\.wasm$/i,
+			+         "type": "webassembly/async",
 		`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>

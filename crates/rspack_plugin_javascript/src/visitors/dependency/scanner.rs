@@ -7,8 +7,10 @@ use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
 use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, CallExpr, Callee, ExportSpecifier, Expr, Lit, MemberProp, ModuleDecl, Tpl,
+  BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr, MemberProp,
+  MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Tpl,
 };
+use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::utils::{quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
@@ -16,6 +18,7 @@ use swc_core::quote;
 use super::{as_parent_path, is_require_context_call};
 use crate::dependency::{
   CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
+  URLDependency,
 };
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
@@ -124,6 +127,52 @@ impl DependencyScanner<'_> {
       }
     }
   }
+
+  // new URL("./foo.png", import.meta.url);
+  fn add_new_url(&mut self, new_expr: &NewExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
+    if let Expr::Ident(Ident {
+      sym: js_word!("URL"),
+      ..
+    }) = &*new_expr.callee
+    {
+      if let Some(args) = &new_expr.args {
+        if let (Some(first), Some(second)) = (args.first(), args.get(1)) {
+          if let (
+            ExprOrSpread {
+              spread: None,
+              expr: box Expr::Lit(Lit::Str(path)),
+            },
+            // import.meta.url
+            ExprOrSpread {
+              spread: None,
+              expr:
+                box Expr::Member(MemberExpr {
+                  obj:
+                    box Expr::MetaProp(MetaPropExpr {
+                      kind: MetaPropKind::ImportMeta,
+                      ..
+                    }),
+                  prop:
+                    MemberProp::Ident(Ident {
+                      sym: js_word!("url"),
+                      ..
+                    }),
+                  ..
+                }),
+            },
+          ) = (first, second)
+          {
+            self.add_dependency(box URLDependency::new(
+              path.value.clone(),
+              Some(new_expr.span.into()),
+              as_parent_path(ast_path),
+            ))
+          }
+        }
+      }
+    }
+  }
+
   fn add_export(
     &mut self,
     module_decl: &ModuleDecl,
@@ -131,39 +180,14 @@ impl DependencyScanner<'_> {
   ) -> Result<(), anyhow::Error> {
     match module_decl {
       ModuleDecl::ExportNamed(node) => {
-        node.specifiers.iter().for_each(|specifier| {
-          match specifier {
-            ExportSpecifier::Named(_s) => {
-              if let Some(source_node) = &node.src {
-                // export { name } from './other'
-                // TODO: this should ignore from code generation or use a new dependency instead
-                self.add_dependency(box EsmExportDependency::new(
-                  source_node.value.clone(),
-                  Some(node.span.into()),
-                  as_parent_path(ast_path),
-                ));
-              }
-            }
-            ExportSpecifier::Namespace(_s) => {
-              // export * as name from './other'
-              let source = node
-                .src
-                .as_ref()
-                .map(|str| str.value.clone())
-                .expect("TODO:");
-              // TODO: this should ignore from code generation or use a new dependency instead
-              self.add_dependency(box EsmExportDependency::new(
-                source,
-                Some(node.span.into()),
-                as_parent_path(ast_path),
-              ));
-            }
-            ExportSpecifier::Default(_) => {
-              // export v from 'mod';
-              // Rollup doesn't support it.
-            }
-          };
-        });
+        if let Some(src) = &node.src {
+          // TODO: this should ignore from code generation or use a new dependency instead
+          self.add_dependency(box EsmExportDependency::new(
+            src.value.clone(),
+            Some(node.span.into()),
+            as_parent_path(ast_path),
+          ));
+        }
       }
       ModuleDecl::ExportAll(node) => {
         // export * from './other'
@@ -259,6 +283,15 @@ impl VisitAstPath for DependencyScanner<'_> {
     self.add_dynamic_import(node, &*ast_path);
     self.add_require(node, &*ast_path);
     self.scan_require_context(node, &*ast_path);
+    node.visit_children_with_path(self, ast_path);
+  }
+
+  fn visit_new_expr<'ast: 'r, 'r>(
+    &mut self,
+    node: &'ast NewExpr,
+    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
+  ) {
+    self.add_new_url(node, &*ast_path);
     node.visit_children_with_path(self, ast_path);
   }
 

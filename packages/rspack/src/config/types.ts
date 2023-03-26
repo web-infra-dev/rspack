@@ -128,11 +128,16 @@ export interface Output {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	iife?: Iife;
+	// enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	// wasmLoading?: WasmLoading;
+	webassemblyModuleFilename?: WebassemblyModuleFilename;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
 export type RawPublicPath = string;
 export type AssetModuleFilename = string;
+export type WebassemblyModuleFilename = string;
 export type Filename = FilenameTemplate;
 export type ChunkFilename = FilenameTemplate;
 export type CssFilename = FilenameTemplate;
@@ -142,6 +147,7 @@ export type UniqueName = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
+export type Iife = boolean;
 export interface LibraryCustomUmdCommentObject {
 	amd?: string;
 	commonjs?: string;
@@ -161,6 +167,12 @@ export interface LibraryCustomUmdObject {
 	commonjs?: string;
 	root?: string | string[];
 }
+
+export type WasmLoading = false | WasmLoadingType;
+export type WasmLoadingType =
+	| ("fetch-streaming" | "fetch" | "async-node")
+	| string;
+
 export type LibraryExport = string[] | string;
 export type LibraryType =
 	| (
@@ -189,6 +201,7 @@ export type UmdNamedDefine = boolean;
 export type EnabledLibraryTypes = LibraryType[];
 export type GlobalObject = string;
 export type ImportFunctionName = string;
+export type EnabledWasmLoadingTypes = WasmLoadingType[];
 export interface OutputNormalized {
 	path?: Path;
 	publicPath?: PublicPath;
@@ -204,6 +217,10 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	// enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	// wasmLoading?: WasmLoading;
+	webassemblyModuleFilename?: WebassemblyModuleFilename;
+	iife?: Iife;
 }
 
 ///// Resolve /////
@@ -306,7 +323,7 @@ export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }
-export type ExternalItemValue = string;
+export type ExternalItemValue = string | boolean;
 
 ///// ExternalsType /////
 export type ExternalsType =
@@ -426,6 +443,8 @@ export interface StatsOptions {
 	outputPath?: boolean;
 	chunkModules?: boolean;
 	chunkRelations?: boolean;
+	timings?: boolean;
+	builtAt?: boolean;
 }
 
 ///// Optimization /////
@@ -483,6 +502,7 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 export interface Experiments {
 	lazyCompilation?: boolean;
 	incrementalRebuild?: boolean;
+	asyncWebAssembly?: boolean;
 }
 
 ///// Watch /////

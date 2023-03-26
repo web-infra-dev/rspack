@@ -15,6 +15,8 @@ use std::{any::Any, fmt::Debug, hash::Hash};
 
 use dyn_clone::{clone_trait_object, DynClone};
 pub use require_context_dependency::RequireContextDependency;
+mod static_exports_dependency;
+pub use static_exports_dependency::*;
 
 use crate::{
   AsAny, ContextMode, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleIdentifier,
@@ -35,6 +37,8 @@ pub enum DependencyType {
   DynamicImport,
   // cjs require
   CjsRequire,
+  // new URL("./foo", import.meta.url)
+  NewUrl,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
   // import.meta.webpackHot.decline
@@ -57,6 +61,12 @@ pub enum DependencyType {
   CommonJSRequireContext,
   // require.context
   RequireContext,
+  /// wasm import
+  WasmImport,
+  /// wasm export import
+  WasmExportImported,
+  /// static exports
+  StaticExports,
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -68,6 +78,7 @@ pub enum DependencyCategory {
   Url,
   CssImport,
   CssCompose,
+  Wasm,
 }
 
 pub trait Dependency:

@@ -8,6 +8,7 @@ use serde::Deserialize;
 pub struct RawExperiments {
   pub lazy_compilation: bool,
   pub incremental_rebuild: bool,
+  pub async_web_assembly: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -15,6 +16,7 @@ impl From<RawExperiments> for Experiments {
     Self {
       lazy_compilation: value.lazy_compilation,
       incremental_rebuild: value.incremental_rebuild,
+      async_web_assembly: value.async_web_assembly,
     }
   }
 }

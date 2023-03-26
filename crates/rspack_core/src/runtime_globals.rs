@@ -152,3 +152,22 @@ pub const GLOBAL: &str = "__webpack_require__.g";
  * runtime need to return the exports of the last entry module
  */
 pub const RETURN_EXPORTS_FROM_RUNTIME: &str = "return-exports-from-runtime";
+
+/**
+ * instantiate a wasm instance from module exports object, id, hash and importsObject
+ */
+pub const INSTANTIATE_WASM: &str = "__webpack_require__.v";
+
+/**
+ * Creates an async module. The body function must be a async function.
+ * "module.exports" will be decorated with an AsyncModulePromise.
+ * The body function will be called.
+ * To handle async dependencies correctly do this: "([a, b, c] = await handleDependencies([a, b, c]));".
+ * If "hasAwaitAfterDependencies" is truthy, "handleDependencies()" must be called at the end of the body function.
+ * Signature: function(
+ * module: Module,
+ * body: (handleDependencies: (deps: AsyncModulePromise[]) => Promise<any[]> & () => void,
+ * hasAwaitAfterDependencies?: boolean
+ * ) => void
+ */
+pub const ASYNC_MODULE: &str = "__webpack_require__.a";

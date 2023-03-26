@@ -266,6 +266,7 @@ impl<'a, 'b> VisitMutAstPath for DependencyVisitor<'a, 'b> {
   impl_ast_node_interceptor!(module_decl, ModuleDecl);
   impl_ast_node_interceptor!(module_item, ModuleItem);
   impl_ast_node_interceptor!(call_expr, CallExpr);
+  impl_ast_node_interceptor!(new_expr, NewExpr);
   impl_ast_node_interceptor!(lit, Lit);
   impl_ast_node_interceptor!(str, Str);
 }

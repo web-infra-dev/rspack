@@ -77,6 +77,7 @@ export class Compilation {
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
 		>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -85,10 +86,14 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	startTime?: number;
+	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
+		this.startTime = undefined;
+		this.endTime = undefined;
 		let processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
 			processAssets: processAssetsHooks,
@@ -99,7 +104,8 @@ export class Compilation {
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
-			])
+			]),
+			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -225,6 +231,11 @@ export class Compilation {
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
 		options.outputPath = optionOrLocalFallback(
 			options.outputPath,
+			!context.forToString
+		);
+		options.timings = optionOrLocalFallback(options.timings, true);
+		options.builtAt = optionOrLocalFallback(
+			options.builtAt,
 			!context.forToString
 		);
 

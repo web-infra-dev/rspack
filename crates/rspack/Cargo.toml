@@ -22,7 +22,6 @@ xshell                 = "0.2.2"
 mimalloc-rust = { workspace = true }
 
 [dependencies]
-crossbeam                         = { workspace = true }
 dashmap                           = { workspace = true }
 rspack_core                       = { path = "../rspack_core" }
 rspack_fs                         = { path = "../rspack_fs", features = ["async", "rspack-error"] }

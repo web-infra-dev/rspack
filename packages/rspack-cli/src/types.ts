@@ -32,8 +32,9 @@ export interface RspackCLIBuildOptions extends RspackCLIOptions {
 	watch?: boolean;
 	analyze?: boolean;
 	env?: Record<string, any>;
-	nodeEnv: string;
+	nodeEnv?: string;
 }
+
 export interface RspackCLIPreviewOptions extends RspackCLIOptions {
 	dir?: string;
 	port?: number;
@@ -42,7 +43,6 @@ export interface RspackCLIPreviewOptions extends RspackCLIOptions {
 	server?: string;
 	publicPath: string;
 }
-
 export interface RspackCommand {
 	apply(cli: RspackCLI): Promise<void>;
 }

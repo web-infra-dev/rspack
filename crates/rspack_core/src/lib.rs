@@ -76,6 +76,7 @@ pub use rspack_sources;
 pub enum SourceType {
   JavaScript,
   Css,
+  Wasm,
   Asset,
   #[default]
   Unknown,
@@ -94,6 +95,8 @@ pub enum ModuleType {
   JsxEsm,
   Tsx,
   Ts,
+  WasmSync,
+  WasmAsync,
   AssetInline,
   AssetResource,
   AssetSource,
@@ -124,6 +127,10 @@ impl ModuleType {
       ModuleType::Tsx | ModuleType::Jsx | ModuleType::JsxEsm | ModuleType::JsxDynamic
     )
   }
+
+  pub fn is_wasm_like(&self) -> bool {
+    matches!(self, ModuleType::WasmSync | ModuleType::WasmAsync)
+  }
 }
 
 impl fmt::Display for ModuleType {
@@ -147,6 +154,9 @@ impl fmt::Display for ModuleType {
         ModuleType::CssModule => "css/module",
 
         ModuleType::Json => "json",
+
+        ModuleType::WasmSync => "webassembly/sync",
+        ModuleType::WasmAsync => "webassembly/async",
 
         ModuleType::Asset => "asset",
         ModuleType::AssetSource => "asset/source",
@@ -179,6 +189,9 @@ impl TryFrom<&str> for ModuleType {
       "css/module" => Ok(Self::CssModule),
 
       "json" => Ok(Self::Json),
+
+      "webassembly/sync" => Ok(Self::WasmSync),
+      "webassembly/async" => Ok(Self::WasmAsync),
 
       "asset" => Ok(Self::Asset),
       "asset/resource" => Ok(Self::AssetResource),

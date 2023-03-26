@@ -139,11 +139,10 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		const options = getRawOptions(this.options, this);
 		this.#_instance =
 			this.#_instance ??
 			new binding.Rspack(
-				options,
+				getRawOptions(this.options, this),
 				{
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
@@ -182,6 +181,7 @@ class Compiler {
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
+					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this)
 				},
@@ -304,7 +304,8 @@ class Compiler {
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
 			compilation: this.hooks.compilation,
-			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules
+			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
+			finishModules: this.compilation.hooks.finishModules
 			// normalModuleFactoryResolveForScheme: this.#
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
@@ -343,6 +344,14 @@ class Compiler {
 		);
 		this.#updateDisabledHooks();
 	}
+
+	async #finish_modules() {
+		await this.compilation.hooks.finishModules.promise(
+			this.compilation.getModules()
+		);
+		this.#updateDisabledHooks();
+	}
+
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
 		this.#updateDisabledHooks();
@@ -381,6 +390,7 @@ class Compiler {
 		if (this.running) {
 			return callback(new ConcurrentCompilationError());
 		}
+		const startTime = Date.now();
 		this.running = true;
 		const doRun = () => {
 			// @ts-expect-error
@@ -407,6 +417,8 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
+						this.compilation.startTime = startTime;
+						this.compilation.endTime = Date.now();
 						const stats = new Stats(this.compilation);
 						this.hooks.done.callAsync(stats, err => {
 							if (err) {
@@ -454,14 +466,10 @@ class Compiler {
 
 	watch(
 		watchOptions: WatchOptions,
-		handler: (error: Error, stats: Stats) => void
+		handler: (error: Error, stats?: Stats) => Watching
 	): Watching {
 		if (this.running) {
-			return handler(
-				new ConcurrentCompilationError(),
-				// @ts-expect-error
-				null
-			) as unknown as Watching;
+			return handler(new ConcurrentCompilationError());
 		}
 		this.running = true;
 		this.watchMode = true;

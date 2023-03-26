@@ -1,5 +1,26 @@
 # @rspack/binding
 
+## 0.1.2
+
+### Patch Changes
+
+- 68c4df8: feat: module.hot.accept/decline support arrary dependencies
+- a43a849: fix: cheap-module-source-map too slow
+- f562fa9: feat: add simple ignore options for copy-plugin
+- 97dc0dd: fix regex external not working
+- b4c5ed5: fix: css url rewrite for complex http url within ~
+- 36ffd12: fix: Tailwind CSS HMR not work
+- a6ac7da: feat: function type RuleSetCondition
+- 48eff5e: feat: add normalModuleFactory and resolveForScheme hook
+- 8f8e025: align optimizeChunkModules
+- 7fde34f: fix: node mode interop
+- 2c01586: fix: fix identifier of missing module
+- 6d9eb8b: fix: contenthash should care about ChunkGraphModule#id
+- 2e9d331: feat(runtime): support node.\_\_filename polyfill
+- a54179d: fix(html): builtins.html minify not work
+- fbc315d: add percent symbol in progress plugin message
+- c4c20a3: add cross-env
+
 ## 0.1.1
 
 ### Patch Changes

@@ -10,6 +10,7 @@ import {
 } from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
+import { PreviewCommand } from "./commands/preview";
 import {
 	RspackOptions,
 	MultiCompiler,
@@ -20,15 +21,9 @@ import {
 	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import {
-	findFileWithSupportedExtensions,
-	loadRspackConfig
-} from "./utils/loadConfig";
-import { Mode } from "@rspack/core/src/config";
-import { PreviewCommand } from "./commands/preview";
-
-type RspackEnv = "development" | "production";
-const defaultEntry = "src/index";
+import { loadRspackConfig } from "./utils/loadConfig";
+import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import { buildConfigWithOptions } from "./utils/buildConfig";
 
 export class RspackCLI {
 	colors: RspackCLIColors;
@@ -39,25 +34,18 @@ export class RspackCLI {
 	}
 	async createCompiler(
 		options: RspackCLIBuildOptions,
-		rspackEnv: RspackEnv,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
-		let nodeEnv = process?.env?.NODE_ENV;
 		if (typeof options.nodeEnv === "string") {
-			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
-		} else {
-			process.env.NODE_ENV = nodeEnv || rspackEnv;
+			process.env.NODE_ENV = options.nodeEnv;
 		}
-		let config = await this.loadConfig(options);
-		config = await this.buildConfig(config, options, rspackEnv);
 
-		const isWatch = Array.isArray(config)
-			? (config as MultiRspackOptions).some(i => i.watch)
-			: (config as RspackOptions).watch;
+		let config = await this.loadConfig(options);
+		config = await this.buildConfig(config, options);
 
 		// @ts-ignore
-		const compiler = rspack(config, isWatch ? callback : undefined);
+		const compiler = rspack(config, callback);
 		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
@@ -106,106 +94,10 @@ export class RspackCLI {
 	}
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
-		options: RspackCLIBuildOptions,
-		rspackEnv: RspackEnv
+		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
 		const internalBuildConfig = async (item: RspackOptions) => {
-			const isEnvProduction = rspackEnv === "production";
-			const isEnvDevelopment = rspackEnv === "development";
-			let entry: Record<string, string> = {};
-			if (!item.entry) {
-				if (options.entry) {
-					entry = {
-						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
-					};
-				} else {
-					const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
-					const defaultEntryPath =
-						findFileWithSupportedExtensions(defaultEntryBase) ||
-						defaultEntryBase + ".js"; // default entry is js
-					entry = {
-						main: defaultEntryPath
-					};
-				}
-				item.entry = entry;
-			}
-			if (options.analyze) {
-				const { BundleAnalyzerPlugin } = await import(
-					"webpack-bundle-analyzer"
-				);
-				(item.plugins ??= []).push({
-					name: "rspack-bundle-analyzer",
-					apply(compiler) {
-						new BundleAnalyzerPlugin({
-							generateStatsFile: true
-						}).apply(compiler as any);
-					}
-				});
-			}
-			// cli --watch overrides the watch config
-			if (options.watch) {
-				item.watch = options.watch;
-			}
-			// auto set default mode if user config don't set it
-			if (!item.mode) {
-				item.mode = rspackEnv ?? "none";
-			}
-			// user parameters always has highest priority than default mode and config mode
-			if (options.mode) {
-				item.mode = options.mode as Mode;
-			}
-
-			// false is also a valid value for sourcemap, so don't override it
-			if (typeof item.devtool === "undefined") {
-				item.devtool = isEnvProduction
-					? "source-map"
-					: "cheap-module-source-map";
-			}
-			item.builtins = item.builtins || {};
-			if (isEnvDevelopment) {
-				item.builtins.progress = true;
-			}
-
-			// no emit assets when run dev server, it will use node_binding api get file content
-			if (typeof item.builtins.noEmitAssets === "undefined") {
-				item.builtins.noEmitAssets = false; // @FIXME memory fs currently cause problems for outputFileSystem, so we disable it temporarily
-			}
-
-			// Tells webpack to set process.env.NODE_ENV to a given string value.
-			// optimization.nodeEnv uses DefinePlugin unless set to false.
-			// optimization.nodeEnv defaults to mode if set, else falls back to 'production'.
-			// See doc: https://webpack.js.org/configuration/optimization/#optimizationnodeenv
-			// See source: https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/WebpackOptionsApply.js#L563
-
-			// When mode is set to 'none', optimization.nodeEnv defaults to false.
-			if (item.mode !== "none") {
-				item.builtins.define = {
-					// User defined `process.env.NODE_ENV` always has highest priority than default define
-					"process.env.NODE_ENV": JSON.stringify(item.mode),
-					...item.builtins.define
-				};
-			}
-
-			if (typeof item.stats === "undefined") {
-				item.stats = { preset: "errors-warnings" };
-			} else if (typeof item.stats === "boolean") {
-				item.stats = item.stats ? { preset: "normal" } : { preset: "none" };
-			} else if (typeof item.stats === "string") {
-				item.stats = {
-					preset: item.stats as
-						| "normal"
-						| "none"
-						| "verbose"
-						| "errors-only"
-						| "errors-warnings"
-				};
-			}
-			if (
-				this.colors.isColorSupported &&
-				typeof item.stats.colors === "undefined"
-			) {
-				item.stats.colors = true;
-			}
+			buildConfigWithOptions(item, options, this.colors.isColorSupported);
 			return item;
 		};
 
@@ -284,4 +176,15 @@ export class RspackCLI {
 
 export function defineConfig(config: RspackOptions): RspackOptions {
 	return config;
+}
+
+// Note: use union type will make apply function's `compiler` type to be `any`
+export function definePlugin(
+	plugin: RspackPluginFunction
+): RspackPluginFunction;
+export function definePlugin(
+	plugin: RspackPluginInstance
+): RspackPluginInstance;
+export function definePlugin(plugin: any): any {
+	return plugin;
 }
