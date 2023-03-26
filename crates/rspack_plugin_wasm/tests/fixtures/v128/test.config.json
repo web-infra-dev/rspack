@@ -1,0 +1,5 @@
+{
+	"experiments": {
+		"asyncWebAssembly": true
+	}
+}

@@ -160,6 +160,7 @@ export interface RawEntryItem {
 export interface RawExperiments {
   lazyCompilation: boolean
   incrementalRebuild: boolean
+  asyncWebAssembly: boolean
 }
 export interface RawExternalItem {
   type: "string" | "regexp" | "object"
@@ -303,6 +304,7 @@ export interface RawOutputOptions {
   path: string
   publicPath: string
   assetModuleFilename: string
+  webassemblyModuleFilename: string
   filename: string
   chunkFilename: string
   cssFilename: string

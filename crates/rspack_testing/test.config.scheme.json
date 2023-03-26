@@ -17,6 +17,13 @@
         "$ref": "#/definitions/EntryItem"
       }
     },
+    "experiments": {
+      "$ref": "#/definitions/Experiments"
+    },
+    "mode": {
+      "default": "",
+      "type": "string"
+    },
     "module": {
       "$ref": "#/definitions/Module"
     },
@@ -52,6 +59,10 @@
             "type": "string"
           }
         },
+        "devFriendlySplitChunks": {
+          "default": false,
+          "type": "boolean"
+        },
         "html": {
           "type": "array",
           "items": {
@@ -72,19 +83,14 @@
           "$ref": "#/definitions/Postcss"
         },
         "presetEnv": {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "type": "string",
-              "enum": ["usage", "entry"]
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PresetEnv"
             },
-            "targets": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+            {
+              "type": "null"
             }
-          }
+          ]
         },
         "treeShaking": {
           "default": false,
@@ -120,6 +126,16 @@
             "string",
             "null"
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Experiments": {
+      "type": "object",
+      "properties": {
+        "asyncWebAssembly": {
+          "default": true,
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -408,6 +424,33 @@
               "type": "null"
             }
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "PresetEnv": {
+      "type": "object",
+      "required": [
+        "targets"
+      ],
+      "properties": {
+        "coreJs": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false

@@ -34,6 +34,7 @@ pub struct BuildInfo {
 #[derive(Debug, Default, Clone)]
 pub struct BuildMeta {
   pub strict_harmony_module: bool,
+  pub is_async: bool,
   // TODO webpack exportsType
   pub esm: bool,
 }

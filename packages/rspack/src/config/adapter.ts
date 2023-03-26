@@ -149,7 +149,9 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			!isNil(output.globalObject) &&
 			!isNil(output.importFunctionName) &&
 			!isNil(output.module) &&
-			!isNil(output.iife),
+			!isNil(output.iife) &&
+			!isNil(output.importFunctionName) &&
+			!isNil(output.webassemblyModuleFilename),
 		"fields should not be nil after defaults"
 	);
 	return {
@@ -167,7 +169,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		globalObject: output.globalObject,
 		importFunctionName: output.importFunctionName,
 		iife: output.iife,
-		module: output.module
+		module: output.module,
+		webassemblyModuleFilename: output.webassemblyModuleFilename
 	};
 }
 
@@ -424,11 +427,16 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: Experiments
 ): RawOptions["experiments"] {
-	const { lazyCompilation, incrementalRebuild } = experiments;
-	assert(!isNil(lazyCompilation) && !isNil(incrementalRebuild));
+	const { lazyCompilation, incrementalRebuild, asyncWebAssembly } = experiments;
+	assert(
+		!isNil(lazyCompilation) &&
+			!isNil(incrementalRebuild) &&
+			!isNil(asyncWebAssembly)
+	);
 	return {
 		lazyCompilation,
-		incrementalRebuild
+		incrementalRebuild,
+		asyncWebAssembly
 	};
 }
 

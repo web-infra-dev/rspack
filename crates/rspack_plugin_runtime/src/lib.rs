@@ -6,6 +6,7 @@ use rspack_core::{
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
 };
 use rspack_error::Result;
+use runtime_module::AsyncRuntimeModule;
 
 use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
 
@@ -67,6 +68,10 @@ impl Plugin for RuntimePlugin {
     if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK) {
       runtime_requirements.insert(runtime_globals::ENSURE_CHUNK_HANDLERS);
       compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
+    }
+
+    if runtime_requirements.contains(runtime_globals::ASYNC_MODULE) {
+      compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
     }
 
     if runtime_requirements.contains(runtime_globals::ON_CHUNKS_LOADED) {
