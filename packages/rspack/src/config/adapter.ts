@@ -149,7 +149,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			!isNil(output.globalObject) &&
 			!isNil(output.importFunctionName) &&
 			!isNil(output.module) &&
-			!isNil(output.iife),
+			!isNil(output.iife) &&
 			!isNil(output.importFunctionName) &&
 			!isNil(output.webassemblyModuleFilename),
 		"fields should not be nil after defaults"
@@ -169,8 +169,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		globalObject: output.globalObject,
 		importFunctionName: output.importFunctionName,
 		iife: output.iife,
-		module: output.module
-		importFunctionName: output.importFunctionName,
+		module: output.module,
 		webassemblyModuleFilename: output.webassemblyModuleFilename
 	};
 }
