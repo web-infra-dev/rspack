@@ -1,6 +1,6 @@
 import type { RspackCLI } from "../rspack-cli";
 import { RspackDevServer } from "@rspack/dev-server";
-import { RspackCommand, RspackCLIPreviewOptions } from "../types";
+import { RspackCommand, RspackPreviewCLIOptions } from "../types";
 import { previewOptions } from "../utils/options";
 import {
 	DevServer,
@@ -18,7 +18,7 @@ export class PreviewCommand implements RspackCommand {
 			"run the rspack server for build output",
 			previewOptions,
 			async options => {
-                // config、configName are necessary for loadConfig
+				// config、configName are necessary for loadConfig
 				const rspackOptions = {
 					config: options.config,
 					configName: options.configName,
@@ -29,10 +29,10 @@ export class PreviewCommand implements RspackCommand {
 
 				let config = await cli.loadConfig(rspackOptions);
 				config = await getPreviewConfig(config, options);
-				if(!Array.isArray(config)){
+				if (!Array.isArray(config)) {
 					config = [config as RspackOptions];
-				}	
-	
+				}
+
 				config = config as MultiRspackOptions;
 
 				// find the possible devServer config
@@ -59,13 +59,13 @@ export class PreviewCommand implements RspackCommand {
 // get the devServerOptions from the config
 async function getPreviewConfig(
 	item: RspackOptions | MultiRspackOptions,
-	options: RspackCLIPreviewOptions
+	options: RspackPreviewCLIOptions
 ): Promise<RspackOptions | MultiRspackOptions> {
 	const internalPreviewConfig = async (item: RspackOptions) => {
 		if (!item.devServer) {
 			item.devServer = {};
 		}
-        // all of the options that a preview static server needs(maybe not all)
+		// all of the options that a preview static server needs(maybe not all)
 		item.devServer = {
 			static: {
 				directory: options.dir

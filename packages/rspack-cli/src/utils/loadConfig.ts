@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import { RspackCLIOptions, RspackCLIPreviewOptions } from "../types";
+import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
 
 const supportedExtensions = [".js", ".ts"];

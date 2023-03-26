@@ -1,12 +1,16 @@
 import { Mode, RspackOptions } from "@rspack/core";
-import { RspackCLIOptions } from "../types";
+import { RspackBuildCLIOptions } from "../types";
+import { findFileWithSupportedExtensions } from "./loadConfig";
+import path from 'node:path';
 
+const defaultEntry = "src/index.ts";
 export async function buildConfigWithOptions(
 	item: RspackOptions,
-	options: RspackCLIOptions,
+	options: RspackBuildCLIOptions,
 	isColorSupported: boolean
 ) {
 	const mode = buildConfig_mode(item, options);
+	buildConfig_entry(item, options)	
 	buildConfig_stats(item, isColorSupported);
 	buildConfig_analyze(item, options);
 	buildConfig_builtin(item, mode);
@@ -16,7 +20,7 @@ export async function buildConfigWithOptions(
 
 function buildConfig_mode(
 	item: RspackOptions,
-	options: RspackCLIOptions
+	options: RspackBuildCLIOptions
 ): Mode {
 	// Respect `process.env.NODE_ENV`
 	if (
@@ -43,6 +47,26 @@ function buildConfig_mode(
 	return item.mode;
 }
 
+function buildConfig_entry(item: RspackOptions, options: RspackBuildCLIOptions) {
+	let entry = {};
+	if (!item.entry) {
+				if (options.entry) {
+					entry = {
+						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
+					};
+				} else {
+					const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
+					const defaultEntryPath =
+						findFileWithSupportedExtensions(defaultEntryBase) ||
+						defaultEntryBase + ".js"; // default entry is js
+					entry = {
+						main: defaultEntryPath
+					};
+				}
+				item.entry = entry;
+			}
+}
+
 function buildConfig_stats(item: RspackOptions, isColorSupported: boolean) {
 	if (typeof item.stats === "undefined") {
 		item.stats = { preset: "errors-warnings" };
@@ -66,7 +90,7 @@ function buildConfig_stats(item: RspackOptions, isColorSupported: boolean) {
 
 async function buildConfig_analyze(
 	item: RspackOptions,
-	options: RspackCLIOptions
+	options: RspackBuildCLIOptions
 ) {
 	if (options.analyze) {
 		const { BundleAnalyzerPlugin } = await import("webpack-bundle-analyzer");
@@ -81,7 +105,7 @@ async function buildConfig_analyze(
 	}
 }
 
-function buildConfig_watch(item: RspackOptions, options: RspackCLIOptions) {
+function buildConfig_watch(item: RspackOptions, options: RspackBuildCLIOptions) {
 	// cli --watch overrides the watch config
 	if (options.watch) {
 		item.watch = options.watch;

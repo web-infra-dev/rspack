@@ -1,12 +1,11 @@
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
-import path from "node:path";
 import {
-	RspackCLIBuildOptions,
+	RspackBuildCLIOptions,
 	RspackCLIColors,
 	RspackCLILogger,
-	RspackCLIOptions,
+	RspackCLIOptions
 } from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
@@ -33,7 +32,7 @@ export class RspackCLI {
 		this.program = yargs();
 	}
 	async createCompiler(
-		options: RspackCLIBuildOptions,
+		options: RspackBuildCLIOptions,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";

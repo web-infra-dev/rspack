@@ -25,7 +25,7 @@ export interface RspackCLIOptions {
 	configName?: string[];
 }
 
-export interface RspackCLIBuildOptions extends RspackCLIOptions {
+export interface RspackBuildCLIOptions extends RspackCLIOptions {
 	entry?: string[];
 	devtool?: boolean;
 	mode?: string;
@@ -35,7 +35,7 @@ export interface RspackCLIBuildOptions extends RspackCLIOptions {
 	nodeEnv?: string;
 }
 
-export interface RspackCLIPreviewOptions extends RspackCLIOptions {
+export interface RspackPreviewCLIOptions extends RspackCLIOptions {
 	dir?: string;
 	port?: number;
 	host?: string;
