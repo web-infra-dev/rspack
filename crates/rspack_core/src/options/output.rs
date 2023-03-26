@@ -15,6 +15,7 @@ pub struct OutputOptions {
   pub path: PathBuf,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
+  pub webassembly_module_filename: Filename,
   pub unique_name: String,
   //todo we are not going to support file_name & chunk_file_name as function in the near feature
   pub filename: Filename,

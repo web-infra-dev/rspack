@@ -1,4 +1,6 @@
 mod dependency;
+use std::collections::LinkedList;
+
 pub use dependency::*;
 mod finalize;
 use either::Either;
@@ -13,7 +15,7 @@ mod strict;
 use strict::strict_mode;
 mod format;
 use format::*;
-use rspack_core::{BuildInfo, EsVersion, Module, ModuleType};
+use rspack_core::{runtime_globals, BuildInfo, EsVersion, Module, ModuleType};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::module::util::ImportInterop;
@@ -32,7 +34,9 @@ use swc_core::ecma::transforms::base::pass::{noop, Optional};
 use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use swc_emotion::EmotionOptions;
 use tree_shaking::tree_shaking_visitor;
+mod async_module;
 
+use crate::visitors::async_module::build_async_module;
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
 
@@ -169,13 +173,13 @@ pub fn run_after_pass(
     .transform_with_handler(cm.clone(), |_, program, context| {
       let unresolved_mark = context.unresolved_mark;
       let top_level_mark = context.top_level_mark;
-      let builtin_tree_shaking = generate_context.compilation.options.builtins.tree_shaking;
-      let minify_options = &generate_context.compilation.options.builtins.minify_options;
+      let compilation = generate_context.compilation;
+      let builtin_tree_shaking = compilation.options.builtins.tree_shaking;
+      let minify_options = &compilation.options.builtins.minify_options;
       let comments = None;
       let dependency_visitors =
         collect_dependency_code_generation_visitors(module, generate_context)?;
-      let mgm = generate_context
-        .compilation
+      let mgm = compilation
         .module_graph
         .module_graph_module_by_identifier(&module.identifier())
         .expect("should have module graph module");
@@ -205,16 +209,26 @@ pub fn run_after_pass(
         }
       }
 
+      let mut promises = LinkedList::new();
+      if build_meta.is_async {
+        let runtime_requirements = &mut generate_context.runtime_requirements;
+        runtime_requirements.insert(runtime_globals::MODULE);
+        runtime_requirements.insert(runtime_globals::ASYNC_MODULE);
+        decl_mappings.iter().for_each(|(_, referenced)| {
+          promises.push_back(compilation.module_graph.is_async(referenced))
+        });
+      }
+
       let mut pass = chain!(
         Optional::new(
           tree_shaking_visitor(
             &decl_mappings,
-            &generate_context.compilation.module_graph,
+            &compilation.module_graph,
             module.identifier(),
-            &generate_context.compilation.used_symbol_ref,
+            &compilation.used_symbol_ref,
             top_level_mark,
-            &generate_context.compilation.side_effects_free_modules,
-            &generate_context.compilation.module_item_map,
+            &compilation.side_effects_free_modules,
+            &compilation.module_item_map,
             context.helpers.mark()
           ),
           builtin_tree_shaking && need_tree_shaking
@@ -247,8 +261,9 @@ pub fn run_after_pass(
           comments,
           Some(EsVersion::Es5)
         ),
+        Optional::new(build_async_module(promises), build_meta.is_async),
         inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
-        finalize(module, generate_context.compilation, unresolved_mark),
+        finalize(module, compilation, unresolved_mark),
         swc_visitor::hygiene(false, top_level_mark),
         swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       );

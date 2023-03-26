@@ -71,7 +71,10 @@ export const applyRspackOptionsDefaults = (
 
 	applySnapshotDefaults(options.snapshot, { production });
 
-	applyModuleDefaults(options.module);
+	applyModuleDefaults(options.module, {
+		// syncWebAssembly: options.experiments.syncWebAssembly,
+		asyncWebAssembly: options.experiments.asyncWebAssembly!
+	});
 
 	applyOutputDefaults(options.output, {
 		context: options.context!,
@@ -133,6 +136,7 @@ const applyInfrastructureLoggingDefaults = (
 const applyExperimentsDefaults = (experiments: Experiments) => {
 	D(experiments, "incrementalRebuild", true);
 	D(experiments, "lazyCompilation", false);
+	D(experiments, "asyncWebAssembly", false);
 };
 
 const applySnapshotDefaults = (
@@ -151,7 +155,10 @@ const applySnapshotDefaults = (
 	);
 };
 
-const applyModuleDefaults = (module: ModuleOptions) => {
+const applyModuleDefaults = (
+	module: ModuleOptions,
+	{ asyncWebAssembly }: { asyncWebAssembly: boolean }
+) => {
 	F(module.parser!, "asset", () => ({}));
 	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
 	if (typeof module.parser!.asset!.dataUrlCondition === "object") {
@@ -228,6 +235,27 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 				}
 			]
 		});
+
+		if (asyncWebAssembly) {
+			const wasm = {
+				type: "webassembly/async",
+				rules: [
+					{
+						descriptionData: {
+							type: "module"
+						},
+						resolve: {
+							fullySpecified: true
+						}
+					}
+				]
+			};
+			rules.push({
+				test: /\.wasm$/i,
+				...wasm
+			});
+		}
+
 		return rules;
 	});
 };
@@ -280,6 +308,7 @@ const applyOutputDefaults = (
 		return "[id].css";
 	});
 	D(output, "assetModuleFilename", "[hash][ext][query]");
+	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
 	D(
 		output,
@@ -290,6 +319,17 @@ const applyOutputDefaults = (
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
 	}
+	// F(output, "wasmLoading", () => {
+	// 	if (tp) {
+	// 		if (tp.fetchWasm) return "fetch";
+	// 		if (tp.nodeBuiltins)
+	// 			return output.module ? "async-node-module" : "async-node";
+	// 		if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
+	// 			return "universal";
+	// 		}
+	// 	}
+	// 	return false;
+	// });
 	A(output, "enabledLibraryTypes", () => {
 		const enabledLibraryTypes = [];
 		if (output.library) {
@@ -298,6 +338,17 @@ const applyOutputDefaults = (
 		// TODO respect entryOptions.library
 		return enabledLibraryTypes;
 	});
+	// A(output, "enabledWasmLoadingTypes", () => {
+	// 	const enabledWasmLoadingTypes = [];
+	// 	if (output.wasmLoading) {
+	// 		enabledWasmLoadingTypes.push(output.wasmLoading);
+	// 	}
+	// 	// if (output.workerWasmLoading) {
+	// 	// 	enabledWasmLoadingTypes.push(output.workerWasmLoading);
+	// 	// }
+	// 	// TODO respect entryOptions.wasmLoading
+	// 	return enabledWasmLoadingTypes;
+	// });
 	F(output, "globalObject", () => {
 		if (tp) {
 			if (tp.global) return "global";
@@ -400,7 +451,15 @@ const getResolveDefaults = ({
 		if (targetProperties.nwjs) conditions.push("nwjs");
 	}
 
-	const jsExtensions = [".tsx", ".jsx", ".ts", ".js", ".json", ".d.ts"];
+	const jsExtensions = [
+		".tsx",
+		".jsx",
+		".ts",
+		".js",
+		".json",
+		".d.ts",
+		".wasm"
+	];
 
 	const tp = targetProperties;
 	const browserField =

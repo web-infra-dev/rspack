@@ -1,3 +1,4 @@
+mod async_module;
 mod css_loading;
 mod ensure_chunk;
 mod get_chunk_filename;
@@ -14,6 +15,7 @@ mod on_chunk_loaded;
 mod public_path;
 mod require_js_chunk_loading;
 mod utils;
+pub use async_module::AsyncRuntimeModule;
 pub use css_loading::CssLoadingRuntimeModule;
 pub use ensure_chunk::EnsureChunkRuntimeModule;
 pub use get_chunk_filename::GetChunkFilenameRuntimeModule;
