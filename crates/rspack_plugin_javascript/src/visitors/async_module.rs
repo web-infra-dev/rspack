@@ -36,6 +36,7 @@ impl VisitMut for AsyncModuleVisitor {
       .map(|(i, item)| {
         if let Some(is_async) = self.promises.pop_front() && is_async {
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) = item {
+            // Safety, after swc(variable hoisting) & treeshaking(remove unused import)
             let decl = unsafe { var.decls.get_unchecked(0) };
             let var_name = decl.name.as_ident().expect("should be ok").sym.to_string();
             args.push(make_arg(&var_name));

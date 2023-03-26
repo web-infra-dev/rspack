@@ -3,7 +3,6 @@ use std::hash::{Hash, Hasher};
 use std::sync::mpsc;
 
 use async_trait::async_trait;
-use crossbeam_channel::unbounded;
 use linked_hash_set::LinkedHashSet;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
@@ -598,7 +597,7 @@ impl Plugin for InferAsyncModulesPlugin {
     "InferAsyncModulesPlugin"
   }
 
-  fn module_ids(&mut self, compilation: &mut Compilation) -> Result<()> {
+  async fn finish_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
     // fix: mut for-in
     let mut queue = LinkedHashSet::new();
     let mut uniques = HashSet::new();
