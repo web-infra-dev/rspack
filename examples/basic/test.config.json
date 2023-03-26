@@ -1,0 +1,7 @@
+{
+  "entry": {
+    "main": {
+      "import": ["./src/index.ts"]
+    }
+  }
+}

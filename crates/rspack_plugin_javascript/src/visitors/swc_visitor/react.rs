@@ -33,8 +33,8 @@ pub fn react<'a>(
       pragma_frag: options.pragma_frag.clone(),
       throw_if_namespace: options.throw_if_namespace,
       development: options.development,
-      use_builtins: options.use_builtins,
-      use_spread: options.use_spread,
+      // use_builtins: options.use_builtins,
+      // use_spread: options.use_spread,
       ..Default::default()
     },
     top_level_mark,

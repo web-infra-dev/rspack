@@ -53,6 +53,10 @@ fn compat_by_es_version(
   if let Some(es_version) = es_version {
     Either::Left(chain!(
       Optional::new(
+        compat::class_fields_use_set::class_fields_use_set(assumptions.pure_getters),
+        assumptions.set_public_class_fields,
+      ),
+      Optional::new(
         compat::es2022::es2022(
           comments,
           compat::es2022::Config {
@@ -61,6 +65,7 @@ fn compat_by_es_version(
               constant_super: assumptions.constant_super,
               set_public_fields: assumptions.set_public_class_fields,
               no_document_all: assumptions.no_document_all,
+              static_blocks_mark: Mark::new()
             }
           }
         ),

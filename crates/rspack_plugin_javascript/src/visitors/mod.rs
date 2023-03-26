@@ -60,6 +60,10 @@ pub fn run_before_pass(
   build_meta: &mut BuildMeta,
   module_type: &ModuleType,
 ) -> Result<()> {
+  let es_version = match options.target.es_version {
+    rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version.clone()),
+    _ => None,
+  };
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
@@ -142,7 +146,7 @@ pub fn run_before_pass(
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
       swc_visitor::compat(
         options.builtins.preset_env.clone(),
-        None,
+        es_version,
         assumptions,
         top_level_mark,
         unresolved_mark,

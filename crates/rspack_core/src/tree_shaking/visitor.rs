@@ -1578,6 +1578,7 @@ fn is_pure_class(class: &Class, unresolved_ctxt: SyntaxContext) -> bool {
       ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => true,
       ClassMember::StaticBlock(_) => true,
+      ClassMember::AutoAccessor(_) => true,
     }
   })
 }

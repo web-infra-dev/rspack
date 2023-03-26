@@ -337,7 +337,7 @@ impl<'a> HmrApiRewrite<'a> {
           | Some(ExprOrSpread {
             expr:
               box Expr::Arrow(ArrowExpr {
-                body: BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
+                body: box BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
                 ..
               }),
             ..
@@ -350,11 +350,11 @@ impl<'a> HmrApiRewrite<'a> {
             ..
           }) = n.args.get_mut(1)
           {
-            if let BlockStmtOrExpr::Expr(box expr) = body {
+            if let box BlockStmtOrExpr::Expr(box expr) = body {
               auto_import_stmts.push(
                 std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
               );
-              *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
+              *body = box BlockStmtOrExpr::BlockStmt(BlockStmt {
                 span: DUMMY_SP,
                 stmts: auto_import_stmts,
               });

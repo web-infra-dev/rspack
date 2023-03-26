@@ -1,69 +1,8 @@
 [workspace]
-exclude = [
-  "crates/node_binding",
-] # Avoid including node binding, since feature unification will cause an linking issue. See: https://doc.rust-lang.org/cargo/reference/features.html#feature-unification
-members = ["crates/*", "xtask"]
+dependencies = { anyhow = { version = "1.0.69" }, async-scoped = { version = "0.7.1" }, async-trait = { version = "0.1.53" }, better_scoped_tls = { version = "0.1.0" }, bitflags = { version = "1.3.2" }, clap = { version = "4" }, colored = { version = "2.0.0" }, dashmap = { version = "5.4.0" }, derivative = { version = "2.2.0" }, derive_builder = { version = "0.11.2" }, futures = { version = "0.3.21" }, glob = { version = "0.3.1" }, hashlink = { version = "0.8.1" }, indexmap = { version = "1.9.2" }, insta = { version = "1.19.0" }, itertools = { version = "0.10.1" }, json = { version = "0.12.4" }, linked_hash_set = { version = "0.1.4" }, mimalloc-rust = { version = "0.2" }, napi = { version = "=2.11.1" }, napi-build = { version = "=2.0.1" }, napi-derive = { version = "=2.11.0" }, napi-sys = { version = "=2.2.3" }, nodejs-resolver = { version = "0.0.73" }, once_cell = { version = "1.17.0" }, paste = { version = "1.0" }, pathdiff = { version = "0.2.1" }, preset_env_base = { version = "0.4.0" }, rayon = { version = "1.5.3" }, regex = { version = "1.7.1" }, rspack_sources = { version = "0.2.3" }, rustc-hash = { version = "1.1.0" }, schemars = { version = "0.8.11" }, serde = { version = "1.0.152" }, serde_json = { version = "1.0.91" }, similar = { version = "2.2.0" }, sugar_path = { version = "0.0.9" }, swc_core = { version = "0.69.3", default-features = false }, swc_css = { version = "0.149.14" }, swc_emotion = { version = "0.29.12" }, swc_html = { version = "0.118.2" }, swc_html_minifier = { version = "0.115.2" }, swc_plugin_import = { version = "0.1.1" }, testing_macros = { version = "0.2.5" }, tokio = { version = "1.21.0" }, tracing = { version = "0.1.34" }, tracing-subscriber = { version = "0.3.9" }, url = { version = "2.2.2" }, ustr = { version = "0.9.0" }, xxhash-rust = { version = "0.8.5" } }
+exclude      = ["crates/node_binding"]
+members      = ["crates/*", "xtask"]
 
-[profile.dev]
-debug       = 2
-incremental = true
-
-[profile.release]
-codegen-units = 1
-debug         = false
-incremental   = true
-lto           = false
-opt-level     = 3
-
-
-[workspace.dependencies]
-anyhow             = { version = "1.0.69" }
-async-scoped       = { version = "0.7.1" }
-async-trait        = { version = "0.1.53" }
-better_scoped_tls  = { version = "0.1.0" }
-bitflags           = { version = "1.3.2" }
-clap               = { version = "4" }
-colored            = { version = "2.0.0" }
-dashmap            = { version = "5.4.0" }
-derivative         = { version = "2.2.0" }
-derive_builder     = { version = "0.11.2" }
-futures            = { version = "0.3.21" }
-glob               = { version = "0.3.1" }
-hashlink           = { version = "0.8.1" }
-indexmap           = { version = "1.9.2" }
-insta              = { version = "1.19.0" }
-itertools          = { version = "0.10.1" }
-json               = { version = "0.12.4" }
-linked_hash_set    = { version = "0.1.4" }
-mimalloc-rust      = { version = "0.2" }
-napi               = { version = "=2.11.1" }
-napi-build         = { version = "=2.0.1" }
-napi-derive        = { version = "=2.11.0" }
-napi-sys           = { version = "=2.2.3" }
-nodejs-resolver    = { version = "0.0.73" }
-once_cell          = { version = "1.17.0" }
-paste              = { version = "1.0" }
-pathdiff           = { version = "0.2.1" }
-preset_env_base    = { version = "0.4.0" }
-rayon              = { version = "1.5.3" }
-regex              = { version = "1.7.1" }
-rspack_sources     = { version = "0.2.3" }
-rustc-hash         = { version = "1.1.0" }
-schemars           = { version = "0.8.11" }
-serde              = { version = "1.0.152" }
-serde_json         = { version = "1.0.91" }
-similar            = { version = "2.2.0" }
-sugar_path         = { version = "0.0.9" }
-swc_core           = { version = "0.59.6", default-features = false }
-swc_css            = { version = "0.149.2" }
-swc_emotion        = { version = "=0.29.7" }
-swc_html           = { version = "0.105.1" }
-swc_html_minifier  = { version = "0.102.1" }
-swc_plugin_import  = { version = "0.1.0" }
-testing_macros     = { version = "0.2.5" }
-tokio              = { version = "1.21.0" }
-tracing            = { version = "0.1.34" }
-tracing-subscriber = { version = "0.3.9" }
-url                = { version = "2.2.2" }
-ustr               = { version = "0.9.0" }
-xxhash-rust        = { version = "0.8.5" }
+[profile]
+dev     = { debug = 2, incremental = true }
+release = { codegen-units = 1, debug = false, incremental = true, lto = false, opt-level = 3 }
