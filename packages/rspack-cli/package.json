@@ -12,7 +12,7 @@
     "build": "rimraf dist/ && tsc -b --force",
     "clean": "rimraf dist/ && tsc -b --clean",
     "dev": "tsc -b -w",
-    "test": "jest --verbose"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --verbose"
   },
   "files": [
     "bin",
