@@ -120,6 +120,7 @@ pub fn run_before_pass(
           relay_option,
           resource_data.resource_path.as_path(),
           options.context.to_path_buf(),
+          unresolved_mark,
         )
       }),
       plugin_import(options.builtins.plugin_import.as_ref()),
