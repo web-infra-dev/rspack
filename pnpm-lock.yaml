@@ -648,7 +648,8 @@ importers:
       internal-ip: 6.2.0
       source-map-support: 0.5.21
       ts-node: 10.9.1
-
+      cross-env: 7.0.3
+      
   packages/rspack-dev-client:
     specifiers:
       '@types/node': 16.11.7
