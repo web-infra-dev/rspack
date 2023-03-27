@@ -270,6 +270,7 @@ impl VisitAstPath for DependencyScanner<'_> {
   ) {
     self.add_import(node, &*ast_path);
     if let Err(e) = self.add_export(node, &*ast_path) {
+      // TODO(ahabhgk): should collected by Diagnostics
       eprintln!("{e}");
     }
     node.visit_children_with_path(self, ast_path);
