@@ -102,10 +102,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }
 
   fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
-    let base = module.size(source_type);
     match source_type {
-      SourceType::JavaScript => 40.0 + base,
-      SourceType::Wasm => base,
+      SourceType::JavaScript => {
+        40.0
+          + module
+            .get_presentational_dependencies()
+            .map_or(0.0, |i| i.len() as f64 * 10.0)
+      }
+      SourceType::Wasm => module.original_source().map_or(0, |source| source.size()) as f64,
       _ => 0.0,
     }
   }
