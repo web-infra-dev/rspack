@@ -28,6 +28,7 @@ import {
 	RuleSetUseItem,
 	RuleSetLoaderWithOptions
 } from "./types";
+import { Compilation } from "../compilation";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -480,9 +481,13 @@ function composeJsUse(
 					_compilation: compiler.compilation
 				};
 
-				NormalModule.getCompilationHooks(compiler.compilation).loader.call(
-					loaderContext
-				);
+				let compilation: Compilation | undefined = compiler.compilation;
+				while (compilation) {
+					NormalModule.getCompilationHooks(compilation).loader.call(
+						loaderContext
+					);
+					compilation = compilation.compiler.parentCompilation;
+				}
 
 				let loader;
 				try {
