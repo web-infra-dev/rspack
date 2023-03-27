@@ -306,6 +306,28 @@ describe("snapshots", () => {
 		      "url": {
 		        "preferRelative": true,
 		      },
+		      "wasm": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "import",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
 		    },
 		    "conditionNames": [
 		      "webpack",
@@ -802,6 +824,11 @@ describe("snapshots", () => {
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
 		+       "node",
 		@@ ... @@
@@ -861,6 +888,11 @@ describe("snapshots", () => {
 		@@ ... @@
 		-           "browser",
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
 		+       "node",
 		+       "electron",
@@ -893,6 +925,11 @@ describe("snapshots", () => {
 		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
 		@@ ... @@
 		-         "browserField": true,
 		+         "browserField": false,

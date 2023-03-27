@@ -486,7 +486,7 @@ const getResolveDefaults = ({
 		browserField,
 		mainFields: ["main"].filter(Boolean),
 		byDependency: {
-			// wasm: esmDeps(),
+			wasm: esmDeps(),
 			esm: esmDeps(),
 			url: {
 				preferRelative: true

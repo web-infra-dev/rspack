@@ -1,10 +1,10 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-it("should allow to run a WebAssembly module importing from multiple modules", function() {
+(async function() {
     return __webpack_require__.el("./module.js").then(__webpack_require__.bind(__webpack_require__, "./module.js")).then(__webpack_require__.ir).then(function(mod) {
-        expect(mod.result).toBe(42);
+        if (mod.result !== 42) throw new Error('panic');
     });
-});
+})();
 },
 
 },function(__webpack_require__) {

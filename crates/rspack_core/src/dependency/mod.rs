@@ -87,6 +87,7 @@ impl From<&str> for DependencyCategory {
       "esm" => Self::Esm,
       "commonjs" => Self::CommonJS,
       "url" => Self::Url,
+      "wasm" => Self::Wasm,
       "css-import" => Self::CssImport,
       "css-compose" => Self::CssCompose,
       _ => Self::Unknown,
