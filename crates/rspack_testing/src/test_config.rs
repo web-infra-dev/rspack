@@ -140,6 +140,8 @@ pub struct Builtins {
   #[serde(default)]
   pub define: HashMap<String, String>,
   #[serde(default)]
+  pub provide: HashMap<String, Vec<String>>,
+  #[serde(default)]
   pub postcss: Postcss,
   #[serde(default)]
   pub html: Vec<HtmlPluginConfig>,
@@ -399,6 +401,7 @@ impl TestConfig {
       },
       builtins: c::Builtins {
         define: self.builtins.define,
+        provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking,
         minify_options: self.builtins.minify_options.map(|op| c::Minification {
           passes: op.passes,

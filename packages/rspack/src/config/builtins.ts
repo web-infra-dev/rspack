@@ -51,6 +51,7 @@ export interface Builtins {
 	react?: RawReactOptions;
 	noEmitAssets?: boolean;
 	define?: Record<string, string | boolean | undefined>;
+	provide?: Record<string, string | string[]>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
 	minifyOptions?: Partial<RawMinification>;
@@ -139,6 +140,18 @@ function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 	const entries = Object.entries(define).map(([key, value]) => {
 		if (typeof value !== "string") {
 			value = value === undefined ? "undefined" : JSON.stringify(value);
+		}
+		return [key, value];
+	});
+	return Object.fromEntries(entries);
+}
+
+function resolveProvide(
+	provide: Builtins["provide"] = {}
+): RawBuiltins["provide"] {
+	const entries = Object.entries(provide).map(([key, value]) => {
+		if (typeof value === "string") {
+			value = [value];
 		}
 		return [key, value];
 	});
@@ -326,6 +339,7 @@ export function resolveBuiltinsOptions(
 		react: builtins.react ?? {},
 		noEmitAssets: builtins.noEmitAssets ?? false,
 		define: resolveDefine(builtins.define || {}),
+		provide: resolveProvide(builtins.provide),
 		html: resolveHtml(builtins.html || []),
 		presetEnv,
 		progress: resolveProgress(builtins.progress),

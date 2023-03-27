@@ -132,6 +132,10 @@ pub fn run_before_pass(
         !options.builtins.define.is_empty()
       ),
       Optional::new(
+        swc_visitor::provide_builtin(&options.builtins.provide, handler, &cm),
+        !options.builtins.provide.is_empty()
+      ),
+      Optional::new(
         swc_visitor::export_default_from(),
         syntax.export_default_from()
       ),
