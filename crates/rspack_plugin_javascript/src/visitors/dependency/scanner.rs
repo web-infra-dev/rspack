@@ -7,8 +7,8 @@ use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
 use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr, MemberProp,
-  MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Tpl,
+  AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit,
+  MemberExpr, MemberProp, MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Pat, PatOrExpr, Tpl,
 };
 use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::utils::{quote_ident, quote_str};
@@ -300,6 +300,34 @@ impl VisitAstPath for DependencyScanner<'_> {
     expr: &'ast Expr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
+    if let Expr::Assign(AssignExpr {
+      op: AssignOp::Assign,
+      left: PatOrExpr::Pat(box Pat::Ident(ident)),
+      ..
+    }) = expr
+    {
+      // variable can be assigned
+      if ident.span.ctxt == self.unresolved_ctxt {
+        #[allow(clippy::single_match)]
+        match ident.sym.as_ref() as &str {
+          WEBPACK_PUBLIC_PATH => {
+            let mut new_expr = expr.clone();
+            if let Some(e) = new_expr.as_mut_assign() {
+              e.left = PatOrExpr::Pat(box Pat::Ident(
+                quote_ident!(RuntimeGlobals::PUBLIC_PATH).into(),
+              ))
+            };
+            self.add_presentational_dependency(box ConstDependency::new(
+              new_expr,
+              Some(RuntimeGlobals::PUBLIC_PATH),
+              as_parent_path(ast_path),
+            ));
+          }
+          _ => {}
+        }
+      }
+    }
+
     if let Expr::Ident(ident) = expr {
       if ident.span.ctxt == self.unresolved_ctxt {
         match ident.sym.as_ref() as &str {
