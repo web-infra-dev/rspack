@@ -102,7 +102,7 @@ export class RspackCLI {
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
-			// @ts-ignore
+			// @ts-expect-error
 			loadedConfig = options.configName.map((configName: string) => {
 				let found: RspackOptions | MultiRspackOptions | undefined;
 

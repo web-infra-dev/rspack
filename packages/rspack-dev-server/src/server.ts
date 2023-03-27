@@ -371,7 +371,7 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 
 	private setupDevMiddleware() {
-		// @ts-ignored
+		// @ts-expect-error
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 
