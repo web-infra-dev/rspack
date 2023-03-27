@@ -17,7 +17,8 @@ import {
 	JsCompatSource,
 	JsAsset,
 	JsModule,
-	JsChunk
+	JsChunk,
+	JsStatsError
 } from "@rspack/binding";
 
 import {
@@ -366,6 +367,7 @@ export class Compilation {
 	}
 
 	get errors() {
+		let inner = this.#inner;
 		return {
 			push: (err: Error) => {
 				this.#inner.pushDiagnostic(
@@ -373,6 +375,9 @@ export class Compilation {
 					err.name,
 					concatErrorMsgAndStack(err)
 				);
+			},
+			get inner(): Array<JsStatsError> {
+				return inner.getStats().getErrors()
 			}
 		};
 	}
@@ -618,8 +623,8 @@ export class Compilation {
 		return this.#inner;
 	}
 
-	seal() {}
-	unseal() {}
+	seal() { }
+	unseal() { }
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
