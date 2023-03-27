@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{Alias, AliasMap, Resolve};
+use rspack_core::{Alias, AliasMap, ByDependency, DependencyCategory, Resolve};
 use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
@@ -26,6 +26,7 @@ pub struct RawResolveOptions {
   pub symlinks: Option<bool>,
   pub ts_config_path: Option<String>,
   pub modules: Option<Vec<String>>,
+  pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
 }
 
 fn normalize_alias(alias: Option<RawAliasOption>) -> anyhow::Result<Option<Alias>> {
@@ -76,6 +77,18 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let fallback = normalize_alias(value.fallback)?;
     let modules = value.modules;
     let tsconfig = value.ts_config_path.map(std::path::PathBuf::from);
+    let by_dependency = value
+      .by_dependency
+      .map(|i| {
+        i.into_iter()
+          .map(|(k, v)| {
+            let v = v.try_into()?;
+            Ok((DependencyCategory::from(k.as_str()), v))
+          })
+          .collect::<Result<ByDependency, Self::Error>>()
+      })
+      .transpose()?;
+
     Ok(Resolve {
       modules,
       prefer_relative,
@@ -88,6 +101,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       symlinks,
       tsconfig,
       fallback,
+      by_dependency,
     })
   }
 }

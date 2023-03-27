@@ -30,7 +30,7 @@ use crate::{
   ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
   DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, SourceType,
+  ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
 };
 
 bitflags! {
@@ -567,7 +567,7 @@ impl Module for NormalModule {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
       let mut data = HashMap::default();
-      let mut runtime_requirements = HashSet::default();
+      let mut runtime_requirements = RuntimeGlobals::default();
       for source_type in self.source_types() {
         let mut generation_result = self.parser_and_generator.generate(
           ast_or_source,
@@ -588,7 +588,7 @@ impl Module for NormalModule {
       code_generation_result.data.extend(data);
       code_generation_result
         .runtime_requirements
-        .extend(runtime_requirements);
+        .add(runtime_requirements);
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();

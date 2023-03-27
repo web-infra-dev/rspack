@@ -1,7 +1,7 @@
 use rspack_core::{
-  create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  JsAstPath, ModuleDependency, ModuleIdentifier,
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
+  ModuleDependency, ModuleIdentifier, RuntimeGlobals,
 };
 use swc_core::common::Spanned;
 use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
@@ -108,7 +108,7 @@ impl CodeGeneratable for URLDependency {
 
                   let require_call = CallExpr {
                     span: path_span,
-                    callee: Callee::Expr(quote_ident!(runtime_globals::REQUIRE).into()),
+                    callee: Callee::Expr(quote_ident!(RuntimeGlobals::REQUIRE).into()),
                     args: vec![ExprOrSpread {
                       spread: None,
                       expr: quote_str!(&*module_id).into(),

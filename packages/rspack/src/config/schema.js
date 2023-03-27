@@ -1240,6 +1240,19 @@ module.exports = {
 						"Prefer to resolve module requests as relative request and fallback to resolving as module.",
 					type: "boolean"
 				},
+				byDependency: {
+					description:
+						'Extra resolve options per dependency category. Typical categories are "commonjs", "amd", "esm".',
+					type: "object",
+					additionalProperties: {
+						description: "Options object for resolving requests.",
+						oneOf: [
+							{
+								$ref: "#/definitions/ResolveOptions"
+							}
+						]
+					}
+				},
 				tsConfigPath: {
 					description: "Path to tsconfig.json",
 					type: "string"

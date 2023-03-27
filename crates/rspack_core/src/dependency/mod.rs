@@ -81,6 +81,20 @@ pub enum DependencyCategory {
   Wasm,
 }
 
+impl From<&str> for DependencyCategory {
+  fn from(value: &str) -> Self {
+    match value {
+      "esm" => Self::Esm,
+      "commonjs" => Self::CommonJS,
+      "url" => Self::Url,
+      "wasm" => Self::Wasm,
+      "css-import" => Self::CssImport,
+      "css-compose" => Self::CssCompose,
+      _ => Self::Unknown,
+    }
+  }
+}
+
 pub trait Dependency:
   CodeGeneratable + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
 {

@@ -1,5 +1,5 @@
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
-use rspack_core::{runtime_globals, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH};
+use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH};
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::impl_runtime_module;
 
@@ -23,7 +23,7 @@ impl RuntimeModule for AsyncWasmRuntimeModule {
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
     RawSource::from(include_str!("runtime/async-wasm-loading.js").replace(
       "$REQ$",
-      &format!("fetch({}+wasmModuleHash)", runtime_globals::PUBLIC_PATH),
+      &format!("fetch({}+wasmModuleHash)", RuntimeGlobals::PUBLIC_PATH),
     ))
     .boxed()
   }

@@ -3,10 +3,12 @@ use std::hash::{Hash, Hasher};
 
 use rspack_error::{internal_error, Result};
 use rspack_identifier::IdentifierMap;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};
+use crate::{
+  AstOrSource, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
+};
 
 #[derive(Debug, Clone)]
 pub struct GenerationResult {
@@ -24,7 +26,7 @@ pub struct CodeGenerationResult {
   inner: HashMap<SourceType, GenerationResult>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: HashMap<String, String>,
-  pub runtime_requirements: HashSet<&'static str>,
+  pub runtime_requirements: RuntimeGlobals,
 }
 
 impl CodeGenerationResult {
@@ -141,12 +143,12 @@ impl CodeGenerationResults {
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> HashSet<&'static str> {
+  ) -> RuntimeGlobals {
     match self.get(module_identifier, runtime) {
-      Ok(result) => result.runtime_requirements.clone(),
+      Ok(result) => result.runtime_requirements,
       Err(_) => {
         eprint!("Failed to get runtime requirements for {module_identifier}");
-        HashSet::default()
+        Default::default()
       }
     }
   }
