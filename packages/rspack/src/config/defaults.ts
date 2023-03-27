@@ -453,12 +453,12 @@ const getResolveDefaults = ({
 
 	const jsExtensions = [
 		".tsx",
-		".jsx",
 		".ts",
+		".jsx",
 		".js",
 		".json",
-		".d.ts",
-		".wasm"
+		".wasm",
+		".d.ts"
 	];
 
 	const tp = targetProperties;

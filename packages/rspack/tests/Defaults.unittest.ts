@@ -236,18 +236,84 @@ describe("snapshots", () => {
 		  "plugins": [],
 		  "resolve": {
 		    "browserField": true,
-		    "extensions": [
-		      ".tsx",
-		      ".jsx",
-		      ".ts",
-		      ".js",
-		      ".json",
-		      ".d.ts",
-		      ".wasm",
-		    ],
-		    "mainFields": [
+		    "byDependency": {
+		      "commonjs": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "require",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "esm": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "import",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "unknown": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "require",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "url": {
+		        "preferRelative": true,
+		      },
+		    },
+		    "conditionNames": [
+		      "webpack",
+		      "production",
 		      "browser",
-		      "module",
+		    ],
+		    "extensions": [],
+		    "mainFields": [
 		      "main",
 		    ],
 		    "mainFiles": [
@@ -409,6 +475,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minRemainingSize": undefined,
 		+       "minRemainingSize": 0,
+		@@ ... @@
+		-       "production",
+		+       "development",
 	`)
 	);
 	/**
@@ -718,7 +787,23 @@ describe("snapshots", () => {
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
+		+       "node",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "node",
@@ -729,6 +814,8 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		+       "worker",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "webworker",
@@ -759,7 +846,24 @@ describe("snapshots", () => {
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
+		+       "node",
+		+       "electron",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "electron-main",
@@ -790,7 +894,24 @@ describe("snapshots", () => {
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
-		-       "browser",
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		+       "node",
+		@@ ... @@
+		+       "electron",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "electron-preload",
@@ -882,6 +1003,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-       "minRemainingSize": undefined,
 			+       "minRemainingSize": 0,
+			@@ ... @@
+			-       "production",
+			+       "development",
 		`)
 	);
 

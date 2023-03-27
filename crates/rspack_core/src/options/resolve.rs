@@ -47,41 +47,42 @@ pub struct Resolve {
 
 impl Resolve {
   pub fn to_inner_options(
-    mut self,
+    self,
     cache: Arc<nodejs_resolver::Cache>,
     resolve_to_context: bool,
     dependency_type: DependencyCategory,
   ) -> nodejs_resolver::Options {
-    self = self.resolve_by_dependency(dependency_type);
-    let tsconfig = self.tsconfig;
+    let options = self.merge_by_dependency(dependency_type);
+    let tsconfig = options.tsconfig;
     let enforce_extension = nodejs_resolver::EnforceExtension::Auto;
     let external_cache = Some(cache);
     let description_file = String::from("package.json");
-    let extensions = self.extensions.unwrap_or_else(|| {
-      vec![".tsx", ".jsx", ".ts", ".js", ".mjs", ".json"]
+    let extensions = options.extensions.unwrap_or_else(|| {
+      vec![".tsx", ".ts", ".jsx", ".js", ".mjs", ".json"]
         .into_iter()
         .map(|s| s.to_string())
         .collect()
     });
-    let alias = self.alias.unwrap_or_default();
-    let prefer_relative = self.prefer_relative.unwrap_or(false);
-    let symlinks = self.symlinks.unwrap_or(true);
-    let main_files = self
+    let alias = options.alias.unwrap_or_default();
+    let prefer_relative = options.prefer_relative.unwrap_or(false);
+    let symlinks = options.symlinks.unwrap_or(true);
+    let main_files = options
       .main_files
       .unwrap_or_else(|| vec![String::from("index")]);
-    let main_fields = self
+    let main_fields = options
       .main_fields
       .unwrap_or_else(|| vec![String::from("module"), String::from("main")]);
-    let browser_field = self.browser_field.unwrap_or(true);
+    let browser_field = options.browser_field.unwrap_or(true);
     let condition_names = std::collections::HashSet::from_iter(
-      self
+      options
         .condition_names
         .unwrap_or_else(|| vec!["module".to_string(), "import".to_string()]),
     );
-    let modules = self
+    let modules = options
       .modules
       .unwrap_or_else(|| vec!["node_modules".to_string()]);
-    let fallback = self.fallback.unwrap_or_default();
+    let fallback = options.fallback.unwrap_or_default();
+
     nodejs_resolver::Options {
       fallback,
       modules,
@@ -101,7 +102,7 @@ impl Resolve {
     }
   }
 
-  fn resolve_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
+  fn merge_by_dependency(mut self, dependency_type: DependencyCategory) -> Self {
     let by_dependency = self
       .by_dependency
       .as_ref()
@@ -128,7 +129,7 @@ impl FromIterator<(DependencyCategory, Resolve)> for ByDependency {
 }
 
 impl ByDependency {
-  // TODO: maybe a Merge trait for implement cleverMerge in rust side?
+  // TODO: maybe a Merge trait for implementing cleverMerge in rust side?
   pub fn merge(mut self, value: Self) -> Self {
     for (k, v) in value.0 {
       self.0.insert(k, v);
@@ -190,7 +191,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
   let by_dependency = overwrite(base.by_dependency, other.by_dependency, |pre, now| {
     pre.merge(now)
   });
-  let tsconfig = other.tsconfig;
+  let tsconfig = overwrite(base.tsconfig, other.tsconfig, |_, value| value);
 
   Resolve {
     fallback,
