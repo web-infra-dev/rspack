@@ -40,7 +40,7 @@ jobs:
       # https://pnpm.io/continuous-integration#github-actions
       # Uses `packageManagement` field from package.json
       - name: Install pnpm
-      - uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
