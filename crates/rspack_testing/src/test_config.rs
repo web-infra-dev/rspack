@@ -83,6 +83,16 @@ pub struct TestConfig {
   pub optimization: Optimization,
   #[serde(default)]
   pub devtool: String,
+  #[serde(default)]
+  pub experiments: Experiments,
+}
+
+#[derive(Debug, Default, JsonSchema, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Experiments {
+  // True by default to reduce code in snapshots.
+  #[serde(default = "true_by_default")]
+  pub async_web_assembly: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -293,6 +303,7 @@ impl TestConfig {
       rule!("\\.ts$", "ts"),
       rule!("\\.tsx$", "tsx"),
       rule!("\\.css$", "css"),
+      rule!("\\.wasm$", "webassembly/async"),
     ];
     rules.extend(self.module.rules.into_iter().map(|rule| {
       c::ModuleRule {
@@ -360,6 +371,8 @@ impl TestConfig {
         css_chunk_filename: c::Filename::from_str(&self.output.css_chunk_filename)
           .expect("Should exist"),
         asset_module_filename: c::Filename::from_str("[hash][ext][query]").expect("Should exist"),
+        webassembly_module_filename: c::Filename::from_str("[hash].module.wasm")
+          .expect("Should exist"),
         public_path: c::PublicPath::String("/".to_string()),
         unique_name: "__rspack_test__".to_string(),
         path: context.join("dist"),
@@ -375,10 +388,12 @@ impl TestConfig {
       target: c::Target::new(&self.target).expect("Can't construct target"),
       resolve: c::Resolve {
         extensions: Some(
-          [".js", ".jsx", ".ts", ".tsx", ".json", ".d.ts", ".css"]
-            .into_iter()
-            .map(|i| i.to_string())
-            .collect(),
+          [
+            ".js", ".jsx", ".ts", ".tsx", ".json", ".d.ts", ".css", ".wasm",
+          ]
+          .into_iter()
+          .map(|i| i.to_string())
+          .collect(),
         ),
         ..Default::default()
       },
@@ -491,6 +506,12 @@ impl TestConfig {
     plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
     // Notice the plugin need to be placed after SplitChunksPlugin
     plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
+
+    plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());
+    if self.experiments.async_web_assembly {
+      plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
+      plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
+    }
 
     (options, plugins)
   }

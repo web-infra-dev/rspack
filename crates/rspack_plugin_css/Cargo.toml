@@ -5,10 +5,6 @@ name       = "rspack_plugin_css"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-[dev-dependencies]
-insta          = "1.19.1"
-rspack_testing = { path = "../rspack_testing" }
-
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
@@ -17,10 +13,8 @@ bitflags = { workspace = true }
 dashmap = { workspace = true }
 data-encoding = "2.3.3"
 heck = "0.4.0"
-hrx-parser = "0.1.1"
 indexmap = { workspace = true }
 itertools = { workspace = true }
-linked_hash_set = { workspace = true }
 once_cell = { workspace = true }
 paste = { workspace = true }
 preset_env_base = { workspace = true }
@@ -54,3 +48,8 @@ tokio = { workspace = true, features = [
 ] }
 tracing = { workspace = true }
 xxhash-rust = { workspace = true, features = ["xxh3"] }
+
+[dev-dependencies]
+hrx-parser     = "0.1.1"
+insta          = "1.19.1"
+rspack_testing = { path = "../rspack_testing" }

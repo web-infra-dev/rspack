@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  runtime_globals, ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeModule, SourceType,
+  ChunkGraph, ChunkUkey, Compilation, ModuleGraph, RuntimeGlobals, RuntimeModule, SourceType,
   RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
@@ -12,11 +12,11 @@ use crate::impl_runtime_module;
 pub struct CssLoadingRuntimeModule {
   id: Identifier,
   chunk: Option<ChunkUkey>,
-  runtime_requirements: HashSet<&'static str>,
+  runtime_requirements: RuntimeGlobals,
 }
 
 impl CssLoadingRuntimeModule {
-  pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
+  pub fn new(runtime_requirements: RuntimeGlobals) -> Self {
     Self {
       id: Identifier::from("webpack/runtime/css_loading"),
       chunk: None,
@@ -65,11 +65,11 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let with_hmr = self
         .runtime_requirements
-        .contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+        .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
       let with_loading = self
         .runtime_requirements
-        .contains(runtime_globals::ENSURE_CHUNK_HANDLERS);
+        .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
 
       if !with_hmr && !with_loading && async_chunk_ids_with_css.is_empty() {
         return RawSource::from("").boxed();

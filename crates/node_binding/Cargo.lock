@@ -817,12 +817,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hrx-parser"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb741d1d6fce95c065abb032a5f302299520a23928a95e96ab64799b5fd97f3a"
-
-[[package]]
 name = "html-escape"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1944,36 +1938,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "dashmap",
- "once_cell",
- "rspack_core",
- "rspack_error",
- "rspack_fs",
- "rspack_ids",
- "rspack_loader_sass",
- "rspack_plugin_asset",
- "rspack_plugin_copy",
- "rspack_plugin_css",
- "rspack_plugin_devtool",
- "rspack_plugin_externals",
- "rspack_plugin_html",
- "rspack_plugin_javascript",
- "rspack_plugin_json",
- "rspack_plugin_remove_empty_chunks",
- "rspack_plugin_runtime",
- "rspack_symbol",
- "rspack_tracing",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "rspack_base64"
 version = "0.1.0"
 dependencies = [
@@ -1983,10 +1947,6 @@ dependencies = [
 [[package]]
 name = "rspack_binding_macros"
 version = "0.1.0"
-dependencies = [
- "napi",
- "rspack_napi_shared",
-]
 
 [[package]]
 name = "rspack_binding_options"
@@ -2021,6 +1981,7 @@ dependencies = [
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_split_chunks",
+ "rspack_plugin_wasm",
  "rspack_regex",
  "serde",
  "serde_json",
@@ -2040,7 +2001,6 @@ dependencies = [
  "async-trait",
  "bitflags",
  "dashmap",
- "derivative",
  "dyn-clone",
  "futures",
  "glob",
@@ -2063,14 +2023,13 @@ dependencies = [
  "rspack_regex",
  "rspack_sources",
  "rspack_symbol",
- "rspack_tracing",
  "rspack_util",
  "rustc-hash",
  "serde",
  "serde_json",
+ "string_cache",
  "sugar_path",
  "swc_core",
- "swc_css",
  "swc_emotion",
  "swc_plugin_import",
  "tokio",
@@ -2097,7 +2056,6 @@ dependencies = [
  "anyhow",
  "codespan-reporting",
  "futures",
- "json",
  "rspack_util",
  "sugar_path",
  "swc_core",
@@ -2214,7 +2172,6 @@ dependencies = [
  "napi-sys",
  "once_cell",
  "regex",
- "rspack",
  "rspack_binding_macros",
  "rspack_binding_options",
  "rspack_core",
@@ -2285,10 +2242,8 @@ dependencies = [
  "dashmap",
  "data-encoding",
  "heck",
- "hrx-parser",
  "indexmap",
  "itertools",
- "linked_hash_set",
  "once_cell",
  "paste",
  "preset_env_base",
@@ -2396,7 +2351,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_plugin_devtool",
  "rspack_regex",
  "rspack_symbol",
  "rustc-hash",
@@ -2477,6 +2431,26 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_wasm"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "rayon",
+ "rspack_core",
+ "rspack_error",
+ "rspack_identifier",
+ "rspack_plugin_asset",
+ "rspack_plugin_runtime",
+ "rspack_util",
+ "rustc-hash",
+ "serde_json",
+ "sugar_path",
+ "tracing",
+ "wasmparser",
 ]
 
 [[package]]
@@ -3063,19 +3037,6 @@ dependencies = [
  "swc_ecma_visit",
  "swc_trace_macro",
  "vergen",
-]
-
-[[package]]
-name = "swc_css"
-version = "0.149.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d9b27d0a90f143f0c21dda4fc445f423fa21f2e8d26350d93b46e1408ca4547"
-dependencies = [
- "swc_css_ast",
- "swc_css_codegen",
- "swc_css_parser",
- "swc_css_utils",
- "swc_css_visit",
 ]
 
 [[package]]
@@ -4524,6 +4485,16 @@ name = "wasm-bindgen-shared"
 version = "0.2.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c38c045535d93ec4f0b4defec448e4291638ee608530863b1e2ba115d4fff7f"
+
+[[package]]
+name = "wasmparser"
+version = "0.102.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48134de3d7598219ab9eaf6b91b15d8e50d31da76b8519fe4ecfcec2cf35104b"
+dependencies = [
+ "indexmap",
+ "url",
+]
 
 [[package]]
 name = "which"

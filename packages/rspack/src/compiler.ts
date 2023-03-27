@@ -268,7 +268,7 @@ class Compiler {
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
-					finishModules: this.#finishModules.bind(this),
+					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this)
 				},
@@ -484,7 +484,6 @@ class Compiler {
 		const hookMap = {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
-			finishModules: this.hooks.finishModules,
 			emit: this.hooks.emit,
 			afterEmit: this.hooks.afterEmit,
 			processAssetsStageAdditional:
@@ -512,7 +511,8 @@ class Compiler {
 					Compilation.PROCESS_ASSETS_STAGE_REPORT
 				),
 			compilation: this.hooks.compilation,
-			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules
+			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
+			finishModules: this.compilation.hooks.finishModules
 			// normalModuleFactoryResolveForScheme: this.#
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
@@ -551,6 +551,14 @@ class Compiler {
 		);
 		this.#updateDisabledHooks();
 	}
+
+	async #finish_modules() {
+		await this.compilation.hooks.finishModules.promise(
+			this.compilation.getModules()
+		);
+		this.#updateDisabledHooks();
+	}
+
 	async #make() {
 		await this.hooks.make.promise(this.compilation);
 		this.#updateDisabledHooks();

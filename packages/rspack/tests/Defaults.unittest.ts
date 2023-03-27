@@ -116,6 +116,7 @@ describe("snapshots", () => {
 		    },
 		  },
 		  "experiments": {
+		    "asyncWebAssembly": false,
 		    "incrementalRebuild": true,
 		    "lazyCompilation": false,
 		  },
@@ -230,21 +231,111 @@ describe("snapshots", () => {
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
 		    "uniqueName": "@rspack/core",
+		    "webassemblyModuleFilename": "[hash].module.wasm",
 		  },
 		  "plugins": [],
 		  "resolve": {
 		    "browserField": true,
-		    "extensions": [
-		      ".tsx",
-		      ".jsx",
-		      ".ts",
-		      ".js",
-		      ".json",
-		      ".d.ts",
-		    ],
-		    "mainFields": [
+		    "byDependency": {
+		      "commonjs": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "require",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "esm": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "import",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "unknown": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "require",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "url": {
+		        "preferRelative": true,
+		      },
+		      "wasm": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "import",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		    },
+		    "conditionNames": [
+		      "webpack",
+		      "production",
 		      "browser",
-		      "module",
+		    ],
+		    "extensions": [],
+		    "mainFields": [
 		      "main",
 		    ],
 		    "mainFiles": [
@@ -406,6 +497,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minRemainingSize": undefined,
 		+       "minRemainingSize": 0,
+		@@ ... @@
+		-       "production",
+		+       "development",
 	`)
 	);
 	/**
@@ -432,18 +526,33 @@ describe("snapshots", () => {
 		+     "outputModule": true,
 	`)
 	);
-	/**
-	 * not support yet
-	 */
+
 	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
 
 		@@ ... @@
+		-     "asyncWebAssembly": false,
 		+     "asyncWebAssembly": true,
+		@@ ... @@
+		+       },
+		+       Object {
+		+         "rules": Array [
+		+           Object {
+		+             "descriptionData": Object {
+		+               "type": "module",
+		+             },
+		+             "resolve": Object {
+		+               "fullySpecified": true,
+		+             },
+		+           },
+		+         ],
+		+         "test": /\\.wasm$/i,
+		+         "type": "webassembly/async",
 	`)
 	);
+
 	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
@@ -453,9 +562,25 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "asyncWebAssembly": false,
 			+     "asyncWebAssembly": true,
 			@@ ... @@
 			+     "syncWebAssembly": true,
+			@@ ... @@
+			+       },
+			+       Object {
+			+         "rules": Array [
+			+           Object {
+			+             "descriptionData": Object {
+			+               "type": "module",
+			+             },
+			+             "resolve": Object {
+			+               "fullySpecified": true,
+			+             },
+			+           },
+			+         ],
+			+         "test": /\\.wasm$/i,
+			+         "type": "webassembly/async",
 		`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
@@ -684,7 +809,28 @@ describe("snapshots", () => {
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
+		+       "node",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "node",
@@ -695,6 +841,8 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		+       "worker",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "webworker",
@@ -725,7 +873,29 @@ describe("snapshots", () => {
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
+		+       "node",
+		+       "electron",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "electron-main",
@@ -756,7 +926,29 @@ describe("snapshots", () => {
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
-		-       "browser",
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		+       "node",
+		@@ ... @@
+		+       "electron",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "electron-preload",
@@ -848,6 +1040,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-       "minRemainingSize": undefined,
 			+       "minRemainingSize": 0,
+			@@ ... @@
+			-       "production",
+			+       "development",
 		`)
 	);
 

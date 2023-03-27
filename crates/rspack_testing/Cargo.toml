@@ -30,6 +30,7 @@ rspack_plugin_json                      = { path = "../rspack_plugin_json" }
 rspack_plugin_progress                  = { path = "../rspack_plugin_progress" }
 rspack_plugin_remove_empty_chunks       = { path = "../rspack_plugin_remove_empty_chunks" }
 rspack_plugin_runtime                   = { path = "../rspack_plugin_runtime" }
+rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_regex                            = { path = "../rspack_regex" }
 rspack_tracing                          = { path = "../rspack_tracing" }
 
@@ -37,7 +38,6 @@ cargo-rst = { path = "../cargo-rst" }
 colored = { workspace = true }
 derive_builder = { workspace = true }
 glob = { workspace = true }
-quick-js = "0.4.1"
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }

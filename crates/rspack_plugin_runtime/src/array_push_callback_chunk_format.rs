@@ -2,9 +2,9 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, ChunkKind, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, ChunkKind, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderChunkHookOutput,
-  RenderChunkArgs, RenderStartupArgs,
+  RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::runtime::{
@@ -51,10 +51,10 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     //   .get_number_of_entry_modules(chunk_ukey)
     //   > 0
     // {
-    runtime_requirements.insert(runtime_globals::ON_CHUNKS_LOADED);
-    runtime_requirements.insert(runtime_globals::REQUIRE);
+    runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     // }
-    runtime_requirements.insert(runtime_globals::CHUNK_CALLBACK);
+    runtime_requirements.insert(RuntimeGlobals::CHUNK_CALLBACK);
 
     Ok(())
   }
@@ -96,7 +96,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
         source.add(RawSource::from(","));
         source.add(RawSource::from(format!(
           "function({}) {{\n",
-          runtime_globals::REQUIRE
+          RuntimeGlobals::REQUIRE
         )));
         if !runtime_modules.is_empty() {
           source.add(render_runtime_modules(args.compilation, args.chunk_ukey)?);
@@ -107,7 +107,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
             .compilation
             .chunk_graph
             .get_tree_runtime_requirements(args.chunk_ukey);
-          if runtime_requirements.contains(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME) {
+          if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
             source.add(RawSource::from("return __webpack_exports__;\n"));
           }
           if let Some(s) =

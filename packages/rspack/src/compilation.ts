@@ -79,7 +79,7 @@ export class Compilation {
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
 		>;
-		finishModules: tapable.AsyncSeriesHook<[Array<JsModule>]>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;

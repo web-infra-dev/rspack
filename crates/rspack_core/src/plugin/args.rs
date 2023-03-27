@@ -10,7 +10,7 @@ use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
   Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, ModuleDependency,
-  ModuleIdentifier, Resolve, SharedPluginDriver, Stats,
+  ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
@@ -149,7 +149,7 @@ pub struct ThisCompilationArgs<'c> {
 pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub chunk: &'a ChunkUkey,
-  pub runtime_requirements: &'a mut HashSet<&'static str>,
+  pub runtime_requirements: &'a mut RuntimeGlobals,
   // TODO context
 }
 

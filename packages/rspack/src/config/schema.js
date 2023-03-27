@@ -85,6 +85,43 @@ module.exports = {
 				}
 			]
 		},
+		WebassemblyModuleFilename: {
+			description:
+				"The filename of WebAssembly modules as relative path inside the 'output.path' directory.",
+			type: "string"
+		},
+		EnabledWasmLoadingTypes: {
+			description:
+				"List of wasm loading types enabled for use by entry points.",
+			type: "array",
+			items: {
+				$ref: "#/definitions/WasmLoadingType"
+			}
+		},
+		WasmLoading: {
+			description:
+				"The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: [false]
+				},
+				{
+					$ref: "#/definitions/WasmLoadingType"
+				}
+			]
+		},
+		WasmLoadingType: {
+			description:
+				"The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: ["fetch-streaming", "fetch", "async-node"]
+				},
+				{
+					type: "string"
+				}
+			]
+		},
 		Dependencies: {
 			description: "References to other configurations to depend on.",
 			type: "array",
@@ -136,6 +173,9 @@ module.exports = {
 				},
 				runtime: {
 					$ref: "#/definitions/EntryRuntime"
+				},
+				wasmLoading: {
+					$ref: "#/definitions/WasmLoading"
 				}
 			},
 			required: ["import"]
@@ -227,6 +267,10 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				asyncWebAssembly: {
+					description: "Support WebAssembly as asynchronous EcmaScript Module.",
+					type: "boolean"
+				},
 				incrementalRebuild: {
 					description: "Rebuild incrementally",
 					type: "boolean"
@@ -949,6 +993,15 @@ module.exports = {
 				cssFilename: {
 					$ref: "#/definitions/CssFilename"
 				},
+				enabledWasmLoadingTypes: {
+					$ref: "#/definitions/EnabledWasmLoadingTypes"
+				},
+				wasmLoading: {
+					$ref: "#/definitions/WasmLoading"
+				},
+				webassemblyModuleFilename: {
+					$ref: "#/definitions/WebassemblyModuleFilename"
+				},
 				enabledLibraryTypes: {
 					$ref: "#/definitions/EnabledLibraryTypes"
 				},
@@ -1186,6 +1239,19 @@ module.exports = {
 					description:
 						"Prefer to resolve module requests as relative request and fallback to resolving as module.",
 					type: "boolean"
+				},
+				byDependency: {
+					description:
+						'Extra resolve options per dependency category. Typical categories are "commonjs", "amd", "esm".',
+					type: "object",
+					additionalProperties: {
+						description: "Options object for resolving requests.",
+						oneOf: [
+							{
+								$ref: "#/definitions/ResolveOptions"
+							}
+						]
+					}
 				},
 				tsConfigPath: {
 					description: "Path to tsconfig.json",

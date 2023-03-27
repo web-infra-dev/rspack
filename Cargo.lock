@@ -117,7 +117,7 @@ checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
 dependencies = [
  "hermit-abi 0.1.19",
  "libc",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -174,7 +174,6 @@ name = "bench"
 version = "0.1.0"
 dependencies = [
  "mimalloc-rust",
- "rspack",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -274,7 +273,6 @@ dependencies = [
  "serde_json",
  "similar",
  "testing_macros",
- "tokio",
 ]
 
 [[package]]
@@ -307,7 +305,7 @@ dependencies = [
  "num-traits",
  "time 0.1.45",
  "wasm-bindgen",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -376,7 +374,7 @@ checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
 dependencies = [
  "atty",
  "lazy_static",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -399,15 +397,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
 dependencies = [
  "unicode-segmentation",
-]
-
-[[package]]
-name = "copy_dir"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e4281031634644843bd2f5aa9c48cf98fc48d6b083bd90bb11becf10deaf8b0"
-dependencies = [
- "walkdir 0.1.8",
 ]
 
 [[package]]
@@ -450,7 +439,7 @@ dependencies = [
  "serde_json",
  "tinytemplate",
  "tokio",
- "walkdir 2.3.2",
+ "walkdir",
 ]
 
 [[package]]
@@ -819,7 +808,7 @@ checksum = "f639046355ee4f37944e44f60642c6f3a7efa3cf6b78c78a0d989a8ce6c396a1"
 dependencies = [
  "errno-dragonfly",
  "libc",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -1111,7 +1100,7 @@ dependencies = [
  "iana-time-zone-haiku",
  "js-sys",
  "wasm-bindgen",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -1279,16 +1268,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kernel32-sys"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
-dependencies = [
- "winapi 0.2.8",
- "winapi-build",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1380,17 +1359,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
 dependencies = [
  "cfg-if",
- "winapi 0.3.9",
-]
-
-[[package]]
-name = "libquickjs-sys"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f0b24e9bd171b75ae0295bd428fb8fe58410fb23156e5f34a4657a70c3cee96"
-dependencies = [
- "cc",
- "copy_dir",
+ "winapi",
 ]
 
 [[package]]
@@ -1664,7 +1633,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a9da8c9922c35a1033d76f7272dfc2e7ee20392083d75aeea6ced23c6266578"
 dependencies = [
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -1674,7 +1643,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77a8165726e8236064dbb45459242600304b42a5ea24ee2948e18e023bf7ba84"
 dependencies = [
  "overload",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -1801,7 +1770,7 @@ dependencies = [
  "libc",
  "redox_syscall",
  "smallvec",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -2178,16 +2147,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quick-js"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19cb4cefcb00f4ab9b332664d06005a74f582ac16aa959c6ad5912957bd83e5f"
-dependencies = [
- "libquickjs-sys",
- "once_cell",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2310,7 +2269,7 @@ version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
 dependencies = [
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -2344,18 +2303,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_fs",
- "rspack_ids",
- "rspack_loader_sass",
- "rspack_plugin_asset",
- "rspack_plugin_copy",
- "rspack_plugin_css",
- "rspack_plugin_devtool",
- "rspack_plugin_externals",
- "rspack_plugin_html",
- "rspack_plugin_javascript",
- "rspack_plugin_json",
- "rspack_plugin_remove_empty_chunks",
- "rspack_plugin_runtime",
  "rspack_symbol",
  "rspack_testing",
  "rspack_tracing",
@@ -2389,10 +2336,6 @@ dependencies = [
 [[package]]
 name = "rspack_binding_macros"
 version = "0.1.0"
-dependencies = [
- "napi",
- "rspack_napi_shared",
-]
 
 [[package]]
 name = "rspack_binding_options"
@@ -2427,6 +2370,7 @@ dependencies = [
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_split_chunks",
+ "rspack_plugin_wasm",
  "rspack_regex",
  "serde",
  "serde_json",
@@ -2442,7 +2386,6 @@ name = "rspack_build"
 version = "0.1.0"
 dependencies = [
  "mimalloc-rust",
- "rspack",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -2459,7 +2402,6 @@ dependencies = [
  "async-trait",
  "bitflags",
  "dashmap",
- "derivative",
  "dyn-clone",
  "futures",
  "glob",
@@ -2482,14 +2424,13 @@ dependencies = [
  "rspack_regex",
  "rspack_sources",
  "rspack_symbol",
- "rspack_tracing",
  "rspack_util",
  "rustc-hash",
  "serde",
  "serde_json",
+ "string_cache",
  "sugar_path",
  "swc_core",
- "swc_css",
  "swc_emotion",
  "swc_plugin_import",
  "tokio",
@@ -2517,7 +2458,6 @@ dependencies = [
  "codespan-reporting",
  "futures",
  "insta",
- "json",
  "rspack",
  "rspack_binding_options",
  "rspack_core",
@@ -2688,7 +2628,6 @@ dependencies = [
  "indexmap",
  "insta",
  "itertools",
- "linked_hash_set",
  "once_cell",
  "paste",
  "preset_env_base",
@@ -2799,7 +2738,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_plugin_devtool",
  "rspack_regex",
  "rspack_symbol",
  "rspack_testing",
@@ -2885,6 +2823,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_wasm"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "rayon",
+ "rspack_core",
+ "rspack_error",
+ "rspack_identifier",
+ "rspack_plugin_asset",
+ "rspack_plugin_runtime",
+ "rspack_testing",
+ "rspack_util",
+ "rustc-hash",
+ "serde_json",
+ "sugar_path",
+ "tracing",
+ "wasmparser",
+]
+
+[[package]]
 name = "rspack_regex"
 version = "0.1.0"
 dependencies = [
@@ -2930,7 +2889,6 @@ dependencies = [
  "colored",
  "derive_builder",
  "glob",
- "quick-js",
  "rayon",
  "rspack_binding_options",
  "rspack_core",
@@ -2948,6 +2906,7 @@ dependencies = [
  "rspack_plugin_progress",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
+ "rspack_plugin_wasm",
  "rspack_regex",
  "rspack_tracing",
  "schemars",
@@ -3308,7 +3267,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -3593,19 +3552,6 @@ dependencies = [
  "swc_ecma_visit",
  "swc_trace_macro",
  "vergen",
-]
-
-[[package]]
-name = "swc_css"
-version = "0.149.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d9b27d0a90f143f0c21dda4fc445f423fa21f2e8d26350d93b46e1408ca4547"
-dependencies = [
- "swc_css_ast",
- "swc_css_codegen",
- "swc_css_parser",
- "swc_css_utils",
- "swc_css_visit",
 ]
 
 [[package]]
@@ -4603,7 +4549,7 @@ dependencies = [
  "libc",
  "redox_syscall",
  "remove_dir_all",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -4622,7 +4568,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "633c1a546cee861a1a6d0dc69ebeca693bf4296661ba7852b9d21d159e0506df"
 dependencies = [
  "libc",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -4699,7 +4645,7 @@ checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
 dependencies = [
  "libc",
  "wasi 0.10.0+wasi-snapshot-preview1",
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]
@@ -5010,22 +4956,12 @@ checksum = "5c3082ca00d5a5ef149bb8b555a72ae84c9c59f7250f013ac822ac2e49b19c64"
 
 [[package]]
 name = "walkdir"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c66c0b9792f0a765345452775f3adbd28dde9d33f30d13e5dcc5ae17cf6f3780"
-dependencies = [
- "kernel32-sys",
- "winapi 0.2.8",
-]
-
-[[package]]
-name = "walkdir"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "808cf2735cd4b6866113f648b791c6adc5714537bc222d9347bb203386ffda56"
 dependencies = [
  "same-file",
- "winapi 0.3.9",
+ "winapi",
  "winapi-util",
 ]
 
@@ -5096,6 +5032,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1c38c045535d93ec4f0b4defec448e4291638ee608530863b1e2ba115d4fff7f"
 
 [[package]]
+name = "wasmparser"
+version = "0.102.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48134de3d7598219ab9eaf6b91b15d8e50d31da76b8519fe4ecfcec2cf35104b"
+dependencies = [
+ "indexmap",
+ "url",
+]
+
+[[package]]
 name = "web-sys"
 version = "0.3.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5118,12 +5064,6 @@ dependencies = [
 
 [[package]]
 name = "winapi"
-version = "0.2.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
-
-[[package]]
-name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
@@ -5131,12 +5071,6 @@ dependencies = [
  "winapi-i686-pc-windows-gnu",
  "winapi-x86_64-pc-windows-gnu",
 ]
-
-[[package]]
-name = "winapi-build"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
 
 [[package]]
 name = "winapi-i686-pc-windows-gnu"
@@ -5150,7 +5084,7 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70ec6ce85bb158151cae5e5c87f95a8e97d2c0c4b001223f33a334e3ce5de178"
 dependencies = [
- "winapi 0.3.9",
+ "winapi",
 ]
 
 [[package]]

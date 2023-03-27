@@ -2,10 +2,11 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
+  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
+use runtime_module::AsyncRuntimeModule;
 
 use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
 
@@ -59,17 +60,21 @@ impl Plugin for RuntimePlugin {
     for chunk in &chunks {
       if !chunk.is_only_initial(&compilation.chunk_group_by_ukey) {
         // TODO: use module async block instead of it at code generation
-        runtime_requirements.insert(runtime_globals::ENSURE_CHUNK);
+        runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
       }
     }
 
     // workaround for jsonp_chunk_loading can scan `ENSURE_CHUNK` to add additional runtime_requirements
-    if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK) {
-      runtime_requirements.insert(runtime_globals::ENSURE_CHUNK_HANDLERS);
+    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+      runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
       compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
     }
 
-    if runtime_requirements.contains(runtime_globals::ON_CHUNKS_LOADED) {
+    if runtime_requirements.contains(RuntimeGlobals::ASYNC_MODULE) {
+      compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
       compilation.add_runtime_module(chunk, OnChunkLoadedRuntimeModule::default().boxed());
     }
 

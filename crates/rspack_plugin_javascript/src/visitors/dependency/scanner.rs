@@ -1,7 +1,7 @@
 use rspack_core::{
-  runtime_globals, CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode,
-  ContextOptions, Dependency, DependencyCategory, ImportContextDependency, ModuleDependency,
-  RequireContextDependency, ResourceData,
+  CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
+  Dependency, DependencyCategory, ImportContextDependency, ModuleDependency,
+  RequireContextDependency, ResourceData, RuntimeGlobals,
 };
 use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
@@ -307,23 +307,23 @@ impl VisitAstPath for DependencyScanner<'_> {
             self.add_presentational_dependency(box ConstDependency::new(
               quote!(
                 "$name()" as Expr,
-                name = quote_ident!(runtime_globals::GET_FULL_HASH)
+                name = quote_ident!(RuntimeGlobals::GET_FULL_HASH)
               ),
-              Some(runtime_globals::GET_FULL_HASH),
+              Some(RuntimeGlobals::GET_FULL_HASH),
               as_parent_path(ast_path),
             ));
           }
           WEBPACK_PUBLIC_PATH => {
             self.add_presentational_dependency(box ConstDependency::new(
-              Expr::Ident(quote_ident!(runtime_globals::PUBLIC_PATH)),
-              Some(runtime_globals::PUBLIC_PATH),
+              Expr::Ident(quote_ident!(RuntimeGlobals::PUBLIC_PATH)),
+              Some(RuntimeGlobals::PUBLIC_PATH),
               as_parent_path(ast_path),
             ));
           }
           WEBPACK_MODULES => {
             self.add_presentational_dependency(box ConstDependency::new(
-              Expr::Ident(quote_ident!(runtime_globals::MODULE_FACTORIES)),
-              Some(runtime_globals::MODULE_FACTORIES),
+              Expr::Ident(quote_ident!(RuntimeGlobals::MODULE_FACTORIES)),
+              Some(RuntimeGlobals::MODULE_FACTORIES),
               as_parent_path(ast_path),
             ));
           }
@@ -385,8 +385,8 @@ impl VisitAstPath for DependencyScanner<'_> {
           GLOBAL => {
             if matches!(self.compiler_options.node.global.as_str(), "true" | "warn") {
               self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Ident(quote_ident!(runtime_globals::GLOBAL)),
-                Some(runtime_globals::GLOBAL),
+                Expr::Ident(quote_ident!(RuntimeGlobals::GLOBAL)),
+                Some(RuntimeGlobals::GLOBAL),
                 as_parent_path(ast_path),
               ));
             }

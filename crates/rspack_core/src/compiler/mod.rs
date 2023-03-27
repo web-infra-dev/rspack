@@ -140,6 +140,7 @@ where
   async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
+    self.compilation.finish(self.plugin_driver.clone()).await?;
     if option.builtins.tree_shaking {
       let (analyze_result, diagnostics) = self
         .compilation
