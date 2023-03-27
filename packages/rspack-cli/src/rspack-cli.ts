@@ -37,7 +37,6 @@ export class RspackCLI {
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options);
 
-		// @ts-ignore
 		const compiler = rspack(config, callback);
 		return compiler;
 	}
