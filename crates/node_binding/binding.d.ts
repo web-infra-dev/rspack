@@ -330,6 +330,7 @@ export interface RawResolveOptions {
   symlinks?: boolean
   tsConfigPath?: string
   modules?: Array<string>
+  byDependency?: Record<string, RawResolveOptions>
 }
 export interface RawSnapshotStrategy {
   hash: boolean

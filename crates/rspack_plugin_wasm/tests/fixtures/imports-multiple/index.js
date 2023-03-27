@@ -1,5 +1,5 @@
-it("should allow to run a WebAssembly module importing from multiple modules", function () {
+(async function () {
 	return import("./module").then(function (mod) {
-		expect(mod.result).toBe(42);
+		if (mod.result !== 42) throw new Error('panic')
 	});
-});
+})();

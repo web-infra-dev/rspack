@@ -453,28 +453,55 @@ const getResolveDefaults = ({
 
 	const jsExtensions = [
 		".tsx",
-		".jsx",
 		".ts",
+		".jsx",
 		".js",
 		".json",
-		".d.ts",
-		".wasm"
+		".wasm",
+		".d.ts"
 	];
 
 	const tp = targetProperties;
 	const browserField =
 		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
 
+	const cjsDeps = () => ({
+		browserField,
+		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
+		conditionNames: ["require", "module", "..."],
+		extensions: [...jsExtensions]
+	});
+	const esmDeps = () => ({
+		browserField,
+		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
+		conditionNames: ["import", "module", "..."],
+		extensions: [...jsExtensions]
+	});
+
 	const resolveOptions: ResolveOptions = {
 		modules: ["node_modules"],
-		// TODO: align with webpack, we need resolve.byDependency!
-		// conditionNames: undefined,
+		conditionNames: conditions,
 		mainFiles: ["index"],
-		// TODO: align with webpack
-		extensions: [...jsExtensions],
+		extensions: [],
 		browserField,
-		// TODO: align with webpack, we need resolve.byDependency!
-		mainFields: [browserField && "browser", "module", "main"].filter(Boolean)
+		mainFields: ["main"].filter(Boolean),
+		byDependency: {
+			wasm: esmDeps(),
+			esm: esmDeps(),
+			url: {
+				preferRelative: true
+			},
+			// worker: {
+			// 	...esmDeps(),
+			// 	preferRelative: true
+			// },
+			commonjs: cjsDeps(),
+			// amd: cjsDeps(),
+			// for backward-compat: loadModule
+			// loader: cjsDeps(),
+			// for backward-compat: Custom Dependency and getResolve without dependencyType
+			unknown: cjsDeps()
+		}
 	};
 
 	return resolveOptions;

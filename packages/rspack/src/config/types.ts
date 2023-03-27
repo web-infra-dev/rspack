@@ -240,6 +240,9 @@ export interface ResolveOptions {
 	modules?: string[];
 	preferRelative?: boolean;
 	tsConfigPath?: string;
+	byDependency?: {
+		[k: string]: ResolveOptions;
+	};
 }
 export type ResolveAlias = {
 	[k: string]: false | string | Array<string | false>;
