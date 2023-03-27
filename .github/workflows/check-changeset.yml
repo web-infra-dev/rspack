@@ -15,8 +15,8 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Install Pnpm
-        run: npm install -g pnpm@7.25.0
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
