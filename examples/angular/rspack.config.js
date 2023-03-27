@@ -98,6 +98,7 @@ module.exports = function () {
     output: {
       path: path.resolve("./dist"),
     },
+    devtool: "source-map",
     resolve: {
       extensions: [".ts", ".tsx", ".mjs", ".js"],
     },
