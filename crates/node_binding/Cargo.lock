@@ -2027,6 +2027,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "string_cache",
  "sugar_path",
  "swc_core",
  "swc_emotion",

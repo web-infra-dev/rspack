@@ -37,6 +37,7 @@ rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+string_cache = "0.8.7"
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__base",

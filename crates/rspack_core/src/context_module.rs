@@ -15,9 +15,10 @@ use sugar_path::{AsPath, SugarPath};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  contextify, runtime_globals, stringify_map, AstOrSource, BoxModuleDependency, BuildContext,
-  BuildInfo, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependencyCategory, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
+  contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependencyCategory, GenerationResult, LibIdentOptions, Module, ModuleType, RuntimeGlobals,
+  SourceType,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
@@ -309,36 +310,36 @@ impl Module for ContextModule {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result
       .runtime_requirements
-      .insert(runtime_globals::MODULE);
+      .insert(RuntimeGlobals::MODULE);
     code_generation_result
       .runtime_requirements
-      .insert(runtime_globals::HAS_OWN_PROPERTY);
+      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
 
     // TODO inject runtime globals by dep size
     code_generation_result
       .runtime_requirements
-      .insert(runtime_globals::REQUIRE);
+      .insert(RuntimeGlobals::REQUIRE);
     match self.options.context_options.mode {
       ContextMode::Weak => {
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::MODULE_FACTORIES);
+          .insert(RuntimeGlobals::MODULE_FACTORIES);
       }
       ContextMode::AsyncWeak => {
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::MODULE_FACTORIES);
+          .insert(RuntimeGlobals::MODULE_FACTORIES);
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::ENSURE_CHUNK);
+          .insert(RuntimeGlobals::ENSURE_CHUNK);
       }
       ContextMode::Lazy | ContextMode::LazyOnce => {
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::ENSURE_CHUNK);
+          .insert(RuntimeGlobals::ENSURE_CHUNK);
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::LOAD_CHUNK_WITH_MODULE);
+          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
       }
       _ => {}
     }

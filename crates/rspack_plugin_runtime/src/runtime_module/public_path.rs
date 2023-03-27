@@ -1,8 +1,7 @@
 use rspack_core::{
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  runtime_globals::PUBLIC_PATH,
-  ChunkUkey, Compilation, OutputOptions, PublicPath, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, OutputOptions, PublicPath, RuntimeGlobals, RuntimeModule, SourceType,
 };
 use rspack_identifier::Identifier;
 
@@ -67,9 +66,12 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
   let output_path = output.path.display().to_string();
   let undo_path = get_undo_path(filename, output_path, false);
   let assign = if undo_path.is_empty() {
-    format!("{PUBLIC_PATH} = scriptUrl")
+    format!("{} = scriptUrl", RuntimeGlobals::PUBLIC_PATH)
   } else {
-    format!("{PUBLIC_PATH} = scriptUrl + '{undo_path}'")
+    format!(
+      "{} = scriptUrl + '{undo_path}'",
+      RuntimeGlobals::PUBLIC_PATH
+    )
   };
   format!(
     r#"

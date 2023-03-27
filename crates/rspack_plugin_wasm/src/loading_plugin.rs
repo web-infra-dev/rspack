@@ -1,6 +1,6 @@
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
+  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 
 use crate::AsyncWasmRuntimeModule;
@@ -25,8 +25,8 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     let runtime_requirements = &mut args.runtime_requirements;
 
-    if runtime_requirements.contains(runtime_globals::INSTANTIATE_WASM) {
-      runtime_requirements.insert(runtime_globals::PUBLIC_PATH);
+    if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
+      runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
       args
         .compilation
         .add_runtime_module(args.chunk, AsyncWasmRuntimeModule::default().boxed());
