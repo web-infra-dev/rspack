@@ -38,7 +38,6 @@ cargo-rst = { path = "../cargo-rst" }
 colored = { workspace = true }
 derive_builder = { workspace = true }
 glob = { workspace = true }
-quick-js = "0.4.1"
 rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
