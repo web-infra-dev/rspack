@@ -34,12 +34,22 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-
       - name: Install toolchain
         run: rustup show
+
+      # https://pnpm.io/continuous-integration#github-actions
+      # Uses `packageManagement` field from package.json
+      - name: Install pnpm
+      - uses: pnpm/action-setup@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+          cache: 'pnpm'
+
+      - name: Install Npm Dependencies
+        run: pnpm install
 
       - name: Cache
         uses: Swatinem/rust-cache@v2
@@ -73,6 +83,4 @@ jobs:
         # We need to install sass first to enable sass-loader
         run: |
           node -e "console.log(process.arch)"
-          npm install -g pnpm@7.25.0
-          pnpm install
           cargo test --workspace  -- --nocapture --test-threads=1
