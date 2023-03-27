@@ -3,7 +3,7 @@
 // const { NormalModuleReplacementPlugin, WebpackError, util } = compiler.webpack;
 // ```
 
-module.exports = {
+export default {
 	get createHash() {
 		return require("./createHash");
 	}
