@@ -1,6 +1,9 @@
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc,
+use std::{
+  path::PathBuf,
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
 };
 
 use crate::CompilerOptions;
@@ -43,6 +46,10 @@ impl Cache {
       code_generate_occasion: CodeGenerateOccasion::new(new_storage(&options.cache)),
       create_chunk_assets_occasion: CreateChunkAssetsOccasion::new(new_storage(&options.cache)),
     }
+  }
+
+  pub fn set_modified_files(&self, modified_files: Vec<PathBuf>) {
+    self.snapshot_manager.set_modified_files(modified_files);
   }
 
   pub fn begin_idle(&self) {

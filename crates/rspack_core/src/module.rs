@@ -20,14 +20,30 @@ pub struct BuildContext<'a> {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct BuildResult {
+pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
   pub hash: u64,
+  pub strict: bool,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct BuildMeta {
+  pub strict_harmony_module: bool,
+  pub is_async: bool,
+  // TODO webpack exportsType
+  pub esm: bool,
+}
+// webpack build info
+#[derive(Debug, Default, Clone)]
+pub struct BuildResult {
+  /// Whether the result is cacheable, i.e shared between builds.
+  pub build_meta: BuildMeta,
+  pub build_info: BuildInfo,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
 }
 
@@ -102,12 +118,6 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn get_resolve_options(&self) -> Option<&Resolve> {
     None
   }
-
-  fn set_dependencies(&mut self, _build_result: &BuildResult) {}
-
-  fn has_dependencies(&self, _files: &HashSet<PathBuf>) -> bool {
-    false
-  }
 }
 
 pub trait ModuleExt {
@@ -173,14 +183,6 @@ impl Module for Box<dyn Module> {
 
   fn get_resolve_options(&self) -> Option<&Resolve> {
     (**self).get_resolve_options()
-  }
-
-  fn set_dependencies(&mut self, build_result: &BuildResult) {
-    (**self).set_dependencies(build_result)
-  }
-
-  fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
-    (**self).has_dependencies(files)
   }
 }
 

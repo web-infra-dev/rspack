@@ -4,10 +4,9 @@ use std::{
   env,
   iter::Peekable,
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{mpsc, Arc},
 };
 
-use crossbeam_channel::{unbounded, Sender};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -292,11 +291,11 @@ fn start_resolving<'r, 'c, I: Iterator<Item = String>>(
 ) -> Option<PathBuf> {
   let resolution = resolutions.peek_mut()?;
   if let Some(possible_request) = resolution.possible_requests.next() {
-    if let Ok(ResolveResult::Info(info)) = resolution
+    if let Ok(ResolveResult::Resource(resource)) = resolution
       .resolve
       .resolve(resolution.context, &possible_request)
     {
-      Some(info.path)
+      Some(resource.path)
     } else {
       start_resolving(resolutions)
     }
@@ -350,7 +349,8 @@ impl LegacyImporter for RspackImporter {
 
 #[derive(Debug)]
 struct RspackLogger {
-  tx: Sender<Vec<Diagnostic>>,
+  // `Sync` is required by the `Logger` trait
+  tx: mpsc::SyncSender<Vec<Diagnostic>>,
 }
 
 impl Logger for RspackLogger {
@@ -471,7 +471,7 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
     loader_context: &mut LoaderContext<'_, '_, CompilerContext, CompilationContext>,
   ) -> Result<()> {
     let content = loader_context.content.to_owned();
-    let (tx, rx) = unbounded();
+    let (tx, rx) = mpsc::sync_channel(8);
     let logger = RspackLogger { tx };
     let sass_options = self.get_sass_options(loader_context, content.try_into_string()?, logger);
     let result = Sass::new(&self.options.__exe_path)

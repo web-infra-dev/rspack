@@ -3,7 +3,7 @@ import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
 import { Stats } from "@rspack/core/src/stats";
-import { Compiler } from "@rspack/core";
+import { Compiler, MultiCompiler } from "@rspack/core";
 import MultiStats from "@rspack/core/src/multiStats";
 
 export class BuildCommand implements RspackCommand {
@@ -83,14 +83,15 @@ export class BuildCommand implements RspackCommand {
 						}
 					}
 				};
-				console.time("build");
+
 				let rspackOptions = { ...options, argv: { ...options } };
 
-				const compiler = await cli.createCompiler(rspackOptions, "production");
-				compiler.run((err, Stats) => {
+				const errorHandler = (err, Stats) => {
 					callback(err, Stats);
-					console.timeEnd("build");
-				});
+					if (!cli.isWatch(compiler)) console.timeEnd("build");
+				};
+
+				const compiler = await cli.createCompiler(rspackOptions, errorHandler);
 			}
 		);
 	}

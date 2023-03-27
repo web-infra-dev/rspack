@@ -4,7 +4,8 @@ import {
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions,
 	RawOptions,
-	RawExternalItem
+	RawExternalItem,
+	RawExternalItemValue
 } from "@rspack/binding";
 import assert from "assert";
 import { normalizeStatsPreset } from "../stats";
@@ -13,6 +14,7 @@ import {
 	EntryNormalized,
 	Experiments,
 	ExternalItem,
+	ExternalItemValue,
 	Externals,
 	ExternalsPresets,
 	LibraryOptions,
@@ -145,7 +147,11 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			!isNil(output.enabledLibraryTypes) &&
 			!isNil(output.strictModuleErrorHandling) &&
 			!isNil(output.globalObject) &&
-			!isNil(output.importFunctionName),
+			!isNil(output.importFunctionName) &&
+			!isNil(output.module) &&
+			!isNil(output.iife) &&
+			!isNil(output.importFunctionName) &&
+			!isNil(output.webassemblyModuleFilename),
 		"fields should not be nil after defaults"
 	);
 	return {
@@ -161,7 +167,10 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling,
 		globalObject: output.globalObject,
-		importFunctionName: output.importFunctionName
+		importFunctionName: output.importFunctionName,
+		iife: output.iife,
+		module: output.module,
+		webassemblyModuleFilename: output.webassemblyModuleFilename
 	};
 }
 
@@ -277,6 +286,12 @@ function getRawRuleSetCondition(
 			regexpMatcher: condition.source
 		};
 	}
+	if (typeof condition === "function") {
+		return {
+			type: "function",
+			funcMatcher: condition
+		};
+	}
 	if (Array.isArray(condition)) {
 		return {
 			type: "array",
@@ -313,7 +328,22 @@ function getRawExternals(externals: Externals): RawOptions["externals"] {
 		} else if (item instanceof RegExp) {
 			return { type: "regexp", regexpPayload: item.source };
 		}
-		return { type: "object", objectPayload: item };
+		return {
+			type: "object",
+			objectPayload: Object.fromEntries(
+				Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
+			)
+		};
+	}
+	function getRawExternalItemValue(
+		value: ExternalItemValue
+	): RawExternalItemValue {
+		if (typeof value === "string") {
+			return { type: "string", stringPayload: value };
+		} else if (typeof value === "boolean") {
+			return { type: "bool", boolPayload: value };
+		}
+		throw new Error("unreachable");
 	}
 
 	if (Array.isArray(externals)) {
@@ -397,18 +427,26 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: Experiments
 ): RawOptions["experiments"] {
-	const { lazyCompilation, incrementalRebuild } = experiments;
-	assert(!isNil(lazyCompilation) && !isNil(incrementalRebuild));
+	const { lazyCompilation, incrementalRebuild, asyncWebAssembly } = experiments;
+	assert(
+		!isNil(lazyCompilation) &&
+			!isNil(incrementalRebuild) &&
+			!isNil(asyncWebAssembly)
+	);
 	return {
 		lazyCompilation,
-		incrementalRebuild
+		incrementalRebuild,
+		asyncWebAssembly
 	};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {
-	assert(!isNil(node.__dirname) && !isNil(node.global));
+	assert(
+		!isNil(node.__dirname) && !isNil(node.global) && !isNil(node.__filename)
+	);
 	return {
 		dirname: String(node.__dirname),
+		filename: String(node.__filename),
 		global: String(node.global)
 	};
 }

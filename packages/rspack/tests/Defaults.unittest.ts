@@ -116,6 +116,7 @@ describe("snapshots", () => {
 		    },
 		  },
 		  "experiments": {
+		    "asyncWebAssembly": false,
 		    "incrementalRebuild": true,
 		    "lazyCompilation": false,
 		  },
@@ -137,20 +138,8 @@ describe("snapshots", () => {
 		        "type": "javascript/esm",
 		      },
 		      {
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/esm",
-		      },
-		      {
 		        "test": /\\\\\\.cjs\\$/i,
-		        "type": "javascript/auto",
-		      },
-		      {
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/auto",
-		      },
-		      {
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/auto",
+		        "type": "javascript/dynamic",
 		      },
 		      {
 		        "test": /\\\\\\.jsx\\$/i,
@@ -192,6 +181,7 @@ describe("snapshots", () => {
 		  "name": undefined,
 		  "node": {
 		    "__dirname": "warn-mock",
+		    "__filename": "warn-mock",
 		    "global": "warn",
 		  },
 		  "optimization": {
@@ -233,12 +223,15 @@ describe("snapshots", () => {
 		    "enabledLibraryTypes": [],
 		    "filename": "[name].js",
 		    "globalObject": "self",
+		    "iife": true,
 		    "importFunctionName": "import",
 		    "library": undefined,
+		    "module": false,
 		    "path": "<cwd>/dist",
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
 		    "uniqueName": "@rspack/core",
+		    "webassemblyModuleFilename": "[hash].module.wasm",
 		  },
 		  "plugins": [],
 		  "resolve": {
@@ -250,6 +243,7 @@ describe("snapshots", () => {
 		      ".js",
 		      ".json",
 		      ".d.ts",
+		      ".wasm",
 		    ],
 		    "mainFields": [
 		      "browser",
@@ -441,18 +435,33 @@ describe("snapshots", () => {
 		+     "outputModule": true,
 	`)
 	);
-	/**
-	 * not support yet
-	 */
+
 	test("async wasm", { experiments: { asyncWebAssembly: true } }, e =>
 		e.toMatchInlineSnapshot(`
 		- Expected
 		+ Received
 
 		@@ ... @@
+		-     "asyncWebAssembly": false,
 		+     "asyncWebAssembly": true,
+		@@ ... @@
+		+       },
+		+       Object {
+		+         "rules": Array [
+		+           Object {
+		+             "descriptionData": Object {
+		+               "type": "module",
+		+             },
+		+             "resolve": Object {
+		+               "fullySpecified": true,
+		+             },
+		+           },
+		+         ],
+		+         "test": /\\.wasm$/i,
+		+         "type": "webassembly/async",
 	`)
 	);
+
 	test(
 		"both wasm",
 		{ experiments: { syncWebAssembly: true, asyncWebAssembly: true } },
@@ -462,9 +471,25 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "asyncWebAssembly": false,
 			+     "asyncWebAssembly": true,
 			@@ ... @@
 			+     "syncWebAssembly": true,
+			@@ ... @@
+			+       },
+			+       Object {
+			+         "rules": Array [
+			+           Object {
+			+             "descriptionData": Object {
+			+               "type": "module",
+			+             },
+			+             "resolve": Object {
+			+               "fullySpecified": true,
+			+             },
+			+           },
+			+         ],
+			+         "test": /\\.wasm$/i,
+			+         "type": "webassembly/async",
 		`)
 	);
 	test("const filename", { output: { filename: "bundle.js" } }, e =>
@@ -678,8 +703,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",
@@ -717,8 +744,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",
@@ -746,8 +775,10 @@ describe("snapshots", () => {
 		+     "node": true,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
+		-     "__filename": "warn-mock",
 		-     "global": "warn",
 		+     "__dirname": "eval-only",
+		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
 		-     "globalObject": "self",

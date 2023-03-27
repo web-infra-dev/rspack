@@ -85,6 +85,43 @@ module.exports = {
 				}
 			]
 		},
+		WebassemblyModuleFilename: {
+			description:
+				"The filename of WebAssembly modules as relative path inside the 'output.path' directory.",
+			type: "string"
+		},
+		EnabledWasmLoadingTypes: {
+			description:
+				"List of wasm loading types enabled for use by entry points.",
+			type: "array",
+			items: {
+				$ref: "#/definitions/WasmLoadingType"
+			}
+		},
+		WasmLoading: {
+			description:
+				"The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: [false]
+				},
+				{
+					$ref: "#/definitions/WasmLoadingType"
+				}
+			]
+		},
+		WasmLoadingType: {
+			description:
+				"The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: ["fetch-streaming", "fetch", "async-node"]
+				},
+				{
+					type: "string"
+				}
+			]
+		},
 		Dependencies: {
 			description: "References to other configurations to depend on.",
 			type: "array",
@@ -136,6 +173,9 @@ module.exports = {
 				},
 				runtime: {
 					$ref: "#/definitions/EntryRuntime"
+				},
+				wasmLoading: {
+					$ref: "#/definitions/WasmLoading"
 				}
 			},
 			required: ["import"]
@@ -227,6 +267,10 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				asyncWebAssembly: {
+					description: "Support WebAssembly as asynchronous EcmaScript Module.",
+					type: "boolean"
+				},
 				incrementalRebuild: {
 					description: "Rebuild incrementally",
 					type: "boolean"
@@ -271,6 +315,11 @@ module.exports = {
 				{
 					description: "The target of the external.",
 					type: "string"
+				},
+				{
+					description:
+						"`true`: The dependency name is used as target of the external.",
+					type: "boolean"
 				}
 			]
 		},
@@ -659,6 +708,10 @@ module.exports = {
 					description: "Include a polyfill for the '__dirname' variable.",
 					enum: [false, true, "warn-mock", "mock", "eval-only"]
 				},
+				__filename: {
+					description: "Include a polyfill for the '__filename' variable.",
+					enum: [false, true, "warn-mock", "mock", "eval-only"]
+				},
 				global: {
 					description: "Include a polyfill for the 'global' variable.",
 					enum: [false, true, "warn"]
@@ -907,12 +960,20 @@ module.exports = {
 				}
 			]
 		},
+		Iife: {
+			description:
+				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
+			type: "boolean"
+		},
 		Output: {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				iife: {
+					$ref: "#/definitions/Iife"
+				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
 				},
@@ -931,6 +992,15 @@ module.exports = {
 				},
 				cssFilename: {
 					$ref: "#/definitions/CssFilename"
+				},
+				enabledWasmLoadingTypes: {
+					$ref: "#/definitions/EnabledWasmLoadingTypes"
+				},
+				wasmLoading: {
+					$ref: "#/definitions/WasmLoading"
+				},
+				webassemblyModuleFilename: {
+					$ref: "#/definitions/WebassemblyModuleFilename"
 				},
 				enabledLibraryTypes: {
 					$ref: "#/definitions/EnabledLibraryTypes"
@@ -1184,6 +1254,9 @@ module.exports = {
 				},
 				{
 					type: "string"
+				},
+				{
+					instanceof: "Function"
 				},
 				{
 					$ref: "#/definitions/RuleSetLogicalConditions"
@@ -1576,6 +1649,27 @@ module.exports = {
 				},
 				warningsCount: {
 					description: "Add warnings count.",
+					type: "boolean"
+				},
+				outputPath: {
+					description: "Add output path information.",
+					type: "boolean"
+				},
+				chunkModules: {
+					description: "Add built modules information to chunk information.",
+					type: "boolean"
+				},
+				chunkRelations: {
+					description:
+						"Add information about parent, children and sibling chunks to chunk information.",
+					type: "boolean"
+				},
+				timings: {
+					description: "Add timing information.",
+					type: "boolean"
+				},
+				builtAt: {
+					description: "Add built at time information.",
 					type: "boolean"
 				}
 			}

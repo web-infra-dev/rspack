@@ -4,6 +4,7 @@ use std::sync::Arc;
 use rspack_core::{ast::javascript::Ast, ModuleType};
 use rspack_error::Error;
 use swc_core::base::config::IsModule;
+use swc_core::base::SwcComments;
 use swc_core::common::comments::Comments;
 use swc_core::common::{FileName, SourceFile};
 use swc_core::ecma::ast::{self, EsVersion, Program};
@@ -68,6 +69,7 @@ pub fn parse(
 
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(FileName::Custom(filename.to_string()), source_code);
+  let comments = SwcComments::default();
 
   match parse_js(
     fm.clone(),
@@ -75,9 +77,9 @@ pub fn parse(
     syntax,
     // TODO: Is this correct to think the code is module by default?
     IsModule::Bool(true),
-    None,
+    Some(&comments),
   ) {
-    Ok(program) => Ok(Ast::new(program, cm)),
+    Ok(program) => Ok(Ast::new(program, cm, Some(comments))),
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()

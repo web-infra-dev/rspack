@@ -94,6 +94,8 @@ async function match(config: RspackOptions) {
 		compiler
 	);
 	await server.start();
+	// it will break ci
+	delete server.options.port;
 	expect(server.options).toMatchSnapshot();
 	await server.stop();
 }
@@ -121,7 +123,10 @@ async function matchAdditionEntries(
 	const value = Object.fromEntries(
 		entires.map(([key, item]) => {
 			const replaced = item.import?.map(entry => {
-				const array = entry.replace(/\\/g, "/").split("/");
+				const array = entry
+					.replace(/\\/g, "/")
+					.replace(/port=\d+/g, "")
+					.split("/");
 				return "<prefix>" + "/" + array.slice(-3).join("/");
 			});
 			return [key, replaced];

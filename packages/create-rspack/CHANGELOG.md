@@ -1,5 +1,20 @@
 # create-rspack
 
+## 0.1.2
+
+### Patch Changes
+
+- 6d482a7: fix yargs default command ad help
+- 8f8e025: align optimizeChunkModules
+- 0f0969a: feat: add the handling of duplicate project names
+- 8c196ee: feat: support package manager detect
+
+## 0.1.1
+
+### Patch Changes
+
+- a004765a: Avoid reporting warning the export when src module format is none esm
+
 ## 0.1.0
 
 ### Minor Changes

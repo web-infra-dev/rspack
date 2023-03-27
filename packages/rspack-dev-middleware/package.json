@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-middleware",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "license": "MIT",
   "description": "Development middleware for rspack",
   "main": "dist/index.js",
@@ -14,7 +14,7 @@
   "repository": "web-infra-dev/rspack",
   "dependencies": {
     "@rspack/core": "workspace:*",
-    "webpack-dev-middleware": "6.0.0",
+    "webpack-dev-middleware": "6.0.2",
     "mime-types": "2.1.35"
   },
   "devDependencies": {

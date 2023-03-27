@@ -1,5 +1,42 @@
 # @rspack/binding
 
+## 0.1.2
+
+### Patch Changes
+
+- 68c4df8: feat: module.hot.accept/decline support arrary dependencies
+- a43a849: fix: cheap-module-source-map too slow
+- f562fa9: feat: add simple ignore options for copy-plugin
+- 97dc0dd: fix regex external not working
+- b4c5ed5: fix: css url rewrite for complex http url within ~
+- 36ffd12: fix: Tailwind CSS HMR not work
+- a6ac7da: feat: function type RuleSetCondition
+- 48eff5e: feat: add normalModuleFactory and resolveForScheme hook
+- 8f8e025: align optimizeChunkModules
+- 7fde34f: fix: node mode interop
+- 2c01586: fix: fix identifier of missing module
+- 6d9eb8b: fix: contenthash should care about ChunkGraphModule#id
+- 2e9d331: feat(runtime): support node.\_\_filename polyfill
+- a54179d: fix(html): builtins.html minify not work
+- fbc315d: add percent symbol in progress plugin message
+- c4c20a3: add cross-env
+
+## 0.1.1
+
+### Patch Changes
+
+- 6f8706f0: fix: postcss modules warning when using postcss-loader
+- 0e32353d: fix(resolve): upgrade the version of nodejs_resolver to fix the error which will resolve failed when target is relative by tsconfig/baseUrl
+- 23048514: fix: incremental rebuild not work
+- 7b3167ca: feat: externalsPresets.node
+- f204c108: feat: array type of externals
+- bb22416a: feat: stats for chunkRelations and chunkModules
+- 44dc1e8b: fix: fix react fast-refresh module id on windows
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- 2f7ffb57: feat: support guided panic info with backtrace
+- 2d2c9624: fix: fix webpack-sources interoperation
+- 6bdc0840: pref(sourcemap): upgrade rspack_sources to improve the performance of line sourcemap'
+
 ## 0.1.0
 
 ### Minor Changes

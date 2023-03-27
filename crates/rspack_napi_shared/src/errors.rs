@@ -52,7 +52,7 @@ fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, O
     return (err.reason.clone(), None);
   }
 
-  let stack_or_message = match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {
+  match unsafe { ToNapiValue::to_napi_value(env.raw(), err) } {
     Ok(napi_error) => match try_extract_string_value_from_property(env, napi_error, "stack") {
       Err(_) => match try_extract_string_value_from_property(env, napi_error, "message") {
         Err(e) => (format!("Unknown NAPI error {e}"), Some(get_backtrace())),
@@ -64,9 +64,7 @@ fn extract_stack_or_message_from_napi_error(env: &Env, err: Error) -> (String, O
       format!("Failed to extract NAPI error stack or message: {e}"),
       Some(get_backtrace()),
     ),
-  };
-
-  stack_or_message
+  }
 }
 
 fn try_extract_string_value_from_property<S: AsRef<str>>(

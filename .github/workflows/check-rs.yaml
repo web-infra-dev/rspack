@@ -22,83 +22,57 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-and-format:
-    name: lint, format and spell check
+  lint-format-test:
+    name: lint, format, spell check, test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR Branch
-        uses: actions/checkout@v3
-        with:
-          submodules: false
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Support longpaths
-        run: git config core.longpaths true
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Install toolchain
-        run: rustup show
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: check
-      - name: Run rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --verbose -- --check
+
       - name: Install protoc
         uses: arduino/setup-protoc@v1
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
       - name: Install toolchain
         run: rustup show
+
       - name: Cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: check
-      - name: Run cargo check
-        run: cargo check --workspace --all-targets --release --locked
 
-      - name: Run clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --workspace --all-targets -- -D warnings
-      - name: Check Dependencies
-        run: node ./scripts/check_rust_dependency.js
       - name: Spell Check
         uses: crate-ci/typos@master
         with:
           files: .
 
-  test-rs:
-    name: Rust test
-    strategy:
-      fail-fast: true
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
+          command: fmt
+          args: --all -- --check
+
+      - name: Run Cargo Check
+        run: cargo check --workspace --all-targets --release --locked
+
+      - name: Run Clippy
+        uses: actions-rs/cargo@v1
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Install toolchain
-        run: rustup show
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: check
+          command: clippy
+          args: --workspace --all-targets -- -D warnings
+
+      - name: Check Dependencies
+        run: node ./scripts/check_rust_dependency.js
+
       - name: Run test
         # We need to install sass first to enable sass-loader
         run: |
           node -e "console.log(process.arch)"
           npm install -g pnpm@7.25.0
           pnpm install
-          cargo test --all -- --nocapture --test-threads=1
+          cargo test --workspace  -- --nocapture --test-threads=1

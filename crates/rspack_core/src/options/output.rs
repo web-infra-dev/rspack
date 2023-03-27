@@ -15,6 +15,7 @@ pub struct OutputOptions {
   pub path: PathBuf,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
+  pub webassembly_module_filename: Filename,
   pub unique_name: String,
   //todo we are not going to support file_name & chunk_file_name as function in the near feature
   pub filename: Filename,
@@ -26,6 +27,8 @@ pub struct OutputOptions {
   pub strict_module_error_handling: bool,
   pub global_object: String,
   pub import_function_name: String,
+  pub iife: bool,
+  pub module: bool,
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";

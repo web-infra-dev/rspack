@@ -10,24 +10,7 @@ use rustc_hash::FxHasher;
 use crate::{AliasMap, DependencyType};
 use crate::{DependencyCategory, Resolve};
 
-#[derive(Debug, Clone)]
-pub enum ResolveResult {
-  Info(ResolveInfo),
-  Ignored,
-}
-
-#[derive(Debug, Clone)]
-pub struct ResolveInfo {
-  pub path: PathBuf,
-  pub query: String,
-  pub fragment: String,
-}
-
-impl ResolveInfo {
-  pub fn join(&self) -> String {
-    format!("{}{}{}", self.path.display(), self.query, self.fragment)
-  }
-}
+pub type ResolveResult = nodejs_resolver::ResolveResult<nodejs_resolver::Resource>;
 
 #[derive(Debug)]
 pub struct ResolverFactory {
@@ -266,17 +249,7 @@ pub struct Resolver(pub(crate) nodejs_resolver::Resolver);
 
 impl Resolver {
   pub fn resolve(&self, path: &Path, request: &str) -> nodejs_resolver::RResult<ResolveResult> {
-    self
-      .0
-      .resolve(path, request)
-      .map(|inner_result| match inner_result {
-        nodejs_resolver::ResolveResult::Info(info) => ResolveResult::Info(ResolveInfo {
-          path: info.path().to_path_buf(),
-          query: info.request().query().into(),
-          fragment: info.request().fragment().into(),
-        }),
-        nodejs_resolver::ResolveResult::Ignored => ResolveResult::Ignored,
-      })
+    self.0.resolve(path, request)
   }
 
   pub fn dependencies(&self) -> (Vec<PathBuf>, Vec<PathBuf>) {

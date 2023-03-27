@@ -1,6 +1,7 @@
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  ExternalModule, Filename, LibraryName, LibraryOptions, Plugin, PluginContext,
+  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, LibraryName,
+  LibraryOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
   PluginRenderHookOutput, RenderArgs, SourceType,
 };
 use rspack_error::Result;
@@ -39,6 +40,17 @@ impl Plugin for AmdLibraryPlugin {
     "AmdLibraryPlugin"
   }
 
+  fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args
+      .runtime_requirements
+      .insert(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME);
+    Ok(())
+  }
+
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let compilation = &args.compilation;
     let chunk = args.chunk();
@@ -56,7 +68,7 @@ impl Plugin for AmdLibraryPlugin {
     let external_deps_array = external_dep_array(&modules);
     let external_arguments = external_arguments(&modules, compilation);
     let mut fn_start = format!("function({external_arguments}){{\n");
-    if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    if compilation.options.output.iife && !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       fn_start.push_str(" return ");
     }
     let name = self.normalize_name(&compilation.options.output.library)?;

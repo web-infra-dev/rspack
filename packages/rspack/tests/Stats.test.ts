@@ -16,7 +16,7 @@ describe("Stats", () => {
 				main: "./fixtures/a"
 			}
 		});
-		const statsOptions = { all: true };
+		const statsOptions = { all: true, timings: false, builtAt: false };
 		expect(typeof stats?.hash).toBe("string");
 		expect(stats?.toJson(statsOptions)).toMatchInlineSnapshot(`
 		{
@@ -122,6 +122,7 @@ describe("Stats", () => {
 		      "name": "main",
 		    },
 		  },
+		  "outputPath": "<PROJECT_ROOT>/dist",
 		  "publicPath": "auto",
 		  "warnings": [],
 		  "warningsCount": 0,
@@ -156,7 +157,7 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(stats?.toString()).toMatchInlineSnapshot(`
+		expect(stats?.toString({ timings: false })).toMatchInlineSnapshot(`
 		"Hash: 2168fece27972fed
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names

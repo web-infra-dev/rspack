@@ -148,3 +148,5 @@ export default class MultiStats {
 		return results.filter(Boolean).join("\n\n");
 	}
 }
+
+export { MultiStats };

@@ -1,11 +1,18 @@
 use std::fmt::Debug;
+use std::path::PathBuf;
 
 use async_trait::async_trait;
-use napi::{Env, NapiRaw, Result};
+use napi::{Env, Result};
+use rspack_binding_macros::js_fn_into_theadsafe_fn;
+use rspack_core::{
+  NormalModuleFactoryResolveForSchemeArgs, PluginNormalModuleFactoryResolveForSchemeOutput,
+  ResourceData,
+};
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
+use crate::js_values::{JsResourceData, SchemeAndJsResourceData};
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
@@ -22,6 +29,9 @@ pub struct JsHooksAdapter {
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub normal_module_factory_resolve_for_scheme:
+    ThreadsafeFunction<SchemeAndJsResourceData, JsResourceData>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -97,6 +107,28 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call make: {err}",))?
+  }
+
+  async fn normal_module_factory_resolve_for_scheme(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &NormalModuleFactoryResolveForSchemeArgs,
+  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
+    let res = self
+      .normal_module_factory_resolve_for_scheme
+      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+    res.map(|res| {
+      Some(ResourceData {
+        resource: res.resource,
+        resource_fragment: res.fragment,
+        resource_path: PathBuf::from(res.path),
+        resource_query: res.query,
+        resource_description: None,
+      })
+    })
   }
 
   async fn process_assets_stage_additional(
@@ -204,6 +236,50 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage report: {err}",))?
   }
 
+  async fn optimize_chunk_modules(
+    &mut self,
+    args: rspack_core::OptimizeChunksArgs<'_>,
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::OptimizeChunkModules) {
+      return Ok(());
+    }
+
+    let compilation = JsCompilation::from_compilation(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        args.compilation,
+      )
+    });
+
+    self
+      .optimize_chunk_modules_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to compilation: {err}"))?
+  }
+
+  async fn finish_modules(
+    &mut self,
+    compilation: &mut rspack_core::Compilation,
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::FinishModules) {
+      return Ok(());
+    }
+
+    let compilation = JsCompilation::from_compilation(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    });
+
+    self
+      .finish_modules_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to finish modules: {err}"))?
+  }
+
   async fn emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::Emit) {
       return Ok(());
@@ -229,28 +305,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| internal_error!("Failed to call after emit: {err}",))?
   }
-
-  async fn optimize_chunk_modules(
-    &mut self,
-    args: rspack_core::OptimizeChunksArgs<'_>,
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::OptimizeChunkModules) {
-      return Ok(());
-    }
-
-    let compilation = JsCompilation::from_compilation(unsafe {
-      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
-        args.compilation,
-      )
-    });
-
-    self
-      .optimize_chunk_modules_tsfn
-      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .map_err(|err| internal_error!("Failed to compilation: {err}"))?
-  }
 }
 
 impl JsHooksAdapter {
@@ -268,59 +322,37 @@ impl JsHooksAdapter {
       emit,
       after_emit,
       optimize_chunk_module,
+      normal_module_factory_resolve_for_scheme,
+      finish_modules,
     } = js_hooks;
 
-    // *Note* that the order of the creation of threadsafe function is important. There is a queue of threadsafe calls for each tsfn:
-    // For example:
-    // tsfn1: [call-in-js-task1, call-in-js-task2]
-    // tsfn2: [call-in-js-task3, call-in-js-task4]
-    // If the tsfn1 is created before tsfn2, and task1 is created(via `tsfn.call`) before task2(single tsfn level),
-    // and *if these tasks are created in the same tick*, tasks will be called on main thread in the order of `task1` `task2` `task3` `task4`
-    //
-    // In practice:
-    // The creation of callback `this_compilation` is placed before the callback `compilation` because we want the JS hooks `this_compilation` to be called before the JS hooks `compilation`.
-
-    macro_rules! create_hook_tsfn {
-      ($js_cb:ident) => {{
-        let cb = unsafe { $js_cb.raw() };
-
-        let mut tsfn: ThreadsafeFunction<_, _> =
-          ThreadsafeFunction::create(env.raw(), cb, 0, |ctx| {
-            let (ctx, resolver) = ctx.split_into_parts();
-
-            let env = ctx.env;
-            let cb = ctx.callback;
-            let result = unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) };
-
-            resolver.resolve::<()>(result, |_, _| Ok(()))
-          })?;
-
-        // See the comment in `threadsafe_function.rs`
-        tsfn.unref(&env)?;
-        tsfn
-      }};
-    }
-
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_additional);
+      js_fn_into_theadsafe_fn!(process_assets_stage_additional, env);
     let process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_pre_process);
+      js_fn_into_theadsafe_fn!(process_assets_stage_pre_process, env);
     let process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_none);
+      js_fn_into_theadsafe_fn!(process_assets_stage_none, env);
     let process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_optimize_inline);
+      js_fn_into_theadsafe_fn!(process_assets_stage_optimize_inline, env);
     let process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_summarize);
+      js_fn_into_theadsafe_fn!(process_assets_stage_summarize, env);
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
-      create_hook_tsfn!(process_assets_stage_report);
-    let emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(emit);
-    let after_emit_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(after_emit);
+      js_fn_into_theadsafe_fn!(process_assets_stage_report, env);
+    let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(emit, env);
+    let after_emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(after_emit, env);
     let this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      create_hook_tsfn!(this_compilation);
-    let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> = create_hook_tsfn!(compilation);
-    let make_tsfn: ThreadsafeFunction<(), ()> = create_hook_tsfn!(make);
+      js_fn_into_theadsafe_fn!(this_compilation, env);
+    let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      js_fn_into_theadsafe_fn!(compilation, env);
+    let make_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(make, env);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      create_hook_tsfn!(optimize_chunk_module);
+      js_fn_into_theadsafe_fn!(optimize_chunk_module, env);
+    let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      js_fn_into_theadsafe_fn!(finish_modules, env);
+    let normal_module_factory_resolve_for_scheme: ThreadsafeFunction<
+      SchemeAndJsResourceData,
+      JsResourceData,
+    > = js_fn_into_theadsafe_fn!(normal_module_factory_resolve_for_scheme, env);
 
     Ok(JsHooksAdapter {
       disabled_hooks,
@@ -336,6 +368,8 @@ impl JsHooksAdapter {
       emit_tsfn,
       after_emit_tsfn,
       optimize_chunk_modules_tsfn,
+      normal_module_factory_resolve_for_scheme,
+      finish_modules_tsfn,
     })
   }
 

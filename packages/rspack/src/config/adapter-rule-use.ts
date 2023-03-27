@@ -158,8 +158,8 @@ function createRawModuleRuleUsesImpl(
 			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
 	);
 	if (index < 0) {
-		// @ts-expect-error
-		return [composeJsUse(uses, options, allUses)];
+		// cast to non-null since we know `uses` is not empty
+		return [composeJsUse(uses, options, allUses)!];
 	}
 
 	const before = uses.slice(0, index);
@@ -205,14 +205,10 @@ function composeJsUse(
 				let isSync = true;
 				let isError = false; // internal error
 				let reportedError = false;
-				// @ts-expect-error
-				const fileDependencies = [];
-				// @ts-expect-error
-				const contextDependencies = [];
-				// @ts-expect-error
-				const missingDependencies = [];
-				// @ts-expect-error
-				const buildDependencies = [];
+				const fileDependencies: string[] = [];
+				const contextDependencies: string[] = [];
+				const missingDependencies: string[] = [];
+				const buildDependencies: string[] = [];
 
 				function callback(
 					err: Error | null,
@@ -238,13 +234,9 @@ function composeJsUse(
 						content,
 						sourceMap,
 						additionalData,
-						// @ts-expect-error
 						fileDependencies,
-						// @ts-expect-error
 						contextDependencies,
-						// @ts-expect-error
 						missingDependencies,
-						// @ts-expect-error
 						buildDependencies
 					});
 				}
@@ -301,7 +293,7 @@ function composeJsUse(
 					// @ts-expect-error
 					createHash: type => {
 						return createHash(
-							// @ts-expect-error hashFunction should also avaiable in rust side, then we can make the type right
+							// @ts-expect-error hashFunction should also available in rust side, then we can make the type right
 							type || compiler.compilation.outputOptions.hashFunction
 						);
 					}
@@ -476,15 +468,12 @@ function composeJsUse(
 						missingDependencies.length = 0;
 					},
 					getDependencies() {
-						// @ts-expect-error
 						return fileDependencies.slice();
 					},
 					getContextDependencies() {
-						// @ts-expect-error
 						return contextDependencies.slice();
 					},
 					getMissingDependencies() {
-						// @ts-expect-error
 						return missingDependencies.slice();
 					},
 					_compiler: compiler,
@@ -519,16 +508,12 @@ function composeJsUse(
 						if (result === undefined) {
 							resolve({
 								content,
-								// @ts-expect-error
 								buildDependencies,
 								sourceMap,
 								additionalData,
 								cacheable,
-								// @ts-expect-error
 								fileDependencies,
-								// @ts-expect-error
 								contextDependencies,
-								// @ts-expect-error
 								missingDependencies
 							});
 							return;
@@ -537,32 +522,24 @@ function composeJsUse(
 							return result.then(function (result) {
 								resolve({
 									content: result,
-									// @ts-expect-error
 									buildDependencies,
 									sourceMap,
 									additionalData,
 									cacheable,
-									// @ts-expect-error
 									fileDependencies,
-									// @ts-expect-error
 									contextDependencies,
-									// @ts-expect-error
 									missingDependencies
 								});
 							}, reject);
 						}
 						return resolve({
 							content: result,
-							// @ts-expect-error
 							buildDependencies,
 							sourceMap,
 							additionalData,
 							cacheable,
-							// @ts-expect-error
 							fileDependencies,
-							// @ts-expect-error
 							contextDependencies,
-							// @ts-expect-error
 							missingDependencies
 						});
 					}

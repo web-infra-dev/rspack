@@ -60,13 +60,13 @@ impl ContextModuleFactory {
       .use_cache(resolve_args, |args| resolve(args, plugin_driver))
       .await;
     let module = match resource_data {
-      Ok(ResolveResult::Info(info)) => {
-        let uri = info.join();
+      Ok(ResolveResult::Resource(resource)) => {
+        let uri = resource.join().display().to_string();
 
         Box::new(ContextModule::new(ContextModuleOptions {
           resource: uri,
-          resource_query: (!info.query.is_empty()).then_some(info.query),
-          resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
+          resource_query: resource.query,
+          resource_fragment: resource.fragment,
           context_options: data
             .dependency
             .options()
@@ -93,8 +93,8 @@ impl ContextModuleFactory {
         return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
       }
       Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", data.context.expect("should have context"),);
-        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}{specifier}"));
+        let ident = format!("{}{specifier}", data.context.expect("should have context"));
+        let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
         let missing_module = MissingModule::new(
           module_identifier,

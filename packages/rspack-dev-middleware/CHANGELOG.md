@@ -1,5 +1,51 @@
 # @rspack/dev-middleware
 
+## 0.1.2
+
+### Patch Changes
+
+- d63e3fd: upgrade webpack-dev-server & webpack-dev-middleware
+- a6ac7da: feat: function type RuleSetCondition
+- deaca70: fix: css hmr memory middleware
+- bfb1738: fix: react refresh runtime injection
+- Updated dependencies [68c4df8]
+- Updated dependencies [2486b2a]
+- Updated dependencies [f562fa9]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [eb7051f]
+- Updated dependencies [cd011c1]
+- Updated dependencies [7431442]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [2934f8f]
+- Updated dependencies [a0994a8]
+- Updated dependencies [2e9d331]
+  - @rspack/core@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- f5f661a2: Use native Node compatible methods in middleware
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [d2072dd4]
+- Updated dependencies [706207a4]
+- Updated dependencies [62fca585]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [e463ebf0]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [98854e36]
+- Updated dependencies [a004765a]
+- Updated dependencies [a004268f]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [cdf6a52a]
+  - @rspack/core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

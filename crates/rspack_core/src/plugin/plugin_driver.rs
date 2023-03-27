@@ -11,14 +11,16 @@ use tracing::instrument;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
   Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
+  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginProcessAssetsOutput, PluginRenderChunkHookOutput,
-  PluginRenderHookOutput, PluginRenderManifestHookOutput, PluginRenderModuleContentOutput,
-  PluginRenderStartupHookOutput, PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory,
-  SourceType, Stats, ThisCompilationArgs,
+  PluginModuleHookOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
+  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory, SourceType,
+  Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -262,6 +264,22 @@ impl PluginDriver {
     Ok(None)
   }
 
+  pub async fn normal_module_factory_resolve_for_scheme(
+    &self,
+    args: NormalModuleFactoryResolveForSchemeArgs,
+  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin
+        .normal_module_factory_resolve_for_scheme(PluginContext::new(), &args)
+        .await?
+      {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
+
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]
   pub fn additional_chunk_runtime_requirements(
     &self,
@@ -353,6 +371,14 @@ impl PluginDriver {
       plugin
         .optimize_chunk_modules(OptimizeChunksArgs { compilation })
         .await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:finish_modules", skip_all)]
+  pub async fn finish_modules(&mut self, modules: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.finish_modules(modules).await?;
     }
     Ok(())
   }

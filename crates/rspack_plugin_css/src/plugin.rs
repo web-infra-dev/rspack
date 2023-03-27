@@ -24,14 +24,13 @@ use rspack_core::{
   GenerationResult, Module, ModuleGraph, ModuleType, NormalModuleAstOrSource, ParseContext,
   ParseResult, ParserAndGenerator, PathData, Plugin, RenderManifestEntry, SourceType,
 };
-use rspack_core::{
-  AstOrSource, CssImportDependency, Filename, ModuleAst, ModuleDependency, ModuleIdentifier,
-};
+use rspack_core::{AstOrSource, Filename, ModuleAst, ModuleDependency, ModuleIdentifier};
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::IdentifierSet;
 use sugar_path::SugarPath;
+use swc_core::css::visit::VisitMutWithPath;
 use swc_core::{
   css::{
     modules::CssClassName,
@@ -43,8 +42,11 @@ use swc_core::{
 };
 use xxhash_rust::xxh3::Xxh3;
 
+use crate::dependency::{
+  collect_dependency_code_generation_visitors, CssComposeDependency,
+  DependencyCodeGenerationVisitors, DependencyVisitor,
+};
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
-use crate::visitors::{analyze_imports_with_path, rewrite_url};
 use crate::{
   pxtorem::{options::PxToRemOptions, px_to_rem::px_to_rem},
   visitors::analyze_dependencies,
@@ -403,7 +405,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     let locals = if css_modules {
-      let imports_with_path = analyze_imports_with_path(&stylesheet);
       let path = Path::new(&resource_data.resource_path).relative(&compiler_options.context);
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
@@ -418,12 +419,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
-      Some((imports_with_path, exports))
+      Some(exports)
     } else {
       None
     };
-
-    let (local_imports, local_exports) = locals.unzip();
 
     let mut dependencies = analyze_dependencies(
       &mut stylesheet,
@@ -431,18 +430,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &mut diagnostic,
     );
 
-    let dependencies = if let Some(imports) = local_imports && !imports.is_empty() {
-      dependencies.extend(imports.into_iter().map(|(import, ast_path)| box CssImportDependency::new(import.to_string(), None, ast_path) as Box<dyn ModuleDependency>));
+    let mut dependencies = if let Some(locals) = &locals && !locals.is_empty() {
+      let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|name| if let CssClassName::Import { from, .. } = name {
+        Some(box CssComposeDependency::new(from.to_string(), None) as Box<dyn ModuleDependency>)
+      } else {
+        None
+      });
+      dependencies.extend(compose_deps);
       dependencies.into_iter().unique().collect()
     } else {
       dependencies
-    }.into_iter().map(|mut dep| {
+    };
+    dependencies.iter_mut().for_each(|dep| {
       dep.set_parent_module_identifier(Some(module_identifier));
-      dep
-    }).collect();
+    });
 
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
-    self.exports = local_exports;
+    self.exports = locals;
 
     if self.exports.is_some() && let Some(meta) = &self.meta && serde_json::from_str::<RspackPostcssModules>(meta).is_ok() {
       diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));
@@ -474,9 +478,34 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .expect("Expected AST for CSS generator, please file an issue.")
           .try_into_css()
           .expect("Expected CSS AST for CSS generation, please file an issue.");
+        let dependency_visitors =
+          collect_dependency_code_generation_visitors(module, generate_context)?;
         let cm = ast.get_context().source_map.clone();
         let stylesheet = ast.get_root_mut();
-        rewrite_url(stylesheet, module, generate_context.compilation);
+        let DependencyCodeGenerationVisitors {
+          visitors,
+          root_visitors,
+          ..
+        } = dependency_visitors;
+
+        {
+          if !visitors.is_empty() {
+            stylesheet.visit_mut_with_path(
+              &mut DependencyVisitor::new(
+                visitors
+                  .iter()
+                  .map(|(ast_path, visitor)| (ast_path, &**visitor))
+                  .collect(),
+              ),
+              &mut Default::default(),
+            );
+          }
+
+          for (_, root_visitor) in root_visitors {
+            stylesheet.visit_mut_with(&mut root_visitor.create());
+          }
+        }
+
         let (code, source_map) = SWC_COMPILER.codegen(
           cm,
           stylesheet,
@@ -593,10 +622,16 @@ impl Plugin for CssPlugin {
 
     ordered_modules
       .iter()
-      .map(|module_identifier| compilation.module_graph.get_module_hash(module_identifier))
-      .for_each(|current| {
+      .map(|mgm| {
+        (
+          compilation.module_graph.get_module_hash(mgm),
+          compilation.chunk_graph.get_module_id(*mgm),
+        )
+      })
+      .for_each(|(current, id)| {
         if let Some(current) = current {
           current.hash(&mut hasher);
+          id.hash(&mut hasher);
         }
       });
 

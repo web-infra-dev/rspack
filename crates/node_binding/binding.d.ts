@@ -26,6 +26,7 @@ export interface RawPattern {
 export interface RawGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
+  ignore?: Array<string>
 }
 export interface RawCopyConfig {
   patterns: Array<RawPattern>
@@ -159,12 +160,18 @@ export interface RawEntryItem {
 export interface RawExperiments {
   lazyCompilation: boolean
   incrementalRebuild: boolean
+  asyncWebAssembly: boolean
 }
 export interface RawExternalItem {
   type: "string" | "regexp" | "object"
   stringPayload?: string
   regexpPayload?: string
-  objectPayload?: Record<string, string>
+  objectPayload?: Record<string, RawExternalItemValue>
+}
+export interface RawExternalItemValue {
+  type: "string" | "bool"
+  stringPayload?: string
+  boolPayload?: boolean
 }
 export interface RawExternalsPresets {
   node: boolean
@@ -191,11 +198,12 @@ export interface JsLoader {
   func: (...args: any[]) => any
 }
 export interface RawRuleSetCondition {
-  type: "string" | "regexp" | "logical" | "array"
+  type: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
   regexpMatcher?: string
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
   arrayMatcher?: Array<RawRuleSetCondition>
+  funcMatcher?: (value: string) => boolean
 }
 export interface RawRuleSetLogicalConditions {
   and?: Array<RawRuleSetCondition>
@@ -265,6 +273,7 @@ export interface JsLoaderResult {
 }
 export interface RawNodeOption {
   dirname: string
+  filename: string
   global: string
 }
 export interface RawOptimizationOptions {
@@ -295,6 +304,7 @@ export interface RawOutputOptions {
   path: string
   publicPath: string
   assetModuleFilename: string
+  webassemblyModuleFilename: string
   filename: string
   chunkFilename: string
   cssFilename: string
@@ -305,6 +315,8 @@ export interface RawOutputOptions {
   enabledLibraryTypes?: Array<string>
   globalObject: string
   importFunctionName: string
+  iife: boolean
+  module: boolean
 }
 export interface RawResolveOptions {
   preferRelative?: boolean
@@ -423,11 +435,27 @@ export interface JsHooks {
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  finishModules: (...args: any[]) => any
+  normalModuleFactoryResolveForScheme: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource
   resource: string
   moduleIdentifier: string
+}
+export interface SchemeAndJsResourceData {
+  resourceData: JsResourceData
+  scheme: string
+}
+export interface JsResourceData {
+  /** Resource with absolute path, query and fragment */
+  resource: string
+  /** Absolute resource path only */
+  path: string
+  /** Resource query with `?` prefix */
+  query?: string
+  /** Resource fragment with `#` prefix */
+  fragment?: string
 }
 export interface JsCompatSource {
   /** Whether the underlying data structure is a `RawSource` */
@@ -527,6 +555,7 @@ export class JsCompilation {
   getAsset(name: string): JsAsset | null
   getAssetSource(name: string): JsCompatSource | null
   getModules(): Array<JsModule>
+  getChunks(): Array<JsChunk>
   /**
    * Only available for those none Js and Css source,
    * return true if set module source successfully, false if failed.

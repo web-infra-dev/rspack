@@ -7,8 +7,8 @@ use rspack_core::{
   runtime_globals, ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs,
   ModuleType, Plugin, PluginContext, PluginModuleHookOutput, SourceType,
 };
-use rspack_core::{BuildContext, BuildResult, CodeGenerationResult, Context, ModuleIdentifier};
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
+use rspack_error::Result;
 use rspack_identifier::Identifiable;
 
 #[derive(Debug)]
@@ -16,7 +16,6 @@ pub struct LazyCompilationProxyModule {
   pub module_identifier: ModuleIdentifier,
 }
 
-#[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
@@ -36,24 +35,6 @@ impl Module for LazyCompilationProxyModule {
 
   fn size(&self, _source_type: &SourceType) -> f64 {
     200.0
-  }
-
-  async fn build(
-    &mut self,
-    _build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    Ok(
-      BuildResult {
-        hash: Default::default(),
-        cacheable: true,
-        dependencies: vec![],
-        file_dependencies: Default::default(),
-        context_dependencies: Default::default(),
-        missing_dependencies: Default::default(),
-        build_dependencies: Default::default(),
-      }
-      .with_empty_diagnostic(),
-    )
   }
 
   fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {

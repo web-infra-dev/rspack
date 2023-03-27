@@ -1,5 +1,61 @@
 # @rspack/cli
 
+## 0.1.2
+
+### Patch Changes
+
+- 38d5e01: fix(cli): set stats default to errors-warning to avoid server info flushhed by module stats
+- f2e5d92: support mjs config
+- 8f8e025: align optimizeChunkModules
+- a08d5d6: add defineConfig helper
+- a0994a8: fix(cli): rspack build --watch not work ([#2280](https://github.com/web-infra-dev/rspack/issues/2280))
+- Updated dependencies [68c4df8]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [2486b2a]
+- Updated dependencies [f562fa9]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [eb7051f]
+- Updated dependencies [cd011c1]
+- Updated dependencies [7431442]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [bfb1738]
+- Updated dependencies [2934f8f]
+- Updated dependencies [a0994a8]
+- Updated dependencies [2e9d331]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [bb4e6a6]
+  - @rspack/core@0.1.2
+  - @rspack/dev-server@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- 7b3167ca: feat: externalsPresets.node
+- c4c20d66: Support TypeScript as configuration file.
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- 0909f15f: support config return promise
+- 3d459261: make ts-node as an optional peer dependency
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [d2072dd4]
+- Updated dependencies [706207a4]
+- Updated dependencies [62fca585]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [e463ebf0]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [98854e36]
+- Updated dependencies [a004765a]
+- Updated dependencies [a004268f]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [cdf6a52a]
+  - @rspack/core@0.1.1
+  - @rspack/dev-server@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

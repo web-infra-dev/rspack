@@ -1,5 +1,45 @@
 # rspack-plugin-postcss
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [68c4df8]
+- Updated dependencies [a43a849]
+- Updated dependencies [f562fa9]
+- Updated dependencies [97dc0dd]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [36ffd12]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [2c01586]
+- Updated dependencies [6d9eb8b]
+- Updated dependencies [2e9d331]
+- Updated dependencies [a54179d]
+- Updated dependencies [fbc315d]
+- Updated dependencies [c4c20a3]
+  - @rspack/binding@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [23048514]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [44dc1e8b]
+- Updated dependencies [a004765a]
+- Updated dependencies [2f7ffb57]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [6bdc0840]
+  - @rspack/binding@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

@@ -1,22 +1,25 @@
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
+use std::sync::mpsc;
 
 use async_trait::async_trait;
-use crossbeam_channel::unbounded;
+use linked_hash_set::LinkedHashSet;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{
   BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource,
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, GenerateContext,
-  GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, Plugin, PluginContext, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestEntry, RenderStartupArgs,
-  SourceType,
+  get_js_chunk_filename_template, runtime_globals, AstOrSource, ChunkKind, Compilation,
+  DependencyType, GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
+  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestEntry, RenderStartupArgs, SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
+use rspack_identifier::Identifier;
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
@@ -25,7 +28,7 @@ use xxhash_rust::xxh3::Xxh3;
 
 use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};
 use crate::utils::syntax_by_module_type;
-use crate::visitors::{run_after_pass, run_before_pass, DependencyScanner};
+use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
 
 #[derive(Debug)]
 pub struct JsPlugin {}
@@ -160,6 +163,9 @@ impl JsPlugin {
   pub async fn render_main(&self, args: &rspack_core::RenderManifestArgs<'_>) -> Result<BoxSource> {
     let compilation = args.compilation;
     let chunk = args.chunk();
+    let runtime_requirements = compilation
+      .chunk_graph
+      .get_tree_runtime_requirements(&args.chunk_ukey);
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("var __webpack_modules__ = "));
     sources.add(render_chunk_modules(compilation, &args.chunk_ukey)?);
@@ -169,6 +175,9 @@ impl JsPlugin {
     if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
       sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
+      if runtime_requirements.contains(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME) {
+        sources.add(RawSource::from("return __webpack_exports__;\n"));
+      }
       if let Some(source) =
         compilation
           .plugin_driver
@@ -182,7 +191,11 @@ impl JsPlugin {
         sources.add(source);
       }
     }
-    let final_source = self.render_iife(sources.boxed());
+    let final_source = if compilation.options.output.iife {
+      self.render_iife(sources.boxed())
+    } else {
+      sources.boxed()
+    };
     if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -254,6 +267,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
       resource_data,
       compiler_options,
+      build_info,
+      build_meta,
       ..
     } = parse_context;
 
@@ -273,6 +288,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         rspack_core::ast::javascript::Ast::new(
           ast::Program::Module(ast::Module::dummy()),
           Default::default(),
+          None,
         ),
         diagnostics.into(),
       ),
@@ -283,29 +299,31 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &mut ast,
       compiler_options,
       syntax,
-      parse_context.build_info,
+      build_info,
+      build_meta,
       module_type,
     )?;
 
-    let dep_scanner = ast.visit(|program, context| {
-      let mut dep_scanner =
-        DependencyScanner::new(context.unresolved_mark, resource_data, compiler_options);
-      program.visit_with_path(&mut dep_scanner, &mut Default::default());
-      dep_scanner
+    let (dependencies, presentational_dependencies) = ast.visit(|program, context| {
+      scan_dependencies(
+        program,
+        context.unresolved_mark,
+        resource_data,
+        compiler_options,
+      )
     });
 
     Ok(
       ParseResult {
         ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
-        dependencies: dep_scanner
-          .dependencies
+        dependencies: dependencies
           .into_iter()
           .map(|mut d| {
             d.set_parent_module_identifier(Some(module_identifier));
             d
           })
           .collect(),
-        presentational_dependencies: dep_scanner.presentational_dependencies,
+        presentational_dependencies,
       }
       .with_diagnostic(diagnostics),
     )
@@ -434,13 +452,17 @@ impl Plugin for JsPlugin {
     ordered_modules
       .iter()
       .map(|mgm| {
-        compilation
-          .module_graph
-          .get_module_hash(&mgm.module_identifier)
+        (
+          compilation
+            .module_graph
+            .get_module_hash(&mgm.module_identifier),
+          compilation.chunk_graph.get_module_id(mgm.module_identifier),
+        )
       })
-      .for_each(|current| {
+      .for_each(|(current, id)| {
         if let Some(current) = current {
           current.hash(&mut hasher);
+          id.hash(&mut hasher);
         }
       });
 
@@ -504,7 +526,7 @@ impl Plugin for JsPlugin {
     let minify_options = &compilation.options.builtins.minify_options;
 
     if let Some(minify_options) = minify_options {
-      let (tx, rx) = unbounded::<Vec<Diagnostic>>();
+      let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
 
       compilation
         .assets
@@ -512,7 +534,7 @@ impl Plugin for JsPlugin {
         .filter(|(filename, _)| {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
         })
-        .try_for_each(|(filename, original)| -> Result<()> {
+        .try_for_each_with(tx, |tx, (filename, original)| -> Result<()> {
           // In theory, if a js source is minimized it has high possibility has been tree-shaked.
           if original.get_info().minimized {
             return Ok(());
@@ -559,10 +581,66 @@ impl Plugin for JsPlugin {
           Ok(())
         })?;
 
-      drop(tx);
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
     }
 
+    Ok(())
+  }
+}
+
+#[derive(Debug)]
+pub struct InferAsyncModulesPlugin;
+
+#[async_trait::async_trait]
+impl Plugin for InferAsyncModulesPlugin {
+  fn name(&self) -> &'static str {
+    "InferAsyncModulesPlugin"
+  }
+
+  async fn finish_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
+    // fix: mut for-in
+    let mut queue = LinkedHashSet::new();
+    let mut uniques = HashSet::new();
+
+    let mut modules: Vec<Identifier> = compilation
+      .module_graph
+      .module_graph_modules()
+      .values()
+      .filter(|m| {
+        if let Some(meta) = &m.build_meta {
+          meta.is_async
+        } else {
+          false
+        }
+      })
+      .map(|m| m.module_identifier)
+      .collect();
+
+    modules.retain(|m| queue.insert(*m));
+
+    let module_graph = &mut compilation.module_graph;
+
+    while let Some(module) = queue.pop_front() {
+      module_graph.set_async(&module);
+      if let Some(mgm) = module_graph.module_graph_module_by_identifier(&module) {
+        mgm
+          .incoming_connections_unordered(module_graph)?
+          .filter(|con| {
+            if let Some(dep) = module_graph.dependency_by_id(&con.dependency_id) {
+              *dep.dependency_type() == DependencyType::EsmImport
+            } else {
+              false
+            }
+          })
+          .for_each(|con| {
+            if let Some(id) = &con.original_module_identifier {
+              if uniques.insert(*id) {
+                queue.insert(*id);
+              }
+            }
+          });
+      }
+    }
     Ok(())
   }
 }

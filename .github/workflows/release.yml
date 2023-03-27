@@ -37,7 +37,6 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
-          architecture: "arm64"
       - name: Install node_modules
         run: |
           npm install -g pnpm@7.25.0
@@ -396,6 +395,8 @@ jobs:
           pnpm --filter @rspack/plugin-html run test
   release:
     name: Release
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     needs:
       - test-x86_64-unknown-linux-gnu
@@ -442,3 +443,4 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
+          ONLY_RELEASE_TAG: true

@@ -11,6 +11,7 @@ use rspack_symbol::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
+use swc_core::base::SwcComments;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
@@ -29,7 +30,6 @@ use super::{
 };
 use crate::{
   CompilerOptions, Dependency, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax,
-  ResolverFactory,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -102,7 +102,6 @@ bitflags! {
     const STATIC_VAR_DECL = 1 << 4;
   }
 }
-#[derive(Debug)]
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
@@ -138,28 +137,86 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// 2. `export ` -> ESM
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub(crate) resolver_factory: &'a Arc<ResolverFactory>,
   pub(crate) side_effects: SideEffect,
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
   pub(crate) potential_top_mark: HashSet<Mark>,
+  #[allow(dead_code)]
+  comments: Option<&'a SwcComments>,
 }
 
-impl<'a> ModuleRefAnalyze<'a> {
-  pub fn new(
-    top_level_mark: Mark,
-    unresolved_mark: Mark,
-    helper_mark: Mark,
-    uri: ModuleIdentifier,
-    dep_to_module_identifier: &'a ModuleGraph,
-    resolver_factory: &'a Arc<ResolverFactory>,
-    options: &'a Arc<CompilerOptions>,
-  ) -> Self {
+impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ModuleRefAnalyze")
+      .field("top_level_mark", &self.top_level_mark)
+      .field("unresolved_mark", &self.unresolved_mark)
+      .field("helper_mark", &self.helper_mark)
+      .field("module_identifier", &self.module_identifier)
+      .field("module_graph", &self.module_graph)
+      .field("export_map", &self.export_map)
+      .field("import_map", &self.import_map)
+      .field("inherit_export_maps", &self.inherit_export_maps)
+      .field(
+        "current_body_owner_symbol_ext",
+        &self.current_body_owner_symbol_ext,
+      )
+      .field("maybe_lazy_reference_map", &self.maybe_lazy_reference_map)
+      .field(
+        "immediate_evaluate_reference_map",
+        &self.immediate_evaluate_reference_map,
+      )
+      .field(
+        "reachable_import_and_export",
+        &self.reachable_import_and_export,
+      )
+      .field("state", &self.state)
+      .field("used_id_set", &self.used_id_set)
+      .field("used_symbol_ref", &self.used_symbol_ref)
+      .field("export_default_name", &self.export_default_name)
+      .field("module_syntax", &self.module_syntax)
+      .field(
+        "bail_out_module_identifiers",
+        &self.bail_out_module_identifiers,
+      )
+      .field("side_effects", &self.side_effects)
+      .field("options", &self.options)
+      .field("has_side_effects_stmt", &self.has_side_effects_stmt)
+      .field("unresolved_ctxt", &self.unresolved_ctxt)
+      .field("potential_top_mark", &self.potential_top_mark)
+      .field("comments", &"...")
+      .finish()
+  }
+}
+
+pub struct MarkInfo {
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
+  helper_mark: Mark,
+}
+
+impl MarkInfo {
+  pub fn new(top_level_mark: Mark, unresolved_mark: Mark, helper_mark: Mark) -> Self {
     Self {
       top_level_mark,
       unresolved_mark,
       helper_mark,
+    }
+  }
+}
+
+impl<'a> ModuleRefAnalyze<'a> {
+  pub fn new(
+    mark_info: MarkInfo,
+    uri: ModuleIdentifier,
+    dep_to_module_identifier: &'a ModuleGraph,
+    options: &'a Arc<CompilerOptions>,
+    comments: Option<&'a SwcComments>,
+  ) -> Self {
+    Self {
+      top_level_mark: mark_info.top_level_mark,
+      unresolved_mark: mark_info.unresolved_mark,
+      helper_mark: mark_info.helper_mark,
       module_identifier: uri,
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
@@ -174,13 +231,13 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
-      resolver_factory,
       side_effects: SideEffect::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
-      potential_top_mark: HashSet::from_iter([top_level_mark]),
+      potential_top_mark: HashSet::from_iter([mark_info.top_level_mark]),
+      comments,
     }
   }
 
@@ -1020,11 +1077,13 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
 impl<'a> ModuleRefAnalyze<'a> {
   fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
-    let resource_path = self
+    let resource_data = self
       .module_graph
       .module_by_identifier(&self.module_identifier)
       .and_then(|module| module.as_normal_module())
-      .map(|normal_module| &normal_module.resource_resolved_data().resource_path)?;
+      .map(|normal_module| normal_module.resource_resolved_data())?;
+
+    let resource_path = &resource_data.resource_path;
 
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
@@ -1035,7 +1094,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       };
       match rule.test {
         Some(ref test_rule) => {
-          if !test_rule.is_match(&resource_path.to_string_lossy()) {
+          let is_match = test_rule.try_match(&resource_path.to_string_lossy()).ok()?;
+          if !is_match {
             continue;
           }
         }
@@ -1045,19 +1105,11 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
       return Some(SideEffect::Analyze(module_side_effects));
     }
-    let module_path = PathBuf::from(resource_path);
-    let (mut package_json_path, side_effects) = self
-      .resolver_factory
-      .resolver
-      .0
-      .load_side_effects(module_path.as_path())
-      .ok()??;
-    let side_effects = side_effects?;
+    let description = resource_data.resource_description.as_ref()?;
+    let package_path = description.dir().as_ref();
+    let side_effects = SideEffects::from_description(description)?;
 
-    package_json_path.pop();
-    let package_path = package_json_path;
-
-    let relative_path = module_path.relative(package_path);
+    let relative_path = resource_path.relative(package_path);
     let side_effects = Some(get_side_effects_from_package_json(
       side_effects,
       relative_path,
@@ -1068,12 +1120,12 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 pub fn get_side_effects_from_package_json(
-  side_effects: nodejs_resolver::SideEffects,
+  side_effects: SideEffects,
   relative_path: PathBuf,
 ) -> bool {
   match side_effects {
-    nodejs_resolver::SideEffects::Bool(s) => s,
-    nodejs_resolver::SideEffects::String(s) => {
+    SideEffects::Bool(s) => s,
+    SideEffects::String(s) => {
       let trim_start = s.trim_start_matches("./");
       let normalized_glob = if trim_start.contains('/') {
         trim_start.to_string()
@@ -1085,7 +1137,7 @@ pub fn get_side_effects_from_package_json(
         relative_path.to_string_lossy().trim_start_matches("./"),
       )
     }
-    nodejs_resolver::SideEffects::Array(patterns) => patterns
+    SideEffects::Array(patterns) => patterns
       .iter()
       .any(|pattern| glob_match::glob_match(pattern, &relative_path.to_string_lossy())),
   }
@@ -1542,4 +1594,39 @@ fn is_pure_var_decl(var: &VarDecl, unresolved_ctxt: SyntaxContext) -> bool {
 
 fn is_import_decl(module_item: &ModuleItem) -> bool {
   matches!(module_item, ModuleItem::ModuleDecl(ModuleDecl::Import(_)))
+}
+
+#[derive(Clone, Debug)]
+pub enum SideEffects {
+  Bool(bool),
+  String(String),
+  Array(Vec<String>),
+}
+
+impl SideEffects {
+  fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
+    description
+      .data()
+      .raw()
+      .get("sideEffects")
+      .and_then(|value| {
+        if let Some(b) = value.as_bool() {
+          Some(SideEffects::Bool(b))
+        } else if let Some(s) = value.as_str() {
+          Some(SideEffects::String(s.to_owned()))
+        } else if let Some(vec) = value.as_array() {
+          let mut ans = vec![];
+          for value in vec {
+            if let Some(str) = value.as_str() {
+              ans.push(str.to_string());
+            } else {
+              return None;
+            }
+          }
+          Some(SideEffects::Array(ans))
+        } else {
+          None
+        }
+      })
+  }
 }

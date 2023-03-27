@@ -6,8 +6,9 @@ use rspack_sources::BoxSource;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, Compilation, CompilerOptions,
-  Dependency, GenerationResult, Module, ModuleDependency, ModuleIdentifier, ModuleType, SourceType,
+  AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, BuildMeta, Compilation,
+  CompilerOptions, Dependency, GenerationResult, Module, ModuleDependency, ModuleIdentifier,
+  ModuleType, SourceType,
 };
 
 #[derive(Debug)]
@@ -21,6 +22,7 @@ pub struct ParseContext<'a> {
   pub additional_data: Option<String>,
   pub code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub build_info: &'a mut BuildInfo,
+  pub build_meta: &'a mut BuildMeta,
 }
 
 #[derive(Debug)]

@@ -1,2 +1,2 @@
 global.foo = "foo";
-global.bar = "bar";
+global.raz = "raz";

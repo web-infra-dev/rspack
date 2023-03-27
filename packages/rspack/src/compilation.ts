@@ -38,6 +38,7 @@ import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
 import { normalizeStatsPreset, Stats } from "./stats";
+import { NormalModuleFactory } from "./normalModuleFactory";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -49,6 +50,10 @@ export interface LogEntry {
 	args: any[];
 	time: number;
 	trace?: string[];
+}
+
+export interface CompilationParams {
+	normalModuleFactory: NormalModuleFactory;
 }
 
 export interface KnownCreateStatsOptionsContext {
@@ -64,10 +69,15 @@ export class Compilation {
 	hooks: {
 		processAssets: ReturnType<typeof createFakeProcessAssetsHook>;
 		log: tapable.SyncBailHook<[string, LogEntry], true>;
+		additionalAssets: tapable.AsyncSeriesHook<
+			Assets,
+			tapable.UnsetAdditionalOptions
+		>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
-			[Array<JsModule>],
+			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
 		>;
+		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -76,13 +86,26 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	startTime?: number;
+	endTime?: number;
+	normalModuleFactory?: NormalModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
+		this.startTime = undefined;
+		this.endTime = undefined;
+		let processAssetsHooks = createFakeProcessAssetsHook(this);
 		this.hooks = {
-			processAssets: createFakeProcessAssetsHook(this),
+			processAssets: processAssetsHooks,
+			// TODO: webpack 6 deprecate, keep it just for compatibility
+			/** @deprecated */
+			additionalAssets: processAssetsHooks.stageAdditional,
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeChunkModules: new tapable.AsyncSeriesBailHook(["modules"])
+			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
+				"chunks",
+				"modules"
+			]),
+			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -206,6 +229,15 @@ export class Compilation {
 		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
 		options.hash = optionOrLocalFallback(options.hash, true);
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
+		options.outputPath = optionOrLocalFallback(
+			options.outputPath,
+			!context.forToString
+		);
+		options.timings = optionOrLocalFallback(options.timings, true);
+		options.builtAt = optionOrLocalFallback(
+			options.builtAt,
+			!context.forToString
+		);
 
 		return options;
 	}
@@ -514,6 +546,9 @@ export class Compilation {
 
 	getModules(): JsModule[] {
 		return this.#inner.getModules();
+	}
+	getChunks(): JsChunk[] {
+		return this.#inner.getChunks();
 	}
 
 	getStats() {

@@ -85,4 +85,15 @@ describe("build command", () => {
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
 	});
+	it("should work with mjs configuration ", async () => {
+		const { exitCode, stderr, stdout } = await run(__dirname, [
+			"./src/index.js",
+			"./src/other.js",
+			"--config",
+			"./entry.config.mjs"
+		]);
+		expect(exitCode).toBe(0);
+		expect(stderr).toBeFalsy();
+		expect(stdout).toBeTruthy();
+	});
 });

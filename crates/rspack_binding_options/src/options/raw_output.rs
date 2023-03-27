@@ -77,6 +77,7 @@ pub struct RawOutputOptions {
   pub path: String,
   pub public_path: String,
   pub asset_module_filename: String,
+  pub webassembly_module_filename: String,
   pub filename: String,
   pub chunk_filename: String,
   pub css_filename: String,
@@ -87,6 +88,8 @@ pub struct RawOutputOptions {
   pub enabled_library_types: Option<Vec<String>>,
   pub global_object: String,
   pub import_function_name: String,
+  pub iife: bool,
+  pub module: bool,
   /* pub entry_filename: Option<String>,
    * pub source_map: Option<String>, */
 }
@@ -99,6 +102,7 @@ impl RawOptionsApply for RawOutputOptions {
       path: self.path.into(),
       public_path: self.public_path.into(),
       asset_module_filename: self.asset_module_filename.into(),
+      webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
@@ -109,6 +113,8 @@ impl RawOptionsApply for RawOutputOptions {
       enabled_library_types: self.enabled_library_types,
       global_object: self.global_object,
       import_function_name: self.import_function_name,
+      iife: self.iife,
+      module: self.module,
     })
   }
 }

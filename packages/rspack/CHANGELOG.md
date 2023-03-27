@@ -1,5 +1,75 @@
 # @rspack/core
 
+## 0.1.2
+
+### Patch Changes
+
+- 68c4df8: feat: module.hot.accept/decline support arrary dependencies
+- 2486b2a: fix: returning exports from runtime for libraries
+- f562fa9: feat: add simple ignore options for copy-plugin
+- b4c5ed5: fix: css url rewrite for complex http url within ~
+- eb7051f: fix: export without specifier
+- cd011c1: feat: stats.outputPath
+- 7431442: fix(builtins.html): should parse `builtins.html.template` as path
+- a6ac7da: feat: function type RuleSetCondition
+- 48eff5e: feat: add normalModuleFactory and resolveForScheme hook
+- 8f8e025: align optimizeChunkModules
+- 7fde34f: fix: node mode interop
+- 2934f8f: compilation.hooks.additionalAssets
+- a0994a8: fix(cli): rspack build --watch not work ([#2280](https://github.com/web-infra-dev/rspack/issues/2280))
+- 2e9d331: feat(runtime): support node.\_\_filename polyfill
+- Updated dependencies [68c4df8]
+- Updated dependencies [a43a849]
+- Updated dependencies [f562fa9]
+- Updated dependencies [97dc0dd]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [36ffd12]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [bfb1738]
+- Updated dependencies [2c01586]
+- Updated dependencies [6d9eb8b]
+- Updated dependencies [2e9d331]
+- Updated dependencies [a54179d]
+- Updated dependencies [fbc315d]
+- Updated dependencies [c4c20a3]
+  - @rspack/binding@0.1.2
+  - @rspack/dev-client@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- 6f8706f0: fix: postcss modules warning when using postcss-loader
+- 0e32353d: fix(resolve): upgrade the version of nodejs_resolver to fix the error which will resolve failed when target is relative by tsconfig/baseUrl
+- d2072dd4: fix: commonjs loading with extra output dir
+- 706207a4: feat: loader api add dependency
+- 62fca585: feat: config validate strategy
+- 7b3167ca: feat: externalsPresets.node
+- e463ebf0: refactor: runtime module
+- f204c108: feat: array type of externals
+- bb22416a: feat: stats for chunkRelations and chunkModules
+- 98854e36: fix: runtime module cacheable
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- a004268f: fix: library umd code excute
+- 2d2c9624: fix: fix webpack-sources interoperation
+- cdf6a52a: fix: normalize identifier for externalsType umd
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [23048514]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [44dc1e8b]
+- Updated dependencies [a004765a]
+- Updated dependencies [2f7ffb57]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [6bdc0840]
+  - @rspack/binding@0.1.1
+  - @rspack/dev-client@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
