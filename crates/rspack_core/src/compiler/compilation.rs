@@ -1000,8 +1000,6 @@ impl Compilation {
       .optimize_chunk_modules(self)
       .await?;
 
-    plugin_driver.write().await.finish_modules().await?;
-
     plugin_driver.write().await.module_ids(self)?;
     plugin_driver.write().await.chunk_ids(self)?;
 
