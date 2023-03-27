@@ -322,22 +322,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| internal_error!("Failed to call before compile: {err}",))?
   }
-
-  async fn finish_modules(
-    &mut self,
-    // args: &mut rspack_core::CompilationArgs<'_>
-  ) -> rspack_error::Result<()> {
-    if self.is_hook_disabled(&Hook::BeforeCompile) {
-      return Ok(());
-    }
-
-    self
-      .finish_modules_tsfn
-      .call({}, ThreadsafeFunctionCallMode::NonBlocking)
-      .into_rspack_result()?
-      .await
-      .map_err(|err| internal_error!("Failed to call finish modules: {err}",))?
-  }
 }
 
 impl JsHooksAdapter {
@@ -356,7 +340,6 @@ impl JsHooksAdapter {
       after_emit,
       optimize_chunk_module,
       before_compile,
-      finish_modules,
       normal_module_factory_resolve_for_scheme,
       finish_modules,
     } = js_hooks;
@@ -406,7 +389,6 @@ impl JsHooksAdapter {
       after_emit_tsfn,
       optimize_chunk_modules_tsfn,
       before_compile_tsfn,
-      finish_modules_tsfn,
       normal_module_factory_resolve_for_scheme,
       finish_modules_tsfn,
     })
