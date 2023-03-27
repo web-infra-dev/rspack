@@ -10,9 +10,9 @@ use rspack_core::rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, AstOrSource, ChunkKind, Compilation,
-  DependencyType, GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
+  get_js_chunk_filename_template, AstOrSource, ChunkKind, Compilation, DependencyType,
+  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
   RenderManifestEntry, RenderStartupArgs, RuntimeGlobals, SourceType,
 };

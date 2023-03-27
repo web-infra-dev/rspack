@@ -15,7 +15,7 @@ mod strict;
 use strict::strict_mode;
 mod format;
 use format::*;
-use rspack_core::{RuntimeGlobals, BuildInfo, EsVersion, Module, ModuleType};
+use rspack_core::{BuildInfo, EsVersion, Module, ModuleType, RuntimeGlobals};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::module::util::ImportInterop;

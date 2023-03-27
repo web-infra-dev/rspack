@@ -1,5 +1,5 @@
 use rspack_core::rspack_sources::{BoxSource, RawSource, SourceExt};
-use rspack_core::{RuntimeGlobals, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH};
+use rspack_core::{Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH};
 use rspack_identifier::Identifier;
 use rspack_plugin_runtime::impl_runtime_module;
 

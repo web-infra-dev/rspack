@@ -7,9 +7,9 @@ use dashmap::DashMap;
 use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  RuntimeGlobals, AstOrSource, Context, Dependency, Filename, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType, StaticExportsDependency,
+  AstOrSource, Context, Dependency, Filename, FilenameRenderOptions, GenerateContext,
+  GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType, StaticExportsDependency,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
