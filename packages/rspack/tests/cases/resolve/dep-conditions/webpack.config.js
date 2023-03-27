@@ -1,3 +1,10 @@
 module.exports = {
-	mode: "production"
+	mode: "development",
+	resolve: {
+		byDependency: {
+			esm: {
+				extensions: [".bar", "..."]
+			}
+		}
+	}
 };
