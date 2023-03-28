@@ -11,6 +11,6 @@
       {}
     ]
   },
-  "target": ["node", "es5"]
+  "target": ["web", "es2015"]
 
 }

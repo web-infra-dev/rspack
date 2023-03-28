@@ -144,6 +144,7 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
+      // es_version
       swc_visitor::compat(
         options.builtins.preset_env.clone(),
         es_version,
