@@ -75,6 +75,7 @@ pub fn run_before_pass(
     }
 
     let mut pass = chain!(
+      strict_mode(build_info, build_meta),
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
       //        &ast,
@@ -153,7 +154,6 @@ pub fn run_before_pass(
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
-      strict_mode(build_info, build_meta),
     );
     program.fold_with(&mut pass);
 
@@ -255,7 +255,7 @@ pub fn run_after_pass(
             if build_meta.esm {
               Some(ImportInterop::Swc)
             } else {
-              None
+              Some(ImportInterop::None)
             },
             allow_top_level_this: true,
             ..Default::default()
