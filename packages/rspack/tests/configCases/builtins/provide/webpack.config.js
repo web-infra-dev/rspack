@@ -3,9 +3,6 @@ module.exports = {
 		main: ["./index.js"]
 	},
 	builtins: {
-		define: {
-			"process.env.NODE_ENV": "development"
-		},
 		provide: {
 			aaa: "./aaa",
 			"bbb.ccc": "./bbbccc",

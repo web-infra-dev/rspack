@@ -37,17 +37,10 @@ impl<'a> ProvideBuiltin<'a> {
   }
 
   fn handle_member_expr(&self, member_expr: &mut MemberExpr) -> Expr {
-    if let Expr::Ident(ident) = &*member_expr.obj {
-      if let Some(member_prop) = member_expr.prop.as_ident() {
-        let identifier_name = format!("{}.{}", ident.sym.to_string(), member_prop.sym.to_string());
-        if let Some(module_path) = self.opts.get(&identifier_name) {
-          self.create_obj_expr_with_prop(ident.span, module_path)
-        } else {
-          Expr::Member(member_expr.clone())
-        }
-      } else {
-        Expr::Member(member_expr.clone())
-      }
+    let identifier_name = self.get_nested_identifier_name(member_expr);
+    println!("identifier_name: {}", identifier_name);
+    if let Some(module_path) = self.opts.get(&identifier_name) {
+      self.create_obj_expr_with_prop(member_expr.span, module_path)
     } else {
       Expr::Member(member_expr.clone())
     }
@@ -109,6 +102,39 @@ impl<'a> ProvideBuiltin<'a> {
       }],
       type_args: Default::default(),
     }
+  }
+
+  fn get_nested_identifier_name(&self, member_expr: &MemberExpr) -> String {
+    let mut identifier_name = String::new();
+
+    fn build_identifier_name(member_expr: &MemberExpr, identifier_name: &mut String) {
+      match &*member_expr.obj {
+        Expr::Member(nested_member_expr) => {
+          build_identifier_name(nested_member_expr, identifier_name);
+        }
+        Expr::Ident(ident) => {
+          if !identifier_name.is_empty() {
+            identifier_name.push_str(".");
+          }
+          identifier_name.push_str(&ident.sym.to_string());
+        }
+        Expr::This(_) => {
+          if !identifier_name.is_empty() {
+            identifier_name.push_str(".");
+          }
+          identifier_name.push_str("this");
+        }
+        _ => {}
+      }
+
+      if let Some(iden_prop) = member_expr.prop.as_ident() {
+        identifier_name.push_str(".");
+        identifier_name.push_str(&iden_prop.sym.to_string());
+      }
+    }
+
+    build_identifier_name(member_expr, &mut identifier_name);
+    identifier_name
   }
 }
 

@@ -8,17 +8,17 @@ it("should provide a module for a nested var", function () {
 	expect(x).toBe("bbbccc");
 });
 
-// it("should provide a module for a nested var within a IIFE's argument", function () {
-// 	(function (process) {
-// 		expect(process.env.NODE_ENV).toBe("development");
-// 		var x = process.env.NODE_ENV;
-// 		expect(x).toBe("development");
-// 	})(process);
-// });
+it("should provide a module for a nested var within a IIFE's argument", function () {
+	(function (process) {
+		expect(process.env.NODE_ENV).toBe("development");
+		var x = process.env.NODE_ENV;
+		expect(x).toBe("development");
+	})(process);
+});
 
-// it("should provide a module for thisExpression", () => {
-// 	expect(this.aaa).toBe("aaa");
-// });
+it("should provide a module for thisExpression", () => {
+	expect(this.aaa).toBe("aaa");
+});
 
 // it("should provide a module for a nested var within a IIFE's this", function () {
 // 	(function () {
