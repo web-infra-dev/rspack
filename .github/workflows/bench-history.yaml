@@ -32,7 +32,7 @@ jobs:
 
       - name: Run Hmr benchmark
         run: |
-          npm i -g pnpm
+          npm i -g pnpm@7.25.0
           pnpm i
           ./x build cli:release
           export ROOT_DIR=$(pwd) && cd benchcases/react-refresh && pnpm dev
