@@ -4,8 +4,9 @@
 module.exports = {
 	context: __dirname,
 	entry: {
-		main: './src/index.js'
+		main: './index.js'
 	},
+	target: ["node", "es5"],
 	builtins: {
 		html: [
 			{

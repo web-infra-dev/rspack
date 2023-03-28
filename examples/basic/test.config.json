@@ -1,7 +1,16 @@
 {
   "entry": {
     "main": {
-      "import": ["./src/index.ts"]
+      "import": [
+        "./index.js"
+      ]
     }
-  }
+  },
+  "builtins": {
+    "html": [
+      {}
+    ]
+  },
+  "target": ["node", "es5"]
+
 }
