@@ -4,4 +4,4 @@
 "@rspack/cli": patch
 ---
 
-fix: duplicate **webpack_require**.a in async module
+fix: duplicate \_\_webpack_require__.a in async module
