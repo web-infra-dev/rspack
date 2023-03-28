@@ -5,18 +5,14 @@ module.exports = {
 	entry: {
 		main: './example.js'
 	},
+	mode: "development",
 	output: {
 		webassemblyModuleFilename: "[hash].wasm",
-		publicPath: 'dist/'
 	},
 	experiments: {
 		asyncWebAssembly: true
 	},
 	builtins: {
-		html: [
-			{
-				template: './index.html'
-			}
-		]
+		html: [{}]
 	}
 };
