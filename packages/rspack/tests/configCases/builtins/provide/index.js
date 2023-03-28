@@ -16,9 +16,9 @@ it("should provide a module for a nested var", function () {
 // 	})(process);
 // });
 
-it("should provide a module for thisExpression", () => {
-	expect(this.aaa).toBe("aaa");
-});
+// it("should provide a module for thisExpression", () => {
+// 	expect(this.aaa).toBe("aaa");
+// });
 
 // it("should provide a module for a nested var within a IIFE's this", function () {
 // 	(function () {

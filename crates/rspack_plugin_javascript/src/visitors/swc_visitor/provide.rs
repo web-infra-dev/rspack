@@ -7,14 +7,14 @@ use swc_core::ecma::ast::{
   CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, ImportDecl, Lit, MemberExpr,
   MemberProp, ModuleDecl, ModuleItem, Str,
 };
-use swc_core::ecma::visit::{Fold, FoldWith, VisitMut};
+use swc_core::ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith};
 
 pub fn provide_builtin<'a>(
   opts: &'a Provide,
   handler: &'a Handler,
   cm: &'a Arc<SourceMap>,
-) -> ProvideBuiltin<'a> {
-  ProvideBuiltin::new(opts, handler, cm)
+) -> impl Fold + 'a {
+  as_folder(ProvideBuiltin::new(opts, handler, cm))
 }
 
 pub struct ProvideBuiltin<'a> {
@@ -28,28 +28,28 @@ impl<'a> ProvideBuiltin<'a> {
     ProvideBuiltin { opts, handler, cm }
   }
 
-  fn handle_ident(&self, ident: Ident) -> Expr {
+  fn handle_ident(&self, ident: &mut Ident) -> Expr {
     if let Some(module_path) = self.opts.get(&ident.sym.to_string()) {
       self.create_obj_expr(ident.span, module_path)
     } else {
-      Expr::Ident(ident)
+      Expr::Ident(ident.clone())
     }
   }
 
-  fn handle_member_expr(&self, member_expr: MemberExpr) -> Expr {
+  fn handle_member_expr(&self, member_expr: &mut MemberExpr) -> Expr {
     if let Expr::Ident(ident) = &*member_expr.obj {
       if let Some(member_prop) = member_expr.prop.as_ident() {
         let identifier_name = format!("{}.{}", ident.sym.to_string(), member_prop.sym.to_string());
         if let Some(module_path) = self.opts.get(&identifier_name) {
           self.create_obj_expr_with_prop(ident.span, module_path)
         } else {
-          Expr::Member(member_expr)
+          Expr::Member(member_expr.clone())
         }
       } else {
-        Expr::Member(member_expr)
+        Expr::Member(member_expr.clone())
       }
     } else {
-      Expr::Member(member_expr)
+      Expr::Member(member_expr.clone())
     }
   }
 
@@ -113,24 +113,17 @@ impl<'a> ProvideBuiltin<'a> {
 }
 
 impl<'a> VisitMut for ProvideBuiltin<'a> {
-  fn visit_mut_ident(&mut self, i: &mut Ident) {
-    *i = self.fold_ident(i.clone());
-  }
-}
-
-impl<'a> Fold for ProvideBuiltin<'a> {
-  fn fold_expr(&mut self, expr: Expr) -> Expr {
-    let new_expr = match expr {
+  fn visit_mut_expr(&mut self, expr: &mut Expr) {
+    *expr = match expr {
       Expr::Ident(ident) => self.handle_ident(ident),
       Expr::Member(member_expr) => self.handle_member_expr(member_expr),
-      _ => expr,
+      _ => expr.clone(),
     };
-    new_expr.fold_children_with(self)
+
+    expr.visit_mut_children_with(self);
   }
 
-  fn fold_module_items(&mut self, items: Vec<ModuleItem>) -> Vec<ModuleItem> {
-    let mut new_items: Vec<ModuleItem> = vec![];
-
+  fn visit_mut_module_items(&mut self, node: &mut Vec<ModuleItem>) {
     for (_key, module_paths) in self.opts {
       // println!("key: {:?}", key);
       // println!("module_paths: {:?}", module_paths);
@@ -146,11 +139,9 @@ impl<'a> Fold for ProvideBuiltin<'a> {
         type_only: false,
         asserts: None,
       };
-      new_items.push(ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)));
+      node.push(ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)));
     }
 
-    new_items.extend(items.fold_children_with(self));
-
-    new_items
+    node.visit_mut_children_with(self);
   }
 }
