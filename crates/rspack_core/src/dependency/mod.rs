@@ -67,8 +67,6 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
-  /// harmony export header
-  HarmonyExportHeader,
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]

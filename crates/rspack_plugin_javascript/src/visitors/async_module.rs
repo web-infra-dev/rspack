@@ -80,7 +80,7 @@ impl VisitMut for AsyncModuleVisitor {
       .collect();
     m.body = create_async_module_ast(body)
       .into_iter()
-      .map(|i| ModuleItem::Stmt(i))
+      .map(ModuleItem::Stmt)
       .collect();
   }
 

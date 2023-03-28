@@ -2,6 +2,7 @@ mod code_generation;
 mod hmr_scanner;
 mod scanner;
 mod util;
+
 pub use code_generation::*;
 use rspack_core::{
   ast::javascript::Program, CompilerOptions, Dependency, ModuleDependency, ResourceData,
