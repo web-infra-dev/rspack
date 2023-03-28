@@ -1,5 +1,28 @@
 # @rspack/core
 
+## 0.1.3
+
+### Patch Changes
+
+- 62bad72: optimize the initialization of instance
+- 4471853: fix: amd should return with iife
+- 54cb3fa: fix: use babel mode for mjs
+- 1aadf05: feat: Support `new URL("./foo", import.meta.url)`
+- b323220: add async-wasm & js-async-module support
+- 28b9757: feat: resolve.byDependency
+- b0cffba: feat: inline external type syntax
+- 9c71512: add finishModules hook
+- c49c03c: Support `suspend` and `resume` in Watching
+- d04485d: feat: stats for timings and builtAt
+- Updated dependencies [4471853]
+- Updated dependencies [b323220]
+- Updated dependencies [28b9757]
+- Updated dependencies [b6ab7b7]
+- Updated dependencies [b0cffba]
+- Updated dependencies [9c71512]
+  - @rspack/binding@0.1.3
+  - @rspack/dev-client@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

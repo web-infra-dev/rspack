@@ -1,5 +1,13 @@
 # rspack-dev-server
 
+## 0.1.3
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.3
+- @rspack/dev-server@0.1.3
+- @rspack/dev-client@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
