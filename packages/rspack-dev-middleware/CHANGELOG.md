@@ -1,5 +1,22 @@
 # @rspack/dev-middleware
 
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [62bad72]
+- Updated dependencies [9cb8c7e]
+- Updated dependencies [4471853]
+- Updated dependencies [54cb3fa]
+- Updated dependencies [1aadf05]
+- Updated dependencies [b323220]
+- Updated dependencies [28b9757]
+- Updated dependencies [b0cffba]
+- Updated dependencies [9c71512]
+- Updated dependencies [c49c03c]
+- Updated dependencies [d04485d]
+  - @rspack/core@1.0.1
+
 ## 0.1.2
 
 ### Patch Changes
