@@ -1,4 +1,5 @@
 import path from "path";
+import { pathToFileURL } from 'url';
 import fs from "fs";
 import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
@@ -12,9 +13,9 @@ export type LoadedRspackConfig =
 	| RspackOptions
 	| MultiRspackOptions
 	| ((
-			env: Record<string, any>,
-			argv: Record<string, any>
-	  ) => RspackOptions | MultiRspackOptions);
+		env: Record<string, any>,
+		argv: Record<string, any>
+	) => RspackOptions | MultiRspackOptions);
 
 export async function loadRspackConfig(
 	options: RspackCLIOptions
@@ -84,7 +85,8 @@ async function requireWithAdditionalExtension(resolvedPath: string) {
 		loadedConfig = require(resolvedPath);
 	} else {
 		// dynamic import can handle both cjs & mjs
-		loadedConfig = (await import(resolvedPath)).default;
+		const fileUrl = pathToFileURL(resolvedPath).href;
+		loadedConfig = (await import(fileUrl)).default;
 	}
 	return loadedConfig;
 }
