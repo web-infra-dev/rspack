@@ -213,14 +213,17 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .join(",\n");
 
             format!(
-              "{}: {{{deps}}}",
+              "{}: {{\n{deps}\n}}",
               serde_json::to_string(request).expect("should be ok")
             )
           })
           .collect::<Vec<_>>();
 
         let imports_obj = if !import_obj_request_items.is_empty() {
-          Some(format!(", {{{}}}", &import_obj_request_items.join(",\n")))
+          Some(format!(
+            ", {{\n{}\n}}",
+            &import_obj_request_items.join(",\n")
+          ))
         } else {
           None
         };
@@ -238,21 +241,21 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             .insert(RuntimeGlobals::ASYNC_MODULE);
           let promises = promises.join(", ");
           let decl = format!(
-            "var __webpack_instantiate__=function([{promises}]){{ return {instantiate_call}}}\n",
+            "var __webpack_instantiate__ = function ([{promises}]) {{\nreturn {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
-            "{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__){{
-                  try {{
-                    {imports_code}
-                    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
-                    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
-                    await {instantiate_call};
+"{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{
+  try {{
+    {imports_code}
+    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
+    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
+    await {instantiate_call};
 
-                  __webpack_async_result__();
+  __webpack_async_result__();
 
-                  }} catch(e) {{ __webpack_async_result__(e); }}
-                }}, 1);
-          ",
+  }} catch(e) {{ __webpack_async_result__(e); }}
+}}, 1);
+",
             RuntimeGlobals::ASYNC_MODULE,
           );
 
