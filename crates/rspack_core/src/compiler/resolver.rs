@@ -84,6 +84,10 @@ impl Resolver {
     self.0.resolve(path, request)
   }
 
+  pub fn options(&self) -> &nodejs_resolver::Options {
+    &self.0.options
+  }
+
   pub fn dependencies(&self) -> (Vec<PathBuf>, Vec<PathBuf>) {
     // There are some issues with this method
     // self.0.get_dependency_from_entry()
