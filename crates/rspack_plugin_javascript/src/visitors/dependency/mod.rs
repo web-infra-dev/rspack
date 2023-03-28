@@ -1,12 +1,10 @@
 mod code_generation;
-mod harmony_detection;
 mod hmr_scanner;
 mod scanner;
 mod util;
 pub use code_generation::*;
-pub use harmony_detection::*;
 use rspack_core::{
-  ast::javascript::Program, CompilerOptions, Dependency, ModuleDependency, ModuleType, ResourceData,
+  ast::javascript::Program, CompilerOptions, Dependency, ModuleDependency, ResourceData,
 };
 use swc_core::common::Mark;
 pub use util::*;
@@ -20,14 +18,9 @@ pub fn scan_dependencies(
   unresolved_mark: Mark,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
-  module_type: &ModuleType,
 ) -> ScanDependenciesResult {
   let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
   let mut presentational_dependencies: Vec<Box<dyn Dependency>> = vec![];
-  program.visit_with(&mut HarmonyDetection::new(
-    module_type,
-    &mut presentational_dependencies,
-  ));
   program.visit_with_path(
     &mut DependencyScanner::new(
       unresolved_mark,

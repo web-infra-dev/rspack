@@ -1,10 +1,8 @@
 mod commonjs;
-mod compatibility;
 mod esm;
 mod hmr;
 mod url;
 pub use commonjs::*;
-pub use compatibility::*;
 pub use esm::*;
 pub use hmr::*;
 pub use url::*;
