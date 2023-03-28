@@ -38,17 +38,22 @@ impl<'a> ProvideBuiltin<'a> {
 
   fn handle_member_expr(&self, member_expr: &mut MemberExpr) -> Expr {
     let identifier_name = self.get_nested_identifier_name(member_expr);
-    println!("identifier_name: {}", identifier_name);
-    if let Some(module_path) = self.opts.get(&identifier_name) {
-      self.create_obj_expr_with_prop(member_expr.span, module_path)
+    println!("Before transformation Span: {:?}", member_expr.span);
+    let new_expr = if let Some(module_path) = self.opts.get(&identifier_name) {
+      self.create_obj_expr(member_expr.span, module_path)
     } else {
       Expr::Member(member_expr.clone())
-    }
+    };
+
+    println!("After transformation Span: {:?}", new_expr);
+    new_expr
   }
 
   fn create_obj_expr(&self, span: Span, module_path: &[String]) -> Expr {
     let call_expr = self.create_call_expr(span, &module_path[0]);
     let mut obj_expr = Expr::Call(call_expr);
+
+    // println!("obj_expr_sym: {:?}", obj_expr.as_call().unwrap().callee);
 
     for module_name in module_path.iter().skip(1) {
       let member_expr = MemberExpr {
@@ -65,30 +70,17 @@ impl<'a> ProvideBuiltin<'a> {
       };
 
       obj_expr = Expr::Member(member_expr);
+      // println!("obj_expr_sym: {:?}", obj_expr.as_member().unwrap().obj);
     }
 
+    // println!("obj_expr_sym: {:?}", obj_expr.as_call().unwrap().callee);
     obj_expr
   }
 
-  fn create_obj_expr_with_prop(&self, span: Span, module_path: &[String]) -> Expr {
-    let call_expr = self.create_call_expr(span, &module_path[0]);
-
-    if module_path.len() > 1 {
-      let prop_sym = module_path[1..].join(".").to_string();
-
-      let member_expr = MemberExpr {
-        span,
-        obj: Box::new(Expr::Call(call_expr)),
-        prop: MemberProp::Ident(Ident::new(prop_sym.into(), span)),
-      };
-
-      Expr::Member(member_expr)
-    } else {
-      Expr::Call(call_expr)
-    }
-  }
-
   fn create_call_expr(&self, span: Span, module_path: &str) -> CallExpr {
+    println!("module_path: {}", module_path);
+    // println!("span: {:?}", span);
+
     CallExpr {
       span,
       callee: Callee::Expr(Box::new(Expr::Ident(Ident::new("require".into(), span)))),
