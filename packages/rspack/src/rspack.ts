@@ -121,6 +121,10 @@ function rspack(
 ): Compiler;
 function rspack(
 	options: MultiRspackOptions | RspackOptions,
+	callback?: Callback<Error, MultiStats | Stats>
+): MultiCompiler | Compiler;
+function rspack(
+	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	if (!asArray(options).every(i => rspackOptionsCheck(i))) {
