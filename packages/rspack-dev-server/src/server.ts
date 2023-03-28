@@ -220,9 +220,7 @@ export class RspackDevServer extends WebpackDevServer {
 		let clientTransport: string | undefined;
 
 		if (this.options.client) {
-			if (
-				typeof this.options.client.webSocketTransport !== "undefined"
-			) {
+			if (typeof this.options.client.webSocketTransport !== "undefined") {
 				clientTransport = this.options.client.webSocketTransport;
 			} else if (isKnownWebSocketServerImplementation) {
 				// @ts-expect-error: TS cannot infer webSocketServer is narrowed
