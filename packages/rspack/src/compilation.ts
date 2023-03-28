@@ -384,15 +384,15 @@ export class Compilation {
 				return {
 					next() {
 						if (index >= errors.length) {
-							return { done: true }
+							return { done: true };
 						}
 						return {
 							value: [errors[index++]],
 							done: false
-						}
+						};
 					}
-				}
-			},
+				};
+			}
 		};
 	}
 
@@ -417,15 +417,15 @@ export class Compilation {
 				return {
 					next() {
 						if (index >= warnings.length) {
-							return { done: true }
+							return { done: true };
 						}
 						return {
 							value: [warnings[index++]],
 							done: false
-						}
+						};
 					}
-				}
-			},
+				};
+			}
 		};
 	}
 
@@ -658,8 +658,8 @@ export class Compilation {
 		return this.#inner;
 	}
 
-	seal() { }
-	unseal() { }
+	seal() {}
+	unseal() {}
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
