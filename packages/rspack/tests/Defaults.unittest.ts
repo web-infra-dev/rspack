@@ -222,6 +222,9 @@ describe("snapshots", () => {
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",
 		    "enabledLibraryTypes": [],
+		    "enabledWasmLoadingTypes": [
+		      "fetch",
+		    ],
 		    "filename": "[name].js",
 		    "globalObject": "self",
 		    "iife": true,
@@ -232,6 +235,7 @@ describe("snapshots", () => {
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
 		    "uniqueName": "@rspack/core",
+		    "wasmLoading": "fetch",
 		    "webassemblyModuleFilename": "[hash].module.wasm",
 		  },
 		  "plugins": [],
@@ -801,11 +805,17 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
+		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
 		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
@@ -865,11 +875,17 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
+		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
 		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
@@ -918,11 +934,17 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
+		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
 		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
@@ -1192,7 +1214,14 @@ describe("snapshots", () => {
 				enabledWasmLoadingTypes: ["...", "async-node"]
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+       "async-node",
+		`)
 	);
 
 	test(
