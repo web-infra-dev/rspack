@@ -1,0 +1,1 @@
+import lib from 'lib'; export default 21 + lib;
