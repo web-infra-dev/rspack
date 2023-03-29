@@ -1,5 +1,15 @@
 # @rspack/core
 
+## 0.1.4
+
+### Patch Changes
+
+- 85e47e2: fix: context module request
+- fbaeb41: fix: duplicate \_\_webpack_require\_\_.a in async module
+- Updated dependencies [fbaeb41]
+  - @rspack/binding@0.1.4
+  - @rspack/dev-client@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes
