@@ -15,6 +15,7 @@ pub fn react<'a>(
   comments: Option<&'a SingleThreadedComments>,
   cm: &Arc<SourceMap>,
   options: &ReactOptions,
+  unresolved_mark: Mark,
 ) -> impl Fold + 'a {
   swc_react(
     cm.clone(),
@@ -36,6 +37,7 @@ pub fn react<'a>(
       ..Default::default()
     },
     top_level_mark,
+    unresolved_mark,
   )
 }
 

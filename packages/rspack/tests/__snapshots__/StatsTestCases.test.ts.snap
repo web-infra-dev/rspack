@@ -375,32 +375,12 @@ exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 1`]
 {
   "errors": [],
   "errorsCount": 0,
-  "warnings": [
-    {
-      "formatted": "warning[css]: Css parsing error
-  ┌─ tests/statsCases/legacy-ie-css-warning/index.css:2:24
-  │
-2 │   filter: alpha(opacity=100);
-  │                        ^ Expected Declaration value
-
-",
-      "message": "Expected Declaration value",
-    },
-  ],
-  "warningsCount": 1,
+  "warnings": [],
+  "warningsCount": 0,
 }
 `;
 
-exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 2`] = `
-"
-warning[css]: Css parsing error
-  ┌─ tests/statsCases/legacy-ie-css-warning/index.css:2:24
-  │
-2 │   filter: alpha(opacity=100);
-  │                        ^ Expected Declaration value
-
-"
-`;
+exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 2`] = `""`;
 
 exports[`StatsTestCases should print correct stats for minify-error-recovery 1`] = `
 {
