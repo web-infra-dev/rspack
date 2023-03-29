@@ -98,6 +98,9 @@ impl CodeGeneratable for URLDependency {
         .module_graph_module_by_dependency_id(&id)
         .map(|m| m.id(&compilation.chunk_graph).to_string())
       {
+        code_generatable_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::BASE_URI);
         code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_new_expr(n: &mut NewExpr) {
                 let Some(args) = &mut n.args else { return };
@@ -123,7 +126,7 @@ impl CodeGeneratable for URLDependency {
 
                   args[1] = ExprOrSpread {
                     spread: None,
-                    expr: member_expr!(meta_span, self.location),
+                    expr: member_expr!(meta_span, __webpack_require__.b),
                   };
                 }
           }),

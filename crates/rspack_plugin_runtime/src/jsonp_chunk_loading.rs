@@ -55,7 +55,7 @@ impl Plugin for JsonpChunkLoadingPlugin {
           runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
           runtime_requirements.insert(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME);
         }
-        RuntimeGlobals::ON_CHUNKS_LOADED => {
+        RuntimeGlobals::ON_CHUNKS_LOADED | RuntimeGlobals::BASE_URI => {
           has_jsonp_chunk_loading = true;
         }
         _ => {}
