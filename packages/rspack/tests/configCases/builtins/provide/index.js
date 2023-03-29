@@ -20,24 +20,6 @@ it("should provide a module for thisExpression", () => {
 	expect(this.aaa).toBe("aaa");
 });
 
-// it("should provide a module for a nested var within a IIFE's this", function () {
-// 	(function () {
-// 		expect(this.env.NODE_ENV).toBe("development");
-// 		var x = this.env.NODE_ENV;
-// 		expect(x).toBe("development");
-// 	}.call(process));
-// });
-
-// it("should provide a module for a nested var within a nested IIFE's this", function () {
-// 	(function () {
-// 		(function () {
-// 			expect(this.env.NODE_ENV).toBe("development");
-// 			var x = this.env.NODE_ENV;
-// 			expect(x).toBe("development");
-// 		}.call(this));
-// 	}.call(process));
-// });
-
 it("should not provide a module for a part of a var", function () {
 	expect(typeof bbb).toBe("undefined");
 });
@@ -66,3 +48,22 @@ it("should not provide for mjs", function () {
 	var foo = require("./foo.mjs").default;
 	expect(foo()).toBe("esm");
 });
+
+// TODO: Add support for these cases
+// it("should provide a module for a nested var within a IIFE's this", function () {
+// 	(function () {
+// 		expect(this.env.NODE_ENV).toBe("development");
+// 		var x = this.env.NODE_ENV;
+// 		expect(x).toBe("development");
+// 	}.call(process));
+// });
+
+// it("should provide a module for a nested var within a nested IIFE's this", function () {
+// 	(function () {
+// 		(function () {
+// 			expect(this.env.NODE_ENV).toBe("development");
+// 			var x = this.env.NODE_ENV;
+// 			expect(x).toBe("development");
+// 		}.call(this));
+// 	}.call(process));
+// });
