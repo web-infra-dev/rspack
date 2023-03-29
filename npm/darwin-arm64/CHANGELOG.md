@@ -1,5 +1,11 @@
 # @rspack/binding-darwin-arm64
 
+## 0.1.3
+
+### Patch Changes
+
+- b0cffba: feat: inline external type syntax
+
 ## 0.1.2
 
 ## 0.1.1
