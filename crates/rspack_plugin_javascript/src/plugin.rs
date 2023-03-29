@@ -138,10 +138,6 @@ impl JsPlugin {
     sources.add(self.render_require(args));
     sources.add(RawSource::from("\n}\n"));
 
-    sources.add(RawSource::from(
-      "__webpack_require__.cache = __webpack_module_cache__;\n",
-    ));
-
     if module_factories || runtime_requirements.contains(runtime_globals::MODULE_FACTORIES_ADD_ONLY)
     {
       sources.add(RawSource::from(

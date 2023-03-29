@@ -174,6 +174,27 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
 
     var_decl.visit_mut_children_with(self);
   }
+
+  fn visit_mut_member_expr(&mut self, expr: &mut MemberExpr) {
+    // require.cache -> __webpack_require__.c
+    if let box Expr::Ident(obj_ident) = &expr.obj {
+      if "require".eq(&obj_ident.sym) {
+        if let MemberProp::Ident(prop_ident) = &expr.prop {
+          if "cache".eq(&prop_ident.sym) {
+            let span = expr.span.with_ctxt(SyntaxContext::empty());
+            *expr = MemberExpr {
+              obj: Box::new(Expr::Ident(Ident::new(
+                runtime_globals::REQUIRE.into(),
+                DUMMY_SP,
+              ))),
+              prop: MemberProp::Ident(Ident::new("c".into(), span)),
+              ..expr.clone()
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 pub struct HmrApiRewrite<'a> {
