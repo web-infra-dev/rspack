@@ -1,5 +1,41 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`StatsTestCases should print correct stats for compitable-errors-object 1`] = `
+{
+  "errors": [
+    {
+      "formatted": "error test
+Error: error test
+    at <PROJECT_ROOT>/tests/statsCases/compitable-errors-object/webpack.config.js:6:16
+    at Hook.eval (eval at create (<HOME_DIR>/Documents/rspack/rspack/node_modules/tapable/lib/HookCodeFactory.js:19:10), <anonymous>:7:1)
+    at Hook.CALL_DELEGATE [as _call] (<HOME_DIR>/Documents/rspack/rspack/node_modules/tapable/lib/Hook.js:14:14)
+    at Compiler._Compiler_newCompilation (<PROJECT_ROOT>/src/compiler.ts:383:30)
+",
+      "message": "error test
+Error: error test
+    at <PROJECT_ROOT>/tests/statsCases/compitable-errors-object/webpack.config.js:6:16
+    at Hook.eval (eval at create (<HOME_DIR>/Documents/rspack/rspack/node_modules/tapable/lib/HookCodeFactory.js:19:10), <anonymous>:7:1)
+    at Hook.CALL_DELEGATE [as _call] (<HOME_DIR>/Documents/rspack/rspack/node_modules/tapable/lib/Hook.js:14:14)
+    at Compiler._Compiler_newCompilation (<PROJECT_ROOT>/src/compiler.ts:383:30)",
+    },
+  ],
+  "errorsCount": 1,
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for compitable-errors-object 2`] = `
+"
+error test
+Error: error test
+    at <PROJECT_ROOT>/tests/statsCases/compitable-errors-object/webpack.config.js:6:16
+    at Hook.eval (eval at create (<HOME_DIR>/Documents/rspack/rspack/node_modules/tapable/lib/HookCodeFactory.js:19:10), <anonymous>:7:1)
+    at Hook.CALL_DELEGATE [as _call] (<HOME_DIR>/Documents/rspack/rspack/node_modules/tapable/lib/Hook.js:14:14)
+    at Compiler._Compiler_newCompilation (<PROJECT_ROOT>/src/compiler.ts:383:30)
+"
+`;
+
 exports[`StatsTestCases should print correct stats for filename 1`] = `
 {
   "assets": [
