@@ -375,12 +375,16 @@ export class Compilation {
 	get errors() {
 		let inner = this.#inner;
 		return {
-			push: (err: Error) => {
-				this.#inner.pushDiagnostic(
-					"error",
-					err.name,
-					concatErrorMsgAndStack(err)
-				);
+			push: (...errs: Error[]) => {
+				// compatible for javascript array
+				for (let i = 0; i < errs.length; i++) {
+					let error = errs[i];
+					this.#inner.pushDiagnostic(
+						"error",
+						error.name,
+						concatErrorMsgAndStack(error)
+					);
+				}
 			},
 			[Symbol.iterator]() {
 				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
