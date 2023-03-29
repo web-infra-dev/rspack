@@ -1,3 +1,4 @@
 benchcases/** linguist-detectable=false
 fixtures/** linguist-detectable=false
 webpack-test/** linguist-detectable=false
+* text=auto
