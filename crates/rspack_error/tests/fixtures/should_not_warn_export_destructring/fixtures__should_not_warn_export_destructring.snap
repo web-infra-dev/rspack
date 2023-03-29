@@ -1,0 +1,7 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+expression: should_not_warn_export_destructring
+---
+warning[internal]: ./a.js did not export `noop`, imported by ./index.js
+
+
