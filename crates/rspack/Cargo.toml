@@ -7,8 +7,6 @@ version    = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dev-dependencies]
-mimalloc-rust = { workspace = true }
 
 [dependencies]
 dashmap       = { workspace = true }
@@ -41,6 +39,9 @@ serde_json             = { workspace = true }
 testing_macros         = { workspace = true }
 ustr                   = { workspace = true }
 xshell                 = "0.2.2"
+
+[target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dev-dependencies]
+mimalloc-rust = { workspace = true }
 
 
 [[bench]]
