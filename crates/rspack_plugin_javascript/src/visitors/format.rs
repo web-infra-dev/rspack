@@ -180,18 +180,12 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
     if let box Expr::Ident(obj_ident) = &expr.obj {
       if "require".eq(&obj_ident.sym) {
         if let MemberProp::Ident(prop_ident) = &expr.prop {
-          let new_prop = if "cache".eq(&prop_ident.sym) {
-            "c".into()
-          } else {
-            prop_ident.sym.clone()
-          };
-          *expr = MemberExpr {
-            obj: Box::new(Expr::Ident(Ident::new(
-              runtime_globals::REQUIRE.into(),
-              DUMMY_SP,
-            ))),
-            prop: MemberProp::Ident(Ident::new(new_prop, DUMMY_SP)),
-            ..expr.clone()
+          if "cache".eq(&prop_ident.sym) {
+            *expr = MemberExpr {
+              obj: box Expr::Ident(Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP)),
+              prop: MemberProp::Ident(Ident::new("c".into(), DUMMY_SP)),
+              ..expr.clone()
+            };
           }
         }
       }
