@@ -91,13 +91,13 @@ impl<'a> ProvideBuiltin<'a> {
         }
         Expr::Ident(ident) => {
           if !identifier_name.is_empty() {
-            identifier_name.push_str(".");
+            identifier_name.push('.');
           }
-          identifier_name.push_str(&ident.sym.to_string());
+          identifier_name.push_str(&ident.sym);
         }
         Expr::This(_) => {
           if !identifier_name.is_empty() {
-            identifier_name.push_str(".");
+            identifier_name.push('.');
           }
           identifier_name.push_str("this");
         }
@@ -105,8 +105,8 @@ impl<'a> ProvideBuiltin<'a> {
       }
 
       if let Some(ident_prop) = member_expr.prop.as_ident() {
-        identifier_name.push_str(".");
-        identifier_name.push_str(&ident_prop.sym.to_string());
+        identifier_name.push('.');
+        identifier_name.push_str(&ident_prop.sym);
       }
     }
 
