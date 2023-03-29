@@ -61,7 +61,7 @@ pub fn run_before_pass(
   module_type: &ModuleType,
 ) -> Result<()> {
   let es_version = match options.target.es_version {
-    rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version.clone()),
+    rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
     _ => None,
   };
   let cm = ast.get_context().source_map.clone();

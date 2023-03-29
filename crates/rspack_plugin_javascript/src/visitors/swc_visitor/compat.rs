@@ -51,6 +51,8 @@ fn compat_by_es_version(
   is_typescript: bool,
 ) -> impl Fold + '_ {
   if let Some(es_version) = es_version {
+    dbg!(&es_version);
+    dbg!(&assumptions);
     Either::Left(chain!(
       Optional::new(
         compat::class_fields_use_set::class_fields_use_set(assumptions.pure_getters),
@@ -99,9 +101,8 @@ fn compat_by_es_version(
         compat::es2017(
           compat::es2017::Config {
             async_to_generator: compat::es2017::async_to_generator::Config {
-              // ignore_function_name: assumptions.ignore_function_name,
-              ignore_function_name: true,
-              ignore_function_length: true
+              ignore_function_name: assumptions.ignore_function_name,
+              ignore_function_length: assumptions.ignore_function_length,
             },
           },
           comments,
@@ -124,7 +125,7 @@ fn compat_by_es_version(
             computed_props: compat::es2015::computed_props::Config { loose: false },
             for_of: compat::es2015::for_of::Config {
               assume_array: false,
-              loose: false
+              ..Default::default()
             },
             spread: compat::es2015::spread::Config { loose: false },
             destructuring: compat::es2015::destructuring::Config { loose: false },
@@ -141,7 +142,6 @@ fn compat_by_es_version(
         ),
         es_version < EsVersion::Es2015
       ),
-      Optional::new(compat::es3(true), es_version == EsVersion::Es3),
       Optional::new(compat::es3(true), es_version == EsVersion::Es3)
     ))
   } else {
