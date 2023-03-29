@@ -1,5 +1,11 @@
 # @rspack/binding-win32-x64-msvc
 
+## 0.1.3
+
+### Patch Changes
+
+- b0cffba: feat: inline external type syntax
+
 ## 0.1.2
 
 ## 0.1.1

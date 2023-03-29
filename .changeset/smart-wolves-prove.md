@@ -4,4 +4,4 @@
 "@rspack/cli": patch
 ---
 
-feat: resolve.byDependency
+fix: duplicate \_\_webpack_require__.a in async module

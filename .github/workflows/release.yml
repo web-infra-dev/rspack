@@ -34,6 +34,18 @@ jobs:
           toolchain: nightly-2022-08-06
           profile: default
           components: rustfmt, clippy, cargo
+      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.10.1
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup target
+        run: |
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+          rustup target add x86_64-unknown-linux-gnu
       - uses: actions/setup-node@v3
         with:
           node-version: "16"
@@ -43,7 +55,9 @@ jobs:
           pnpm -v
           pnpm install
       - name: Build
-        run: ./x build cli:release:all
+        run: |
+          set -e
+          USE_ZIG=1 ./x build cli:release:all
       - name: Release
         uses: modern-js-dev/actions@v2
         with:

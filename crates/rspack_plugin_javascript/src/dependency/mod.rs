@@ -1,8 +1,9 @@
 mod commonjs;
-pub use commonjs::*;
-mod url;
-pub use url::*;
 mod esm;
-pub use esm::*;
 mod hmr;
+mod url;
+
+pub use commonjs::*;
+pub use esm::*;
 pub use hmr::*;
+pub use url::*;

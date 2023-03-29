@@ -48,7 +48,7 @@ impl ContextModuleFactory {
       dependency_type: data.dependency.dependency_type(),
       dependency_category: data.dependency.category(),
       span: data.dependency.span().cloned(),
-      resolve_options: data.resolve_options,
+      resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
@@ -60,20 +60,20 @@ impl ContextModuleFactory {
       .use_cache(resolve_args, |args| resolve(args, plugin_driver))
       .await;
     let module = match resource_data {
-      Ok(ResolveResult::Resource(resource)) => {
-        let uri = resource.join().display().to_string();
-
-        Box::new(ContextModule::new(ContextModuleOptions {
-          resource: uri,
+      Ok(ResolveResult::Resource(resource)) => Box::new(ContextModule::new(
+        ContextModuleOptions {
+          resource: resource.path.to_string_lossy().to_string(),
           resource_query: resource.query,
           resource_fragment: resource.fragment,
+          resolve_options: data.resolve_options,
           context_options: data
             .dependency
             .options()
             .expect("should has options")
             .clone(),
-        })) as BoxModule
-      }
+        },
+        plugin_driver.read().await.resolver_factory.clone(),
+      )) as BoxModule,
       Ok(ResolveResult::Ignored) => {
         let ident = format!(
           "{}/{}",

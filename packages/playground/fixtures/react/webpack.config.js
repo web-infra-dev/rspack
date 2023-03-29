@@ -1,7 +1,8 @@
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
+	context: __dirname,
 	mode: "development",
-	entry: "./index.jsx",
+	entry: "./src/index.jsx",
 	devServer: {
 		hot: true
 	},
@@ -13,7 +14,7 @@ module.exports = {
 	builtins: {
 		html: [
 			{
-				template: "./index.html"
+				template: "./src/index.html"
 			}
 		],
 		define: {
@@ -21,6 +22,6 @@ module.exports = {
 		}
 	},
 	watchOptions: {
-		poll: true
+		poll: 1000
 	}
 };

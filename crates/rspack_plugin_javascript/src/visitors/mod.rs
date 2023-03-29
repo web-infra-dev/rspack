@@ -36,7 +36,7 @@ use swc_emotion::EmotionOptions;
 use tree_shaking::tree_shaking_visitor;
 mod async_module;
 
-use crate::visitors::async_module::build_async_module;
+use crate::visitors::async_module::{build_async_module, build_await_dependencies};
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
 
@@ -75,6 +75,7 @@ pub fn run_before_pass(
     }
 
     let mut pass = chain!(
+      strict_mode(build_info, build_meta),
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
       //        &ast,
@@ -153,7 +154,6 @@ pub fn run_before_pass(
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
-      strict_mode(build_info, build_meta),
     );
     program.fold_with(&mut pass);
 
@@ -255,7 +255,7 @@ pub fn run_after_pass(
             if build_meta.esm {
               Some(ImportInterop::Swc)
             } else {
-              None
+              Some(ImportInterop::None)
             },
             allow_top_level_this: true,
             ..Default::default()
@@ -263,7 +263,8 @@ pub fn run_after_pass(
           comments,
           Some(EsVersion::Es5)
         ),
-        Optional::new(build_async_module(promises), build_meta.is_async),
+        Optional::new(build_await_dependencies(promises), build_meta.is_async),
+        Optional::new(build_async_module(), build_meta.is_async),
         inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
         finalize(module, compilation, unresolved_mark),
         swc_visitor::hygiene(false, top_level_mark),

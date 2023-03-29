@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -16,8 +16,9 @@
     "build:debug": "node scripts/build.js",
     "build:debug:x64": "cross-env RUST_TARGET=x86_64-apple-darwin node scripts/build.js",
     "build:debug:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js",
-    "build:release:all": "run-p build:release build:release:x64 build:release:linux && pnpm move-binding",
+    "build:release:all": "run-p build:release:arm64 build:release:x64 build:release:linux && pnpm move-binding",
     "build:release": "node scripts/build.js --release",
+    "build:release:arm64": "cross-env RUST_TARGET=aarch64-apple-darwin node scripts/build.js --release",
     "build:release:x64": "cross-env RUST_TARGET=x86_64-apple-darwin node scripts/build.js --release",
     "build:release:linux": "cross-env RUST_TARGET=x86_64-unknown-linux-gnu node scripts/build.js --release",
     "build:release:win": "cross-env RUST_TARGET=x86_64-pc-windows-msvc node scripts/build.js --release",

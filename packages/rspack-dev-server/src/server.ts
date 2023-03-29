@@ -220,14 +220,10 @@ export class RspackDevServer extends WebpackDevServer {
 		let clientTransport: string | undefined;
 
 		if (this.options.client) {
-			if (
-				// @ts-ignore
-				typeof this.options.client.webSocketTransport !== "undefined"
-			) {
-				// @ts-ignore
+			if (typeof this.options.client.webSocketTransport !== "undefined") {
 				clientTransport = this.options.client.webSocketTransport;
 			} else if (isKnownWebSocketServerImplementation) {
-				// @ts-ignore
+				// @ts-expect-error: TS cannot infer webSocketServer is narrowed
 				clientTransport = this.options.webSocketServer.type;
 			} else {
 				clientTransport = "ws";
@@ -373,7 +369,7 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 
 	private setupDevMiddleware() {
-		// @ts-ignored
+		// @ts-expect-error
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 
