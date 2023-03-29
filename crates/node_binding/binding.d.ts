@@ -304,6 +304,8 @@ export interface RawOutputOptions {
   path: string
   publicPath: string
   assetModuleFilename: string
+  wasmLoading: string
+  enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
   filename: string
   chunkFilename: string

@@ -148,7 +148,6 @@ impl RawOptionsApply for RawOptions {
     }
     if experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
-      plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
     }
     plugins.push(rspack_plugin_javascript::JsPlugin::new().boxed());
     plugins.push(rspack_plugin_javascript::InferAsyncModulesPlugin {}.boxed());

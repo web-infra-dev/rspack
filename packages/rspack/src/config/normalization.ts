@@ -52,6 +52,10 @@ export const getNormalizedRspackOptions = (
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
 				assetModuleFilename: output.assetModuleFilename,
+				wasmLoading: output.wasmLoading,
+				enabledWasmLoadingTypes: output.enabledWasmLoadingTypes
+					? [...output.enabledWasmLoadingTypes]
+					: ["..."],
 				webassemblyModuleFilename: output.webassemblyModuleFilename,
 				uniqueName: output.uniqueName,
 				enabledLibraryTypes: output.enabledLibraryTypes
