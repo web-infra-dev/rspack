@@ -24,7 +24,7 @@ export async function waitingUpdate(
 ): Promise<void> {
 	const maxTries = 100;
 	for (let tries = 0; tries < maxTries; tries++) {
-		const actual = await poll() ?? "";
+		const actual = (await poll()) ?? "";
 		if (actual.indexOf(expected) > -1 || tries === maxTries - 1) {
 			expect(actual).toMatch(expected);
 			break;
