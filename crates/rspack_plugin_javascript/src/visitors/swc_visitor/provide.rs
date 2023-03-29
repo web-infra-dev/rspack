@@ -1,28 +1,32 @@
 use rspack_core::Provide;
-use swc_core::common::DUMMY_SP;
-use swc_core::common::{Span, SyntaxContext};
+use swc_core::common::Span;
+use swc_core::common::{Mark, DUMMY_SP};
 use swc_core::ecma::ast::{
-  CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, ImportDecl, Lit, MemberExpr,
-  MemberProp, ModuleDecl, ModuleItem, Str,
+  CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, Lit, MemberExpr, MemberProp, Str,
 };
 use swc_core::ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith};
 
-pub fn provide_builtin<'a>(opts: &'a Provide) -> impl Fold + 'a {
-  as_folder(ProvideBuiltin::new(opts))
+pub fn provide_builtin<'a>(opts: &'a Provide, unresolved_mark: Mark) -> impl Fold + 'a {
+  as_folder(ProvideBuiltin::new(opts, unresolved_mark))
 }
 
 pub struct ProvideBuiltin<'a> {
   opts: &'a Provide,
+  unresolved_mark: Mark,
 }
 
 impl<'a> ProvideBuiltin<'a> {
-  pub fn new(opts: &'a Provide) -> Self {
-    ProvideBuiltin { opts }
+  pub fn new(opts: &'a Provide, unresolved_mark: Mark) -> Self {
+    ProvideBuiltin {
+      opts,
+      unresolved_mark,
+    }
   }
 
   fn handle_ident(&self, ident: &mut Ident) -> Expr {
     if let Some(module_path) = self.opts.get(&ident.sym.to_string()) {
       // println!("Before Ident transformation Span: {:?}", ident.span);
+
       let new_ident = self.create_obj_expr(ident.span, module_path);
       // println!("After Ident transformation Span: {:?}", new_ident);
       new_ident
@@ -35,7 +39,10 @@ impl<'a> ProvideBuiltin<'a> {
     let identifier_name = self.get_nested_identifier_name(member_expr);
     if let Some(module_path) = self.opts.get(&identifier_name) {
       // println!("Before Member transformation Span: {:?}", member_expr.span);
-      let new_expr = self.create_obj_expr(member_expr.span, module_path);
+
+      let unresolved_span = DUMMY_SP.apply_mark(self.unresolved_mark);
+
+      let new_expr = self.create_obj_expr(unresolved_span, module_path);
       // println!("After Member transformation Span: {:?}", new_expr);
       new_expr
     } else {
@@ -44,14 +51,7 @@ impl<'a> ProvideBuiltin<'a> {
   }
 
   fn create_obj_expr(&self, span: Span, module_path: &[String]) -> Expr {
-    let call_expr = self.create_call_expr(
-      Span {
-        lo: span.lo,
-        hi: span.hi,
-        ctxt: SyntaxContext::from_u32(2),
-      },
-      &module_path[0],
-    );
+    let call_expr = self.create_call_expr(span, &module_path[0]);
     println!("call_expr: {:?}", call_expr);
     let mut obj_expr = Expr::Call(call_expr);
 
@@ -141,28 +141,5 @@ impl<'a> VisitMut for ProvideBuiltin<'a> {
     };
 
     expr.visit_mut_children_with(self);
-  }
-
-  fn visit_mut_module_items(&mut self, node: &mut Vec<ModuleItem>) {
-    for (_key, module_paths) in self.opts {
-      // println!("key: {:?}", key);
-      // println!("module_paths: {:?}", module_paths);
-
-      let import_decl = ImportDecl {
-        span: DUMMY_SP,
-        specifiers: vec![],
-        src: Box::new(Str {
-          span: DUMMY_SP,
-          value: module_paths[0].to_string().into(),
-          raw: Option::None,
-        }),
-        type_only: false,
-        asserts: None,
-      };
-      node.push(ModuleItem::ModuleDecl(ModuleDecl::Import(import_decl)));
-    }
-
-    node.visit_mut_children_with(self);
-    // println!("node: {:?}", node);
   }
 }
