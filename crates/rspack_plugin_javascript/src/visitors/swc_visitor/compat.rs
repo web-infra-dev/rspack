@@ -51,8 +51,6 @@ fn compat_by_es_version(
   is_typescript: bool,
 ) -> impl Fold + '_ {
   if let Some(es_version) = es_version {
-    dbg!(&es_version);
-    dbg!(&assumptions);
     Either::Left(chain!(
       Optional::new(
         compat::class_fields_use_set::class_fields_use_set(assumptions.pure_getters),
