@@ -90,7 +90,17 @@ export class BuildCommand implements RspackCommand {
 					callback(err, Stats);
 				};
 
-				const compiler = await cli.createCompiler(rspackOptions, errorHandler);
+				const compiler = await cli.createCompiler(
+					rspackOptions,
+					"production",
+					errorHandler
+				);
+
+				if (cli.isWatch(compiler)) {
+					return;
+				} else {
+					compiler.run(errorHandler);
+				}
 			}
 		);
 	}
