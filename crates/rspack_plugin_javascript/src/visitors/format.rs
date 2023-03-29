@@ -181,13 +181,12 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
       if "require".eq(&obj_ident.sym) {
         if let MemberProp::Ident(prop_ident) = &expr.prop {
           if "cache".eq(&prop_ident.sym) {
-            let span = expr.span.with_ctxt(SyntaxContext::empty());
             *expr = MemberExpr {
               obj: Box::new(Expr::Ident(Ident::new(
                 runtime_globals::REQUIRE.into(),
                 DUMMY_SP,
               ))),
-              prop: MemberProp::Ident(Ident::new("c".into(), span)),
+              prop: MemberProp::Ident(Ident::new("c".into(), DUMMY_SP)),
               ..expr.clone()
             }
           }
