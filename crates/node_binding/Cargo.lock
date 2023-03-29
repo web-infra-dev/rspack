@@ -2419,6 +2419,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_plugin_javascript",
  "rustc-hash",
+ "xxhash-rust",
 ]
 
 [[package]]

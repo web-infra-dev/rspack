@@ -106,13 +106,14 @@ fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource 
 }
 
 pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> BoxSource {
-  let entry_modules_uri = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
-  let entry_modules_id = entry_modules_uri
+  let entry_modules_id = compilation
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
     .into_iter()
-    .filter_map(|entry_module_identifier| {
+    .filter_map(|(entry_module_identifier, _)| {
       compilation
         .module_graph
-        .module_graph_module_by_identifier(&entry_module_identifier)
+        .module_graph_module_by_identifier(entry_module_identifier)
         .map(|module| module.id(&compilation.chunk_graph))
     })
     .collect::<Vec<_>>();

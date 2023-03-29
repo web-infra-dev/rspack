@@ -253,7 +253,7 @@ pub fn get_js_chunk_filename_template<'filename>(
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<Vec<String>>,
@@ -263,7 +263,7 @@ pub struct LibraryOptions {
   pub auxiliary_comment: Option<LibraryAuxiliaryComment>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -271,7 +271,7 @@ pub struct LibraryAuxiliaryComment {
   pub amd: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct LibraryName {
   pub amd: Option<String>,
   pub commonjs: Option<String>,

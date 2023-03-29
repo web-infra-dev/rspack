@@ -44,7 +44,7 @@ pub struct Builtins {
   pub relay: Option<RelayConfig>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash)]
 pub struct Minification {
   pub passes: usize,
   pub drop_console: bool,

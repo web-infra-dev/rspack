@@ -1,15 +1,19 @@
+use std::hash::Hash;
+
 use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, FilenameRenderOptions, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderChunkHookOutput,
-  RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
+  AdditionalChunkRuntimeRequirementsArgs, FilenameRenderOptions, JsChunkHashArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::runtime::{
   generate_chunk_entry_code, render_chunk_modules, render_chunk_runtime_modules,
 };
+
+use super::update_hash_for_entry_startup;
 #[derive(Debug)]
 pub struct CommonJsChunkFormatPlugin {}
 
@@ -55,6 +59,33 @@ impl Plugin for CommonJsChunkFormatPlugin {
     Ok(())
   }
 
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    if args
+      .chunk()
+      .has_runtime(&args.compilation.chunk_group_by_ukey)
+    {
+      return Ok(());
+    }
+
+    self.name().hash(&mut args.hasher);
+
+    update_hash_for_entry_startup(
+      args.hasher,
+      args.compilation,
+      args
+        .compilation
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey),
+      args.chunk_ukey,
+    );
+
+    Ok(())
+  }
+
   async fn render_chunk(
     &self,
     _ctx: PluginContext,
@@ -88,9 +119,9 @@ impl Plugin for CommonJsChunkFormatPlugin {
         let entry_points = args
           .compilation
           .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group(&chunk.ukey);
+          .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey);
 
-        let entry_point_ukey = entry_points
+        let (_, entry_point_ukey) = entry_points
           .iter()
           .next()
           .ok_or_else(|| anyhow!("should has entry point ukey"))?;

@@ -6,11 +6,12 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, SourceType, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkHashArgs, ChunkUkey, Compilation,
+  CompilationArgs, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs,
+  ModuleFactoryResult, ModuleType, NormalModuleFactoryContext,
+  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -24,6 +25,7 @@ pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<Option<ResourceData>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
+pub type PluginChunkHashHookOutput = Result<Option<u64>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
@@ -32,6 +34,7 @@ pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
 pub type PluginRenderModuleContentOutput = Result<Option<BoxSource>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
+pub type PluginJsChunkHashHookOutput = Result<()>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -104,6 +107,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    _args: &ChunkHashArgs<'_>,
+  ) -> PluginChunkHashHookOutput {
+    Ok(None)
+  }
+
   async fn render_manifest(
     &self,
     _ctx: PluginContext,
@@ -142,6 +153,15 @@ pub trait Plugin: Debug + Send + Sync {
     _args: &RenderModuleContentArgs,
   ) -> PluginRenderModuleContentOutput {
     Ok(None)
+  }
+
+  // JavascriptModulesPlugin hook
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    Ok(())
   }
 
   fn additional_chunk_runtime_requirements(

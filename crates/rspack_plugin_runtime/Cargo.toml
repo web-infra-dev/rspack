@@ -17,3 +17,4 @@ rspack_error             = { path = "../rspack_error" }
 rspack_identifier        = { path = "../rspack_identifier" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rustc-hash               = { workspace = true }
+xxhash-rust              = { workspace = true, features = ["xxh3"] }
