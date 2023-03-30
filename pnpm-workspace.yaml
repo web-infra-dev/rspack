@@ -8,3 +8,4 @@ packages:
   - "!examples/three"
   - "webpack-examples"
   - "benchcases/react-refresh"
+  - "webpack-test"
