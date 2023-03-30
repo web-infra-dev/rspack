@@ -701,7 +701,7 @@ const describeCases = config => {
 									handleFatalError(e, done);
 								}
 							} else {
-								let compiler = rspack(options, onCompiled);
+								rspack(options, onCompiled);
 							}
 						}, 30000);
 
