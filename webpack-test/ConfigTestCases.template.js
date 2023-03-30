@@ -88,7 +88,7 @@ const describeCases = config => {
 							optionsArr = [].concat(options);
 							optionsArr.forEach((options, idx) => {
 								if (!options.context) options.context = testDirectory;
-								if (!options.mode) options.mode = "development";
+								if (!options.mode) options.mode = "production";
 								if (!options.optimization) options.optimization = {};
 								if (options.optimization.minimize === undefined)
 									options.optimization.minimize = false;
@@ -100,7 +100,7 @@ const describeCases = config => {
 								// 	];
 								// }
 								if (!options.entry) options.entry = "./index.js";
-								if (!options.target) options.target = "node";
+								if (!options.target) options.target = "async-node";
 								if (!options.output) options.output = {};
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
