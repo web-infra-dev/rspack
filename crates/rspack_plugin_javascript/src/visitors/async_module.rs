@@ -117,7 +117,7 @@ fn is_webpack_require_dependency_decl(item: &ModuleItem) -> bool {
         ..
       }) if obj_sym == "__webpack_require__" && prop_sym == "ir" && matches!(
         &args[0],
-        ExprOrSpread { spread: None, expr: box Expr::Call(expr) } if is_webpack_require_call(&expr)
+        ExprOrSpread { spread: None, expr: box Expr::Call(expr) } if is_webpack_require_call(expr)
       )
     ))
   }

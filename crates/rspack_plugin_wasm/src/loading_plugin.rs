@@ -65,7 +65,7 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
       runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
       args.compilation.add_runtime_module(
         args.chunk,
-        AsyncWasmLoadingRuntimeModule::new(format!(
+        AsyncWasmLoadingRuntimeModule::new(
           "new Promise(function (resolve, reject) {{
   try {{
     var {{ readFile }} = require('fs');
@@ -81,7 +81,8 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
     }});
   }} catch (err) {{ reject(err); }}
 }});"
-        ))
+            .to_string(),
+        )
         .boxed(),
       );
     }
