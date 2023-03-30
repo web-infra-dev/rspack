@@ -265,7 +265,7 @@ const applyModuleDefaults = (
 					type: "asset/resource"
 				}
 			]
-		})
+		});
 
 		return rules;
 	});

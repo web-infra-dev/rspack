@@ -265,7 +265,9 @@ const getRawModuleRule = (
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
 		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
-		dependency: rule.dependency ? getRawRuleSetCondition(rule.dependency) : undefined,
+		dependency: rule.dependency
+			? getRawRuleSetCondition(rule.dependency)
+			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
 			? getRawRuleSetCondition(rule.resourceQuery)
