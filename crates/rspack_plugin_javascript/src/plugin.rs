@@ -23,7 +23,7 @@ use rspack_identifier::Identifier;
 use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
-use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
+use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};

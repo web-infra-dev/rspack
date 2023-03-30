@@ -16,10 +16,6 @@ use swc_core::{
   ecma::{
     ast::Ident,
     atoms::JsWord,
-    minifier::{
-      self,
-      option::{MinifyOptions, TopLevelOptions},
-    },
     parser::{EsConfig, Syntax},
     transforms::base::{
       fixer::fixer,
@@ -29,6 +25,10 @@ use swc_core::{
     },
     visit::{noop_visit_type, FoldWith, Visit, VisitMutWith, VisitWith},
   },
+};
+use swc_ecma_minifier::{
+  self as minifier,
+  option::{MinifyOptions, TopLevelOptions},
 };
 
 use super::stringify::print;

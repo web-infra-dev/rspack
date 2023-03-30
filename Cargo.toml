@@ -56,6 +56,7 @@ similar            = { version = "2.2.0" }
 sugar_path         = { version = "0.0.9" }
 swc_core           = { version = "0.72.2", default-features = false }
 swc_css            = { version = "0.151.3" }
+swc_ecma_minifier  = { version = "0.178.2" }
 swc_emotion        = { version = "0.30.0" }
 swc_html           = { version = "0.121.1" }
 swc_html_minifier  = { version = "0.118.1" }
