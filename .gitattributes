@@ -1,2 +1,3 @@
-benchcases/** linguist-generated=true
-fixtures/** linguist-generated=true
+benchcases/** linguist-detectable=false
+fixtures/** linguist-detectable=false
+webpack-test/** linguist-detectable=false
