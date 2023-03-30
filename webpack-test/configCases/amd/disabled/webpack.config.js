@@ -1,4 +1,4 @@
-/** @type {import("@rspack/cli").Configuration} */
+/** @type {import("../../../../").Configuration} */
 module.exports = {
 	amd: false
 };
