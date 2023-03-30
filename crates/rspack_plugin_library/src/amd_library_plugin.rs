@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, LibraryName, LibraryOptions,
-  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderHookOutput,
-  RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, LibraryName,
+  LibraryOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
 
@@ -93,5 +95,20 @@ impl Plugin for AmdLibraryPlugin {
     source.add(args.source.clone());
     source.add(RawSource::from("\n});"));
     Ok(Some(source.boxed()))
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args
+      .compilation
+      .options
+      .output
+      .library
+      .hash(&mut args.hasher);
+    Ok(())
   }
 }

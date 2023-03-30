@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, Chunk, ExternalModule, Filename, LibraryAuxiliaryComment,
-  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderHookOutput,
-  RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, Chunk, ExternalModule, Filename, JsChunkHashArgs,
+  LibraryAuxiliaryComment, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 
 use super::utils::{external_arguments, external_dep_array};
@@ -169,6 +171,21 @@ impl Plugin for UmdLibraryPlugin {
     source.add(args.source.clone());
     source.add(RawSource::from("\n});"));
     Ok(Some(source.boxed()))
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args
+      .compilation
+      .options
+      .output
+      .library
+      .hash(&mut args.hasher);
+    Ok(())
   }
 }
 

@@ -44,17 +44,12 @@ impl ChunkGraph {
     chunk_graph_chunk.entry_modules.keys().cloned().collect()
   }
 
-  pub fn get_chunk_entry_modules_with_chunk_group(
+  pub fn get_chunk_entry_modules_with_chunk_group_iterable(
     &self,
     chunk_ukey: &ChunkUkey,
-  ) -> HashSet<&ChunkGroupUkey> {
-    let chunk_graph_chunk = self.get_chunk_graph_chunk(chunk_ukey);
-
-    chunk_graph_chunk
-      .entry_modules
-      .iter()
-      .map(|(_, chunk_group_ukey)| chunk_group_ukey)
-      .collect()
+  ) -> &IdentifierLinkedMap<ChunkGroupUkey> {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    &cgc.entry_modules
   }
 
   pub fn is_module_in_chunk(

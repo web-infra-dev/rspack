@@ -109,7 +109,7 @@ impl Chunk {
   }
 
   pub fn has_entry_module(&self, chunk_graph: &ChunkGraph) -> bool {
-    !chunk_graph.get_chunk_entry_modules(&self.ukey).is_empty()
+    chunk_graph.get_number_of_entry_modules(&self.ukey) > 0
   }
 
   pub fn get_all_referenced_chunks(

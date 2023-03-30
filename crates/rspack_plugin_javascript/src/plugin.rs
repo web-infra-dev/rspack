@@ -10,9 +10,10 @@ use rspack_core::rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, AstOrSource, ChunkKind, Compilation, DependencyType,
-  GenerateContext, GenerationResult, Module, ModuleAst, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginProcessAssetsOutput,
+  get_js_chunk_filename_template, AstOrSource, ChunkHashArgs, ChunkKind, ChunkUkey, Compilation,
+  DependencyType, GenerateContext, GenerationResult, JsChunkHashArgs, Module, ModuleAst,
+  ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
+  PluginChunkHashHookOutput, PluginContext, PluginJsChunkHashHookOutput, PluginProcessAssetsOutput,
   PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
   RenderManifestEntry, RenderStartupArgs, RuntimeGlobals, SourceType,
 };
@@ -38,13 +39,12 @@ impl JsPlugin {
     Self {}
   }
 
-  pub fn render_require(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
-    let runtime_requirements = args
-      .compilation
+  pub fn render_require(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> BoxSource {
+    let runtime_requirements = compilation
       .chunk_graph
-      .get_chunk_runtime_requirements(&args.chunk_ukey);
+      .get_chunk_runtime_requirements(chunk_ukey);
 
-    let strict_module_error_handling = args.compilation.options.output.strict_module_error_handling;
+    let strict_module_error_handling = compilation.options.output.strict_module_error_handling;
     let mut sources = ConcatSource::default();
 
     sources.add(RawSource::from(
@@ -119,11 +119,10 @@ impl JsPlugin {
     sources.boxed()
   }
 
-  pub fn render_bootstrap(&self, args: &rspack_core::RenderManifestArgs) -> BoxSource {
-    let runtime_requirements = args
-      .compilation
+  pub fn render_bootstrap(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> BoxSource {
+    let runtime_requirements = compilation
       .chunk_graph
-      .get_chunk_runtime_requirements(&args.chunk_ukey);
+      .get_chunk_runtime_requirements(chunk_ukey);
 
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
 
@@ -135,7 +134,7 @@ impl JsPlugin {
     sources.add(RawSource::from(
       "function __webpack_require__(moduleId) {\n",
     ));
-    sources.add(self.render_require(args));
+    sources.add(self.render_require(chunk_ukey, compilation));
     sources.add(RawSource::from("\n}\n"));
 
     if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
@@ -170,7 +169,7 @@ impl JsPlugin {
     sources.add(RawSource::from("var __webpack_modules__ = "));
     sources.add(render_chunk_modules(compilation, &args.chunk_ukey)?);
     sources.add(RawSource::from("\n"));
-    sources.add(self.render_bootstrap(args));
+    sources.add(self.render_bootstrap(&args.chunk_ukey, args.compilation));
     sources.add(render_runtime_modules(compilation, &args.chunk_ukey)?);
     if chunk.has_entry_module(&compilation.chunk_graph) {
       // TODO: how do we handle multiple entry modules?
@@ -206,6 +205,7 @@ impl JsPlugin {
     Ok(final_source)
   }
 
+  #[inline]
   pub async fn render_chunk(
     &self,
     args: &rspack_core::RenderManifestArgs<'_>,
@@ -221,8 +221,38 @@ impl JsPlugin {
         chunk_ukey: &args.chunk_ukey,
       })
       .await?
-      .expect("should has a render_chunk plugin");
+      .expect("should run render_chunk hook");
     Ok(source)
+  }
+
+  #[inline]
+  pub async fn chunk_hash(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+    hasher: &mut Xxh3,
+  ) -> PluginJsChunkHashHookOutput {
+    compilation
+      .plugin_driver
+      .clone()
+      .read()
+      .await
+      .js_chunk_hash(JsChunkHashArgs {
+        compilation,
+        chunk_ukey,
+        hasher,
+      })
+  }
+
+  #[inline]
+  pub fn update_hash_with_bootstrap(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+    hasher: &mut Xxh3,
+  ) {
+    // sample hash use content
+    self.render_bootstrap(chunk_ukey, compilation).hash(hasher);
   }
 
   pub fn render_iife(&self, content: BoxSource) -> BoxSource {
@@ -433,13 +463,43 @@ impl Plugin for JsPlugin {
     Ok(())
   }
 
+  async fn chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &ChunkHashArgs<'_>,
+  ) -> PluginChunkHashHookOutput {
+    let mut hasher = Xxh3::default();
+    self
+      .chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
+      .await?;
+    if args
+      .chunk()
+      .has_runtime(&args.compilation.chunk_group_by_ukey)
+    {
+      self.update_hash_with_bootstrap(&args.chunk_ukey, args.compilation, &mut hasher)
+    }
+    Ok(Some(hasher.finish()))
+  }
+
   async fn content_hash(
     &self,
     _ctx: rspack_core::PluginContext,
     args: &rspack_core::ContentHashArgs<'_>,
   ) -> rspack_core::PluginContentHashHookOutput {
     let compilation = &args.compilation;
+    let chunk = args.chunk();
     let mut hasher = Xxh3::default();
+
+    if chunk.has_runtime(&args.compilation.chunk_group_by_ukey) {
+      self.update_hash_with_bootstrap(&args.chunk_ukey, args.compilation, &mut hasher)
+    } else {
+      chunk.id.hash(&mut hasher);
+      chunk.ids.hash(&mut hasher);
+    }
+
+    self
+      .chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
+      .await?;
 
     let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
       &args.chunk_ukey,
@@ -515,6 +575,21 @@ impl Plugin for JsPlugin {
       output_path,
       path_options,
     )])
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args
+      .compilation
+      .options
+      .builtins
+      .minify_options
+      .hash(&mut args.hasher);
+    Ok(())
   }
 
   async fn process_assets_stage_optimize_size(
