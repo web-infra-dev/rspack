@@ -15,10 +15,10 @@ swc_core     = { workspace = true, features = ["ecma_ast"] }
 [dev-dependencies]
 swc_core = { workspace = true, features = [
   "ecma_ast",
-  "__base",
   "__visit",
   "__common",
   "__parser",
   "__utils",
   "ecma_preset_env",
 ] }
+swc_error_reporters = { workspace = true }

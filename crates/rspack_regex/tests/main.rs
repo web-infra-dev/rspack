@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use rspack_regex::RspackRegex;
 use swc_core::{
-  base::try_with_handler,
   common::{FileName, FilePathMapping, SourceMap},
   ecma::{
     ast::{CallExpr, Expr, Lit},
@@ -12,6 +11,7 @@ use swc_core::{
     visit::swc_ecma_ast,
   },
 };
+use swc_error_reporters::handler::try_with_handler;
 
 #[cfg(test)]
 mod test_regex {

@@ -2013,6 +2013,7 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "swc_emotion",
+ "swc_error_reporters",
  "swc_plugin_import",
  "tokio",
  "tracing",
