@@ -1,5 +1,8 @@
 use rspack_error::Result;
-use swc_core::ecma::ast::Expr;
+use swc_core::ecma::{
+  ast::Expr,
+  visit::{fields::ExprField, AstParentKind},
+};
 
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
@@ -34,11 +37,31 @@ impl CodeGeneratable for ConstDependency {
     }
 
     let expr = self.expression.clone();
-    cgr.visitors.push(
-      create_javascript_visitor!(exact &self.ast_path, visit_mut_expr(n: &mut Expr) {
-        *n = expr.clone();
-      }),
-    );
+
+    let mut is_member = false;
+    if let Some(path) = self.ast_path.last() {
+      if let AstParentKind::Expr(expr_field) = path {
+        if let ExprField::Member = expr_field {
+          is_member = true;
+          let member = match expr.clone() {
+            Expr::Member(member) => member,
+            _ => unreachable!(),
+          };
+          cgr.visitors.push(
+            create_javascript_visitor!(exact &self.ast_path, visit_mut_member_expr(n: &mut MemberExpr) {
+              *n = member.clone();
+            }),
+          );
+        }
+      }
+    }
+    if !is_member {
+      cgr.visitors.push(
+        create_javascript_visitor!(exact &self.ast_path, visit_mut_expr(n: &mut Expr) {
+          *n = expr.clone();
+        }),
+      );
+    }
 
     Ok(cgr)
   }

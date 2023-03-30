@@ -259,6 +259,7 @@ macro_rules! impl_ast_node_interceptor {
 
 impl<'a, 'b> VisitMutAstPath for DependencyVisitor<'a, 'b> {
   impl_ast_node_interceptor!(ident, Ident);
+  impl_ast_node_interceptor!(member_expr, MemberExpr);
   impl_ast_node_interceptor!(prop, Prop);
   impl_ast_node_interceptor!(expr, Expr);
   impl_ast_node_interceptor!(pat, Pat);
