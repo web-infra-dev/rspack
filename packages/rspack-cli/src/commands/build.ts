@@ -93,7 +93,7 @@ export class BuildCommand implements RspackCommand {
 
 				const compiler = await cli.createCompiler(
 					rspackOptions,
-					"buid",
+					"build",
 					errorHandler
 				);
 

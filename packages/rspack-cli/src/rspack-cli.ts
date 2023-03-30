@@ -18,7 +18,7 @@ import { loadRspackConfig } from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
 import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 
-type Command = "serve" | "buid";
+type Command = "serve" | "build";
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv<{}>;
@@ -94,8 +94,8 @@ export class RspackCLI {
 		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
 		let commandDefaultEnv: "production" | "development" =
-			command === "buid" ? "production" : "development";
-		let isBuild = command === "buid";
+			command === "build" ? "production" : "development";
+		let isBuild = command === "build";
 		let isServe = command === "serve";
 		const internalBuildConfig = async (item: RspackOptions) => {
 			if (options.analyze) {
