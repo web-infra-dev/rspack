@@ -7,6 +7,7 @@ describe("loadRspackConfig", () => {
 			loadRspackConfig({
 				config: resolve(__dirname, ".", "./non-existent-config.js")
 			})
+		// 	@ts-ignore
 		).rejects.toThrow("config file");
 	});
 
