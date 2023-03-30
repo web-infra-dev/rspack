@@ -43,7 +43,30 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       .runtime_requirements
       .contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+    let filename = get_js_chunk_filename_template(
+      chunk,
+      &compilation.options.output,
+      &compilation.chunk_group_by_ukey,
+    );
+    let output_dir = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
+    let root_output_dir = get_undo_path(
+      output_dir.as_str(),
+      compilation.options.output.path.display().to_string(),
+      true,
+    );
     let mut source = ConcatSource::default();
+
+    if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+      source.add(RawSource::from(format!(
+        "{} = require(\"url\").pathToFileURL({});\n",
+        RuntimeGlobals::BASE_URI,
+        if &root_output_dir != "./" {
+          format!("__dirname + \"/{}\"", root_output_dir)
+        } else {
+          "__filename".to_string()
+        }
+      )))
+    }
 
     if with_hmr {
       source.add(RawSource::from(format!(
@@ -70,24 +93,11 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_loading {
-      let filename = get_js_chunk_filename_template(
-        chunk,
-        &compilation.options.output,
-        &compilation.chunk_group_by_ukey,
-      );
-      let output_dir = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
       source.add(RawSource::from(
         include_str!("runtime/require_chunk_loading_with_loading.js")
           // TODO
           .replace("JS_MATCHER", "chunkId")
-          .replace(
-            "$OUTPUT_DIR$",
-            &get_undo_path(
-              output_dir.as_str(),
-              compilation.options.output.path.display().to_string(),
-              true,
-            ),
-          ),
+          .replace("$OUTPUT_DIR$", &root_output_dir),
       ));
     }
 
