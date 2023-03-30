@@ -101,7 +101,7 @@ const describeCases = config => {
 								// 	];
 								// }
 								if (!options.entry) options.entry = "./index.js";
-								if (!options.target) options.target = "async-node";
+								if (!options.target) options.target = "node";
 								if (!options.output) options.output = {};
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
