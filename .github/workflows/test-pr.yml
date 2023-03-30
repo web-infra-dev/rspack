@@ -81,17 +81,12 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Setup node dependencies
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm install
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
       - name: Install Rust
         if: ${{ !matrix.settings.docker }}
         run: rustup show
-      - name: Cache
+      - name: Rust Cache
         uses: Swatinem/rust-cache@v2
       - name: Setup rust target
         if: ${{ !matrix.settings.docker }}

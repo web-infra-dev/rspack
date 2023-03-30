@@ -37,21 +37,10 @@ jobs:
       - name: Install toolchain
         run: rustup show
 
-      # https://pnpm.io/continuous-integration#github-actions
-      # Uses `packageManagement` field from package.json
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-          cache: 'pnpm'
-
-      - name: Install Npm Dependencies
-        run: pnpm install
-
-      - name: Cache
+      - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: check
