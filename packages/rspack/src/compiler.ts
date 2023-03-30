@@ -100,7 +100,7 @@ class Compiler {
 			},
 			util: {
 				get createHash() {
-					return require("./util/createHash");
+					return require("./util/createHash").createHash;
 				},
 				get cleverMerge() {
 					return require("./util/cleverMerge").cachedCleverMerge;
