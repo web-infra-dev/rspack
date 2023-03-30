@@ -49,6 +49,7 @@ const createLogger = appendTarget => {
 	};
 };
 
+let count = 0;
 const describeCases = config => {
 	describe(config.name, () => {
 		let stderr;
@@ -73,6 +74,12 @@ const describeCases = config => {
 								it("filtered", () => {});
 							});
 							return;
+						} else {
+							fs.writeFileSync(filterPath, "")
+							describe.skip(testName, () => {
+								it("filtered", () => {});
+							});
+							return
 						}
 						const infraStructureLog = [];
 						const outBaseDir = path.join(__dirname, "js");
