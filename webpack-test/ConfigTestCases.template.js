@@ -74,13 +74,7 @@ const describeCases = config => {
 								it("filtered", () => {});
 							});
 							return;
-						} else {
-							fs.writeFileSync(filterPath, "")
-							describe.skip(testName, () => {
-								it("filtered", () => {});
-							});
-							return
-						}
+						} 
 						const infraStructureLog = [];
 						const outBaseDir = path.join(__dirname, "js");
 						const testSubPath = path.join(config.name, category.name, testName);
