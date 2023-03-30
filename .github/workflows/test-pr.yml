@@ -1,0 +1,181 @@
+name: Test PR
+on:
+  pull_request:
+    paths:
+      - "crates/**"
+      - "packages/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+    branches:
+      - "**"
+      - "!release-**"
+    tags-ignore:
+      - "**"
+
+# cancel previous job runs for the same workflow + pr
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+            build: |
+              set -e
+              sudo apt-get -y install protobuf-compiler
+              RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
+              strip crates/node_binding/*.node
+          # - host: ubuntu-latest
+          #   target: x86_64-unknown-linux-musl
+          #   docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          #   build: |
+          #     apk add --no-cache protoc
+          #     RUST_TARGET=x86_64-unknown-linux-musl pnpm build:binding:release
+          #     strip crates/node_binding/*.node
+          # - host: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   build: |
+          #     RUST_TARGET=x86_64-pc-windows-msvc pnpm build:binding:release
+          # - host: macos-latest
+          #   target: x86_64-apple-darwin
+          #   build: |
+          #     RUST_TARGET=x86_64-apple-darwin pnpm build:binding:release
+          #     strip -x crates/node_binding/*.node
+          # - host: ubuntu-latest
+          #   target: x86_64-apple-darwin
+          #   build: |
+          #     USE_ZIG=1 RUST_TARGET=x86_64-apple-darwin pnpm build:binding:release
+          # - host: ubuntu-latest
+          #   target: aarch64-apple-darwin
+          #   build: |
+          #     USE_ZIG=1 RUST_TARGET=aarch64-apple-darwin pnpm build:binding:release
+          # - host: ubuntu-latest
+          #   target: armv7-unknown-linux-gnueabihf
+          #   setup: |
+          #     sudo apt-get update
+          #     sudo apt-get install gcc-arm-linux-gnueabihf -y
+          #   build: |
+          #     yarn build --target armv7-unknown-linux-gnueabihf
+          #     arm-linux-gnueabihf-strip *.node
+          # - host: ubuntu-latest
+          #   target: aarch64-linux-android
+          #   build: |
+          #     yarn build --target aarch64-linux-android
+          #     ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip *.node
+          # - host: ubuntu-latest
+          #   target: armv7-linux-androideabi
+          #   build: |
+          #     yarn build --target armv7-linux-androideabi
+          #     ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip *.node
+    name: build-${{ matrix.settings.target }}
+    runs-on: ${{ matrix.settings.host }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - name: Setup node dependencies
+        run: |
+          npm install -g pnpm@7.25.0
+          pnpm install
+      - name: Install Rust
+        if: ${{ !matrix.settings.docker }}
+        run: rustup show
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+      - name: Setup rust target
+        if: ${{ !matrix.settings.docker }}
+        run: rustup target add ${{ matrix.settings.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-and-test
+      - name: Install Protoc
+        if: ${{ !matrix.settings.docker }}
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: goto-bus-stop/setup-zig@v2
+        if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' || contains(matrix.settings.target, 'apple') }}
+        with:
+          version: 0.10.1
+      - name: Setup toolchain
+        run: ${{ matrix.settings.setup }}
+        if: ${{ matrix.settings.setup }}
+        shell: bash
+      # - name: Setup node x86
+      #   if: matrix.settings.target == 'i686-pc-windows-msvc'
+      #   run: yarn config set supportedArchitectures.cpu "ia32"
+      #   shell: bash
+      # - name: Setup node x86
+      #   uses: actions/setup-node@v3
+      #   if: matrix.settings.target == 'i686-pc-windows-msvc'
+      #   with:
+      #     node-version: 18
+      #     check-latest: true
+      #     cache: yarn
+      #     architecture: x86
+      - name: Build in docker
+        uses: addnab/docker-run-action@v3
+        if: ${{ matrix.settings.docker }}
+        with:
+          image: ${{ matrix.settings.docker }}
+          options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build"
+          run: |
+            set -e
+            rustup target add ${{ matrix.settings.target }}
+            npm install -g pnpm@7.25.0 --force
+            ${{ matrix.settings.build }}
+      - name: Build
+        run: ${{ matrix.settings.build }}
+        if: ${{ !matrix.settings.docker }}
+        shell: bash
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: crates/node_binding/*.node
+          if-no-files-found: error
+
+  test-x86_64-unknown-linux-gnu:
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - "14"
+          - "16"
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download bindings
+        uses: actions/download-artifact@v3
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: crates/node_binding/
+      - name: Show restored binding
+        run: ls -lah crates/node_binding/*.node
+      - name: Run tests
+        uses: addnab/docker-run-action@v3
+        with:
+          image: node:${{ matrix.node }}-slim
+          options: -v ${{ github.workspace }}:/build -w /build
+          run: |
+            set -e
+            npm install -g pnpm@7.25.0
+            pnpm install
+            pnpm run build:js
+
+            pnpm --filter @rspack/core run test
+            pnpm --filter @rspack/dev-server run test
+            pnpm --filter @rspack/plugin-html run test

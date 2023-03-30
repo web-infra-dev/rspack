@@ -179,6 +179,11 @@ bitflags! {
      * ) => void
      */
     const ASYNC_MODULE = 1 << 31;
+
+    /**
+     * the baseURI of current document
+     */
+    const BASE_URI = 1 << 32;
   }
 }
 
@@ -237,6 +242,7 @@ impl RuntimeGlobals {
       R::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
       R::INSTANTIATE_WASM => "__webpack_require__.v",
       R::ASYNC_MODULE => "__webpack_require__.a",
+      R::BASE_URI => "__webpack_require__.b",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

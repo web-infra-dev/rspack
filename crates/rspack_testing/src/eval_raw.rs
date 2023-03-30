@@ -29,7 +29,7 @@ config.output.path ??= "{test_dir}/dist";
 const normalized = rspack.getNormalizedRspackOptions(config);
 rspack.applyRspackOptionsDefaults(normalized);
 const raw = rspack.getRawOptions(normalized);
-JSON.stringify(raw)
+JSON.stringify(raw, null, 2)
 "#
   )
 }

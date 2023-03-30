@@ -60,6 +60,10 @@ pub fn run_before_pass(
   build_meta: &mut BuildMeta,
   module_type: &ModuleType,
 ) -> Result<()> {
+  let es_version = match options.target.es_version {
+    rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
+    _ => None,
+  };
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
@@ -94,7 +98,13 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       Optional::new(
-        swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
+        swc_visitor::react(
+          top_level_mark,
+          comments,
+          &cm,
+          &options.builtins.react,
+          unresolved_mark
+        ),
         should_transform_by_react
       ),
       Optional::new(
@@ -132,6 +142,10 @@ pub fn run_before_pass(
         !options.builtins.define.is_empty()
       ),
       Optional::new(
+        swc_visitor::provide_builtin(&options.builtins.provide, unresolved_mark),
+        !options.builtins.provide.is_empty()
+      ),
+      Optional::new(
         swc_visitor::export_default_from(),
         syntax.export_default_from()
       ),
@@ -140,9 +154,10 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
+      // es_version
       swc_visitor::compat(
         options.builtins.preset_env.clone(),
-        None,
+        es_version,
         assumptions,
         top_level_mark,
         unresolved_mark,

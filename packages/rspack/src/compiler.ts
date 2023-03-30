@@ -171,8 +171,24 @@ class Compiler {
 				return require("../package.json").version;
 			},
 			util: {
-				createHash: createHash,
-				cleverMerge: cleverMerge
+				get createHash() {
+					return require("./util/createHash").createHash;
+				},
+				get cleverMerge() {
+					return require("./util/cleverMerge").cachedCleverMerge;
+				}
+				// get comparators() {
+				// 	return require("./util/comparators");
+				// },
+				// get runtime() {
+				// 	return require("./util/runtime");
+				// },
+				// get serialization() {
+				// 	return require("./util/serialization");
+				// },
+				// get LazySet() {
+				// 	return require("./util/LazySet");
+				// }
 			},
 			WebpackError: Error,
 			node: {

@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.1.4
+
+### Patch Changes
+
+- fbaeb41: fix: duplicate \_\_webpack_require\_\_.a in async module
+
 ## 0.1.3
 
 ### Patch Changes

@@ -40,6 +40,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     // );
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let mut source = ConcatSource::default();
+
+    if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+      source.add(RawSource::from(format!(
+        "{} = document.baseURI || self.location.href;\n",
+        RuntimeGlobals::BASE_URI
+      )))
+    }
+
     // object to store loaded and loading chunks
     // undefined = chunk not loaded, null = chunk preloaded/prefetched
     // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded

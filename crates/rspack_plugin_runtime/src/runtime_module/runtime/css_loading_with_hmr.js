@@ -25,8 +25,8 @@ var applyHandler = function (options) {
 };
 var cssTextKey = function (link) {
 	return Array.from(link.sheet.cssRules, function (r) {
-		return r.cssText.join();
-	});
+		return r.cssText
+	}).join();
 };
 __webpack_require__.hmrC.css = function (
 	chunkIds,
@@ -49,6 +49,7 @@ __webpack_require__.hmrC.css = function (
 					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
 					function (event) {
 						if (event.type !== "load") {
+							var error = new Error();
 							var errorType = event && event.type;
 							var realSrc = event && event.target && event.target.src;
 							error.message =

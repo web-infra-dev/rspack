@@ -1,5 +1,15 @@
 # @rspack/cli
 
+## 0.1.4
+
+### Patch Changes
+
+- fbaeb41: fix: duplicate \_\_webpack_require\_\_.a in async module
+- Updated dependencies [85e47e2]
+- Updated dependencies [fbaeb41]
+  - @rspack/core@0.1.4
+  - @rspack/dev-server@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes

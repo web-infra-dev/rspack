@@ -128,6 +128,7 @@ export interface RawBuiltins {
   minifyOptions?: RawMinification
   presetEnv?: RawPresetEnv
   define: Record<string, string>
+  provide: Record<string, string[]>
   treeShaking: boolean
   progress?: RawProgressPluginConfig
   react: RawReactOptions

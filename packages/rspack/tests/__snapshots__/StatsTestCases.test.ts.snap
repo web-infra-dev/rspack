@@ -407,6 +407,17 @@ error[javascript]: JavaScript parsing error
 "
 `;
 
+exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [],
+  "warningsCount": 0,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 2`] = `""`;
+
 exports[`StatsTestCases should print correct stats for minify-error-recovery 1`] = `
 {
   "errors": [
