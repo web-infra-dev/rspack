@@ -1,7 +1,6 @@
 use std::{hash::Hash, sync::Arc};
 
 use anyhow::Error;
-use swc_core::base::SwcComments;
 use swc_core::common::pass::{AstKindPath, AstNodePath};
 use swc_core::common::{
   errors::Handler, sync::Lrc, util::take::Take, Globals, Mark, SourceMap, GLOBALS,
@@ -14,6 +13,7 @@ use swc_core::ecma::visit::{
   VisitMut, VisitMutAstPath, VisitMutWith, VisitMutWithPath, VisitWith, VisitWithPath,
 };
 use swc_error_reporters::handler::try_with_handler;
+use swc_node_comments::SwcComments;
 
 /// Program is a wrapper for SwcProgram
 ///

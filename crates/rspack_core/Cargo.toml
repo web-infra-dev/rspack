@@ -67,6 +67,7 @@ swc_core = { workspace = true, features = [
 ] }
 swc_emotion = { workspace = true }
 swc_error_reporters = { workspace = true }
+swc_node_comments = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = [
   "rt",

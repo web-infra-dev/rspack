@@ -4,13 +4,13 @@ use std::sync::Arc;
 use rspack_core::{ast::javascript::Ast, ModuleType};
 use rspack_error::Error;
 use swc_core::base::config::IsModule;
-use swc_core::base::SwcComments;
 use swc_core::common::comments::Comments;
 use swc_core::common::{FileName, SourceFile};
 use swc_core::ecma::ast::{self, EsVersion, Program};
 use swc_core::ecma::parser::{
   self, parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax,
 };
+use swc_node_comments::SwcComments;
 
 use crate::utils::{ecma_parse_error_to_rspack_error, syntax_by_module_type};
 

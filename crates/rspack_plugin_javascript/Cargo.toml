@@ -44,6 +44,7 @@ swc_core = { workspace = true, features = [
 ] }
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_emotion = { workspace = true }
+swc_node_comments = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
