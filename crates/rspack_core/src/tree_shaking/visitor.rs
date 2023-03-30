@@ -1449,20 +1449,20 @@ pub struct TreeShakingResult {
 }
 
 impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
-  fn from(mut analyze: ModuleRefAnalyze<'_>) -> Self {
+  fn from(analyze: ModuleRefAnalyze<'_>) -> Self {
     Self {
-      top_level_mark: std::mem::take(&mut analyze.top_level_mark),
-      unresolved_mark: std::mem::take(&mut analyze.unresolved_mark),
-      module_identifier: std::mem::take(&mut analyze.module_identifier),
-      export_map: std::mem::take(&mut analyze.export_map),
-      import_map: std::mem::take(&mut analyze.import_map),
-      inherit_export_maps: std::mem::take(&mut analyze.inherit_export_maps),
-      // current_region: std::mem::take(&mut analyze.current_body_owner_id),
-      // reference_map: std::mem::take(&mut analyze.reference_map),
-      reachable_import_of_export: std::mem::take(&mut analyze.reachable_import_and_export),
-      state: std::mem::take(&mut analyze.state),
-      used_symbol_refs: std::mem::take(&mut analyze.used_symbol_ref),
-      bail_out_module_identifiers: std::mem::take(&mut analyze.bail_out_module_identifiers),
+      top_level_mark: analyze.top_level_mark,
+      unresolved_mark: analyze.unresolved_mark,
+      module_identifier: analyze.module_identifier,
+      export_map: analyze.export_map,
+      import_map: analyze.import_map,
+      inherit_export_maps: analyze.inherit_export_maps,
+      // current_region: analyze.current_body_owner_id),
+      // reference_map: analyze.reference_map),
+      reachable_import_of_export: analyze.reachable_import_and_export,
+      state: analyze.state,
+      used_symbol_refs: analyze.used_symbol_ref,
+      bail_out_module_identifiers: analyze.bail_out_module_identifiers,
       side_effects: analyze.side_effects,
       module_syntax: analyze.module_syntax,
     }
