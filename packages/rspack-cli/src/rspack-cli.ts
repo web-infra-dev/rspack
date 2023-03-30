@@ -91,7 +91,7 @@ export class RspackCLI {
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
 		options: RspackCLIOptions,
-		command: Command // set different env according to
+		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
 		let commandDefaultEnv: "production" | "development" =
 			command === "buid" ? "production" : "development";
