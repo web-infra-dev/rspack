@@ -145,42 +145,26 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 }
 
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
-	assert(
-		!isNil(output.path) &&
-			!isNil(output.publicPath) &&
-			!isNil(output.assetModuleFilename) &&
-			!isNil(output.filename) &&
-			!isNil(output.chunkFilename) &&
-			!isNil(output.cssFilename) &&
-			!isNil(output.cssChunkFilename) &&
-			!isNil(output.uniqueName) &&
-			!isNil(output.enabledLibraryTypes) &&
-			!isNil(output.strictModuleErrorHandling) &&
-			!isNil(output.globalObject) &&
-			!isNil(output.importFunctionName) &&
-			!isNil(output.module) &&
-			!isNil(output.iife) &&
-			!isNil(output.importFunctionName) &&
-			!isNil(output.webassemblyModuleFilename),
-		"fields should not be nil after defaults"
-	);
+	const wasmLoading = output.wasmLoading!;
 	return {
-		path: output.path,
-		publicPath: output.publicPath,
-		assetModuleFilename: output.assetModuleFilename,
-		filename: output.filename,
-		chunkFilename: output.chunkFilename,
-		cssFilename: output.cssFilename,
-		cssChunkFilename: output.cssChunkFilename,
-		uniqueName: output.uniqueName,
+		path: output.path!,
+		publicPath: output.publicPath!,
+		assetModuleFilename: output.assetModuleFilename!,
+		filename: output.filename!,
+		chunkFilename: output.chunkFilename!,
+		cssFilename: output.cssFilename!,
+		cssChunkFilename: output.cssChunkFilename!,
+		uniqueName: output.uniqueName!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
-		strictModuleErrorHandling: output.strictModuleErrorHandling,
-		globalObject: output.globalObject,
-		importFunctionName: output.importFunctionName,
-		iife: output.iife,
-		module: output.module,
-		webassemblyModuleFilename: output.webassemblyModuleFilename
+		strictModuleErrorHandling: output.strictModuleErrorHandling!,
+		globalObject: output.globalObject!,
+		importFunctionName: output.importFunctionName!,
+		iife: output.iife!,
+		module: output.module!,
+		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
+		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
+		webassemblyModuleFilename: output.webassemblyModuleFilename!
 	};
 }
 

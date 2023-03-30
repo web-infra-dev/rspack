@@ -594,6 +594,7 @@ importers:
       typescript: ^4.7.4
       util: 0.12.5
       uvu: 0.5.6
+      wast-loader: ^1.11.4
       watchpack: ^2.4.0
       webpack-dev-server: 4.13.1
       webpack-sources: 3.2.3
@@ -644,6 +645,7 @@ importers:
       typescript: 4.9.4
       util: 0.12.5
       uvu: 0.5.6
+      wast-loader: 1.11.4
       webpack-dev-server: 4.13.1
 
   packages/rspack-cli:
@@ -15897,6 +15899,10 @@ packages:
       '@vue/shared': 3.2.47
     dev: true
 
+  /wabt/1.0.0-nightly.20180421:
+    resolution: {integrity: sha512-bsu9zk672KACjoabONcAS94IS20prRm05IbiIUGfa8eBpRLjWZv8ugocdinV/ONh0mFMfXrVWkvF1/BNtwIfUw==}
+    dev: true
+
   /walker/1.0.8:
     resolution: {integrity: sha512-ts/8E8l5b7kY0vlWLewOkDXMmPdLcVV4GmOQLyxuSswIJsweeFZtAsMF7k1Nszz+TYBQrlYRmzOnr398y1JemQ==}
     dependencies:
@@ -15908,6 +15914,12 @@ packages:
     dependencies:
       loose-envify: 1.4.0
     dev: false
+
+  /wast-loader/1.11.4:
+    resolution: {integrity: sha512-Cl86ihG/Ct0nDLr2IyK55eSb0Ru+N7tUrrFVv3JG05IuUOZvKBgENMHfbQgirlvOoFZ+tmyCdxx4N7YsA+EN5g==}
+    dependencies:
+      wabt: 1.0.0-nightly.20180421
+    dev: true
 
   /watchpack/2.4.0:
     resolution: {integrity: sha512-Lcvm7MGST/4fup+ifyKi2hjyIAwcdI4HRgtvTpIUxBRhB+RFtUh8XtDOxUfctVCnhVi+QQj49i91OyvzkJl6cg==}

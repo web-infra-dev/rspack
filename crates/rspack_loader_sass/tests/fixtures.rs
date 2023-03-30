@@ -45,6 +45,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
             public_path: Default::default(),
             filename: rspack_core::Filename::from_str("").expect("TODO:"),
             asset_module_filename: rspack_core::Filename::from_str("").expect("TODO:"),
+            wasm_loading: rspack_core::WasmLoading::Disable,
             webassembly_module_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             unique_name: Default::default(),

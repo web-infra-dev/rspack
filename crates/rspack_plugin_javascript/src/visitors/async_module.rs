@@ -4,8 +4,8 @@ use swc_core::common::util::take::Take;
 use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{
   ArrayLit, ArrayPat, AssignExpr, AssignOp, AwaitExpr, BindingIdent, BlockStmt, CallExpr, Callee,
-  CatchClause, CondExpr, Decl, Expr, ExprOrSpread, ExprStmt, FnExpr, Function, Ident, MemberExpr,
-  MemberProp, Module, Param, ParenExpr, Pat, PatOrExpr, Script, Stmt, TryStmt, VarDecl,
+  CatchClause, CondExpr, Decl, Expr, ExprOrSpread, ExprStmt, FnExpr, Function, Ident, Lit,
+  MemberExpr, MemberProp, Module, Param, ParenExpr, Pat, PatOrExpr, Script, Stmt, TryStmt, VarDecl,
 };
 use swc_core::ecma::ast::{VarDeclKind, VarDeclarator};
 use swc_core::ecma::atoms::JsWord;
@@ -38,8 +38,8 @@ impl VisitMut for AwaitDependenciesVisitor {
     let last_import = items
       .iter()
       .enumerate()
-      .skip_while(|(_, item)| !matches!(item, ModuleItem::Stmt(Stmt::Decl(Decl::Var(_)))))
-      .take_while(|(_, item)| matches!(item, ModuleItem::Stmt(Stmt::Decl(Decl::Var(_)))))
+      .skip_while(|(_, item)| !is_webpack_require_dependency_decl(item))
+      .take_while(|(_, item)| is_webpack_require_dependency_decl(item))
       .map(|(i, item)| {
         if let Some(is_async) = self.promises.pop_front() && is_async {
           if let ModuleItem::Stmt(Stmt::Decl(Decl::Var(var))) = item {
@@ -87,6 +87,56 @@ impl VisitMut for AsyncModuleVisitor {
   fn visit_mut_script(&mut self, s: &mut Script) {
     s.body = create_async_module_ast(s.body.take());
   }
+}
+
+fn is_webpack_require_dependency_decl(item: &ModuleItem) -> bool {
+  fn is_webpack_require_call(expr: &CallExpr) -> bool {
+    matches!(
+      expr,
+      CallExpr {
+        callee: Callee::Expr(box Expr::Ident(Ident {
+          sym,
+          optional: false,
+          ..
+        })),
+        args,
+        type_args: None,
+        ..
+      } if "__webpack_require__" == sym && matches!(
+        &args[0],
+        ExprOrSpread { spread: None, expr: box Expr::Lit(Lit::Str(_)) }
+      )
+    )
+  }
+  fn is_webpack_require_ir_call(expr: &CallExpr) -> bool {
+    matches!(expr, CallExpr { callee: Callee::Expr(box callee_expr), args, type_args: None, .. } if matches!(
+      callee_expr,
+      Expr::Member(MemberExpr {
+        obj: box Expr::Ident(Ident { sym: obj_sym, optional: false, .. }),
+        prop: MemberProp::Ident(Ident { sym: prop_sym, optional: false, .. }),
+        ..
+      }) if obj_sym == "__webpack_require__" && prop_sym == "ir" && matches!(
+        &args[0],
+        ExprOrSpread { spread: None, expr: box Expr::Call(expr) } if is_webpack_require_call(expr)
+      )
+    ))
+  }
+  matches!(
+    item,
+    ModuleItem::Stmt(Stmt::Decl(Decl::Var(box VarDecl {
+      kind: VarDeclKind::Var,
+      declare: false,
+      decls,
+      ..
+    }))) if matches!(
+      &decls[0],
+      VarDeclarator {
+        init: Some(box Expr::Call(expr)),
+        definite: false,
+        ..
+      } if is_webpack_require_ir_call(expr) || is_webpack_require_call(expr)
+    )
+  )
 }
 
 fn make_arg(arg: &str) -> Option<ExprOrSpread> {

@@ -1,6 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, LibraryAuxiliaryComment, LibraryName, LibraryOptions, OutputOptions, PluginExt,
+  WasmLoading,
 };
 use serde::Deserialize;
 
@@ -77,6 +78,8 @@ pub struct RawOutputOptions {
   pub path: String,
   pub public_path: String,
   pub asset_module_filename: String,
+  pub wasm_loading: String,
+  pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
   pub filename: String,
   pub chunk_filename: String,
@@ -90,18 +93,26 @@ pub struct RawOutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
-  /* pub entry_filename: Option<String>,
-   * pub source_map: Option<String>, */
 }
 
 impl RawOptionsApply for RawOutputOptions {
   type Options = OutputOptions;
   fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_library_plugin(plugins);
+    for wasm_loading in self.enabled_wasm_loading_types {
+      plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
+        wasm_loading.as_str().into(),
+      ))
+    }
+
     Ok(OutputOptions {
       path: self.path.into(),
       public_path: self.public_path.into(),
       asset_module_filename: self.asset_module_filename.into(),
+      wasm_loading: match self.wasm_loading.as_str() {
+        "false" => WasmLoading::Disable,
+        i => WasmLoading::Enable(i.into()),
+      },
       webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
       filename: self.filename.into(),
