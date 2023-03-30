@@ -176,6 +176,4 @@ jobs:
             pnpm install
             pnpm run build:js
 
-            pnpm --filter @rspack/core run test
-            pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
+            pnpm --filter "@rspack/*" run test
