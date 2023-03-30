@@ -57,6 +57,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let mut source = ConcatSource::default();
 
     if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+      dbg!(&root_output_dir);
       source.add(RawSource::from(format!(
         "{} = require(\"url\").pathToFileURL({});\n",
         RuntimeGlobals::BASE_URI,

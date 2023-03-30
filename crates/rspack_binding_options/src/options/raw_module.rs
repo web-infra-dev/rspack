@@ -230,6 +230,7 @@ pub struct RawModuleRule {
   pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
+  pub dependency: Option<RawRuleSetCondition>,
   pub one_of: Option<Vec<RawModuleRule>>,
 }
 
@@ -589,6 +590,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
       side_effects: value.side_effects,
       issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
+      dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
       one_of,
     })
   }

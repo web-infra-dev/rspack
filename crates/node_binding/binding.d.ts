@@ -227,6 +227,7 @@ export interface RawModuleRule {
   generator?: RawModuleRuleGenerator
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
+  dependency?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
 }
 export interface RawModuleRuleGenerator {

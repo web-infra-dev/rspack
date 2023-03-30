@@ -1,13 +1,14 @@
 use rspack_error::{internal_error, Result};
 use rspack_loader_runner::ResourceData;
 
-use crate::ModuleRule;
+use crate::{DependencyCategory, ModuleRule};
 
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
 pub fn module_rule_matcher<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
   issuer: Option<&str>,
+  dependency: &DependencyCategory,
 ) -> Result<Option<&'a ModuleRule>> {
   if module_rule.test.is_none()
     && module_rule.resource.is_none()
@@ -15,20 +16,21 @@ pub fn module_rule_matcher<'a>(
     && module_rule.include.is_none()
     && module_rule.exclude.is_none()
     && module_rule.issuer.is_none()
-    && module_rule.one_of.is_none()
+    && module_rule.dependency.is_none()
   {
     return Err(internal_error!(
       "ModuleRule must have at least one condition"
     ));
   }
 
-  module_rule_matcher_inner(module_rule, resource_data, issuer)
+  module_rule_matcher_inner(module_rule, resource_data, issuer, dependency)
 }
 
 pub fn module_rule_matcher_inner<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
   issuer: Option<&str>,
+  dependency: &DependencyCategory,
 ) -> Result<Option<&'a ModuleRule>> {
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
   // See: https://webpack.js.org/configuration/module/#ruletest
@@ -66,9 +68,14 @@ pub fn module_rule_matcher_inner<'a>(
     return Ok(None);
   }
 
+  if let Some(dependency_rule) = &module_rule.dependency
+    && !dependency_rule.try_match(&dependency.to_string())? {
+    return Ok(None);
+  }
+
   if let Some(one_of) = &module_rule.one_of {
     for rule in one_of {
-      if let Some(rule) = module_rule_matcher_inner(rule, resource_data, issuer)? {
+      if let Some(rule) = module_rule_matcher_inner(rule, resource_data, issuer, dependency)? {
         return Ok(Some(rule));
       }
     }
