@@ -6,7 +6,7 @@ import {
 	RawOptions
 } from "@rspack/binding";
 import assert from "assert";
-import { ResolveRequest } from "enhanced-resolve";
+import {ResolveRequest} from "enhanced-resolve";
 import path from "path";
 import {
 	OriginalSource,
@@ -14,13 +14,13 @@ import {
 	Source,
 	SourceMapSource
 } from "webpack-sources";
-import { Compiler, NormalModule } from "../compiler";
-import { Logger } from "../logging/Logger";
-import { concatErrorMsgAndStack, isPromiseLike } from "../util";
-import { createHash } from "../util/createHash";
+import {Compiler, NormalModule} from "../compiler";
+import {Logger} from "../logging/Logger";
+import {concatErrorMsgAndStack, isPromiseLike} from "../util";
+import {createHash} from "../util/createHash";
 import Hash from "../util/hash";
-import { absolutify, contextify, makePathsRelative } from "../util/identifier";
-import { memoize } from "../util/memoize";
+import {absolutify, contextify, makePathsRelative} from "../util/identifier";
+import {memoize} from "../util/memoize";
 import {
 	Mode,
 	Resolve,
@@ -28,7 +28,7 @@ import {
 	RuleSetUseItem,
 	RuleSetLoaderWithOptions
 } from "./types";
-import { Compilation } from "../compilation";
+import {Compilation} from "../compilation";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -58,26 +58,32 @@ export interface LoaderContext
 		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
 	> {
 	version: 2;
+
 	async(): (
 		err: Error | null,
 		content: string | Buffer,
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	) => void;
+
 	callback(
 		err: Error | null,
 		content: string | Buffer,
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	): void;
+
 	cacheable(cacheable?: boolean): void;
+
 	sourceMap: boolean;
 	rootContext: string;
 	context: string;
 	loaderIndex: number;
 	mode?: Mode;
 	hot?: boolean;
+
 	getOptions(schema?: any): unknown;
+
 	resolve(
 		context: string,
 		request: string,
@@ -87,27 +93,42 @@ export interface LoaderContext
 			arg2?: ResolveRequest
 		) => void
 	): void;
+
 	getResolve(
 		options: Resolve
 	): (context: any, request: any, callback: any) => Promise<any>;
+
 	getLogger(name: string): Logger;
+
 	emitError(error: Error): void;
+
 	emitWarning(warning: Error): void;
+
 	emitFile(
 		name: string,
 		content: string | Buffer,
 		sourceMap?: string,
 		assetInfo?: JsAssetInfo
 	): void;
+
 	addDependency(file: string): void;
+
 	dependency(file: string): void;
+
 	addContextDependency(context: string): void;
+
 	addMissingDependency(missing: string): void;
+
 	clearDependencies(): void;
+
 	getDependencies(): string[];
+
 	getContextDependencies(): string[];
+
 	getMissingDependencies(): string[];
+
 	addBuildDependency(file: string): void;
+
 	fs: any;
 	utils: {
 		absolutify: (context: string, request: string) => string;
@@ -138,7 +159,7 @@ export function createRawModuleRuleUses(
 	const normalizeRuleSetUseItem = (
 		item: RuleSetUseItem
 	): RuleSetLoaderWithOptions =>
-		typeof item === "string" ? { loader: item } : item;
+		typeof item === "string" ? {loader: item} : item;
 	const allUses = Array.isArray(uses)
 		? [...uses].reverse().map(normalizeRuleSetUseItem)
 		: [normalizeRuleSetUseItem(uses)];
@@ -312,7 +333,7 @@ function composeJsUse(
 					mode: compiler.options.mode,
 					hot: compiler.options.devServer?.hot,
 					getOptions(schema) {
-						let { options } = use;
+						let {options} = use;
 
 						if (options === null || options === undefined) {
 							options = {};
@@ -325,7 +346,7 @@ function composeJsUse(
 							if (schema.title && (match = /^(.+) (.+)$/.exec(schema.title))) {
 								[, name, baseDataPath] = match;
 							}
-							const { validate } = require("schema-utils");
+							const {validate} = require("schema-utils");
 							validate(schema, options, {
 								name,
 								baseDataPath
@@ -338,7 +359,7 @@ function composeJsUse(
 						return use.options && typeof use.options === "object"
 							? use.options
 							: // deprecated usage so ignore the type
-							  (use as any).query;
+							(use as any).query;
 					},
 					resolve(context, request, callback) {
 						resolver.resolve(
@@ -525,33 +546,36 @@ function composeJsUse(
 								contextDependencies,
 								missingDependencies
 							});
-							return;
+							return result;
 						}
-						if (isPromiseLike(result)) {
-							return result.then(function (result) {
-								resolve({
-									content: result,
-									buildDependencies,
-									sourceMap,
-									additionalData,
-									cacheable,
-									fileDependencies,
-									contextDependencies,
-									missingDependencies
-								});
-							}, reject);
-						}
-						return resolve({
-							content: result,
-							buildDependencies,
-							sourceMap,
-							additionalData,
-							cacheable,
-							fileDependencies,
-							contextDependencies,
-							missingDependencies
-						});
 					}
+
+					if (isPromiseLike(result)) {
+						return result.then(function (result) {
+							resolve({
+								content: result,
+								buildDependencies,
+								sourceMap,
+								additionalData,
+								cacheable,
+								fileDependencies,
+								contextDependencies,
+								missingDependencies
+							});
+						}, reject);
+					}
+
+					// fixme: typings
+					return resolve({
+						content: result as unknown as string,
+						buildDependencies,
+						sourceMap,
+						additionalData,
+						cacheable,
+						fileDependencies,
+						contextDependencies,
+						missingDependencies
+					});
 				} catch (err) {
 					if (isError) {
 						reject(err);
@@ -597,10 +621,10 @@ function composeJsUse(
 			content: toBuffer(content),
 			sourceMap: sourceMap
 				? toBuffer(
-						typeof sourceMap === "string"
-							? sourceMap
-							: JSON.stringify(sourceMap)
-				  )
+					typeof sourceMap === "string"
+						? sourceMap
+						: JSON.stringify(sourceMap)
+				)
 				: undefined,
 			additionalData: additionalData
 				? toBuffer(JSON.stringify(additionalData))
@@ -619,7 +643,7 @@ function composeJsUse(
 function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {
 	assert(
 		typeof use.loader === "string" &&
-			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
+		use.loader.startsWith(BUILTIN_LOADER_PREFIX)
 	);
 
 	if (use.loader === `${BUILTIN_LOADER_PREFIX}sass-loader`) {
