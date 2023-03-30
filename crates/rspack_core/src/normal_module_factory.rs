@@ -172,27 +172,11 @@ impl NormalModuleFactory {
       }
     };
     //TODO: with contextScheme
-    let loaders = self
-      .context
-      .options
-      .module
-      .rules
-      .iter()
-      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        match module_rule_matcher(
-          module_rule,
-          &resource_data,
-          importer.map(|i| i.to_string_lossy()).as_deref(),
-          data.dependency.category(),
-        ) {
-          Ok(val) => val.map(Ok),
-          Err(err) => Some(Err(err)),
-        }
-      })
-      .collect::<Result<Vec<_>>>()?;
+    let resolved_module_rules =
+      self.calculate_module_rules(&resource_data, data.dependency.category())?;
 
-    let loaders = loaders
-      .into_iter()
+    let loaders = resolved_module_rules
+      .iter()
       .flat_map(|module_rule| module_rule.r#use.iter().cloned().rev())
       .collect::<Vec<_>>();
 
@@ -211,8 +195,6 @@ impl NormalModuleFactory {
 
     let file_dependency = resource_data.resource_path.clone();
 
-    let resolved_module_rules =
-      self.calculate_module_rules(&resource_data, data.dependency.category())?;
     let resolved_module_type =
       self.calculate_module_type(&resolved_module_rules, self.context.module_type);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
