@@ -43,7 +43,7 @@ export const applyRspackOptionsDefaults = (
 		return getDefaultTarget(options.context!);
 	});
 
-	const { mode, name, target } = options;
+	const { mode, target } = options;
 	assert(!isNil(target));
 
 	let targetProperties =
