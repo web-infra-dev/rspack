@@ -554,6 +554,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     // visited_module.remove(&cur);
 
+    // TODO: this code can be slightly more concise
     let side_effect_list = match side_effects_map.entry(cur) {
       Entry::Occupied(mut occ) => match occ.get_mut() {
         SideEffect::Configuration(_) => vec![],
