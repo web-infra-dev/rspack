@@ -66,21 +66,21 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
       args.compilation.add_runtime_module(
         args.chunk,
         AsyncWasmLoadingRuntimeModule::new(
-          "new Promise(function (resolve, reject) {{
-  try {{
-    var {{ readFile }} = require('fs');
-    var {{ join }} = require('path');
+          "new Promise(function (resolve, reject) {
+  try {
+    var { readFile } = require('fs');
+    var { join } = require('path');
 
-    readFile(join(__dirname, $PATH), function(err, buffer){{
+    readFile(join(__dirname, $PATH), function(err, buffer){
       if (err) return reject(err);
 
       // Fake fetch response
-      resolve({{
-        arrayBuffer() {{ return buffer; }}
-      }});
-    }});
-  }} catch (err) {{ reject(err); }}
-}});"
+      resolve({
+        arrayBuffer() { return buffer; }
+      });
+    });
+  } catch (err) { reject(err); }
+});"
             .to_string(),
         )
         .boxed(),
