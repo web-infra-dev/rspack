@@ -65,6 +65,7 @@ const createProcess = (cwd, args, options) => {
  * @returns {Promise}
  */
 const run = async (cwd, args: string[] = [], options = {}) => {
+	console.log("args:", args);
 	return createProcess(cwd, args, options);
 };
 

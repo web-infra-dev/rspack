@@ -1,4 +1,4 @@
-import { loadRspackConfig } from "./loadConfig";
+import { loadRspackConfig } from "../../../src/utils/loadConfig";
 import { resolve } from "path";
 
 describe("loadRspackConfig", () => {
