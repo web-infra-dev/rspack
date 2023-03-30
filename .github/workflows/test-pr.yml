@@ -1,5 +1,6 @@
 name: Test PR
 on:
+  merge_group:
   pull_request:
     paths:
       - "crates/**"
