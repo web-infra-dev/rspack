@@ -11,7 +11,7 @@ expression: should_not_replace_values_in_double_quotes_or_single_quotes.css
 
 # Actual
 .rule {
-  content: "16px";
+  content: '16px';
   font-family: "16px";
   font-size: 1rem;
 }
