@@ -17,6 +17,7 @@ pub fn module_rule_matcher<'a>(
     && module_rule.exclude.is_none()
     && module_rule.issuer.is_none()
     && module_rule.dependency.is_none()
+    && module_rule.one_of.is_none()
   {
     return Err(internal_error!(
       "ModuleRule must have at least one condition"
