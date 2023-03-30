@@ -1,4 +1,4 @@
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/cli").Configuration} */
 module.exports = {
 	target: "web",
 	output: {

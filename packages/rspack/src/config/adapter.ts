@@ -146,6 +146,25 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	const wasmLoading = output.wasmLoading!;
+	assert(
+		!isNil(output.path) &&
+			!isNil(output.publicPath) &&
+			!isNil(output.assetModuleFilename) &&
+			!isNil(output.filename) &&
+			!isNil(output.chunkFilename) &&
+			!isNil(output.cssFilename) &&
+			!isNil(output.cssChunkFilename) &&
+			!isNil(output.uniqueName) &&
+			!isNil(output.enabledLibraryTypes) &&
+			!isNil(output.strictModuleErrorHandling) &&
+			!isNil(output.globalObject) &&
+			!isNil(output.importFunctionName) &&
+			!isNil(output.module) &&
+			!isNil(output.iife) &&
+			!isNil(output.importFunctionName) &&
+			!isNil(output.webassemblyModuleFilename),
+		"fields should not be nil after defaults"
+	);
 	return {
 		path: output.path!,
 		publicPath: output.publicPath!,
