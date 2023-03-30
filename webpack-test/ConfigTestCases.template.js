@@ -24,7 +24,8 @@ const categories = fs.readdirSync(casesPath).map(cat => {
 	return {
 		name: cat,
 		tests: fs
-			.readdirSync(path.join(casesPath, cat)).filter(folder => !folder.startsWith("_"))
+			.readdirSync(path.join(casesPath, cat))
+			.filter(folder => !folder.startsWith("_"))
 			.sort()
 	};
 });
@@ -37,14 +38,14 @@ const createLogger = appendTarget => {
 		info: l => appendTarget.push(l),
 		warn: console.warn.bind(console),
 		error: console.error.bind(console),
-		logTime: () => { },
-		group: () => { },
-		groupCollapsed: () => { },
-		groupEnd: () => { },
-		profile: () => { },
-		profileEnd: () => { },
-		clear: () => { },
-		status: () => { }
+		logTime: () => {},
+		group: () => {},
+		groupCollapsed: () => {},
+		groupEnd: () => {},
+		profile: () => {},
+		profileEnd: () => {},
+		clear: () => {},
+		status: () => {}
 	};
 };
 
@@ -58,22 +59,18 @@ const describeCases = config => {
 			stderr.restore();
 		});
 		jest.setTimeout(20000);
-		let count = 0;
+
 		for (const category of categories) {
 			// eslint-disable-next-line no-loop-func
 			describe(category.name, () => {
 				for (const testName of category.tests) {
-					if (count > 0) {
-						continue;
-					}
-					count++;
 					// eslint-disable-next-line no-loop-func
-					describe(testName, function() {
+					describe(testName, function () {
 						const testDirectory = path.join(casesPath, category.name, testName);
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath) && !require(filterPath)()) {
 							describe.skip(testName, () => {
-								it("filtered", () => { });
+								it("filtered", () => {});
 							});
 							return;
 						}
@@ -704,7 +701,6 @@ const describeCases = config => {
 									handleFatalError(e, done);
 								}
 							} else {
-								console.log(options)
 								let compiler = rspack(options, onCompiled);
 							}
 						}, 30000);
