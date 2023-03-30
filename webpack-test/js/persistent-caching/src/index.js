@@ -1,1 +1,0 @@
-export default import('container/src/exposed').then(m => m.default);
