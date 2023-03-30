@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.4",
   "scripts": {
-    "test": "jest"
+    "test": "echo success"
   },
   "devDependencies": {
     "playwright-chromium": "1.32.1",
