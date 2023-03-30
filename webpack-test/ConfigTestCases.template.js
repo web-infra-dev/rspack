@@ -688,7 +688,7 @@ const describeCases = config => {
 							const rspack = require("@rspack/core").rspack;
 							if (config.cache) {
 								try {
-									let compiler = rspack(options);
+									const compiler = rspack(options);
 									compiler.run(err => {
 										if (err) return handleFatalError(err, done);
 										compiler.run((error, stats) => {
