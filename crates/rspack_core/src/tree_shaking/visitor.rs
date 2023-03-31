@@ -1094,7 +1094,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           match prop {
             ObjectPatProp::KeyValue(pair) => {
               pair.key.visit_with(self);
-              self.visit_var_decl_pattern(&*pair.value, is_export);
+              self.visit_var_decl_pattern(&pair.value, is_export);
             }
             ObjectPatProp::Assign(assign) => {
               assign.value.visit_with(self);
@@ -1112,19 +1112,19 @@ impl<'a> ModuleRefAnalyze<'a> {
               }
             }
             ObjectPatProp::Rest(rest) => {
-              self.visit_var_decl_pattern(&*rest.arg, is_export);
+              self.visit_var_decl_pattern(&rest.arg, is_export);
             }
           }
         }
         None
       }
       Pat::Assign(assign) => {
-        self.visit_var_decl_pattern(&*assign.left, is_export);
+        self.visit_var_decl_pattern(&assign.left, is_export);
         assign.right.visit_with(self);
         None
       }
       Pat::Rest(rest) => {
-        self.visit_var_decl_pattern(&*rest.arg, is_export);
+        self.visit_var_decl_pattern(&rest.arg, is_export);
         None
       }
       Pat::Invalid(_) | Pat::Expr(_) => {
