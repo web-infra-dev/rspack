@@ -1384,6 +1384,14 @@ module.exports = {
 						}
 					]
 				},
+				dependency: {
+					description: "Match dependency type.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetConditionOrConditions"
+						}
+					]
+				},
 				oneOf: {
 					description: "Only execute the first matching rule in this array.",
 					type: "array",

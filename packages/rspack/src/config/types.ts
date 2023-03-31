@@ -258,6 +258,7 @@ export interface RuleSetRule {
 	exclude?: RuleSetCondition;
 	include?: RuleSetCondition;
 	issuer?: RuleSetCondition;
+	dependency?: RuleSetCondition;
 	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;

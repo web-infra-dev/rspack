@@ -78,7 +78,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 										},
 										...config, // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 										output: {
-											publicPath: "/",
 											// @ts-ignore
 											...config.output,
 											path: outputPath
