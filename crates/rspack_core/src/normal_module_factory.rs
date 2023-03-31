@@ -84,8 +84,8 @@ impl NormalModuleFactory {
       .ok();
     let plugin_driver = &self.plugin_driver;
 
-    // with scheme
-    let resource_data = if let Some(scheme) = scheme {
+    // with scheme, windows absolute path is considered scheme by `url`
+    let resource_data = if let Some(scheme) = scheme && !Path::is_absolute(Path::new(specifier)) {
       let data = plugin_driver
         .read()
         .await
