@@ -1,5 +1,10 @@
-use std::fmt::{self, Debug};
+use std::{
+  fmt::{self, Debug},
+  future::Future,
+};
 
+use async_recursion::async_recursion;
+use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 
@@ -24,7 +29,24 @@ pub struct AssetGeneratorOptions {
   pub filename: Option<Filename>,
 }
 
-pub type RuleSetConditionFnMatcher = Box<dyn Fn(&str) -> Result<bool> + Sync + Send>;
+pub type RuleSetConditionFnMatcher =
+  Box<dyn Fn(&str) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
+// #[async_trait::async_trait]
+// pub trait RuleSetConditionFn: Send + Sync {
+//   async fn try_match(&self, data: &str) -> Result<bool>;
+// }
+
+// #[async_trait::async_trait]
+// impl<F> RuleSetConditionFn for F
+// where
+//   F: Fn(String) -> BoxFuture<'static, Result<bool>>,
+//   F: Send + Sync,
+// {
+//   async fn try_match(&self, data: &str) -> Result<bool> {
+//     self(data.to_string()).await
+//   }
+// }
 
 pub enum RuleSetCondition {
   String(String),
@@ -47,13 +69,14 @@ impl fmt::Debug for RuleSetCondition {
 }
 
 impl RuleSetCondition {
-  pub fn try_match(&self, data: &str) -> Result<bool> {
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> Result<bool> {
     match self {
       Self::String(s) => Ok(data.starts_with(s)),
       Self::Regexp(r) => Ok(r.test(data)),
-      Self::Logical(g) => g.try_match(data),
-      Self::Array(l) => try_any(l, |i| i.try_match(data)),
-      Self::Func(f) => f(data),
+      Self::Logical(g) => g.try_match(data).await,
+      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
+      Self::Func(f) => f(data).await,
     }
   }
 }
@@ -66,40 +89,43 @@ pub struct RuleSetLogicalConditions {
 }
 
 impl RuleSetLogicalConditions {
-  pub fn try_match(&self, data: &str) -> Result<bool> {
-    if let Some(and) = &self.and && try_any(and, |i| i.try_match(data).map(|i| !i))? {
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> Result<bool> {
+    if let Some(and) = &self.and && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
       return Ok(false)
     }
-    if let Some(or) = &self.or && try_all(or, |i| i.try_match(data).map(|i| !i))? {
+    if let Some(or) = &self.or && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
       return Ok(false)
     }
-    if let Some(not) = &self.not && not.try_match(data)? {
+    if let Some(not) = &self.not && not.try_match(data).await? {
       return Ok(false)
     }
     Ok(true)
   }
 }
 
-fn try_any<T, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
+async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
 where
-  F: Fn(T) -> Result<bool>,
+  Fut: Future<Output = Result<bool>>,
+  F: Fn(T) -> Fut,
 {
   let it = it.into_iter();
   for i in it {
-    if f(i)? {
+    if f(i).await? {
       return Ok(true);
     }
   }
   Ok(false)
 }
 
-fn try_all<T, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
+async fn try_all<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
 where
-  F: Fn(T) -> Result<bool>,
+  Fut: Future<Output = Result<bool>>,
+  F: Fn(T) -> Fut,
 {
   let it = it.into_iter();
   for i in it {
-    if !(f(i)?) {
+    if !(f(i).await?) {
       return Ok(false);
     }
   }

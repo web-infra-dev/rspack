@@ -37,6 +37,7 @@ impl ContextModuleFactory {
     &self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    let factory_meta = Default::default();
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
     let context_dependencies = Default::default();
@@ -113,6 +114,7 @@ impl ContextModuleFactory {
         file_dependencies,
         missing_dependencies,
         context_dependencies,
+        factory_meta,
       }
       .with_empty_diagnostic(),
     )
