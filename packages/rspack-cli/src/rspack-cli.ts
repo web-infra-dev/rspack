@@ -77,9 +77,9 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
-		if (semver.lt(semver.clean(process.version), "14.0.0")) {
+		if (semver.lte(semver.clean(process.version), "12.0.0")) {
 			this.getLogger().error(
-				`Node.js version must be greater than 14.0.0, current version is ${process.version}`
+				`Node.js version must be greater than 12.0.0, current version is ${process.version}`
 			);
 			process.exit(1);
 		}
