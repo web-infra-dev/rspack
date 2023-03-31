@@ -1,5 +1,5 @@
 use rspack_error::Result;
-use swc_core::ecma::{ast::Expr, visit::AstParentKind};
+use swc_core::ecma::ast::Expr;
 
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
