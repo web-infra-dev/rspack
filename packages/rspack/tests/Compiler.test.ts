@@ -51,7 +51,6 @@ describe("Compiler", () => {
 		// 	}
 		// };
 		c.hooks.compilation.tap("CompilerTest", compilation => {
-			// @ts-ignore
 			compilation.bail = true;
 		});
 		c.run((err, stats) => {

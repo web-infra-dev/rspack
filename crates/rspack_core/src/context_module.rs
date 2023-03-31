@@ -4,21 +4,35 @@ use std::{
   fs,
   hash::{Hash, Hasher},
   path::Path,
+  sync::Arc,
 };
 
+use nodejs_resolver::EnforceExtension;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
-use sugar_path::{AsPath, SugarPath};
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  contextify, runtime_globals, stringify_map, AstOrSource, BoxModuleDependency, BuildContext,
-  BuildInfo, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependencyCategory, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
+  contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependencyCategory, DependencyType, GenerationResult, LibIdentOptions, Module, ModuleType,
+  Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
 };
+
+#[derive(Debug, Clone)]
+pub struct AlternativeRequest {
+  pub context: String,
+  pub request: String,
+}
+
+impl AlternativeRequest {
+  pub fn new(context: String, request: String) -> Self {
+    Self { context, request }
+  }
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum ContextMode {
@@ -88,6 +102,7 @@ pub struct ContextModuleOptions {
   pub resource_query: Option<String>,
   pub resource_fragment: Option<String>,
   pub context_options: ContextOptions,
+  pub resolve_options: Option<Resolve>,
 }
 
 impl Display for ContextModuleOptions {
@@ -100,17 +115,27 @@ impl Display for ContextModuleOptions {
   }
 }
 
-#[derive(Debug, Eq)]
+#[derive(Debug)]
 pub struct ContextModule {
   identifier: Identifier,
   options: ContextModuleOptions,
+  resolve_factory: Arc<ResolverFactory>,
 }
 
+impl PartialEq for ContextModule {
+  fn eq(&self, other: &Self) -> bool {
+    self.identifier == other.identifier
+  }
+}
+
+impl Eq for ContextModule {}
+
 impl ContextModule {
-  pub fn new(options: ContextModuleOptions) -> Self {
+  pub fn new(options: ContextModuleOptions, resolve_factory: Arc<ResolverFactory>) -> Self {
     Self {
       identifier: create_identifier(&options),
       options,
+      resolve_factory,
     }
   }
 
@@ -309,36 +334,36 @@ impl Module for ContextModule {
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result
       .runtime_requirements
-      .insert(runtime_globals::MODULE);
+      .insert(RuntimeGlobals::MODULE);
     code_generation_result
       .runtime_requirements
-      .insert(runtime_globals::HAS_OWN_PROPERTY);
+      .insert(RuntimeGlobals::HAS_OWN_PROPERTY);
 
     // TODO inject runtime globals by dep size
     code_generation_result
       .runtime_requirements
-      .insert(runtime_globals::REQUIRE);
+      .insert(RuntimeGlobals::REQUIRE);
     match self.options.context_options.mode {
       ContextMode::Weak => {
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::MODULE_FACTORIES);
+          .insert(RuntimeGlobals::MODULE_FACTORIES);
       }
       ContextMode::AsyncWeak => {
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::MODULE_FACTORIES);
+          .insert(RuntimeGlobals::MODULE_FACTORIES);
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::ENSURE_CHUNK);
+          .insert(RuntimeGlobals::ENSURE_CHUNK);
       }
       ContextMode::Lazy | ContextMode::LazyOnce => {
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::ENSURE_CHUNK);
+          .insert(RuntimeGlobals::ENSURE_CHUNK);
         code_generation_result
           .runtime_requirements
-          .insert(runtime_globals::LOAD_CHUNK_WITH_MODULE);
+          .insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
       }
       _ => {}
     }
@@ -357,12 +382,6 @@ impl Identifiable for ContextModule {
   }
 }
 
-impl PartialEq for ContextModule {
-  fn eq(&self, other: &Self) -> bool {
-    self.identifier == other.identifier
-  }
-}
-
 impl Hash for ContextModule {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     "__rspack_internal__ContextModule".hash(state);
@@ -374,12 +393,14 @@ impl ContextModule {
   pub fn resolve_dependencies(&self) -> Result<TWithDiagnosticArray<BuildResult>> {
     let mut dependencies = vec![];
 
-    // println!("resolving context module path {}", self.options.resource);
+    tracing::trace!("resolving context module path {}", self.options.resource);
 
     fn visit_dirs(
+      ctx: &str,
       dir: &Path,
       dependencies: &mut Vec<BoxModuleDependency>,
       options: &ContextModuleOptions,
+      resolve_options: &nodejs_resolver::Options,
     ) -> Result<()> {
       if dir.is_dir() {
         for entry in fs::read_dir(dir)? {
@@ -387,28 +408,45 @@ impl ContextModule {
           let path = entry.path();
           if path.is_dir() {
             if options.context_options.recursive {
-              visit_dirs(&path, dependencies, options)?;
+              visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
             }
+          } else if path
+            .file_name()
+            .map_or(false, |name| name.to_string_lossy().starts_with('.'))
+          {
+            // ignore hidden files
+            continue;
           } else {
-            let request = path.relative(options.resource.as_path());
-            let mut request_string = request.to_string_lossy().to_string();
-            let mut paths = vec![format!("./{request_string}")];
+            // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
+            let relative_path = {
+              let p = path
+                .to_string_lossy()
+                .to_string()
+                .drain(ctx.len()..)
+                .collect::<String>()
+                .replace('\\', "/");
+              if p.starts_with('/') {
+                format!(".{p}")
+              } else {
+                format!("./{p}")
+              }
+            };
+            let requests = alternative_requests(
+              resolve_options,
+              vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
+            );
 
-            // TODO: should respect fullySpecified resolve options
-            if let Some(extension) = request.extension() {
-              let path: String = request_string
-                .drain(..request_string.len() - extension.len() - 1)
-                .collect();
-              paths.push(format!("./{path}"));
-            }
-
-            paths.iter().for_each(|path| {
-              if options.context_options.reg_exp.test(path) {
+            requests.iter().for_each(|r| {
+              if options.context_options.reg_exp.test(&r.request) {
                 dependencies.push(Box::new(ContextElementDependency {
                   id: None,
-                  // TODO query
-                  request: path.to_string(),
-                  user_request: path.to_string(),
+                  request: format!(
+                    "{}{}{}",
+                    r.request,
+                    options.resource_query.clone().unwrap_or_default(),
+                    options.resource_fragment.clone().unwrap_or_default()
+                  ),
+                  user_request: r.request.to_string(),
                   category: options.context_options.category,
                   context: options.resource.clone(),
                   options: options.context_options.clone(),
@@ -421,13 +459,22 @@ impl ContextModule {
       Ok(())
     }
 
+    let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
+      resolve_options: self.options.resolve_options.clone(),
+      resolve_to_context: false,
+      dependency_type: DependencyType::ContextElement,
+      dependency_category: self.options.context_options.category,
+    });
+
     visit_dirs(
+      &self.options.resource,
       Path::new(&self.options.resource),
       &mut dependencies,
       &self.options,
+      resolver.options(),
     )?;
 
-    // println!("resolving dependencies for {:?}", dependencies);
+    tracing::trace!("resolving dependencies for {:?}", dependencies);
 
     let mut hasher = Xxh3::new();
     self.hash(&mut hasher);
@@ -460,4 +507,71 @@ pub fn normalize_context(str: &str) -> String {
     return str.to_string();
   }
   str.to_string() + "/"
+}
+
+fn alternative_requests(
+  resolve_options: &nodejs_resolver::Options,
+  mut items: Vec<AlternativeRequest>,
+) -> Vec<AlternativeRequest> {
+  // TODO: should respect fullySpecified resolve options
+  for mut item in std::mem::take(&mut items) {
+    if !matches!(resolve_options.enforce_extension, EnforceExtension::Enabled) {
+      items.push(item.clone());
+    }
+    for ext in &resolve_options.extensions {
+      if item.request.ends_with(ext) {
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          item
+            .request
+            .drain(..(item.request.len() - ext.len()))
+            .collect(),
+        ));
+      }
+    }
+  }
+
+  for mut item in std::mem::take(&mut items) {
+    items.push(item.clone());
+    for main_file in &resolve_options.main_files {
+      if item.request.ends_with(&format!("/{main_file}")) {
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          item
+            .request
+            .clone()
+            .drain(..(item.request.len() - main_file.len()))
+            .collect(),
+        ));
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          item
+            .request
+            .drain(..(item.request.len() - main_file.len() - 1))
+            .collect(),
+        ));
+      }
+    }
+  }
+
+  for mut item in std::mem::take(&mut items) {
+    items.push(item.clone());
+    // TODO resolveOptions.modules can be array
+    for module in &resolve_options.modules {
+      let dir = module.replace('\\', "/");
+      let mut full_path: String = format!(
+        "{}{}",
+        item.context.replace('\\', "/"),
+        item.request.drain(1..).collect::<String>(),
+      );
+      if full_path.starts_with(&dir) {
+        items.push(AlternativeRequest::new(
+          item.context.clone(),
+          full_path.drain((dir.len() + 1)..).collect(),
+        ));
+      }
+    }
+  }
+
+  items
 }

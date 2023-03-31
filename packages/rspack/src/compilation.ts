@@ -17,7 +17,9 @@ import {
 	JsCompatSource,
 	JsAsset,
 	JsModule,
-	JsChunk
+	JsChunk,
+	JsStatsError,
+	JsStatsWarning
 } from "@rspack/binding";
 
 import {
@@ -366,25 +368,67 @@ export class Compilation {
 	}
 
 	get errors() {
+		let inner = this.#inner;
 		return {
-			push: (err: Error) => {
-				this.#inner.pushDiagnostic(
-					"error",
-					err.name,
-					concatErrorMsgAndStack(err)
-				);
+			push: (...errs: Error[]) => {
+				// compatible for javascript array
+				for (let i = 0; i < errs.length; i++) {
+					let error = errs[i];
+					this.#inner.pushDiagnostic(
+						"error",
+						error.name,
+						concatErrorMsgAndStack(error)
+					);
+				}
+			},
+			[Symbol.iterator]() {
+				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
+				let errors = inner.getStats().getErrors();
+				let index = 0;
+				return {
+					next() {
+						if (index >= errors.length) {
+							return { done: true };
+						}
+						return {
+							value: [errors[index++]],
+							done: false
+						};
+					}
+				};
 			}
 		};
 	}
 
 	get warnings() {
+		let inner = this.#inner;
 		return {
-			push: (warn: Error) => {
-				this.#inner.pushDiagnostic(
-					"warning",
-					warn.name,
-					concatErrorMsgAndStack(warn)
-				);
+			// compatible for javascript array
+			push: (...warns: Error[]) => {
+				for (let i = 0; i < warns.length; i++) {
+					let warn = warns[i];
+					this.#inner.pushDiagnostic(
+						"warning",
+						warn.name,
+						concatErrorMsgAndStack(warn)
+					);
+				}
+			},
+			[Symbol.iterator]() {
+				// TODO: this is obviously a bad design, optimize this after finishing angular prototype
+				let warnings = inner.getStats().getWarnings();
+				let index = 0;
+				return {
+					next() {
+						if (index >= warnings.length) {
+							return { done: true };
+						}
+						return {
+							value: [warnings[index++]],
+							done: false
+						};
+					}
+				};
 			}
 		};
 	}

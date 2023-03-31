@@ -45,10 +45,8 @@ export = ({ colors, appendOnly, stream }) => {
 		if (!currentStatusMessage) return;
 		const l = stream.columns;
 		const args = l
-			? // @ts-ignore
-			  truncateArgs(currentStatusMessage, l - 1)
-			: // @ts-ignore
-			  currentStatusMessage;
+			? truncateArgs(currentStatusMessage, l - 1)
+			: currentStatusMessage;
 		const str = args.join(" ");
 		const coloredStr = `\u001b[1m${str}\u001b[39m\u001b[22m`;
 		stream.write(`\x1b[2K\r${coloredStr}`);

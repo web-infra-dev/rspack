@@ -7,9 +7,9 @@ use dashmap::DashMap;
 use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 use rspack_core::{
-  runtime_globals, AstOrSource, Context, Dependency, Filename, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType, StaticExportsDependency,
+  AstOrSource, Context, Dependency, Filename, FilenameRenderOptions, GenerateContext,
+  GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType, StaticExportsDependency,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
@@ -102,10 +102,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }
 
   fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
-    let base = module.size(source_type);
     match source_type {
-      SourceType::JavaScript => 40.0 + base,
-      SourceType::Wasm => base,
+      SourceType::JavaScript => {
+        40.0
+          + module
+            .get_presentational_dependencies()
+            .map_or(0.0, |i| i.len() as f64 * 10.0)
+      }
+      SourceType::Wasm => module.original_source().map_or(0, |source| source.size()) as f64,
       _ => 0.0,
     }
   }
@@ -135,9 +139,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(runtime_globals::MODULE);
-        runtime_requirements.insert(runtime_globals::MODULE_ID);
-        runtime_requirements.insert(runtime_globals::INSTANTIATE_WASM);
+        runtime_requirements.insert(RuntimeGlobals::MODULE);
+        runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
+        runtime_requirements.insert(RuntimeGlobals::INSTANTIATE_WASM);
 
         let dep_modules = DashMap::<ModuleIdentifier, (String, &str)>::new();
         let wasm_deps_by_request = DashMap::<&str, Vec<(Identifier, String)>>::new();
@@ -209,21 +213,24 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               .join(",\n");
 
             format!(
-              "{}: {{{deps}}}",
+              "{}: {{\n{deps}\n}}",
               serde_json::to_string(request).expect("should be ok")
             )
           })
           .collect::<Vec<_>>();
 
         let imports_obj = if !import_obj_request_items.is_empty() {
-          Some(format!(", {{{}}}", &import_obj_request_items.join(",\n")))
+          Some(format!(
+            ", {{\n{}\n}}",
+            &import_obj_request_items.join(",\n")
+          ))
         } else {
           None
         };
 
         let instantiate_call = format!(
           "{}(exports, module.id, {} {})",
-          runtime_globals::INSTANTIATE_WASM,
+          RuntimeGlobals::INSTANTIATE_WASM,
           serde_json::to_string(&wasm_filename).expect("should be ok"),
           imports_obj.unwrap_or_default()
         );
@@ -231,25 +238,25 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let source = if !promises.is_empty() {
           generate_context
             .runtime_requirements
-            .insert(runtime_globals::ASYNC_MODULE);
+            .insert(RuntimeGlobals::ASYNC_MODULE);
           let promises = promises.join(", ");
           let decl = format!(
-            "var __webpack_instantiate__=function([{promises}]){{ return {instantiate_call}}}\n",
+            "var __webpack_instantiate__ = function ([{promises}]) {{\nreturn {instantiate_call};\n}}\n",
           );
           let async_dependencies = format!(
-            "{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__){{ 
-                  try {{ 
-                    {imports_code}
-                    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
-                    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
-                    await {instantiate_call};
+"{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{
+  try {{
+    {imports_code}
+    var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([{promises}]);
+    var [{promises}] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
+    await {instantiate_call};
 
-                  __webpack_async_result__();
+  __webpack_async_result__();
 
-                  }} catch(e) {{ __webpack_async_result__(e); }}
-                }}, 1);
-          ",
-            runtime_globals::ASYNC_MODULE,
+  }} catch(e) {{ __webpack_async_result__(e); }}
+}}, 1);
+",
+            RuntimeGlobals::ASYNC_MODULE,
           );
 
           RawSource::from(format!("{decl}{async_dependencies}"))

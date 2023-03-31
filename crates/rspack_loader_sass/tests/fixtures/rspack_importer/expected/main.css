@@ -27,7 +27,7 @@ nav a {
   border-radius: 10px;
 }
 .foo:before {
-  content: "";
+  content: "\e0c6";
 }
 .bar:before {
   content: "∑";

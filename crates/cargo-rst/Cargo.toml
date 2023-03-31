@@ -20,10 +20,3 @@ serde_json = { workspace = true }
 
 console = "0.15.2"
 similar = { workspace = true, features = ["inline"] }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }

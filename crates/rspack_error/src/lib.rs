@@ -34,9 +34,8 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
     self.inner
   }
 
-  pub fn split_into_parts(mut self) -> (T, Vec<Diagnostic>) {
-    let diagnostic = std::mem::take(&mut self.diagnostic);
-    (self.inner, diagnostic)
+  pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
+    (self.inner, self.diagnostic)
   }
 }
 

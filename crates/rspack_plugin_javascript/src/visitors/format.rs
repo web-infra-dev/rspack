@@ -3,8 +3,8 @@ use std::collections::HashSet;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  runtime_globals, Compilation, Dependency, DependencyCategory, DependencyType, Module,
-  ModuleDependency, ModuleGraphModule, ModuleIdentifier,
+  Compilation, Dependency, DependencyCategory, DependencyType, Module, ModuleDependency,
+  ModuleGraphModule, ModuleIdentifier, RuntimeGlobals,
 };
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::utils::{member_expr, ExprFactory};
@@ -113,7 +113,7 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
 
   fn visit_mut_ident(&mut self, ident: &mut Ident) {
     if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
-      ident.sym = runtime_globals::REQUIRE.into();
+      ident.sym = RuntimeGlobals::REQUIRE.into();
     }
   }
 
@@ -146,8 +146,8 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
             ..
           }) = &expr
           {
-            if runtime_globals::REQUIRE.eq(&obj_ident.sym)
-              && runtime_globals::INTEROP_REQUIRE.eq(&prop_ident.sym)
+            if RuntimeGlobals::REQUIRE.name().eq(&obj_ident.sym)
+              && RuntimeGlobals::INTEROP_REQUIRE.name().eq(&prop_ident.sym)
             {
               if let Some(box Expr::Call(CallExpr {
                 callee: Callee::Expr(box Expr::Ident(ident)),
@@ -220,7 +220,7 @@ impl<'a> HmrApiRewrite<'a> {
       if let Some((sym, ctxt, inter_op)) = value {
         let no_inter_op_call_expr = CallExpr {
           span: DUMMY_SP,
-          callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
+          callee: Ident::new(RuntimeGlobals::REQUIRE.into(), DUMMY_SP).as_callee(),
           args: vec![Lit::Str(str.into()).as_arg()],
           type_args: None,
         };
@@ -230,13 +230,10 @@ impl<'a> HmrApiRewrite<'a> {
             callee: MemberExpr {
               span: DUMMY_SP,
               obj: Box::new(Expr::Ident(Ident::new(
-                runtime_globals::REQUIRE.into(),
+                RuntimeGlobals::REQUIRE.into(),
                 DUMMY_SP,
               ))),
-              prop: MemberProp::Ident(Ident::new(
-                runtime_globals::INTEROP_REQUIRE.into(),
-                DUMMY_SP,
-              )),
+              prop: MemberProp::Ident(Ident::new(RuntimeGlobals::INTEROP_REQUIRE.into(), DUMMY_SP)),
             }
             .as_callee(),
             args: vec![no_inter_op_call_expr.as_arg()],
@@ -258,7 +255,7 @@ impl<'a> HmrApiRewrite<'a> {
       } else {
         CallExpr {
           span: DUMMY_SP,
-          callee: Ident::new(runtime_globals::REQUIRE.into(), DUMMY_SP).as_callee(),
+          callee: Ident::new(RuntimeGlobals::REQUIRE.into(), DUMMY_SP).as_callee(),
           args: vec![Lit::Str(str.into()).as_arg()],
           type_args: None,
         }
@@ -340,7 +337,7 @@ impl<'a> HmrApiRewrite<'a> {
           | Some(ExprOrSpread {
             expr:
               box Expr::Arrow(ArrowExpr {
-                body: BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
+                body: box BlockStmtOrExpr::BlockStmt(BlockStmt { stmts, .. }),
                 ..
               }),
             ..
@@ -353,11 +350,11 @@ impl<'a> HmrApiRewrite<'a> {
             ..
           }) = n.args.get_mut(1)
           {
-            if let BlockStmtOrExpr::Expr(box expr) = body {
+            if let box BlockStmtOrExpr::Expr(box expr) = body {
               auto_import_stmts.push(
                 std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
               );
-              *body = BlockStmtOrExpr::BlockStmt(BlockStmt {
+              *body = box BlockStmtOrExpr::BlockStmt(BlockStmt {
                 span: DUMMY_SP,
                 stmts: auto_import_stmts,
               });

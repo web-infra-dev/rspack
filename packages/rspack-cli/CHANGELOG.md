@@ -1,5 +1,40 @@
 # @rspack/cli
 
+## 0.1.4
+
+### Patch Changes
+
+- fbaeb41: fix: duplicate \_\_webpack_require\_\_.a in async module
+- Updated dependencies [85e47e2]
+- Updated dependencies [fbaeb41]
+  - @rspack/core@0.1.4
+  - @rspack/dev-server@0.1.4
+
+## 0.1.3
+
+### Patch Changes
+
+- 3380893: add definePlugin helper
+- d80430c: - auto set "mode" by NODE_ENV, remove the hardcoded config
+  - extract "buildConfig" method
+- b323220: add async-wasm & js-async-module support
+- a75cb28: Fix path resolution on Windows OS
+- 28b9757: feat: resolve.byDependency
+- d04485d: feat: stats for timings and builtAt
+- Updated dependencies [62bad72]
+- Updated dependencies [9cb8c7e]
+- Updated dependencies [4471853]
+- Updated dependencies [54cb3fa]
+- Updated dependencies [1aadf05]
+- Updated dependencies [b323220]
+- Updated dependencies [28b9757]
+- Updated dependencies [b0cffba]
+- Updated dependencies [9c71512]
+- Updated dependencies [c49c03c]
+- Updated dependencies [d04485d]
+  - @rspack/core@0.1.3
+  - @rspack/dev-server@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

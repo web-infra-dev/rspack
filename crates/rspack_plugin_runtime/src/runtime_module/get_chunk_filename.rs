@@ -1,7 +1,8 @@
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  stringify_map, ChunkUkey, Compilation, FilenameRenderOptions, RuntimeModule, SourceType,
+  stringify_map, ChunkUkey, Compilation, FilenameRenderOptions, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
 use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap as HashMap;
@@ -14,7 +15,7 @@ pub struct GetChunkFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
   content_type: &'static str,
   source_type: SourceType,
-  global: &'static str,
+  global: RuntimeGlobals,
   all_chunks: bool,
 }
 
@@ -22,7 +23,7 @@ impl GetChunkFilenameRuntimeModule {
   pub fn new(
     content_type: &'static str,
     source_type: SourceType,
-    global: &'static str,
+    global: RuntimeGlobals,
     all_chunks: bool,
   ) -> Self {
     Self {

@@ -97,6 +97,26 @@ class Compiler {
 			},
 			get rspackVersion() {
 				return require("../package.json").version;
+			},
+			util: {
+				get createHash() {
+					return require("./util/createHash").createHash;
+				},
+				get cleverMerge() {
+					return require("./util/cleverMerge").cachedCleverMerge;
+				}
+				// get comparators() {
+				// 	return require("./util/comparators");
+				// },
+				// get runtime() {
+				// 	return require("./util/runtime");
+				// },
+				// get serialization() {
+				// 	return require("./util/serialization");
+				// },
+				// get LazySet() {
+				// 	return require("./util/LazySet");
+				// }
 			}
 		};
 		this.root = this;
@@ -464,11 +484,9 @@ class Compiler {
 		});
 	}
 
-	watch(
-		watchOptions: WatchOptions,
-		handler: (error: Error, stats?: Stats) => Watching
-	): Watching {
+	watch(watchOptions: WatchOptions, handler: Callback<Error, Stats>): Watching {
 		if (this.running) {
+			// @ts-expect-error
 			return handler(new ConcurrentCompilationError());
 		}
 		this.running = true;

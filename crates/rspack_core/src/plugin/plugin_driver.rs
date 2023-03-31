@@ -10,17 +10,17 @@ use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
-  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
+  ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs,
+  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
   NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
-  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory, SourceType,
-  Stats, ThisCompilationArgs,
+  PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
+  PluginNormalModuleFactoryResolveForSchemeOutput, PluginProcessAssetsOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, ResolverFactory, SourceType, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -176,6 +176,15 @@ impl PluginDriver {
     Ok(result)
   }
 
+  pub async fn chunk_hash(&self, args: &ChunkHashArgs<'_>) -> PluginChunkHashHookOutput {
+    for plugin in &self.plugins {
+      if let Some(hash) = plugin.chunk_hash(PluginContext::new(), args).await? {
+        return Ok(Some(hash));
+      }
+    }
+    Ok(None)
+  }
+
   pub async fn render_manifest(
     &self,
     args: RenderManifestArgs<'_>,
@@ -224,6 +233,13 @@ impl PluginDriver {
       }
     }
     Ok(None)
+  }
+
+  pub fn js_chunk_hash(&self, mut args: JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
+    for plugin in &self.plugins {
+      plugin.js_chunk_hash(PluginContext::new(), &mut args)?
+    }
+    Ok(())
   }
 
   pub fn render_module_content(

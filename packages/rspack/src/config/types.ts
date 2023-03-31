@@ -129,8 +129,8 @@ export interface Output {
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
 	iife?: Iife;
-	// enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
-	// wasmLoading?: WasmLoading;
+	wasmLoading?: WasmLoading;
+	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
 	webassemblyModuleFilename?: WebassemblyModuleFilename;
 }
 export type Path = string;
@@ -167,12 +167,6 @@ export interface LibraryCustomUmdObject {
 	commonjs?: string;
 	root?: string | string[];
 }
-
-export type WasmLoading = false | WasmLoadingType;
-export type WasmLoadingType =
-	| ("fetch-streaming" | "fetch" | "async-node")
-	| string;
-
 export type LibraryExport = string[] | string;
 export type LibraryType =
 	| (
@@ -201,6 +195,10 @@ export type UmdNamedDefine = boolean;
 export type EnabledLibraryTypes = LibraryType[];
 export type GlobalObject = string;
 export type ImportFunctionName = string;
+export type WasmLoading = false | WasmLoadingType;
+export type WasmLoadingType =
+	| ("fetch-streaming" | "fetch" | "async-node")
+	| string;
 export type EnabledWasmLoadingTypes = WasmLoadingType[];
 export interface OutputNormalized {
 	path?: Path;
@@ -217,10 +215,10 @@ export interface OutputNormalized {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
-	// enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
-	// wasmLoading?: WasmLoading;
-	webassemblyModuleFilename?: WebassemblyModuleFilename;
 	iife?: Iife;
+	wasmLoading?: WasmLoading;
+	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	webassemblyModuleFilename?: WebassemblyModuleFilename;
 }
 
 ///// Resolve /////
@@ -240,6 +238,9 @@ export interface ResolveOptions {
 	modules?: string[];
 	preferRelative?: boolean;
 	tsConfigPath?: string;
+	byDependency?: {
+		[k: string]: ResolveOptions;
+	};
 }
 export type ResolveAlias = {
 	[k: string]: false | string | Array<string | false>;
@@ -257,6 +258,7 @@ export interface RuleSetRule {
 	exclude?: RuleSetCondition;
 	include?: RuleSetCondition;
 	issuer?: RuleSetCondition;
+	dependency?: RuleSetCondition;
 	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;

@@ -390,6 +390,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       content,
       ParserConfig {
         css_modules,
+        legacy_ie: true,
         ..Default::default()
       },
     )?;

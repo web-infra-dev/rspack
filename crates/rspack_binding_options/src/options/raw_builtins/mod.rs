@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv};
+use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv, Provide};
 use rspack_error::internal_error;
 use rspack_plugin_copy::CopyPlugin;
 use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
@@ -84,6 +84,8 @@ pub struct RawBuiltins {
   pub preset_env: Option<RawPresetEnv>,
   #[napi(ts_type = "Record<string, string>")]
   pub define: Define,
+  #[napi(ts_type = "Record<string, string[]>")]
+  pub provide: Provide,
   pub tree_shaking: bool,
   pub progress: Option<RawProgressPluginConfig>,
   pub react: RawReactOptions,
@@ -134,6 +136,7 @@ impl RawOptionsApply for RawBuiltins {
       minify_options: self.minify_options.map(Into::into),
       preset_env: self.preset_env.map(Into::into),
       define: self.define,
+      provide: self.provide,
       tree_shaking: self.tree_shaking,
       react: self.react.into(),
       decorator: self.decorator.map(|i| i.into()),

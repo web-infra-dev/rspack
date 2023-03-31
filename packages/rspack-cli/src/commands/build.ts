@@ -27,7 +27,7 @@ export class BuildCommand implements RspackCommand {
 				let createJsonStringifyStream;
 				if (options.json) {
 					const jsonExt = await import("@discoveryjs/json-ext");
-					createJsonStringifyStream = jsonExt.stringifyStream;
+					createJsonStringifyStream = jsonExt.default.stringifyStream;
 				}
 
 				const callback = (error, stats: Stats | MultiStats) => {
@@ -36,6 +36,7 @@ export class BuildCommand implements RspackCommand {
 						process.exit(2);
 					}
 					if (stats && stats.hasErrors()) {
+						logger.error(stats.toString({ errors: true }));
 						process.exitCode = 1;
 					}
 					if (!compiler || !stats) {
@@ -88,10 +89,19 @@ export class BuildCommand implements RspackCommand {
 
 				const errorHandler = (err, Stats) => {
 					callback(err, Stats);
-					if (!cli.isWatch(compiler)) console.timeEnd("build");
 				};
 
-				const compiler = await cli.createCompiler(rspackOptions, errorHandler);
+				const compiler = await cli.createCompiler(
+					rspackOptions,
+					"build",
+					errorHandler
+				);
+
+				if (cli.isWatch(compiler)) {
+					return;
+				} else {
+					compiler.run(errorHandler);
+				}
 			}
 		);
 	}

@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["custom.d.ts", "./scripts", "./fixtures"],
+  "compilerOptions": {
+    "strict": true,
+  },
+  "ts-node": {
+    "transpileOnly": true
+  }
+}

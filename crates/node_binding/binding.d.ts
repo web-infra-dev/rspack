@@ -128,6 +128,7 @@ export interface RawBuiltins {
   minifyOptions?: RawMinification
   presetEnv?: RawPresetEnv
   define: Record<string, string>
+  provide: Record<string, string[]>
   treeShaking: boolean
   progress?: RawProgressPluginConfig
   react: RawReactOptions
@@ -226,6 +227,7 @@ export interface RawModuleRule {
   generator?: RawModuleRuleGenerator
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
+  dependency?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
 }
 export interface RawModuleRuleGenerator {
@@ -304,6 +306,8 @@ export interface RawOutputOptions {
   path: string
   publicPath: string
   assetModuleFilename: string
+  wasmLoading: string
+  enabledWasmLoadingTypes: Array<string>
   webassemblyModuleFilename: string
   filename: string
   chunkFilename: string
@@ -330,6 +334,7 @@ export interface RawResolveOptions {
   symlinks?: boolean
   tsConfigPath?: string
   modules?: Array<string>
+  byDependency?: Record<string, RawResolveOptions>
 }
 export interface RawSnapshotStrategy {
   hash: boolean

@@ -1,14 +1,14 @@
 use rspack_core::{
-  runtime_globals, CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode,
-  ContextOptions, Dependency, DependencyCategory, ImportContextDependency, ModuleDependency,
-  RequireContextDependency, ResourceData,
+  CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
+  Dependency, DependencyCategory, ImportContextDependency, ModuleDependency,
+  RequireContextDependency, ResourceData, RuntimeGlobals,
 };
 use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
 use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
 use swc_core::ecma::ast::{
-  BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr, MemberProp,
-  MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Tpl,
+  AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit,
+  MemberExpr, MemberProp, MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Pat, PatOrExpr, Tpl,
 };
 use swc_core::ecma::atoms::js_word;
 use swc_core::ecma::utils::{quote_ident, quote_str};
@@ -270,6 +270,7 @@ impl VisitAstPath for DependencyScanner<'_> {
   ) {
     self.add_import(node, &*ast_path);
     if let Err(e) = self.add_export(node, &*ast_path) {
+      // TODO(ahabhgk): should collected by Diagnostics
       eprintln!("{e}");
     }
     node.visit_children_with_path(self, ast_path);
@@ -300,6 +301,34 @@ impl VisitAstPath for DependencyScanner<'_> {
     expr: &'ast Expr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
+    if let Expr::Assign(AssignExpr {
+      op: AssignOp::Assign,
+      left: PatOrExpr::Pat(box Pat::Ident(ident)),
+      ..
+    }) = expr
+    {
+      // variable can be assigned
+      if ident.span.ctxt == self.unresolved_ctxt {
+        #[allow(clippy::single_match)]
+        match ident.sym.as_ref() as &str {
+          WEBPACK_PUBLIC_PATH => {
+            let mut new_expr = expr.clone();
+            if let Some(e) = new_expr.as_mut_assign() {
+              e.left = PatOrExpr::Pat(box Pat::Ident(
+                quote_ident!(RuntimeGlobals::PUBLIC_PATH).into(),
+              ))
+            };
+            self.add_presentational_dependency(box ConstDependency::new(
+              new_expr,
+              Some(RuntimeGlobals::PUBLIC_PATH),
+              as_parent_path(ast_path),
+            ));
+          }
+          _ => {}
+        }
+      }
+    }
+
     if let Expr::Ident(ident) = expr {
       if ident.span.ctxt == self.unresolved_ctxt {
         match ident.sym.as_ref() as &str {
@@ -307,23 +336,23 @@ impl VisitAstPath for DependencyScanner<'_> {
             self.add_presentational_dependency(box ConstDependency::new(
               quote!(
                 "$name()" as Expr,
-                name = quote_ident!(runtime_globals::GET_FULL_HASH)
+                name = quote_ident!(RuntimeGlobals::GET_FULL_HASH)
               ),
-              Some(runtime_globals::GET_FULL_HASH),
+              Some(RuntimeGlobals::GET_FULL_HASH),
               as_parent_path(ast_path),
             ));
           }
           WEBPACK_PUBLIC_PATH => {
             self.add_presentational_dependency(box ConstDependency::new(
-              Expr::Ident(quote_ident!(runtime_globals::PUBLIC_PATH)),
-              Some(runtime_globals::PUBLIC_PATH),
+              Expr::Ident(quote_ident!(RuntimeGlobals::PUBLIC_PATH)),
+              Some(RuntimeGlobals::PUBLIC_PATH),
               as_parent_path(ast_path),
             ));
           }
           WEBPACK_MODULES => {
             self.add_presentational_dependency(box ConstDependency::new(
-              Expr::Ident(quote_ident!(runtime_globals::MODULE_FACTORIES)),
-              Some(runtime_globals::MODULE_FACTORIES),
+              Expr::Ident(quote_ident!(RuntimeGlobals::MODULE_FACTORIES)),
+              Some(RuntimeGlobals::MODULE_FACTORIES),
               as_parent_path(ast_path),
             ));
           }
@@ -385,14 +414,34 @@ impl VisitAstPath for DependencyScanner<'_> {
           GLOBAL => {
             if matches!(self.compiler_options.node.global.as_str(), "true" | "warn") {
               self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Ident(quote_ident!(runtime_globals::GLOBAL)),
-                Some(runtime_globals::GLOBAL),
+                Expr::Ident(quote_ident!(RuntimeGlobals::GLOBAL)),
+                Some(RuntimeGlobals::GLOBAL),
                 as_parent_path(ast_path),
               ));
             }
           }
           _ => {}
         }
+      }
+    } else if let Expr::Member(MemberExpr {
+      obj: box Expr::Ident(obj_ident),
+      prop: MemberProp::Ident(prop_ident),
+      span,
+    }) = expr
+    {
+      if obj_ident.span.ctxt == self.unresolved_ctxt
+        && "require".eq(&obj_ident.sym)
+        && "cache".eq(&prop_ident.sym)
+      {
+        self.add_presentational_dependency(box ConstDependency::new(
+          Expr::Member(MemberExpr {
+            obj: box Expr::Ident(quote_ident!(RuntimeGlobals::REQUIRE)),
+            prop: MemberProp::Ident(quote_ident!("c")),
+            span: *span,
+          }),
+          Some(RuntimeGlobals::MODULE_CACHE),
+          as_parent_path(ast_path),
+        ));
       }
     }
     expr.visit_children_with_path(self, ast_path);

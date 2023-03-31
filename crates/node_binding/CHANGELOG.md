@@ -1,5 +1,23 @@
 # @rspack/binding
 
+## 0.1.4
+
+### Patch Changes
+
+- fbaeb41: fix: duplicate \_\_webpack_require\_\_.a in async module
+
+## 0.1.3
+
+### Patch Changes
+
+- 4471853: fix: amd should return with iife
+- 397b0d7: feat(runtime): support set **webpack_public_path** runtime
+- b323220: add async-wasm & js-async-module support
+- 28b9757: feat: resolve.byDependency
+- b6ab7b7: fix: relay visitor should add unresolved mark to `require`
+- b0cffba: feat: inline external type syntax
+- 9c71512: add finishModules hook
+
 ## 0.1.2
 
 ### Patch Changes

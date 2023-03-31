@@ -15,9 +15,9 @@ pub struct OutputOptions {
   pub path: PathBuf,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
+  pub wasm_loading: WasmLoading,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
-  //todo we are not going to support file_name & chunk_file_name as function in the near feature
   pub filename: Filename,
   pub chunk_filename: Filename,
   pub css_filename: Filename,
@@ -29,6 +29,28 @@ pub struct OutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
+}
+
+#[derive(Debug)]
+pub enum WasmLoading {
+  Enable(WasmLoadingType),
+  Disable,
+}
+
+#[derive(Debug)]
+pub enum WasmLoadingType {
+  Fetch,
+  AsyncNode,
+}
+
+impl From<&str> for WasmLoadingType {
+  fn from(value: &str) -> Self {
+    match value {
+      "fetch" => Self::Fetch,
+      "async-node" => Self::AsyncNode,
+      _ => todo!(),
+    }
+  }
 }
 
 pub const NAME_PLACEHOLDER: &str = "[name]";
@@ -253,7 +275,7 @@ pub fn get_js_chunk_filename_template<'filename>(
   }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<Vec<String>>,
@@ -263,7 +285,7 @@ pub struct LibraryOptions {
   pub auxiliary_comment: Option<LibraryAuxiliaryComment>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -271,7 +293,7 @@ pub struct LibraryAuxiliaryComment {
   pub amd: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct LibraryName {
   pub amd: Option<String>,
   pub commonjs: Option<String>,

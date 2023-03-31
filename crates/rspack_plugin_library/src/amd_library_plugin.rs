@@ -1,8 +1,10 @@
+use std::hash::Hash;
+
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, LibraryName,
+  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, LibraryName,
   LibraryOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginRenderHookOutput, RenderArgs, SourceType,
+  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
 
@@ -47,7 +49,7 @@ impl Plugin for AmdLibraryPlugin {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     args
       .runtime_requirements
-      .insert(runtime_globals::RETURN_EXPORTS_FROM_RUNTIME);
+      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
     Ok(())
   }
 
@@ -68,7 +70,7 @@ impl Plugin for AmdLibraryPlugin {
     let external_deps_array = external_dep_array(&modules);
     let external_arguments = external_arguments(&modules, compilation);
     let mut fn_start = format!("function({external_arguments}){{\n");
-    if compilation.options.output.iife && !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+    if compilation.options.output.iife || !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       fn_start.push_str(" return ");
     }
     let name = self.normalize_name(&compilation.options.output.library)?;
@@ -93,5 +95,20 @@ impl Plugin for AmdLibraryPlugin {
     source.add(args.source.clone());
     source.add(RawSource::from("\n});"));
     Ok(Some(source.boxed()))
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args
+      .compilation
+      .options
+      .output
+      .library
+      .hash(&mut args.hasher);
+    Ok(())
   }
 }

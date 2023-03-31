@@ -164,7 +164,7 @@ dist
 !packages/rspack/tests/configCases/target
 packages/rspack/tests/js
 packages/rspack/tests/fixtures/temp-*
-packages/rspack-dev-server/.test-temp
+packages/playground/temp
 
 # Ignore local integrate debug file
 packages/rspack/tests/*.debug.[tj]s
@@ -196,3 +196,7 @@ npm/**/*.node
 # Precompiled config schema
 packages/rspack/src/config/schema.check.js
 justfile
+
+
+# align to webpack
+/webpack-test/js

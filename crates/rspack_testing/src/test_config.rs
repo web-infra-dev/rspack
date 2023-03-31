@@ -140,6 +140,8 @@ pub struct Builtins {
   #[serde(default)]
   pub define: HashMap<String, String>,
   #[serde(default)]
+  pub provide: HashMap<String, Vec<String>>,
+  #[serde(default)]
   pub postcss: Postcss,
   #[serde(default)]
   pub html: Vec<HtmlPluginConfig>,
@@ -371,6 +373,7 @@ impl TestConfig {
         css_chunk_filename: c::Filename::from_str(&self.output.css_chunk_filename)
           .expect("Should exist"),
         asset_module_filename: c::Filename::from_str("[hash][ext][query]").expect("Should exist"),
+        wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
         webassembly_module_filename: c::Filename::from_str("[hash].module.wasm")
           .expect("Should exist"),
         public_path: c::PublicPath::String("/".to_string()),
@@ -399,6 +402,7 @@ impl TestConfig {
       },
       builtins: c::Builtins {
         define: self.builtins.define,
+        provide: self.builtins.provide,
         tree_shaking: self.builtins.tree_shaking,
         minify_options: self.builtins.minify_options.map(|op| c::Minification {
           passes: op.passes,

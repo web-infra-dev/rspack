@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 
-use std::path::Path;
+use std::{hash::Hash, path::Path};
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
@@ -9,8 +9,9 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
-  AssetInfo, Compilation, CompilationAsset, Plugin, PluginContext, PluginProcessAssetsOutput,
-  PluginRenderModuleContentOutput, ProcessAssetsArgs, RenderModuleContentArgs,
+  AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext,
+  PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
+  ProcessAssetsArgs, RenderModuleContentArgs,
 };
 use rspack_error::{internal_error, Result};
 use rspack_util::swc::normalize_custom_filename;
@@ -81,6 +82,16 @@ impl Plugin for DevtoolPlugin {
       }
     }
     Ok(Some(origin_source))
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args.compilation.options.devtool.hash(&mut args.hasher);
+    Ok(())
   }
 
   async fn process_assets_stage_dev_tooling(
