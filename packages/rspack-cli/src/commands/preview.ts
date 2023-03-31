@@ -70,7 +70,7 @@ async function getPreviewConfig(
 			static: {
 				directory: options.dir
 					? transformPath(options.dir)
-					: item.output.path || transformPath(defaultRoot),
+					: item.output?.path ?? transformPath(defaultRoot),
 				publicPath: options.publicPath || "/"
 			},
 			port: options.port || 8080,
