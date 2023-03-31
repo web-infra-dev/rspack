@@ -1,12 +1,11 @@
 const {
 	AngularWebpackPlugin,
-	AngularWebpackLoaderPath
 } = require('@ngtools/webpack');
 
-
+const {DedupeModuleResolvePlugin} = require('@angular-devkit/build-angular/src/webpack/plugins/dedupe-module-resolve-plugin');
 const {NamedChunksPlugin} = require('@angular-devkit/build-angular/src/webpack/plugins/named-chunks-plugin');
 const {OccurrencesPlugin} = require('@angular-devkit/build-angular/src/webpack/plugins/occurrences-plugin');
-const {DedupeModuleResolvePlugin} = require('@angular-devkit/build-angular/src/webpack/plugins/dedupe-module-resolve-plugin');
+const path = require('path');
 /*
  *  @type {() => import('@rspack/cli').Configuration}
  */
@@ -83,15 +82,14 @@ module.exports = {
 			{ test: /[/\\]rxjs[/\\]add[/\\].+\.js$/, sideEffects: true },
 			{
 				test: /\.[cm]?[tj]sx?$/,
-				resolve: { fullySpecified: false },
 				exclude: [
 					/[\\/]node_modules[/\\](?:core-js|@babel|tslib|web-animations-js|web-streams-polyfill|whatwg-url)[/\\]/
 				],
 				use: [
 					{
-						loader: '/Users/columferry/dev/nrwl/issues/rspack/rspack/node_modules/@angular-devkit/build-angular/src/babel/webpack-loader.js',
+						loader: require.resolve('@angular-devkit/build-angular/src/babel/webpack-loader.js'),
 						options: {
-							"cacheDirectory": "/Users/columferry/dev/nrwl/issues/rspack/rspack/.angular/cache/15.2.4/babel-webpack",
+							"cacheDirectory": path.join(__dirname, "/.angular/cache/15.2.4/babel-webpack"),
 							"aot": true,
 							"optimize": true,
 							"supportedBrowsers": [
@@ -127,7 +125,7 @@ module.exports = {
 			},
 			{
 				test: /\.[cm]?tsx?$/,
-				loader: '/Users/columferry/dev/nrwl/issues/arspack/rspack/node_modules/@ngtools/webpack/src/ivy/index.js',
+				loader: require.resolve('@ngtools/webpack/src/ivy/index.js'),
 				exclude: [
 					/[\\/]node_modules[/\\](?:css-loader|mini-css-extract-plugin|webpack-dev-server|webpack)[/\\]/
 				]
@@ -140,7 +138,6 @@ module.exports = {
 			aot: true,
 			scriptsOptimization: false,
 		}),
-		// new DedupeModuleResolvePlugin({verbose: true}),
 				new AngularWebpackPlugin({
 			tsconfig: './tsconfig.app.json',
 			'emitClassMetadata': false,
