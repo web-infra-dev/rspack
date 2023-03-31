@@ -32,22 +32,6 @@ pub struct AssetGeneratorOptions {
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(&str) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
 
-// #[async_trait::async_trait]
-// pub trait RuleSetConditionFn: Send + Sync {
-//   async fn try_match(&self, data: &str) -> Result<bool>;
-// }
-
-// #[async_trait::async_trait]
-// impl<F> RuleSetConditionFn for F
-// where
-//   F: Fn(String) -> BoxFuture<'static, Result<bool>>,
-//   F: Send + Sync,
-// {
-//   async fn try_match(&self, data: &str) -> Result<bool> {
-//     self(data.to_string()).await
-//   }
-// }
-
 pub enum RuleSetCondition {
   String(String),
   Regexp(RspackRegex),
