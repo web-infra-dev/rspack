@@ -394,33 +394,27 @@ impl VisitAstPath for DependencyScanner<'_> {
           _ => {}
         }
       }
-    }
-    expr.visit_children_with_path(self, ast_path);
-  }
-
-  fn visit_member_expr<'ast: 'r, 'r>(
-    &mut self,
-    n: &'ast MemberExpr,
-    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
-  ) {
-    if let Expr::Ident(obj_ident) = &*n.obj {
-      if "require".eq(&obj_ident.sym) {
-        if let MemberProp::Ident(prop_ident) = &n.prop {
-          if "cache".eq(&prop_ident.sym) {
-            println!("ident: {:?}", prop_ident);
-            self.add_presentational_dependency(box ConstDependency::new(
-              Expr::Member(MemberExpr {
-                obj: box Expr::Ident(quote_ident!(runtime_globals::REQUIRE)),
-                prop: MemberProp::Ident(quote_ident!("c")),
-                ..n.clone()
-              }),
-              Some(runtime_globals::MODULE_CACHE),
-              as_parent_path(ast_path),
-            ));
-          }
+    } else if let Expr::Member(MemberExpr {
+      obj: box Expr::Ident(obj_ident),
+      prop: MemberProp::Ident(prop_ident),
+      span,
+    }) = expr
+    {
+      if obj_ident.span.ctxt == self.unresolved_ctxt {
+        if "require".eq(&obj_ident.sym) && "cache".eq(&prop_ident.sym) {
+          self.add_presentational_dependency(box ConstDependency::new(
+            Expr::Member(MemberExpr {
+              obj: box Expr::Ident(quote_ident!(runtime_globals::REQUIRE)),
+              prop: MemberProp::Ident(quote_ident!("c")),
+              span: *span,
+            }),
+            Some(runtime_globals::MODULE_CACHE),
+            as_parent_path(ast_path),
+          ));
         }
       }
     }
+    expr.visit_children_with_path(self, ast_path);
   }
 }
 
