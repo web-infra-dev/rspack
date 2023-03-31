@@ -1,3 +1,4 @@
+import semver from "semver";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
@@ -76,6 +77,13 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
+		if (semver.lt(semver.clean(process.version), "14.0.0")) {
+			this.getLogger().error(
+				`Node.js version must be greater than 14.0.0, current version is ${process.version}`
+			);
+			process.exit(1);
+		}
+
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
 		this.program.middleware(normalizeEnv);
