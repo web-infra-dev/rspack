@@ -15,17 +15,8 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-          cache: "pnpm"
-
-      - name: Install Dependencies
-        run: pnpm install
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
 
       - name: Check Changeset
         run: node ./scripts/check_changeset.js

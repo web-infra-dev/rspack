@@ -25,14 +25,8 @@ jobs:
         with:
           # getting release note text need to get commit history
           fetch-depth: 100
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Install node_modules
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm -v
-          pnpm install
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
       - name: Create Release Pull Request
         uses: web-infra-dev/actions@v2
         with:

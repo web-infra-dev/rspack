@@ -46,14 +46,8 @@ jobs:
           rustup target add aarch64-apple-darwin
           rustup target add x86_64-apple-darwin
           rustup target add x86_64-unknown-linux-gnu
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Install node_modules
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm -v
-          pnpm install
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
       - name: Build
         run: |
           set -e

@@ -43,7 +43,7 @@ export const applyRspackOptionsDefaults = (
 		return getDefaultTarget(options.context!);
 	});
 
-	const { mode, name, target } = options;
+	const { mode, target } = options;
 	assert(!isNil(target));
 
 	let targetProperties =
@@ -235,7 +235,6 @@ const applyModuleDefaults = (
 				}
 			]
 		});
-
 		if (asyncWebAssembly) {
 			const wasm = {
 				type: "webassembly/async",
@@ -255,6 +254,18 @@ const applyModuleDefaults = (
 				...wasm
 			});
 		}
+		rules.push({
+			dependency: "url",
+			oneOf: [
+				// {
+				// 	scheme: /^data$/,
+				// 	type: "asset/inline"
+				// },
+				{
+					type: "asset/resource"
+				}
+			]
+		});
 
 		return rules;
 	});

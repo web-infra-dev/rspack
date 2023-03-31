@@ -1,0 +1,19 @@
+name: pnpm cache
+description: Install Node.js with pnpm global cache
+runs:
+  using: composite
+  steps:
+    # https://pnpm.io/continuous-integration#github-actions
+    # Uses `packageManagement` field from package.json
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: "16"
+        cache: 'pnpm'
+
+    - name: Install Npm Dependencies
+      shell: bash
+      run: pnpm install

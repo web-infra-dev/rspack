@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 const fs = require("graceful-fs");
@@ -14,7 +14,7 @@ const FakeDocument = require("./helpers/FakeDocument");
 const CurrentScript = require("./helpers/CurrentScript");
 
 const prepareOptions = require("./helpers/prepareOptions");
-const { parseResource } = require("../lib/util/identifier");
+const { parseResource } = require("./lib/util/identifier");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
@@ -49,6 +49,7 @@ const createLogger = appendTarget => {
 	};
 };
 
+let count = 0;
 const describeCases = config => {
 	describe(config.name, () => {
 		let stderr;
@@ -73,7 +74,7 @@ const describeCases = config => {
 								it("filtered", () => {});
 							});
 							return;
-						}
+						} 
 						const infraStructureLog = [];
 						const outBaseDir = path.join(__dirname, "js");
 						const testSubPath = path.join(config.name, category.name, testName);
@@ -92,19 +93,22 @@ const describeCases = config => {
 								if (!options.optimization) options.optimization = {};
 								if (options.optimization.minimize === undefined)
 									options.optimization.minimize = false;
-								if (options.optimization.minimizer === undefined) {
-									options.optimization.minimizer = [
-										new (require("terser-webpack-plugin"))({
-											parallel: false
-										})
-									];
-								}
+								// if (options.optimization.minimizer === undefined) {
+								// 	options.optimization.minimizer = [
+								// 		new (require("terser-webpack-plugin"))({
+								// 			parallel: false
+								// 		})
+								// 	];
+								// }
 								if (!options.entry) options.entry = "./index.js";
-								if (!options.target) options.target = "async-node";
+								if (!options.target) options.target = "node";
 								if (!options.output) options.output = {};
+								if (!options.devtool) options.devtool = false;
+								if (options.cache === undefined) options.cache = false;
 								if (!options.output.path) options.output.path = outputDirectory;
-								if (typeof options.output.pathinfo === "undefined")
-									options.output.pathinfo = true;
+								if (!options.output.publicPath) options.output.publicPath = "/";
+								// if (typeof options.output.pathinfo === "undefined")
+								// 	options.output.pathinfo = true;
 								if (!options.output.filename)
 									options.output.filename =
 										"bundle" +
@@ -124,14 +128,14 @@ const describeCases = config => {
 									};
 								}
 								if (!options.snapshot) options.snapshot = {};
-								if (!options.snapshot.managedPaths) {
-									options.snapshot.managedPaths = [
-										path.resolve(__dirname, "../node_modules")
-									];
-								}
+								// if (!options.snapshot.managedPaths) {
+								// 	options.snapshot.managedPaths = [
+								// 		path.resolve(__dirname, "../node_modules")
+								// 	];
+								// }
 							});
 							testConfig = {
-								findBundle: function (i, options) {
+								findBundle: function(i, options) {
 									const ext = path.extname(
 										parseResource(options.output.filename).path
 									);
@@ -202,7 +206,7 @@ const describeCases = config => {
 										return done(
 											new Error(
 												"Errors/Warnings during build:\n" +
-													infrastructureLogging
+												infrastructureLogging
 											)
 										);
 									}
@@ -249,15 +253,15 @@ const describeCases = config => {
 											return done(
 												new Error(
 													"Errors/Warnings during build:\n" +
-														infrastructureLogging
+													infrastructureLogging
 												)
 											);
 										}
 										const allModules = children
 											? children.reduce(
-													(all, { modules }) => all.concat(modules),
-													modules || []
-											  )
+												(all, { modules }) => all.concat(modules),
+												modules || []
+											)
 											: modules;
 										if (
 											allModules.some(
@@ -547,8 +551,8 @@ const describeCases = config => {
 																		path.dirname(
 																			referencingModule.identifier
 																				? referencingModule.identifier.slice(
-																						esmIdentifier.length + 1
-																				  )
+																					esmIdentifier.length + 1
+																				)
 																				: fileURLToPath(referencingModule.url)
 																		),
 																		options,
@@ -681,9 +685,10 @@ const describeCases = config => {
 									})
 									.catch(done);
 							};
+							const rspack = require("@rspack/core").rspack;
 							if (config.cache) {
 								try {
-									const compiler = require("..")(options);
+									const compiler = rspack(options);
 									compiler.run(err => {
 										if (err) return handleFatalError(err, done);
 										compiler.run((error, stats) => {
@@ -697,7 +702,7 @@ const describeCases = config => {
 									handleFatalError(e, done);
 								}
 							} else {
-								require("..")(options, onCompiled);
+								rspack(options, onCompiled);
 							}
 						}, 30000);
 

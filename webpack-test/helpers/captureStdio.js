@@ -6,7 +6,7 @@ module.exports = (stdio, tty) => {
 	const write = stdio.write;
 	const isTTY = stdio.isTTY;
 
-	stdio.write = function (str) {
+	stdio.write = function(str) {
 		logs.push(str);
 	};
 	if (tty !== undefined) stdio.isTTY = tty;
@@ -31,11 +31,11 @@ module.exports = (stdio, tty) => {
 			stdio.write = write;
 			stdio.isTTY = isTTY;
 
-			delete require.cache[require.resolve("../../")];
-			delete require.cache[
-				require.resolve("../../lib/node/NodeEnvironmentPlugin")
-			];
-			delete require.cache[require.resolve("../../lib/node/nodeConsole")];
+			delete require.cache[require.resolve("@rspack/core")];
+			// delete require.cache[
+			// 	require.resolve("../../lib/node/NodeEnvironmentPlugin")
+			// ];
+			// delete require.cache[require.resolve("../../lib/node/nodeConsole")];
 		}
 	};
 };
