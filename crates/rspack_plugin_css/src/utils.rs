@@ -7,7 +7,7 @@ use data_encoding::{Encoding, Specification};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
-use rspack_core::{runtime_globals::REQUIRE, Compilation, ModuleDependency};
+use rspack_core::{Compilation, ModuleDependency, RuntimeGlobals};
 use rspack_error::{internal_error, Result};
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::JsWord;
@@ -98,7 +98,7 @@ pub fn css_modules_exports_to_string(
             .expect("should have css from module");
 
           let from = serde_json::to_string(from.id(&compilation.chunk_graph)).expect("TODO:");
-          format!("{REQUIRE}({from})[{name}]")
+          format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
         }
       })
       .collect::<Vec<_>>()

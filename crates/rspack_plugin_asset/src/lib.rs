@@ -13,10 +13,10 @@ use rayon::prelude::*;
 use rspack_core::{
   get_contenthash,
   rspack_sources::{RawSource, SourceExt},
-  runtime_globals, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleIdentifier, ParseContext,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestArgs, RenderManifestEntry, SourceType,
+  AssetParserDataUrlOption, AssetParserOptions, AstOrSource, FilenameRenderOptions,
+  GenerateContext, GenerationResult, Module, ModuleIdentifier, ParseContext, ParserAndGenerator,
+  PathData, Plugin, PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs,
+  RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
 use rspack_identifier::IdentifierHasher;
@@ -143,10 +143,10 @@ impl AssetParserAndGenerator {
   ) -> Result<String> {
     generate_context
       .runtime_requirements
-      .insert(runtime_globals::PUBLIC_PATH);
+      .insert(RuntimeGlobals::PUBLIC_PATH);
     Ok(format!(
       r#"{} + "{}""#,
-      runtime_globals::PUBLIC_PATH,
+      RuntimeGlobals::PUBLIC_PATH,
       filename
     ))
   }

@@ -11,6 +11,6 @@ expression: should_handle_values_and_values_without_a_leading_0.css
 
 # Actual
 .rule {
-  margin: 0.5rem 0.03125rem -0.0125rem -0.2em;
+  margin: 0.5rem 0.03125rem -0.0125rem -.2em;
 }
 

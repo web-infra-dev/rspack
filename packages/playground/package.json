@@ -1,0 +1,17 @@
+{
+  "name": "@rspack/playground",
+  "private": true,
+  "version": "0.1.4",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "playwright-chromium": "1.32.1",
+    "fs-extra": "11.1.1",
+    "@types/fs-extra": "11.0.1",
+    "jest-environment-node": "29.5.0",
+    "@rspack/dev-server": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "ws": "8.8.1"
+  }
+}

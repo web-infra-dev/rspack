@@ -99,6 +99,7 @@ describe("snapshots", () => {
 		    },
 		    "presetEnv": undefined,
 		    "progress": undefined,
+		    "provide": {},
 		    "react": {},
 		    "relay": undefined,
 		    "treeShaking": false,
@@ -168,6 +169,14 @@ describe("snapshots", () => {
 		        ],
 		        "test": /\\\\\\.css\\$/i,
 		      },
+		      {
+		        "dependency": "url",
+		        "oneOf": [
+		          {
+		            "type": "asset/resource",
+		          },
+		        ],
+		      },
 		    ],
 		    "parser": {
 		      "asset": {
@@ -221,6 +230,9 @@ describe("snapshots", () => {
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",
 		    "enabledLibraryTypes": [],
+		    "enabledWasmLoadingTypes": [
+		      "fetch",
+		    ],
 		    "filename": "[name].js",
 		    "globalObject": "self",
 		    "iife": true,
@@ -231,23 +243,112 @@ describe("snapshots", () => {
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
 		    "uniqueName": "@rspack/core",
+		    "wasmLoading": "fetch",
 		    "webassemblyModuleFilename": "[hash].module.wasm",
 		  },
 		  "plugins": [],
 		  "resolve": {
 		    "browserField": true,
-		    "extensions": [
-		      ".tsx",
-		      ".jsx",
-		      ".ts",
-		      ".js",
-		      ".json",
-		      ".d.ts",
-		      ".wasm",
-		    ],
-		    "mainFields": [
+		    "byDependency": {
+		      "commonjs": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "require",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "esm": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "import",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "unknown": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "require",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		      "url": {
+		        "preferRelative": true,
+		      },
+		      "wasm": {
+		        "browserField": true,
+		        "conditionNames": [
+		          "import",
+		          "module",
+		          "...",
+		        ],
+		        "extensions": [
+		          ".tsx",
+		          ".ts",
+		          ".jsx",
+		          ".js",
+		          ".json",
+		          ".wasm",
+		          ".d.ts",
+		        ],
+		        "mainFields": [
+		          "browser",
+		          "module",
+		          "...",
+		        ],
+		      },
+		    },
+		    "conditionNames": [
+		      "webpack",
+		      "production",
 		      "browser",
-		      "module",
+		    ],
+		    "extensions": [],
+		    "mainFields": [
 		      "main",
 		    ],
 		    "mainFiles": [
@@ -409,6 +510,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-       "minRemainingSize": undefined,
 		+       "minRemainingSize": 0,
+		@@ ... @@
+		-       "production",
+		+       "development",
 	`)
 	);
 	/**
@@ -709,16 +813,43 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
 		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
+		+       "node",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "node",
@@ -729,6 +860,8 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		+       "worker",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "webworker",
@@ -750,16 +883,44 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
 		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
 		-       "browser",
+		+       "node",
+		+       "electron",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "electron-main",
@@ -781,16 +942,44 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
 		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
 		@@ ... @@
-		-       "browser",
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
+		@@ ... @@
+		+       "node",
+		@@ ... @@
+		+       "electron",
 		@@ ... @@
 		-   "target": "web",
 		+   "target": "electron-preload",
@@ -882,6 +1071,9 @@ describe("snapshots", () => {
 			@@ ... @@
 			-       "minRemainingSize": undefined,
 			+       "minRemainingSize": 0,
+			@@ ... @@
+			-       "production",
+			+       "development",
 		`)
 	);
 
@@ -1030,7 +1222,14 @@ describe("snapshots", () => {
 				enabledWasmLoadingTypes: ["...", "async-node"]
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+       "async-node",
+		`)
 	);
 
 	test(

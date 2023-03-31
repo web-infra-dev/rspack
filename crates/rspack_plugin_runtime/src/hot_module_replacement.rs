@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
+  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 
@@ -33,11 +33,11 @@ impl Plugin for HotModuleReplacementPlugin {
     let runtime_requirements = &mut args.runtime_requirements;
 
     // TODO: the hmr runtime is depend on module.id, but webpack not add it.
-    runtime_requirements.insert(runtime_globals::MODULE_ID);
-    runtime_requirements.insert(runtime_globals::HMR_DOWNLOAD_MANIFEST);
-    runtime_requirements.insert(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-    runtime_requirements.insert(runtime_globals::INTERCEPT_MODULE_EXECUTION);
-    runtime_requirements.insert(runtime_globals::MODULE_CACHE);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
+    runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+    runtime_requirements.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+    runtime_requirements.insert(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
     compilation.add_runtime_module(chunk, HotModuleReplacementRuntimeModule::default().boxed());
 
     Ok(())

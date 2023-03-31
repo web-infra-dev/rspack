@@ -2,7 +2,7 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{runtime_globals, ChunkUkey, Compilation, RenderModuleContentArgs, SourceType};
+use rspack_core::{ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals, SourceType};
 use rspack_error::Result;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
@@ -61,19 +61,9 @@ pub fn render_chunk_modules(
         .as_ref()
         .map(|m| m.strict)
         .unwrap_or_default();
-      let is_async = mgm
-        .build_meta
-        .as_ref()
-        .map(|m| m.is_async)
-        .unwrap_or_default();
       (
         mgm.module_identifier,
-        render_module(
-          module_source,
-          strict,
-          is_async,
-          mgm.id(&compilation.chunk_graph),
-        ),
+        render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
       )
     })
     .collect::<Vec<_>>();
@@ -96,51 +86,34 @@ pub fn render_chunk_modules(
   Ok(sources.boxed())
 }
 
-pub fn render_module(
-  source: BoxSource,
-  strict: bool,
-  is_async: bool,
-  module_id: &str,
-) -> BoxSource {
+fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource {
   let mut sources = ConcatSource::new([
     RawSource::from("\""),
     RawSource::from(module_id.to_string()),
     RawSource::from("\": "),
     RawSource::from(format!(
       "function (module, exports, {}) {{\n",
-      runtime_globals::REQUIRE
+      RuntimeGlobals::REQUIRE
     )),
   ]);
   if strict {
     sources.add(RawSource::from("\"use strict\";\n"));
   }
-  if is_async {
-    sources.add(RawSource::from(
-    format!("{}(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) {{ try {{\n"
-   ,runtime_globals::ASYNC_MODULE) ));
-  }
-
   sources.add(source);
-
-  if is_async {
-    sources.add(RawSource::from(
-      "\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } });",
-    ));
-  }
-
   sources.add(RawSource::from("},\n"));
 
   sources.boxed()
 }
 
 pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> BoxSource {
-  let entry_modules_uri = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
-  let entry_modules_id = entry_modules_uri
+  let entry_modules_id = compilation
+    .chunk_graph
+    .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
     .into_iter()
-    .filter_map(|entry_module_identifier| {
+    .filter_map(|(entry_module_identifier, _)| {
       compilation
         .module_graph
-        .module_graph_module_by_identifier(&entry_module_identifier)
+        .module_graph_module_by_identifier(entry_module_identifier)
         .map(|module| module.id(&compilation.chunk_graph))
     })
     .collect::<Vec<_>>();
@@ -149,7 +122,7 @@ pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUk
     .map(|id| {
       RawSource::from(format!(
         "var __webpack_exports__ = {}('{}');\n",
-        runtime_globals::REQUIRE,
+        RuntimeGlobals::REQUIRE,
         id
       ))
     })
@@ -169,7 +142,7 @@ pub fn render_chunk_runtime_modules(
   let mut sources = ConcatSource::default();
   sources.add(RawSource::from(format!(
     "function({}) {{\n",
-    runtime_globals::REQUIRE
+    RuntimeGlobals::REQUIRE
   )));
   sources.add(runtime_modules_sources);
   sources.add(RawSource::from("\n}\n"));

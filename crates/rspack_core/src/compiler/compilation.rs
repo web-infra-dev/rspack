@@ -37,13 +37,13 @@ use crate::{
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
-  ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, DependencyId,
-  EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
-  TaskResult, WorkerTask,
+  ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
+  CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
+  DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
+  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier,
+  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals,
+  RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -1043,8 +1043,7 @@ impl Compilation {
           .get_number_of_module_chunks(module.identifier())
           > 0
         {
-          let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<&'static str>)> =
-            vec![];
+          let mut module_runtime_requirements: Vec<(HashSet<String>, RuntimeGlobals)> = vec![];
           for runtime in self
             .chunk_graph
             .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
@@ -1074,7 +1073,7 @@ impl Compilation {
 
     let mut chunk_requirements = HashMap::default();
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
-      let mut set = HashSet::default();
+      let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
         .get_chunk_modules(chunk_ukey, &self.module_graph)
@@ -1083,7 +1082,7 @@ impl Compilation {
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
         {
-          set.extend(runtime_requirements);
+          set.add(*runtime_requirements);
         }
       }
       chunk_requirements.insert(*chunk_ukey, set);
@@ -1110,14 +1109,14 @@ impl Compilation {
         .get(entry_ukey)
         .expect("chunk not found by ukey");
 
-      let mut set = HashSet::default();
+      let mut set = RuntimeGlobals::default();
 
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
         .iter()
       {
         let runtime_requirements = self.chunk_graph.get_chunk_runtime_requirements(chunk_ukey);
-        set.extend(runtime_requirements.clone());
+        set.add(*runtime_requirements);
       }
 
       plugin_driver
@@ -1151,6 +1150,28 @@ impl Compilation {
     // self.create_module_hash();
 
     let mut compilation_hasher = Xxh3::new();
+    let chunk_hash_results = self
+      .chunk_by_ukey
+      .iter()
+      .map(|(chunk_key, _)| async {
+        let hash = plugin_driver
+          .read()
+          .await
+          .chunk_hash(&ChunkHashArgs {
+            chunk_ukey: *chunk_key,
+            compilation: self,
+          })
+          .await;
+        (*chunk_key, hash)
+      })
+      .collect::<FuturesResults<_>>()
+      .into_inner();
+    for item in chunk_hash_results {
+      let (chunk_ukey, hash) = item.expect("Failed to resolve chunk_hash results");
+      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
+        hash?.hash(&mut chunk.hash);
+      }
+    }
     let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
     chunks.sort_unstable_by_key(|chunk| chunk.ukey);
     chunks

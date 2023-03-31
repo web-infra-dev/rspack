@@ -75,6 +75,7 @@ __webpack_require__.p = "/";
 })();
 // webpack/runtime/jsonp_chunk_loading
 (function() {
+__webpack_require__.b = document.baseURI || self.location.href;
 var installedChunks = {"runtime": 0,};
 __webpack_require__.O.j = function (chunkId) {
 	installedChunks[chunkId] === 0;

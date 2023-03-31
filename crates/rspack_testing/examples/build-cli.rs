@@ -1,4 +1,11 @@
-//! cargo run --example build-cli -- `pwd`/examples/xxx/test.config.js --emit
+//! This is a complicated method for debugging the Rust core without running node.js
+//! 1. Emit the config that the Rust side can consume:
+//!   `cargo run --example build-cli -- `pwd`/examples/xxx/test.config.js --emit > test.config.json`
+//! 2. Inside test.config.json, remove the loaders `module.rules` array. Specifying the loaders does not work yet.
+//! 3. Run
+//!     `cargo run --example build-cli -- test.config.json`
+//! 4. The compiler will emit some errors on not being able to parse some of the files, e.g. .svg files.
+//!    But if should probably succeed with "Build success".
 
 use std::{env, path::PathBuf};
 
@@ -25,6 +32,7 @@ async fn main() {
   let raw = evaluate_to_json(&config);
   if emit {
     println!("{}", String::from_utf8_lossy(&raw));
+    return;
   }
   let raw: RawOptions = serde_json::from_slice(&raw).expect("ok");
   let mut plugins = Vec::new();

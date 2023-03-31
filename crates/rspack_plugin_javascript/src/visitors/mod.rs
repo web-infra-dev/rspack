@@ -15,7 +15,7 @@ mod strict;
 use strict::strict_mode;
 mod format;
 use format::*;
-use rspack_core::{runtime_globals, BuildInfo, EsVersion, Module, ModuleType};
+use rspack_core::{BuildInfo, EsVersion, Module, ModuleType, RuntimeGlobals};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::module::util::ImportInterop;
@@ -36,7 +36,7 @@ use swc_emotion::EmotionOptions;
 use tree_shaking::tree_shaking_visitor;
 mod async_module;
 
-use crate::visitors::async_module::build_async_module;
+use crate::visitors::async_module::{build_async_module, build_await_dependencies};
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
 
@@ -60,6 +60,10 @@ pub fn run_before_pass(
   build_meta: &mut BuildMeta,
   module_type: &ModuleType,
 ) -> Result<()> {
+  let es_version = match options.target.es_version {
+    rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
+    _ => None,
+  };
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
@@ -75,6 +79,7 @@ pub fn run_before_pass(
     }
 
     let mut pass = chain!(
+      strict_mode(build_info, build_meta),
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
       //        &ast,
@@ -93,7 +98,13 @@ pub fn run_before_pass(
         syntax.typescript()
       ),
       Optional::new(
-        swc_visitor::react(top_level_mark, comments, &cm, &options.builtins.react),
+        swc_visitor::react(
+          top_level_mark,
+          comments,
+          &cm,
+          &options.builtins.react,
+          unresolved_mark
+        ),
         should_transform_by_react
       ),
       Optional::new(
@@ -131,6 +142,10 @@ pub fn run_before_pass(
         !options.builtins.define.is_empty()
       ),
       Optional::new(
+        swc_visitor::provide_builtin(&options.builtins.provide, unresolved_mark),
+        !options.builtins.provide.is_empty()
+      ),
+      Optional::new(
         swc_visitor::export_default_from(),
         syntax.export_default_from()
       ),
@@ -139,9 +154,10 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
+      // es_version
       swc_visitor::compat(
         options.builtins.preset_env.clone(),
-        None,
+        es_version,
         assumptions,
         top_level_mark,
         unresolved_mark,
@@ -153,7 +169,6 @@ pub fn run_before_pass(
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
-      strict_mode(build_info, build_meta),
     );
     program.fold_with(&mut pass);
 
@@ -213,8 +228,8 @@ pub fn run_after_pass(
       let mut promises = LinkedList::new();
       if build_meta.is_async {
         let runtime_requirements = &mut generate_context.runtime_requirements;
-        runtime_requirements.insert(runtime_globals::MODULE);
-        runtime_requirements.insert(runtime_globals::ASYNC_MODULE);
+        runtime_requirements.insert(RuntimeGlobals::MODULE);
+        runtime_requirements.insert(RuntimeGlobals::ASYNC_MODULE);
         decl_mappings.iter().for_each(|(_, referenced)| {
           promises.push_back(compilation.module_graph.is_async(referenced))
         });
@@ -249,12 +264,13 @@ pub fn run_after_pass(
             ignore_dynamic: true,
             // here will remove `use strict`
             strict_mode: false,
-            import_interop: if build_meta.strict_harmony_module {
-              Some(ImportInterop::Node)
-            } else if build_meta.esm {
+            import_interop: // if build_meta.strict_harmony_module {
+            //  Some(ImportInterop::Node)
+            // } else
+            if build_meta.esm {
               Some(ImportInterop::Swc)
             } else {
-              None
+              Some(ImportInterop::None)
             },
             allow_top_level_this: true,
             ..Default::default()
@@ -262,9 +278,10 @@ pub fn run_after_pass(
           comments,
           Some(EsVersion::Es5)
         ),
-        Optional::new(build_async_module(promises), build_meta.is_async),
         inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
         finalize(module, compilation, unresolved_mark),
+        Optional::new(build_await_dependencies(promises), build_meta.is_async),
+        Optional::new(build_async_module(), build_meta.is_async),
         swc_visitor::hygiene(false, top_level_mark),
         swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       );

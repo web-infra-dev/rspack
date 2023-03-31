@@ -1,11 +1,12 @@
+mod code_generation;
+mod hmr_scanner;
 mod scanner;
+mod util;
+
+pub use code_generation::*;
 use rspack_core::{
   ast::javascript::Program, CompilerOptions, Dependency, ModuleDependency, ResourceData,
 };
-mod code_generation;
-pub use code_generation::*;
-mod hmr_scanner;
-mod util;
 use swc_core::common::Mark;
 pub use util::*;
 

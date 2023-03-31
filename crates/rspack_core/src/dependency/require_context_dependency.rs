@@ -8,9 +8,8 @@ use swc_core::{
 };
 
 use crate::{
-  create_javascript_visitor, runtime_globals, CodeGeneratable, CodeGeneratableResult,
-  ContextOptions, Dependency, DependencyId, ErrorSpan, JsAstPath, ModuleDependency,
-  ModuleIdentifier,
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency,
+  DependencyId, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -92,7 +91,7 @@ impl CodeGeneratable for RequireContextDependency {
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
             *n = CallExpr {
               span: DUMMY_SP,
-              callee: quote_ident!(DUMMY_SP, runtime_globals::REQUIRE).as_callee(),
+              callee: quote_ident!(DUMMY_SP, RuntimeGlobals::REQUIRE).as_callee(),
               args: vec![quote_ident!(DUMMY_SP, *module_id).as_arg()],
               type_args: None,
             }

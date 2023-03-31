@@ -23,7 +23,7 @@ export function getRspackMemoryAssets(
 			return next();
 		}
 		// css hmr will append query string, so here need to remove query string
-		const path = parse(url).path;
+		const path = parse(url).pathname;
 		// asset name is not start with /, so path need to slice 1
 		const filename = path.startsWith(publicPath)
 			? path.slice(publicPath.length)

@@ -126,51 +126,45 @@ function getRawAlias(
 	return Object.fromEntries(entires);
 }
 
+function getRawResolveByDependency(
+	byDependency: Resolve["byDependency"]
+): RawOptions["resolve"]["byDependency"] {
+	if (byDependency === undefined) return byDependency;
+	return Object.fromEntries(
+		Object.entries(byDependency).map(([k, v]) => [k, getRawResolve(v)])
+	);
+}
+
 function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
-		fallback: getRawAlias(resolve.fallback)
+		fallback: getRawAlias(resolve.fallback),
+		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
 
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
-	assert(
-		!isNil(output.path) &&
-			!isNil(output.publicPath) &&
-			!isNil(output.assetModuleFilename) &&
-			!isNil(output.filename) &&
-			!isNil(output.chunkFilename) &&
-			!isNil(output.cssFilename) &&
-			!isNil(output.cssChunkFilename) &&
-			!isNil(output.uniqueName) &&
-			!isNil(output.enabledLibraryTypes) &&
-			!isNil(output.strictModuleErrorHandling) &&
-			!isNil(output.globalObject) &&
-			!isNil(output.importFunctionName) &&
-			!isNil(output.module) &&
-			!isNil(output.iife) &&
-			!isNil(output.importFunctionName) &&
-			!isNil(output.webassemblyModuleFilename),
-		"fields should not be nil after defaults"
-	);
+	const wasmLoading = output.wasmLoading!;
 	return {
-		path: output.path,
-		publicPath: output.publicPath,
-		assetModuleFilename: output.assetModuleFilename,
-		filename: output.filename,
-		chunkFilename: output.chunkFilename,
-		cssFilename: output.cssFilename,
-		cssChunkFilename: output.cssChunkFilename,
-		uniqueName: output.uniqueName,
+		path: output.path!,
+		publicPath: output.publicPath!,
+		assetModuleFilename: output.assetModuleFilename!,
+		filename: output.filename!,
+		chunkFilename: output.chunkFilename!,
+		cssFilename: output.cssFilename!,
+		cssChunkFilename: output.cssChunkFilename!,
+		uniqueName: output.uniqueName!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
-		strictModuleErrorHandling: output.strictModuleErrorHandling,
-		globalObject: output.globalObject,
-		importFunctionName: output.importFunctionName,
-		iife: output.iife,
-		module: output.module,
-		webassemblyModuleFilename: output.webassemblyModuleFilename
+		strictModuleErrorHandling: output.strictModuleErrorHandling!,
+		globalObject: output.globalObject!,
+		importFunctionName: output.importFunctionName!,
+		iife: output.iife!,
+		module: output.module!,
+		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
+		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
+		webassemblyModuleFilename: output.webassemblyModuleFilename!
 	};
 }
 
@@ -254,6 +248,10 @@ const getRawModuleRule = (
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
+		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
+		dependency: rule.dependency
+			? getRawRuleSetCondition(rule.dependency)
+			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
 			? getRawRuleSetCondition(rule.resourceQuery)
@@ -264,7 +262,6 @@ const getRawModuleRule = (
 		parser: rule.parser,
 		generator: rule.generator,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
-		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map(i => getRawModuleRule(i, options))
 			: undefined

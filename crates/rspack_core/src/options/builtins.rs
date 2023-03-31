@@ -7,6 +7,7 @@ use swc_plugin_import::PluginImportConfig;
 use crate::AssetInfo;
 
 pub type Define = HashMap<String, String>;
+pub type Provide = HashMap<String, Vec<String>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct ReactOptions {
@@ -34,6 +35,7 @@ pub struct Builtins {
   pub minify_options: Option<Minification>,
   pub preset_env: Option<PresetEnv>,
   pub define: Define,
+  pub provide: Provide,
   pub tree_shaking: bool,
   pub react: ReactOptions,
   pub decorator: Option<DecoratorOptions>,
@@ -44,7 +46,7 @@ pub struct Builtins {
   pub relay: Option<RelayConfig>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Hash)]
 pub struct Minification {
   pub passes: usize,
   pub drop_console: bool,

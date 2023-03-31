@@ -7,43 +7,17 @@ version    = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dev-dependencies]
-criterion              = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
-insta                  = { workspace = true }
-rspack_binding_options = { path = "../rspack_binding_options" }
-rspack_testing         = { path = "../rspack_testing" }
-serde                  = { workspace = true, features = ["derive"] }
-serde_json             = { workspace = true }
-testing_macros         = { workspace = true }
-ustr                   = { workspace = true }
-xshell                 = "0.2.2"
-
-[target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dev-dependencies]
-mimalloc-rust = { workspace = true }
 
 [dependencies]
-dashmap                           = { workspace = true }
-rspack_core                       = { path = "../rspack_core" }
-rspack_fs                         = { path = "../rspack_fs", features = ["async", "rspack-error"] }
-rspack_ids                        = { path = "../rspack_ids" }
-rspack_loader_sass                = { path = "../rspack_loader_sass" }
-rspack_plugin_asset               = { path = "../rspack_plugin_asset" }
-rspack_plugin_copy                = { path = "../rspack_plugin_copy" }
-rspack_plugin_css                 = { path = "../rspack_plugin_css" }
-rspack_plugin_devtool             = { path = "../rspack_plugin_devtool" }
-rspack_plugin_externals           = { path = "../rspack_plugin_externals" }
-rspack_plugin_html                = { path = "../rspack_plugin_html" }
-rspack_plugin_javascript          = { path = "../rspack_plugin_javascript" }
-rspack_plugin_json                = { path = "../rspack_plugin_json" }
-rspack_plugin_remove_empty_chunks = { path = "../rspack_plugin_remove_empty_chunks" }
-rspack_plugin_runtime             = { path = "../rspack_plugin_runtime" }
-rspack_symbol                     = { path = "../rspack_symbol" }
+dashmap       = { workspace = true }
+rspack_core   = { path = "../rspack_core" }
+rspack_fs     = { path = "../rspack_fs", features = ["async", "rspack-error"] }
+rspack_symbol = { path = "../rspack_symbol" }
 # futures = "0.3.21"
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 once_cell = { workspace = true }
 rspack_error = { path = "../rspack_error" }
-rspack_tracing = { path = "../rspack_tracing" }
 tokio = { workspace = true, features = [
   "rt",
   "rt-multi-thread",
@@ -53,6 +27,23 @@ tokio = { workspace = true, features = [
 ] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+
+[dev-dependencies]
+criterion              = { version = "0.3.6", features = ["async_tokio", "async_futures"] }
+insta                  = { workspace = true }
+rspack_binding_options = { path = "../rspack_binding_options" }
+rspack_testing         = { path = "../rspack_testing" }
+rspack_tracing         = { path = "../rspack_tracing" }
+serde                  = { workspace = true, features = ["derive"] }
+serde_json             = { workspace = true }
+testing_macros         = { workspace = true }
+ustr                   = { workspace = true }
+xshell                 = "0.2.2"
+
+[target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dev-dependencies]
+mimalloc-rust = { workspace = true }
+
+
 [[bench]]
 harness = false
 name    = "main"

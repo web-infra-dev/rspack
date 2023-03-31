@@ -6,7 +6,7 @@ module.exports = __webpack_require__.p + "5d7c2bf56394b7b7.svg";},
 "use strict";
 module.exports = __webpack_require__.p + "5f5ecd0973bd7725.svg";},
 "./index.js": function (module, exports, __webpack_require__) {
-const imgSrc = new URL(__webpack_require__("./react.svg"), self.location);
+const imgSrc = new URL(__webpack_require__("./react.svg"), __webpack_require__.b);
 const imgSrc2 = __webpack_require__("./vue.svg");
 const img = new Image();
 img.src = imgSrc.href;

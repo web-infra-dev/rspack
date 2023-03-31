@@ -3,12 +3,12 @@ use std::fmt::Debug;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, BuildMeta, Compilation,
   CompilerOptions, Dependency, GenerationResult, Module, ModuleDependency, ModuleIdentifier,
-  ModuleType, SourceType,
+  ModuleType, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -36,7 +36,7 @@ pub struct ParseResult {
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
   pub module_generator_options: Option<&'a AssetGeneratorOptions>,
-  pub runtime_requirements: &'a mut HashSet<&'static str>,
+  pub runtime_requirements: &'a mut RuntimeGlobals,
   pub data: &'a mut HashMap<String, String>,
   pub requested_source_type: SourceType,
 }
