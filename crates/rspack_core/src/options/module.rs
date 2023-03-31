@@ -117,6 +117,7 @@ pub struct ModuleRule {
   /// A condition matcher against the resource query.
   pub resource_query: Option<RuleSetCondition>,
   pub side_effects: Option<bool>,
+  pub dependency: Option<RuleSetCondition>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   pub r#use: Vec<BoxLoader>,

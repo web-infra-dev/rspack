@@ -169,6 +169,14 @@ describe("snapshots", () => {
 		        ],
 		        "test": /\\\\\\.css\\$/i,
 		      },
+		      {
+		        "dependency": "url",
+		        "oneOf": [
+		          {
+		            "type": "asset/resource",
+		          },
+		        ],
+		      },
 		    ],
 		    "parser": {
 		      "asset": {

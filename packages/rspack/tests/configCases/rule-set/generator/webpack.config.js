@@ -4,6 +4,7 @@
 module.exports = {
 	context: __dirname,
 	output: {
+		publicPath: "/",
 		assetModuleFilename: "asset/[name][ext]"
 	},
 	module: {

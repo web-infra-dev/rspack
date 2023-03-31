@@ -423,6 +423,26 @@ impl VisitAstPath for DependencyScanner<'_> {
           _ => {}
         }
       }
+    } else if let Expr::Member(MemberExpr {
+      obj: box Expr::Ident(obj_ident),
+      prop: MemberProp::Ident(prop_ident),
+      span,
+    }) = expr
+    {
+      if obj_ident.span.ctxt == self.unresolved_ctxt
+        && "require".eq(&obj_ident.sym)
+        && "cache".eq(&prop_ident.sym)
+      {
+        self.add_presentational_dependency(box ConstDependency::new(
+          Expr::Member(MemberExpr {
+            obj: box Expr::Ident(quote_ident!(RuntimeGlobals::REQUIRE)),
+            prop: MemberProp::Ident(quote_ident!("c")),
+            span: *span,
+          }),
+          Some(RuntimeGlobals::MODULE_CACHE),
+          as_parent_path(ast_path),
+        ));
+      }
     }
     expr.visit_children_with_path(self, ast_path);
   }
