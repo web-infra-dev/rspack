@@ -433,11 +433,11 @@ impl VisitAstPath for DependencyScanner<'_> {
         if "require".eq(&obj_ident.sym) && "cache".eq(&prop_ident.sym) {
           self.add_presentational_dependency(box ConstDependency::new(
             Expr::Member(MemberExpr {
-              obj: box Expr::Ident(quote_ident!(runtime_globals::REQUIRE)),
+              obj: box Expr::Ident(quote_ident!(RuntimeGlobals::REQUIRE)),
               prop: MemberProp::Ident(quote_ident!("c")),
               span: *span,
             }),
-            Some(runtime_globals::MODULE_CACHE),
+            Some(RuntimeGlobals::MODULE_CACHE),
             as_parent_path(ast_path),
           ));
         }
