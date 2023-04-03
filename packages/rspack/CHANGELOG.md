@@ -1,5 +1,25 @@
 # @rspack/core
 
+## 0.1.5
+
+### Patch Changes
+
+- 125bb94: expose util for compiler.webpack
+- 7bfcc7b: fix windows path is considered scheme incorrectly
+- 050e4fb: feat: wasm loading types
+- 92ee3c1: fix: library amd returning
+- e8db1d7: feat: module.rule[].dependency
+- c82529b: feat: new url in target node
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+- Updated dependencies [6c08098]
+- Updated dependencies [60e0aec]
+- Updated dependencies [33e916e]
+  - @rspack/binding@0.1.5
+  - @rspack/dev-client@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
