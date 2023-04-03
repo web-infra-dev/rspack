@@ -16,14 +16,7 @@
     "@types/node": "16.11.7",
     "react-refresh": "0.14.0"
   },
-  "dependencies": {
-    "ws": "8.8.1",
-    "events": "3.3.0",
-    "webpack": "5.74.0",
-    "webpack-dev-server": "4.11.1"
-  },
   "peerDependencies": {
-    "@rspack/core": "*",
     "react-refresh": ">=0.10.0 <1.0.0"
   },
   "peerDependenciesMeta": {
@@ -32,10 +25,6 @@
     }
   },
   "exports": {
-    ".": "./dist/index.js",
-    "./devServer": "./dist/devServer.js",
-    "./react-refresh": "./dist/reactRefresh.js",
-    "./clients/SockJSClient": "./dist/clients/SockJSClient.js",
-    "./clients/WebSocketClient": "./dist/clients/WebSocketClient.js"
+    "./react-refresh": "./dist/reactRefresh.js"
   }
 }

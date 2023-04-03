@@ -32,7 +32,7 @@ export class RspackDevServer extends WebpackDevServer {
 		super(options, compiler as any);
 	}
 
-	addAdditionEntires(compiler: Compiler) {
+	addAdditionalEntries(compiler: Compiler) {
 		const additionalEntries: string[] = [];
 		// @ts-expect-error
 		const isWebTarget = WebpackDevServer.isWebTarget(compiler);
@@ -44,9 +44,7 @@ export class RspackDevServer extends WebpackDevServer {
 				);
 				additionalEntries.push(reactRefreshEntryPath);
 			}
-			const hotUpdateEntryPath = require.resolve(
-				"@rspack/dev-client/devServer"
-			);
+			const hotUpdateEntryPath = require.resolve("webpack/hot/dev-server");
 			additionalEntries.push(hotUpdateEntryPath);
 		}
 		if (this.options.client && isWebTarget) {
@@ -192,11 +190,10 @@ export class RspackDevServer extends WebpackDevServer {
 				webSocketURLStr = searchParams.toString();
 			}
 
-			// TODO: should use providerPlugin
-			additionalEntries.push(this.getClientTransport());
-
 			additionalEntries.push(
-				`${require.resolve("@rspack/dev-client")}?${webSocketURLStr}`
+				`${require.resolve(
+					"webpack-dev-server/client/index.js"
+				)}?${webSocketURLStr}`
 			);
 		}
 
@@ -208,7 +205,6 @@ export class RspackDevServer extends WebpackDevServer {
 	getClientTransport(): string {
 		// WARNING: we can't use `super.getClientTransport`,
 		// because we doesn't had same directory structure.
-		// and TODO: we need impelement `webpack.providerPlugin`
 		let clientImplementation: string | undefined;
 		let clientImplementationFound = true;
 		const isKnownWebSocketServerImplementation =
@@ -237,11 +233,11 @@ export class RspackDevServer extends WebpackDevServer {
 				// could be 'sockjs', 'ws', or a path that should be required
 				if (clientTransport === "sockjs") {
 					clientImplementation = require.resolve(
-						"@rspack/dev-client/clients/SockJSClient"
+						"webpack-dev-server/client/clients/SockJSClient"
 					);
 				} else if (clientTransport === "ws") {
 					clientImplementation = require.resolve(
-						"@rspack/dev-client/clients/WebSocketClient"
+						"webpack-dev-server/client/clients/WebSocketClient"
 					);
 				} else {
 					try {
@@ -304,7 +300,12 @@ export class RspackDevServer extends WebpackDevServer {
 
 		if (this.options.webSocketServer) {
 			compilers.forEach(compiler => {
-				this.addAdditionEntires(compiler);
+				this.addAdditionalEntries(compiler);
+
+				compiler.options.builtins.provide = {
+					...compiler.options.builtins.provide,
+					__webpack_dev_server_client__: [this.getClientTransport()]
+				};
 			});
 		}
 

@@ -30,6 +30,7 @@
     "@rspack/dev-client": "workspace:*",
     "@rspack/dev-middleware": "workspace:*",
     "@rspack/dev-server": "workspace:*",
+    "webpack": "5.74.0",
     "webpack-dev-server": "4.13.1",
     "connect-history-api-fallback": "2.0.0",
     "http-proxy-middleware": "2.0.6"
