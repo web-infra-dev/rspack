@@ -1,25 +1,33 @@
 # About code owners
+
 # https://help.github.com/en/articles/about-code-owners
 
 # Default to project owner
-* @hardfist
+
+- @hardfist
 
 # Ignore lock files
+
 Cargo.lock
 pnpm-lock.yaml
+/.changeset
 
 # Infra
+
 /benchcases @IWANABETHATGUY
 /xtask @IWANABETHATGUY
 /.github/workflows @IWANABETHATGUY @h-a-n-a
 
 # Examples
+
 /examples @hardfist
 
 # Webpack Tests
+
 /webpack-test @IWANABETHATGUY
 
 # Crates in alphabetical order
+
 /crates/bench @IWANABETHATGUY
 /crates/cargo-rst @JSerFeng
 /crates/loader_runner @h-a-n-a
@@ -64,6 +72,7 @@ pnpm-lock.yaml
 /crates/rspack_util @hyf0
 
 # Packages in alphabetical order
+
 /packages/create-rspack @hardfist
 /packages/postcss-loader @ahabhgk
 /packages/rspack @hardfist
