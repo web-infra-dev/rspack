@@ -8,7 +8,7 @@ on:
       - synchronize
 
 jobs:
-  main:
+  lint-pr-title:
     name: Validate PR title
     runs-on: ubuntu-latest
     steps:
