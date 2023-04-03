@@ -21,6 +21,27 @@ When submitting a Pull Request, please note the following:
 - Keep your PRs small enough, so that each PR only addresses a single issue or adds a single feature.
 - Please include an appropriate description in the PR, and link related issues.
 
+### Foramt of PR titles
+
+The format of PR titles follow Conventional Commits.
+
+A example
+
+```
+feat(ui): Add `Button` component
+^    ^    ^
+|    |    |__ Subject
+|    |_______ Scope
+|____________ Type
+```
+
+Your PR
+
+- must have a `Type`
+- Optionally have a `Scope`
+  - `Scope` should be lower case
+- must have a `Subject`
+
 ## Setup Development Environment
 
 ### Setup Rust
