@@ -21,7 +21,7 @@ When submitting a Pull Request, please note the following:
 - Keep your PRs small enough, so that each PR only addresses a single issue or adds a single feature.
 - Please include an appropriate description in the PR, and link related issues.
 
-### Foramt of PR titles
+### Format of PR titles
 
 The format of PR titles follow Conventional Commits.
 
