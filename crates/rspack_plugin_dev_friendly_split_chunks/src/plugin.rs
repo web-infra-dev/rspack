@@ -70,7 +70,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
 
     // First we group modules by MAX_MODULES_PER_CHUNK
 
-    let splitted_modules = shared_modules
+    let split_modules = shared_modules
       .par_chunks(MAX_MODULES_PER_CHUNK)
       .flat_map(|modules| {
         let chunk_size: f64 = modules
@@ -132,7 +132,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
       .collect::<DashMap<_, _>>();
 
     // Yeah. Leaky abstraction, but fast.
-    let mut chunk_and_cgc = splitted_modules
+    let mut chunk_and_cgc = split_modules
       .map(|modules| {
         let mut chunk = Chunk::new(None, None, rspack_core::ChunkKind::Normal);
         chunk
