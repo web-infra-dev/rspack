@@ -64,7 +64,65 @@ impl Plugin for DevFriendlySplitChunksPlugin {
     });
 
     // The number doesn't go through deep consideration.
-    const MAX_MODULES_PER_CHUNK: usize = 3000;
+    const MAX_MODULES_PER_CHUNK: usize = 500;
+    // About 5mb
+    const MAX_SIZE_PER_CHUNK: f64 = 5000000.0;
+
+    // First we group modules by MAX_MODULES_PER_CHUNK
+
+    let split_modules = shared_modules
+      .par_chunks(MAX_MODULES_PER_CHUNK)
+      .flat_map(|modules| {
+        let chunk_size: f64 = modules
+          .iter()
+          .map(|m| {
+            let module = compilation
+              .module_graph
+              .module_by_identifier(&m.module)
+              .expect("Should have a module here");
+
+            // Some code after transpiling will increase it's size a lot.
+            let coefficient = match module.module_type() {
+              // 5.0 is a number in practice
+              rspack_core::ModuleType::Jsx => 5.0,
+              rspack_core::ModuleType::JsxDynamic => 5.0,
+              rspack_core::ModuleType::JsxEsm => 5.0,
+              rspack_core::ModuleType::Tsx => 5.0,
+              _ => 1.5,
+            };
+
+            module.size(&rspack_core::SourceType::JavaScript) * coefficient
+          })
+          .sum();
+
+        if chunk_size > MAX_SIZE_PER_CHUNK {
+          let mut remain_chunk_size = chunk_size;
+          let mut last_end_idx = 0;
+          let mut chunks = vec![];
+          while remain_chunk_size > MAX_SIZE_PER_CHUNK && last_end_idx < modules.len() {
+            let mut new_chunk_size = 0f64;
+            let start_idx = last_end_idx;
+            while new_chunk_size < MAX_SIZE_PER_CHUNK && last_end_idx < modules.len() {
+              let module_size = compilation
+                .module_graph
+                .module_by_identifier(&modules[last_end_idx].module)
+                .expect("Should have a module here")
+                .size(&rspack_core::SourceType::JavaScript);
+              new_chunk_size += module_size;
+              remain_chunk_size -= module_size;
+              last_end_idx += 1;
+            }
+            chunks.push(&modules[start_idx..last_end_idx])
+          }
+
+          if last_end_idx < modules.len() {
+            chunks.push(&modules[last_end_idx..])
+          }
+          chunks
+        } else {
+          vec![modules]
+        }
+      });
 
     // Yeah. Leaky abstraction, but fast.
     let module_to_chunk_graph_module = compilation
@@ -74,8 +132,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
       .collect::<DashMap<_, _>>();
 
     // Yeah. Leaky abstraction, but fast.
-    let mut chunk_and_cgc = shared_modules
-      .par_chunks(MAX_MODULES_PER_CHUNK)
+    let mut chunk_and_cgc = split_modules
       .map(|modules| {
         let mut chunk = Chunk::new(None, None, rspack_core::ChunkKind::Normal);
         chunk
