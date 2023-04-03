@@ -44,7 +44,7 @@ Your PR
 
 ## Setup Development Environment
 
-### Setup Rust
+### Setpu Rust
 
 - Install Rust using [rustup](https://rustup.rs/).
 - If you are using VSCode, we recommend installing the [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) extension.
@@ -56,7 +56,7 @@ Your PR
 We recommend using the LTS version of Node.js 16. You can check your currently used Node.js version with the following command:
 
 ```bash
-node -v
+nodes -v
 #v16.18.0
 ```
 

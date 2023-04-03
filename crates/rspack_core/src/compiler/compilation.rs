@@ -953,10 +953,13 @@ impl Compilation {
               .files
               .insert(file_manifest.filename().to_string());
 
-            self.emit_asset(
-              file_manifest.filename().to_string(),
-              CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
-            );
+            {
+              self.emit_asset(
+                file_manifest.filename().to_string(),
+                CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
+              );
+            }
+            self.chunk_asset(current_chunk, file_manifest.filename().to_string());
           });
       })
   }
@@ -967,6 +970,16 @@ impl Compilation {
       .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
+  }
+
+  #[instrument(name = "compilation:chunk_asset", skip_all)]
+  async fn chunk_asset(&mut self, chunk: &Chunk, filename: String) -> Result<()> {
+    todo!()
+    // plugin_driver
+    //   .write()
+    //   .await
+    //   .process_assets(ProcessAssetsArgs { compilation: self })
+    //   .await
   }
 
   pub async fn optimize_dependency(
