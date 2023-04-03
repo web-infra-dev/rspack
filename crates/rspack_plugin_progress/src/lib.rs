@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering::SeqCst;
 use std::{cmp, sync::atomic::AtomicU32};
 
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_core::{
   Compilation, DoneArgs, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
   PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
@@ -26,7 +26,7 @@ pub struct ProgressPlugin {
 
 impl ProgressPlugin {
   pub fn new(options: ProgressPluginConfig) -> Self {
-    let progress_bar = ProgressBar::new(100);
+    let progress_bar = ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout());
     progress_bar.set_style(
       ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {percent}% {wide_msg}")
         .expect("TODO:"),
