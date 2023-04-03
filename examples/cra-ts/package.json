@@ -8,8 +8,7 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
-    "web-vitals": "^2.1.4",
-    "copy-webpack-plugin": "5.1.2"
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "dev": "rspack serve",
