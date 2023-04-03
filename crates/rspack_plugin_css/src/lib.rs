@@ -18,10 +18,10 @@ use rspack_error::{
   internal_error, Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result,
   TWithDiagnosticArray,
 };
-use swc_core::common::SourceFile;
 use swc_core::common::{
   input::SourceFileInput, source_map::SourceMapGenConfig, FileName, SourceMap,
 };
+use swc_core::common::{Globals, SourceFile, GLOBALS};
 use swc_core::css::minifier;
 use swc_core::css::parser::{lexer::Lexer, parser::ParserConfig};
 use swc_core::css::{ast::Stylesheet, parser::parser::Parser};
@@ -124,7 +124,9 @@ impl SwcCssCompiler {
     )?;
     // ignore errors since css in webpack is tolerant, and diagnostics already reported in parse.
     let (mut ast, _) = parsed.split_into_parts();
-    minifier::minify(&mut ast, minifier::options::MinifyOptions::default());
+    GLOBALS.set(&Globals::default(), || {
+      minifier::minify(&mut ast, minifier::options::MinifyOptions::default());
+    });
     let (code, source_map) = self.codegen_impl(cm, &ast, gen_source_map, true)?;
     if let Some(source_map) = source_map {
       let source = rspack_sources::SourceMapSource::new(rspack_sources::SourceMapSourceOptions {
