@@ -41,6 +41,7 @@ fn default_template() -> &'static str {
   </body>
 </html>"#
 }
+
 #[async_trait]
 impl Plugin for HtmlPlugin {
   fn name(&self) -> &'static str {
@@ -56,37 +57,34 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
 
     let parser = HtmlCompiler::new(config);
-    let (content, url) = match &config.template {
-      Some(template) => {
-        // TODO: support loader query form
-        let resolved_template =
-          resolve_from_context(&compilation.options.context, template.as_str());
+    let content = if let Some(content) = &config.template_content {
+      content.clone()
+    } else if let Some(template) = &config.template {
+      // TODO: support loader query form
+      let resolved_template = resolve_from_context(&compilation.options.context, template.as_str());
 
-        let content = fs::read_to_string(&resolved_template).context(format!(
-          "failed to read `{}` from `{}`",
-          resolved_template.display(),
-          &compilation.options.context.display()
-        ))?;
-        (content, resolved_template.to_string_lossy().to_string())
-      }
-      None => (
-        default_template().to_owned(),
-        parse_to_url("default.html").path().to_string(),
-      ),
+      fs::read_to_string(&resolved_template).context(format!(
+        "failed to read `{}` from `{}`",
+        resolved_template.display(),
+        &compilation.options.context.display()
+      ))?
+    } else {
+      default_template().to_owned()
     };
 
     // process with template parameters
     let template_result = if let Some(template_parameters) = &self.config.template_parameters {
       let mut dj = Dojang::new();
-      dj.add(url.clone(), content)
+      let temp_name = String::from("temp");
+      dj.add(temp_name.clone(), content)
         .expect("failed to add template");
-      dj.render(&url, serde_json::json!(template_parameters))
+      dj.render(&temp_name, serde_json::json!(template_parameters))
         .expect("failed to render template")
     } else {
       content
     };
 
-    let ast_with_diagnostic = parser.parse_file(&url, template_result)?;
+    let ast_with_diagnostic = parser.parse_file("builtin.html", template_result)?;
 
     let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
 

@@ -48,6 +48,7 @@ export interface RawHtmlPluginConfig {
   filename?: string
   /** template html file */
   template?: string
+  templateContent?: string
   templateParameters?: Record<string, string>
   /** `head`, `body` or None */
   inject?: "head" | "body"
