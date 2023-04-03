@@ -57,34 +57,40 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
 
     let parser = HtmlCompiler::new(config);
-    let content = if let Some(content) = &config.template_content {
-      content.clone()
+    let (content, url) = if let Some(content) = &config.template_content {
+      (
+        content.clone(),
+        parse_to_url("template_content.html").path().to_string(),
+      )
     } else if let Some(template) = &config.template {
       // TODO: support loader query form
       let resolved_template = resolve_from_context(&compilation.options.context, template.as_str());
 
-      fs::read_to_string(&resolved_template).context(format!(
+      let content = fs::read_to_string(&resolved_template).context(format!(
         "failed to read `{}` from `{}`",
         resolved_template.display(),
         &compilation.options.context.display()
-      ))?
+      ))?;
+      (content, resolved_template.to_string_lossy().to_string())
     } else {
-      default_template().to_owned()
+      (
+        default_template().to_owned(),
+        parse_to_url("default.html").path().to_string(),
+      )
     };
 
     // process with template parameters
     let template_result = if let Some(template_parameters) = &self.config.template_parameters {
       let mut dj = Dojang::new();
-      let temp_name = String::from("temp");
-      dj.add(temp_name.clone(), content)
+      dj.add(url.clone(), content)
         .expect("failed to add template");
-      dj.render(&temp_name, serde_json::json!(template_parameters))
+      dj.render(&url, serde_json::json!(template_parameters))
         .expect("failed to render template")
     } else {
       content
     };
 
-    let ast_with_diagnostic = parser.parse_file("builtin.html", template_result)?;
+    let ast_with_diagnostic = parser.parse_file(&url, template_result)?;
 
     let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
 
