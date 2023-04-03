@@ -17,10 +17,14 @@ module.exports = {
   builtins: {
     html: [{
       template: './index.html'
-    }]
-  },
-  plugins: [new CopyPlugin([{
-    from: "public",
-    to: "."
-  }])]
+    }],
+    copy: {
+      patterns: [
+        {
+          from: 'public',
+
+        }
+      ]
+    }
+  }
 }
