@@ -335,6 +335,7 @@ export interface RawResolveOptions {
   tsConfigPath?: string
   modules?: Array<string>
   byDependency?: Record<string, RawResolveOptions>
+  fullySpecified?: boolean
 }
 export interface RawSnapshotStrategy {
   hash: boolean
