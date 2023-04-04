@@ -16,7 +16,11 @@
   ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-plugin-html"
+  },
   "dependencies": {
     "@rspack/core": "workspace:*",
     "@types/html-minifier-terser": "7.0.0",

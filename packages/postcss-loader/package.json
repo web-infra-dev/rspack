@@ -9,7 +9,11 @@
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/postcss-loader"
+  },
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "postcss-modules": "^5.0.0",
