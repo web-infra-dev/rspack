@@ -312,6 +312,7 @@ export interface RawOutputOptions {
   webassemblyModuleFilename: string
   filename: string
   chunkFilename: string
+  crossOriginLoading: "anonymous" | "use-credentials"
   cssFilename: string
   cssChunkFilename: string
   uniqueName: string

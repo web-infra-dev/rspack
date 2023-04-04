@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, LibraryAuxiliaryComment, LibraryName, LibraryOptions, OutputOptions, PluginExt,
-  WasmLoading,
+  BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName, LibraryOptions,
+  OutputOptions, PluginExt, WasmLoading,
 };
 use serde::Deserialize;
 
@@ -83,6 +83,9 @@ pub struct RawOutputOptions {
   pub webassembly_module_filename: String,
   pub filename: String,
   pub chunk_filename: String,
+  // TODO false type
+  #[napi(ts_type = "\"anonymous\" | \"use-credentials\"")]
+  pub cross_origin_loading: String,
   pub css_filename: String,
   pub css_chunk_filename: String,
   pub unique_name: String,
@@ -117,6 +120,10 @@ impl RawOptionsApply for RawOutputOptions {
       unique_name: self.unique_name,
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
+      cross_origin_loading: match self.cross_origin_loading.as_str() {
+        "false" => CrossOriginLoading::Disable,
+        i => CrossOriginLoading::Enable(i.into()),
+      },
       css_filename: self.css_filename.into(),
       css_chunk_filename: self.css_chunk_filename.into(),
       library: self.library.map(Into::into),

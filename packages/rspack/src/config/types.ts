@@ -114,6 +114,7 @@ export interface Output {
 	publicPath?: PublicPath;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
+	crossOriginLoading?: CrossOriginLoading;
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
@@ -140,6 +141,8 @@ export type AssetModuleFilename = string;
 export type WebassemblyModuleFilename = string;
 export type Filename = FilenameTemplate;
 export type ChunkFilename = FilenameTemplate;
+// TODO: false type
+export type CrossOriginLoading = "anonymous" | "use-credentials";
 export type CssFilename = FilenameTemplate;
 export type CssChunkFilename = FilenameTemplate;
 export type FilenameTemplate = string;
@@ -205,6 +208,7 @@ export interface OutputNormalized {
 	publicPath?: PublicPath;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
+	crossOriginLoading?: CrossOriginLoading;
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;

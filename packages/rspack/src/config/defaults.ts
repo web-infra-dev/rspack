@@ -375,6 +375,9 @@ const applyOutputDefaults = (
 		// });
 		return Array.from(enabledWasmLoadingTypes);
 	});
+
+	// TODO should be false
+	D(output, "crossOriginLoading", "anonymous");
 };
 
 const applyExternalsPresetsDefaults = (

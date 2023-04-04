@@ -32,6 +32,10 @@ var loadStylesheet = (chunkId, url, done, hmr) => {
 		link.setAttribute(loadingAttribute, 1);
 		link.rel = "stylesheet";
 		link.href = url;
+
+		if (__CROSS_ORIGIN_LOADING_PLACEHOLDER__ && link.href.indexOf(window.location.origin + '/') !== 0) {
+			link.crossOrigin = __CROSS_ORIGIN_LOADING_PLACEHOLDER__;
+		}
 	}
 	var onLinkComplete = (prev, event) => {
 		link.onerror = link.onload = null;

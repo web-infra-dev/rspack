@@ -62,6 +62,10 @@ module.exports = {
 				}
 			]
 		},
+		CrossOriginLoading: {
+			description: "This option enables cross-origin loading of chunks.",
+			enum: [false, "anonymous", "use-credentials"]
+		},
 		Context: {
 			description:
 				"The base directory (absolute path!) for resolving the `entry` option. If `output.pathinfo` is set, the included pathinfo is shortened to this directory.",
@@ -986,6 +990,9 @@ module.exports = {
 				},
 				chunkFilename: {
 					$ref: "#/definitions/ChunkFilename"
+				},
+				crossOriginLoading: {
+					$ref: "#/definitions/CrossOriginLoading"
 				},
 				cssChunkFilename: {
 					$ref: "#/definitions/CssChunkFilename"

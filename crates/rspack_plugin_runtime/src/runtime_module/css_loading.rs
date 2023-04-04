@@ -101,7 +101,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &stringify_chunks(&initial_chunk_ids_with_css, 0)
       )));
 
-      source.add(RawSource::from(include_str!("runtime/css_loading.js")));
+      source.add(RawSource::from(
+        include_str!("runtime/css_loading.js").replace(
+          "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
+          &compilation.options.output.cross_origin_loading.to_string(),
+        ),
+      ));
 
       if with_loading {
         source.add(RawSource::from(

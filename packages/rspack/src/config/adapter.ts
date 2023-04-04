@@ -152,6 +152,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
 		chunkFilename: output.chunkFilename!,
+		crossOriginLoading: output.crossOriginLoading!,
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
 		uniqueName: output.uniqueName!,

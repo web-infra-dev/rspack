@@ -6,6 +6,7 @@ use std::{
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use serde::Deserialize;
 use sugar_path::SugarPath;
 
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
@@ -20,6 +21,7 @@ pub struct OutputOptions {
   pub unique_name: String,
   pub filename: Filename,
   pub chunk_filename: Filename,
+  pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
   pub library: Option<LibraryOptions>,
@@ -49,6 +51,40 @@ impl From<&str> for WasmLoadingType {
       "fetch" => Self::Fetch,
       "async-node" => Self::AsyncNode,
       _ => todo!(),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize)]
+pub enum CrossOriginLoading {
+  Enable(CrossOriginLoadingType),
+  Disable,
+}
+
+#[derive(Debug, Deserialize)]
+pub enum CrossOriginLoadingType {
+  Anonymous,
+  UseCredentials,
+}
+
+impl From<&str> for CrossOriginLoadingType {
+  fn from(value: &str) -> Self {
+    match value {
+      "anonymous" => Self::Anonymous,
+      "use-credentials" => Self::UseCredentials,
+      _ => todo!(),
+    }
+  }
+}
+
+impl std::fmt::Display for CrossOriginLoading {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      CrossOriginLoading::Disable => write!(f, "false"),
+      CrossOriginLoading::Enable(CrossOriginLoadingType::Anonymous) => write!(f, "'anonymous'"),
+      CrossOriginLoading::Enable(CrossOriginLoadingType::UseCredentials) => {
+        write!(f, "'use-credentials'")
+      }
     }
   }
 }
