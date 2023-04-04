@@ -1,6 +1,6 @@
 // Thanks https://github.com/pmmmwh/react-refresh-webpack-plugin
 // @ts-ignore
-const RefreshUtils = require('@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils');
+const RefreshUtils = require("@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils");
 const RefreshRuntime = require("react-refresh/runtime");
 
 RefreshRuntime.injectIntoGlobalHook(globalThis);
@@ -8,10 +8,10 @@ RefreshRuntime.injectIntoGlobalHook(globalThis);
 // Port from https://github.com/pmmmwh/react-refresh-webpack-plugin/blob/main/loader/utils/getRefreshModuleRuntime.js#L29
 function refresh(moduleId, webpackHot) {
 	const currentExports = RefreshUtils.getModuleExports(moduleId);
-	const fn = (exports) => {
+	const fn = exports => {
 		RefreshUtils.executeRuntime(exports, moduleId, webpackHot);
-	}
-	if (typeof Promise !== 'undefined' && currentExports instanceof Promise) {
+	};
+	if (typeof Promise !== "undefined" && currentExports instanceof Promise) {
 		currentExports.then(fn);
 	} else {
 		fn(currentExports);
@@ -22,5 +22,6 @@ function refresh(moduleId, webpackHot) {
 __webpack_modules__.$ReactRefreshRuntime$ = {
 	refresh,
 	register: RefreshRuntime.register,
-	createSignatureFunctionForTransform: RefreshRuntime.createSignatureFunctionForTransform
+	createSignatureFunctionForTransform:
+		RefreshRuntime.createSignatureFunctionForTransform
 };
