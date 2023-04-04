@@ -1,22 +1,26 @@
+// Thanks https://github.com/pmmmwh/react-refresh-webpack-plugin
 // @ts-ignore
+const RefreshUtils = require('@pmmmwh/react-refresh-webpack-plugin/lib/runtime/RefreshUtils');
 const RefreshRuntime = require("react-refresh/runtime");
 
-function debounce(fn: Function, delay: number) {
-	var handle: number | undefined;
-	return () => {
-		clearTimeout(handle);
-		handle = setTimeout(fn, delay);
-	};
-}
-
 RefreshRuntime.injectIntoGlobalHook(globalThis);
-globalThis.$RefreshReg$ = () => {};
-globalThis.$RefreshSig$ = () => type => type;
 
-var queueUpdate = debounce(RefreshRuntime.performReactRefresh, 16);
+// Port from https://github.com/pmmmwh/react-refresh-webpack-plugin/blob/main/loader/utils/getRefreshModuleRuntime.js#L29
+function refresh(moduleId, webpackHot) {
+	const currentExports = RefreshUtils.getModuleExports(moduleId);
+	const fn = (exports) => {
+		RefreshUtils.executeRuntime(exports, moduleId, webpackHot);
+	}
+	if (typeof Promise !== 'undefined' && currentExports instanceof Promise) {
+		currentExports.then(fn);
+	} else {
+		fn(currentExports);
+	}
+}
 
 // @ts-ignored
 __webpack_modules__.$ReactRefreshRuntime$ = {
-	queueUpdate,
-	...RefreshRuntime
+	refresh,
+	register: RefreshRuntime.register,
+	createSignatureFunctionForTransform: RefreshRuntime.createSignatureFunctionForTransform
 };

@@ -5,17 +5,18 @@ use rspack_core::{
 };
 use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
+use swc_core::common::DUMMY_SP;
 use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
 use swc_core::ecma::ast::{
   AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit,
   MemberExpr, MemberProp, MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Pat, PatOrExpr, Tpl,
 };
 use swc_core::ecma::atoms::js_word;
-use swc_core::ecma::utils::{quote_ident, quote_str};
+use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
-use super::{as_parent_path, is_require_context_call};
+use super::{as_parent_path, is_require_context_call, match_member_expr};
 use crate::dependency::{
   CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
   URLDependency,
@@ -330,7 +331,8 @@ impl VisitAstPath for DependencyScanner<'_> {
     }
 
     if let Expr::Ident(ident) = expr {
-      if ident.span.ctxt == self.unresolved_ctxt {
+      // match empty context because the ast of react refresh visitor not resolve mark
+      if ident.span.ctxt == self.unresolved_ctxt || ident.span.ctxt == SyntaxContext::empty() {
         match ident.sym.as_ref() as &str {
           WEBPACK_HASH => {
             self.add_presentational_dependency(box ConstDependency::new(
@@ -423,26 +425,18 @@ impl VisitAstPath for DependencyScanner<'_> {
           _ => {}
         }
       }
-    } else if let Expr::Member(MemberExpr {
-      obj: box Expr::Ident(obj_ident),
-      prop: MemberProp::Ident(prop_ident),
-      span,
-    }) = expr
-    {
-      if obj_ident.span.ctxt == self.unresolved_ctxt
-        && "require".eq(&obj_ident.sym)
-        && "cache".eq(&prop_ident.sym)
-      {
-        self.add_presentational_dependency(box ConstDependency::new(
-          Expr::Member(MemberExpr {
-            obj: box Expr::Ident(quote_ident!(RuntimeGlobals::REQUIRE)),
-            prop: MemberProp::Ident(quote_ident!("c")),
-            span: *span,
-          }),
-          Some(RuntimeGlobals::MODULE_CACHE),
-          as_parent_path(ast_path),
-        ));
-      }
+    } else if match_member_expr(expr, "require.cache") {
+      self.add_presentational_dependency(box ConstDependency::new(
+        *member_expr!(DUMMY_SP, __webpack_require__.c),
+        Some(RuntimeGlobals::MODULE_CACHE),
+        as_parent_path(ast_path),
+      ));
+    } else if match_member_expr(expr, "__webpack_module__.id") {
+      self.add_presentational_dependency(box ConstDependency::new(
+        *member_expr!(DUMMY_SP, module.id),
+        Some(RuntimeGlobals::MODULE_CACHE),
+        as_parent_path(ast_path),
+      ));
     }
     expr.visit_children_with_path(self, ast_path);
   }

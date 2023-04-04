@@ -10,7 +10,7 @@ pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstPa
   ast_path.iter().map(|n| n.kind()).collect()
 }
 
-fn match_member_expr(mut expr: &Expr, value: &str) -> bool {
+pub fn match_member_expr(mut expr: &Expr, value: &str) -> bool {
   let mut parts = value.split('.');
   let first = parts.next().expect("should have a last str");
   for part in parts.rev() {

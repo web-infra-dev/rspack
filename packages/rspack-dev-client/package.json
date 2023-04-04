@@ -16,6 +16,13 @@
     "@types/node": "16.11.7",
     "react-refresh": "0.14.0"
   },
+  "dependencies": {
+    "ws": "8.8.1",
+    "events": "3.3.0",
+    "webpack": "5.74.0",
+    "webpack-dev-server": "4.11.1",
+    "@pmmmwh/react-refresh-webpack-plugin": "0.5.10"
+  },
   "peerDependencies": {
     "react-refresh": ">=0.10.0 <1.0.0"
   },
