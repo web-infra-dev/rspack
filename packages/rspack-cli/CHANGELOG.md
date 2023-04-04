@@ -1,5 +1,14 @@
 # @rspack/cli
 
+## 0.1.6
+
+### Patch Changes
+
+- aa7910b: fix semver dep missing
+- Updated dependencies [3607f25]
+  - @rspack/dev-server@0.1.6
+  - @rspack/core@0.1.6
+
 ## 0.1.5
 
 ### Patch Changes
