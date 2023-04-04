@@ -22,5 +22,8 @@ test("context+component should work", async () => {
 	editFile("src/CountProvider.jsx", content =>
 		content.replace("context-value", "context-value-update")
 	);
-	await waitingUpdate(() => page.textContent("#context"), "context-value-update");
-})
+	await waitingUpdate(
+		() => page.textContent("#context"),
+		"context-value-update"
+	);
+});
