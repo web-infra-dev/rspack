@@ -498,3 +498,6 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+      - name: Cancel the whole release if the pre check is failed.
+        uses: andymckay/cancel-action@0.3
+        if: ${{ !success() }}
