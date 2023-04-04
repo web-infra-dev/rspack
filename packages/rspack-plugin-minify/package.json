@@ -7,7 +7,11 @@
   "scripts": {},
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-plugin-minify"
+  },
   "publishConfig": {
     "access": "public"
   },
