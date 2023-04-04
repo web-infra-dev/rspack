@@ -8,7 +8,7 @@ use crate::{DependencyCategory, ModuleRule};
 pub async fn module_rule_matcher<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
-  issuer: Option<&str>,
+  issuer: Option<&'a str>,
   dependency: &DependencyCategory,
 ) -> Result<Option<&'a ModuleRule>> {
   if module_rule.test.is_none()
@@ -25,20 +25,14 @@ pub async fn module_rule_matcher<'a>(
     ));
   }
 
-  module_rule_matcher_inner(
-    module_rule,
-    resource_data,
-    &issuer.map(|i| i.to_string()),
-    dependency,
-  )
-  .await
+  module_rule_matcher_inner(module_rule, resource_data, issuer, dependency).await
 }
 
 #[async_recursion]
 pub async fn module_rule_matcher_inner<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
-  issuer: &Option<String>,
+  issuer: Option<&'a str>,
   dependency: &DependencyCategory,
 ) -> Result<Option<&'a ModuleRule>> {
   // Include all modules that pass test assertion. If you supply a Rule.test option, you cannot also supply a `Rule.resource`.
