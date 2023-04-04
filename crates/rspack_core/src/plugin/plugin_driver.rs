@@ -9,10 +9,10 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder,
-  ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs,
-  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModuleFactoryContext,
-  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxedParserAndGeneratorBuilder, Chunk,
+  ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType,
+  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
   PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
@@ -141,6 +141,24 @@ impl PluginDriver {
   ) -> PluginCompilationHookOutput {
     for plugin in &mut self.plugins {
       plugin.compilation(CompilationArgs { compilation }).await?;
+    }
+
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:chunk_asset", skip_all)]
+  pub async fn chunk_asset(
+    &mut self,
+    chunk: &Chunk,
+    filename: String,
+  ) -> PluginCompilationHookOutput {
+    for plugin in &mut self.plugins {
+      plugin
+        .chunk_asset(&ChunkAssetArgs {
+          chunk,
+          filename: &filename,
+        })
+        .await?;
     }
 
     Ok(())

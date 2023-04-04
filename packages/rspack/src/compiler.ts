@@ -212,7 +212,8 @@ class Compiler {
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
 					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
-						this.#normalModuleFactoryResolveForScheme.bind(this)
+						this.#normalModuleFactoryResolveForScheme.bind(this),
+					chunkAsset: this.#chunkAsset.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 				loaderContext => runLoader(loaderContext, this)
@@ -378,6 +379,11 @@ class Compiler {
 		await this.compilation.hooks.optimizeModules.promise(
 			this.compilation.getModules()
 		);
+		this.#updateDisabledHooks();
+	}
+
+	#chunkAsset(assetArg: binding.ChunkAssetArgs) {
+		this.compilation.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
 		this.#updateDisabledHooks();
 	}
 

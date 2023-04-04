@@ -938,30 +938,32 @@ impl Compilation {
 
     let chunk_ukey_and_manifest = results.into_inner();
 
-    chunk_ukey_and_manifest
-      .into_iter()
-      .for_each(|(chunk_ukey, manifest)| {
-        manifest
-          .expect("TODO: we should return this error rathen expect")
-          .into_iter()
-          .for_each(|file_manifest| {
-            let current_chunk = self
-              .chunk_by_ukey
-              .get_mut(&chunk_ukey)
-              .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
-            current_chunk
-              .files
-              .insert(file_manifest.filename().to_string());
+    for (chunk_ukey, manifest) in chunk_ukey_and_manifest.into_iter() {
+      for file_manifest in manifest.expect("We should return this error rathen expect") {
+        let filename = file_manifest.filename().to_string();
 
-            {
-              self.emit_asset(
-                file_manifest.filename().to_string(),
-                CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
-              );
-            }
-            self.chunk_asset(current_chunk, file_manifest.filename().to_string());
-          });
-      })
+        let current_chunk = self
+          .chunk_by_ukey
+          .get_mut(&chunk_ukey)
+          .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+        current_chunk.files.insert(filename.clone());
+
+        self.emit_asset(
+          filename.clone(),
+          CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
+        );
+
+        _ = self
+          .chunk_asset(chunk_ukey, filename, plugin_driver.clone())
+          .await;
+      }
+      //
+      // .into_iter()
+      // .for_each(|file_manifest| {
+      // });
+    }
+    // .for_each(|(chunk_ukey, manifest)| {
+    // })
   }
   #[instrument(name = "compilation:process_asssets", skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -973,13 +975,22 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:chunk_asset", skip_all)]
-  async fn chunk_asset(&mut self, chunk: &Chunk, filename: String) -> Result<()> {
-    todo!()
-    // plugin_driver
-    //   .write()
-    //   .await
-    //   .process_assets(ProcessAssetsArgs { compilation: self })
-    //   .await
+  async fn chunk_asset(
+    &mut self,
+    chunk_ukey: ChunkUkey,
+    filename: String,
+    plugin_driver: SharedPluginDriver,
+  ) -> Result<()> {
+    let chunk = self
+      .chunk_by_ukey
+      .get(&chunk_ukey)
+      .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+    _ = plugin_driver
+      .write()
+      .await
+      .chunk_asset(chunk, filename)
+      .await;
+    Ok(())
   }
 
   pub async fn optimize_dependency(
