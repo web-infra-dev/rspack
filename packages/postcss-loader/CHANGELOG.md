@@ -1,5 +1,18 @@
 # rspack-plugin-postcss
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+- Updated dependencies [6c08098]
+- Updated dependencies [60e0aec]
+- Updated dependencies [33e916e]
+  - @rspack/binding@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
