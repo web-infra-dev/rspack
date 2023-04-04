@@ -23,6 +23,7 @@ pub struct RawHtmlPluginConfig {
   pub filename: Option<RawHtmlFilename>,
   /// template html file
   pub template: Option<String>,
+  pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
   #[napi(ts_type = "\"head\" | \"body\"")]
@@ -64,6 +65,7 @@ impl From<RawHtmlPluginConfig> for HtmlPluginConfig {
     HtmlPluginConfig {
       filename: value.filename.unwrap_or_else(|| String::from("index.html")),
       template: value.template,
+      template_content: value.template_content,
       template_parameters: value.template_parameters,
       inject,
       public_path: value.public_path,

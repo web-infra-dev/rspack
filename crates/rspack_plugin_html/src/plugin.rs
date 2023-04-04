@@ -41,6 +41,7 @@ fn default_template() -> &'static str {
   </body>
 </html>"#
 }
+
 #[async_trait]
 impl Plugin for HtmlPlugin {
   fn name(&self) -> &'static str {
@@ -56,23 +57,26 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
 
     let parser = HtmlCompiler::new(config);
-    let (content, url) = match &config.template {
-      Some(template) => {
-        // TODO: support loader query form
-        let resolved_template =
-          resolve_from_context(&compilation.options.context, template.as_str());
+    let (content, url) = if let Some(content) = &config.template_content {
+      (
+        content.clone(),
+        parse_to_url("template_content.html").path().to_string(),
+      )
+    } else if let Some(template) = &config.template {
+      // TODO: support loader query form
+      let resolved_template = resolve_from_context(&compilation.options.context, template.as_str());
 
-        let content = fs::read_to_string(&resolved_template).context(format!(
-          "failed to read `{}` from `{}`",
-          resolved_template.display(),
-          &compilation.options.context.display()
-        ))?;
-        (content, resolved_template.to_string_lossy().to_string())
-      }
-      None => (
+      let content = fs::read_to_string(&resolved_template).context(format!(
+        "failed to read `{}` from `{}`",
+        resolved_template.display(),
+        &compilation.options.context.display()
+      ))?;
+      (content, resolved_template.to_string_lossy().to_string())
+    } else {
+      (
         default_template().to_owned(),
         parse_to_url("default.html").path().to_string(),
-      ),
+      )
     };
 
     // process with template parameters
