@@ -17,11 +17,13 @@ use rspack_core::PluginExt;
 use rspack_fs_node::{AsyncNodeWritableFileSystem, ThreadsafeNodeFS};
 use rspack_napi_shared::NAPI_ENV;
 
+mod args;
 mod hook;
 mod js_values;
 mod plugins;
 mod utils;
 
+use args::*;
 use hook::*;
 use js_values::*;
 use plugins::*;

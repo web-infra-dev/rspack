@@ -442,6 +442,10 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
 }
+export interface ChunkAssetArgs {
+  chunk: JsChunk
+  filename: string
+}
 export interface JsAssetInfoRelated {
   sourceMap?: string
 }
@@ -497,6 +501,7 @@ export interface JsHooks {
   optimizeChunkModule: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
+  chunkAsset: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource
