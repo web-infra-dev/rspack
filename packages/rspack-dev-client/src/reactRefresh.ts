@@ -8,13 +8,13 @@ RefreshRuntime.injectIntoGlobalHook(globalThis);
 // Port from https://github.com/pmmmwh/react-refresh-webpack-plugin/blob/main/loader/utils/getRefreshModuleRuntime.js#L29
 function refresh(moduleId, webpackHot) {
 	const currentExports = RefreshUtils.getModuleExports(moduleId);
-	const fn = () => {
-		RefreshUtils.executeRuntime(currentExports, moduleId, webpackHot);
+	const fn = (exports) => {
+		RefreshUtils.executeRuntime(exports, moduleId, webpackHot);
 	}
 	if (typeof Promise !== 'undefined' && currentExports instanceof Promise) {
 		currentExports.then(fn);
 	} else {
-		fn();
+		fn(currentExports);
 	}
 }
 
