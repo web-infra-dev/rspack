@@ -238,6 +238,7 @@ export interface ResolveOptions {
 	modules?: string[];
 	preferRelative?: boolean;
 	tsConfigPath?: string;
+	fullySpecified?: boolean;
 	byDependency?: {
 		[k: string]: ResolveOptions;
 	};
@@ -258,6 +259,7 @@ export interface RuleSetRule {
 	exclude?: RuleSetCondition;
 	include?: RuleSetCondition;
 	issuer?: RuleSetCondition;
+	dependency?: RuleSetCondition;
 	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;

@@ -48,6 +48,7 @@ export interface RawHtmlPluginConfig {
   filename?: string
   /** template html file */
   template?: string
+  templateContent?: string
   templateParameters?: Record<string, string>
   /** `head`, `body` or None */
   inject?: "head" | "body"
@@ -227,6 +228,7 @@ export interface RawModuleRule {
   generator?: RawModuleRuleGenerator
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
+  dependency?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
 }
 export interface RawModuleRuleGenerator {
@@ -334,6 +336,7 @@ export interface RawResolveOptions {
   tsConfigPath?: string
   modules?: Array<string>
   byDependency?: Record<string, RawResolveOptions>
+  fullySpecified?: boolean
 }
 export interface RawSnapshotStrategy {
   hash: boolean

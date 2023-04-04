@@ -14,3 +14,16 @@ test("hmr should work", async () => {
 	await waitingUpdate(() => page.textContent(".placeholder"), "__EDITED__");
 	expect(await page.textContent("button")).toBe("11");
 });
+
+test("context+component should work", async () => {
+	expect(await page.textContent("#context")).toBe("context-value");
+	await page.click("#context");
+	expect(await page.textContent("#context")).toBe("context-value-click");
+	editFile("src/CountProvider.jsx", content =>
+		content.replace("context-value", "context-value-update")
+	);
+	await waitingUpdate(
+		() => page.textContent("#context"),
+		"context-value-update"
+	);
+});

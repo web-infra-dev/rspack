@@ -6,7 +6,7 @@ module.exports = {
 	devServer: {
 		hot: true
 	},
-	caches: false,
+	cache: false,
 	stats: "none",
 	infrastructureLogging: {
 		debug: false

@@ -68,7 +68,7 @@ impl JsPlugin {
       "#,
     ));
 
-    if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_ID) {
       sources.add(RawSource::from("id: moduleId,"));
     }
 

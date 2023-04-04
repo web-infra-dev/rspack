@@ -173,5 +173,5 @@ jobs:
             npm install -g pnpm@7.25.0
             pnpm install
             pnpm run build:js
-
+            pnpm --filter "example-*" build
             pnpm --filter "@rspack/*" run test

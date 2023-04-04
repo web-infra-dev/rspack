@@ -1,5 +1,23 @@
 # @rspack/binding
 
+## 0.1.6
+
+### Patch Changes
+
+- 18dcca0: feat(rspack_plugin_dev_friendly_split_chunks): reduce MAX_MODULES_PER_CHUNK and add MAX_SIZE_PER_CHUNK condition #2578
+
+## 0.1.5
+
+### Patch Changes
+
+- 7bfcc7b: fix windows path is considered scheme incorrectly
+- 050e4fb: feat: wasm loading types
+- e8db1d7: feat: module.rule[].dependency
+- c82529b: feat: new url in target node
+- 6c08098: fix: add more hash logic
+- 60e0aec: fix require.cache undefined
+- 33e916e: feat: built-in support for ProvidePlugin
+
 ## 0.1.4
 
 ### Patch Changes
