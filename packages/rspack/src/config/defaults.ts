@@ -388,6 +388,10 @@ const applyNodeDefaults = (
 	node: Node,
 	{ targetProperties }: { targetProperties: any }
 ) => {
+	if (node === false) {
+		return;
+	}
+
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";
