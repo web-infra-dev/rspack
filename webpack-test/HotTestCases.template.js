@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 const fs = require("graceful-fs");
@@ -36,16 +36,17 @@ const describeCases = config => {
 						return;
 					}
 					describe(testName, () => {
+						/**@type{import("@rspack/core").MultiCompiler}*/
 						let compiler;
 						afterAll(callback => {
-							compiler.close(callback);
+							compiler?.close(callback);
 							compiler = undefined;
 						});
 
 						it(
 							testName + " should compile",
 							done => {
-								const webpack = require("..");
+								const webpack = require("@rspack/core").rspack;
 								const outputDirectory = path.join(
 									__dirname,
 									"js",

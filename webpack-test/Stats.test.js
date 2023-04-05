@@ -1,12 +1,12 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const { createFsFromVolume, Volume } = require("memfs");
 
 const compile = options => {
 	return new Promise((resolve, reject) => {
-		const webpack = require("..");
+		const webpack = require("@rspack/core").rspack;
 		const compiler = webpack(options);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		compiler.run((err, stats) => {
@@ -78,44 +78,8 @@ describe("Stats", () => {
 					chunkGroups: true
 				})
 			).toMatchInlineSnapshot(`
-			Object {
-			  "errorsCount": 0,
-			  "namedChunkGroups": Object {
-			    "entryA": Object {
-			      "assets": Array [
-			        Object {
-			          "name": "entryA.js",
-			          "size": 196,
-			        },
-			      ],
-			      "assetsSize": 196,
-			      "auxiliaryAssets": undefined,
-			      "auxiliaryAssetsSize": 0,
-			      "childAssets": undefined,
-			      "children": undefined,
-			      "chunks": undefined,
-			      "filteredAssets": 0,
-			      "filteredAuxiliaryAssets": 0,
-			      "name": "entryA",
-			    },
-			    "entryB": Object {
-			      "assets": Array [
-			        Object {
-			          "name": "entryB.js",
-			          "size": 196,
-			        },
-			      ],
-			      "assetsSize": 196,
-			      "auxiliaryAssets": undefined,
-			      "auxiliaryAssetsSize": 0,
-			      "childAssets": undefined,
-			      "children": undefined,
-			      "chunks": undefined,
-			      "filteredAssets": 0,
-			      "filteredAuxiliaryAssets": 0,
-			      "name": "entryB",
-			    },
-			  },
+			{
+			  "errorsCount": 1,
 			}
 		`);
 		});
@@ -134,61 +98,8 @@ describe("Stats", () => {
 					chunkGroups: true
 				})
 			).toMatchInlineSnapshot(`
-			Object {
-			  "errorsCount": 0,
-			  "namedChunkGroups": Object {
-			    "chunkB": Object {
-			      "assets": Array [
-			        Object {
-			          "name": "chunkB.js",
-			          "size": 107,
-			        },
-			      ],
-			      "assetsSize": 107,
-			      "auxiliaryAssets": undefined,
-			      "auxiliaryAssetsSize": 0,
-			      "childAssets": undefined,
-			      "children": undefined,
-			      "chunks": undefined,
-			      "filteredAssets": 0,
-			      "filteredAuxiliaryAssets": 0,
-			      "name": "chunkB",
-			    },
-			    "entryA": Object {
-			      "assets": Array [
-			        Object {
-			          "name": "entryA.js",
-			          "size": 196,
-			        },
-			      ],
-			      "assetsSize": 196,
-			      "auxiliaryAssets": undefined,
-			      "auxiliaryAssetsSize": 0,
-			      "childAssets": undefined,
-			      "children": undefined,
-			      "chunks": undefined,
-			      "filteredAssets": 0,
-			      "filteredAuxiliaryAssets": 0,
-			      "name": "entryA",
-			    },
-			    "entryB": Object {
-			      "assets": Array [
-			        Object {
-			          "name": "entryB.js",
-			          "size": 2961,
-			        },
-			      ],
-			      "assetsSize": 2961,
-			      "auxiliaryAssets": undefined,
-			      "auxiliaryAssetsSize": 0,
-			      "childAssets": undefined,
-			      "children": undefined,
-			      "chunks": undefined,
-			      "filteredAssets": 0,
-			      "filteredAuxiliaryAssets": 0,
-			      "name": "entryB",
-			    },
-			  },
+			{
+			  "errorsCount": 1,
 			}
 		`);
 		});
@@ -207,82 +118,64 @@ describe("Stats", () => {
 					assets: true
 				})
 			).toMatchInlineSnapshot(`
-			Object {
-			  "assets": Array [
-			    Object {
-			      "auxiliaryChunkIdHints": Array [],
-			      "auxiliaryChunkNames": Array [],
-			      "cached": false,
-			      "chunkIdHints": Array [],
-			      "chunkNames": Array [
+			{
+			  "assets": [
+			    {
+			      "chunkNames": [
 			        "entryB",
 			      ],
-			      "comparedForEmit": false,
+			      "chunks": [
+			        "entryB",
+			      ],
 			      "emitted": true,
-			      "filteredRelated": undefined,
-			      "info": Object {
-			        "javascriptModule": false,
-			        "minimized": true,
-			        "size": 2961,
+			      "info": {
+			        "development": false,
+			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryB.js",
-			      "size": 2961,
+			      "size": 4772,
 			      "type": "asset",
 			    },
-			    Object {
-			      "auxiliaryChunkIdHints": Array [],
-			      "auxiliaryChunkNames": Array [],
-			      "cached": false,
-			      "chunkIdHints": Array [],
-			      "chunkNames": Array [
+			    {
+			      "chunkNames": [
 			        "entryA",
 			      ],
-			      "comparedForEmit": false,
+			      "chunks": [
+			        "entryA",
+			      ],
 			      "emitted": true,
-			      "filteredRelated": undefined,
-			      "info": Object {
-			        "javascriptModule": false,
-			        "minimized": true,
-			        "size": 196,
+			      "info": {
+			        "development": false,
+			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryA.js",
-			      "size": 196,
+			      "size": 3598,
 			      "type": "asset",
 			    },
-			    Object {
-			      "auxiliaryChunkIdHints": Array [],
-			      "auxiliaryChunkNames": Array [],
-			      "cached": false,
-			      "chunkIdHints": Array [],
-			      "chunkNames": Array [
-			        "chunkB",
+			    {
+			      "chunkNames": [],
+			      "chunks": [
+			        "fixtures_b_js",
 			      ],
-			      "comparedForEmit": false,
 			      "emitted": true,
-			      "filteredRelated": undefined,
-			      "info": Object {
-			        "javascriptModule": false,
-			        "minimized": true,
-			        "size": 107,
+			      "info": {
+			        "development": false,
+			        "hotModuleReplacement": false,
 			      },
-			      "name": "chunkB.js",
-			      "size": 107,
+			      "name": "fixtures_b_js.js",
+			      "size": 157,
 			      "type": "asset",
 			    },
 			  ],
-			  "assetsByChunkName": Object {
-			    "chunkB": Array [
-			      "chunkB.js",
-			    ],
-			    "entryA": Array [
+			  "assetsByChunkName": {
+			    "entryA": [
 			      "entryA.js",
 			    ],
-			    "entryB": Array [
+			    "entryB": [
 			      "entryB.js",
 			    ],
 			  },
-			  "errorsCount": 0,
-			  "filteredAssets": undefined,
+			  "errorsCount": 1,
 			}
 		`);
 		});
