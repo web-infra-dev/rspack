@@ -69,11 +69,11 @@ pub fn css_modules_exports_to_string(
 ) -> Result<String> {
   let mut code = String::from("module.exports = {\n");
   for (key, elements) in exports {
-    let content = elements
+    let mut class_names = elements
       .iter()
       .map(|element| match element {
         CssClassName::Local { name } | CssClassName::Global { name } => {
-          serde_json::to_string(&format!("{name} ")).expect("TODO:")
+          serde_json::to_string(&format!("{name}")).expect("TODO:")
         }
         CssClassName::Import { name, from } => {
           let name = serde_json::to_string(name).expect("TODO:");
@@ -101,8 +101,14 @@ pub fn css_modules_exports_to_string(
           format!("{}({from})[{name}]", RuntimeGlobals::REQUIRE)
         }
       })
-      .collect::<Vec<_>>()
-      .join(" + ");
+      .collect::<Vec<_>>();
+    let mut n = 1;
+    // insert space between each classname
+    while n < class_names.len() {
+      class_names.insert(n, String::from("\" \""));
+      n += 2;
+    }
+    let content = class_names.join(" + ");
     if locals_convention.as_is() {
       writeln!(
         code,
