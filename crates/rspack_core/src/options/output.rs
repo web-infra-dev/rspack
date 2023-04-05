@@ -56,14 +56,14 @@ impl From<&str> for WasmLoadingType {
 
 #[derive(Debug)]
 pub enum CrossOriginLoading {
-  Disable(bool),
+  Disable,
   Enable(String),
 }
 
 impl std::fmt::Display for CrossOriginLoading {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      CrossOriginLoading::Disable(_) => write!(f, "false"),
+      CrossOriginLoading::Disable => write!(f, "false"),
       CrossOriginLoading::Enable(value) => write!(f, "'{}'", value),
     }
   }

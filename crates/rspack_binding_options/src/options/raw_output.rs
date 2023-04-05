@@ -89,11 +89,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
           .string_payload
           .expect("should have a string_payload when RawCrossOriginLoading.type is \"string\""),
       ),
-      "bool" => Self::Disable(
-        value
-          .bool_payload
-          .expect("should have a bool_payload when RawCrossOriginLoading.type is \"bool\""),
-      ),
+      "bool" => Self::Disable,
       _ => unreachable!(),
     }
   }
