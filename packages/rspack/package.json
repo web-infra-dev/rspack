@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
   "main": "./dist/index.js",
@@ -17,7 +17,11 @@
   ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack"
+  },
   "devDependencies": {
     "@rspack/core": "workspace:*",
     "@rspack/plugin-minify": "workspace:^",

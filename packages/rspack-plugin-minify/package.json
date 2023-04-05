@@ -1,13 +1,17 @@
 {
   "name": "@rspack/plugin-minify",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "MIT",
   "description": "Minify plugin for rspack",
   "main": "src/index.js",
   "scripts": {},
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-plugin-minify"
+  },
   "publishConfig": {
     "access": "public"
   },

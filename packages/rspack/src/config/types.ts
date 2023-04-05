@@ -241,6 +241,7 @@ export interface ResolveOptions {
 	modules?: string[];
 	preferRelative?: boolean;
 	tsConfigPath?: string;
+	fullySpecified?: boolean;
 	byDependency?: {
 		[k: string]: ResolveOptions;
 	};

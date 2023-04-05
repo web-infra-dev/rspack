@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.1.6
+
+### Patch Changes
+
+- 18dcca0: feat(rspack_plugin_dev_friendly_split_chunks): reduce MAX_MODULES_PER_CHUNK and add MAX_SIZE_PER_CHUNK condition #2578
+
 ## 0.1.5
 
 ### Patch Changes

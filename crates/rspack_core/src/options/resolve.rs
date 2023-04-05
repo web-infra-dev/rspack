@@ -38,10 +38,13 @@ pub struct Resolve {
   /// A list of directories to resolve modules from, can be absolute path or folder name.
   /// Default is `["node_modules"]`
   pub modules: Option<Vec<String>>,
-  // Same as `alias`, but only used if default resolving fails
-  // Default is `[]`
+  /// Same as `alias`, but only used if default resolving fails
+  /// Default is `[]`
   pub fallback: Option<Alias>,
-
+  /// Request passed to resolve is already fully specified and
+  /// extensions or main files are not resolved for it.
+  /// Default is `false`.
+  pub fully_specified: Option<bool>,
   pub by_dependency: Option<ByDependency>,
 }
 
@@ -82,7 +85,7 @@ impl Resolve {
       .modules
       .unwrap_or_else(|| vec!["node_modules".to_string()]);
     let fallback = options.fallback.unwrap_or_default();
-
+    let fully_specified = options.fully_specified.unwrap_or_default();
     nodejs_resolver::Options {
       fallback,
       modules,
@@ -99,6 +102,7 @@ impl Resolve {
       condition_names,
       tsconfig,
       resolve_to_context,
+      fully_specified,
     }
   }
 
@@ -170,6 +174,9 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     value
   });
   let symlinks = overwrite(base.symlinks, other.symlinks, |_, value| value);
+  let fully_specified = overwrite(base.fully_specified, other.fully_specified, |_, value| {
+    value
+  });
   let browser_field = overwrite(base.browser_field, other.browser_field, |_, value| value);
   let extensions = overwrite(base.extensions, other.extensions, |base, value| {
     normalize_string_array(&base, value)
@@ -206,6 +213,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     condition_names,
     tsconfig,
     by_dependency,
+    fully_specified,
   }
 }
 

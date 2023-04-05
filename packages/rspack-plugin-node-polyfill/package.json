@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-node-polyfill",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "license": "MIT",
   "description": "Node polyfill plugin for rspack",
   "main": "src/index.js",
@@ -10,7 +10,11 @@
   "access": "public",
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-plugin-node-polyfill"
+  },
   "dependencies": {
     "assert": "^2.0.0",
     "browserify-zlib": "^0.2.0",

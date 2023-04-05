@@ -339,8 +339,5 @@ jobs:
           npm install -g pnpm@7.25.0
           pnpm install
           pnpm run build:js
-
-          pnpm --filter @rspack/core run test
-          pnpm --filter @rspack/dev-server run test
-          pnpm --filter @rspack/plugin-html run test
-          pnpm --filter @rspack/playground run test
+          pnpm --filter "example-*" build
+          pnpm --filter "@rspack/*" run test
