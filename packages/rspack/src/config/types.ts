@@ -141,8 +141,7 @@ export type AssetModuleFilename = string;
 export type WebassemblyModuleFilename = string;
 export type Filename = FilenameTemplate;
 export type ChunkFilename = FilenameTemplate;
-// TODO: false type
-export type CrossOriginLoading = "anonymous" | "use-credentials";
+export type CrossOriginLoading = false | "anonymous" | "use-credentials";
 export type CssFilename = FilenameTemplate;
 export type CssChunkFilename = FilenameTemplate;
 export type FilenameTemplate = string;

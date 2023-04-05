@@ -6,7 +6,6 @@ use std::{
 
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
-use serde::Deserialize;
 use sugar_path::SugarPath;
 
 use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
@@ -55,36 +54,17 @@ impl From<&str> for WasmLoadingType {
   }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub enum CrossOriginLoading {
-  Enable(CrossOriginLoadingType),
-  Disable,
-}
-
-#[derive(Debug, Deserialize)]
-pub enum CrossOriginLoadingType {
-  Anonymous,
-  UseCredentials,
-}
-
-impl From<&str> for CrossOriginLoadingType {
-  fn from(value: &str) -> Self {
-    match value {
-      "anonymous" => Self::Anonymous,
-      "use-credentials" => Self::UseCredentials,
-      _ => todo!(),
-    }
-  }
+  Disable(bool),
+  Enable(String),
 }
 
 impl std::fmt::Display for CrossOriginLoading {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      CrossOriginLoading::Disable => write!(f, "false"),
-      CrossOriginLoading::Enable(CrossOriginLoadingType::Anonymous) => write!(f, "'anonymous'"),
-      CrossOriginLoading::Enable(CrossOriginLoadingType::UseCredentials) => {
-        write!(f, "'use-credentials'")
-      }
+      CrossOriginLoading::Disable(_) => write!(f, "false"),
+      CrossOriginLoading::Enable(value) => write!(f, "'{}'", value),
     }
   }
 }

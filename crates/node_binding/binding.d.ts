@@ -303,6 +303,11 @@ export interface RawLibraryOptions {
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
 }
+export interface RawCrossOriginLoading {
+  type: boolean | string
+  stringPayload?: string
+  boolPayload?: boolean
+}
 export interface RawOutputOptions {
   path: string
   publicPath: string
@@ -312,7 +317,7 @@ export interface RawOutputOptions {
   webassemblyModuleFilename: string
   filename: string
   chunkFilename: string
-  crossOriginLoading: "anonymous" | "use-credentials"
+  crossOriginLoading: RawCrossOriginLoading
   cssFilename: string
   cssChunkFilename: string
   uniqueName: string
