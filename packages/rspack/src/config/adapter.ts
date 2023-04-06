@@ -48,8 +48,10 @@ export const getRawOptions = (
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
+	let rawEntry = getRawEntry(options.entry);
 	return {
-		entry: getRawEntry(options.entry),
+		entry: rawEntry,
+		entryOrder: Object.keys(rawEntry),
 		mode: options.mode,
 		target: getRawTarget(options.target),
 		context: options.context,

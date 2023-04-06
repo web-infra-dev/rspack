@@ -378,6 +378,12 @@ export interface RawStatsOptions {
 }
 export interface RawOptions {
   entry: Record<string, RawEntryItem>
+  /**
+   * Using this Vector to track the original order of user land entry configuration
+   * std::collection::HashMap does not guarantee the insertion order, for more details you could refer
+   * https://doc.rust-lang.org/std/collections/index.html#iterators:~:text=For%20unordered%20collections%20like%20HashMap%2C%20the%20items%20will%20be%20yielded%20in%20whatever%20order%20the%20internal%20representation%20made%20most%20convenient.%20This%20is%20great%20for%20reading%20through%20all%20the%20contents%20of%20the%20collection.
+   */
+  entryOrder: Array<string>
   mode?: undefined | 'production' | 'development' | 'none'
   target: Array<string>
   context: string
