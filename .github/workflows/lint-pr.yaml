@@ -24,13 +24,13 @@ jobs:
             feat
             docs
             style
+            refactor
             perf
             test
             build
             ci
             chore
             revert
-            refactor
           # Configure which scopes are allowed (newline-delimited).
           # These are regex patterns auto-wrapped in `^ $`.
           scopes: |
