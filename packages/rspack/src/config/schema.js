@@ -331,6 +331,10 @@ module.exports = {
 							type: "boolean"
 						}
 					]
+				},
+				outputModule: {
+					description: "Allow output javascript files as module source type.",
+					type: "boolean"
 				}
 			}
 		},

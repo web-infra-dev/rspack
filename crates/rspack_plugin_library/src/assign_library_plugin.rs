@@ -7,6 +7,8 @@ use rspack_core::{
   RenderStartupArgs, SourceType,
 };
 
+use crate::utils::property_access;
+
 #[derive(Debug)]
 pub enum Unnamed {
   Error,
@@ -153,14 +155,6 @@ fn property_library(library: &Option<LibraryOptions>) -> String {
     }
   }
   String::default()
-}
-
-fn property_access(o: &Vec<String>) -> String {
-  let mut str = String::default();
-  for property in o {
-    str.push_str(format!(r#"["{property}"]"#).as_str());
-  }
-  str
 }
 
 fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: bool) -> String {

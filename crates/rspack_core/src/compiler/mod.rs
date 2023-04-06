@@ -139,7 +139,14 @@ where
     let option = self.options.clone();
     self.compilation.make(params).await?;
     self.compilation.finish(self.plugin_driver.clone()).await?;
-    if option.builtins.tree_shaking {
+    if option.builtins.tree_shaking
+      || option
+        .output
+        .enabled_library_types
+        .as_ref()
+        .map(|types| types.contains(&"module".to_string()))
+        .is_some()
+    {
       let (analyze_result, diagnostics) = self
         .compilation
         .optimize_dependency()
@@ -152,12 +159,7 @@ where
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
-
-      // This is only used when testing
-      #[cfg(debug_assertions)]
-      {
-        self.compilation.tree_shaking_result = analyze_result.analyze_results;
-      }
+      self.compilation.tree_shaking_result = analyze_result.analyze_results;
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 

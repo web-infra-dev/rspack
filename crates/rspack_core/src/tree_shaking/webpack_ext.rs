@@ -9,7 +9,7 @@ pub trait ExportInfoExt {
 }
 
 pub struct ExportInfo {
-  name: JsWord,
+  pub name: JsWord,
 }
 
 impl ExportInfoExt for TreeShakingResult {
