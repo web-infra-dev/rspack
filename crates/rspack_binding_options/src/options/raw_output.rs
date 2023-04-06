@@ -75,7 +75,7 @@ impl From<RawLibraryOptions> for LibraryOptions {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawCrossOriginLoading {
-  #[napi(ts_type = "boolean | string")]
+  #[napi(ts_type = r#""bool" | "string""#)]
   pub r#type: String,
   pub string_payload: Option<String>,
   pub bool_payload: Option<bool>,
