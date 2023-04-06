@@ -8,11 +8,11 @@ body:
     attributes:
       label: What subject does this issue tracking?
       value: |
-        [Subject]
+        # [Subject]
 
-         - ```[tasklist]
-         - ### Tasks
-         - - [ ] Add a draft title or issue reference here
-         - ```
+        ```[tasklist]
+        ### Tasks
+        - [ ] Add a draft title or issue reference here
+        ```
     validations:
       required: true
