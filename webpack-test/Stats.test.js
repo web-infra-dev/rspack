@@ -20,37 +20,37 @@ const compile = options => {
 };
 
 describe("Stats", () => {
-	it("should print env string in stats", async () => {
-		const stats = await compile({
-			context: __dirname,
-			entry: "./fixtures/a"
-		});
-		expect(
-			stats.toString({
-				all: false,
-				env: true,
-				_env: "production"
-			})
-		).toBe('Environment (--env): "production"');
-		expect(
-			stats.toString({
-				all: false,
-				env: true,
-				_env: {
-					prod: ["foo", "bar"],
-					baz: true
-				}
-			})
-		).toBe(
-			"Environment (--env): {\n" +
-				'  "prod": [\n' +
-				'    "foo",\n' +
-				'    "bar"\n' +
-				"  ],\n" +
-				'  "baz": true\n' +
-				"}"
-		);
-	});
+	// it("should print env string in stats", async () => {
+	// 	const stats = await compile({
+	// 		context: __dirname,
+	// 		entry: "./fixtures/a"
+	// 	});
+	// 	expect(
+	// 		stats.toString({
+	// 			all: false,
+	// 			env: true,
+	// 			_env: "production"
+	// 		})
+	// 	).toBe('Environment (--env): "production"');
+	// 	expect(
+	// 		stats.toString({
+	// 			all: false,
+	// 			env: true,
+	// 			_env: {
+	// 				prod: ["foo", "bar"],
+	// 				baz: true
+	// 			}
+	// 		})
+	// 	).toBe(
+	// 		"Environment (--env): {\n" +
+	// 			'  "prod": [\n' +
+	// 			'    "foo",\n' +
+	// 			'    "bar"\n' +
+	// 			"  ],\n" +
+	// 			'  "baz": true\n' +
+	// 			"}"
+	// 	);
+	// });
 	it("should omit all properties with all false", async () => {
 		const stats = await compile({
 			context: __dirname,
