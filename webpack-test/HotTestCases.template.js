@@ -39,7 +39,7 @@ const describeCases = config => {
 						/**@type{import("@rspack/core").MultiCompiler}*/
 						let compiler;
 						afterAll(callback => {
-							compiler?.close(callback);
+							compiler.close(callback);
 							compiler = undefined;
 						});
 
