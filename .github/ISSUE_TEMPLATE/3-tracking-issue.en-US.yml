@@ -12,7 +12,7 @@ body:
 
         ```[tasklist]
         ### Tasks
-        [ ] Add a draft title or issue reference here
+        - [ ] Add a draft title or issue reference here
         ```
     validations:
       required: true
