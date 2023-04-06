@@ -395,7 +395,7 @@ export interface RawOptions {
   snapshot: RawSnapshotOptions
   cache: RawCacheOptions
   experiments: RawExperiments
-  node: RawNodeOption
+  node?: RawNodeOption
 }
 export interface JsAssetInfoRelated {
   sourceMap?: string

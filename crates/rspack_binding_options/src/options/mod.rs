@@ -76,7 +76,7 @@ pub struct RawOptions {
   pub snapshot: RawSnapshotOptions,
   pub cache: RawCacheOptions,
   pub experiments: RawExperiments,
-  pub node: RawNodeOption,
+  pub node: Option<RawNodeOption>,
 }
 
 impl RawOptionsApply for RawOptions {
@@ -100,7 +100,7 @@ impl RawOptionsApply for RawOptions {
     let cache = self.cache.into();
     let snapshot = self.snapshot.into();
     let optimization = self.optimization.apply(plugins)?;
-    let node = self.node.into();
+    let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
     let builtins = self.builtins.apply(plugins)?;
 

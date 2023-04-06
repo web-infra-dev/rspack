@@ -69,14 +69,17 @@ impl JsPlugin {
     ));
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_ID) {
-      sources.add(RawSource::from("id: moduleId,"));
+      sources.add(RawSource::from("id: moduleId,\n"));
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
+      sources.add(RawSource::from("loaded: false,\n"));
     }
 
     sources.add(RawSource::from(
-      r#"// no module.loaded needed
-          exports: {}
-        });
-        // Execute the module function
+      r#" exports: {} 
+      });
+      // Execute the module function
       "#,
     ));
 

@@ -184,6 +184,8 @@ bitflags! {
      * the baseURI of current document
      */
     const BASE_URI = 1 << 32;
+
+    const MODULE_LOADED = 1 << 33;
   }
 }
 
@@ -215,6 +217,7 @@ impl RuntimeGlobals {
       R::LOAD_CHUNK_WITH_MODULE => "__webpack_require__.el",
       R::MODULE => "module",
       R::MODULE_ID => "module.id",
+      R::MODULE_LOADED => "module.loaded",
       R::REQUIRE => "__webpack_require__",
       R::MODULE_CACHE => "__webpack_require__.c",
       R::ENSURE_CHUNK => "__webpack_require__.e",

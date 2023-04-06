@@ -423,11 +423,11 @@ impl TestConfig {
       cache: c::CacheOptions::Disabled,
       experiments: Default::default(),
       dev_server: Default::default(),
-      node: c::NodeOption {
+      node: Some(c::NodeOption {
         dirname: "mock".to_string(),
         filename: "mock".to_string(),
         global: "warn".to_string(),
-      },
+      }),
       optimization: c::Optimization {
         remove_available_modules: self.optimization.remove_available_modules,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
