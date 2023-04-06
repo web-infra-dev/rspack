@@ -11,6 +11,7 @@ import assert from "assert";
 import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
+	CrossOriginLoading,
 	EntryNormalized,
 	Experiments,
 	ExternalItem,
@@ -144,6 +145,15 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	};
 }
 
+function getRawCrossOriginLoading(
+	crossOriginLoading: CrossOriginLoading
+): RawOptions["output"]["crossOriginLoading"] {
+	if (typeof crossOriginLoading === "boolean") {
+		return { type: "bool", boolPayload: crossOriginLoading };
+	}
+	return { type: "string", stringPayload: crossOriginLoading };
+}
+
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	const wasmLoading = output.wasmLoading!;
 	return {
@@ -152,6 +162,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
 		chunkFilename: output.chunkFilename!,
+		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
 		uniqueName: output.uniqueName!,

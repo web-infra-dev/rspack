@@ -369,6 +369,7 @@ impl TestConfig {
       output: c::OutputOptions {
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
         chunk_filename: c::Filename::from_str(&self.output.chunk_filename).expect("Should exist"),
+        cross_origin_loading: rspack_core::CrossOriginLoading::Disable,
         css_filename: c::Filename::from_str(&self.output.css_filename).expect("Should exist"),
         css_chunk_filename: c::Filename::from_str(&self.output.css_chunk_filename)
           .expect("Should exist"),

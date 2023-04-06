@@ -227,6 +227,7 @@ describe("snapshots", () => {
 		  "output": {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "chunkFilename": "[name].js",
+		    "crossOriginLoading": false,
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",
 		    "enabledLibraryTypes": [],
@@ -603,9 +604,10 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
+		+     "chunkFilename": "[id].bundle.js",
+		@@ ... @@
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		+     "chunkFilename": "[id].bundle.js",
 		+     "cssChunkFilename": "[id].bundle.css",
 		+     "cssFilename": "bundle.css",
 		@@ ... @@
@@ -620,9 +622,10 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
+		+     "chunkFilename": "[id].js",
+		@@ ... @@
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		+     "chunkFilename": "[id].js",
 		+     "cssChunkFilename": "[id].css",
 		+     "cssFilename": "[id].css",
 		@@ ... @@

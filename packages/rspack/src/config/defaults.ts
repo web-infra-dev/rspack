@@ -375,6 +375,8 @@ const applyOutputDefaults = (
 		// });
 		return Array.from(enabledWasmLoadingTypes);
 	});
+
+	D(output, "crossOriginLoading", false);
 };
 
 const applyExternalsPresetsDefaults = (

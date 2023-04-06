@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, LibraryAuxiliaryComment, LibraryName, LibraryOptions, OutputOptions, PluginExt,
-  WasmLoading,
+  BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName, LibraryOptions,
+  OutputOptions, PluginExt, WasmLoading,
 };
 use serde::Deserialize;
 
@@ -71,6 +71,30 @@ impl From<RawLibraryOptions> for LibraryOptions {
   }
 }
 
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCrossOriginLoading {
+  #[napi(ts_type = "boolean | string")]
+  pub r#type: String,
+  pub string_payload: Option<String>,
+  pub bool_payload: Option<bool>,
+}
+
+impl From<RawCrossOriginLoading> for CrossOriginLoading {
+  fn from(value: RawCrossOriginLoading) -> Self {
+    match value.r#type.as_str() {
+      "string" => Self::Enable(
+        value
+          .string_payload
+          .expect("should have a string_payload when RawCrossOriginLoading.type is \"string\""),
+      ),
+      "bool" => Self::Disable,
+      _ => unreachable!(),
+    }
+  }
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -83,6 +107,7 @@ pub struct RawOutputOptions {
   pub webassembly_module_filename: String,
   pub filename: String,
   pub chunk_filename: String,
+  pub cross_origin_loading: RawCrossOriginLoading,
   pub css_filename: String,
   pub css_chunk_filename: String,
   pub unique_name: String,
@@ -117,6 +142,7 @@ impl RawOptionsApply for RawOutputOptions {
       unique_name: self.unique_name,
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
+      cross_origin_loading: self.cross_origin_loading.into(),
       css_filename: self.css_filename.into(),
       css_chunk_filename: self.css_chunk_filename.into(),
       library: self.library.map(Into::into),
