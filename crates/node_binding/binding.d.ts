@@ -304,7 +304,7 @@ export interface RawLibraryOptions {
   auxiliaryComment?: RawLibraryAuxiliaryComment
 }
 export interface RawCrossOriginLoading {
-  type: boolean | string
+  type: "bool" | "string"
   stringPayload?: string
   boolPayload?: boolean
 }
