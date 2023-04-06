@@ -585,16 +585,19 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 factory_result,
-                module_graph_module,
+                mut module_graph_module,
                 diagnostics,
                 dependencies,
               } = task_result;
+              let module_identifier = factory_result.module.identifier();
 
-              tracing::trace!("Module created: {}", factory_result.module.identifier());
+              tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
                 make_failed_dependencies.insert(dependencies[0]);
               }
 
+              module_graph_module.set_issuer_if_unset(original_module_identifier);
+              module_graph_module.factory_meta = Some(factory_result.factory_meta);
               self.push_batch_diagnostic(diagnostics);
 
               self

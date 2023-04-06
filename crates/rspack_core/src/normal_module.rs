@@ -28,8 +28,8 @@ use crate::{
   contextify, is_async_dependency, module_graph::ConnectionId, AssetGeneratorOptions,
   AssetParserOptions, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
   ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
-  DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  DependencyId, FactoryMeta, GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
   ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
 };
 
@@ -88,6 +88,7 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
   pub used: bool,
+  pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
 }
@@ -111,6 +112,7 @@ impl ModuleGraphModule {
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
       used: default_used,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
     }
