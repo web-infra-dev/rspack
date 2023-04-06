@@ -29,7 +29,8 @@ use super::{
   BailoutFlag,
 };
 use crate::{
-  CompilerOptions, Dependency, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax,
+  CompilerOptions, Dependency, DependencyType, FactoryMeta, ModuleGraph, ModuleIdentifier,
+  ModuleSyntax,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1082,10 +1083,9 @@ impl<'a> ModuleRefAnalyze<'a> {
     if let Some(mgm) = self
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
-      && let Some(factory_meta) = &mgm.factory_meta
-      && let Some(side_effects) = factory_meta.side_effects
+      && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
     {
-      return Some(SideEffect::Analyze(side_effects))
+      return Some(SideEffect::Analyze(*side_effects))
     }
 
     let resource_data = self
