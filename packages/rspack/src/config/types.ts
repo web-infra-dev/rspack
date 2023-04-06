@@ -400,9 +400,8 @@ export type DevTool =
 	| "eval-nosources-source-map";
 
 ///// Node /////
-export type Node = NodeOptions;
-// TODO: align with webpack
-// | false;
+export type Node = false | NodeOptions;
+
 export interface NodeOptions {
 	__dirname?: false | true | "warn-mock" | "mock" | "eval-only";
 	__filename?: false | true | "warn-mock" | "mock" | "eval-only";

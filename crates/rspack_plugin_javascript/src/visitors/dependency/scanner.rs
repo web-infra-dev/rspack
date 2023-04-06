@@ -4,9 +4,8 @@ use rspack_core::{
   RequireContextDependency, ResourceData, RuntimeGlobals,
 };
 use rspack_regex::RspackRegex;
-use sugar_path::SugarPath;
 use swc_core::common::DUMMY_SP;
-use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
+use swc_core::common::{pass::AstNodePath, SyntaxContext};
 use swc_core::ecma::ast::{
   AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit,
   MemberExpr, MemberProp, MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Pat, PatOrExpr, Tpl,
@@ -23,14 +22,11 @@ use crate::dependency::{
 };
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
-pub const DIR_NAME: &str = "__dirname";
-pub const FILE_NAME: &str = "__filename";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
-pub const GLOBAL: &str = "global";
 
 pub struct DependencyScanner<'a> {
-  pub unresolved_ctxt: SyntaxContext,
+  pub unresolved_ctxt: &'a SyntaxContext,
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   pub compiler_options: &'a CompilerOptions,
@@ -59,7 +55,7 @@ impl DependencyScanner<'_> {
   fn add_require(&mut self, call_expr: &CallExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
+        if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
           {
             if call_expr.args.len() != 1 {
               return;
@@ -309,7 +305,7 @@ impl VisitAstPath for DependencyScanner<'_> {
     }) = expr
     {
       // variable can be assigned
-      if ident.span.ctxt == self.unresolved_ctxt {
+      if ident.span.ctxt == *self.unresolved_ctxt {
         #[allow(clippy::single_match)]
         match ident.sym.as_ref() as &str {
           WEBPACK_PUBLIC_PATH => {
@@ -332,7 +328,7 @@ impl VisitAstPath for DependencyScanner<'_> {
 
     if let Expr::Ident(ident) = expr {
       // match empty context because the ast of react refresh visitor not resolve mark
-      if ident.span.ctxt == self.unresolved_ctxt || ident.span.ctxt == SyntaxContext::empty() {
+      if ident.span.ctxt == *self.unresolved_ctxt || ident.span.ctxt == SyntaxContext::empty() {
         match ident.sym.as_ref() as &str {
           WEBPACK_HASH => {
             self.add_presentational_dependency(box ConstDependency::new(
@@ -367,61 +363,6 @@ impl VisitAstPath for DependencyScanner<'_> {
               ));
             }
           }
-          DIR_NAME => {
-            let dirname = match self.compiler_options.node.dirname.as_str() {
-              "mock" => Some("/".to_string()),
-              "warn-mock" => Some("/".to_string()),
-              "true" => Some(
-                self
-                  .resource_data
-                  .resource_path
-                  .parent()
-                  .expect("TODO:")
-                  .relative(self.compiler_options.context.as_ref())
-                  .to_string_lossy()
-                  .to_string(),
-              ),
-              _ => None,
-            };
-            if let Some(dirname) = dirname {
-              self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Lit(Lit::Str(quote_str!(dirname))),
-                None,
-                as_parent_path(ast_path),
-              ));
-            }
-          }
-          FILE_NAME => {
-            let filename = match self.compiler_options.node.filename.as_str() {
-              "mock" => Some("/index.js".to_string()),
-              "warn-mock" => Some("/index.js".to_string()),
-              "true" => Some(
-                self
-                  .resource_data
-                  .resource_path
-                  .relative(self.compiler_options.context.as_ref())
-                  .to_string_lossy()
-                  .to_string(),
-              ),
-              _ => None,
-            };
-            if let Some(filename) = filename {
-              self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Lit(Lit::Str(quote_str!(filename))),
-                None,
-                as_parent_path(ast_path),
-              ));
-            }
-          }
-          GLOBAL => {
-            if matches!(self.compiler_options.node.global.as_str(), "true" | "warn") {
-              self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Ident(quote_ident!(RuntimeGlobals::GLOBAL)),
-                Some(RuntimeGlobals::GLOBAL),
-                as_parent_path(ast_path),
-              ));
-            }
-          }
           _ => {}
         }
       }
@@ -444,14 +385,14 @@ impl VisitAstPath for DependencyScanner<'_> {
 
 impl<'a> DependencyScanner<'a> {
   pub fn new(
-    unresolved_mark: Mark,
+    unresolved_ctxt: &'a SyntaxContext,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
     presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   ) -> Self {
     Self {
-      unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
+      unresolved_ctxt,
       dependencies,
       presentational_dependencies,
       compiler_options,
