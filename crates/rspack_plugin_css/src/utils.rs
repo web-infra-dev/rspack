@@ -73,7 +73,7 @@ pub fn css_modules_exports_to_string(
       .iter()
       .map(|element| match element {
         CssClassName::Local { name } | CssClassName::Global { name } => {
-          serde_json::to_string(&format!("{name}")).expect("TODO:")
+          serde_json::to_string(name).expect("TODO:")
         }
         CssClassName::Import { name, from } => {
           let name = serde_json::to_string(name).expect("TODO:");
