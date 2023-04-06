@@ -2,6 +2,7 @@ import path from "path";
 import { createFsFromVolume, Volume } from "memfs";
 import { FileSystemInfoEntry, Watcher } from "../src/util/fs";
 import { MultiRspackOptions, rspack, RspackOptions } from "../src";
+import { assert } from "console";
 
 const createMultiCompiler = (
 	options?: RspackOptions[] | { parallelism?: number }
@@ -467,6 +468,32 @@ describe("MultiCompiler", function () {
 					done(e);
 				}
 			});
+		});
+	}, 20000);
+
+	// issue #2585
+	it("should respect parallelism when using watching", done => {
+		const configMaps: any = [];
+
+		for (let index = 0; index < 3; index++) {
+			configMaps.push({
+				name: index.toString(),
+				mode: "development",
+				entry: "./src/main.jsx",
+				devServer: {
+					hot: true
+				}
+			});
+		}
+		configMaps.parallelism = 1;
+		const compiler = rspack(configMaps);
+
+		compiler.watch({}, err => {
+			if (err) {
+				done(err);
+			} else {
+				done();
+			}
 		});
 	}, 20000);
 

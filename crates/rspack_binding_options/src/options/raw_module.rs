@@ -186,18 +186,19 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
               rspack_binding_macros::js_fn_into_theadsafe_fn!(func_matcher, &Env::from(env));
             Ok(func_matcher)
           })?;
+        let func_matcher = Arc::new(func_matcher);
 
-        Self::Func(Box::new(move |data| {
-          tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(async {
-              func_matcher
-                .call(data.to_string(), ThreadsafeFunctionCallMode::NonBlocking)
-                .into_rspack_result()?
-                .await
-                .map_err(|err| {
-                  internal_error!("Failed to call RuleSetCondition func_matcher: {err}")
-                })?
-            })
+        Self::Func(Box::new(move |data: &str| {
+          let func_matcher = func_matcher.clone();
+          let data = data.to_string();
+          Box::pin(async move {
+            func_matcher
+              .call(data, ThreadsafeFunctionCallMode::NonBlocking)
+              .into_rspack_result()?
+              .await
+              .map_err(|err| {
+                internal_error!("Failed to call RuleSetCondition func_matcher: {err}")
+              })?
           })
         }))
       }

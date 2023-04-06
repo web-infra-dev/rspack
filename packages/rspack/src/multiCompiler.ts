@@ -66,8 +66,6 @@ export class MultiCompiler {
 	// @ts-expect-error
 	context: string;
 	compilers: Compiler[];
-	// @ts-expect-error
-	compilation: Compilation;
 	dependencies: WeakMap<Compiler, string[]>;
 	hooks: {
 		done: SyncHook<MultiStats>;
