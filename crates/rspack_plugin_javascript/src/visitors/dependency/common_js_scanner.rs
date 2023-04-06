@@ -24,12 +24,12 @@ impl Visit for CommonJsScanner<'_> {
   noop_visit_type!();
 
   fn visit_expr(&mut self, expr: &Expr) {
-    if match_member_expr(&expr, "module.id") {
+    if match_member_expr(expr, "module.id") {
       self.add_presentational_dependency(box RuntimeRequirementsDependency::new(
         RuntimeGlobals::MODULE_ID,
       ));
     }
-    if match_member_expr(&expr, "module.loaded") {
+    if match_member_expr(expr, "module.loaded") {
       self.add_presentational_dependency(box RuntimeRequirementsDependency::new(
         RuntimeGlobals::MODULE_LOADED,
       ));
