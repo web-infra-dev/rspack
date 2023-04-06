@@ -27,7 +27,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     RawSource::from(include_str!("runtime/load_script.js").replace(
       "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-      &compilation.options.output.cross_origin_loading,
+      &compilation.options.output.cross_origin_loading.to_string(),
     ))
     .boxed()
   }
