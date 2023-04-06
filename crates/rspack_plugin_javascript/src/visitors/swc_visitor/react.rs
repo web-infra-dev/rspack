@@ -53,7 +53,7 @@ impl Visit for FoundReactRefreshVisitor {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "$RefreshReg$".eq(&ident.sym) {
+        if "$RefreshReg$".eq(&ident.sym) || "$RefreshSig$".eq(&ident.sym) {
           self.is_refresh_boundary = true;
         }
       }
