@@ -115,6 +115,12 @@ impl JsPlugin {
       sources.add(module_execution);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
+      sources.add(RawSource::from(
+        "// Flag the module as loaded \n module.loaded = true;\n",
+      ));
+    }
+
     sources.add(RawSource::from(
       "// Return the exports of the module\n return module.exports;\n",
     ));
