@@ -104,7 +104,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       source.add(RawSource::from(
         include_str!("runtime/css_loading.js").replace(
           "__CROSS_ORIGIN_LOADING_PLACEHOLDER__",
-          &compilation.options.output.cross_origin_loading.to_string(),
+          &compilation.options.output.cross_origin_loading,
         ),
       ));
 
