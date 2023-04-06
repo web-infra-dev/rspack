@@ -2339,6 +2339,7 @@ dependencies = [
  "cfg-if",
  "dashmap",
  "glob",
+ "indexmap",
  "napi",
  "napi-derive",
  "once_cell",

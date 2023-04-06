@@ -1,5 +1,7 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::collections::HashMap;
+use std::fmt::Debug;
 
+use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
@@ -88,7 +90,7 @@ impl RawOptionsApply for RawOptions {
       .entry
       .into_iter()
       .map(|(name, item)| (name, item.into()))
-      .collect::<HashMap<String, EntryItem>>();
+      .collect::<IndexMap<String, EntryItem>>();
     let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();
