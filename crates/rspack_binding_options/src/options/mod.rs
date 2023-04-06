@@ -89,11 +89,10 @@ impl RawOptionsApply for RawOptions {
 
   fn apply(mut self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
-    let mut entry = std::mem::take(&mut self.entry);
     let entry = self
       .__entry_order
-      .iter()
-      .filter_map(|key| entry.remove_entry(key).map(|(k, v)| (k, v.into())))
+      .into_iter()
+      .filter_map(|key| self.entry.remove_entry(&key).map(|(k, v)| (k, v.into())))
       .collect::<IndexMap<String, EntryItem>>();
     let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
