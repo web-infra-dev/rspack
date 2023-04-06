@@ -240,6 +240,12 @@ importers:
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
+  examples/library:
+    specifiers:
+      '@rspack/cli': workspace:*
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+
   examples/loader-compat:
     specifiers:
       '@babel/preset-env': 7.20.2
