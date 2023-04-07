@@ -527,26 +527,17 @@ impl<'a> CodeSizeOptimizer<'a> {
       .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
     for dep in mgm.dependencies.iter() {
-      let module_ident = match module_graph.module_identifier_by_dependency_id(dep) {
-        Some(module_identifier) => *module_identifier,
-        None => {
-          match module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| module.as_normal_module())
-            .map(|normal_module| normal_module.ast_or_source())
-          {
-            Some(ast_or_source) => {
-              if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
-                // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-                continue;
-              } else {
-                panic!("Failed to resolve {dep:?}")
-              }
-            }
-            None => {
-              panic!("Failed to get normal module of {}", mgm.module_identifier);
-            }
-          };
+      let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
+        let ast_or_source = module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .and_then(|module| module.as_normal_module())
+          .map(|normal_module| normal_module.ast_or_source())
+          .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
+        if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
+          // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+          continue;
+        } else {
+          panic!("Failed to resolve {dep:?}")
         }
       };
       module_ident_list.push(module_ident);
