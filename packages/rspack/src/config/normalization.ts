@@ -44,10 +44,12 @@ export const getNormalizedRspackOptions = (
 							name: libraryAsName
 					  } as LibraryOptions)
 					: undefined;
+
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
 				filename: output.filename,
+				clear: output.clear,
 				chunkFilename: output.chunkFilename,
 				crossOriginLoading: output.crossOriginLoading,
 				cssFilename: output.cssFilename,

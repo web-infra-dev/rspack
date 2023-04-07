@@ -969,6 +969,10 @@ module.exports = {
 				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
 			type: "boolean"
 		},
+		Clear: {
+			description: "Clears the output build directory",
+			type: "boolean"
+		},
 		Output: {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
@@ -977,6 +981,9 @@ module.exports = {
 			properties: {
 				iife: {
 					$ref: "#/definitions/Iife"
+				},
+				clear: {
+					$ref: "#/definitions/Clear"
 				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"

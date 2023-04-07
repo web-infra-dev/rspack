@@ -1,8 +1,10 @@
+import { join } from "path";
+
 export interface ThreadsafeWritableNodeFS {
 	writeFile: (...args: any[]) => any;
 	mkdir: (...args: any[]) => any;
 	mkdirp: (...args: any[]) => any;
-	remove_dir_all: (...args: any[]) => any;
+	rm: (...args: any[]) => any;
 }
 
 function createThreadsafeNodeFSFromRaw(
@@ -15,11 +17,29 @@ function createThreadsafeNodeFSFromRaw(
 			fs.mkdirSync(dir, {
 				recursive: true
 			}),
-		remove_dir_all: dir =>
-			fs.rmSync(dir, {
-				recursive: true
-			})
+		rm: dir => {
+			// memfs don't support rmSync
+			rmrfBuild(fs)(dir);
+		}
 	};
 }
+
+const rmrfBuild = (fs: typeof import("fs")) => {
+	const rmrf = (dir: string) => {
+		if (fs.existsSync(dir)) {
+			const files = fs.readdirSync(dir);
+			files.forEach(file => {
+				const filePath = join(dir, file);
+				if (fs.lstatSync(filePath).isDirectory()) {
+					rmrf(filePath);
+				} else {
+					fs.unlinkSync(filePath);
+				}
+			});
+			fs.rmdirSync(dir);
+		}
+	};
+	return rmrf;
+};
 
 export { createThreadsafeNodeFSFromRaw };
