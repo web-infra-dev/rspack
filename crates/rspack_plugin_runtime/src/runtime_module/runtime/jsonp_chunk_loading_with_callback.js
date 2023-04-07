@@ -28,8 +28,8 @@ var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
 	return __webpack_require__.O(result);
 };
 
-var chunkLoadingGlobal = (self["webpackChunkwebpack"] =
-	self["webpackChunkwebpack"] || []);
+var chunkLoadingGlobal = (self[CHUNK_LOADING_GLOBAL_NAME] =
+	self[CHUNK_LOADING_GLOBAL_NAME] || []);
 chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));
 chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 	null,

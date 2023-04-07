@@ -54,6 +54,7 @@ export const getNormalizedRspackOptions = (
 				assetModuleFilename: output.assetModuleFilename,
 				webassemblyModuleFilename: output.webassemblyModuleFilename,
 				uniqueName: output.uniqueName,
+				chunkLoadingGlobal: output.chunkLoadingGlobal,
 				enabledLibraryTypes: output.enabledLibraryTypes
 					? [...output.enabledLibraryTypes]
 					: ["..."],

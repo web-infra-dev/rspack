@@ -311,6 +311,7 @@ export interface RawOutputOptions {
   cssFilename: string
   cssChunkFilename: string
   uniqueName: string
+  chunkLoadingGlobal: string
   library?: RawLibraryOptions
   strictModuleErrorHandling: boolean
   enabledLibraryTypes?: Array<string>

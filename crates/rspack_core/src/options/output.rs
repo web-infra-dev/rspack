@@ -17,6 +17,7 @@ pub struct OutputOptions {
   pub asset_module_filename: Filename,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
+  pub chunk_loading_global: String,
   //todo we are not going to support file_name & chunk_file_name as function in the near feature
   pub filename: Filename,
   pub chunk_filename: Filename,

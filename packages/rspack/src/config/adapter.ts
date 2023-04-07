@@ -154,6 +154,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 			!isNil(output.cssFilename) &&
 			!isNil(output.cssChunkFilename) &&
 			!isNil(output.uniqueName) &&
+			!isNil(output.chunkLoadingGlobal) &&
 			!isNil(output.enabledLibraryTypes) &&
 			!isNil(output.strictModuleErrorHandling) &&
 			!isNil(output.globalObject) &&
@@ -173,6 +174,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		cssFilename: output.cssFilename,
 		cssChunkFilename: output.cssChunkFilename,
 		uniqueName: output.uniqueName,
+		chunkLoadingGlobal: output.chunkLoadingGlobal,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling,

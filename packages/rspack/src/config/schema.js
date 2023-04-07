@@ -1052,6 +1052,9 @@ module.exports = {
 				},
 				uniqueName: {
 					$ref: "#/definitions/UniqueName"
+				},
+				chunkLoadingGlobal: {
+					$ref: "#/definitions/ChunkLoadingGlobal"
 				}
 			}
 		},
