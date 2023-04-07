@@ -133,6 +133,7 @@ pub struct JsStatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub r#type: Option<String>,
 }
 
 impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
@@ -141,6 +142,7 @@ impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
       module_identifier: stats.module_identifier,
       module_name: stats.module_name,
       module_id: stats.module_id,
+      r#type: stats.r#type,
     }
   }
 }

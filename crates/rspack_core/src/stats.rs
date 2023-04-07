@@ -320,6 +320,7 @@ impl Stats<'_> {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,
               module_id,
+              r#type: Some(String::from("cjs")),
             }
           })
           .collect();
@@ -514,4 +515,5 @@ pub struct StatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub r#type: Option<String>,
 }
