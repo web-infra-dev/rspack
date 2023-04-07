@@ -18,6 +18,7 @@ pub async fn module_rule_matcher<'a>(
     && module_rule.exclude.is_none()
     && module_rule.issuer.is_none()
     && module_rule.dependency.is_none()
+    && module_rule.description_data.is_none()
     && module_rule.one_of.is_none()
   {
     return Err(internal_error!(
@@ -74,6 +75,16 @@ pub async fn module_rule_matcher_inner<'a>(
   if let Some(dependency_rule) = &module_rule.dependency
     && !dependency_rule.try_match(&dependency.to_string()).await? {
     return Ok(None);
+  }
+
+  if let Some(description_data) = &module_rule.description_data
+    && let Some(resource_description) = &resource_data.resource_description {
+    for (k, matcher) in description_data {
+      if let Some(v) = resource_description.data().raw().get(k).and_then(|v| v.as_str())
+        && !matcher.try_match(v).await? {
+        return Ok(None);
+      }
+    }
   }
 
   if let Some(one_of) = &module_rule.one_of {
