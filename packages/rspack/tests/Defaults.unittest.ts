@@ -135,6 +135,13 @@ describe("snapshots", () => {
 		        "type": "json",
 		      },
 		      {
+		        "resolve": {
+		          "byDependency": {
+		            "esm": {
+		              "fullySpecified": true,
+		            },
+		          },
+		        },
 		        "test": /\\\\\\.mjs\\$/i,
 		        "type": "javascript/esm",
 		      },
@@ -157,11 +164,15 @@ describe("snapshots", () => {
 		      {
 		        "oneOf": [
 		          {
+		            "resolve": {
+		              "fullySpecified": true,
+		            },
 		            "test": /\\\\\\.module\\\\\\.css\\$/i,
 		            "type": "css/module",
 		          },
 		          {
 		            "resolve": {
+		              "fullySpecified": true,
 		              "preferRelative": true,
 		            },
 		            "type": "css",
