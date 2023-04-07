@@ -221,6 +221,7 @@ export interface RawModuleRule {
   resource?: RawRuleSetCondition
   /** A condition matcher against the resource query. */
   resourceQuery?: RawRuleSetCondition
+  descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
   use?: Array<RawModuleRuleUse>
   type?: string

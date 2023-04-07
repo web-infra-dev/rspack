@@ -7,6 +7,7 @@ use async_recursion::async_recursion;
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{BoxLoader, Filename, ModuleType, Resolve};
 
@@ -28,6 +29,8 @@ pub struct AssetGeneratorOptions {
   /// Same as webpack's Rule.generator.filename, see: [Rule.generator.filename](https://webpack.js.org/configuration/module/#rulegeneratorfilename)
   pub filename: Option<Filename>,
 }
+
+pub type DescriptionData = HashMap<String, RuleSetCondition>;
 
 pub type RuleSetConditionFnMatcher =
   Box<dyn Fn(&str) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
@@ -126,15 +129,16 @@ pub struct ModuleRule {
   pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
   pub resource_query: Option<RuleSetCondition>,
-  pub side_effects: Option<bool>,
   pub dependency: Option<RuleSetCondition>,
+  pub issuer: Option<RuleSetCondition>,
+  pub description_data: Option<DescriptionData>,
+  pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   pub r#use: Vec<BoxLoader>,
   pub parser: Option<AssetParserOptions>,
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
-  pub issuer: Option<RuleSetCondition>,
   pub one_of: Option<Vec<ModuleRule>>,
 }
 

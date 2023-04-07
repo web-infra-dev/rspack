@@ -1399,6 +1399,14 @@ module.exports = {
 						}
 					]
 				},
+				descriptionData: {
+					description:
+						"Match values of properties in the description file (usually package.json).",
+					type: "object",
+					additionalProperties: {
+						$ref: "#/definitions/RuleSetConditionOrConditions"
+					}
+				},
 				oneOf: {
 					description: "Only execute the first matching rule in this array.",
 					type: "array",

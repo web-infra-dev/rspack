@@ -139,7 +139,21 @@ describe("snapshots", () => {
 		        "type": "javascript/esm",
 		      },
 		      {
+		        "descriptionData": {
+		          "type": "module",
+		        },
+		        "test": /\\\\\\.js\\$/i,
+		        "type": "javascript/esm",
+		      },
+		      {
 		        "test": /\\\\\\.cjs\\$/i,
+		        "type": "javascript/dynamic",
+		      },
+		      {
+		        "descriptionData": {
+		          "type": "commonjs",
+		        },
+		        "test": /\\\\\\.js\\$/i,
 		        "type": "javascript/dynamic",
 		      },
 		      {

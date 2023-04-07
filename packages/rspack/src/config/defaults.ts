@@ -181,26 +181,24 @@ const applyModuleDefaults = (
 				test: /\.mjs$/i,
 				...esm
 			},
-			// {
-			// 	test: /\.js$/i,
-			// 	// TODO:
-			// 	// descriptionData: {
-			// 	// 	type: "module"
-			// 	// },
-			// 	...esm
-			// },
+			{
+				test: /\.js$/i,
+				descriptionData: {
+					type: "module"
+				},
+				...esm
+			},
 			{
 				test: /\.cjs$/i,
 				...commonjs
 			},
-			// {
-			// 	test: /\.js$/i,
-			// 	// TODO:
-			// 	// descriptionData: {
-			// 	// 	type: "commonjs"
-			// 	// },
-			// 	...commonjs
-			// },
+			{
+				test: /\.js$/i,
+				descriptionData: {
+					type: "commonjs"
+				},
+				...commonjs
+			},
 			{
 				test: /\.jsx$/i,
 				type: "jsx"
