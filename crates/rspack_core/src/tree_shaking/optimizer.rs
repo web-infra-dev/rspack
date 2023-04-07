@@ -545,21 +545,26 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     // visited_module.remove(&cur);
 
-    let side_effect_list = match side_effects_map.get(&cur) {
-      Some(SideEffect::Configuration(_)) | None => vec![],
-      Some(SideEffect::Analyze(true)) => vec![],
-      Some(SideEffect::Analyze(false)) => module_ident_list
-        .into_iter()
-        .filter(|ident| {
+    let has_unanalyzed_effectful_deps = match side_effects_map.get(&cur) {
+      // skip no deps or user already specified side effect in package.json
+      Some(SideEffect::Configuration(_)) | None => false,
+      // already analyzed
+      Some(SideEffect::Analyze(true)) => false,
+      Some(SideEffect::Analyze(false)) => {
+        let mut side_effect_list = module_ident_list.into_iter().filter(|ident| {
           matches!(
             side_effects_map.get(ident),
             Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
           )
-        })
-        .collect::<Vec<_>>(),
+        });
+        side_effect_list.next().is_some()
+        // uncomment below for debugging side_effect_list
+        // let side_effect_list = side_effect_list.collect::<Vec<_>>();
+        // side_effect_list.is_empty()
+      }
     };
 
-    if !side_effect_list.is_empty() {
+    if has_unanalyzed_effectful_deps {
       if let Some(cur) = side_effects_map.get_mut(&cur) {
         *cur = SideEffect::Analyze(true);
       }
