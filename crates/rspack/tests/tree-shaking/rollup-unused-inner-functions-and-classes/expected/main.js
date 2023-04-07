@@ -4,9 +4,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _stuffJs = __webpack_require__("./stuff.js");
-(0, _stuffJs.bar)();
-var f = (0, _stuffJs.baz)();
+var _stuff = __webpack_require__("./stuff.js");
+(0, _stuff.bar)();
+var f = (0, _stuff.baz)();
 f();
 function getClass() {
     class MyClass {

@@ -10,17 +10,17 @@ Object.defineProperty(exports, "app", {
         return app;
     }
 });
-var _libJs = __webpack_require__("./lib.js");
+var _lib = __webpack_require__("./lib.js");
 function app() {}
-app.prototype.result = _libJs.result;
+app.prototype.result = _lib.result;
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _appJs = __webpack_require__("./app.js");
-(0, _appJs.app)();
+var _app = __webpack_require__("./app.js");
+(0, _app.app)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

@@ -23,9 +23,9 @@ Object.defineProperty(exports, "default", {
         return a;
     }
 });
-var _somethingJs = __webpack_require__("./Something.js");
+var _Something = __webpack_require__("./Something.js");
 var a = function test() {
-    _somethingJs.something;
+    _Something.something;
 };
 },
 "./index.js": function (module, exports, __webpack_require__) {
@@ -33,8 +33,8 @@ var a = function test() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _exportJs = __webpack_require__.ir(__webpack_require__("./export.js"));
-_exportJs.default;
+var _export = __webpack_require__.ir(__webpack_require__("./export.js"));
+_export.default;
 },
 
 },function(__webpack_require__) {

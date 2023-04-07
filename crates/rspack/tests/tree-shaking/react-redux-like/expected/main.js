@@ -12,14 +12,14 @@ function _export(target, all) {
 }
 _export(exports, {
     Provider: function() {
-        return _libJs.default;
+        return _lib.default;
     },
     useSelector: function() {
-        return _selectorJs.default;
+        return _selector.default;
     }
 });
-var _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
-var _selectorJs = __webpack_require__.ir(__webpack_require__("./selector.js"));
+var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
+var _selector = __webpack_require__.ir(__webpack_require__("./selector.js"));
 },
 "./foo.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -33,9 +33,9 @@ __webpack_require__.es(__webpack_require__("./app.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__("./foo.js");
-_fooJs.Provider;
-_fooJs.useSelector;
+var _foo = __webpack_require__("./foo.js");
+_foo.Provider;
+_foo.useSelector;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

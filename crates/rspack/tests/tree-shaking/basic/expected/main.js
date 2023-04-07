@@ -17,9 +17,9 @@ const answer = 103330;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _libJs = __webpack_require__("./lib.js");
+var _lib = __webpack_require__("./lib.js");
 setTimeout(()=>{
-    console.log(_libJs.myanswer);
+    console.log(_lib.myanswer);
 }, 1000);
 if (module.hot?.accept) module.hot.accept((module1)=>{
     console.log("xxx:", module1);
@@ -43,8 +43,8 @@ Object.defineProperty(exports, "myanswer", {
         return myanswer;
     }
 });
-var _answerJs = __webpack_require__("./answer.js");
-const myanswer = _answerJs.answer;
+var _answer = __webpack_require__("./answer.js");
+const myanswer = _answer.answer;
 },
 
 },function(__webpack_require__) {

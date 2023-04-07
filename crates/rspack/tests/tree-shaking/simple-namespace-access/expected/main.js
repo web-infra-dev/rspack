@@ -4,9 +4,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _mathsJs = __webpack_require__.ir(__webpack_require__("./maths.js"));
-console.log(_mathsJs.xxx.test);
-console.log(_mathsJs['square']);
+var _maths = __webpack_require__.ir(__webpack_require__("./maths.js"));
+console.log(_maths.xxx.test);
+console.log(_maths['square']);
 },
 "./maths.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -24,10 +24,10 @@ _export(exports, {
         return square;
     },
     xxx: function() {
-        return _testJs;
+        return _test;
     }
 });
-var _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
+var _test = __webpack_require__.ir(__webpack_require__("./test.js"));
 function square(x) {
     return x * x;
 }
