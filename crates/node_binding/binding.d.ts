@@ -12,7 +12,7 @@ export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
-  rm: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
 }
 export interface RawPattern {
   from: string

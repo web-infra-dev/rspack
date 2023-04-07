@@ -95,7 +95,7 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     let fut = async move {
       self
         .fs_ts
-        .rm
+        .remove_dir_all
         .call(dir, ThreadsafeFunctionCallMode::NonBlocking)
         .expect("Failed to call tsfn")
         .await

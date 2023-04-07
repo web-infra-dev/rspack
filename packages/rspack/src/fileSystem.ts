@@ -4,7 +4,7 @@ export interface ThreadsafeWritableNodeFS {
 	writeFile: (...args: any[]) => any;
 	mkdir: (...args: any[]) => any;
 	mkdirp: (...args: any[]) => any;
-	rm: (...args: any[]) => any;
+	removeDirAll: (...args: any[]) => any;
 }
 
 function createThreadsafeNodeFSFromRaw(
@@ -17,7 +17,7 @@ function createThreadsafeNodeFSFromRaw(
 			fs.mkdirSync(dir, {
 				recursive: true
 			}),
-		rm: dir => {
+		removeDirAll: dir => {
 			// memfs don't support rmSync
 			rmrfBuild(fs)(dir);
 		}
