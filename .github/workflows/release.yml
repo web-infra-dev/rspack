@@ -486,18 +486,6 @@ jobs:
         run: ls -R npm
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
-          type: "release"
-          branch: ${{ github.ref_name }}
-          tools: "changeset"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
-          ONLY_RELEASE_TAG: true
       - name: Cancel the whole release if the pre check is failed.
         uses: andymckay/cancel-action@0.3
         if: ${{ !success() }}
