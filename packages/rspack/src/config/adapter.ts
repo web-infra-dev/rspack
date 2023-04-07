@@ -11,6 +11,7 @@ import assert from "assert";
 import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
+	CrossOriginLoading,
 	EntryNormalized,
 	Experiments,
 	ExternalItem,
@@ -47,8 +48,10 @@ export const getRawOptions = (
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
+	let rawEntry = getRawEntry(options.entry);
 	return {
-		entry: getRawEntry(options.entry),
+		entry: rawEntry,
+		entryOrder: Object.keys(rawEntry),
 		mode: options.mode,
 		target: getRawTarget(options.target),
 		context: options.context,
@@ -144,45 +147,38 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	};
 }
 
+function getRawCrossOriginLoading(
+	crossOriginLoading: CrossOriginLoading
+): RawOptions["output"]["crossOriginLoading"] {
+	if (typeof crossOriginLoading === "boolean") {
+		return { type: "bool", boolPayload: crossOriginLoading };
+	}
+	return { type: "string", stringPayload: crossOriginLoading };
+}
+
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
-	assert(
-		!isNil(output.path) &&
-			!isNil(output.publicPath) &&
-			!isNil(output.assetModuleFilename) &&
-			!isNil(output.filename) &&
-			!isNil(output.chunkFilename) &&
-			!isNil(output.cssFilename) &&
-			!isNil(output.cssChunkFilename) &&
-			!isNil(output.uniqueName) &&
-			!isNil(output.chunkLoadingGlobal) &&
-			!isNil(output.enabledLibraryTypes) &&
-			!isNil(output.strictModuleErrorHandling) &&
-			!isNil(output.globalObject) &&
-			!isNil(output.importFunctionName) &&
-			!isNil(output.module) &&
-			!isNil(output.iife) &&
-			!isNil(output.importFunctionName) &&
-			!isNil(output.webassemblyModuleFilename),
-		"fields should not be nil after defaults"
-	);
+	const wasmLoading = output.wasmLoading!;
 	return {
-		path: output.path,
-		publicPath: output.publicPath,
-		assetModuleFilename: output.assetModuleFilename,
-		filename: output.filename,
-		chunkFilename: output.chunkFilename,
-		cssFilename: output.cssFilename,
-		cssChunkFilename: output.cssChunkFilename,
-		uniqueName: output.uniqueName,
-		chunkLoadingGlobal: output.chunkLoadingGlobal,
+		path: output.path!,
+		publicPath: output.publicPath!,
+		assetModuleFilename: output.assetModuleFilename!,
+		filename: output.filename!,
+		chunkFilename: output.chunkFilename!,
+		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
+		cssFilename: output.cssFilename!,
+		cssChunkFilename: output.cssChunkFilename!,
+		uniqueName: output.uniqueName!,
+		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
-		strictModuleErrorHandling: output.strictModuleErrorHandling,
-		globalObject: output.globalObject,
-		importFunctionName: output.importFunctionName,
-		iife: output.iife,
-		module: output.module,
-		webassemblyModuleFilename: output.webassemblyModuleFilename
+		strictModuleErrorHandling: output.strictModuleErrorHandling!,
+		globalObject: output.globalObject!,
+		importFunctionName: output.importFunctionName!,
+		iife: output.iife!,
+		module: output.module!,
+		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
+		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
+		webassemblyModuleFilename: output.webassemblyModuleFilename!
 	};
 }
 
@@ -266,6 +262,10 @@ const getRawModuleRule = (
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
+		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
+		dependency: rule.dependency
+			? getRawRuleSetCondition(rule.dependency)
+			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
 			? getRawRuleSetCondition(rule.resourceQuery)
@@ -276,7 +276,6 @@ const getRawModuleRule = (
 		parser: rule.parser,
 		generator: rule.generator,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
-		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map(i => getRawModuleRule(i, options))
 			: undefined
@@ -453,6 +452,9 @@ function getRawExperiments(
 }
 
 function getRawNode(node: Node): RawOptions["node"] {
+	if (node === false) {
+		return undefined;
+	}
 	assert(
 		!isNil(node.__dirname) && !isNil(node.global) && !isNil(node.__filename)
 	);

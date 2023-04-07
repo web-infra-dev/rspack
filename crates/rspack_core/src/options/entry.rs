@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
-pub type BundleEntries = HashMap<String, EntryItem>;
+pub type BundleEntries = IndexMap<String, EntryItem>;
 
 #[derive(Debug, Clone)]
 pub struct EntryItem {

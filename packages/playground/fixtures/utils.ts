@@ -34,7 +34,7 @@ export async function waitingUpdate(
 	}
 }
 
-async function wait(time: number) {
+export async function wait(time: number) {
 	return new Promise(resolve => {
 		setTimeout(() => {
 			resolve(undefined);

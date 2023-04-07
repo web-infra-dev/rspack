@@ -83,7 +83,7 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
-  pub(crate) fn is_initial(&self) -> bool {
+  pub fn is_initial(&self) -> bool {
     matches!(self.kind, ChunkGroupKind::Entrypoint)
   }
 

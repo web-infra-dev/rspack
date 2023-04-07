@@ -4,6 +4,7 @@ use std::{
   str::FromStr,
 };
 
+use indexmap::IndexMap;
 use rspack_core::{
   CompilationContext, CompilerContext, CompilerOptions, Loader, LoaderRunner,
   LoaderRunnerAdditionalContext, ResourceData, SideEffectOption,
@@ -35,7 +36,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     &LoaderRunnerAdditionalContext {
       compiler: &CompilerContext {
         options: std::sync::Arc::new(CompilerOptions {
-          entry: std::collections::HashMap::default(),
+          entry: IndexMap::default(),
           context: rspack_core::Context::default(),
           dev_server: rspack_core::DevServerOptions::default(),
           devtool: rspack_core::Devtool::default(),
@@ -45,8 +46,10 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
             public_path: Default::default(),
             filename: rspack_core::Filename::from_str("").expect("TODO:"),
             asset_module_filename: rspack_core::Filename::from_str("").expect("TODO:"),
+            wasm_loading: rspack_core::WasmLoading::Disable,
             webassembly_module_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
+            cross_origin_loading: rspack_core::CrossOriginLoading::Disable,
             unique_name: Default::default(),
             css_chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
             css_filename: rspack_core::Filename::from_str("").expect("TODO:"),

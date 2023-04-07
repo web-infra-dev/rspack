@@ -1,5 +1,13 @@
 # @rspack/dev-client
 
+## 0.1.6
+
+### Patch Changes
+
+- 3607f25: Remove custom dev client and use webpack-dev-server/client direclty
+
+## 0.1.5
+
 ## 0.1.4
 
 ## 0.1.3

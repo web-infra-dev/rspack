@@ -67,6 +67,7 @@ pub struct HtmlPluginConfig {
   pub filename: String,
   /// template html file
   pub template: Option<String>,
+  pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
   pub inject: Option<HtmlPluginConfigInject>,
@@ -107,6 +108,7 @@ impl Default for HtmlPluginConfig {
     HtmlPluginConfig {
       filename: default_filename(),
       template: None,
+      template_content: None,
       template_parameters: None,
       inject: None,
       public_path: None,

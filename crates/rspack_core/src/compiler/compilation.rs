@@ -10,7 +10,7 @@ use std::{
 };
 
 use dashmap::DashSet;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use rayon::prelude::{
   IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator,
 };
@@ -37,13 +37,13 @@ use crate::{
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
-  ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, DependencyId,
-  EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals, RuntimeModule,
-  SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
+  CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
+  DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
+  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier,
+  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals,
+  RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -72,7 +72,7 @@ pub struct Compilation {
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
-  pub entrypoints: HashMap<String, ChunkGroupUkey>,
+  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
@@ -228,7 +228,7 @@ impl Compilation {
     &self.assets
   }
 
-  pub fn entrypoints(&self) -> &HashMap<String, ChunkGroupUkey> {
+  pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
     &self.entrypoints
   }
 
@@ -285,7 +285,7 @@ impl Compilation {
   }
 
   #[instrument(name = "entry_data", skip(self))]
-  pub fn entry_data(&self) -> HashMap<String, EntryData> {
+  pub fn entry_data(&self) -> IndexMap<String, EntryData> {
     self
       .entries
       .iter()
@@ -585,16 +585,19 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 factory_result,
-                module_graph_module,
+                mut module_graph_module,
                 diagnostics,
                 dependencies,
               } = task_result;
+              let module_identifier = factory_result.module.identifier();
 
-              tracing::trace!("Module created: {}", factory_result.module.identifier());
+              tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
                 make_failed_dependencies.insert(dependencies[0]);
               }
 
+              module_graph_module.set_issuer_if_unset(original_module_identifier);
+              module_graph_module.factory_meta = Some(factory_result.factory_meta);
               self.push_batch_diagnostic(diagnostics);
 
               self
@@ -1150,6 +1153,28 @@ impl Compilation {
     // self.create_module_hash();
 
     let mut compilation_hasher = Xxh3::new();
+    let chunk_hash_results = self
+      .chunk_by_ukey
+      .iter()
+      .map(|(chunk_key, _)| async {
+        let hash = plugin_driver
+          .read()
+          .await
+          .chunk_hash(&ChunkHashArgs {
+            chunk_ukey: *chunk_key,
+            compilation: self,
+          })
+          .await;
+        (*chunk_key, hash)
+      })
+      .collect::<FuturesResults<_>>()
+      .into_inner();
+    for item in chunk_hash_results {
+      let (chunk_ukey, hash) = item.expect("Failed to resolve chunk_hash results");
+      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
+        hash?.hash(&mut chunk.hash);
+      }
+    }
     let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
     chunks.sort_unstable_by_key(|chunk| chunk.ukey);
     chunks

@@ -108,11 +108,7 @@ pub fn run_before_pass(
         should_transform_by_react
       ),
       Optional::new(
-        {
-          let context = &options.context;
-          let uri = resource_data.resource.as_str();
-          swc_visitor::fold_react_refresh(context, uri)
-        },
+        swc_visitor::fold_react_refresh(),
         should_transform_by_react && options.builtins.react.refresh.is_some()
       ),
       either!(
@@ -278,10 +274,10 @@ pub fn run_after_pass(
           comments,
           Some(EsVersion::Es5)
         ),
-        Optional::new(build_await_dependencies(promises), build_meta.is_async),
-        Optional::new(build_async_module(), build_meta.is_async),
         inject_runtime_helper(unresolved_mark, generate_context.runtime_requirements),
         finalize(module, compilation, unresolved_mark),
+        Optional::new(build_await_dependencies(promises), build_meta.is_async),
+        Optional::new(build_async_module(), build_meta.is_async),
         swc_visitor::hygiene(false, top_level_mark),
         swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
       );

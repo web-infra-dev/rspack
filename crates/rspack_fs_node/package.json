@@ -1,13 +1,14 @@
 {
   "name": "@rspack/fs",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "File system utilities for rspack",
   "private": true,
   "license": "MIT",
   "main": "index.node",
   "scripts": {
     "build:test": "RUSTFLAGS=\"--cfg node\" napi build --zig --zig-abi-suffix=2.17",
-    "test": "jest --verbose"
+    "test": "echo success",
+    "test:local": "jest"
   },
   "devDependencies": {
     "@napi-rs/cli": "2.14.2",

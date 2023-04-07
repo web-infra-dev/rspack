@@ -9,7 +9,8 @@ use rspack_error::Result;
 use runtime_module::AsyncRuntimeModule;
 
 use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
-
+mod helpers;
+pub use helpers::*;
 mod lazy_compilation;
 pub use lazy_compilation::LazyCompilationPlugin;
 mod basic_runtime_requirements;

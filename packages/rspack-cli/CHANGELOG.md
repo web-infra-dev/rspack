@@ -1,5 +1,29 @@
 # @rspack/cli
 
+## 0.1.6
+
+### Patch Changes
+
+- aa7910b: fix semver dep missing
+- Updated dependencies [3607f25]
+  - @rspack/dev-server@0.1.6
+  - @rspack/core@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- 7bfcc7b: fix windows path is considered scheme incorrectly
+- 18ba959: fixes json not write to disk when set --json
+- Updated dependencies [125bb94]
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [92ee3c1]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+  - @rspack/core@0.1.5
+  - @rspack/dev-server@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes

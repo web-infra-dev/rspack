@@ -1,6 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, LibraryAuxiliaryComment, LibraryName, LibraryOptions, OutputOptions, PluginExt,
+  BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName, LibraryOptions,
+  OutputOptions, PluginExt, WasmLoading,
 };
 use serde::Deserialize;
 
@@ -70,6 +71,30 @@ impl From<RawLibraryOptions> for LibraryOptions {
   }
 }
 
+#[derive(Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCrossOriginLoading {
+  #[napi(ts_type = r#""bool" | "string""#)]
+  pub r#type: String,
+  pub string_payload: Option<String>,
+  pub bool_payload: Option<bool>,
+}
+
+impl From<RawCrossOriginLoading> for CrossOriginLoading {
+  fn from(value: RawCrossOriginLoading) -> Self {
+    match value.r#type.as_str() {
+      "string" => Self::Enable(
+        value
+          .string_payload
+          .expect("should have a string_payload when RawCrossOriginLoading.type is \"string\""),
+      ),
+      "bool" => Self::Disable,
+      _ => unreachable!(),
+    }
+  }
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -77,9 +102,12 @@ pub struct RawOutputOptions {
   pub path: String,
   pub public_path: String,
   pub asset_module_filename: String,
+  pub wasm_loading: String,
+  pub enabled_wasm_loading_types: Vec<String>,
   pub webassembly_module_filename: String,
   pub filename: String,
   pub chunk_filename: String,
+  pub cross_origin_loading: RawCrossOriginLoading,
   pub css_filename: String,
   pub css_chunk_filename: String,
   pub unique_name: String,
@@ -91,23 +119,32 @@ pub struct RawOutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
-  /* pub entry_filename: Option<String>,
-   * pub source_map: Option<String>, */
 }
 
 impl RawOptionsApply for RawOutputOptions {
   type Options = OutputOptions;
   fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_library_plugin(plugins);
+    for wasm_loading in self.enabled_wasm_loading_types {
+      plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
+        wasm_loading.as_str().into(),
+      ))
+    }
+
     Ok(OutputOptions {
       path: self.path.into(),
       public_path: self.public_path.into(),
       asset_module_filename: self.asset_module_filename.into(),
+      wasm_loading: match self.wasm_loading.as_str() {
+        "false" => WasmLoading::Disable,
+        i => WasmLoading::Enable(i.into()),
+      },
       webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
       chunk_loading_global: self.chunk_loading_global,
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
+      cross_origin_loading: self.cross_origin_loading.into(),
       css_filename: self.css_filename.into(),
       css_chunk_filename: self.css_chunk_filename.into(),
       library: self.library.map(Into::into),

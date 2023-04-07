@@ -5,6 +5,7 @@ use rspack_error::{internal_error, Result};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
+use xxhash_rust::xxh3::Xxh3;
 
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
@@ -29,6 +30,32 @@ pub struct ProcessAssetsArgs<'me> {
 pub struct ContentHashArgs<'c> {
   pub chunk_ukey: ChunkUkey,
   pub compilation: &'c Compilation,
+}
+
+impl<'me> ContentHashArgs<'me> {
+  pub fn chunk(&self) -> &Chunk {
+    self
+      .compilation
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
+      .expect("chunk should exist in chunk_by_ukey")
+  }
+}
+
+#[derive(Debug)]
+pub struct ChunkHashArgs<'c> {
+  pub chunk_ukey: ChunkUkey,
+  pub compilation: &'c Compilation,
+}
+
+impl<'me> ChunkHashArgs<'me> {
+  pub fn chunk(&self) -> &Chunk {
+    self
+      .compilation
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
+      .expect("chunk should exist in chunk_by_ukey")
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -205,6 +232,22 @@ impl<'me> RenderArgs<'me> {
       .compilation
       .chunk_by_ukey
       .get(self.chunk)
+      .expect("chunk should exist in chunk_by_ukey")
+  }
+}
+
+pub struct JsChunkHashArgs<'a> {
+  pub chunk_ukey: &'a ChunkUkey,
+  pub compilation: &'a Compilation,
+  pub hasher: &'a mut Xxh3,
+}
+
+impl<'me> JsChunkHashArgs<'me> {
+  pub fn chunk(&self) -> &Chunk {
+    self
+      .compilation
+      .chunk_by_ukey
+      .get(self.chunk_ukey)
       .expect("chunk should exist in chunk_by_ukey")
   }
 }

@@ -78,7 +78,6 @@ export function describeCases(config: { name: string; casePath: string }) {
 										},
 										...config, // we may need to use deepMerge to handle config merge, but we may fix it until we need it
 										output: {
-											publicPath: "/",
 											// @ts-ignore
 											...config.output,
 											path: outputPath
@@ -97,7 +96,10 @@ export function describeCases(config: { name: string; casePath: string }) {
 												`${statsJson.errors!.map(x => x.message).join("\n")}`
 											);
 										}
-										assert(statsJson.errors!.length === 0);
+										assert(
+											statsJson.errors!.length === 0,
+											`${JSON.stringify(statsJson.errors, null, 2)}`
+										);
 									}
 								});
 								// this will run the compiled test code to test against itself, a genius idea from webpack

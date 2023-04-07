@@ -369,10 +369,12 @@ impl TestConfig {
       output: c::OutputOptions {
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
         chunk_filename: c::Filename::from_str(&self.output.chunk_filename).expect("Should exist"),
+        cross_origin_loading: rspack_core::CrossOriginLoading::Disable,
         css_filename: c::Filename::from_str(&self.output.css_filename).expect("Should exist"),
         css_chunk_filename: c::Filename::from_str(&self.output.css_chunk_filename)
           .expect("Should exist"),
         asset_module_filename: c::Filename::from_str("[hash][ext][query]").expect("Should exist"),
+        wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
         webassembly_module_filename: c::Filename::from_str("[hash].module.wasm")
           .expect("Should exist"),
         public_path: c::PublicPath::String("/".to_string()),
@@ -422,11 +424,11 @@ impl TestConfig {
       cache: c::CacheOptions::Disabled,
       experiments: Default::default(),
       dev_server: Default::default(),
-      node: c::NodeOption {
+      node: Some(c::NodeOption {
         dirname: "mock".to_string(),
         filename: "mock".to_string(),
         global: "warn".to_string(),
-      },
+      }),
       optimization: c::Optimization {
         remove_available_modules: self.optimization.remove_available_modules,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),

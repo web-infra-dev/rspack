@@ -9,10 +9,11 @@ use swc_core::common::Span;
 
 use crate::{
   cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions,
-  CompilerOptions, Dependency, FactorizeArgs, MissingModule, ModuleArgs, ModuleDependency,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  ModuleRule, ModuleType, NormalModule, NormalModuleFactoryResolveForSchemeArgs, RawModule,
-  Resolve, ResolveArgs, ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
+  CompilerOptions, Dependency, DependencyCategory, FactorizeArgs, FactoryMeta, MissingModule,
+  ModuleArgs, ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleType, NormalModule,
+  NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve, ResolveArgs, ResolveError,
+  ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -84,8 +85,8 @@ impl NormalModuleFactory {
       .ok();
     let plugin_driver = &self.plugin_driver;
 
-    // with scheme
-    let resource_data = if let Some(scheme) = scheme {
+    // with scheme, windows absolute path is considered scheme by `url`
+    let resource_data = if let Some(scheme) = scheme && !Path::is_absolute(Path::new(specifier)) {
       let data = plugin_driver
         .read()
         .await
@@ -172,26 +173,12 @@ impl NormalModuleFactory {
       }
     };
     //TODO: with contextScheme
-    let loaders = self
-      .context
-      .options
-      .module
-      .rules
-      .iter()
-      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        match module_rule_matcher(
-          module_rule,
-          &resource_data,
-          importer.map(|i| i.to_string_lossy()).as_deref(),
-        ) {
-          Ok(val) => val.map(Ok),
-          Err(err) => Some(Err(err)),
-        }
-      })
-      .collect::<Result<Vec<_>>>()?;
+    let resolved_module_rules = self
+      .calculate_module_rules(&resource_data, data.dependency.category())
+      .await?;
 
-    let loaders = loaders
-      .into_iter()
+    let loaders = resolved_module_rules
+      .iter()
       .flat_map(|module_rule| module_rule.r#use.iter().cloned().rev())
       .collect::<Vec<_>>();
 
@@ -210,12 +197,14 @@ impl NormalModuleFactory {
 
     let file_dependency = resource_data.resource_path.clone();
 
-    let resolved_module_rules = self.calculate_module_rules(&resource_data)?;
     let resolved_module_type =
       self.calculate_module_type(&resolved_module_rules, self.context.module_type);
     let resolved_resolve_options = self.calculate_resolve_options(&resolved_module_rules);
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
+    let factory_meta = FactoryMeta {
+      side_effects: self.calculate_side_effects(&resolved_module_rules),
+    };
 
     let resolved_parser_and_generator = self
       .plugin_driver
@@ -266,24 +255,30 @@ impl NormalModuleFactory {
         .file_dependency(file_dependency)
         .file_dependencies(file_dependencies)
         .missing_dependencies(missing_dependencies)
+        .factory_meta(factory_meta)
         .with_empty_diagnostic(),
     ))
   }
 
-  fn calculate_module_rules(&self, resource_data: &ResourceData) -> Result<Vec<&ModuleRule>> {
-    self
-      .context
-      .options
-      .module
-      .rules
-      .iter()
-      .filter_map(|module_rule| -> Option<Result<&ModuleRule>> {
-        match module_rule_matcher(module_rule, resource_data, self.context.issuer.as_deref()) {
-          Ok(val) => val.map(Ok),
-          Err(err) => Some(Err(err)),
-        }
-      })
-      .collect::<Result<Vec<_>>>()
+  async fn calculate_module_rules(
+    &self,
+    resource_data: &ResourceData,
+    dependency: &DependencyCategory,
+  ) -> Result<Vec<&ModuleRule>> {
+    let mut rules = Vec::new();
+    for rule in &self.context.options.module.rules {
+      if let Some(rule) = module_rule_matcher(
+        rule,
+        resource_data,
+        self.context.issuer.as_deref(),
+        dependency,
+      )
+      .await?
+      {
+        rules.push(rule);
+      }
+    }
+    Ok(rules)
   }
 
   fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Resolve> {
@@ -294,6 +289,14 @@ impl NormalModuleFactory {
       }
     });
     resolved
+  }
+
+  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
+    let mut side_effects = None;
+    module_rules.iter().for_each(|rule| {
+      side_effects = rule.side_effects;
+    });
+    side_effects
   }
 
   fn calculate_parser_and_generator_options(

@@ -43,7 +43,7 @@ export const applyRspackOptionsDefaults = (
 		return getDefaultTarget(options.context!);
 	});
 
-	const { mode, name, target } = options;
+	const { mode, target } = options;
 	assert(!isNil(target));
 
 	let targetProperties =
@@ -235,7 +235,6 @@ const applyModuleDefaults = (
 				}
 			]
 		});
-
 		if (asyncWebAssembly) {
 			const wasm = {
 				type: "webassembly/async",
@@ -255,6 +254,18 @@ const applyModuleDefaults = (
 				...wasm
 			});
 		}
+		rules.push({
+			dependency: "url",
+			oneOf: [
+				// {
+				// 	scheme: /^data$/,
+				// 	type: "asset/inline"
+				// },
+				{
+					type: "asset/resource"
+				}
+			]
+		});
 
 		return rules;
 	});
@@ -321,17 +332,17 @@ const applyOutputDefaults = (
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
 	}
-	// F(output, "wasmLoading", () => {
-	// 	if (tp) {
-	// 		if (tp.fetchWasm) return "fetch";
-	// 		if (tp.nodeBuiltins)
-	// 			return output.module ? "async-node-module" : "async-node";
-	// 		if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
-	// 			return "universal";
-	// 		}
-	// 	}
-	// 	return false;
-	// });
+	F(output, "wasmLoading", () => {
+		if (tp) {
+			if (tp.fetchWasm) return "fetch";
+			if (tp.nodeBuiltins)
+				return output.module ? "async-node-module" : "async-node";
+			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
+				return "universal";
+			}
+		}
+		return false;
+	});
 	A(output, "enabledLibraryTypes", () => {
 		const enabledLibraryTypes = [];
 		if (output.library) {
@@ -340,17 +351,6 @@ const applyOutputDefaults = (
 		// TODO respect entryOptions.library
 		return enabledLibraryTypes;
 	});
-	// A(output, "enabledWasmLoadingTypes", () => {
-	// 	const enabledWasmLoadingTypes = [];
-	// 	if (output.wasmLoading) {
-	// 		enabledWasmLoadingTypes.push(output.wasmLoading);
-	// 	}
-	// 	// if (output.workerWasmLoading) {
-	// 	// 	enabledWasmLoadingTypes.push(output.workerWasmLoading);
-	// 	// }
-	// 	// TODO respect entryOptions.wasmLoading
-	// 	return enabledWasmLoadingTypes;
-	// });
 	F(output, "globalObject", () => {
 		if (tp) {
 			if (tp.global) return "global";
@@ -361,6 +361,24 @@ const applyOutputDefaults = (
 	D(output, "importFunctionName", "import");
 	F(output, "iife", () => !output.module);
 	F(output, "module", () => false); // TODO experiments.outputModule
+
+	A(output, "enabledWasmLoadingTypes", () => {
+		const enabledWasmLoadingTypes = new Set<string>();
+		if (output.wasmLoading) {
+			enabledWasmLoadingTypes.add(output.wasmLoading);
+		}
+		// if (output.workerWasmLoading) {
+		// 	enabledWasmLoadingTypes.add(output.workerWasmLoading);
+		// }
+		// forEachEntry(desc => {
+		// 	if (desc.wasmLoading) {
+		// 		enabledWasmLoadingTypes.add(desc.wasmLoading);
+		// 	}
+		// });
+		return Array.from(enabledWasmLoadingTypes);
+	});
+
+	D(output, "crossOriginLoading", false);
 };
 
 const applyExternalsPresetsDefaults = (
@@ -374,6 +392,8 @@ const applyNodeDefaults = (
 	node: Node,
 	{ targetProperties }: { targetProperties: any }
 ) => {
+	if (node === false) return;
+
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";

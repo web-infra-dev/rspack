@@ -8,10 +8,11 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import { Callback } from "tapable";
-import type { Compiler } from ".";
+import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
+import assert from "assert";
 
 class Watching {
 	watcher?: Watcher;
@@ -59,7 +60,6 @@ class Watching {
 
 		process.nextTick(() => {
 			if (this.#initial) this.#invalidate();
-			this.#initial = false;
 		});
 	}
 
@@ -115,7 +115,7 @@ class Watching {
 			return;
 		}
 
-		const finalCallback = (err?: Error) => {
+		const finalCallback = (err: Error | null) => {
 			this.running = false;
 			this.compiler.running = false;
 			this.compiler.watching = undefined;
@@ -170,7 +170,7 @@ class Watching {
 
 			this._done = finalCallback;
 		} else {
-			finalCallback();
+			finalCallback(null);
 		}
 	}
 
@@ -204,7 +204,10 @@ class Watching {
 			this.invalid = true;
 			return;
 		}
+
 		this.#go(changedFiles, removedFiles);
+
+		this.#initial = false;
 	}
 
 	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
@@ -235,15 +238,14 @@ class Watching {
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
-			if (err) return this._done(err);
+			if (err) return this._done(err, null);
 
 			const isRebuild = this.compiler.options.devServer && !this.#initial;
 
 			const onBuild = (err?: Error) => {
-				if (err) return this._done(err);
+				if (err) return this._done(err, null);
 				// if (this.invalid) return this._done(null);
-				// @ts-expect-error
-				this._done(null);
+				this._done(null, this.compiler.compilation);
 			};
 
 			if (isRebuild) {
@@ -258,10 +260,13 @@ class Watching {
 	 * The reason why this is _done instead of #done, is that in Webpack,
 	 * it will rewrite this function to another function
 	 */
-	private _done(error?: Error) {
+	private _done(error: Error, compilation: null): void;
+	private _done(error: null, compilation: Compilation): void;
+	private _done(error: Error | null, compilation: Compilation | null) {
 		this.running = false;
-		const handleError = (err?: Error, cbs?: Callback<Error, void>[]) => {
-			// @ts-expect-error
+		let stats: undefined | Stats = undefined;
+
+		const handleError = (err: Error, cbs?: Callback<Error, void>[]) => {
 			this.compiler.hooks.failed.call(err);
 			// this.compiler.cache.beginIdle();
 			// this.compiler.idle = true;
@@ -270,20 +275,23 @@ class Watching {
 				cbs = this.callbacks;
 				this.callbacks = [];
 			}
-			// @ts-expect-error
 			for (const cb of cbs) cb(err);
 		};
 
 		const cbs = this.callbacks;
 		this.callbacks = [];
-
-		this.compiler.compilation.startTime = this.startTime;
-		this.compiler.compilation.endTime = Date.now();
-		const stats = new Stats(this.compiler.compilation);
+		const startTime = this.startTime; // store last startTime for compilation
+		// reset startTime for next compilation, before throwing error
 		this.startTime = undefined;
 		if (error) {
 			return handleError(error);
 		}
+		assert(compilation);
+
+		compilation.startTime = startTime;
+		compilation.endTime = Date.now();
+		stats = new Stats(compilation);
+
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
 			// @ts-expect-error
@@ -292,14 +300,14 @@ class Watching {
 			process.nextTick(() => {
 				if (!this.#closed) {
 					this.watch(
-						this.compiler.compilation.fileDependencies,
-						this.compiler.compilation.contextDependencies,
-						this.compiler.compilation.missingDependencies
+						compilation.fileDependencies,
+						compilation.contextDependencies,
+						compilation.missingDependencies
 					);
 				}
 			});
 			for (const cb of cbs) cb(null);
-			this.compiler.hooks.afterDone.call(stats);
+			this.compiler.hooks.afterDone.call(stats!);
 		});
 	}
 

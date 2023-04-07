@@ -1,5 +1,7 @@
 mod entry;
 pub use entry::*;
+mod runtime_requirements_dependency;
+pub use runtime_requirements_dependency::*;
 mod code_generatable;
 pub use code_generatable::*;
 mod context_element_dependency;
@@ -11,7 +13,11 @@ pub use common_js_require_context_dependency::*;
 pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
 mod require_context_dependency;
-use std::{any::Any, fmt::Debug, hash::Hash};
+use std::{
+  any::Any,
+  fmt::{Debug, Display},
+  hash::Hash,
+};
 
 use dyn_clone::{clone_trait_object, DynClone};
 pub use require_context_dependency::RequireContextDependency;
@@ -91,6 +97,20 @@ impl From<&str> for DependencyCategory {
       "css-import" => Self::CssImport,
       "css-compose" => Self::CssCompose,
       _ => Self::Unknown,
+    }
+  }
+}
+
+impl Display for DependencyCategory {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      DependencyCategory::Unknown => write!(f, "unknown"),
+      DependencyCategory::Esm => write!(f, "esm"),
+      DependencyCategory::CommonJS => write!(f, "commonjs"),
+      DependencyCategory::Url => write!(f, "url"),
+      DependencyCategory::CssImport => write!(f, "css-import"),
+      DependencyCategory::CssCompose => write!(f, "css-compose"),
+      DependencyCategory::Wasm => write!(f, "wasm"),
     }
   }
 }

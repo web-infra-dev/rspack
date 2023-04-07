@@ -1,3 +1,4 @@
+import semver from "semver";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
@@ -18,7 +19,7 @@ import { loadRspackConfig } from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
 import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 
-type RspackEnv = "development" | "production";
+type Command = "serve" | "build";
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv<{}>;
@@ -28,7 +29,7 @@ export class RspackCLI {
 	}
 	async createCompiler(
 		options: RspackCLIOptions,
-		rspackEnv: RspackEnv,
+		rspackEnv: Command,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
@@ -76,6 +77,12 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
+		if (semver.lt(semver.clean(process.version), "14.0.0")) {
+			this.getLogger().warn(
+				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
+			);
+		}
+
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
 		this.program.middleware(normalizeEnv);
@@ -91,12 +98,13 @@ export class RspackCLI {
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
 		options: RspackCLIOptions,
-		rspackEnv: RspackEnv
+		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
+		let commandDefaultEnv: "production" | "development" =
+			command === "build" ? "production" : "development";
+		let isBuild = command === "build";
+		let isServe = command === "serve";
 		const internalBuildConfig = async (item: RspackOptions) => {
-			const isEnvProduction = rspackEnv === "production";
-			const isEnvDevelopment = rspackEnv === "development";
-
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
 					"webpack-bundle-analyzer"
@@ -116,7 +124,7 @@ export class RspackCLI {
 			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
-				item.mode = rspackEnv ?? "none";
+				item.mode = commandDefaultEnv ?? "none";
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {
@@ -125,13 +133,11 @@ export class RspackCLI {
 
 			// false is also a valid value for sourcemap, so don't override it
 			if (typeof item.devtool === "undefined") {
-				item.devtool = isEnvProduction
-					? "source-map"
-					: "cheap-module-source-map";
+				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
 			item.builtins = item.builtins || {};
-			if (isEnvDevelopment) {
-				item.builtins.progress = true;
+			if (isServe) {
+				item.builtins.progress = item.builtins.progress ?? true;
 			}
 
 			// no emit assets when run dev server, it will use node_binding api get file content

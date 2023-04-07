@@ -106,17 +106,12 @@ jobs:
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Setup node dependencies
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm install
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
       - name: Install Rust
         if: ${{ !matrix.settings.docker }}
         run: rustup show
-      - name: Cache
+      - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: build-and-test
@@ -196,6 +191,8 @@ jobs:
           options: -v ${{ github.workspace }}:/build -w /build
           run: |
             set -e
+            apt update
+            apt-get install -y gstreamer1.0-libav libnss3-tools libatk-bridge2.0-0 libcups2-dev libxkbcommon-x11-0 libxcomposite-dev libxrandr2 libgbm-dev libgtk-3-0
             npm install -g pnpm@7.25.0
             pnpm install
             pnpm run build:js
@@ -203,6 +200,8 @@ jobs:
             pnpm --filter @rspack/core run test
             pnpm --filter @rspack/dev-server run test
             pnpm --filter @rspack/plugin-html run test
+            pnpm --filter @rspack/playground run test
+
   # test-aarch64-unknown-linux-gnu:
   #   strategy:
   #     fail-fast: false
@@ -340,8 +339,5 @@ jobs:
           npm install -g pnpm@7.25.0
           pnpm install
           pnpm run build:js
-
-          pnpm --filter @rspack/core run test
-          pnpm --filter @rspack/dev-server run test
-          pnpm --filter @rspack/plugin-html run test
-          pnpm --filter @rspack/playground run test
+          pnpm --filter "example-*" build
+          pnpm --filter "@rspack/*" run test

@@ -1,7 +1,10 @@
+use std::hash::Hash;
+
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, Compilation, Filename, LibraryOptions, Plugin, PluginContext, PluginRenderHookOutput,
-  PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
+  Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, Plugin, PluginContext,
+  PluginJsChunkHashHookOutput, PluginRenderHookOutput, PluginRenderStartupHookOutput, RenderArgs,
+  RenderStartupArgs, SourceType,
 };
 
 #[derive(Debug)]
@@ -124,6 +127,21 @@ impl Plugin for AssignLibraryPlugin {
     }
 
     Ok(Some(source.boxed()))
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args
+      .compilation
+      .options
+      .output
+      .library
+      .hash(&mut args.hasher);
+    Ok(())
   }
 }
 

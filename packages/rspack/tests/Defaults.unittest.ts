@@ -169,6 +169,14 @@ describe("snapshots", () => {
 		        ],
 		        "test": /\\\\\\.css\\$/i,
 		      },
+		      {
+		        "dependency": "url",
+		        "oneOf": [
+		          {
+		            "type": "asset/resource",
+		          },
+		        ],
+		      },
 		    ],
 		    "parser": {
 		      "asset": {
@@ -219,9 +227,13 @@ describe("snapshots", () => {
 		  "output": {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "chunkFilename": "[name].js",
+		    "crossOriginLoading": false,
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",
 		    "enabledLibraryTypes": [],
+		    "enabledWasmLoadingTypes": [
+		      "fetch",
+		    ],
 		    "filename": "[name].js",
 		    "globalObject": "self",
 		    "iife": true,
@@ -232,6 +244,7 @@ describe("snapshots", () => {
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
 		    "uniqueName": "@rspack/core",
+		    "wasmLoading": "fetch",
 		    "webassemblyModuleFilename": "[hash].module.wasm",
 		  },
 		  "plugins": [],
@@ -591,9 +604,10 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
+		+     "chunkFilename": "[id].bundle.js",
+		@@ ... @@
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		+     "chunkFilename": "[id].bundle.js",
 		+     "cssChunkFilename": "[id].bundle.css",
 		+     "cssFilename": "bundle.css",
 		@@ ... @@
@@ -608,9 +622,10 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
+		+     "chunkFilename": "[id].js",
+		@@ ... @@
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		+     "chunkFilename": "[id].js",
 		+     "cssChunkFilename": "[id].css",
 		+     "cssFilename": "[id].css",
 		@@ ... @@
@@ -801,11 +816,17 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
+		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
 		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
@@ -865,11 +886,17 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
+		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
 		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
@@ -918,11 +945,17 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-       "fetch",
+		+       "async-node",
+		@@ ... @@
 		-     "globalObject": "self",
 		+     "globalObject": "global",
 		@@ ... @@
 		-     "publicPath": "auto",
 		+     "publicPath": "",
+		@@ ... @@
+		-     "wasmLoading": "fetch",
+		+     "wasmLoading": "async-node",
 		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
@@ -1192,7 +1225,14 @@ describe("snapshots", () => {
 				enabledWasmLoadingTypes: ["...", "async-node"]
 			}
 		},
-		e => e.toMatchInlineSnapshot(`Compared values have no visual difference.`)
+		e =>
+			e.toMatchInlineSnapshot(`
+			- Expected
+			+ Received
+
+			@@ ... @@
+			+       "async-node",
+		`)
 	);
 
 	test(
