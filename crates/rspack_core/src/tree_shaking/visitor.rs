@@ -252,6 +252,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) && !force_insert {
       return;
     }
+    // TODO: refactor this to use intersects
     if self
       .state
       .intersection(
@@ -1021,30 +1022,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
   fn visit_var_decl(&mut self, node: &VarDecl) {
     for ele in node.decls.iter() {
-      let lhs: BetterId = match &ele.name {
-        Pat::Ident(ident) => ident.to_id().into(),
-        Pat::Array(_)
-        | Pat::Rest(_)
-        | Pat::Object(_)
-        | Pat::Assign(_)
-        | Pat::Invalid(_)
-        | Pat::Expr(_) => {
-          // TODO:
-          ele.visit_with(self);
-          continue;
-        }
-      };
+      // TODO: I think it is safe to move is_export out of loop.
       let is_export = self.state.contains(AnalyzeState::EXPORT_DECL);
-      if is_export && lhs.ctxt.outer() == self.top_level_mark {
-        self.add_export(
-          lhs.atom.clone(),
-          SymbolRef::Direct(Symbol::new(
-            self.module_identifier,
-            lhs.clone(),
-            SymbolType::Define,
-          )),
-        );
-      }
+      let Some(lhs) = self.visit_var_decl_pattern(&ele.name, is_export) else {
+        ele.init.visit_with(self);
+        continue;
+      };
       if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
         let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
         match init {
@@ -1077,6 +1060,81 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
+  // returns BetterId if the decl pattern only has one identifier binding, e.g. var binding = xxx
+  // other binding patterns like let [state, setState] = useState() will return None
+  fn visit_var_decl_pattern(&mut self, pattern: &Pat, is_export: bool) -> Option<BetterId> {
+    let mut add_export = |lhs: &BetterId| {
+      if is_export && lhs.ctxt.outer() == self.top_level_mark {
+        self.add_export(
+          lhs.atom.clone(),
+          SymbolRef::Direct(Symbol::new(
+            self.module_identifier,
+            lhs.clone(),
+            SymbolType::Define,
+          )),
+        );
+      }
+    };
+    match pattern {
+      // var ident = xxx
+      Pat::Ident(ident) => {
+        let id = BetterId::from(ident.to_id());
+        add_export(&id);
+        Some(id)
+      }
+      // var [ident, ...idents] = xxx
+      Pat::Array(bindings) => {
+        for binding in bindings.elems.iter().flatten() {
+          self.visit_var_decl_pattern(binding, is_export);
+        }
+        None
+      }
+      // var { ident } = xxx
+      Pat::Object(obj) => {
+        for prop in &obj.props {
+          match prop {
+            ObjectPatProp::KeyValue(pair) => {
+              pair.key.visit_with(self);
+              self.visit_var_decl_pattern(&pair.value, is_export);
+            }
+            ObjectPatProp::Assign(assign) => {
+              assign.value.visit_with(self);
+              let lhs = BetterId::from(assign.key.to_id());
+              // inline code here to avoid compiler complaints
+              if is_export && lhs.ctxt.outer() == self.top_level_mark {
+                self.add_export(
+                  lhs.atom.clone(),
+                  SymbolRef::Direct(Symbol::new(
+                    self.module_identifier,
+                    lhs.clone(),
+                    SymbolType::Define,
+                  )),
+                );
+              }
+            }
+            ObjectPatProp::Rest(rest) => {
+              self.visit_var_decl_pattern(&rest.arg, is_export);
+            }
+          }
+        }
+        None
+      }
+      Pat::Assign(assign) => {
+        self.visit_var_decl_pattern(&assign.left, is_export);
+        assign.right.visit_with(self);
+        None
+      }
+      Pat::Rest(rest) => {
+        self.visit_var_decl_pattern(&rest.arg, is_export);
+        None
+      }
+      Pat::Invalid(_) | Pat::Expr(_) => {
+        // TODO: confirm if these pattern occurs only in for loop or is invalid
+        pattern.visit_with(self);
+        None
+      }
+    }
+  }
   fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
