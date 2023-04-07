@@ -3,5 +3,6 @@ module.exports = {
 	preset: "ts-jest",
 	testEnvironment: "node",
 	testTimeout: process.env.CI ? 120000 : 30000,
+	testMatch: ["<rootDir>/tests/**/*.test.ts", "<rootDir>/tests/**/*.test.js"],
 	watchPathIgnorePatterns: ["<rootDir>/tests/.*/dist"]
 };
