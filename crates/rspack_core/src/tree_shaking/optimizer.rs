@@ -554,27 +554,18 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     // visited_module.remove(&cur);
 
-    // TODO: this code can be slightly more concise
-    let side_effect_list = match side_effects_map.entry(cur) {
-      Entry::Occupied(mut occ) => match occ.get_mut() {
-        SideEffect::Configuration(_) => vec![],
-        SideEffect::Analyze(value) => {
-          if *value {
-            vec![]
-          } else {
-            module_ident_list
-              .into_iter()
-              .filter(|ident| {
-                matches!(
-                  side_effects_map.get(ident),
-                  Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
-                )
-              })
-              .collect::<Vec<_>>()
-          }
-        }
-      },
-      Entry::Vacant(_) => vec![],
+    let side_effect_list = match side_effects_map.get(&cur) {
+      Some(SideEffect::Configuration(_)) | None => vec![],
+      Some(SideEffect::Analyze(true)) => vec![],
+      Some(SideEffect::Analyze(false)) => module_ident_list
+        .into_iter()
+        .filter(|ident| {
+          matches!(
+            side_effects_map.get(ident),
+            Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
+          )
+        })
+        .collect::<Vec<_>>(),
     };
 
     if !side_effect_list.is_empty() {
