@@ -486,3 +486,6 @@ jobs:
         run: ls -R npm
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
+      - name: Cancel the whole release if the pre check is failed.
+        uses: andymckay/cancel-action@0.3
+        if: ${{ !success() }}
