@@ -2339,6 +2339,7 @@ dependencies = [
  "cfg-if",
  "dashmap",
  "glob",
+ "indexmap",
  "napi",
  "napi-derive",
  "once_cell",
@@ -2538,6 +2539,7 @@ name = "rspack_loader_sass"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "indexmap",
  "itertools",
  "once_cell",
  "regex",

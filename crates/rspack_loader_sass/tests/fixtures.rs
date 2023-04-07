@@ -4,6 +4,7 @@ use std::{
   str::FromStr,
 };
 
+use indexmap::IndexMap;
 use rspack_core::{
   CompilationContext, CompilerContext, CompilerOptions, Loader, LoaderRunner,
   LoaderRunnerAdditionalContext, ResourceData, SideEffectOption,
@@ -35,7 +36,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     &LoaderRunnerAdditionalContext {
       compiler: &CompilerContext {
         options: std::sync::Arc::new(CompilerOptions {
-          entry: std::collections::HashMap::default(),
+          entry: IndexMap::default(),
           context: rspack_core::Context::default(),
           dev_server: rspack_core::DevServerOptions::default(),
           devtool: rspack_core::Devtool::default(),

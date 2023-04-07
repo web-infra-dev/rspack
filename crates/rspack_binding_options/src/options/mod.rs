@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fmt::Debug};
 
+use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
@@ -55,6 +56,10 @@ pub trait RawOptionsApply {
 #[napi(object)]
 pub struct RawOptions {
   pub entry: HashMap<String, RawEntryItem>,
+  /// Using this Vector to track the original order of user land entry configuration
+  /// std::collection::HashMap does not guarantee the insertion order, for more details you could refer
+  /// https://doc.rust-lang.org/std/collections/index.html#iterators:~:text=For%20unordered%20collections%20like%20HashMap%2C%20the%20items%20will%20be%20yielded%20in%20whatever%20order%20the%20internal%20representation%20made%20most%20convenient.%20This%20is%20great%20for%20reading%20through%20all%20the%20contents%20of%20the%20collection.
+  pub __entry_order: Vec<String>,
   #[napi(ts_type = "undefined | 'production' | 'development' | 'none'")]
   pub mode: Option<RawMode>,
   #[napi(ts_type = "Array<string>")]
@@ -82,13 +87,13 @@ pub struct RawOptions {
 impl RawOptionsApply for RawOptions {
   type Options = CompilerOptions;
 
-  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
+  fn apply(mut self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
     let entry = self
-      .entry
+      .__entry_order
       .into_iter()
-      .map(|(name, item)| (name, item.into()))
-      .collect::<HashMap<String, EntryItem>>();
+      .filter_map(|key| self.entry.remove_entry(&key).map(|(k, v)| (k, v.into())))
+      .collect::<IndexMap<String, EntryItem>>();
     let output: OutputOptions = self.output.apply(plugins)?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();

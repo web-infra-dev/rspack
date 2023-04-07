@@ -29,4 +29,5 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [dev-dependencies]
+indexmap       = { workspace = true }
 rspack_testing = { path = "../rspack_testing" }

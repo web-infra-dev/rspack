@@ -10,7 +10,7 @@ use std::{
 };
 
 use dashmap::DashSet;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use rayon::prelude::{
   IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator,
 };
@@ -72,7 +72,7 @@ pub struct Compilation {
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
-  pub entrypoints: HashMap<String, ChunkGroupUkey>,
+  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
@@ -228,7 +228,7 @@ impl Compilation {
     &self.assets
   }
 
-  pub fn entrypoints(&self) -> &HashMap<String, ChunkGroupUkey> {
+  pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
     &self.entrypoints
   }
 
@@ -285,7 +285,7 @@ impl Compilation {
   }
 
   #[instrument(name = "entry_data", skip(self))]
-  pub fn entry_data(&self) -> HashMap<String, EntryData> {
+  pub fn entry_data(&self) -> IndexMap<String, EntryData> {
     self
       .entries
       .iter()
