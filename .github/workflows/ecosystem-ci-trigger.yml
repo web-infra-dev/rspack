@@ -71,7 +71,7 @@ jobs:
             const comment = process.env.COMMENT.trim()
             const prData = ${{ steps.get-pr-data.outputs.result }}
 
-            const suite = comment.split('\n')[0].replace(/^!eco-ci /, '').trim()
+            const suite = comment.split('\n')[0].replace(/^!eco-ci/, '').trim()
 
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
