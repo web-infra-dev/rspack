@@ -5,8 +5,5 @@
         "./app.js"
       ]
     }
-  },
-  "output": {
-    "clear": true
   }
 }

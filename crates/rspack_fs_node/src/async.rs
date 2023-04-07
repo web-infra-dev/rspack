@@ -87,12 +87,15 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     Box::pin(fut)
   }
 
-  fn rm<P: AsRef<std::path::Path>>(&self, dir: P) -> BoxFuture<'_, rspack_fs::Result<()>> {
+  fn remove_dir_all<P: AsRef<std::path::Path>>(
+    &self,
+    dir: P,
+  ) -> BoxFuture<'_, rspack_fs::Result<()>> {
     let dir = dir.as_ref().to_string_lossy().to_string();
     let fut = async move {
       self
         .fs_ts
-        .rm
+        .remove_dir_all
         .call(dir, ThreadsafeFunctionCallMode::NonBlocking)
         .expect("Failed to call tsfn")
         .await

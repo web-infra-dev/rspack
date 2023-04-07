@@ -182,10 +182,11 @@ where
 
   #[instrument(name = "emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
-    let output_path = &self.options.output.path;
-
     if self.options.output.clear {
-      self.output_filesystem.rm(output_path).await?;
+      self
+        .output_filesystem
+        .remove_dir_all(&self.options.output.path)
+        .await?;
     }
 
     self

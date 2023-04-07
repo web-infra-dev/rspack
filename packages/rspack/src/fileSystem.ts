@@ -2,7 +2,7 @@ export interface ThreadsafeWritableNodeFS {
 	writeFile: (...args: any[]) => any;
 	mkdir: (...args: any[]) => any;
 	mkdirp: (...args: any[]) => any;
-	rm: (...args: any[]) => any;
+	remove_dir_all: (...args: any[]) => any;
 }
 
 function createThreadsafeNodeFSFromRaw(
@@ -15,7 +15,7 @@ function createThreadsafeNodeFSFromRaw(
 			fs.mkdirSync(dir, {
 				recursive: true
 			}),
-		rm: dir =>
+		remove_dir_all: dir =>
 			fs.rmSync(dir, {
 				recursive: true
 			})

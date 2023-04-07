@@ -62,10 +62,6 @@ fn true_by_default() -> bool {
   true
 }
 
-fn false_by_default() -> bool {
-  true
-}
-
 /// The configuration is used to configure the test in Rust.
 /// The structure should be closed to the webpack configuration.
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -222,7 +218,7 @@ impl From<PxToRem> for PxToRemOptions {
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Output {
-  #[serde(default = "false_by_default")]
+  #[serde(default)]
   pub clear: bool,
   #[serde(default = "default_public_path")]
   pub public_path: String,

@@ -58,7 +58,7 @@ cfg_async! {
       Box::pin(fut)
     }
 
-    fn rm<P: AsRef<Path>>(&self, dir: P) -> BoxFuture<'_, Result<()>> {
+    fn remove_dir_all<P: AsRef<Path>>(&self, dir: P) -> BoxFuture<'_, Result<()>> {
       let dir = dir.as_ref().to_string_lossy().to_string();
       let fut = async move { tokio::fs::remove_dir_all(dir).await.map_err(Error::from) };
       Box::pin(fut)

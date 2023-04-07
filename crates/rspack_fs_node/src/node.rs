@@ -67,7 +67,7 @@ cfg_async! {
     pub write_file: JsFunction,
     pub mkdir: JsFunction,
     pub mkdirp: JsFunction,
-    pub rm: JsFunction,
+    pub remove_dir_all: JsFunction,
   }
 
   trait TryIntoJsUnknown {
@@ -150,7 +150,7 @@ cfg_async! {
         write_file: self.write_file.try_into_tsfn(env)?,
         mkdir: self.mkdir.try_into_tsfn(env)?,
         mkdirp: self.mkdirp.try_into_tsfn(env)?,
-        rm: self.rm.try_into_tsfn(env)?,
+        remove_dir_all: self.remove_dir_all.try_into_tsfn(env)?,
       })
     }
   }
@@ -159,6 +159,6 @@ cfg_async! {
     pub(crate) write_file: ThreadsafeFunction<(String, Vec<u8>), ()>,
     pub(crate) mkdir: ThreadsafeFunction<String, ()>,
     pub(crate) mkdirp: ThreadsafeFunction<String, Either<String, ()>>,
-    pub(crate) rm: ThreadsafeFunction<String, Either<String, ()>>,
+    pub(crate) remove_dir_all: ThreadsafeFunction<String, Either<String, ()>>,
   }
 }

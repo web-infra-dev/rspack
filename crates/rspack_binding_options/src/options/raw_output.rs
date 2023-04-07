@@ -133,7 +133,7 @@ impl RawOptionsApply for RawOutputOptions {
 
     Ok(OutputOptions {
       path: self.path.into(),
-      clear: self.clear.into(),
+      clear: self.clear,
       public_path: self.public_path.into(),
       asset_module_filename: self.asset_module_filename.into(),
       wasm_loading: match self.wasm_loading.as_str() {
