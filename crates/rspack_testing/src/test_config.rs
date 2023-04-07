@@ -62,6 +62,10 @@ fn true_by_default() -> bool {
   true
 }
 
+fn false_by_default() -> bool {
+  true
+}
+
 /// The configuration is used to configure the test in Rust.
 /// The structure should be closed to the webpack configuration.
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -218,6 +222,8 @@ impl From<PxToRem> for PxToRemOptions {
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Output {
+  #[serde(default = "false_by_default")]
+  pub clear: bool,
   #[serde(default = "default_public_path")]
   pub public_path: String,
   #[serde(default = "default_chunk_filename")]
@@ -367,6 +373,7 @@ impl TestConfig {
         })
         .collect(),
       output: c::OutputOptions {
+        clear: self.output.clear,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
         chunk_filename: c::Filename::from_str(&self.output.chunk_filename).expect("Should exist"),
         cross_origin_loading: rspack_core::CrossOriginLoading::Disable,

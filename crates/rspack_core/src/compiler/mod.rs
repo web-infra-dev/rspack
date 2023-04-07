@@ -182,15 +182,18 @@ where
 
   #[instrument(name = "emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
+    let output_path = &self.options.output.path;
+
+    if self.options.output.clear {
+      self.output_filesystem.rm(output_path).await?;
+    }
+
     self
       .plugin_driver
       .write()
       .await
       .emit(&mut self.compilation)
       .await?;
-
-    let output_path = &self.options.output.path;
-
     let _ = self
       .compilation
       .assets()
