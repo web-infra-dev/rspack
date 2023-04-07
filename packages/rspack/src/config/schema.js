@@ -1757,6 +1757,11 @@ module.exports = {
 			type: "string",
 			minLength: 1
 		},
+		ChunkLoadingGlobal: {
+			description: "The global variable used by rspack for loading of chunks.",
+			type: "string",
+			minLength: 1
+		},
 		Watch: {
 			description: "Enter watch mode, which rebuilds on file change.",
 			type: "boolean"
