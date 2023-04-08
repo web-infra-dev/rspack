@@ -208,7 +208,7 @@ impl Plugin for HtmlPlugin {
       query: Some("".to_string()),
     });
     compilation.emit_asset(
-      config.filename.clone(),
+      html_file_name.clone(),
       CompilationAsset::with_source(RawSource::from(source).boxed()),
     );
 
