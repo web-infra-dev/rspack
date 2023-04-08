@@ -177,4 +177,58 @@ describe("Stats", () => {
 		"
 	`);
 	});
+
+	it("should have reasons", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/main5.js",
+			stats: { reasons: true }
+		});
+		expect(stats?.toJson({}, true).modules).toEqual([
+			{
+				chunks: ["main"],
+				id: "658",
+				identifier:
+					"javascript/dynamic|/Users/faga/f/rspack/packages/rspack/tests/fixtures/a.js",
+				issuer:
+					"javascript/dynamic|/Users/faga/f/rspack/packages/rspack/tests/fixtures/main5.js",
+				issuerId: "597",
+				issuerName: "./fixtures/main5.js",
+				issuerPath: [
+					{
+						id: "597",
+						identifier:
+							"javascript/dynamic|/Users/faga/f/rspack/packages/rspack/tests/fixtures/main5.js",
+						name: "./fixtures/main5.js"
+					}
+				],
+				moduleType: "javascript/dynamic",
+				name: "./fixtures/a.js",
+				reasons: [
+					{
+						moduleId: "597",
+						moduleIdentifier:
+							"javascript/dynamic|/Users/faga/f/rspack/packages/rspack/tests/fixtures/main5.js",
+						moduleName: "./fixtures/main5.js",
+						type: "cjs require",
+						userRequest: "./a"
+					}
+				],
+				size: 55,
+				type: "module"
+			},
+			{
+				chunks: ["main"],
+				id: "597",
+				identifier:
+					"javascript/dynamic|/Users/faga/f/rspack/packages/rspack/tests/fixtures/main5.js",
+				issuerPath: [],
+				moduleType: "javascript/dynamic",
+				name: "./fixtures/main5.js",
+				reasons: [{ type: "entry", userRequest: "./fixtures/main5.js" }],
+				size: 44,
+				type: "module"
+			}
+		]);
+	});
 });
