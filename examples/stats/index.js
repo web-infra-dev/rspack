@@ -1,3 +1,3 @@
-const a = require('./a');
+const cjsRequire = require('./cjs-require');
 
-console.log(a);
+console.log(cjsRequire);
