@@ -149,6 +149,13 @@ describe("snapshots", () => {
 		        "descriptionData": {
 		          "type": "module",
 		        },
+		        "resolve": {
+		          "byDependency": {
+		            "esm": {
+		              "fullySpecified": true,
+		            },
+		          },
+		        },
 		        "test": /\\\\\\.js\\$/i,
 		        "type": "javascript/esm",
 		      },
