@@ -75,6 +75,34 @@ pub enum DependencyType {
   StaticExports,
 }
 
+impl Display for DependencyType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      DependencyType::Unknown => write!(f, "unknown"),
+      DependencyType::Entry => write!(f, "entry"),
+      DependencyType::EsmImport => write!(f, "esm-import"),
+      DependencyType::EsmExport => write!(f, "esm-export"),
+      DependencyType::DynamicImport => write!(f, "dynamic-import"),
+      DependencyType::CjsRequire => write!(f, "cjs-require"),
+      DependencyType::NewUrl => write!(f, "new-url"),
+      DependencyType::ImportMetaHotAccept => write!(f, "import-meta-hot-accept"),
+      DependencyType::ImportMetaHotDecline => write!(f, "import-meta-hot-decline"),
+      DependencyType::ModuleHotAccept => write!(f, "module-hot-accept"),
+      DependencyType::ModuleHotDecline => write!(f, "module-hot-decline"),
+      DependencyType::CssUrl => write!(f, "css-url"),
+      DependencyType::CssImport => write!(f, "css-import"),
+      DependencyType::CssCompose => write!(f, "css-compose"),
+      DependencyType::ContextElement => write!(f, "context-element"),
+      DependencyType::ImportContext => write!(f, "import-context"),
+      DependencyType::CommonJSRequireContext => write!(f, "commonjs-require-context"),
+      DependencyType::RequireContext => write!(f, "require-context"),
+      DependencyType::WasmImport => write!(f, "wasm-import"),
+      DependencyType::WasmExportImported => write!(f, "wasm-export-imported"),
+      DependencyType::StaticExports => write!(f, "static-exports"),
+    }
+  }
+}
+
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyCategory {
   #[default]

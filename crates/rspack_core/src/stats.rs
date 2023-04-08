@@ -316,11 +316,17 @@ impl Stats<'_> {
               .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
               .map(|m| get_stats_module_name_and_id(m, self.compilation))
               .unzip();
+            let r#type = self
+              .compilation
+              .module_graph
+              .dependency_by_id(&connection.dependency_id)
+              .map(|d| d.dependency_type().to_string());
+
             StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,
               module_id,
-              r#type: Some(String::from("cjs")),
+              r#type,
             }
           })
           .collect();
