@@ -1,5 +1,5 @@
 use dashmap::DashMap;
-use rspack_core::{Chunk, ChunkGraphChunk, ChunkUkey, Plugin};
+use rspack_core::{Chunk, ChunkGraphChunk, ChunkUkey, Module, Plugin};
 use rspack_identifier::Identifier;
 
 /// In practice, the algorithm friendly to development/hmr of splitting chunks is doing nothing.
@@ -18,6 +18,7 @@ impl DevFriendlySplitChunksPlugin {
 struct SharedModule {
   module: Identifier,
   ref_chunks: Vec<ChunkUkey>,
+  is_initial_loaded: bool,
 }
 
 struct ChunkInfo<'a> {
@@ -36,44 +37,85 @@ impl Plugin for DevFriendlySplitChunksPlugin {
   ) -> rspack_core::PluginOptimizeChunksOutput {
     use rayon::prelude::*;
     let compilation = args.compilation;
+
+    // First we filter out all the shared modules
     let mut shared_modules = compilation
       .module_graph
       .modules()
       .values()
       .par_bridge()
       .map(|m| m.identifier())
-      .map(|module| {
+      .filter_map(|module| {
         let chunks = compilation.chunk_graph.get_modules_chunks(module);
-        SharedModule {
-          module,
-          ref_chunks: chunks.iter().cloned().collect(),
+
+        let is_initial_loaded = chunks.iter().any(|c| {
+          c.as_ref(&compilation.chunk_by_ukey)
+            .is_only_initial(&compilation.chunk_group_by_ukey)
+        });
+
+        if chunks.len() > 1 {
+          Some(SharedModule {
+            module,
+            ref_chunks: chunks.iter().cloned().collect(),
+            is_initial_loaded,
+          })
+        } else {
+          None
         }
       })
-      .filter(|m| m.ref_chunks.len() > 1)
       .collect::<Vec<_>>();
 
-    shared_modules.sort_unstable_by(|a, b| {
-      // One's ref_count is greater, one should be put in front.
-      let ret = b.ref_chunks.len().cmp(&a.ref_chunks.len());
+    // Filter out modules that would be loaded initially
+    let mut initial_loaded_shared_modules = {
+      let mut idx = 0;
+      let mut initial_loaded = vec![];
+      while idx < shared_modules.len() {
+        let cur_module = &shared_modules[idx];
+        if cur_module.is_initial_loaded {
+          initial_loaded.push(shared_modules.swap_remove(idx));
+        } else {
+          idx += 1;
+        }
+      }
+      initial_loaded
+    };
+    let mut dynamic_loaded_shared_modules = shared_modules;
+
+    let sorter = |a: &SharedModule, b: &SharedModule| {
+      // One's size is smaller, one should be put in front.
+      let a_size = compilation
+        .module_graph
+        .module_by_identifier(&a.module)
+        .map(|m| m.estimated_size(&rspack_core::SourceType::JavaScript))
+        .unwrap_or_default();
+      let b_size = compilation
+        .module_graph
+        .module_by_identifier(&b.module)
+        .map(|m| m.estimated_size(&rspack_core::SourceType::JavaScript))
+        .unwrap_or_default();
+      let ret = a_size.total_cmp(&b_size);
       if ret != std::cmp::Ordering::Equal {
         return ret;
       }
 
       // If the len of ref_chunks is equal, fallback to compare module id.
       a.module.cmp(&b.module)
-    });
+    };
+    // Sort these modules to make the output stable
+    initial_loaded_shared_modules.sort_unstable_by(sorter);
+    dynamic_loaded_shared_modules.sort_unstable_by(sorter);
 
     // The number doesn't go through deep consideration.
-    const MAX_MODULES_PER_CHUNK: usize = 500;
-    // About 5mb
-    const MAX_SIZE_PER_CHUNK: f64 = 5000000.0;
-
+    const MAX_MODULES_PER_CHUNK: usize = 2000;
+    // About 3mb
+    const MAX_SIZE_PER_CHUNK: f64 = 3000000.0;
     // First we group modules by MAX_MODULES_PER_CHUNK
 
-    let split_modules = shared_modules
+    let split_modules = initial_loaded_shared_modules
       .par_chunks(MAX_MODULES_PER_CHUNK)
+      .chain(dynamic_loaded_shared_modules.par_chunks(MAX_MODULES_PER_CHUNK))
       .flat_map(|modules| {
-        let chunk_size: f64 = modules
+        let size_of_modules: f64 = modules
           .iter()
           .map(|m| {
             let module = compilation
@@ -81,44 +123,52 @@ impl Plugin for DevFriendlySplitChunksPlugin {
               .module_by_identifier(&m.module)
               .expect("Should have a module here");
 
-            // Some code after transpiling will increase it's size a lot.
-            let coefficient = match module.module_type() {
-              // 5.0 is a number in practice
-              rspack_core::ModuleType::Jsx => 5.0,
-              rspack_core::ModuleType::JsxDynamic => 5.0,
-              rspack_core::ModuleType::JsxEsm => 5.0,
-              rspack_core::ModuleType::Tsx => 5.0,
-              _ => 1.5,
-            };
-
-            module.size(&rspack_core::SourceType::JavaScript) * coefficient
+            module.estimated_size(&rspack_core::SourceType::JavaScript)
           })
           .sum();
 
-        if chunk_size > MAX_SIZE_PER_CHUNK {
-          let mut remain_chunk_size = chunk_size;
+        if size_of_modules > MAX_SIZE_PER_CHUNK {
+          // `modules` are too big, split them
+          let mut remain_size_of_modules = size_of_modules;
           let mut last_end_idx = 0;
-          let mut chunks = vec![];
-          while remain_chunk_size > MAX_SIZE_PER_CHUNK && last_end_idx < modules.len() {
-            let mut new_chunk_size = 0f64;
+          let mut list_of_modules = vec![];
+          while remain_size_of_modules > MAX_SIZE_PER_CHUNK && last_end_idx < modules.len() {
+            let mut size_of_new_modules = 0.0;
             let start_idx = last_end_idx;
-            while new_chunk_size < MAX_SIZE_PER_CHUNK && last_end_idx < modules.len() {
+            while size_of_new_modules < MAX_SIZE_PER_CHUNK && last_end_idx < modules.len() {
               let module_size = compilation
                 .module_graph
                 .module_by_identifier(&modules[last_end_idx].module)
                 .expect("Should have a module here")
-                .size(&rspack_core::SourceType::JavaScript);
-              new_chunk_size += module_size;
-              remain_chunk_size -= module_size;
+                .estimated_size(&rspack_core::SourceType::JavaScript);
+              // about 500kb
+              let pre_calculated_size_of_new_modules = size_of_new_modules + module_size;
+              if pre_calculated_size_of_new_modules > MAX_SIZE_PER_CHUNK
+                && size_of_new_modules != 0.0
+                && module_size > 512000.0
+              {
+                // If the new added module is bigger than 512kb, we would skip it.
+                // With this requirements, the max size a chunk is about 3.5mb
+                break;
+              }
+              size_of_new_modules = pre_calculated_size_of_new_modules;
+              remain_size_of_modules -= module_size;
               last_end_idx += 1;
             }
-            chunks.push(&modules[start_idx..last_end_idx])
+            list_of_modules.push(&modules[start_idx..last_end_idx])
           }
 
-          if last_end_idx < modules.len() {
-            chunks.push(&modules[last_end_idx..])
+          if remain_size_of_modules <= 512000.0 {
+            // If the remain_size_of_modules is smaller than 500kb,
+            // we would merge remain modules to last `modules`
+            let last_modules = list_of_modules.pop().unwrap_or(&[]);
+            let start_idx = last_end_idx - last_modules.len();
+            list_of_modules.push(&modules[start_idx..])
+          } else if last_end_idx < modules.len() {
+            list_of_modules.push(&modules[last_end_idx..])
           }
-          chunks
+
+          list_of_modules
         } else {
           vec![modules]
         }
@@ -178,14 +228,38 @@ impl Plugin for DevFriendlySplitChunksPlugin {
     });
 
     // Remove shared modules from old chunks, since they are moved to new chunks.
-    shared_modules.iter().for_each(|m| {
-      m.ref_chunks.iter().for_each(|old_chunk| {
-        compilation
-          .chunk_graph
-          .disconnect_chunk_and_module(old_chunk, m.module);
+    initial_loaded_shared_modules
+      .iter()
+      .chain(dynamic_loaded_shared_modules.iter())
+      .for_each(|m| {
+        m.ref_chunks.iter().for_each(|old_chunk| {
+          compilation
+            .chunk_graph
+            .disconnect_chunk_and_module(old_chunk, m.module);
+        });
       });
-    });
 
     Ok(())
+  }
+}
+
+trait EstimatedSize {
+  fn estimated_size(&self, source_type: &rspack_core::SourceType) -> f64;
+}
+
+impl<T: Module> EstimatedSize for T {
+  fn estimated_size(&self, source_type: &rspack_core::SourceType) -> f64 {
+    use rspack_core::ModuleType;
+    let coefficient: f64 = match self.module_type() {
+      // 5.0 is a number in practice
+      rspack_core::ModuleType::Jsx
+      | ModuleType::JsxDynamic
+      | ModuleType::JsxEsm
+      | ModuleType::Tsx => 7.5,
+      ModuleType::Js | ModuleType::JsDynamic => 1.5,
+      _ => 1.0,
+    };
+
+    self.size(source_type) * coefficient
   }
 }

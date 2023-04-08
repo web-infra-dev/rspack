@@ -453,51 +453,39 @@ jobs:
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
 
-  release-pre-check:
-    name: Release pre check
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    needs:
-      - build-x86_64-unknown-linux-gnu
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@master
-        with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Setup node dependencies
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm install
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: artifacts
-      - name: Build node packages
-        run: pnpm run build:js
-      - name: Move artifacts
-        run: node scripts/build-npm.js
-      - name: Show binding packages
-        run: ls -R npm
-      - name: Link optional dependencies
-        run: pnpm install --no-frozen-lockfile
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
-          type: "release"
-          branch: ${{ github.ref_name }}
-          tools: "changeset"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
-          ONLY_RELEASE_TAG: true
-      - name: Cancel the whole release if the pre check is failed.
-        uses: andymckay/cancel-action@0.3
-        if: ${{ !success() }}
+  # release-pre-check:
+  #   name: Release pre check
+  #   permissions:
+  #     contents: write
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build-x86_64-unknown-linux-gnu
+  #   if: ${{ github.event_name == 'workflow_dispatch' }}
+  #   steps:
+  #     - name: Checkout Repo
+  #       uses: actions/checkout@master
+  #       with:
+  #         # This makes Actions fetch only one branch to release
+  #         fetch-depth: 1
+  #     - uses: actions/setup-node@v3
+  #       with:
+  #         node-version: "16"
+  #     - name: Setup node dependencies
+  #       run: |
+  #         npm install -g pnpm@7.25.0
+  #         pnpm install
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         path: artifacts
+  #     - name: Build node packages
+  #       run: pnpm run build:js
+  #     - name: Move artifacts
+  #       run: node scripts/build-npm.js
+  #     - name: Show binding packages
+  #       run: ls -R npm
+  #     - name: Link optional dependencies
+  #       run: pnpm install --no-frozen-lockfile
+  #     - name: Cancel the whole release if the pre check is failed.
+  #       uses: andymckay/cancel-action@0.3
+  #       if: ${{ !success() }}

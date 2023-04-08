@@ -167,7 +167,14 @@ const applyModuleDefaults = (
 
 	A(module, "defaultRules", () => {
 		const esm = {
-			type: "javascript/esm"
+			type: "javascript/esm",
+			resolve: {
+				byDependency: {
+					esm: {
+						fullySpecified: true
+					}
+				}
+			}
 		};
 		const commonjs = {
 			type: "javascript/dynamic"
@@ -181,26 +188,24 @@ const applyModuleDefaults = (
 				test: /\.mjs$/i,
 				...esm
 			},
-			// {
-			// 	test: /\.js$/i,
-			// 	// TODO:
-			// 	// descriptionData: {
-			// 	// 	type: "module"
-			// 	// },
-			// 	...esm
-			// },
+			{
+				test: /\.js$/i,
+				descriptionData: {
+					type: "module"
+				},
+				...esm
+			},
 			{
 				test: /\.cjs$/i,
 				...commonjs
 			},
-			// {
-			// 	test: /\.js$/i,
-			// 	// TODO:
-			// 	// descriptionData: {
-			// 	// 	type: "commonjs"
-			// 	// },
-			// 	...commonjs
-			// },
+			{
+				test: /\.js$/i,
+				descriptionData: {
+					type: "commonjs"
+				},
+				...commonjs
+			},
 			{
 				test: /\.jsx$/i,
 				type: "jsx"
@@ -217,11 +222,15 @@ const applyModuleDefaults = (
 		const cssRule = {
 			type: "css",
 			resolve: {
+				fullySpecified: true,
 				preferRelative: true
 			}
 		};
 		const cssModulesRule = {
-			type: "css/module"
+			type: "css/module",
+			resolve: {
+				fullySpecified: true
+			}
 		};
 		rules.push({
 			test: /\.css$/i,

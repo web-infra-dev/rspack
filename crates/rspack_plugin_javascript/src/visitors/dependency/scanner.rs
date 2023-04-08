@@ -305,24 +305,18 @@ impl VisitAstPath for DependencyScanner<'_> {
     }) = expr
     {
       // variable can be assigned
-      if ident.span.ctxt == *self.unresolved_ctxt {
-        #[allow(clippy::single_match)]
-        match ident.sym.as_ref() as &str {
-          WEBPACK_PUBLIC_PATH => {
-            let mut new_expr = expr.clone();
-            if let Some(e) = new_expr.as_mut_assign() {
-              e.left = PatOrExpr::Pat(box Pat::Ident(
-                quote_ident!(RuntimeGlobals::PUBLIC_PATH).into(),
-              ))
-            };
-            self.add_presentational_dependency(box ConstDependency::new(
-              new_expr,
-              Some(RuntimeGlobals::PUBLIC_PATH),
-              as_parent_path(ast_path),
-            ));
-          }
-          _ => {}
-        }
+      if ident.span.ctxt == *self.unresolved_ctxt && ident.sym.as_ref() == WEBPACK_PUBLIC_PATH {
+        let mut new_expr = expr.clone();
+        if let Some(e) = new_expr.as_mut_assign() {
+          e.left = PatOrExpr::Pat(box Pat::Ident(
+            quote_ident!(RuntimeGlobals::PUBLIC_PATH).into(),
+          ))
+        };
+        self.add_presentational_dependency(box ConstDependency::new(
+          new_expr,
+          Some(RuntimeGlobals::PUBLIC_PATH),
+          as_parent_path(ast_path),
+        ));
       }
     }
 
