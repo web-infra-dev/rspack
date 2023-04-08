@@ -358,7 +358,7 @@ const applyOutputDefaults = (
 	});
 	D(output, "importFunctionName", "import");
 	F(output, "iife", () => !output.module);
-	F(output, "clear", () => !!output.clear);
+	F(output, "clean", () => !!output.clean);
 	F(output, "module", () => false); // TODO experiments.outputModule
 
 	A(output, "enabledWasmLoadingTypes", () => {

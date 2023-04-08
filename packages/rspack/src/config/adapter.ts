@@ -161,7 +161,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	return {
 		path: output.path!,
 		publicPath: output.publicPath!,
-		clear: output.clear!,
+		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
 		chunkFilename: output.chunkFilename!,

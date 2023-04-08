@@ -227,7 +227,7 @@ describe("snapshots", () => {
 		  "output": {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "chunkFilename": "[name].js",
-		    "clear": false,
+		    "clean": false,
 		    "crossOriginLoading": false,
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",

@@ -13,7 +13,7 @@ use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
 #[derive(Debug)]
 pub struct OutputOptions {
   pub path: PathBuf,
-  pub clear: bool,
+  pub clean: bool,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,

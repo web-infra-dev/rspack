@@ -219,7 +219,7 @@ impl From<PxToRem> for PxToRemOptions {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Output {
   #[serde(default)]
-  pub clear: bool,
+  pub clean: bool,
   #[serde(default = "default_public_path")]
   pub public_path: String,
   #[serde(default = "default_chunk_filename")]

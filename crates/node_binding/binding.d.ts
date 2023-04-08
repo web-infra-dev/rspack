@@ -311,7 +311,7 @@ export interface RawCrossOriginLoading {
 }
 export interface RawOutputOptions {
   path: string
-  clear: boolean
+  clean: boolean
   publicPath: string
   assetModuleFilename: string
   wasmLoading: string

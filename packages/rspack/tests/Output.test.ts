@@ -92,7 +92,7 @@ describe("Output", () => {
 					"./a",
 					{
 						output: {
-							clear: true,
+							clean: true,
 							path: outputDist,
 							filename: "hell2.js"
 						}

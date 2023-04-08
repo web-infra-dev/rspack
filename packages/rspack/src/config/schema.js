@@ -969,7 +969,7 @@ module.exports = {
 				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
 			type: "boolean"
 		},
-		Clear: {
+		Clean: {
 			description: "Clears the output build directory",
 			type: "boolean"
 		},
@@ -982,8 +982,8 @@ module.exports = {
 				iife: {
 					$ref: "#/definitions/Iife"
 				},
-				clear: {
-					$ref: "#/definitions/Clear"
+				clean: {
+					$ref: "#/definitions/Clean"
 				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
