@@ -369,7 +369,7 @@ impl TestConfig {
         })
         .collect(),
       output: c::OutputOptions {
-        clear: self.output.clear,
+        clean: self.output.clean,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
         chunk_filename: c::Filename::from_str(&self.output.chunk_filename).expect("Should exist"),
         cross_origin_loading: rspack_core::CrossOriginLoading::Disable,
