@@ -530,6 +530,7 @@ export interface JsStatsModuleReason {
   moduleName?: string
   moduleId?: string
   type?: string
+  userRequest?: string
 }
 export interface JsStatsChunk {
   type: string
