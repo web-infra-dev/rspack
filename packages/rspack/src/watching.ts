@@ -280,13 +280,15 @@ class Watching {
 
 		const cbs = this.callbacks;
 		this.callbacks = [];
+		const startTime = this.startTime; // store last startTime for compilation
+		// reset startTime for next compilation, before throwing error
 		this.startTime = undefined;
 		if (error) {
 			return handleError(error);
 		}
 		assert(compilation);
 
-		compilation.startTime = this.startTime;
+		compilation.startTime = startTime;
 		compilation.endTime = Date.now();
 		stats = new Stats(compilation);
 
