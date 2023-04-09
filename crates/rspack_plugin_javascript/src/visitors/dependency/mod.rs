@@ -1,6 +1,7 @@
 mod code_generation;
 mod common_js_scanner;
 mod hmr_scanner;
+mod import_meta_scanner;
 mod node_stuff_scanner;
 mod scanner;
 mod util;
