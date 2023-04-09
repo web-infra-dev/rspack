@@ -184,30 +184,31 @@ describe("Stats", () => {
 			entry: "./fixtures/main5.js",
 			stats: { reasons: true }
 		});
-		expect(stats?.toJson({}).modules).toMatchInlineSnapshot(`
+		expect(stats?.toJson({ all: false, modules: true }).modules)
+			.toMatchInlineSnapshot(`
 [
   {
     "chunks": [
       "main",
     ],
-    "id": "658",
-    "identifier": "javascript/dynamic|<PROJECT_ROOT>/tests/fixtures/a.js",
-    "issuer": "javascript/dynamic|<PROJECT_ROOT>/tests/fixtures/main5.js",
-    "issuerId": "597",
+    "id": "777",
+    "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/a.js",
+    "issuer": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
+    "issuerId": "371",
     "issuerName": "./fixtures/main5.js",
     "issuerPath": [
       {
-        "id": "597",
-        "identifier": "javascript/dynamic|<PROJECT_ROOT>/tests/fixtures/main5.js",
+        "id": "371",
+        "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
         "name": "./fixtures/main5.js",
       },
     ],
-    "moduleType": "javascript/dynamic",
+    "moduleType": "javascript/auto",
     "name": "./fixtures/a.js",
     "reasons": [
       {
-        "moduleId": "597",
-        "moduleIdentifier": "javascript/dynamic|<PROJECT_ROOT>/tests/fixtures/main5.js",
+        "moduleId": "371",
+        "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
         "moduleName": "./fixtures/main5.js",
         "type": "cjs require",
         "userRequest": "./a",
@@ -220,10 +221,10 @@ describe("Stats", () => {
     "chunks": [
       "main",
     ],
-    "id": "597",
-    "identifier": "javascript/dynamic|<PROJECT_ROOT>/tests/fixtures/main5.js",
+    "id": "371",
+    "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
     "issuerPath": [],
-    "moduleType": "javascript/dynamic",
+    "moduleType": "javascript/auto",
     "name": "./fixtures/main5.js",
     "reasons": [
       {
