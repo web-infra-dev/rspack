@@ -182,17 +182,7 @@ impl Plugin for HtmlPlugin {
     let hash = hash_for_ast_or_source(&source);
     let html_file_name = Filename::from(config.filename.clone());
     let html_file_name = html_file_name.render(FilenameRenderOptions {
-      name: Path::new(&url)
-        .file_name()
-        .and_then(OsStr::to_str)
-        .map(|str| {
-          str
-            .split('.')
-            .collect::<Vec<_>>()
-            .first()
-            .expect("TODO:")
-            .to_string()
-        }),
+      name: Path::new(&url).file_stem().map(|s| s.to_string_lossy().to_string()),
       path: Some(
         Path::new(&url)
           .relative(&compilation.options.context)
