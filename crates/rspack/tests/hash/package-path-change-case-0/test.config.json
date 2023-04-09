@@ -1,0 +1,5 @@
+{
+	"output": {
+		"filename": "[name].[contenthash].js"
+	}
+}

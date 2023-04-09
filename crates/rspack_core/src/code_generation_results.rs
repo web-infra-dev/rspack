@@ -165,6 +165,7 @@ impl CodeGenerationResults {
     }
   }
 
+  #[allow(clippy::unwrap_in_result)]
   pub fn get_hash(
     &self,
     module_identifier: &ModuleIdentifier,

@@ -1249,6 +1249,7 @@ impl Compilation {
     Ok(())
   }
 
+  #[allow(clippy::unwrap_in_result)]
   fn create_chunk_content_hash(
     &mut self,
     chunks: Vec<ChunkUkey>,

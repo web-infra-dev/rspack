@@ -20,3 +20,8 @@ fn samples(fixture_path: PathBuf) {
 fn tree_shaking(fixture_path: PathBuf) {
   test_fixture(&fixture_path);
 }
+
+#[fixture("tests/hash/*", exclude("node_modules"))]
+fn hash(fixture_path: PathBuf) {
+  test_fixture(&fixture_path);
+}
