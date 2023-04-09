@@ -186,10 +186,12 @@ impl Plugin for HtmlPlugin {
         .file_name()
         .and_then(OsStr::to_str)
         .map(|str| {
-          format!(
-            "{}",
-            str.split('.').collect::<Vec<_>>().get(0).expect("TODO:")
-          )
+          str
+            .split('.')
+            .collect::<Vec<_>>()
+            .first()
+            .expect("TODO:")
+            .to_string()
         }),
       path: Some(
         Path::new(&url)
