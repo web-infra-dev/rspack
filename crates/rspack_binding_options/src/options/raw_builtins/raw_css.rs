@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 #[napi(object)]
 pub struct RawCssPluginConfig {
   pub modules: RawCssModulesConfig,
+  pub filter: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]

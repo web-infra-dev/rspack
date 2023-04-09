@@ -2,17 +2,17 @@ import * as path from "path";
 
 import type {
 	RawBuiltins,
-	RawHtmlPluginConfig,
-	RawDecoratorOptions,
-	RawMinification,
-	RawReactOptions,
-	RawProgressPluginConfig,
-	RawPostCssConfig,
 	RawCopyConfig,
-	RawPattern,
-	RawPresetEnv,
-	RawPluginImportConfig,
 	RawCssModulesConfig,
+	RawDecoratorOptions,
+	RawHtmlPluginConfig,
+	RawMinification,
+	RawPattern,
+	RawPluginImportConfig,
+	RawPostCssConfig,
+	RawPresetEnv,
+	RawProgressPluginConfig,
+	RawReactOptions,
 	RawRelayConfig
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
@@ -41,6 +41,7 @@ export type EmotionConfig =
 
 export type CssPluginConfig = {
 	modules?: Partial<RawCssModulesConfig>;
+	filter?: string;
 };
 
 export interface Builtins {

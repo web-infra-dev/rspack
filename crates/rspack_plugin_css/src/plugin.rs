@@ -29,6 +29,7 @@ use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::IdentifierSet;
+use rspack_regex::RspackRegex;
 use sugar_path::SugarPath;
 use swc_core::css::visit::VisitMutWithPath;
 use swc_core::{
@@ -149,6 +150,7 @@ pub struct CssConfig {
   pub targets: Vec<String>,
   pub postcss: PostcssConfig,
   pub modules: ModulesConfig,
+  pub filter: Option<RspackRegex>,
 }
 
 impl CssPlugin {
@@ -429,6 +431,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &mut stylesheet,
       code_generation_dependencies,
       &mut diagnostic,
+      &self.config,
     );
 
     let mut dependencies = if let Some(locals) = &locals && !locals.is_empty() {

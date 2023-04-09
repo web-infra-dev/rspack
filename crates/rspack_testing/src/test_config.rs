@@ -162,6 +162,7 @@ pub struct Builtins {
 pub struct Css {
   #[serde(default)]
   pub modules: ModulesConfig,
+  pub filter: Option<String>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -441,12 +442,20 @@ impl TestConfig {
     for html in self.builtins.html {
       plugins.push(rspack_plugin_html::HtmlPlugin::new(html).boxed());
     }
+    let mut filter = None;
+    if let Some(css_filter) = &self.builtins.css.filter {
+      filter = match RspackRegex::new(css_filter) {
+        Ok(filter) => Some(filter),
+        _ => None,
+      };
+    }
     plugins.push(
       rspack_plugin_css::CssPlugin::new(rspack_plugin_css::plugin::CssConfig {
         targets,
         postcss: rspack_plugin_css::plugin::PostcssConfig {
           pxtorem: self.builtins.postcss.pxtorem.map(|i| i.into()),
         },
+        filter,
         modules: rspack_plugin_css::plugin::ModulesConfig {
           locals_convention: rspack_plugin_css::plugin::LocalsConvention::from_str(
             &self.builtins.css.modules.locals_convention,

@@ -1,0 +1,18 @@
+{
+  "module": {
+    "rules": [
+      {
+        "test": {
+          "type": "regexp",
+          "matcher": "\\.(png|svg|jpg)$"
+        },
+        "type": "asset"
+      }
+    ]
+  },
+  "builtins": {
+    "css": {
+      "filter": ".*file.svg"
+    }
+  }
+}

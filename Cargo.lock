@@ -2632,6 +2632,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
+ "rspack_regex",
  "rspack_testing",
  "rustc-hash",
  "serde",

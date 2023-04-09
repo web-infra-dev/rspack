@@ -10,7 +10,10 @@ use swc_core::{
   },
 };
 
-use crate::dependency::{CssImportDependency, CssUrlDependency};
+use crate::{
+  dependency::{CssImportDependency, CssUrlDependency},
+  plugin::CssConfig,
+};
 
 static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").expect("TODO:"));
 
@@ -22,11 +25,13 @@ pub fn analyze_dependencies(
   ss: &mut Stylesheet,
   code_generation_dependencies: &mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &mut Vec<Diagnostic>,
+  option: &CssConfig,
 ) -> Vec<Box<dyn ModuleDependency>> {
   let mut v = Analyzer {
     deps: Vec::new(),
     code_generation_dependencies,
     diagnostics,
+    option,
   };
   ss.visit_with_path(&mut v, &mut Default::default());
 
@@ -38,6 +43,7 @@ struct Analyzer<'a> {
   deps: Vec<Box<dyn ModuleDependency>>,
   code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &'a mut Vec<Diagnostic>,
+  option: &'a CssConfig,
 }
 
 fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagnostic>) -> String {
@@ -89,11 +95,18 @@ impl VisitAstPath for Analyzer<'_> {
       UrlValue::Str(s) => s.value.to_string(),
       UrlValue::Raw(r) => r.value.to_string(),
     });
-    if let Some(specifier) = specifier && is_url_requestable(&specifier) {
-      let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      let dep = box CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path));
-      self.deps.push(dep.clone());
-      self.code_generation_dependencies.push(dep);
+
+    if let Some(specifier) = specifier {
+      if let Some(filter) = &self.option.filter && filter.test(&specifier){
+        return;
+      }
+      if is_url_requestable(&specifier) {
+        let specifier = replace_module_request_prefix(specifier, self.diagnostics);
+        let dep =
+          box CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path));
+        self.deps.push(dep.clone());
+        self.code_generation_dependencies.push(dep);
+      }
     }
   }
 }

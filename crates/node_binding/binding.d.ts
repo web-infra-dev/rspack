@@ -33,6 +33,7 @@ export interface RawCopyConfig {
 }
 export interface RawCssPluginConfig {
   modules: RawCssModulesConfig
+  filter?: string
 }
 export interface RawCssModulesConfig {
   localsConvention: "asIs" | "camelCase" | "camelCaseOnly" | "dashes" | "dashesOnly"

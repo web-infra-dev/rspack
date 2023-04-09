@@ -6,6 +6,7 @@ use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
 use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
 use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
+use rspack_regex::RspackRegex;
 use serde::Deserialize;
 
 mod raw_copy;
@@ -110,13 +111,22 @@ impl RawOptionsApply for RawBuiltins {
         plugins.push(HtmlPlugin::new(html.into()).boxed());
       }
     }
+
     if let Some(css) = self.css {
+      let mut filter = None;
+      if let Some(css_filter) = &css.filter {
+        filter = match RspackRegex::new(css_filter) {
+          Ok(filter) => Some(filter),
+          _ => None,
+        };
+      }
       let options = CssConfig {
         targets: self
           .preset_env
           .as_ref()
           .map(|preset_env| preset_env.targets.clone())
           .unwrap_or_default(),
+        filter,
         postcss: self.postcss.unwrap_or_default().into(),
         modules: css.modules.try_into()?,
       };
