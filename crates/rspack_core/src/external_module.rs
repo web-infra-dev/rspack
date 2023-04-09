@@ -119,6 +119,7 @@ impl Module for ExternalModule {
       SourceType::JavaScript,
       GenerationResult::from(AstOrSource::from(self.get_source(compilation))),
     );
+    cgr.set_hash();
 
     Ok(cgr)
   }

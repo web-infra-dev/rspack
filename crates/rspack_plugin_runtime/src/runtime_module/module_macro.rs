@@ -52,6 +52,7 @@ macro_rules! impl_runtime_module {
             self.generate(compilation),
           )),
         );
+        result.set_hash();
         Ok(result)
       }
     }
