@@ -529,6 +529,8 @@ export interface JsStatsModuleReason {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+  type?: string
+  userRequest?: string
 }
 export interface JsStatsChunk {
   type: string
