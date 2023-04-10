@@ -286,7 +286,7 @@ const getRawModuleRule = (
 		oneOf: rule.oneOf
 			? rule.oneOf.map(i => getRawModuleRule(i, options))
 			: undefined,
-		enforce: rule.enforce,
+		enforce: rule.enforce
 	};
 };
 
