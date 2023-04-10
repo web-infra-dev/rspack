@@ -12,6 +12,7 @@ mod import_context_dependency;
 pub use common_js_require_context_dependency::*;
 pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
+mod dynamic_import;
 mod require_context_dependency;
 use std::{
   any::Any,
@@ -20,6 +21,7 @@ use std::{
 };
 
 use dyn_clone::{clone_trait_object, DynClone};
+pub use dynamic_import::*;
 pub use require_context_dependency::RequireContextDependency;
 mod static_exports_dependency;
 pub use static_exports_dependency::*;

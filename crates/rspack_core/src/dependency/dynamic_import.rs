@@ -1,8 +1,3 @@
-use rspack_core::{
-  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableDeclMappings,
-  CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier, RuntimeGlobals,
-};
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
@@ -10,6 +5,12 @@ use swc_core::{
     atoms::{Atom, JsWord},
     utils::ExprFactory,
   },
+};
+
+use crate::{
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableDeclMappings,
+  CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier, RuntimeGlobals,
 };
 
 #[derive(Debug, Eq, Clone)]
@@ -20,6 +21,9 @@ pub struct EsmDynamicImportDependency {
   category: &'static DependencyCategory,
   dependency_type: &'static DependencyType,
   span: Option<ErrorSpan>,
+
+  /// Used to store `webpackChunkName` in `import("/* webpackChunkName: "plugins/myModule" */")`
+  pub name: Option<String>,
 
   #[allow(unused)]
   ast_path: JsAstPath,
@@ -46,10 +50,16 @@ impl std::hash::Hash for EsmDynamicImportDependency {
 }
 
 impl EsmDynamicImportDependency {
-  pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
+  pub fn new(
+    request: JsWord,
+    span: Option<ErrorSpan>,
+    ast_path: JsAstPath,
+    name: Option<String>,
+  ) -> Self {
     Self {
       parent_module_identifier: None,
       request,
+      name,
       category: &DependencyCategory::Esm,
       dependency_type: &DependencyType::DynamicImport,
       span,
