@@ -14,6 +14,7 @@ use super::{
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
 // TODO:
 // - scan `import.meta.webpack`
+// - scan `import.meta.url.indexOf("index.js")`
 // - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
 // - add warning for `import.meta`
 pub struct ImportMetaScanner<'a> {
@@ -62,29 +63,24 @@ impl VisitAstPath for ImportMetaScanner<'_> {
         None,
         as_parent_path(ast_path),
       ));
-      return;
     }
     // import.meta.xxx
-    if is_import_meta_member_expr(expr) {
+    else if is_import_meta_member_expr(expr) {
       self.add_presentational_dependency(box ConstDependency::new(
         quote!("undefined" as Expr),
         None,
         as_parent_path(ast_path),
       ));
-      return;
     }
     // import.meta
-    if is_import_meta(expr) {
+    else if is_import_meta(expr) {
       // TODO add warning
       self.add_presentational_dependency(box ConstDependency::new(
         quote!("({})" as Expr),
         None,
         as_parent_path(ast_path),
       ));
-      return;
-    }
-
-    if let Expr::Unary(UnaryExpr {
+    } else if let Expr::Unary(UnaryExpr {
       op: UnaryOp::TypeOf,
       arg: box expr,
       ..
@@ -97,25 +93,22 @@ impl VisitAstPath for ImportMetaScanner<'_> {
           None,
           as_parent_path(ast_path),
         ));
-        return;
       }
       // typeof import.meta.xxx
-      if is_import_meta_member_expr(expr) {
+      else if is_import_meta_member_expr(expr) {
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("undefined" as Expr),
           None,
           as_parent_path(ast_path),
         ));
-        return;
       }
       // typeof import.meta
-      if is_import_meta(expr) {
+      else if is_import_meta(expr) {
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("'object'" as Expr),
           None,
           as_parent_path(ast_path),
         ));
-        return;
       }
     }
 
