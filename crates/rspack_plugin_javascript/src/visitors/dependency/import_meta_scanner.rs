@@ -14,7 +14,7 @@ use super::{
 // TODO:
 // - scan `import.meta.webpack`
 // - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
-// - add waring for `import.meta`
+// - add warning for `import.meta`
 pub struct ImportMetaScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   pub compiler_options: &'a CompilerOptions,
