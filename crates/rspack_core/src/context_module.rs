@@ -372,6 +372,7 @@ impl Module for ContextModule {
       SourceType::JavaScript,
       GenerationResult::from(AstOrSource::from(self.get_source_string(compilation))),
     );
+    code_generation_result.set_hash();
     Ok(code_generation_result)
   }
 }

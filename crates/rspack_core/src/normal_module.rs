@@ -591,6 +591,7 @@ impl Module for NormalModule {
       code_generation_result
         .runtime_requirements
         .add(runtime_requirements);
+      code_generation_result.set_hash();
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -605,6 +606,7 @@ impl Module for NormalModule {
           ),
         );
       }
+      code_generation_result.set_hash();
       Ok(code_generation_result)
     } else {
       Err(internal_error!(
