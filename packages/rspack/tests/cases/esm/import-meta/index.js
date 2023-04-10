@@ -1,12 +1,12 @@
 const { pathToFileURL } = require("url");
 const url = pathToFileURL(
-	require("path").resolve("./test/cases/esm/import-meta/index.js")
+	require("path").resolve("./tests/cases/esm/import-meta/index.js")
 ).toString();
 // const webpackVersion = parseInt(
 // 	require("../../../../package.json").version,
 // 	10
 // );
-
+debugger
 it('typeof import.meta === "object"', () => {
 	expect(typeof import.meta).toBe("object");
 	expect(typeof import.meta !== "object").toBe(false);
