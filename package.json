@@ -36,7 +36,8 @@
     "*.toml": "pnpm run format:toml"
   },
   "engines": {
-    "pnpm": "8.2.0"
+    "pnpm": "8.2.0",
+    "node" : ">=16.14"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
