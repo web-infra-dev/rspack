@@ -6,9 +6,15 @@ use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
 use super::{
-  as_parent_path, is_import_meta, is_import_meta_member_expr, match_import_meta_member_expr,
+  as_parent_path, is_import_meta, is_import_meta_hot, is_import_meta_member_expr,
+  match_import_meta_member_expr,
 };
 
+// Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
+// TODO:
+// - scan `import.meta.webpack`
+// - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
+// - add waring for `import.meta`
 pub struct ImportMetaScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   pub compiler_options: &'a CompilerOptions,
@@ -39,14 +45,8 @@ impl VisitAstPath for ImportMetaScanner<'_> {
     expr: &'ast Expr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    // import.meta
-    if is_import_meta(expr) {
-      // TODO add waring
-      self.add_presentational_dependency(box ConstDependency::new(
-        quote!("({})" as Expr),
-        None,
-        as_parent_path(ast_path),
-      ));
+    // exclude import.meta.webpackHot
+    if is_import_meta_hot(expr) {
       return;
     }
     // import.meta.url
@@ -71,6 +71,16 @@ impl VisitAstPath for ImportMetaScanner<'_> {
       ));
       return;
     }
+    // import.meta
+    if is_import_meta(expr) {
+      // TODO add warning
+      self.add_presentational_dependency(box ConstDependency::new(
+        quote!("({})" as Expr),
+        None,
+        as_parent_path(ast_path),
+      ));
+      return;
+    }
 
     if let Expr::Unary(UnaryExpr {
       op: UnaryOp::TypeOf,
@@ -78,24 +88,17 @@ impl VisitAstPath for ImportMetaScanner<'_> {
       ..
     }) = expr
     {
-      // typeof import.meta
-      if is_import_meta(expr) {
-        self.add_presentational_dependency(box ConstDependency::new(
-          quote!("'object'" as Expr),
-          None,
-          as_parent_path(ast_path),
-        ));
-      }
       // typeof import.meta.url
-      else if match_import_meta_member_expr(expr, "import.meta.url") {
+      if match_import_meta_member_expr(expr, "import.meta.url") {
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("'string'" as Expr),
           None,
           as_parent_path(ast_path),
         ));
+        return;
       }
       // typeof import.meta.xxx
-      else if is_import_meta_member_expr(expr) {
+      if is_import_meta_member_expr(expr) {
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("undefined" as Expr),
           None,
@@ -103,7 +106,15 @@ impl VisitAstPath for ImportMetaScanner<'_> {
         ));
         return;
       }
-      return;
+      // typeof import.meta
+      if is_import_meta(expr) {
+        self.add_presentational_dependency(box ConstDependency::new(
+          quote!("'object'" as Expr),
+          None,
+          as_parent_path(ast_path),
+        ));
+        return;
+      }
     }
 
     expr.visit_children_with_path(self, ast_path);
