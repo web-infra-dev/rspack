@@ -125,7 +125,6 @@ impl DependencyScanner<'_> {
         if dyn_imported.spread.is_none() {
           if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
             let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
-            println!("chunk_name: {chunk_name:?}");
             self.add_dependency(box EsmDynamicImportDependency::new(
               imported.value.clone(),
               Some(node.span.into()),
