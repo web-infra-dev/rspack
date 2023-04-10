@@ -164,7 +164,7 @@ jobs:
           node-version: "16"
       - name: Setup node dependencies
         run: |
-          npm install -g pnpm@7.25.0
+          npm install -g pnpm@8.2.0
           pnpm install
       - name: Install Rust
         if: ${{ !matrix.settings.docker }}
@@ -209,7 +209,7 @@ jobs:
           run: |
             set -e
             rustup target add ${{ matrix.settings.target }}
-            npm install -g pnpm@7.25.0 --force
+            npm install -g pnpm@8.2.0 --force
             ${{ matrix.settings.build }}
       - name: Build
         run: ${{ matrix.settings.build }}
@@ -249,7 +249,7 @@ jobs:
           options: -v ${{ github.workspace }}:/build -w /build
           run: |
             set -e
-            npm install -g pnpm@7.25.0
+            npm install -g pnpm@8.2.0
             PUPPETEER_SKIP_DOWNLOAD=true pnpm install
             pnpm run build:js
 
@@ -288,7 +288,7 @@ jobs:
           options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
           run: |
             set -e
-            npm install -g pnpm@7.25.0
+            npm install -g pnpm@8.2.0
             PUPPETEER_SKIP_DOWNLOAD=true pnpm install
             pnpm run build:js
 
@@ -322,7 +322,7 @@ jobs:
           options: -v ${{ github.workspace }}:/build -w /build
           run: |
             set -e
-            npm install -g pnpm@7.25.0
+            npm install -g pnpm@8.2.0
             PUPPETEER_SKIP_DOWNLOAD=true pnpm install
             pnpm run build:js
 
@@ -361,7 +361,7 @@ jobs:
           options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
           run: |
             set -e
-            npm install -g pnpm@7.25.0
+            npm install -g pnpm@8.2.0
             PUPPETEER_SKIP_DOWNLOAD=true pnpm install
             pnpm run build:js
 
@@ -394,7 +394,7 @@ jobs:
       - name: Run tests
         run: |
           set -e
-          npm install -g pnpm@7.25.0
+          npm install -g pnpm@8.2.0
           pnpm install
           pnpm run build:js
 
@@ -424,7 +424,7 @@ jobs:
           node-version: "16"
       - name: Setup node dependencies
         run: |
-          npm install -g pnpm@7.25.0
+          npm install -g pnpm@8.2.0
           pnpm install
       - name: Download artifacts
         uses: actions/download-artifact@v3
@@ -472,7 +472,7 @@ jobs:
   #         node-version: "16"
   #     - name: Setup node dependencies
   #       run: |
-  #         npm install -g pnpm@7.25.0
+  #         npm install -g pnpm@8.2.0
   #         pnpm install
   #     - name: Download artifacts
   #       uses: actions/download-artifact@v3
