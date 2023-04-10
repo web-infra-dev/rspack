@@ -545,10 +545,10 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     // visited_module.remove(&cur);
 
-    let has_unanalyzed_effectful_deps = match side_effects_map.get(&cur) {
+    let need_change_to_side_effects_true = match side_effects_map.get(&cur) {
       // skip no deps or user already specified side effect in package.json
       Some(SideEffect::Configuration(_)) | None => false,
-      // already analyzed
+      // already marked as side-effectful
       Some(SideEffect::Analyze(true)) => false,
       Some(SideEffect::Analyze(false)) => {
         let mut side_effect_list = module_ident_list.into_iter().filter(|ident| {
@@ -564,7 +564,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
     };
 
-    if has_unanalyzed_effectful_deps {
+    if need_change_to_side_effects_true {
       if let Some(cur) = side_effects_map.get_mut(&cur) {
         *cur = SideEffect::Analyze(true);
       }
