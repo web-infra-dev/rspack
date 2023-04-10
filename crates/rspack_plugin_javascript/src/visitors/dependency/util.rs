@@ -48,7 +48,7 @@ pub fn is_module_hot_decline_call(node: &CallExpr) -> bool {
   is_hmr_api_call(node, "module.hot.decline")
 }
 
-fn match_import_meta_member_expr(mut expr: &Expr, value: &str) -> bool {
+pub fn match_import_meta_member_expr(mut expr: &Expr, value: &str) -> bool {
   let mut parts = value.split('.');
   // pop import.meta
   parts.next();
@@ -64,7 +64,26 @@ fn match_import_meta_member_expr(mut expr: &Expr, value: &str) -> bool {
     }
     return false;
   }
+  is_import_meta(expr)
+}
+
+#[inline]
+pub fn is_import_meta(expr: &Expr) -> bool {
   matches!(&expr, Expr::MetaProp(meta) if meta.kind == MetaPropKind::ImportMeta)
+}
+
+pub fn is_import_meta_member_expr(expr: &Expr) -> bool {
+  fn valid_member_expr_obj(expr: &Expr) -> bool {
+    if is_import_meta(expr) {
+      return true;
+    }
+    is_import_meta_member_expr(expr)
+  }
+
+  if let Expr::Member(member_expr) = expr {
+    return valid_member_expr_obj(&member_expr.obj);
+  }
+  false
 }
 
 fn is_hmr_import_meta_api_call(node: &CallExpr, value: &str) -> bool {
@@ -110,6 +129,7 @@ fn test() {
     })),
     prop: MemberProp::Ident(Ident::new("accept".into(), DUMMY_SP)),
   });
+  assert!(is_import_meta_member_expr(&import_meta_expr));
   assert!(match_import_meta_member_expr(
     &import_meta_expr,
     "import.meta.webpackHot.accept"

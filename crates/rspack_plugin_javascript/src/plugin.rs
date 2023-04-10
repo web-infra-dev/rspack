@@ -349,6 +349,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         context.unresolved_mark,
         resource_data,
         compiler_options,
+        module_type,
       )
     });
 

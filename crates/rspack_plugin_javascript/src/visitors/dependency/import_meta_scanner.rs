@@ -1,29 +1,29 @@
-use rspack_core::{
-  CompilerOptions, ConstDependency, Dependency, NodeOption, ResourceData, RuntimeGlobals,
-};
+use rspack_core::{CompilerOptions, ConstDependency, Dependency, ResourceData};
 use swc_core::common::pass::AstNodePath;
-use swc_core::common::SyntaxContext;
-use swc_core::ecma::ast::{Expr, Lit};
-use swc_core::ecma::utils::{quote_ident, quote_str};
+use swc_core::common::DUMMY_SP;
+use swc_core::ecma::ast::{Expr, Lit, Str, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
+use swc_core::quote;
 
-use super::as_parent_path;
+use super::{
+  as_parent_path, is_import_meta, is_import_meta_member_expr, match_import_meta_member_expr,
+};
 
 pub struct ImportMetaScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
-  pub unresolved_ctxt: &'a SyntaxContext,
   pub compiler_options: &'a CompilerOptions,
+  pub resource_data: &'a ResourceData,
 }
 
 impl<'a> ImportMetaScanner<'a> {
   pub fn new(
     presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
-    unresolved_ctxt: &'a SyntaxContext,
+    resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
   ) -> Self {
     Self {
       presentational_dependencies,
-      unresolved_ctxt,
+      resource_data,
       compiler_options,
     }
   }
@@ -39,9 +39,73 @@ impl VisitAstPath for ImportMetaScanner<'_> {
     expr: &'ast Expr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    if let Expr::Ident(ident) = expr {
-      if ident.span.ctxt == *self.unresolved_ctxt {}
+    // import.meta
+    if is_import_meta(expr) {
+      // TODO add waring
+      self.add_presentational_dependency(box ConstDependency::new(
+        quote!("({})" as Expr),
+        None,
+        as_parent_path(ast_path),
+      ));
+      return;
     }
+    // import.meta.url
+    if match_import_meta_member_expr(expr, "import.meta.url") {
+      self.add_presentational_dependency(box ConstDependency::new(
+        Expr::Lit(Lit::Str(Str {
+          span: DUMMY_SP,
+          value: format!("'{}'", self.resource_data.resource).into(),
+          raw: Some(format!("'{}'", self.resource_data.resource).into()),
+        })),
+        None,
+        as_parent_path(ast_path),
+      ));
+      return;
+    }
+    // import.meta.xxx
+    if is_import_meta_member_expr(expr) {
+      self.add_presentational_dependency(box ConstDependency::new(
+        quote!("undefined" as Expr),
+        None,
+        as_parent_path(ast_path),
+      ));
+      return;
+    }
+
+    if let Expr::Unary(UnaryExpr {
+      op: UnaryOp::TypeOf,
+      arg: box expr,
+      ..
+    }) = expr
+    {
+      // typeof import.meta
+      if is_import_meta(expr) {
+        self.add_presentational_dependency(box ConstDependency::new(
+          quote!("'object'" as Expr),
+          None,
+          as_parent_path(ast_path),
+        ));
+      }
+      // typeof import.meta.url
+      else if match_import_meta_member_expr(expr, "import.meta.url") {
+        self.add_presentational_dependency(box ConstDependency::new(
+          quote!("'string'" as Expr),
+          None,
+          as_parent_path(ast_path),
+        ));
+      }
+      // typeof import.meta.xxx
+      else if is_import_meta_member_expr(expr) {
+        self.add_presentational_dependency(box ConstDependency::new(
+          quote!("undefined" as Expr),
+          None,
+          as_parent_path(ast_path),
+        ));
+        return;
+      }
+      return;
+    }
+
     expr.visit_children_with_path(self, ast_path);
   }
 }
