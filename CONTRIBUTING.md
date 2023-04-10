@@ -84,7 +84,7 @@ Install Node.js dependencies via [pnpm](https://pnpm.io/).
 corepack enable
 
 # or install pnpm directly
-npm install -g pnpm@7
+npm install -g pnpm@8
 
 # Install dependencies
 pnpm run init
