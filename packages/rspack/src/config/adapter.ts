@@ -169,6 +169,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
 		uniqueName: output.uniqueName!,
+		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling!,

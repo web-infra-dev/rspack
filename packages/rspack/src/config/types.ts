@@ -120,6 +120,7 @@ export interface Output {
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	libraryExport?: LibraryExport;
 	libraryTarget?: LibraryType;
@@ -147,6 +148,7 @@ export type CssFilename = FilenameTemplate;
 export type CssChunkFilename = FilenameTemplate;
 export type FilenameTemplate = string;
 export type UniqueName = string;
+export type ChunkLoadingGlobal = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
@@ -215,6 +217,7 @@ export interface OutputNormalized {
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	library?: LibraryOptions;
 	module?: OutputModule;

@@ -382,6 +382,7 @@ impl TestConfig {
           .expect("Should exist"),
         public_path: c::PublicPath::String("/".to_string()),
         unique_name: "__rspack_test__".to_string(),
+        chunk_loading_global: "webpackChunkwebpack".to_string(),
         path: context.join("dist"),
         library: None,
         enabled_library_types: None,

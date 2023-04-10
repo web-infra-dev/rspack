@@ -1066,6 +1066,9 @@ module.exports = {
 				},
 				uniqueName: {
 					$ref: "#/definitions/UniqueName"
+				},
+				chunkLoadingGlobal: {
+					$ref: "#/definitions/ChunkLoadingGlobal"
 				}
 			}
 		},
@@ -1771,6 +1774,11 @@ module.exports = {
 		UniqueName: {
 			description:
 				"A unique name of the rspack build to avoid multiple rspack runtimes to conflict when using globals.",
+			type: "string",
+			minLength: 1
+		},
+		ChunkLoadingGlobal: {
+			description: "The global variable used by rspack for loading of chunks.",
 			type: "string",
 			minLength: 1
 		},

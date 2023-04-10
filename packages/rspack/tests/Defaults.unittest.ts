@@ -259,6 +259,7 @@ describe("snapshots", () => {
 		  "output": {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "chunkFilename": "[name].js",
+		    "chunkLoadingGlobal": "webpackChunk@rspack/core",
 		    "clean": false,
 		    "crossOriginLoading": false,
 		    "cssChunkFilename": "[name].css",
@@ -1155,6 +1156,9 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
+			+     "chunkLoadingGlobal": "webpackChunk@@@Hello World!",
+			@@ ... @@
 			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "@@@Hello World!",
 		`)
@@ -1211,6 +1215,9 @@ describe("snapshots", () => {
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
+			+     "chunkLoadingGlobal": "webpackChunkbrowserslist-test",
+			@@ ... @@
 			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "browserslist-test",
 		`)
@@ -1235,6 +1242,9 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
+			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
+			+     "chunkLoadingGlobal": "webpackChunk",
 			@@ ... @@
 			-     "path": "<cwd>/dist",
 			+     "path": "<cwd>/tests/fixtures/dist",

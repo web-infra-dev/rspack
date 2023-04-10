@@ -19,6 +19,7 @@ pub struct OutputOptions {
   pub wasm_loading: WasmLoading,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
+  pub chunk_loading_global: String,
   pub filename: Filename,
   pub chunk_filename: Filename,
   pub cross_origin_loading: CrossOriginLoading,

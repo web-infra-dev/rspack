@@ -298,6 +298,8 @@ const applyOutputDefaults = (
 		}
 	});
 
+	F(output, "chunkLoadingGlobal", () => "webpackChunk" + output.uniqueName);
+
 	D(output, "filename", "[name].js");
 	F(output, "chunkFilename", () => {
 		const filename = output.filename!;
