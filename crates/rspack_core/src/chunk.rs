@@ -54,6 +54,8 @@ impl Debug for Chunk {
       .field("groups", &self.groups)
       .field("runtime", &self.runtime)
       .field("kind", &self.kind)
+      .field("hash", &self.hash.finish())
+      .field("content_hash", &self.content_hash)
       .finish()
   }
 }

@@ -126,13 +126,7 @@ impl Filename {
       name: chunk.name_for_filename_template(),
       extension: Some(extension.to_owned()),
       id: chunk.id.clone(),
-      contenthash: Some(
-        chunk
-          .content_hash
-          .get(source_type)
-          .expect("should have chunk javascript content hash")
-          .clone(),
-      ),
+      contenthash: chunk.content_hash.get(source_type).cloned(),
       chunkhash: hash.clone(),
       hash,
       ..Default::default()
