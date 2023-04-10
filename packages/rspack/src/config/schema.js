@@ -1201,6 +1201,11 @@ module.exports = {
 						}
 					]
 				},
+				fullySpecified: {
+					description:
+						"Treats the request specified by the user as fully specified, meaning no extensions are added and the mainFiles in directories are not resolved (This doesn't affect requests from mainFields, aliasFields or aliases).",
+					type: "boolean"
+				},
 				mainFields: {
 					description:
 						"Field names from the description file (package.json) which are used to find the default entry point.",
@@ -1401,6 +1406,14 @@ module.exports = {
 							$ref: "#/definitions/RuleSetConditionOrConditions"
 						}
 					]
+				},
+				descriptionData: {
+					description:
+						"Match values of properties in the description file (usually package.json).",
+					type: "object",
+					additionalProperties: {
+						$ref: "#/definitions/RuleSetConditionOrConditions"
+					}
 				},
 				oneOf: {
 					description: "Only execute the first matching rule in this array.",

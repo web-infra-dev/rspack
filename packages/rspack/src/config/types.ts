@@ -269,6 +269,9 @@ export interface RuleSetRule {
 	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;
+	descriptionData?: {
+		[k: string]: RuleSetCondition;
+	};
 	oneOf?: RuleSetRule[];
 	type?: string;
 	use?: RuleSetUse;

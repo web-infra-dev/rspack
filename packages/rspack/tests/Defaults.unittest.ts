@@ -135,11 +135,39 @@ describe("snapshots", () => {
 		        "type": "json",
 		      },
 		      {
+		        "resolve": {
+		          "byDependency": {
+		            "esm": {
+		              "fullySpecified": true,
+		            },
+		          },
+		        },
 		        "test": /\\\\\\.mjs\\$/i,
 		        "type": "javascript/esm",
 		      },
 		      {
+		        "descriptionData": {
+		          "type": "module",
+		        },
+		        "resolve": {
+		          "byDependency": {
+		            "esm": {
+		              "fullySpecified": true,
+		            },
+		          },
+		        },
+		        "test": /\\\\\\.js\\$/i,
+		        "type": "javascript/esm",
+		      },
+		      {
 		        "test": /\\\\\\.cjs\\$/i,
+		        "type": "javascript/dynamic",
+		      },
+		      {
+		        "descriptionData": {
+		          "type": "commonjs",
+		        },
+		        "test": /\\\\\\.js\\$/i,
 		        "type": "javascript/dynamic",
 		      },
 		      {
@@ -157,11 +185,15 @@ describe("snapshots", () => {
 		      {
 		        "oneOf": [
 		          {
+		            "resolve": {
+		              "fullySpecified": true,
+		            },
 		            "test": /\\\\\\.module\\\\\\.css\\$/i,
 		            "type": "css/module",
 		          },
 		          {
 		            "resolve": {
+		              "fullySpecified": true,
 		              "preferRelative": true,
 		            },
 		            "type": "css",

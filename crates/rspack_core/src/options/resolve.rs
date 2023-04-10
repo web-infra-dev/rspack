@@ -136,6 +136,11 @@ impl ByDependency {
   // TODO: maybe a Merge trait for implementing cleverMerge in rust side?
   pub fn merge(mut self, value: Self) -> Self {
     for (k, v) in value.0 {
+      let v = if let Some(origin) = self.0.remove(&k) {
+        origin.merge(v)
+      } else {
+        v
+      };
       self.0.insert(k, v);
     }
     self

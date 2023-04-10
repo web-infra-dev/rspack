@@ -266,6 +266,14 @@ const getRawModuleRule = (
 		dependency: rule.dependency
 			? getRawRuleSetCondition(rule.dependency)
 			: undefined,
+		descriptionData: rule.descriptionData
+			? Object.fromEntries(
+					Object.entries(rule.descriptionData).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+			  )
+			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
 			? getRawRuleSetCondition(rule.resourceQuery)

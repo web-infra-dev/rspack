@@ -134,8 +134,10 @@ pub fn ecma_parse_error_to_rspack_error(
   module_type: &ModuleType,
 ) -> Error {
   let (file_type, diagnostic_kind) = match module_type {
-    ModuleType::Js => ("JavaScript", DiagnosticKind::JavaScript),
-    ModuleType::Jsx => ("JSX", DiagnosticKind::Jsx),
+    ModuleType::Js | ModuleType::JsDynamic | ModuleType::JsEsm => {
+      ("JavaScript", DiagnosticKind::JavaScript)
+    }
+    ModuleType::Jsx | ModuleType::JsxDynamic | ModuleType::JsxEsm => ("JSX", DiagnosticKind::Jsx),
     ModuleType::Tsx => ("TSX", DiagnosticKind::Tsx),
     ModuleType::Ts => ("Typescript", DiagnosticKind::Typescript),
     _ => unreachable!(),
