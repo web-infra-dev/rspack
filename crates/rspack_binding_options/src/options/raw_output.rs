@@ -100,6 +100,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 #[napi(object)]
 pub struct RawOutputOptions {
   pub path: String,
+  pub clean: bool,
   pub public_path: String,
   pub asset_module_filename: String,
   pub wasm_loading: String,
@@ -132,6 +133,7 @@ impl RawOptionsApply for RawOutputOptions {
 
     Ok(OutputOptions {
       path: self.path.into(),
+      clean: self.clean,
       public_path: self.public_path.into(),
       asset_module_filename: self.asset_module_filename.into(),
       wasm_loading: match self.wasm_loading.as_str() {

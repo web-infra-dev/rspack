@@ -12,6 +12,7 @@ export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
 }
 export interface RawPattern {
   from: string
@@ -311,6 +312,7 @@ export interface RawCrossOriginLoading {
 }
 export interface RawOutputOptions {
   path: string
+  clean: boolean
   publicPath: string
   assetModuleFilename: string
   wasmLoading: string

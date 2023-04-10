@@ -218,6 +218,8 @@ impl From<PxToRem> for PxToRemOptions {
 #[derive(Debug, JsonSchema, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Output {
+  #[serde(default)]
+  pub clean: bool,
   #[serde(default = "default_public_path")]
   pub public_path: String,
   #[serde(default = "default_chunk_filename")]
@@ -367,6 +369,7 @@ impl TestConfig {
         })
         .collect(),
       output: c::OutputOptions {
+        clean: self.output.clean,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
         chunk_filename: c::Filename::from_str(&self.output.chunk_filename).expect("Should exist"),
         cross_origin_loading: rspack_core::CrossOriginLoading::Disable,

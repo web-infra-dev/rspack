@@ -42,6 +42,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           devtool: rspack_core::Devtool::default(),
           mode: rspack_core::Mode::None,
           output: rspack_core::OutputOptions {
+            clean: false,
             path: Default::default(),
             public_path: Default::default(),
             filename: rspack_core::Filename::from_str("").expect("TODO:"),
