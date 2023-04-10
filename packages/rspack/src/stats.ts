@@ -123,7 +123,6 @@ export class Stats {
 		if (options.warningsCount) {
 			obj.warningsCount = (obj.warnings ?? this.#inner.getWarnings()).length;
 		}
-
 		if (obj.modules && forToString) {
 			obj.filteredModules = obj.modules.length - 15;
 			obj.modules = obj.modules.slice(0, 15);
