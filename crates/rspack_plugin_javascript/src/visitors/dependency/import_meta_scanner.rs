@@ -4,6 +4,7 @@ use swc_core::common::DUMMY_SP;
 use swc_core::ecma::ast::{Expr, Lit, Str, UnaryExpr, UnaryOp};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
+use url::Url;
 
 use super::{
   as_parent_path, is_import_meta, is_import_meta_hot, is_import_meta_member_expr,
@@ -51,11 +52,12 @@ impl VisitAstPath for ImportMetaScanner<'_> {
     }
     // import.meta.url
     if match_import_meta_member_expr(expr, "import.meta.url") {
+      let url = Url::from_file_path(&self.resource_data.resource).expect("should be a path");
       self.add_presentational_dependency(box ConstDependency::new(
         Expr::Lit(Lit::Str(Str {
           span: DUMMY_SP,
-          value: format!("'{}'", self.resource_data.resource).into(),
-          raw: Some(format!("'{}'", self.resource_data.resource).into()),
+          value: format!("'{}'", url.as_str()).into(),
+          raw: Some(format!("'{}'", url.as_str()).into()),
         })),
         None,
         as_parent_path(ast_path),
