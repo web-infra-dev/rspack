@@ -14,6 +14,7 @@
     "build:cli:release": "./x build cli:release",
     "build:cli:release:all": "./x build cli:release:all",
     "build:webpack": "./x build webpack",
+    "test:js": "./x test js",
     "format:rs": "./x format rs",
     "format:js": "./x format js",
     "format-ci:toml": "./x format toml",

@@ -1,10 +1,10 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
-  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, ModuleOptions,
-  ModuleRule, ParserOptions,
+  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, DescriptionData,
+  ModuleOptions, ModuleRule, ParserOptions,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
@@ -224,6 +224,7 @@ pub struct RawModuleRule {
   pub resource: Option<RawRuleSetCondition>,
   /// A condition matcher against the resource query.
   pub resource_query: Option<RawRuleSetCondition>,
+  pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   pub r#type: Option<String>,
@@ -578,12 +579,23 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       })
       .transpose()?;
 
+    let description_data = value
+      .description_data
+      .map(|data| {
+        data
+          .into_iter()
+          .map(|(k, v)| Ok((k, v.try_into()?)))
+          .collect::<rspack_error::Result<DescriptionData>>()
+      })
+      .transpose()?;
+
     Ok(ModuleRule {
       test: value.test.map(|raw| raw.try_into()).transpose()?,
       include: value.include.map(|raw| raw.try_into()).transpose()?,
       exclude: value.exclude.map(|raw| raw.try_into()).transpose()?,
       resource_query: value.resource_query.map(|raw| raw.try_into()).transpose()?,
       resource: value.resource.map(|raw| raw.try_into()).transpose()?,
+      description_data,
       r#use: uses,
       r#type: module_type,
       parser: value.parser.map(|raw| raw.into()),
