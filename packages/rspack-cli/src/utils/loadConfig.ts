@@ -4,7 +4,7 @@ import fs from "fs";
 import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
 
-const supportedExtensions = [".js", ".ts"];
+const supportedExtensions = [".js", ".ts", ".mjs"];
 const defaultConfig = "rspack.config";
 const defaultEntry = "src/index";
 
