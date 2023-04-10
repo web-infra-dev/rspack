@@ -8,8 +8,12 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import path from "path";
+import assert from "assert";
 import fs from "fs";
+import path from "path";
+import { isNil } from "../util";
+import { cleverMerge } from "../util/cleverMerge";
+import * as oldBuiltins from "./builtins";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -30,10 +34,6 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./types";
-import * as oldBuiltins from "./builtins";
-import { cleverMerge } from "../util/cleverMerge";
-import assert from "assert";
-import { isNil } from "../util";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -369,6 +369,7 @@ const applyOutputDefaults = (
 	});
 	D(output, "importFunctionName", "import");
 	F(output, "iife", () => !output.module);
+	F(output, "clean", () => !!output.clean);
 	F(output, "module", () => false); // TODO experiments.outputModule
 
 	A(output, "enabledWasmLoadingTypes", () => {

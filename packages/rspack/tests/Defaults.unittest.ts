@@ -260,6 +260,7 @@ describe("snapshots", () => {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "chunkFilename": "[name].js",
 		    "chunkLoadingGlobal": "webpackChunk@rspack/core",
+		    "clean": false,
 		    "crossOriginLoading": false,
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",

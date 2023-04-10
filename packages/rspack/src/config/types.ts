@@ -112,6 +112,7 @@ export interface EntryDescriptionNormalized {
 export interface Output {
 	path?: Path;
 	publicPath?: PublicPath;
+	clean?: Clean;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
 	crossOriginLoading?: CrossOriginLoading;
@@ -152,6 +153,7 @@ export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
 export type Iife = boolean;
+export type Clean = boolean;
 export interface LibraryCustomUmdCommentObject {
 	amd?: string;
 	commonjs?: string;
@@ -206,6 +208,7 @@ export type WasmLoadingType =
 export type EnabledWasmLoadingTypes = WasmLoadingType[];
 export interface OutputNormalized {
 	path?: Path;
+	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
