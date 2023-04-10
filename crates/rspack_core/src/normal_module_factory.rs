@@ -266,6 +266,8 @@ impl NormalModuleFactory {
     dependency: &DependencyCategory,
   ) -> Result<Vec<&ModuleRule>> {
     let mut rules = Vec::new();
+    let mut pre_rules = Vec::new();
+    let mut post_rules = Vec::new();
     for rule in &self.context.options.module.rules {
       if let Some(rule) = module_rule_matcher(
         rule,
@@ -275,10 +277,24 @@ impl NormalModuleFactory {
       )
       .await?
       {
-        rules.push(rule);
+        if let Some(enforce) = rule.enforce.clone() {
+          if enforce.eq("pre") {
+            pre_rules.push(rule);
+          } else {
+            post_rules.push(rule);
+          }
+        } else {
+          rules.push(rule);
+        }
       }
     }
-    Ok(rules)
+    Ok(
+      post_rules
+        .into_iter()
+        .chain(rules)
+        .chain(pre_rules)
+        .collect(),
+    )
   }
 
   fn calculate_resolve_options(&self, module_rules: &[&ModuleRule]) -> Option<Resolve> {

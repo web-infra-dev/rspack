@@ -231,6 +231,7 @@ export interface RawModuleRule {
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
+  enforce?: 'pre' | 'post'
 }
 export interface RawModuleRuleGenerator {
   filename?: string

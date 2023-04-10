@@ -280,6 +280,7 @@ export interface RuleSetRule {
 	};
 	resolve?: ResolveOptions;
 	sideEffects?: boolean;
+	enforce?: "pre" | "post";
 }
 export type RuleSetCondition =
 	| RegExp

@@ -3,13 +3,21 @@
  */
 module.exports = {
 	context: __dirname,
+	mode: "development",
 	entry: {
 		main: './src/index.js'
 	},
 	builtins: {
 		html: [
 			{
-				template: './index.html'
+			}
+		]
+	},
+	module: {
+		rules: [
+			{
+				test: /\.js$/,
+				use: './loader.js'
 			}
 		]
 	}

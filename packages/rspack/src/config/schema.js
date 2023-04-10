@@ -1498,6 +1498,10 @@ module.exports = {
 							$ref: "#/definitions/RuleSetUse"
 						}
 					]
+				},
+				enforce: {
+					description: "Enforce this rule as pre or post step.",
+					type: "string"
 				}
 			}
 		},

@@ -234,6 +234,8 @@ pub struct RawModuleRule {
   pub issuer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
   pub one_of: Option<Vec<RawModuleRule>>,
+  #[napi(ts_type = "'pre' | 'post'")]
+  pub enforce: Option<String>,
 }
 
 impl Debug for RawModuleRule {
@@ -605,6 +607,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
       dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
       one_of,
+      enforce: value.enforce,
     })
   }
 }
