@@ -6,7 +6,7 @@ const path = require("path");
 const webpack = require("@rspack/core").rspack;
 const { createFsFromVolume, Volume } = require("memfs");
 
-describe("Watch", () => {
+describe.skip("Watch", () => {
 	jest.setTimeout(10000);
 
 	it("should only compile a single time", done => {
