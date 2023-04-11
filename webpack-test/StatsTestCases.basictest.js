@@ -29,7 +29,7 @@ const tests = fs
 		const testDirectory = path.join(base, testName);
 		const filterPath = path.join(testDirectory, "test.filter.js");
 		if (fs.existsSync(filterPath) && !require(filterPath)()) {
-			describe.skip(testName, () => it("filtered"));
+			describe.skip(testName, () => it("filtered", () => {}));
 			return false;
 		}
 		return true;
