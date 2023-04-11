@@ -1,5 +1,19 @@
 # @rspack/binding
 
+## 0.1.7
+
+### Patch Changes
+
+- 5bc1f55: fix Module Export Entry does not respect ordering
+- 6f23105: feat(html): support templateContent in `builtins.html`
+- c2bb73c: fix: fix typing of raw cross origin loading
+- e649469: fix builtins.html does replace [hash] and [name] in builtins.html.filename
+- fff64ea: react refresh with context
+- dc10d1f: fix: draw progress bar to stdout instead of stderr
+- 905cacf: feat: support module.rule[].descriptionData
+- f4eb7c7: feat: support output.chunkLoadingGlobal
+- 32f822b: add type and user_request field for module.reason
+
 ## 0.1.6
 
 ### Patch Changes

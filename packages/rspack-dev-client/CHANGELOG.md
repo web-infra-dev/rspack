@@ -1,5 +1,11 @@
 # @rspack/dev-client
 
+## 0.1.7
+
+### Patch Changes
+
+- fff64ea: react refresh with context
+
 ## 0.1.6
 
 ### Patch Changes
