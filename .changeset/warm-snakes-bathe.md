@@ -1,6 +1,5 @@
 ---
 "@rspack/binding": patch
-"examples-stats": patch
 "@rspack/core": patch
 ---
 
