@@ -2,13 +2,14 @@
 
 // require("./helpers/warmup-webpack");
 
-const path = require("path");
-const Stats = require("../lib/Stats");
-const { createFsFromVolume, Volume } = require("memfs");
-const captureStdio = require("./helpers/captureStdio");
-const deprecationTracking = require("./helpers/deprecationTracking");
+// TODO: recover after we have these module
+// const path = require("path");
+// const Stats = require("../lib/Stats");
+// const { createFsFromVolume, Volume } = require("memfs");
+// const captureStdio = require("./helpers/captureStdio");
+// const deprecationTracking = require("./helpers/deprecationTracking");
 
-describe("Compiler", () => {
+describe.skip("Compiler", () => {
 	jest.setTimeout(20000);
 	function compile(entry, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;

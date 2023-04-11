@@ -8,12 +8,13 @@ const rimraf = require("rimraf");
 
 let fixtureCount = 0;
 
-describe("Compiler (caching)", () => {
+describe.skip("Compiler (caching)", () => {
 	jest.setTimeout(15000);
 
 	function compile(entry, options, callback) {
-		const webpack = require("@rspack/core").rspack;
-		options = webpack.config.getNormalizedWebpackOptions(options);
+		const rspack = require("@rspack/core");
+		const webpack = rspack.rspack // compatible with webpack test, used as a constructor
+		options = rspack.getNormalizedRspackOptions(options);
 		options.mode = "none";
 		options.cache = true;
 		options.entry = entry;

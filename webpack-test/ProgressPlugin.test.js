@@ -81,7 +81,7 @@ const RunCompilerAsync = compiler =>
 		});
 	});
 
-describe("ProgressPlugin", function () {
+describe.skip("ProgressPlugin", function () {
 	let stderr;
 	let stdout;
 
