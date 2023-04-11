@@ -1,5 +1,25 @@
 # @rspack/cli
 
+## 0.1.7
+
+### Patch Changes
+
+- 9f9c280: support rspack.config.mjs as default config file
+- e649469: fix builtins.html does replace [hash] and [name] in builtins.html.filename
+- Updated dependencies [5bc1f55]
+- Updated dependencies [723a229]
+- Updated dependencies [e649469]
+- Updated dependencies [45aa2fe]
+- Updated dependencies [83f309a]
+- Updated dependencies [55d3ea4]
+- Updated dependencies [84851dc]
+- Updated dependencies [905cacf]
+- Updated dependencies [8872af5]
+- Updated dependencies [f4eb7c7]
+- Updated dependencies [32f822b]
+  - @rspack/core@0.1.7
+  - @rspack/dev-server@0.1.7
+
 ## 0.1.6
 
 ### Patch Changes
