@@ -1,7 +1,8 @@
 use swc_core::{
-  common::pass::AstNodePath,
+  common::{pass::AstNodePath, EqIgnoreSpan, DUMMY_SP},
   ecma::{
-    ast::{CallExpr, Expr, MemberProp, MetaPropKind},
+    ast::{CallExpr, Expr, Ident, MemberProp, MetaPropKind},
+    utils::member_expr,
     visit::{AstParentKind, AstParentNodeRef},
   },
 };
@@ -103,8 +104,11 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
 }
 
 pub fn is_import_meta_hot(expr: &Expr) -> bool {
-  let v = member_expr_to_string(expr);
-  v.starts_with("import.meta.webpackHot")
+  use once_cell::sync::Lazy;
+  // TODO: Is DUMMY_SP ok here? should we use Span with top_level_ctxt?
+  static IMPORT_META_WEBPACK_HOT: Lazy<Box<Expr>> =
+    Lazy::new(|| member_expr!(DUMMY_SP, import.meta.hot));
+  Ident::within_ignored_ctxt(|| expr.eq_ignore_span(&*IMPORT_META_WEBPACK_HOT))
 }
 
 pub fn member_expr_to_string(expr: &Expr) -> String {
