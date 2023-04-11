@@ -68,6 +68,7 @@ var $RefreshReg$ = function (type, id) {
 }
 var $RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
+// See https://github.com/web-infra-dev/rspack/pull/2714 why we have a promise here
 static HMR_FOOTER: &str = r#"Promise.resolve().then(function(){ 
   __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
 })"#;
