@@ -1,8 +1,9 @@
 "use strict";
 
-const RuntimeTemplate = require("../lib/RuntimeTemplate");
-const RequestShortener = require("../lib/RequestShortener");
-
+// TODO: recover
+// const RuntimeTemplate = require("../lib/RuntimeTemplate");
+// const RequestShortener = require("../lib/RequestShortener");
+//
 describe.skip("RuntimeTemplate.concatenation", () => {
 	it("no args", () => {
 		const runtimeTemplate = new RuntimeTemplate(
@@ -49,11 +50,12 @@ describe.skip("RuntimeTemplate.concatenation", () => {
 	});
 
 	describe("es6", () => {
-		const runtimeTemplate = new RuntimeTemplate(
-			undefined,
-			{ environment: { templateLiteral: true } },
-			new RequestShortener(__dirname)
-		);
+		// TODO: recover this comment after we have RuntimeTemplate
+		// const runtimeTemplate = new RuntimeTemplate(
+		// 	undefined,
+		// 	{ environment: { templateLiteral: true } },
+		// 	new RequestShortener(__dirname)
+		// );
 
 		it("should prefer shorten variant #1", () => {
 			expect(runtimeTemplate.concatenation({ expr: 1 }, "a", { expr: 2 })).toBe(
