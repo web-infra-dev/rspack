@@ -7,6 +7,7 @@ const prod = process.env.NODE_ENV === "production";
  * @type {import('@rspack/cli').Configuration}
  */
 module.exports = {
+	context: __dirname,
 	entry: { main: "./src/index.tsx" },
 	devServer: {
 		port: 5555,

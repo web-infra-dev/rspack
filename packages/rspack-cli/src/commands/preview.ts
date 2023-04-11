@@ -40,7 +40,7 @@ export class PreviewCommand implements RspackCommand {
 				config = config.find(item => item.devServer) || config[0];
 
 				const devServerOptions = config.devServer as DevServer;
-				
+
 				let compiler = rspack({ entry: {} });
 				try {
 					const server = new RspackDevServer(devServerOptions, compiler);
@@ -68,7 +68,8 @@ async function getPreviewConfig(
 			static: {
 				directory: options.dir
 					? path.join(item.context ?? process.cwd(), options.dir)
-					: item.output?.path ?? path.join(item.context ?? process.cwd(), defaultRoot),
+					: item.output?.path ??
+					  path.join(item.context ?? process.cwd(), defaultRoot),
 				publicPath: options.publicPath ?? "/"
 			},
 			port: options.port ?? 8080,
