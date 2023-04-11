@@ -1,5 +1,5 @@
 {
-  "name": "@rspack/playground",
+  "name": "@rspack-e2e/playground",
   "private": true,
   "version": "0.1.7",
   "scripts": {
