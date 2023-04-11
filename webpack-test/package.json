@@ -69,7 +69,8 @@
     ],
     "testMatch": [
       "<rootDir>/*.test.js",
-      "<rootDir>/*.basictest.js"
+      "<rootDir>/*.basictest.js",
+      "<rootDir>/*.longtest.js"
     ],
     "watchPathIgnorePatterns": [
       "<rootDir>/.git",
