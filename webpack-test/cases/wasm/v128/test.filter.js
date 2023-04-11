@@ -1,3 +1,6 @@
+/**
+
+
 const supportsWebAssembly = require("../../../helpers/supportsWebAssembly");
 const supportsFeature = require("webassembly-feature");
 
@@ -6,3 +9,6 @@ module.exports = function (config) {
 	return false;
 	return supportsWebAssembly() && supportsFeature.simd();
 };
+*/
+
+module.exports = () => {return false}
