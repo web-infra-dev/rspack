@@ -1,11 +1,14 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 
 // cspell:word nodetest
 describe("NodeTemplatePlugin", () => {
+	describe.skip("NodeTemplatePlugin", () => {
+		it("filtered", () => {})
+	})
 	jest.setTimeout(20000);
 	it("should compile and run a simple module", done => {
 		const webpack = require("@rspack/core").rspack;
