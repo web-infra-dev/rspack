@@ -6,7 +6,8 @@ import {
 	DevServer,
 	rspack,
 	RspackOptions,
-	MultiRspackOptions
+	MultiRspackOptions,
+	applyRspackOptionsDefaults
 } from "@rspack/core";
 import path from "node:path";
 
@@ -38,11 +39,11 @@ export class PreviewCommand implements RspackCommand {
 				// find the possible devServer config
 				config = config.find(item => item.devServer) || config[0];
 
-				const devServerOption = config.devServer as DevServer;
-
+				const devServerOptions = config.devServer as DevServer;
+				
 				let compiler = rspack({ entry: {} });
 				try {
-					const server = new RspackDevServer(devServerOption, compiler);
+					const server = new RspackDevServer(devServerOptions, compiler);
 
 					await server.start();
 				} catch (error) {
@@ -62,22 +63,19 @@ async function getPreviewConfig(
 	options: RspackPreviewCLIOptions
 ): Promise<RspackOptions | MultiRspackOptions> {
 	const internalPreviewConfig = async (item: RspackOptions) => {
-		if (!item.devServer) {
-			item.devServer = {};
-		}
 		// all of the options that a preview static server needs(maybe not all)
 		item.devServer = {
 			static: {
 				directory: options.dir
-					? transformPath(options.dir)
-					: item.output?.path ?? transformPath(defaultRoot),
-				publicPath: options.publicPath || "/"
+					? path.join(item.context ?? process.cwd(), options.dir)
+					: item.output?.path ?? path.join(item.context ?? process.cwd(), defaultRoot),
+				publicPath: options.publicPath ?? "/"
 			},
-			port: options.port || 8080,
-			host: options.host || item.devServer.host,
-			open: options.open || item.devServer.open,
-			server: options.server || item.devServer.server,
-			historyApiFallback: item.devServer.historyApiFallback
+			port: options.port ?? 8080,
+			host: options.host ?? item.devServer?.host,
+			open: options.open ?? item.devServer?.open,
+			server: options.server ?? item.devServer?.server,
+			historyApiFallback: item.devServer?.historyApiFallback
 		};
 		return item;
 	};
@@ -87,9 +85,4 @@ async function getPreviewConfig(
 	} else {
 		return internalPreviewConfig(item as RspackOptions);
 	}
-}
-
-// transform dir to absolute path
-function transformPath(dir: string) {
-	return path.resolve(process.cwd(), dir);
 }

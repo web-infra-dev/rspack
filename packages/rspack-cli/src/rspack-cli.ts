@@ -21,10 +21,13 @@ import {
 	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import { loadRspackConfig, findFileWithSupportedExtensions } from "./utils/loadConfig";
+import {
+	loadRspackConfig,
+	findFileWithSupportedExtensions
+} from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
 import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
-import path from 'path';
+import path from "path";
 
 type Command = "serve" | "build";
 
