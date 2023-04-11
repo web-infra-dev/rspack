@@ -3,4 +3,4 @@
 "@rspack/core": patch
 ---
 
-add type and user_request field for module.reason
+feat: support output.chunkLoadingGlobal

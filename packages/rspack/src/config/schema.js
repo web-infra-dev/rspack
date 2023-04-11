@@ -969,6 +969,10 @@ module.exports = {
 				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
 			type: "boolean"
 		},
+		Clean: {
+			description: "Clears the output build directory",
+			type: "boolean"
+		},
 		Output: {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
@@ -977,6 +981,9 @@ module.exports = {
 			properties: {
 				iife: {
 					$ref: "#/definitions/Iife"
+				},
+				clean: {
+					$ref: "#/definitions/Clean"
 				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
@@ -1059,6 +1066,9 @@ module.exports = {
 				},
 				uniqueName: {
 					$ref: "#/definitions/UniqueName"
+				},
+				chunkLoadingGlobal: {
+					$ref: "#/definitions/ChunkLoadingGlobal"
 				}
 			}
 		},
@@ -1764,6 +1774,11 @@ module.exports = {
 		UniqueName: {
 			description:
 				"A unique name of the rspack build to avoid multiple rspack runtimes to conflict when using globals.",
+			type: "string",
+			minLength: 1
+		},
+		ChunkLoadingGlobal: {
+			description: "The global variable used by rspack for loading of chunks.",
 			type: "string",
 			minLength: 1
 		},

@@ -8,7 +8,7 @@ pub use code_generation::*;
 use rspack_core::{
   ast::javascript::Program, CompilerOptions, Dependency, ModuleDependency, ResourceData,
 };
-use swc_core::common::{Mark, SyntaxContext};
+use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
 use self::{
@@ -27,6 +27,8 @@ pub fn scan_dependencies(
   let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
   let mut presentational_dependencies: Vec<Box<dyn Dependency>> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
+  // Comments is wrapped by Arc/Rc
+  let comments = program.comments.clone();
   program.visit_with_path(
     &mut DependencyScanner::new(
       &unresolved_ctxt,
@@ -34,6 +36,7 @@ pub fn scan_dependencies(
       compiler_options,
       &mut dependencies,
       &mut presentational_dependencies,
+      comments.as_ref().map(|c| c as &dyn Comments),
     ),
     &mut Default::default(),
   );

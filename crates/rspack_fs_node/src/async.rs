@@ -86,4 +86,28 @@ impl AsyncWritableFileSystem for AsyncNodeWritableFileSystem {
     };
     Box::pin(fut)
   }
+
+  fn remove_dir_all<P: AsRef<std::path::Path>>(
+    &self,
+    dir: P,
+  ) -> BoxFuture<'_, rspack_fs::Result<()>> {
+    let dir = dir.as_ref().to_string_lossy().to_string();
+    let fut = async move {
+      self
+        .fs_ts
+        .remove_dir_all
+        .call(dir, ThreadsafeFunctionCallMode::NonBlocking)
+        .expect("Failed to call tsfn")
+        .await
+        .expect("Failed to poll")
+        .map_err(|e| {
+          rspack_fs::Error::Io(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            e.to_string(),
+          ))
+        })
+        .map(|_| ())
+    };
+    Box::pin(fut)
+  }
 }
