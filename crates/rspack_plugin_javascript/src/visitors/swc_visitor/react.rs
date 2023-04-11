@@ -68,8 +68,9 @@ var $RefreshReg$ = function (type, id) {
 }
 var $RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
-static HMR_FOOTER: &str =
-  r#"__webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);"#;
+static HMR_FOOTER: &str = r#"Promise.resolve().then(function(){ 
+  __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
+})"#;
 
 static HMR_HEADER_AST: Lazy<Program> =
   Lazy::new(|| parse_js_code(HMR_HEADER.to_string(), &ModuleType::Js).expect("TODO:"));
