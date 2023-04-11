@@ -6,7 +6,7 @@ describe("Validation", () => {
 	const createTestCase = (name, config, fn) => {
 		it("should fail validation for " + name, () => {
 			try {
-				const webpack = require("..");
+				const webpack = require("@rspack/core").rspack;
 				webpack(config);
 			} catch (err) {
 				if (err.name !== "ValidationError") throw err;

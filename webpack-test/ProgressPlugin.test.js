@@ -5,7 +5,7 @@ require("./helpers/warmup-webpack");
 const _ = require("lodash");
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 const captureStdio = require("./helpers/captureStdio");
 
 const createMultiCompiler = (progressOptions, configOptions) => {

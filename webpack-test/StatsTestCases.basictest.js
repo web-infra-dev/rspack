@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 
 /**
  * Escapes regular expression metacharacters

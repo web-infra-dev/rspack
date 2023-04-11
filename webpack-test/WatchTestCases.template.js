@@ -191,7 +191,7 @@ const describeCases = config => {
 
 								setTimeout(() => {
 									const deprecationTracker = deprecationTracking.start();
-									const webpack = require("..");
+									const webpack = require("@rspack/core").rspack;
 									const compiler = webpack(options);
 									compiler.hooks.invalid.tap(
 										"WatchTestCasesTest",

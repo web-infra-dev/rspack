@@ -8,7 +8,7 @@ const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 
 const createCompiler = config => {
-	const webpack = require("..");
+	const webpack = require("@rspack/core").rspack;
 	const compiler = webpack(config);
 	compiler.outputFileSystem = createFsFromVolume(new Volume());
 	return compiler;
