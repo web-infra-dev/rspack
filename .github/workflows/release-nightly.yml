@@ -1,23 +1,17 @@
-name: Release Full
+name: Release Nightly
 
 on:
-  # push:
-    # branches:
-      # - refactor-release
+  push:
+    branches:
+      - refactor-release
   workflow_dispatch:
-    inputs:
-      version:
-        type: choice
-        description: "Release Version(canary, alpha, beta, latest)"
-        required: true
-        default: "canary"
-        options:
-          - canary
-          - alpha
-          - beta
-          - latest
+  schedule:
+    # 00:07 AM Beijing Time, offset an odd number to avoid cron jobs firing off at the same time
+    - cron:  '7 16 * * *'
+
 jobs:
   build:
+    name: Release Nightly
     strategy:
       matrix:
         target:
@@ -37,12 +31,11 @@ jobs:
       tests: true
 
   release:
-    name: Release
+    name: Nightly
     permissions:
       contents: write
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -70,13 +63,22 @@ jobs:
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
 
+      - name: Prevent changeset crashing on empty changesets
+        shell: bash
+        run: |
+          pnpm run changeset add --empty
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .
+          git commit -m "chore: bump nightly"
+
       - name: Release
         uses: web-infra-dev/actions@v2
         with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
+          version: "canary"
+          npmTag: "nightly"
           type: "release"
-          branch: ${{ github.ref_name }}
+          branch: ""
           tools: "changeset"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
