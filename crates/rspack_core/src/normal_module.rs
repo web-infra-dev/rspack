@@ -25,12 +25,13 @@ use serde_json::json;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  contextify, is_async_dependency, module_graph::ConnectionId, AssetGeneratorOptions,
-  AssetParserOptions, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions, Context, Dependency,
-  DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
+  contextify, dependency::EsmDynamicImportDependency, is_async_dependency,
+  module_graph::ConnectionId, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
+  CompilerOptions, Context, Dependency, DependencyId, FactoryMeta, GenerateContext,
+  LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve,
+  RuntimeGlobals, SourceType,
 };
 
 bitflags! {
@@ -88,6 +89,7 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
   pub used: bool,
+  pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
 }
@@ -111,6 +113,7 @@ impl ModuleGraphModule {
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
       used: default_used,
+      factory_meta: None,
       build_info: None,
       build_meta: None,
     }
@@ -192,12 +195,28 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleIdentifier> {
+  ) -> Vec<(&'a ModuleIdentifier, Option<&'a str>)> {
     self
       .dependencies
       .iter()
-      .filter(|id| is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
+      .filter_map(|id| {
+        let dep = module_graph.dependency_by_id(id).expect("should have id");
+        let is_async = is_async_dependency(dep);
+        let module = module_graph
+          .module_identifier_by_dependency_id(id)
+          .expect("should have a module here");
+
+        if is_async {
+          let chunk_name = dep
+            .as_ref()
+            .as_any()
+            .downcast_ref::<EsmDynamicImportDependency>()
+            .and_then(|f| f.name.as_deref());
+          Some((module, chunk_name))
+        } else {
+          None
+        }
+      })
       .collect()
   }
 
@@ -589,6 +608,7 @@ impl Module for NormalModule {
       code_generation_result
         .runtime_requirements
         .add(runtime_requirements);
+      code_generation_result.set_hash();
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -603,6 +623,7 @@ impl Module for NormalModule {
           ),
         );
       }
+      code_generation_result.set_hash();
       Ok(code_generation_result)
     } else {
       Err(internal_error!(

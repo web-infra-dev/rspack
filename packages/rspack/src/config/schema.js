@@ -62,6 +62,10 @@ module.exports = {
 				}
 			]
 		},
+		CrossOriginLoading: {
+			description: "This option enables cross-origin loading of chunks.",
+			enum: [false, "anonymous", "use-credentials"]
+		},
 		Context: {
 			description:
 				"The base directory (absolute path!) for resolving the `entry` option. If `output.pathinfo` is set, the included pathinfo is shortened to this directory.",
@@ -965,6 +969,10 @@ module.exports = {
 				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
 			type: "boolean"
 		},
+		Clean: {
+			description: "Clears the output build directory",
+			type: "boolean"
+		},
 		Output: {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
@@ -973,6 +981,9 @@ module.exports = {
 			properties: {
 				iife: {
 					$ref: "#/definitions/Iife"
+				},
+				clean: {
+					$ref: "#/definitions/Clean"
 				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
@@ -986,6 +997,9 @@ module.exports = {
 				},
 				chunkFilename: {
 					$ref: "#/definitions/ChunkFilename"
+				},
+				crossOriginLoading: {
+					$ref: "#/definitions/CrossOriginLoading"
 				},
 				cssChunkFilename: {
 					$ref: "#/definitions/CssChunkFilename"
@@ -1052,6 +1066,9 @@ module.exports = {
 				},
 				uniqueName: {
 					$ref: "#/definitions/UniqueName"
+				},
+				chunkLoadingGlobal: {
+					$ref: "#/definitions/ChunkLoadingGlobal"
 				}
 			}
 		},
@@ -1190,6 +1207,11 @@ module.exports = {
 							$ref: "#/definitions/ResolveAlias"
 						}
 					]
+				},
+				fullySpecified: {
+					description:
+						"Treats the request specified by the user as fully specified, meaning no extensions are added and the mainFiles in directories are not resolved (This doesn't affect requests from mainFields, aliasFields or aliases).",
+					type: "boolean"
 				},
 				mainFields: {
 					description:
@@ -1391,6 +1413,14 @@ module.exports = {
 							$ref: "#/definitions/RuleSetConditionOrConditions"
 						}
 					]
+				},
+				descriptionData: {
+					description:
+						"Match values of properties in the description file (usually package.json).",
+					type: "object",
+					additionalProperties: {
+						$ref: "#/definitions/RuleSetConditionOrConditions"
+					}
 				},
 				oneOf: {
 					description: "Only execute the first matching rule in this array.",
@@ -1744,6 +1774,11 @@ module.exports = {
 		UniqueName: {
 			description:
 				"A unique name of the rspack build to avoid multiple rspack runtimes to conflict when using globals.",
+			type: "string",
+			minLength: 1
+		},
+		ChunkLoadingGlobal: {
+			description: "The global variable used by rspack for loading of chunks.",
 			type: "string",
 			minLength: 1
 		},

@@ -13,13 +13,16 @@ use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
 #[derive(Debug)]
 pub struct OutputOptions {
   pub path: PathBuf,
+  pub clean: bool,
   pub public_path: PublicPath,
   pub asset_module_filename: Filename,
   pub wasm_loading: WasmLoading,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
+  pub chunk_loading_global: String,
   pub filename: Filename,
   pub chunk_filename: Filename,
+  pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
   pub library: Option<LibraryOptions>,
@@ -49,6 +52,21 @@ impl From<&str> for WasmLoadingType {
       "fetch" => Self::Fetch,
       "async-node" => Self::AsyncNode,
       _ => todo!(),
+    }
+  }
+}
+
+#[derive(Debug)]
+pub enum CrossOriginLoading {
+  Disable,
+  Enable(String),
+}
+
+impl std::fmt::Display for CrossOriginLoading {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      CrossOriginLoading::Disable => write!(f, "false"),
+      CrossOriginLoading::Enable(value) => write!(f, "'{}'", value),
     }
   }
 }
@@ -110,13 +128,7 @@ impl Filename {
       name: chunk.name_for_filename_template(),
       extension: Some(extension.to_owned()),
       id: chunk.id.clone(),
-      contenthash: Some(
-        chunk
-          .content_hash
-          .get(source_type)
-          .expect("should have chunk javascript content hash")
-          .clone(),
-      ),
+      contenthash: chunk.content_hash.get(source_type).cloned(),
       chunkhash: hash.clone(),
       hash,
       ..Default::default()

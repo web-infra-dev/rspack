@@ -27,6 +27,7 @@ pub struct RawResolveOptions {
   pub ts_config_path: Option<String>,
   pub modules: Option<Vec<String>>,
   pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
+  pub fully_specified: Option<bool>,
 }
 
 fn normalize_alias(alias: Option<RawAliasOption>) -> anyhow::Result<Option<Alias>> {
@@ -73,6 +74,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let main_fields = value.main_fields;
     let condition_names = value.condition_names;
     let symlinks = value.symlinks;
+    let fully_specified = value.fully_specified;
     let alias = normalize_alias(value.alias)?;
     let fallback = normalize_alias(value.fallback)?;
     let modules = value.modules;
@@ -102,6 +104,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       tsconfig,
       fallback,
       by_dependency,
+      fully_specified,
     })
   }
 }

@@ -1,5 +1,7 @@
 mod entry;
 pub use entry::*;
+mod runtime_requirements_dependency;
+pub use runtime_requirements_dependency::*;
 mod code_generatable;
 pub use code_generatable::*;
 mod context_element_dependency;
@@ -10,6 +12,7 @@ mod import_context_dependency;
 pub use common_js_require_context_dependency::*;
 pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
+mod dynamic_import;
 mod require_context_dependency;
 use std::{
   any::Any,
@@ -18,6 +21,7 @@ use std::{
 };
 
 use dyn_clone::{clone_trait_object, DynClone};
+pub use dynamic_import::*;
 pub use require_context_dependency::RequireContextDependency;
 mod static_exports_dependency;
 pub use static_exports_dependency::*;
@@ -71,6 +75,34 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
+}
+
+impl Display for DependencyType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      DependencyType::Unknown => write!(f, "unknown"),
+      DependencyType::Entry => write!(f, "entry"),
+      DependencyType::EsmImport => write!(f, "esm import"),
+      DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::DynamicImport => write!(f, "dynamic import"),
+      DependencyType::CjsRequire => write!(f, "cjs require"),
+      DependencyType::NewUrl => write!(f, "new URL()"),
+      DependencyType::ImportMetaHotAccept => write!(f, "import.meta.webpackHot.accept"),
+      DependencyType::ImportMetaHotDecline => write!(f, "import.meta.webpackHot.decline"),
+      DependencyType::ModuleHotAccept => write!(f, "module.hot.accept"),
+      DependencyType::ModuleHotDecline => write!(f, "module.hot.decline"),
+      DependencyType::CssUrl => write!(f, "css url"),
+      DependencyType::CssImport => write!(f, "css import"),
+      DependencyType::CssCompose => write!(f, "css compose"),
+      DependencyType::ContextElement => write!(f, "context element"),
+      DependencyType::ImportContext => write!(f, "import context"),
+      DependencyType::CommonJSRequireContext => write!(f, "commonjs require context"),
+      DependencyType::RequireContext => write!(f, "require.context"),
+      DependencyType::WasmImport => write!(f, "wasm import"),
+      DependencyType::WasmExportImported => write!(f, "wasm export imported"),
+      DependencyType::StaticExports => write!(f, "static exports"),
+    }
+  }
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]

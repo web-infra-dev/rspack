@@ -1,7 +1,7 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use once_cell::sync::Lazy;
-use rspack_core::{contextify, ModuleType, ReactOptions};
+use rspack_core::{ModuleType, ReactOptions};
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, Module, Program};
 use swc_core::ecma::transforms::react::RefreshOptions;
@@ -41,10 +41,8 @@ pub fn react<'a>(
   )
 }
 
-pub fn fold_react_refresh(context: &Path, uri: &str) -> impl Fold {
-  ReactHmrFolder {
-    id: contextify(context, uri),
-  }
+pub fn fold_react_refresh() -> impl Fold {
+  ReactHmrFolder {}
 }
 
 pub struct FoundReactRefreshVisitor {
@@ -55,7 +53,7 @@ impl Visit for FoundReactRefreshVisitor {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "$RefreshReg$".eq(&ident.sym) {
+        if "$RefreshReg$".eq(&ident.sym) || "$RefreshSig$".eq(&ident.sym) {
           self.is_refresh_boundary = true;
         }
       }
@@ -64,29 +62,22 @@ impl Visit for FoundReactRefreshVisitor {
 }
 
 // __webpack_require__.$ReactRefreshRuntime$ is injected by the react-refresh additional entry
-static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_require__.m.$ReactRefreshRuntime$;
-var prevRefreshReg;
-var prevRefreshSig;
-prevRefreshReg = globalThis.$RefreshReg$;
-prevRefreshSig = globalThis.$RefreshSig$;
-globalThis.$RefreshReg$ = (type, id) => {
-  RefreshRuntime.register(type, "__SOURCE__" + "_" + id);
-};
-globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
+static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_modules__.$ReactRefreshRuntime$;
+var $RefreshReg$ = function (type, id) {
+  RefreshRuntime.register(type, __webpack_module__.id + "_" + id);
+}
+var $RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
-static HMR_FOOTER: &str = r#"var RefreshRuntime = __webpack_require__.m.$ReactRefreshRuntime$;
-globalThis.$RefreshReg$ = prevRefreshReg;
-globalThis.$RefreshSig$ = prevRefreshSig;
-module.hot.accept();
-RefreshRuntime.queueUpdate();
-"#;
+static HMR_FOOTER: &str =
+  r#"__webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);"#;
+
+static HMR_HEADER_AST: Lazy<Program> =
+  Lazy::new(|| parse_js_code(HMR_HEADER.to_string(), &ModuleType::Js).expect("TODO:"));
 
 static HMR_FOOTER_AST: Lazy<Program> =
   Lazy::new(|| parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).expect("TODO:"));
 
-pub struct ReactHmrFolder {
-  pub id: String,
-}
+pub struct ReactHmrFolder {}
 
 impl Fold for ReactHmrFolder {
   fn fold_module(&mut self, mut module: Module) -> Module {
@@ -98,18 +89,11 @@ impl Fold for ReactHmrFolder {
     if !f.is_refresh_boundary {
       return module;
     }
-    // TODO: cache the ast
-    let hmr_header_ast = parse_js_code(
-      HMR_HEADER.replace("__SOURCE__", self.id.as_str()),
-      &ModuleType::Js,
-    )
-    .expect("TODO:");
 
     let mut body = vec![];
-    body.append(&mut match hmr_header_ast {
-      Program::Module(m) => m.body,
-      _ => vec![],
-    });
+    if let Some(m) = HMR_HEADER_AST.as_module() {
+      body.append(&mut m.body.clone());
+    }
     body.append(&mut module.body);
     if let Some(m) = HMR_FOOTER_AST.as_module() {
       body.append(&mut m.body.clone());

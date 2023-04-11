@@ -92,7 +92,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "ff293361e645d785",
+		  "hash": "a8535b55b7de03c8",
 		  "modules": [
 		    {
 		      "chunks": [
@@ -129,7 +129,7 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: ff293361e645d785
+		"Hash: a8535b55b7de03c8
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  215 bytes    main  [emitted]  main
@@ -158,7 +158,7 @@ describe("Stats", () => {
 			entry: "./fixtures/abc"
 		});
 		expect(stats?.toString({ timings: false })).toMatchInlineSnapshot(`
-		"Hash: 2168fece27972fed
+		"Hash: ef19f9b69eb0c2d0
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main
@@ -176,5 +176,66 @@ describe("Stats", () => {
 
 		"
 	`);
+	});
+
+	it("should have reasons", async () => {
+		const stats = await compile({
+			context: __dirname,
+			entry: "./fixtures/main5.js",
+			stats: { reasons: true }
+		});
+		expect(stats?.toJson({ all: false, modules: true }).modules)
+			.toMatchInlineSnapshot(`
+[
+  {
+    "chunks": [
+      "main",
+    ],
+    "id": "777",
+    "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/a.js",
+    "issuer": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
+    "issuerId": "371",
+    "issuerName": "./fixtures/main5.js",
+    "issuerPath": [
+      {
+        "id": "371",
+        "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
+        "name": "./fixtures/main5.js",
+      },
+    ],
+    "moduleType": "javascript/auto",
+    "name": "./fixtures/a.js",
+    "reasons": [
+      {
+        "moduleId": "371",
+        "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
+        "moduleName": "./fixtures/main5.js",
+        "type": "cjs require",
+        "userRequest": "./a",
+      },
+    ],
+    "size": 55,
+    "type": "module",
+  },
+  {
+    "chunks": [
+      "main",
+    ],
+    "id": "371",
+    "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/main5.js",
+    "issuerPath": [],
+    "moduleType": "javascript/auto",
+    "name": "./fixtures/main5.js",
+    "reasons": [
+      {
+        "type": "entry",
+        "userRequest": "./fixtures/main5.js",
+      },
+    ],
+    "size": 44,
+    "type": "module",
+  },
+]
+`);
 	});
 });

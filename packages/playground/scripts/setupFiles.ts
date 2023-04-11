@@ -21,7 +21,7 @@ beforeAll(async () => {
 		return;
 	}
 	const testDir = path.resolve(__dirname, "../temp", caseName);
-	const configPath = path.resolve(testDir, "webpack.config.js");
+	const configPath = path.resolve(testDir, "rspack.config.js");
 	const configFile = require(configPath);
 	const compiler = createCompiler(configFile);
 	server = new RspackDevServer(compiler.options.devServer ?? {}, compiler);

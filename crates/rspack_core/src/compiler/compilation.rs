@@ -10,7 +10,7 @@ use std::{
 };
 
 use dashmap::DashSet;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use rayon::prelude::{
   IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator,
 };
@@ -72,7 +72,7 @@ pub struct Compilation {
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
-  pub entrypoints: HashMap<String, ChunkGroupUkey>,
+  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
   pub assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
@@ -228,7 +228,7 @@ impl Compilation {
     &self.assets
   }
 
-  pub fn entrypoints(&self) -> &HashMap<String, ChunkGroupUkey> {
+  pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
     &self.entrypoints
   }
 
@@ -285,7 +285,7 @@ impl Compilation {
   }
 
   #[instrument(name = "entry_data", skip(self))]
-  pub fn entry_data(&self) -> HashMap<String, EntryData> {
+  pub fn entry_data(&self) -> IndexMap<String, EntryData> {
     self
       .entries
       .iter()
@@ -585,16 +585,19 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 factory_result,
-                module_graph_module,
+                mut module_graph_module,
                 diagnostics,
                 dependencies,
               } = task_result;
+              let module_identifier = factory_result.module.identifier();
 
-              tracing::trace!("Module created: {}", factory_result.module.identifier());
+              tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
                 make_failed_dependencies.insert(dependencies[0]);
               }
 
+              module_graph_module.set_issuer_if_unset(original_module_identifier);
+              module_graph_module.factory_meta = Some(factory_result.factory_meta);
               self.push_batch_diagnostic(diagnostics);
 
               self
@@ -1181,7 +1184,11 @@ impl Compilation {
           .chunk_graph
           .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
           .into_iter()
-          .filter_map(|m| self.module_graph.get_module_hash(&m.identifier()))
+          .filter_map(|m| {
+            self
+              .code_generation_results
+              .get_hash(&m.identifier(), Some(&chunk.runtime))
+          })
           .inspect(|hash| hash.hash(&mut chunk.hash))
       })
       .collect::<Vec<_>>()
@@ -1190,7 +1197,7 @@ impl Compilation {
         hash.hash(&mut compilation_hasher);
       });
 
-    tracing::trace!("hash chunks");
+    tracing::trace!("hash normal chunks chunk hash");
 
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
     // runtime chunks should be hashed after all other chunks
@@ -1199,10 +1206,56 @@ impl Compilation {
       .keys()
       .filter(|key| !runtime_chunk_ukeys.contains(key))
       .copied()
-      .chain(runtime_chunk_ukeys.clone())
       .collect::<Vec<_>>();
+    self.create_chunk_content_hash(content_hash_chunks, plugin_driver.clone())?;
 
-    let hash_results = content_hash_chunks
+    tracing::trace!("calculate normal chunks content hash");
+
+    self.create_runtime_module_hash();
+
+    tracing::trace!("hash runtime modules");
+
+    let mut entry_chunks = self
+      .chunk_by_ukey
+      .values_mut()
+      .filter(|chunk| runtime_chunk_ukeys.contains(&chunk.ukey))
+      .collect::<Vec<_>>();
+    entry_chunks.sort_unstable_by_key(|chunk| chunk.ukey);
+    entry_chunks
+      .par_iter_mut()
+      .flat_map_iter(|chunk| {
+        self
+          .chunk_graph
+          .get_chunk_runtime_modules_in_order(&chunk.ukey)
+          .iter()
+          .filter_map(|identifier| self.runtime_module_code_generation_results.get(identifier))
+          .inspect(|(hash, _)| hash.hash(&mut chunk.hash))
+      })
+      .collect::<Vec<_>>()
+      .iter()
+      .for_each(|hash| {
+        hash.hash(&mut compilation_hasher);
+      });
+    tracing::trace!("calculate runtime chunks hash");
+
+    self.create_chunk_content_hash(
+      Vec::from_iter(runtime_chunk_ukeys.into_iter()),
+      plugin_driver.clone(),
+    )?;
+    tracing::trace!("calculate runtime chunks content hash");
+
+    self.hash = format!("{:x}", compilation_hasher.finish());
+    tracing::trace!("compilation hash");
+    Ok(())
+  }
+
+  #[allow(clippy::unwrap_in_result)]
+  fn create_chunk_content_hash(
+    &mut self,
+    chunks: Vec<ChunkUkey>,
+    plugin_driver: SharedPluginDriver,
+  ) -> Result<()> {
+    let hash_results = chunks
       .iter()
       .map(|chunk_ukey| async {
         let hashes = plugin_driver
@@ -1227,36 +1280,6 @@ impl Compilation {
       });
     }
 
-    tracing::trace!("calculate chunks content hash");
-
-    self.create_runtime_module_hash();
-
-    tracing::trace!("hash runtime chunks");
-
-    let mut entry_chunks = self
-      .chunk_by_ukey
-      .values_mut()
-      .filter(|chunk| runtime_chunk_ukeys.contains(&chunk.ukey))
-      .collect::<Vec<_>>();
-    entry_chunks.sort_unstable_by_key(|chunk| chunk.ukey);
-    entry_chunks
-      .par_iter_mut()
-      .flat_map_iter(|chunk| {
-        self
-          .chunk_graph
-          .get_chunk_runtime_modules_in_order(&chunk.ukey)
-          .iter()
-          .filter_map(|identifier| self.runtime_module_code_generation_results.get(identifier))
-          .inspect(|(hash, _)| hash.hash(&mut chunk.hash))
-      })
-      .collect::<Vec<_>>()
-      .iter()
-      .for_each(|hash| {
-        hash.hash(&mut compilation_hasher);
-      });
-
-    self.hash = format!("{:x}", compilation_hasher.finish());
-    tracing::trace!("compilation hash");
     Ok(())
   }
 

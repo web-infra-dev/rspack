@@ -4,7 +4,7 @@ require("./helpers/warmup-webpack");
 
 const path = require("path");
 const fs = require("graceful-fs");
-const webpack = require("..");
+const webpack = require("@rspack/core");
 const prettyFormat = require("pretty-format").default;
 
 const CWD_PATTERN = new RegExp(process.cwd().replace(/\\/g, "/"), "gm");

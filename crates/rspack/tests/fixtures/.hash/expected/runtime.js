@@ -172,6 +172,10 @@ __webpack_require__.l = function loadScript(url, done, key, chunkId) {
 		script.timeout = 120;
 		// script.setAttribute("data-webpack", dataWebpackPrefix + key);
 		script.src = url;
+
+		if (false && script.src.indexOf(window.location.origin + '/') !== 0) {
+			script.crossOrigin = false;
+		}
 	}
 	inProgress[url] = [done];
 	var onScriptComplete = function (prev, event) {
@@ -253,6 +257,10 @@ var loadStylesheet = (chunkId, url, done, hmr) => {
 		link.setAttribute(loadingAttribute, 1);
 		link.rel = "stylesheet";
 		link.href = url;
+
+		if (false && link.href.indexOf(window.location.origin + '/') !== 0) {
+			link.crossOrigin = false;
+		}
 	}
 	var onLinkComplete = (prev, event) => {
 		link.onerror = link.onload = null;

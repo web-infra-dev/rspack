@@ -135,11 +135,39 @@ describe("snapshots", () => {
 		        "type": "json",
 		      },
 		      {
+		        "resolve": {
+		          "byDependency": {
+		            "esm": {
+		              "fullySpecified": true,
+		            },
+		          },
+		        },
 		        "test": /\\\\\\.mjs\\$/i,
 		        "type": "javascript/esm",
 		      },
 		      {
+		        "descriptionData": {
+		          "type": "module",
+		        },
+		        "resolve": {
+		          "byDependency": {
+		            "esm": {
+		              "fullySpecified": true,
+		            },
+		          },
+		        },
+		        "test": /\\\\\\.js\\$/i,
+		        "type": "javascript/esm",
+		      },
+		      {
 		        "test": /\\\\\\.cjs\\$/i,
+		        "type": "javascript/dynamic",
+		      },
+		      {
+		        "descriptionData": {
+		          "type": "commonjs",
+		        },
+		        "test": /\\\\\\.js\\$/i,
 		        "type": "javascript/dynamic",
 		      },
 		      {
@@ -157,11 +185,15 @@ describe("snapshots", () => {
 		      {
 		        "oneOf": [
 		          {
+		            "resolve": {
+		              "fullySpecified": true,
+		            },
 		            "test": /\\\\\\.module\\\\\\.css\\$/i,
 		            "type": "css/module",
 		          },
 		          {
 		            "resolve": {
+		              "fullySpecified": true,
 		              "preferRelative": true,
 		            },
 		            "type": "css",
@@ -227,6 +259,9 @@ describe("snapshots", () => {
 		  "output": {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "chunkFilename": "[name].js",
+		    "chunkLoadingGlobal": "webpackChunk@rspack/core",
+		    "clean": false,
+		    "crossOriginLoading": false,
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",
 		    "enabledLibraryTypes": [],
@@ -603,9 +638,10 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
+		+     "chunkFilename": "[id].bundle.js",
+		@@ ... @@
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		+     "chunkFilename": "[id].bundle.js",
 		+     "cssChunkFilename": "[id].bundle.css",
 		+     "cssFilename": "bundle.css",
 		@@ ... @@
@@ -620,9 +656,10 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "chunkFilename": "[name].js",
+		+     "chunkFilename": "[id].js",
+		@@ ... @@
 		-     "cssChunkFilename": "[name].css",
 		-     "cssFilename": "[name].css",
-		+     "chunkFilename": "[id].js",
 		+     "cssChunkFilename": "[id].css",
 		+     "cssFilename": "[id].css",
 		@@ ... @@
@@ -1119,6 +1156,9 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
+			+     "chunkLoadingGlobal": "webpackChunk@@@Hello World!",
+			@@ ... @@
 			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "@@@Hello World!",
 		`)
@@ -1175,6 +1215,9 @@ describe("snapshots", () => {
 			-   "context": "<cwd>",
 			+   "context": "<cwd>/tests/fixtures/browserslist",
 			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
+			+     "chunkLoadingGlobal": "webpackChunkbrowserslist-test",
+			@@ ... @@
 			-     "uniqueName": "@rspack/core",
 			+     "uniqueName": "browserslist-test",
 		`)
@@ -1199,6 +1242,9 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
+			@@ ... @@
+			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
+			+     "chunkLoadingGlobal": "webpackChunk",
 			@@ ... @@
 			-     "path": "<cwd>/dist",
 			+     "path": "<cwd>/tests/fixtures/dist",

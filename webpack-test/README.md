@@ -1,3 +1,6 @@
+>**Note**               
+> This package is heavily based on [webpack/test](https://github.com/webpack/webpack/tree/main/test)
+
 # Welcome to the webpack test suite!!!!
 Every pull request that you submit to webpack (besides README and spelling corrections in comments) requires tests that are created.
 
@@ -70,3 +73,11 @@ If you are still nervous or don't quite understand, please submit an issue and t
 
 ## Footnotes
 <sup>1</sup> webpack's parser supports the use of ES2015 features like arrow functions, harmony exports, etc. However as a library we follow Node.js' timeline for dropping older versions of node. Because of this we expect your tests on GitHub Actions to pass all the way back to NodeJS v10; Therefore if you would like specific tests that use these features to be ignored if they are not supported, then you should add a `test.filter.js` file. This allows you to import the syntax needed for that test, meanwhile ignoring it on node versions (during CI) that don't support it. webpack has a variety of helpful examples you can refer to if you are just starting out. See the `./helpers` folder to find a list of the versions.
+
+
+## Credits
+
+Thanks to:
+
+- [The webpack team and community](https://webpack.js.org/) for creating a great bundler and ecosystem from which we draw a lot of inspiration.
+- [@sokra](https://github.com/sokra) for the great work on the [webpack](https://github.com/webpack/webpack) project.

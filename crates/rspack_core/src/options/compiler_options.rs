@@ -20,7 +20,7 @@ pub struct CompilerOptions {
   pub snapshot: SnapshotOptions,
   pub cache: CacheOptions,
   pub experiments: Experiments,
-  pub node: NodeOption,
+  pub node: Option<NodeOption>,
   pub optimization: Optimization,
 }
 

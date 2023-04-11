@@ -36,6 +36,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
       .par_iter()
       .map(|(_, mgm)| mgm.dynamic_depended_modules(&compilation.module_graph))
       .flatten()
+      .map(|(id, _)| id)
       .collect::<HashSet<_>>();
     let map = async_modules
       .par_iter()

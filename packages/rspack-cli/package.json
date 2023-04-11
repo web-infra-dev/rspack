@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.1.4",
+  "version": "0.1.7",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -20,7 +20,11 @@
   ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-cli"
+  },
   "devDependencies": {
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
@@ -44,6 +48,7 @@
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
     "webpack-bundle-analyzer": "4.6.1",
-    "yargs": "17.6.2"
+    "yargs": "17.6.2",
+    "semver": "6.3.0"
   }
 }

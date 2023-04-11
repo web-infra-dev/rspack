@@ -1,7 +1,7 @@
 {
   "name": "webpack-test",
   "private": "true",
-  "version": "0.0.0",
+  "version": "0.0.3",
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
@@ -68,7 +68,8 @@
       "<rootDir>/setupTestFramework.js"
     ],
     "testMatch": [
-      "<rootDir>/ConfigTestCases.basictest.js"
+      "<rootDir>/ConfigTestCases.basictest.js",
+      "<rootDir>/Stats.test.js"
     ],
     "watchPathIgnorePatterns": [
       "<rootDir>/.git",

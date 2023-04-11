@@ -8,8 +8,12 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import path from "path";
+import assert from "assert";
 import fs from "fs";
+import path from "path";
+import { isNil } from "../util";
+import { cleverMerge } from "../util/cleverMerge";
+import * as oldBuiltins from "./builtins";
 import {
 	getDefaultTarget,
 	getTargetProperties,
@@ -30,10 +34,6 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./types";
-import * as oldBuiltins from "./builtins";
-import { cleverMerge } from "../util/cleverMerge";
-import assert from "assert";
-import { isNil } from "../util";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
@@ -167,7 +167,14 @@ const applyModuleDefaults = (
 
 	A(module, "defaultRules", () => {
 		const esm = {
-			type: "javascript/esm"
+			type: "javascript/esm",
+			resolve: {
+				byDependency: {
+					esm: {
+						fullySpecified: true
+					}
+				}
+			}
 		};
 		const commonjs = {
 			type: "javascript/dynamic"
@@ -181,26 +188,24 @@ const applyModuleDefaults = (
 				test: /\.mjs$/i,
 				...esm
 			},
-			// {
-			// 	test: /\.js$/i,
-			// 	// TODO:
-			// 	// descriptionData: {
-			// 	// 	type: "module"
-			// 	// },
-			// 	...esm
-			// },
+			{
+				test: /\.js$/i,
+				descriptionData: {
+					type: "module"
+				},
+				...esm
+			},
 			{
 				test: /\.cjs$/i,
 				...commonjs
 			},
-			// {
-			// 	test: /\.js$/i,
-			// 	// TODO:
-			// 	// descriptionData: {
-			// 	// 	type: "commonjs"
-			// 	// },
-			// 	...commonjs
-			// },
+			{
+				test: /\.js$/i,
+				descriptionData: {
+					type: "commonjs"
+				},
+				...commonjs
+			},
 			{
 				test: /\.jsx$/i,
 				type: "jsx"
@@ -217,11 +222,15 @@ const applyModuleDefaults = (
 		const cssRule = {
 			type: "css",
 			resolve: {
+				fullySpecified: true,
 				preferRelative: true
 			}
 		};
 		const cssModulesRule = {
-			type: "css/module"
+			type: "css/module",
+			resolve: {
+				fullySpecified: true
+			}
 		};
 		rules.push({
 			test: /\.css$/i,
@@ -288,6 +297,8 @@ const applyOutputDefaults = (
 			return "";
 		}
 	});
+
+	F(output, "chunkLoadingGlobal", () => "webpackChunk" + output.uniqueName);
 
 	D(output, "filename", "[name].js");
 	F(output, "chunkFilename", () => {
@@ -358,6 +369,7 @@ const applyOutputDefaults = (
 	});
 	D(output, "importFunctionName", "import");
 	F(output, "iife", () => !output.module);
+	F(output, "clean", () => !!output.clean);
 	F(output, "module", () => false); // TODO experiments.outputModule
 
 	A(output, "enabledWasmLoadingTypes", () => {
@@ -375,6 +387,8 @@ const applyOutputDefaults = (
 		// });
 		return Array.from(enabledWasmLoadingTypes);
 	});
+
+	D(output, "crossOriginLoading", false);
 };
 
 const applyExternalsPresetsDefaults = (
@@ -388,6 +402,8 @@ const applyNodeDefaults = (
 	node: Node,
 	{ targetProperties }: { targetProperties: any }
 ) => {
+	if (node === false) return;
+
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";

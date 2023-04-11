@@ -38,6 +38,7 @@ pub struct BuildMeta {
   // TODO webpack exportsType
   pub esm: bool,
 }
+
 // webpack build info
 #[derive(Debug, Default, Clone)]
 pub struct BuildResult {
@@ -45,6 +46,11 @@ pub struct BuildResult {
   pub build_meta: BuildMeta,
   pub build_info: BuildInfo,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct FactoryMeta {
+  pub side_effects: Option<bool>,
 }
 
 pub type ModuleIdentifier = Identifier;

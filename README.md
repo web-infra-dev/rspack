@@ -71,7 +71,7 @@ Thanks to:
 - The [Rolldown](https://github.com/rolldown-rs/rolldown) project created by [Rolldown team](https://github.com/rolldown-rs), which explores the possibility of making a performant bundler in Rust with Rollup-compatible API. It inspires the design principles of Rspack.
 - The [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project created by [@jantimon](https://github.com/jantimon), `@rspack/html-plugin` is a fork of [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) to avoid some webpack API usage not supported in Rspack.
 - The [Turbopack](https://github.com/vercel/turbo) project which inspired the AST path logic of Rspack.
-
+- The [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) created by [@pmmmwh](https://github.com/pmmmwh), which inspires implement react refresh.
 ## License
 
 Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).

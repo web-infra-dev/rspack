@@ -1,5 +1,32 @@
 # rspack-dev-server
 
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [fff64ea]
+  - @rspack/dev-client@0.1.7
+  - @rspack/dev-middleware@0.1.7
+  - @rspack/dev-server@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- 3607f25: Remove custom dev client and use webpack-dev-server/client direclty
+- Updated dependencies [3607f25]
+  - @rspack/dev-client@0.1.6
+  - @rspack/dev-server@0.1.6
+  - @rspack/dev-middleware@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.5
+- @rspack/dev-server@0.1.5
+- @rspack/dev-client@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes

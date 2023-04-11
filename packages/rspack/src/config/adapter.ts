@@ -1,16 +1,22 @@
 import {
 	RawCacheGroupOptions,
-	RawModuleRule,
-	RawRuleSetCondition,
-	RawRuleSetLogicalConditions,
-	RawOptions,
 	RawExternalItem,
-	RawExternalItemValue
+	RawExternalItemValue,
+	RawModuleRule,
+	RawOptions,
+	RawRuleSetCondition,
+	RawRuleSetLogicalConditions
 } from "@rspack/binding";
 import assert from "assert";
+import { Compiler } from "../compiler";
 import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
+	ComposeJsUseOptions,
+	createRawModuleRuleUses
+} from "./adapter-rule-use";
+import {
+	CrossOriginLoading,
 	EntryNormalized,
 	Experiments,
 	ExternalItem,
@@ -32,11 +38,6 @@ import {
 	StatsValue,
 	Target
 } from "./types";
-import {
-	ComposeJsUseOptions,
-	createRawModuleRuleUses
-} from "./adapter-rule-use";
-import { Compiler } from "../compiler";
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -47,8 +48,10 @@ export const getRawOptions = (
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
+	let rawEntry = getRawEntry(options.entry);
 	return {
-		entry: getRawEntry(options.entry),
+		entry: rawEntry,
+		entryOrder: Object.keys(rawEntry),
 		mode: options.mode,
 		target: getRawTarget(options.target),
 		context: options.context,
@@ -144,17 +147,29 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	};
 }
 
+function getRawCrossOriginLoading(
+	crossOriginLoading: CrossOriginLoading
+): RawOptions["output"]["crossOriginLoading"] {
+	if (typeof crossOriginLoading === "boolean") {
+		return { type: "bool", boolPayload: crossOriginLoading };
+	}
+	return { type: "string", stringPayload: crossOriginLoading };
+}
+
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	const wasmLoading = output.wasmLoading!;
 	return {
 		path: output.path!,
 		publicPath: output.publicPath!,
+		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
 		chunkFilename: output.chunkFilename!,
+		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
 		uniqueName: output.uniqueName!,
+		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling!,
@@ -251,6 +266,14 @@ const getRawModuleRule = (
 		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
 		dependency: rule.dependency
 			? getRawRuleSetCondition(rule.dependency)
+			: undefined,
+		descriptionData: rule.descriptionData
+			? Object.fromEntries(
+					Object.entries(rule.descriptionData).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+			  )
 			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
@@ -438,6 +461,9 @@ function getRawExperiments(
 }
 
 function getRawNode(node: Node): RawOptions["node"] {
+	if (node === false) {
+		return undefined;
+	}
 	assert(
 		!isNil(node.__dirname) && !isNil(node.global) && !isNil(node.__filename)
 	);

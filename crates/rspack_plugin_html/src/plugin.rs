@@ -1,4 +1,10 @@
-use std::{fs, path::Path};
+use std::{
+  collections::hash_map::DefaultHasher,
+  ffi::OsStr,
+  fs,
+  hash::{Hash, Hasher},
+  path::Path,
+};
 
 use anyhow::Context;
 use async_trait::async_trait;
@@ -7,9 +13,10 @@ use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  CompilationAsset, Plugin,
+  CompilationAsset, Filename, FilenameRenderOptions, Plugin,
 };
 use serde::Deserialize;
+use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
@@ -41,6 +48,7 @@ fn default_template() -> &'static str {
   </body>
 </html>"#
 }
+
 #[async_trait]
 impl Plugin for HtmlPlugin {
   fn name(&self) -> &'static str {
@@ -56,23 +64,26 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
 
     let parser = HtmlCompiler::new(config);
-    let (content, url) = match &config.template {
-      Some(template) => {
-        // TODO: support loader query form
-        let resolved_template =
-          resolve_from_context(&compilation.options.context, template.as_str());
+    let (content, url) = if let Some(content) = &config.template_content {
+      (
+        content.clone(),
+        parse_to_url("template_content.html").path().to_string(),
+      )
+    } else if let Some(template) = &config.template {
+      // TODO: support loader query form
+      let resolved_template = resolve_from_context(&compilation.options.context, template.as_str());
 
-        let content = fs::read_to_string(&resolved_template).context(format!(
-          "failed to read `{}` from `{}`",
-          resolved_template.display(),
-          &compilation.options.context.display()
-        ))?;
-        (content, resolved_template.to_string_lossy().to_string())
-      }
-      None => (
+      let content = fs::read_to_string(&resolved_template).context(format!(
+        "failed to read `{}` from `{}`",
+        resolved_template.display(),
+        &compilation.options.context.display()
+      ))?;
+      (content, resolved_template.to_string_lossy().to_string())
+    } else {
+      (
         default_template().to_owned(),
         parse_to_url("default.html").path().to_string(),
-      ),
+      )
     };
 
     // process with template parameters
@@ -168,8 +179,30 @@ impl Plugin for HtmlPlugin {
     current_ast.visit_mut_with(&mut visitor);
 
     let source = parser.codegen(&mut current_ast)?;
+    let hash = hash_for_ast_or_source(&source);
+    let html_file_name = Filename::from(config.filename.clone());
+    let html_file_name = html_file_name.render(FilenameRenderOptions {
+      name: Path::new(&url)
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string()),
+      path: Some(
+        Path::new(&url)
+          .relative(&compilation.options.context)
+          .to_string_lossy()
+          .to_string(),
+      ),
+      extension: Path::new(&url)
+        .extension()
+        .and_then(OsStr::to_str)
+        .map(|str| format!("{}{}", ".", str)),
+      id: None,
+      contenthash: Some(hash.clone()),
+      chunkhash: Some(hash.clone()),
+      hash: Some(hash),
+      query: Some("".to_string()),
+    });
     compilation.emit_asset(
-      config.filename.clone(),
+      html_file_name,
       CompilationAsset::with_source(RawSource::from(source).boxed()),
     );
 
@@ -189,4 +222,10 @@ impl Plugin for HtmlPlugin {
 
     Ok(())
   }
+}
+
+fn hash_for_ast_or_source(ast_or_source: &str) -> String {
+  let mut hasher = DefaultHasher::new();
+  ast_or_source.hash(&mut hasher);
+  format!("{:x}", hasher.finish())
 }

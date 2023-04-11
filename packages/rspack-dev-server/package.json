@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.1.4",
+  "version": "0.1.7",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
@@ -12,10 +12,13 @@
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-dev-server"
+  },
   "devDependencies": {
     "@rspack/core": "workspace:*",
-    "typescript": "^4.7.4",
     "@types/ws": "8.5.3",
     "@types/node": "16.11.7",
     "@types/express": "4.17.14",
@@ -30,6 +33,7 @@
     "@rspack/dev-client": "workspace:*",
     "@rspack/dev-middleware": "workspace:*",
     "@rspack/dev-server": "workspace:*",
+    "webpack": "5.74.0",
     "webpack-dev-server": "4.13.1",
     "connect-history-api-fallback": "2.0.0",
     "http-proxy-middleware": "2.0.6"

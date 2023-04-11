@@ -12,6 +12,7 @@ export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
 }
 export interface RawPattern {
   from: string
@@ -48,6 +49,7 @@ export interface RawHtmlPluginConfig {
   filename?: string
   /** template html file */
   template?: string
+  templateContent?: string
   templateParameters?: Record<string, string>
   /** `head`, `body` or None */
   inject?: "head" | "body"
@@ -220,6 +222,7 @@ export interface RawModuleRule {
   resource?: RawRuleSetCondition
   /** A condition matcher against the resource query. */
   resourceQuery?: RawRuleSetCondition
+  descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
   use?: Array<RawModuleRuleUse>
   type?: string
@@ -302,8 +305,14 @@ export interface RawLibraryOptions {
   umdNamedDefine?: boolean
   auxiliaryComment?: RawLibraryAuxiliaryComment
 }
+export interface RawCrossOriginLoading {
+  type: "bool" | "string"
+  stringPayload?: string
+  boolPayload?: boolean
+}
 export interface RawOutputOptions {
   path: string
+  clean: boolean
   publicPath: string
   assetModuleFilename: string
   wasmLoading: string
@@ -311,9 +320,11 @@ export interface RawOutputOptions {
   webassemblyModuleFilename: string
   filename: string
   chunkFilename: string
+  crossOriginLoading: RawCrossOriginLoading
   cssFilename: string
   cssChunkFilename: string
   uniqueName: string
+  chunkLoadingGlobal: string
   library?: RawLibraryOptions
   strictModuleErrorHandling: boolean
   enabledLibraryTypes?: Array<string>
@@ -335,6 +346,7 @@ export interface RawResolveOptions {
   tsConfigPath?: string
   modules?: Array<string>
   byDependency?: Record<string, RawResolveOptions>
+  fullySpecified?: boolean
 }
 export interface RawSnapshotStrategy {
   hash: boolean
@@ -370,6 +382,12 @@ export interface RawStatsOptions {
 }
 export interface RawOptions {
   entry: Record<string, RawEntryItem>
+  /**
+   * Using this Vector to track the original order of user land entry configuration
+   * std::collection::HashMap does not guarantee the insertion order, for more details you could refer
+   * https://doc.rust-lang.org/std/collections/index.html#iterators:~:text=For%20unordered%20collections%20like%20HashMap%2C%20the%20items%20will%20be%20yielded%20in%20whatever%20order%20the%20internal%20representation%20made%20most%20convenient.%20This%20is%20great%20for%20reading%20through%20all%20the%20contents%20of%20the%20collection.
+   */
+  entryOrder: Array<string>
   mode?: undefined | 'production' | 'development' | 'none'
   target: Array<string>
   context: string
@@ -387,7 +405,7 @@ export interface RawOptions {
   snapshot: RawSnapshotOptions
   cache: RawCacheOptions
   experiments: RawExperiments
-  node: RawNodeOption
+  node?: RawNodeOption
 }
 export interface JsAssetInfoRelated {
   sourceMap?: string
@@ -514,6 +532,8 @@ export interface JsStatsModuleReason {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+  type?: string
+  userRequest?: string
 }
 export interface JsStatsChunk {
   type: string

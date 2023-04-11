@@ -527,26 +527,17 @@ impl<'a> CodeSizeOptimizer<'a> {
       .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
     for dep in mgm.dependencies.iter() {
-      let module_ident = match module_graph.module_identifier_by_dependency_id(dep) {
-        Some(module_identifier) => *module_identifier,
-        None => {
-          match module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| module.as_normal_module())
-            .map(|normal_module| normal_module.ast_or_source())
-          {
-            Some(ast_or_source) => {
-              if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
-                // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-                continue;
-              } else {
-                panic!("Failed to resolve {dep:?}")
-              }
-            }
-            None => {
-              panic!("Failed to get normal module of {}", mgm.module_identifier);
-            }
-          };
+      let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
+        let ast_or_source = module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .and_then(|module| module.as_normal_module())
+          .map(|normal_module| normal_module.ast_or_source())
+          .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
+        if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
+          // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+          continue;
+        } else {
+          panic!("Failed to resolve {dep:?}")
         }
       };
       module_ident_list.push(module_ident);
@@ -554,29 +545,26 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     // visited_module.remove(&cur);
 
-    let side_effect_list = match side_effects_map.entry(cur) {
-      Entry::Occupied(mut occ) => match occ.get_mut() {
-        SideEffect::Configuration(_) => vec![],
-        SideEffect::Analyze(value) => {
-          if *value {
-            vec![]
-          } else {
-            module_ident_list
-              .into_iter()
-              .filter(|ident| {
-                matches!(
-                  side_effects_map.get(ident),
-                  Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
-                )
-              })
-              .collect::<Vec<_>>()
-          }
-        }
-      },
-      Entry::Vacant(_) => vec![],
+    let need_change_to_side_effects_true = match side_effects_map.get(&cur) {
+      // skip no deps or user already specified side effect in package.json
+      Some(SideEffect::Configuration(_)) | None => false,
+      // already marked as side-effectful
+      Some(SideEffect::Analyze(true)) => false,
+      Some(SideEffect::Analyze(false)) => {
+        let mut side_effect_list = module_ident_list.into_iter().filter(|ident| {
+          matches!(
+            side_effects_map.get(ident),
+            Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
+          )
+        });
+        side_effect_list.next().is_some()
+        // uncomment below for debugging side_effect_list
+        // let side_effect_list = side_effect_list.collect::<Vec<_>>();
+        // side_effect_list.is_empty()
+      }
     };
 
-    if !side_effect_list.is_empty() {
+    if need_change_to_side_effects_true {
       if let Some(cur) = side_effects_map.get_mut(&cur) {
         *cur = SideEffect::Analyze(true);
       }

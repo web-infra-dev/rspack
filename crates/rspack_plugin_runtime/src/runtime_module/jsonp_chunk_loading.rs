@@ -103,9 +103,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .contains(RuntimeGlobals::CHUNK_CALLBACK)
       || with_loading
     {
-      source.add(RawSource::from(include_str!(
-        "runtime/jsonp_chunk_loading_with_callback.js"
-      )));
+      let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_callback.js")
+          .replace("CHUNK_LOADING_GLOBAL_NAME", chunk_loading_global),
+      ));
     }
 
     source.boxed()

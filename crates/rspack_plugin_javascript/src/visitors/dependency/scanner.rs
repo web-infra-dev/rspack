@@ -1,39 +1,37 @@
 use rspack_core::{
   CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
-  Dependency, DependencyCategory, ImportContextDependency, ModuleDependency,
-  RequireContextDependency, ResourceData, RuntimeGlobals,
+  Dependency, DependencyCategory, EsmDynamicImportDependency, ImportContextDependency,
+  ModuleDependency, RequireContextDependency, ResourceData, RuntimeGlobals,
 };
 use rspack_regex::RspackRegex;
-use sugar_path::SugarPath;
-use swc_core::common::{pass::AstNodePath, Mark, SyntaxContext};
+use swc_core::common::comments::Comments;
+use swc_core::common::{pass::AstNodePath, SyntaxContext};
+use swc_core::common::{Span, DUMMY_SP};
 use swc_core::ecma::ast::{
   AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit,
   MemberExpr, MemberProp, MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Pat, PatOrExpr, Tpl,
 };
 use swc_core::ecma::atoms::js_word;
-use swc_core::ecma::utils::{quote_ident, quote_str};
+use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
-use super::{as_parent_path, is_require_context_call};
+use super::{as_parent_path, is_require_context_call, match_member_expr};
 use crate::dependency::{
-  CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
-  URLDependency,
+  CommonJSRequireDependency, EsmExportDependency, EsmImportDependency, URLDependency,
 };
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
-pub const DIR_NAME: &str = "__dirname";
-pub const FILE_NAME: &str = "__filename";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
-pub const GLOBAL: &str = "global";
 
 pub struct DependencyScanner<'a> {
-  pub unresolved_ctxt: SyntaxContext,
+  pub unresolved_ctxt: &'a SyntaxContext,
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
+  pub comments: Option<&'a dyn Comments>,
 }
 
 impl DependencyScanner<'_> {
@@ -58,7 +56,7 @@ impl DependencyScanner<'_> {
   fn add_require(&mut self, call_expr: &CallExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
     if let Callee::Expr(expr) = &call_expr.callee {
       if let Expr::Ident(ident) = &**expr {
-        if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
+        if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
           {
             if call_expr.args.len() != 1 {
               return;
@@ -96,15 +94,42 @@ impl DependencyScanner<'_> {
       }
     }
   }
+
+  fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
+    use once_cell::sync::Lazy;
+    use swc_core::common::comments::CommentKind;
+    static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
+      regex::Regex::new(r#"webpackChunkName\s*:\s*["|'|`]\s*(\w[\w0-9]*)\s*["|'|`]"#)
+        .expect("invalid regex")
+    });
+    self
+      .comments
+      .with_leading(first_arg_span_of_import_call.lo, |comments| {
+        let ret = comments
+          .iter()
+          .rev()
+          .filter(|c| matches!(c.kind, CommentKind::Block))
+          .find_map(|comment| {
+            WEBPACK_CHUNK_NAME_CAPTURE_RE
+              .captures(&comment.text)
+              .and_then(|captures| captures.get(1))
+              .map(|mat| mat.as_str().to_string())
+          });
+        ret
+      })
+  }
+
   fn add_dynamic_import(&mut self, node: &CallExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
     if let Callee::Import(_) = node.callee {
       if let Some(dyn_imported) = node.args.get(0) {
         if dyn_imported.spread.is_none() {
           if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
+            let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
             self.add_dependency(box EsmDynamicImportDependency::new(
               imported.value.clone(),
               Some(node.span.into()),
               as_parent_path(ast_path),
+              chunk_name,
             ));
           }
           if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
@@ -308,29 +333,24 @@ impl VisitAstPath for DependencyScanner<'_> {
     }) = expr
     {
       // variable can be assigned
-      if ident.span.ctxt == self.unresolved_ctxt {
-        #[allow(clippy::single_match)]
-        match ident.sym.as_ref() as &str {
-          WEBPACK_PUBLIC_PATH => {
-            let mut new_expr = expr.clone();
-            if let Some(e) = new_expr.as_mut_assign() {
-              e.left = PatOrExpr::Pat(box Pat::Ident(
-                quote_ident!(RuntimeGlobals::PUBLIC_PATH).into(),
-              ))
-            };
-            self.add_presentational_dependency(box ConstDependency::new(
-              new_expr,
-              Some(RuntimeGlobals::PUBLIC_PATH),
-              as_parent_path(ast_path),
-            ));
-          }
-          _ => {}
-        }
+      if ident.span.ctxt == *self.unresolved_ctxt && ident.sym.as_ref() == WEBPACK_PUBLIC_PATH {
+        let mut new_expr = expr.clone();
+        if let Some(e) = new_expr.as_mut_assign() {
+          e.left = PatOrExpr::Pat(box Pat::Ident(
+            quote_ident!(RuntimeGlobals::PUBLIC_PATH).into(),
+          ))
+        };
+        self.add_presentational_dependency(box ConstDependency::new(
+          new_expr,
+          Some(RuntimeGlobals::PUBLIC_PATH),
+          as_parent_path(ast_path),
+        ));
       }
     }
 
     if let Expr::Ident(ident) = expr {
-      if ident.span.ctxt == self.unresolved_ctxt {
+      // match empty context because the ast of react refresh visitor not resolve mark
+      if ident.span.ctxt == *self.unresolved_ctxt || ident.span.ctxt == SyntaxContext::empty() {
         match ident.sym.as_ref() as &str {
           WEBPACK_HASH => {
             self.add_presentational_dependency(box ConstDependency::new(
@@ -365,84 +385,21 @@ impl VisitAstPath for DependencyScanner<'_> {
               ));
             }
           }
-          DIR_NAME => {
-            let dirname = match self.compiler_options.node.dirname.as_str() {
-              "mock" => Some("/".to_string()),
-              "warn-mock" => Some("/".to_string()),
-              "true" => Some(
-                self
-                  .resource_data
-                  .resource_path
-                  .parent()
-                  .expect("TODO:")
-                  .relative(self.compiler_options.context.as_ref())
-                  .to_string_lossy()
-                  .to_string(),
-              ),
-              _ => None,
-            };
-            if let Some(dirname) = dirname {
-              self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Lit(Lit::Str(quote_str!(dirname))),
-                None,
-                as_parent_path(ast_path),
-              ));
-            }
-          }
-          FILE_NAME => {
-            let filename = match self.compiler_options.node.filename.as_str() {
-              "mock" => Some("/index.js".to_string()),
-              "warn-mock" => Some("/index.js".to_string()),
-              "true" => Some(
-                self
-                  .resource_data
-                  .resource_path
-                  .relative(self.compiler_options.context.as_ref())
-                  .to_string_lossy()
-                  .to_string(),
-              ),
-              _ => None,
-            };
-            if let Some(filename) = filename {
-              self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Lit(Lit::Str(quote_str!(filename))),
-                None,
-                as_parent_path(ast_path),
-              ));
-            }
-          }
-          GLOBAL => {
-            if matches!(self.compiler_options.node.global.as_str(), "true" | "warn") {
-              self.add_presentational_dependency(box ConstDependency::new(
-                Expr::Ident(quote_ident!(RuntimeGlobals::GLOBAL)),
-                Some(RuntimeGlobals::GLOBAL),
-                as_parent_path(ast_path),
-              ));
-            }
-          }
           _ => {}
         }
       }
-    } else if let Expr::Member(MemberExpr {
-      obj: box Expr::Ident(obj_ident),
-      prop: MemberProp::Ident(prop_ident),
-      span,
-    }) = expr
-    {
-      if obj_ident.span.ctxt == self.unresolved_ctxt
-        && "require".eq(&obj_ident.sym)
-        && "cache".eq(&prop_ident.sym)
-      {
-        self.add_presentational_dependency(box ConstDependency::new(
-          Expr::Member(MemberExpr {
-            obj: box Expr::Ident(quote_ident!(RuntimeGlobals::REQUIRE)),
-            prop: MemberProp::Ident(quote_ident!("c")),
-            span: *span,
-          }),
-          Some(RuntimeGlobals::MODULE_CACHE),
-          as_parent_path(ast_path),
-        ));
-      }
+    } else if match_member_expr(expr, "require.cache") {
+      self.add_presentational_dependency(box ConstDependency::new(
+        *member_expr!(DUMMY_SP, __webpack_require__.c),
+        Some(RuntimeGlobals::MODULE_CACHE),
+        as_parent_path(ast_path),
+      ));
+    } else if match_member_expr(expr, "__webpack_module__.id") {
+      self.add_presentational_dependency(box ConstDependency::new(
+        *member_expr!(DUMMY_SP, module.id),
+        Some(RuntimeGlobals::MODULE_CACHE),
+        as_parent_path(ast_path),
+      ));
     }
     expr.visit_children_with_path(self, ast_path);
   }
@@ -450,18 +407,20 @@ impl VisitAstPath for DependencyScanner<'_> {
 
 impl<'a> DependencyScanner<'a> {
   pub fn new(
-    unresolved_mark: Mark,
+    unresolved_ctxt: &'a SyntaxContext,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
     presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
+    comments: Option<&'a dyn Comments>,
   ) -> Self {
     Self {
-      unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
+      unresolved_ctxt,
       dependencies,
       presentational_dependencies,
       compiler_options,
       resource_data,
+      comments,
     }
   }
 }

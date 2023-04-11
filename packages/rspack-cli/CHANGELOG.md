@@ -1,5 +1,49 @@
 # @rspack/cli
 
+## 0.1.7
+
+### Patch Changes
+
+- 9f9c280: support rspack.config.mjs as default config file
+- e649469: fix builtins.html does replace [hash] and [name] in builtins.html.filename
+- Updated dependencies [5bc1f55]
+- Updated dependencies [723a229]
+- Updated dependencies [e649469]
+- Updated dependencies [45aa2fe]
+- Updated dependencies [83f309a]
+- Updated dependencies [55d3ea4]
+- Updated dependencies [84851dc]
+- Updated dependencies [905cacf]
+- Updated dependencies [8872af5]
+- Updated dependencies [f4eb7c7]
+- Updated dependencies [32f822b]
+  - @rspack/core@0.1.7
+  - @rspack/dev-server@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- aa7910b: fix semver dep missing
+- Updated dependencies [3607f25]
+  - @rspack/dev-server@0.1.6
+  - @rspack/core@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- 7bfcc7b: fix windows path is considered scheme incorrectly
+- 18ba959: fixes json not write to disk when set --json
+- Updated dependencies [125bb94]
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [92ee3c1]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+  - @rspack/core@0.1.5
+  - @rspack/dev-server@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes

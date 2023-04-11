@@ -112,12 +112,15 @@ export interface EntryDescriptionNormalized {
 export interface Output {
 	path?: Path;
 	publicPath?: PublicPath;
+	clean?: Clean;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
+	crossOriginLoading?: CrossOriginLoading;
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	libraryExport?: LibraryExport;
 	libraryTarget?: LibraryType;
@@ -140,14 +143,17 @@ export type AssetModuleFilename = string;
 export type WebassemblyModuleFilename = string;
 export type Filename = FilenameTemplate;
 export type ChunkFilename = FilenameTemplate;
+export type CrossOriginLoading = false | "anonymous" | "use-credentials";
 export type CssFilename = FilenameTemplate;
 export type CssChunkFilename = FilenameTemplate;
 export type FilenameTemplate = string;
 export type UniqueName = string;
+export type ChunkLoadingGlobal = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
 export type Iife = boolean;
+export type Clean = boolean;
 export interface LibraryCustomUmdCommentObject {
 	amd?: string;
 	commonjs?: string;
@@ -202,13 +208,16 @@ export type WasmLoadingType =
 export type EnabledWasmLoadingTypes = WasmLoadingType[];
 export interface OutputNormalized {
 	path?: Path;
+	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
+	crossOriginLoading?: CrossOriginLoading;
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	library?: LibraryOptions;
 	module?: OutputModule;
@@ -238,6 +247,7 @@ export interface ResolveOptions {
 	modules?: string[];
 	preferRelative?: boolean;
 	tsConfigPath?: string;
+	fullySpecified?: boolean;
 	byDependency?: {
 		[k: string]: ResolveOptions;
 	};
@@ -262,6 +272,9 @@ export interface RuleSetRule {
 	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;
+	descriptionData?: {
+		[k: string]: RuleSetCondition;
+	};
 	oneOf?: RuleSetRule[];
 	type?: string;
 	use?: RuleSetUse;
@@ -396,9 +409,8 @@ export type DevTool =
 	| "eval-nosources-source-map";
 
 ///// Node /////
-export type Node = NodeOptions;
-// TODO: align with webpack
-// | false;
+export type Node = false | NodeOptions;
+
 export interface NodeOptions {
 	__dirname?: false | true | "warn-mock" | "mock" | "eval-only";
 	__filename?: false | true | "warn-mock" | "mock" | "eval-only";

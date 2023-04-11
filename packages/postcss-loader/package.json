@@ -1,6 +1,6 @@
 {
   "name": "@rspack/postcss-loader",
-  "version": "0.1.4",
+  "version": "0.1.7",
   "license": "MIT",
   "description": "PostCSS loader for rspack",
   "main": "src/index.js",
@@ -9,7 +9,11 @@
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/postcss-loader"
+  },
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "postcss-modules": "^5.0.0",

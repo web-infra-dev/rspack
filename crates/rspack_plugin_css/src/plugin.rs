@@ -625,7 +625,9 @@ impl Plugin for CssPlugin {
       .iter()
       .map(|mgm| {
         (
-          compilation.module_graph.get_module_hash(mgm),
+          compilation
+            .code_generation_results
+            .get_hash(mgm, Some(&chunk.runtime)),
           compilation.chunk_graph.get_module_id(*mgm),
         )
       })

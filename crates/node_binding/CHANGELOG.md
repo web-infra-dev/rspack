@@ -1,5 +1,37 @@
 # @rspack/binding
 
+## 0.1.7
+
+### Patch Changes
+
+- 5bc1f55: fix Module Export Entry does not respect ordering
+- 6f23105: feat(html): support templateContent in `builtins.html`
+- c2bb73c: fix: fix typing of raw cross origin loading
+- e649469: fix builtins.html does replace [hash] and [name] in builtins.html.filename
+- fff64ea: react refresh with context
+- dc10d1f: fix: draw progress bar to stdout instead of stderr
+- 905cacf: feat: support module.rule[].descriptionData
+- f4eb7c7: feat: support output.chunkLoadingGlobal
+- 32f822b: add type and user_request field for module.reason
+
+## 0.1.6
+
+### Patch Changes
+
+- 18dcca0: feat(rspack_plugin_dev_friendly_split_chunks): reduce MAX_MODULES_PER_CHUNK and add MAX_SIZE_PER_CHUNK condition #2578
+
+## 0.1.5
+
+### Patch Changes
+
+- 7bfcc7b: fix windows path is considered scheme incorrectly
+- 050e4fb: feat: wasm loading types
+- e8db1d7: feat: module.rule[].dependency
+- c82529b: feat: new url in target node
+- 6c08098: fix: add more hash logic
+- 60e0aec: fix require.cache undefined
+- 33e916e: feat: built-in support for ProvidePlugin
+
 ## 0.1.4
 
 ### Patch Changes

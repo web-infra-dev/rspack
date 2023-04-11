@@ -1,5 +1,61 @@
 # @rspack/core
 
+## 0.1.7
+
+### Patch Changes
+
+- 5bc1f55: fix Module Export Entry does not respect ordering
+- 723a229: feat: support node false
+- e649469: fix builtins.html does replace [hash] and [name] in builtins.html.filename
+- 45aa2fe: fix: use codegen hash to calculate chunk hashes & fix runtime chunk hash
+- 83f309a: fix: initial watching should stale until invalidate happens
+- 55d3ea4: feat: enable resolve.fullySpecified for defaultRules
+- 84851dc: Syntax support for export destructring binding
+- 905cacf: feat: support module.rule[].descriptionData
+- 8872af5: fix(css): remove trailing space at classname
+- f4eb7c7: feat: support output.chunkLoadingGlobal
+- 32f822b: add type and user_request field for module.reason
+- Updated dependencies [5bc1f55]
+- Updated dependencies [6f23105]
+- Updated dependencies [c2bb73c]
+- Updated dependencies [e649469]
+- Updated dependencies [fff64ea]
+- Updated dependencies [dc10d1f]
+- Updated dependencies [905cacf]
+- Updated dependencies [f4eb7c7]
+- Updated dependencies [32f822b]
+  - @rspack/binding@0.1.7
+  - @rspack/dev-client@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [3607f25]
+- Updated dependencies [18dcca0]
+  - @rspack/dev-client@0.1.6
+  - @rspack/binding@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- 125bb94: expose util for compiler.webpack
+- 7bfcc7b: fix windows path is considered scheme incorrectly
+- 050e4fb: feat: wasm loading types
+- 92ee3c1: fix: library amd returning
+- e8db1d7: feat: module.rule[].dependency
+- c82529b: feat: new url in target node
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+- Updated dependencies [6c08098]
+- Updated dependencies [60e0aec]
+- Updated dependencies [33e916e]
+  - @rspack/binding@0.1.5
+  - @rspack/dev-client@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes

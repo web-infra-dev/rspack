@@ -68,15 +68,18 @@ impl JsPlugin {
       "#,
     ));
 
-    if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
-      sources.add(RawSource::from("id: moduleId,"));
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_ID) {
+      sources.add(RawSource::from("id: moduleId,\n"));
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
+      sources.add(RawSource::from("loaded: false,\n"));
     }
 
     sources.add(RawSource::from(
-      r#"// no module.loaded needed
-          exports: {}
-        });
-        // Execute the module function
+      r#" exports: {} 
+      });
+      // Execute the module function
       "#,
     ));
 
@@ -110,6 +113,12 @@ impl JsPlugin {
       ));
     } else {
       sources.add(module_execution);
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::MODULE_LOADED) {
+      sources.add(RawSource::from(
+        "// Flag the module as loaded \n module.loaded = true;\n",
+      ));
     }
 
     sources.add(RawSource::from(
@@ -514,8 +523,8 @@ impl Plugin for JsPlugin {
       .map(|mgm| {
         (
           compilation
-            .module_graph
-            .get_module_hash(&mgm.module_identifier),
+            .code_generation_results
+            .get_hash(&mgm.module_identifier, Some(&chunk.runtime)),
           compilation.chunk_graph.get_module_id(mgm.module_identifier),
         )
       })
