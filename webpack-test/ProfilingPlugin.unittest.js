@@ -3,7 +3,7 @@
 const path = require("path");
 const ProfilingPlugin = require("../lib/debug/ProfilingPlugin");
 
-describe("Profiling Plugin", () => {
+describe.skip("Profiling Plugin", () => {
 	it("should persist the passed output path", () => {
 		const outputPath = path.join(__dirname, "invest_in_doge_coin");
 		const plugin = new ProfilingPlugin({

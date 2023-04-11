@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
@@ -8,7 +8,7 @@ const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 
 const createCompiler = config => {
-	const webpack = require("..");
+	const webpack = require("@rspack/core").rspack;
 	const compiler = webpack(config);
 	compiler.outputFileSystem = createFsFromVolume(new Volume());
 	return compiler;
@@ -67,6 +67,9 @@ function createFiles() {
 }
 
 describe("ChangesAndRemovals", () => {
+	describe.skip("ChangesAndRemovals", () => {
+		it("filtered", () => {})
+	})
 	if (process.env.NO_WATCH_TESTS) {
 		it.skip("watch tests excluded", () => {});
 		return;
