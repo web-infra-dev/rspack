@@ -28,7 +28,10 @@
     "release": "changeset publish --no-git-checks",
     "bump": "changeset version",
     "changeset": "changeset",
-    "prepare": "is-ci || husky install"
+    "prepare": "is-ci || husky install",
+    "test:example": "pnpm --filter \"example-*\" build",
+    "test:unit": "pnpm --filter \"@rspack/*\" test",
+    "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test"
   },
   "lint-staged": {
     "*.rs": "rustfmt --edition 2021",
