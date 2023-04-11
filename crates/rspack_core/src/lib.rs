@@ -132,6 +132,27 @@ impl ModuleType {
   pub fn is_wasm_like(&self) -> bool {
     matches!(self, ModuleType::WasmSync | ModuleType::WasmAsync)
   }
+
+  pub fn is_js_auto(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx
+    )
+  }
+
+  pub fn is_js_esm(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::JsEsm | ModuleType::JsxEsm | ModuleType::Ts | ModuleType::Tsx
+    )
+  }
+
+  pub fn is_js_dynamic(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::JsDynamic | ModuleType::JsxDynamic | ModuleType::Ts | ModuleType::Tsx
+    )
+  }
 }
 
 impl fmt::Display for ModuleType {

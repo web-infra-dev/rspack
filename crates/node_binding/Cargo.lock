@@ -2357,6 +2357,7 @@ dependencies = [
  "swc_plugin_import",
  "tokio",
  "tracing",
+ "url",
  "xxhash-rust",
 ]
 
