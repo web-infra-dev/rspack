@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const { createFsFromVolume, Volume } = require("memfs");
 

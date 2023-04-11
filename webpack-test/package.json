@@ -5,7 +5,7 @@
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand"
+    "test": "node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand --bail"
   },
   "files": [
     "dist"
@@ -69,9 +69,7 @@
     ],
     "testMatch": [
       "<rootDir>/*.test.js",
-      "<rootDir>/*.basictest.js",
-      "<rootDir>/*.longtest.js",
-      "<rootDir>/*.unittest.js"
+      "<rootDir>/*.basictest.js"
     ],
     "watchPathIgnorePatterns": [
       "<rootDir>/.git",

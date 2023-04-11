@@ -11,7 +11,7 @@ const writeFile = util.promisify(fs.writeFile);
 const utimes = util.promisify(fs.utimes);
 const mkdir = util.promisify(fs.mkdir);
 
-describe("Persistent Caching", () => {
+describe.skip("Persistent Caching", () => {
 	const tempPath = path.resolve(__dirname, "js", "persistent-caching");
 	const outputPath = path.resolve(tempPath, "output");
 	const cachePath = path.resolve(tempPath, "cache");

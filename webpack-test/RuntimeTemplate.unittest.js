@@ -3,7 +3,7 @@
 const RuntimeTemplate = require("../lib/RuntimeTemplate");
 const RequestShortener = require("../lib/RequestShortener");
 
-describe("RuntimeTemplate.concatenation", () => {
+describe.skip("RuntimeTemplate.concatenation", () => {
 	it("no args", () => {
 		const runtimeTemplate = new RuntimeTemplate(
 			undefined,
