@@ -8,7 +8,7 @@ const path = require("path");
 describe("NodeTemplatePlugin", () => {
 	jest.setTimeout(20000);
 	it("should compile and run a simple module", done => {
-		const webpack = require("..");
+		const webpack = require("@rspack/core").rspack;
 		webpack(
 			{
 				mode: "production",
@@ -45,7 +45,7 @@ describe("NodeTemplatePlugin", () => {
 	});
 
 	it("should compile and run a simple module in single mode", done => {
-		const webpack = require("..");
+		const webpack = require("@rspack/core").rspack;
 		webpack(
 			{
 				mode: "production",

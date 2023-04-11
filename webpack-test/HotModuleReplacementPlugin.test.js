@@ -3,7 +3,7 @@
 const path = require("path");
 const fs = require("graceful-fs");
 
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 
 describe("HotModuleReplacementPlugin", () => {
 	jest.setTimeout(20000);

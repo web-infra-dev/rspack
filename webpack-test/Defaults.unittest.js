@@ -63,7 +63,7 @@ expect.addSnapshotSerializer({
 
 const getDefaultConfig = config => {
 	const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
-		require("..").config;
+		require("@rspack/core").rspack.config;
 	config = getNormalizedWebpackOptions(config);
 	applyWebpackOptionsDefaults(config);
 	process.chdir(cwd);

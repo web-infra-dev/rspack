@@ -3,7 +3,7 @@
 const path = require("path");
 const fs = require("graceful-fs");
 
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 
 const pluginDir = path.join(__dirname, "js", "BannerPlugin");
 const outputDir = path.join(pluginDir, "output");

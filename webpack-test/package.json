@@ -68,8 +68,10 @@
       "<rootDir>/setupTestFramework.js"
     ],
     "testMatch": [
-      "<rootDir>/ConfigTestCases.basictest.js",
-      "<rootDir>/Stats.test.js"
+      "<rootDir>/*.test.js",
+      "<rootDir>/*.basictest.js",
+      "<rootDir>/*.longtest.js",
+      "<rootDir>/*.unittest.js"
     ],
     "watchPathIgnorePatterns": [
       "<rootDir>/.git",

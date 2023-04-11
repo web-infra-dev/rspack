@@ -6,7 +6,7 @@ const { createFsFromVolume, Volume } = require("memfs");
 
 describe("MultiStats", () => {
 	it("should create JSON of children stats", done => {
-		const webpack = require("..");
+		const webpack = require("@rspack/core").rspack;
 		const compiler = webpack([
 			{
 				context: __dirname,

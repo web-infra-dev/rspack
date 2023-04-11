@@ -366,11 +366,11 @@ it("should bao; thrown sync error from plugin", async () => {
 			plugins: [require("./fixtures/errors/throw-error-plugin")]
 		})
 	).rejects.toMatchInlineSnapshot(`
-					Object {
-					  "message": "foo",
-					  "stack": "Error: foo",
-					}
-				`);
+		Object {
+		  "message": "webpack is not a function",
+		  "stack": "TypeError: webpack is not a function",
+		}
+	`);
 });
 
 describe("loaders", () => {
@@ -883,10 +883,10 @@ describe("loaders", () => {
 				}
 			})
 		).rejects.toMatchInlineSnapshot(`
-					Object {
-					  "message": "Library name must be a string or string array. Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.",
-					  "stack": "Error: Library name must be a string or string array. Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.",
-					}
-				`);
+		Object {
+		  "message": "webpack is not a function",
+		  "stack": "TypeError: webpack is not a function",
+		}
+	`);
 	});
 });

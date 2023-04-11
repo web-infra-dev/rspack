@@ -3,7 +3,7 @@
 require("./helpers/warmup-webpack");
 
 const path = require("path");
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 const { createFsFromVolume, Volume } = require("memfs");
 
 describe("Watch", () => {

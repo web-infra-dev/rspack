@@ -4,7 +4,7 @@ const path = require("path");
 const fs = require("graceful-fs");
 const { createFsFromVolume, Volume } = require("memfs");
 
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 
 describe("WatchDetection", () => {
 	if (process.env.NO_WATCH_TESTS) {

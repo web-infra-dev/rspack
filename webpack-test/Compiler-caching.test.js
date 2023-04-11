@@ -12,7 +12,7 @@ describe("Compiler (caching)", () => {
 	jest.setTimeout(15000);
 
 	function compile(entry, options, callback) {
-		const webpack = require("..");
+		const webpack = require("@rspack/core").rspack;
 		options = webpack.config.getNormalizedWebpackOptions(options);
 		options.mode = "none";
 		options.cache = true;
