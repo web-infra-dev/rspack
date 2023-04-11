@@ -37,9 +37,9 @@ itertools          = { version = "0.10.1" }
 json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc-rust      = { version = "0.2" }
-napi               = { version = "=2.12.2" }
+napi               = { version = "=2.11.1" }
 napi-build         = { version = "=2.0.1" }
-napi-derive        = { version = "=2.12.3" }
+napi-derive        = { version = "=2.11.0" }
 napi-sys           = { version = "=2.2.3" }
 nodejs-resolver    = { version = "0.0.78" }
 once_cell          = { version = "1.17.0" }
