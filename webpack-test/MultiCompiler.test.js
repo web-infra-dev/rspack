@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
 const webpack = require("..");
@@ -31,6 +31,9 @@ const createMultiCompiler = options => {
 };
 
 describe("MultiCompiler", function () {
+	describe.skip("MultiCompiler", () => {
+		it("filtered", () => {})
+	})
 	jest.setTimeout(20000);
 
 	it("should trigger 'run' for each child compiler", done => {

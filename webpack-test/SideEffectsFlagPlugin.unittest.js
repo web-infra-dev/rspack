@@ -3,6 +3,9 @@
 const SideEffectsFlagPlugin = require("../lib/optimize/SideEffectsFlagPlugin");
 
 describe("SideEffectsFlagPlugin", () => {
+	describe.skip('SideEffectsFlagPlugin',() => {
+		it("filtered", () => {})
+	})
 	it("should assume true", () => {
 		expect(
 			SideEffectsFlagPlugin.moduleHasSideEffects(

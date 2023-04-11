@@ -1,4 +1,4 @@
-var webpack = require("../../");
+var webpack = require("@rspack/core");
 /** @type {import("../../").Configuration} */
 module.exports = {
 	entry: ["../../hot/dev-server", "./index.js"],
@@ -10,3 +10,8 @@ module.exports = {
 	plugins: [new webpack.HotModuleReplacementPlugin()],
 	recordsPath: __dirname + "/records.json" // this is not required for the webpack-dev-server, but when compiled.
 };
+
+
+
+
+

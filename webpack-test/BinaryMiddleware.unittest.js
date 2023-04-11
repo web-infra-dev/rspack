@@ -22,6 +22,9 @@ const resolveLazy = item => {
 };
 
 describe("BinaryMiddleware", () => {
+	describe("BinaryMiddleware", () => {
+		it("filtered", () => {})
+	})
 	const items = [
 		true,
 		false,
