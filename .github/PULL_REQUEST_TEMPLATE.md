@@ -10,10 +10,10 @@ copilot:summary
 
 <!--- Provide link of related issues -->
 
-## Walkthough
+---
 
-<details>
-  <summary>Walkthough</summary>
+<details open=true>
+  <summary>Walkthrough</summary>
 
 copilot:walkthrough
 
