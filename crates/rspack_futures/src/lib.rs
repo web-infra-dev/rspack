@@ -4,10 +4,13 @@ use std::{
 };
 
 use async_scoped::{Scope, TokioScope};
-use tokio::task::JoinError;
 
-type FuturesResult<T> = Vec<Result<T, JoinError>>;
-
+/// Run futures in parallel.
+///
+///
+/// # Panic
+///
+/// Panics if any task panics.
 ///
 /// A rough demo of how this works:
 ///
@@ -26,11 +29,11 @@ type FuturesResult<T> = Vec<Result<T, JoinError>>;
 /// ```
 #[derive(Default)]
 pub struct FuturesResults<T> {
-  inner: FuturesResult<T>,
+  inner: Vec<T>,
 }
 
 impl<T> FuturesResults<T> {
-  pub fn into_inner(self) -> FuturesResult<T> {
+  pub fn into_inner(self) -> Vec<T> {
     self.inner
   }
 }
@@ -50,12 +53,26 @@ where
       });
     });
 
-    Self { inner }
+    Self {
+      inner: inner
+        .into_iter()
+        .map(|i| match i {
+          Ok(i) => i,
+          Err(err) => {
+            if err.is_panic() {
+              std::panic::resume_unwind(err.into_panic())
+            } else {
+              unreachable!("Error should be a panic {err}")
+            }
+          }
+        })
+        .collect(),
+    }
   }
 }
 
 impl<T> Deref for FuturesResults<T> {
-  type Target = FuturesResult<T>;
+  type Target = Vec<T>;
 
   fn deref(&self) -> &Self::Target {
     &self.inner
