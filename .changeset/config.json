@@ -9,7 +9,7 @@
   "updateInternalDependencies": "patch",
   "ignore": ["example-*"],
   "snapshot": {
-    "prereleaseTemplate": "{tag}-{commit}"
+    "prereleaseTemplate": "{tag}-{commit}-{datetime}"
   },
   "___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
     "onlyUpdatePeerDependentsWhenOutOfRange": true

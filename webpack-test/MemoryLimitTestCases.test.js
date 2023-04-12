@@ -1,11 +1,11 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 
 const toMiB = bytes => `${Math.round(bytes / 1024 / 1024)}MiB`;
 const base = path.join(__dirname, "memoryLimitCases");

@@ -1,16 +1,17 @@
 "use strict";
 
-const {
-	parseVersion,
-	parseVersionRuntimeCode,
-	versionLt,
-	versionLtRuntimeCode,
-	parseRange,
-	rangeToString,
-	rangeToStringRuntimeCode,
-	satisfy,
-	satisfyRuntimeCode
-} = require("../lib/util/semver");
+// TODO: recover after we have this utils
+// const {
+// 	parseVersion,
+// 	parseVersionRuntimeCode,
+// 	versionLt,
+// 	versionLtRuntimeCode,
+// 	parseRange,
+// 	rangeToString,
+// 	rangeToStringRuntimeCode,
+// 	satisfy,
+// 	satisfyRuntimeCode
+// } = require("../lib/util/semver");
 
 describe("SemVer", () => {
 	const createRuntimeFunction = runtimeCodeFunction => {

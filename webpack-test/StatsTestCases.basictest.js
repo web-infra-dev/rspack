@@ -1,11 +1,11 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 
 /**
  * Escapes regular expression metacharacters
@@ -29,7 +29,7 @@ const tests = fs
 		const testDirectory = path.join(base, testName);
 		const filterPath = path.join(testDirectory, "test.filter.js");
 		if (fs.existsSync(filterPath) && !require(filterPath)()) {
-			describe.skip(testName, () => it("filtered"));
+			describe.skip(testName, () => it("filtered", () => {}));
 			return false;
 		}
 		return true;

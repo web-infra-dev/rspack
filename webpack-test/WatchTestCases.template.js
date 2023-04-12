@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 const fs = require("graceful-fs");
@@ -191,7 +191,7 @@ const describeCases = config => {
 
 								setTimeout(() => {
 									const deprecationTracker = deprecationTracking.start();
-									const webpack = require("..");
+									const webpack = require("@rspack/core").rspack;
 									const compiler = webpack(options);
 									compiler.hooks.invalid.tap(
 										"WatchTestCasesTest",
