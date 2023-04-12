@@ -394,8 +394,14 @@ impl<'me> CodeSplitter<'me> {
       let mut chunk_group = ChunkGroup::new(
         ChunkGroupKind::Normal,
         item_chunk_group.runtime.clone(),
-        None,
+        chunk_name.map(|i| i.to_owned()),
       );
+      if let Some(name) = &chunk_group.options.name {
+        self
+          .compilation
+          .named_chunk_groups
+          .insert(name.to_owned(), chunk_group.ukey);
+      }
 
       self
         .compilation

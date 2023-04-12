@@ -16,6 +16,7 @@ impl DatabaseItem for ChunkGroup {
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
+  pub options: ChunkGroupOptions,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
@@ -26,16 +27,16 @@ pub struct ChunkGroup {
   pub(crate) next_post_order_index: usize,
   pub(crate) runtime: RuntimeSpec,
   // Entrypoint
-  // pub(crate) name: Option<String>,
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, _name: Option<String>) -> Self {
+  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, name: Option<String>) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
+      options: ChunkGroupOptions { name },
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
@@ -161,4 +162,9 @@ impl ChunkGroup {
 pub enum ChunkGroupKind {
   Entrypoint,
   Normal,
+}
+
+#[derive(Debug, Clone)]
+pub struct ChunkGroupOptions {
+  pub name: Option<String>,
 }

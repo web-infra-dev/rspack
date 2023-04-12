@@ -222,7 +222,7 @@ export class Compilation {
 		);
 		options.entrypoints = optionOrLocalFallback(options.entrypoints, true);
 		options.chunkGroups = optionOrLocalFallback(
-			options.entrypoints,
+			options.chunkGroups,
 			!context.forToString
 		);
 		options.errors = optionOrLocalFallback(options.errors, true);

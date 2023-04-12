@@ -49,8 +49,8 @@ describe("StatsTestCases", () => {
 			// case ends with error should generate errors
 			if (/error$/.test(testName)) {
 				expect(statsJson.errors!.length > 0);
-			} else {
-				expect(statsJson.errors!.length === 0);
+			} else if (statsJson.errors) {
+				expect(statsJson.errors.length === 0);
 			}
 			expect(statsJson).toMatchSnapshot();
 			const statsString = stats.toString(statsOptions);
