@@ -10,10 +10,8 @@ copilot:summary
 
 <!--- Provide link of related issues -->
 
----
-
 <details open=true>
-  <summary>Walkthrough</summary>
+  <summary><h2>Walkthrough</h2></summary>
 
 copilot:walkthrough
 
