@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 const path = require("path");
 const fs = require("graceful-fs");
 const vm = require("vm");
@@ -235,7 +235,7 @@ const describeCases = config => {
 										);
 										infraStructureLog.length = 0;
 										const deprecationTracker = deprecationTracking.start();
-										const webpack = require("..");
+										const webpack = require("@rspack/core").rspack;
 										webpack(options, err => {
 											deprecationTracker();
 											options.output.path = oldPath;
@@ -273,7 +273,7 @@ const describeCases = config => {
 										);
 										infraStructureLog.length = 0;
 										const deprecationTracker = deprecationTracking.start();
-										const webpack = require("..");
+										const webpack = require("@rspack/core").rspack;
 										webpack(options, err => {
 											deprecationTracker();
 											options.output.path = oldPath;
@@ -306,7 +306,7 @@ const describeCases = config => {
 								testName + " should compile",
 								done => {
 									infraStructureLog.length = 0;
-									const webpack = require("..");
+									const webpack = require("@rspack/core").rspack;
 									const compiler = webpack(options);
 									const run = () => {
 										const deprecationTracker = deprecationTracking.start();

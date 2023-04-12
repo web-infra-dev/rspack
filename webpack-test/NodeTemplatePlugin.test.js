@@ -1,14 +1,14 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 
 // cspell:word nodetest
-describe("NodeTemplatePlugin", () => {
+describe.skip("NodeTemplatePlugin", () => {
 	jest.setTimeout(20000);
 	it("should compile and run a simple module", done => {
-		const webpack = require("..");
+		const webpack = require("@rspack/core").rspack;
 		webpack(
 			{
 				mode: "production",
@@ -45,7 +45,7 @@ describe("NodeTemplatePlugin", () => {
 	});
 
 	it("should compile and run a simple module in single mode", done => {
-		const webpack = require("..");
+		const webpack = require("@rspack/core").rspack;
 		webpack(
 			{
 				mode: "production",

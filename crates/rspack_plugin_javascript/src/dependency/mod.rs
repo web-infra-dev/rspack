@@ -6,4 +6,5 @@ mod url;
 pub use commonjs::*;
 pub use esm::*;
 pub use hmr::*;
-pub use url::*;
+
+pub use self::url::*;

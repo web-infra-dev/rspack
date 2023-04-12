@@ -2,23 +2,17 @@
 
 <!-- Explain the **motivation** for making this change. What existing problem does the pull request solve? -->
 
+<!-- Delete the following copilot command if you prefer to write the summary manually -->
+
+copilot:summary
+
 ## Related issue (if exists)
 
 <!--- Provide link of related issues -->
 
-## Types of changes
+<details open=true>
+  <summary><h2>Walkthrough</h2></summary>
 
-<!--- What types of changes does your code introduce? Put an `x` in the boxes that apply: -->
+copilot:walkthrough
 
-- [ ] Docs change / Dependency upgrade
-- [ ] Bug fix
-- [ ] New feature / Improvement
-- [ ] Refactoring
-- [ ] Breaking change
-
-## Checklist
-
-<!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
-
-- [ ] I have added changeset via `pnpm run changeset`.
-- [ ] I have added tests to cover my changes.
+</details>

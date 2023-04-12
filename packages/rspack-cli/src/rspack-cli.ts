@@ -85,6 +85,7 @@ export class RspackCLI {
 
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
+		this.program.strictCommands(true).strict(true);
 		this.program.middleware(normalizeEnv);
 		this.registerCommands();
 		await this.program.parseAsync(hideBin(argv));

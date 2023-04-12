@@ -2,7 +2,7 @@
 
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 
 const createCompiler = config => {
 	const compiler = webpack(config);

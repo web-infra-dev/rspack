@@ -1,11 +1,11 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const _ = require("lodash");
 const path = require("path");
 const { createFsFromVolume, Volume } = require("memfs");
-const webpack = require("..");
+const webpack = require("@rspack/core").rspack;
 const captureStdio = require("./helpers/captureStdio");
 
 const createMultiCompiler = (progressOptions, configOptions) => {
@@ -81,7 +81,7 @@ const RunCompilerAsync = compiler =>
 		});
 	});
 
-describe("ProgressPlugin", function () {
+describe.skip("ProgressPlugin", function () {
 	let stderr;
 	let stdout;
 

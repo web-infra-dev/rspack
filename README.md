@@ -56,6 +56,10 @@ This repo has adopted the ByteDance Open Source Code of Conduct. Please check [C
 | [rspack-sources](https://github.com/web-infra-dev/rspack-sources)                       | Rusty [webpack-sources](https://www.npmjs.com/package/webpack-sources) port |
 | [rspack-migration-showcase](https://github.com/web-infra-dev/rspack-migration-showcase) | Migration showcases for Rspack                                              |
 
+## Contributors
+
+<a href="https://github.com/web-infra-dev/rspack/graphs/contributors"><img src="https://opencollective.com/rspack/contributors.svg?width=890&button=false" /></a>
+
 ## Credits
 
 Thanks to:
@@ -72,6 +76,7 @@ Thanks to:
 - The [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) project created by [@jantimon](https://github.com/jantimon), `@rspack/html-plugin` is a fork of [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) to avoid some webpack API usage not supported in Rspack.
 - The [Turbopack](https://github.com/vercel/turbo) project which inspired the AST path logic of Rspack.
 - The [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) created by [@pmmmwh](https://github.com/pmmmwh), which inspires implement react refresh.
+
 ## License
 
 Rspack is [MIT licensed](https://github.com/web-infra-dev/rspack/blob/main/LICENSE).

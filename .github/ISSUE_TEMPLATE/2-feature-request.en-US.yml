@@ -1,6 +1,5 @@
 name: "✨ Feature Request"
 description: Submit a new feature request to Rspack
-title: "[Feature Request]: "
 labels: ["feat", "pending triage"]
 body:
   - type: markdown

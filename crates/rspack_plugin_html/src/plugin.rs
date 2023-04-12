@@ -132,7 +132,7 @@ impl Plugin for HtmlPlugin {
       if let Some(extension) = Path::new(&asset_name).extension() {
         let asset_uri = format!(
           "{}{asset_name}",
-          config.get_public_path(compilation, &asset_name),
+          config.get_public_path(compilation, &self.config.filename),
         );
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
