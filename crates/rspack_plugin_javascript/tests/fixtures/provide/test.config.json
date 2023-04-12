@@ -3,6 +3,10 @@
 		"provide": {
 			"aaa": [
 				"./aaa"
+			],
+			"bbb": [
+				"./aaa",
+				"c"
 			]
 		}
 	}

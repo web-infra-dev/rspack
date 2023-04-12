@@ -15,7 +15,8 @@ module.exports = {
 			es2015_alias: ["./harmony", "alias"],
 			es2015_year: ["./harmony", "year"],
 			"this.aaa": "./aaa",
-			esm: "./esm.js"
+			esm: "./esm.js",
+			process: "./process.js"
 		},
 		treeShaking: true
 	}

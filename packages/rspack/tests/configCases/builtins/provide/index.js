@@ -49,6 +49,15 @@ it("should not provide for mjs", function () {
 	expect(foo()).toBe("esm");
 });
 
+it("should not provide for mjs", function () {
+	var foo = require("./foo.mjs").default;
+	expect(foo()).toBe("esm");
+});
+
+it("should not provide for mjs", function () {
+	var foo = require("process").a;
+	expect(foo()).toBe("esm");
+});
 // TODO: Add support for these cases
 // it("should provide a module for a nested var within a IIFE's this", function () {
 // 	(function () {

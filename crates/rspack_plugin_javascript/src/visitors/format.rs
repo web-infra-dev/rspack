@@ -118,59 +118,59 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
   }
 
   fn visit_mut_var_decl(&mut self, var_decl: &mut VarDecl) {
-    if let Some(var_declarator) = var_decl.decls.first() {
-      if let Pat::Ident(BindingIdent { id: left_ident, .. }) = &var_declarator.name {
-        if let Some(box Expr::Call(CallExpr {
-          callee: Callee::Expr(box expr),
-          args,
-          ..
-        })) = &var_declarator.init
-        {
-          // require('./xx')
-          if let Expr::Ident(right_ident) = &expr {
-            if "require".eq(&right_ident.sym) && right_ident.span.ctxt == self.unresolved_ctxt {
-              if let Some(box Expr::Lit(Lit::Str(str))) =
-                args.first().map(|first_arg| &first_arg.expr)
-              {
-                self.module_bindings.insert(
-                  str.value.to_string(),
-                  (left_ident.sym.clone(), left_ident.span.ctxt, false),
-                );
-              }
-            }
-          }
-          // __webpack_require__.ir(require('./xx'))
-          if let Expr::Member(MemberExpr {
-            obj: box Expr::Ident(obj_ident),
-            prop: MemberProp::Ident(prop_ident),
-            ..
-          }) = &expr
-          {
-            if RuntimeGlobals::REQUIRE.name().eq(&obj_ident.sym)
-              && RuntimeGlobals::INTEROP_REQUIRE.name().eq(&prop_ident.sym)
-            {
-              if let Some(box Expr::Call(CallExpr {
-                callee: Callee::Expr(box Expr::Ident(ident)),
-                args,
-                ..
-              })) = args.first().map(|first_arg| &first_arg.expr)
-              {
-                if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
-                  if let Some(box Expr::Lit(Lit::Str(str))) =
-                    args.first().map(|first_arg| &first_arg.expr)
-                  {
-                    self.module_bindings.insert(
-                      str.value.to_string(),
-                      (left_ident.sym.clone(), left_ident.span.ctxt, true),
-                    );
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    // if let Some(var_declarator) = var_decl.decls.first() {
+    //   if let Pat::Ident(BindingIdent { id: left_ident, .. }) = &var_declarator.name {
+    //     if let Some(box Expr::Call(CallExpr {
+    //       callee: Callee::Expr(box expr),
+    //       args,
+    //       ..
+    //     })) = &var_declarator.init
+    //     {
+    //       // require('./xx')
+    //       if let Expr::Ident(right_ident) = &expr {
+    //         if "require".eq(&right_ident.sym) && right_ident.span.ctxt == self.unresolved_ctxt {
+    //           if let Some(box Expr::Lit(Lit::Str(str))) =
+    //             args.first().map(|first_arg| &first_arg.expr)
+    //           {
+    //             self.module_bindings.insert(
+    //               str.value.to_string(),
+    //               (left_ident.sym.clone(), left_ident.span.ctxt, false),
+    //             );
+    //           }
+    //         }
+    //       }
+    //       // __webpack_require__.ir(require('./xx'))
+    //       if let Expr::Member(MemberExpr {
+    //         obj: box Expr::Ident(obj_ident),
+    //         prop: MemberProp::Ident(prop_ident),
+    //         ..
+    //       }) = &expr
+    //       {
+    //         if RuntimeGlobals::REQUIRE.name().eq(&obj_ident.sym)
+    //           && RuntimeGlobals::INTEROP_REQUIRE.name().eq(&prop_ident.sym)
+    //         {
+    //           if let Some(box Expr::Call(CallExpr {
+    //             callee: Callee::Expr(box Expr::Ident(ident)),
+    //             args,
+    //             ..
+    //           })) = args.first().map(|first_arg| &first_arg.expr)
+    //           {
+    //             if "require".eq(&ident.sym) && ident.span.ctxt == self.unresolved_ctxt {
+    //               if let Some(box Expr::Lit(Lit::Str(str))) =
+    //                 args.first().map(|first_arg| &first_arg.expr)
+    //               {
+    //                 self.module_bindings.insert(
+    //                   str.value.to_string(),
+    //                   (left_ident.sym.clone(), left_ident.span.ctxt, true),
+    //                 );
+    //               }
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
 
     var_decl.visit_mut_children_with(self);
   }
