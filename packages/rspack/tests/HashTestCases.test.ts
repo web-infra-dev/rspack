@@ -52,7 +52,7 @@ describe("HashTestCases", () => {
 			} else {
 				expect(statsJson.errors!.length === 0);
 			}
-			const files = statsJson.assets?.map((x) => x.name);
+			const files = statsJson.assets?.map(x => x.name);
 			expect(files).toMatchSnapshot();
 		});
 	});
