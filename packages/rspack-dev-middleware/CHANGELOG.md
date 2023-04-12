@@ -1,5 +1,11 @@
 # @rspack/dev-middleware
 
+## 0.1.8
+
+### Patch Changes
+
+- @rspack/core@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes

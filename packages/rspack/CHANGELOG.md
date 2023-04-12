@@ -1,5 +1,13 @@
 # @rspack/core
 
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [93d5641]
+  - @rspack/binding@0.1.8
+  - @rspack/dev-client@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes

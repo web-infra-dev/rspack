@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.1.8
+
+### Patch Changes
+
+- 93d5641: fix(react-refresh): lazily access module.exports to prevent unexpected/potential TDZ error
+
 ## 0.1.7
 
 ### Patch Changes
