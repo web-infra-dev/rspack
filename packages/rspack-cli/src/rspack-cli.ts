@@ -29,18 +29,20 @@ export class RspackCLI {
 	}
 	async createCompiler(
 		options: RspackCLIOptions,
-		rspackEnv: Command,
+		rspackCommand: Command,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
 		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
+		let rspackCommandDefaultEnv =
+			rspackCommand === "build" ? "production" : "development";
 		if (typeof options.nodeEnv === "string") {
 			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
 		} else {
-			process.env.NODE_ENV = nodeEnv || rspackEnv;
+			process.env.NODE_ENV = nodeEnv || rspackCommandDefaultEnv;
 		}
 		let config = await this.loadConfig(options);
-		config = await this.buildConfig(config, options, rspackEnv);
+		config = await this.buildConfig(config, options, rspackCommand);
 
 		const isWatch = Array.isArray(config)
 			? (config as MultiRspackOptions).some(i => i.watch)
