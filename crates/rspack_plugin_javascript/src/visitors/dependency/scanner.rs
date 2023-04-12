@@ -133,45 +133,41 @@ impl DependencyScanner<'_> {
                 chunk_name,
               ));
             }
-            Expr::Tpl(tpl) => match Some(&tpl.quasis) {
-              Some(q) if q.len() == 1 => {
-                let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
-                let request = JsWord::from(
-                  tpl
-                    .quasis
-                    .first()
-                    .expect("should have one quasis")
-                    .raw
-                    .to_string(),
-                );
-                self.add_dependency(box EsmDynamicImportDependency::new(
-                  request,
+            Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
+              let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
+              let request = JsWord::from(
+                tpl
+                  .quasis
+                  .first()
+                  .expect("should have one quasis")
+                  .raw
+                  .to_string(),
+              );
+              self.add_dependency(box EsmDynamicImportDependency::new(
+                request,
+                Some(node.span.into()),
+                as_parent_path(ast_path),
+                chunk_name,
+              ));
+            }
+            _ => {
+              if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
+                self.add_dependency(box ImportContextDependency::new(
+                  ContextOptions {
+                    mode: ContextMode::Lazy,
+                    recursive: true,
+                    reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                    reg_str: reg,
+                    include: None,
+                    exclude: None,
+                    category: DependencyCategory::Esm,
+                    request: context,
+                  },
                   Some(node.span.into()),
                   as_parent_path(ast_path),
-                  chunk_name,
                 ));
               }
-              Some(q) if q.len() > 1 => {
-                if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
-                  self.add_dependency(box ImportContextDependency::new(
-                    ContextOptions {
-                      mode: ContextMode::Lazy,
-                      recursive: true,
-                      reg_exp: RspackRegex::new(&reg).expect("reg failed"),
-                      reg_str: reg,
-                      include: None,
-                      exclude: None,
-                      category: DependencyCategory::Esm,
-                      request: context,
-                    },
-                    Some(node.span.into()),
-                    as_parent_path(ast_path),
-                  ));
-                }
-              }
-              _ => {}
-            },
-            _ => {}
+            }
           }
         }
       }
