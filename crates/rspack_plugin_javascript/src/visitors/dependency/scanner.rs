@@ -133,9 +133,8 @@ impl DependencyScanner<'_> {
                 chunk_name,
               ));
             }
-            Expr::Tpl(tpl) => match tpl.quasis.len() {
-              0 => {}
-              1 => {
+            Expr::Tpl(tpl) => match Some(&tpl.quasis) {
+              Some(q) if q.len() == 1 => {
                 let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
                 let request = JsWord::from(
                   tpl
@@ -152,7 +151,7 @@ impl DependencyScanner<'_> {
                   chunk_name,
                 ));
               }
-              _ => {
+              Some(q) if q.len() > 1 => {
                 if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
                   self.add_dependency(box ImportContextDependency::new(
                     ContextOptions {
@@ -170,6 +169,7 @@ impl DependencyScanner<'_> {
                   ));
                 }
               }
+              _ => {}
             },
             _ => {}
           }
