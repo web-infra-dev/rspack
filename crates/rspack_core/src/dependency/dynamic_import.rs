@@ -140,7 +140,7 @@ impl CodeGeneratable for EsmDynamicImportDependency {
         code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
             if let Some(import) = n.args.get_mut(0) {
-              if import.spread.is_none() && let Expr::Lit(Lit::Str(_)) = import.expr.as_mut() {
+                if import.spread.is_none() && let Expr::Lit(_) | Expr::Tpl(_) = import.expr.as_mut() {
                   let call_expr = CallExpr {
                         span: DUMMY_SP,
                         callee: Ident::new(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE.into(), DUMMY_SP).as_callee(),
