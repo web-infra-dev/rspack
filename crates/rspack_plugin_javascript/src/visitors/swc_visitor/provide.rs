@@ -170,7 +170,10 @@ impl<'a> ProvideBuiltin<'a> {
               definite: false,
               init: Some(Box::new(obj_expr)),
               name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-                id: Ident::new(item.clone().into(), DUMMY_SP),
+                id: Ident::new(
+                  item.clone().into(),
+                  DUMMY_SP.apply_mark(self.unresolved_mark),
+                ),
                 type_ann: None,
               }),
             }],
@@ -198,7 +201,7 @@ impl VisitMut for ProvideBuiltin<'_> {
 
   fn visit_mut_module(&mut self, n: &mut swc_core::ecma::ast::Module) {
     n.visit_mut_children_with(self);
-    dbg!(&self.current_import_provide);
+    dbg!(&n);
     let module_item_vec = self.create_provide_require();
     // dbg!(&module_item_vec);
     module_item_vec.into_iter().for_each(|module_item| {
