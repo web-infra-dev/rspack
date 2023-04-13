@@ -9,9 +9,10 @@
 				"c",
 				"d"
 			],
-			"aaa.bbb": [
-				"./aaa"
+			"bbb.ccc": [
+				"./aaa.js"
 			]
-		}
+		},
+		"treeShaking": true
 	}
 }

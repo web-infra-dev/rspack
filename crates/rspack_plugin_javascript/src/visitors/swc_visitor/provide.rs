@@ -39,11 +39,15 @@ impl<'a> ProvideBuiltin<'a> {
 
   fn handle_member_expr(&mut self, member_expr: &MemberExpr) -> Option<Ident> {
     let identifier_name = self.get_nested_identifier_name(member_expr);
-    dbg!(&identifier_name);
     if self.opts.get(&identifier_name).is_some() {
+      println!("匹配到的");
+      dbg!(&identifier_name);
       self.current_import_provide.insert(identifier_name.clone());
       let new_ident_sym = identifier_name.replace(".", "_dot_");
-      return Some(Ident::new(new_ident_sym.into(), member_expr.span));
+      return Some(Ident::new(
+        new_ident_sym.into(),
+        member_expr.span.apply_mark(self.unresolved_mark),
+      ));
     }
     None
   }
@@ -128,6 +132,10 @@ impl<'a> ProvideBuiltin<'a> {
       .iter()
       .for_each(|provide_module_name| {
         if let Some(provide_module_path) = self.opts.get(provide_module_name) {
+          println!(
+            "路径 {:#?}, 方法 {provide_module_name}",
+            provide_module_path
+          );
           // require({module_path})
           let call = CallExpr {
             span: DUMMY_SP,
@@ -149,12 +157,12 @@ impl<'a> ProvideBuiltin<'a> {
           // [""]
           for provide_module_member in provide_module_path.iter().skip(1) {
             let member_expr = MemberExpr {
-              span: DUMMY_SP,
+              span: DUMMY_SP.apply_mark(self.unresolved_mark),
               obj: Box::new(obj_expr),
               prop: MemberProp::Computed(ComputedPropName {
-                span: DUMMY_SP,
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
                 expr: Box::new(Expr::Lit(Lit::Str(Str {
-                  span: DUMMY_SP,
+                  span: DUMMY_SP.apply_mark(self.unresolved_mark),
                   value: provide_module_member.to_string().into(),
                   raw: None,
                 }))),
@@ -166,11 +174,11 @@ impl<'a> ProvideBuiltin<'a> {
           // var {provide_module_name} = require(provide_module_path)?[provide_args]
           let module_item = ModuleItem::Stmt(Stmt::Decl(swc_core::ecma::ast::Decl::Var(Box::new(
             VarDecl {
-              span: DUMMY_SP,
+              span: DUMMY_SP.apply_mark(self.unresolved_mark),
               declare: false,
               kind: swc_core::ecma::ast::VarDeclKind::Var,
               decls: vec![VarDeclarator {
-                span: DUMMY_SP,
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
                 definite: false,
                 init: Some(Box::new(obj_expr)),
                 name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
@@ -187,7 +195,6 @@ impl<'a> ProvideBuiltin<'a> {
           module_item_vec.push(module_item);
         }
       });
-    dbg!(&module_item_vec);
     module_item_vec
   }
 }
@@ -209,11 +216,11 @@ impl VisitMut for ProvideBuiltin<'_> {
 
   fn visit_mut_module(&mut self, n: &mut swc_core::ecma::ast::Module) {
     n.visit_mut_children_with(self);
+    println!("当前需要导入的文件");
     dbg!(&self.current_import_provide);
     let module_item_vec = self.create_provide_require();
     // dbg!(&module_item_vec);
     module_item_vec.into_iter().for_each(|module_item| {
-      dbg!(&module_item);
       n.body.insert(0, module_item);
     });
   }
