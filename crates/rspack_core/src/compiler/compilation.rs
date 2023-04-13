@@ -993,6 +993,11 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
+      plugin_driver
+        .write()
+        .await
+        .optimize_modules(compilation)
+        .await?;
       plugin_driver.write().await.optimize_chunks(compilation)?;
       Ok(compilation)
     })

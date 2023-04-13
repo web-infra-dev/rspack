@@ -17,6 +17,7 @@ pub enum Hook {
   AfterEmit,
   OptimizeChunkModules,
   FinishModules,
+  OptimizeModules,
 }
 
 impl From<String> for Hook {
@@ -36,6 +37,7 @@ impl From<String> for Hook {
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
       "finishModules" => Hook::FinishModules,
+      "optimizeModules" => Hook::OptimizeModules,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

@@ -25,10 +25,10 @@ import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import { NormalModuleFactory } from "./normalModuleFactory";
 
 class EntryPlugin {
-	apply() {}
+	apply() { }
 }
 class HotModuleReplacementPlugin {
-	apply() {}
+	apply() { }
 }
 
 class Compiler {
@@ -204,6 +204,7 @@ class Compiler {
 					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
+					optimizeModules: this.#optimize_modules.bind(this),
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
 					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
@@ -367,6 +368,9 @@ class Compiler {
 			this.compilation.getModules()
 		);
 		this.#updateDisabledHooks();
+	}
+	async #optimize_modules() {
+		await this.compilation.hooks.optimizeModules.promise(this.compilation.getModules())
 	}
 
 	async #finish_modules() {
