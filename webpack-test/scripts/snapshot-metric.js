@@ -17,7 +17,9 @@ bakList.forEach(backupFileName => {
 	if (snapOrBakList.includes(snapfileName)) {
 		snapContent = fs.readFileSync(path.resolve(dirname, snapfileName)).toString()
 	}
-	let diffResult = diff.diff(backupContent, snapContent);
+	let diffResult = diff.diff(backupContent, snapContent, {
+		expand: false
+	});
 	fs.writeFileSync(path.resolve(dirname, `${snapfileName}.diff`), diffResult)
 })
 
