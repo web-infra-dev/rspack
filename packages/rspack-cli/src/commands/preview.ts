@@ -7,7 +7,6 @@ import {
 	rspack,
 	RspackOptions,
 	MultiRspackOptions,
-	applyRspackOptionsDefaults
 } from "@rspack/core";
 import path from "node:path";
 
