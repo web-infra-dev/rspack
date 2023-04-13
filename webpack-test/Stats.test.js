@@ -80,6 +80,34 @@ describe("Stats", () => {
 			).toMatchInlineSnapshot(`
 			{
 			  "errorsCount": 1,
+			  "namedChunkGroups": {
+			    "entryA": {
+			      "assets": [
+			        {
+			          "name": "entryA.js",
+			          "size": 215,
+			        },
+			      ],
+			      "assetsSize": 215,
+			      "chunks": [
+			        "entryA",
+			      ],
+			      "name": "entryA",
+			    },
+			    "entryB": {
+			      "assets": [
+			        {
+			          "name": "entryB.js",
+			          "size": 227,
+			        },
+			      ],
+			      "assetsSize": 227,
+			      "chunks": [
+			        "entryB",
+			      ],
+			      "name": "entryB",
+			    },
+			  },
 			}
 		`);
 		});
@@ -100,6 +128,47 @@ describe("Stats", () => {
 			).toMatchInlineSnapshot(`
 			{
 			  "errorsCount": 1,
+			  "namedChunkGroups": {
+			    "chunkB": {
+			      "assets": [
+			        {
+			          "name": "chunkB.js",
+			          "size": 160,
+			        },
+			      ],
+			      "assetsSize": 160,
+			      "chunks": [
+			        "chunkB",
+			      ],
+			      "name": "chunkB",
+			    },
+			    "entryA": {
+			      "assets": [
+			        {
+			          "name": "entryA.js",
+			          "size": 3608,
+			        },
+			      ],
+			      "assetsSize": 3608,
+			      "chunks": [
+			        "entryA",
+			      ],
+			      "name": "entryA",
+			    },
+			    "entryB": {
+			      "assets": [
+			        {
+			          "name": "entryB.js",
+			          "size": 4747,
+			        },
+			      ],
+			      "assetsSize": 4747,
+			      "chunks": [
+			        "entryB",
+			      ],
+			      "name": "entryB",
+			    },
+			  },
 			}
 		`);
 		});
@@ -133,7 +202,7 @@ describe("Stats", () => {
 			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryB.js",
-			      "size": 4772,
+			      "size": 4747,
 			      "type": "asset",
 			    },
 			    {
@@ -149,25 +218,30 @@ describe("Stats", () => {
 			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryA.js",
-			      "size": 3598,
+			      "size": 3608,
 			      "type": "asset",
 			    },
 			    {
-			      "chunkNames": [],
+			      "chunkNames": [
+			        "chunkB",
+			      ],
 			      "chunks": [
-			        "fixtures_b_js",
+			        "chunkB",
 			      ],
 			      "emitted": true,
 			      "info": {
 			        "development": false,
 			        "hotModuleReplacement": false,
 			      },
-			      "name": "fixtures_b_js.js",
-			      "size": 157,
+			      "name": "chunkB.js",
+			      "size": 160,
 			      "type": "asset",
 			    },
 			  ],
 			  "assetsByChunkName": {
+			    "chunkB": [
+			      "chunkB.js",
+			    ],
 			    "entryA": [
 			      "entryA.js",
 			    ],
