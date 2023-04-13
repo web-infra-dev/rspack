@@ -133,7 +133,7 @@ describe("Stats", () => {
 			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryB.js",
-			      "size": 4747,
+			      "size": 4772,
 			      "type": "asset",
 			    },
 			    {
@@ -149,30 +149,25 @@ describe("Stats", () => {
 			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryA.js",
-			      "size": 3608,
+			      "size": 3598,
 			      "type": "asset",
 			    },
 			    {
-			      "chunkNames": [
-			        "chunkB",
-			      ],
+			      "chunkNames": [],
 			      "chunks": [
-			        "chunkB",
+			        "fixtures_b_js",
 			      ],
 			      "emitted": true,
 			      "info": {
 			        "development": false,
 			        "hotModuleReplacement": false,
 			      },
-			      "name": "chunkB.js",
-			      "size": 160,
+			      "name": "fixtures_b_js.js",
+			      "size": 157,
 			      "type": "asset",
 			    },
 			  ],
 			  "assetsByChunkName": {
-			    "chunkB": [
-			      "chunkB.js",
-			    ],
 			    "entryA": [
 			      "entryA.js",
 			    ],
