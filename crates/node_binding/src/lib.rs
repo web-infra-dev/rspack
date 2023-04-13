@@ -7,6 +7,7 @@ extern crate napi_derive;
 extern crate rspack_binding_macros;
 
 use std::collections::HashSet;
+use std::pin::Pin;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use dashmap::DashMap;
@@ -52,7 +53,7 @@ where
       ))
     })?;
 
-    f(&mut *inner)
+    f(&mut inner)
   }
 
   /// Acquire a shared reference to the inner hashmap.
@@ -112,7 +113,7 @@ unsafe impl<K, V> Send for SingleThreadedHashMap<K, V> {}
 unsafe impl<K, V> Sync for SingleThreadedHashMap<K, V> {}
 
 static COMPILERS: Lazy<
-  SingleThreadedHashMap<CompilerId, rspack_core::Compiler<AsyncNodeWritableFileSystem>>,
+  SingleThreadedHashMap<CompilerId, Pin<Box<rspack_core::Compiler<AsyncNodeWritableFileSystem>>>>,
 > = Lazy::new(Default::default);
 
 static COMPILER_ID: AtomicU32 = AtomicU32::new(1);
@@ -159,7 +160,7 @@ impl Rspack {
     );
 
     let id = COMPILER_ID.fetch_add(1, Ordering::SeqCst);
-    unsafe { COMPILERS.insert_if_vacant(id, rspack) }?;
+    unsafe { COMPILERS.insert_if_vacant(id, Box::pin(rspack)) }?;
 
     Ok(Self { id, disabled_hooks })
   }
@@ -185,9 +186,9 @@ impl Rspack {
     ts_args_type = "callback: (err: null | Error) => void"
   )]
   pub fn build(&self, env: Env, f: JsFunction) -> Result<()> {
-    let handle_build = |compiler: &mut _| {
+    let handle_build = |compiler: &mut Pin<Box<rspack_core::Compiler<_>>>| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
-      let compiler: &'static mut rspack_core::Compiler<AsyncNodeWritableFileSystem> =
+      let compiler: &'static mut Pin<Box<rspack_core::Compiler<AsyncNodeWritableFileSystem>>> =
         unsafe { std::mem::transmute::<&'_ mut _, &'static mut _>(compiler) };
 
       callbackify(env, f, async move {
@@ -218,9 +219,9 @@ impl Rspack {
     removed_files: Vec<String>,
     f: JsFunction,
   ) -> Result<()> {
-    let handle_rebuild = |compiler: &mut _| {
+    let handle_rebuild = |compiler: &mut Pin<Box<rspack_core::Compiler<_>>>| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
-      let compiler: &'static mut rspack_core::Compiler<AsyncNodeWritableFileSystem> =
+      let compiler: &'static mut Pin<Box<rspack_core::Compiler<AsyncNodeWritableFileSystem>>> =
         unsafe { std::mem::transmute::<&'_ mut _, &'static mut _>(compiler) };
 
       callbackify(env, f, async move {
@@ -248,9 +249,9 @@ impl Rspack {
   /// **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
   #[napi(catch_unwind, js_name = "unsafe_last_compilation")]
   pub fn unsafe_last_compilation<F: Fn(JsCompilation) -> Result<()>>(&self, f: F) -> Result<()> {
-    let handle_last_compilation = |compiler: &mut _| {
+    let handle_last_compilation = |compiler: &mut Pin<Box<rspack_core::Compiler<_>>>| {
       // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
-      let compiler: &'static mut rspack_core::Compiler<AsyncNodeWritableFileSystem> =
+      let compiler: &'static mut Pin<Box<rspack_core::Compiler<AsyncNodeWritableFileSystem>>> =
         unsafe { std::mem::transmute::<&'_ mut _, &'static mut _>(compiler) };
       f(JsCompilation::from_compilation(&mut compiler.compilation))
     };
