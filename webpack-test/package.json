@@ -5,7 +5,9 @@
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand --bail"
+    "test": "node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand --bail",
+    "test:metric": "node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand --bail --json | node scripts/test-metric.js",
+    "test:json": "npm run test -- --json > result.json"
   },
   "files": [
     "dist"

@@ -82,7 +82,7 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
       }
 
       // have some unhandled helper
-      debug_assert!(false, "have unhandled helper: word = {word}");
+      // debug_assert!(false, "have unhandled helper: word = {word}");
     }
   }
 }

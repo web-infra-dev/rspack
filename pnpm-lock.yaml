@@ -2,32 +2,6 @@ lockfileVersion: 5.4
 
 importers:
   .:
-    specifiers:
-      "@changesets/cli": 2.24.4
-      "@rspack/cli": workspace:*
-      "@taplo/cli": ^0.5.2
-      "@types/react": 17.0.52
-      "@types/react-dom": 17.0.19
-      commander: 9.4.0
-      esbuild: ^0.15.9
-      husky: ^7.0.4
-      is-ci: 3.0.1
-      jest: 29.0.3
-      lint-staged: ^12.5.0
-      prettier: 2.5.1
-      rimraf: 3.0.2
-      sass-embedded-darwin-arm64: 1.58.3
-      sass-embedded-darwin-x64: 1.58.3
-      sass-embedded-linux-arm64: 1.58.3
-      sass-embedded-linux-ia32: 1.58.3
-      sass-embedded-linux-x64: 1.58.3
-      sass-embedded-win32-ia32: 1.58.3
-      sass-embedded-win32-x64: 1.58.3
-      ts-jest: 29.0.1
-      typescript: 5.0.2
-      webpack: 5.74.0
-      webpack-cli: 4.10.0
-      why-is-node-running: 2.2.1
     optionalDependencies:
       sass-embedded-darwin-arm64: 1.58.3
       sass-embedded-darwin-x64: 1.58.3
