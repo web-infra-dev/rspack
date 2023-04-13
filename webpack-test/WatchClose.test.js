@@ -1,6 +1,6 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 
@@ -16,7 +16,7 @@ describe("WatchClose", () => {
 		let watcher;
 
 		beforeEach(() => {
-			const webpack = require("../");
+			const webpack = require("@rspack/core").rspack;
 			compiler = webpack({
 				mode: "development",
 				entry: filePath,

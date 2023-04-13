@@ -1,44 +1,38 @@
 import yargs from "yargs";
 export const commonOptions = (yargs: yargs.Argv<{}>) => {
-	return yargs
-		.positional("entry", {
+	return yargs.options({
+		config: {
+			g: true,
 			type: "string",
-			array: true,
-			describe: "entry"
-		})
-		.options({
-			config: {
-				g: true,
-				type: "string",
-				describe: "config file",
-				alias: "c"
-			},
-			mode: { type: "string", describe: "mode" },
-			watch: {
-				type: "boolean",
-				default: false,
-				describe: "watch"
-			},
-			env: {
-				type: "array",
-				string: true,
-				describe: "env passed to config function"
-			},
-			"node-env": {
-				string: true,
-				describe: "sets process.env.NODE_ENV to be specified value"
-			},
-			devtool: {
-				type: "boolean",
-				default: false,
-				describe: "devtool"
-			},
-			configName: {
-				type: "array",
-				string: true,
-				describe: "Name of the configuration to use."
-			}
-		});
+			describe: "config file",
+			alias: "c"
+		},
+		mode: { type: "string", describe: "mode" },
+		watch: {
+			type: "boolean",
+			default: false,
+			describe: "watch"
+		},
+		env: {
+			type: "array",
+			string: true,
+			describe: "env passed to config function"
+		},
+		"node-env": {
+			string: true,
+			describe: "sets process.env.NODE_ENV to be specified value"
+		},
+		devtool: {
+			type: "boolean",
+			default: false,
+			describe: "devtool"
+		},
+		configName: {
+			type: "array",
+			string: true,
+			describe: "Name of the configuration to use."
+		}
+	});
 };
 
 export const previewOptions = (yargs: yargs.Argv<{}>) => {

@@ -221,14 +221,12 @@ impl Stats<'_> {
   }
 
   pub fn get_entrypoints(&self) -> Vec<StatsChunkGroup> {
-    let mut entrypoints: Vec<StatsChunkGroup> = self
+    self
       .compilation
       .entrypoints
       .iter()
       .map(|(name, ukey)| self.get_chunk_group(name, ukey))
-      .collect();
-    entrypoints.sort_by_cached_key(|e| e.name.to_string());
-    entrypoints
+      .collect()
   }
 
   pub fn get_named_chunk_groups(&self) -> Vec<StatsChunkGroup> {

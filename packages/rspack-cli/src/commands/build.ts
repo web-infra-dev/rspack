@@ -9,7 +9,7 @@ import MultiStats from "@rspack/core/src/multiStats";
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(
-			["build [entry..]", "$0", "bundle", "b"],
+			["build", "$0", "bundle", "b"],
 			"run the rspack build",
 			yargs =>
 				commonOptions(yargs).options({

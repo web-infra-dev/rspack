@@ -922,11 +922,7 @@ impl Compilation {
       })
       .collect::<FuturesResults<_>>();
 
-    let chunk_ukey_and_manifest = results
-      .into_inner()
-      .into_iter()
-      .collect::<std::result::Result<Vec<_>, _>>()
-      .expect("Failed to resolve render_manifest results");
+    let chunk_ukey_and_manifest = results.into_inner();
 
     chunk_ukey_and_manifest
       .into_iter()
@@ -1169,8 +1165,7 @@ impl Compilation {
       })
       .collect::<FuturesResults<_>>()
       .into_inner();
-    for item in chunk_hash_results {
-      let (chunk_ukey, hash) = item.expect("Failed to resolve chunk_hash results");
+    for (chunk_ukey, hash) in chunk_hash_results {
       if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
         hash?.hash(&mut chunk.hash);
       }
@@ -1271,8 +1266,7 @@ impl Compilation {
       .collect::<FuturesResults<_>>()
       .into_inner();
 
-    for item in hash_results {
-      let (chunk_ukey, hashes) = item.expect("Failed to resolve content_hash results");
+    for (chunk_ukey, hashes) in hash_results {
       hashes?.into_iter().for_each(|hash| {
         if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
           chunk.content_hash.insert(source_type, hash);

@@ -415,13 +415,7 @@ impl CopyPlugin {
           return None;
         }
 
-        Some(
-          copied_result
-            .into_inner()
-            .into_iter()
-            .flat_map(|it| it.ok())
-            .collect::<Vec<_>>(),
-        )
+        Some(copied_result.into_inner())
       }
       Err(e) => {
         if pattern.no_error_on_missing {

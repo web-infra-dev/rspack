@@ -12,7 +12,7 @@ describe("TestCases", () => {
 		},
 		plugins: [
 			c => {
-				const webpack = require("..");
+				const webpack = require("@rspack/core").rspack;
 				new webpack.HotModuleReplacementPlugin().apply(c);
 			}
 		]

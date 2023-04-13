@@ -199,7 +199,7 @@ const describeCases = config => {
 								fs.mkdirSync(outputDirectory, { recursive: true });
 								infraStructureLog.length = 0;
 								const deprecationTracker = deprecationTracking.start();
-								require("..")(options, err => {
+								require("@rspack/core").rspack(options, err => {
 									deprecationTracker();
 									const infrastructureLogging = stderr.toString();
 									if (infrastructureLogging) {
@@ -239,7 +239,7 @@ const describeCases = config => {
 								fs.mkdirSync(outputDirectory, { recursive: true });
 								infraStructureLog.length = 0;
 								const deprecationTracker = deprecationTracking.start();
-								require("..")(options, (err, stats) => {
+								require("@rspack/core").rspack(options, (err, stats) => {
 									deprecationTracker();
 									if (err) return handleFatalError(err, done);
 									const { modules, children, errorsCount } = stats.toJson({

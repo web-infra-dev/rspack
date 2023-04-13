@@ -1,0 +1,306 @@
+name: Reusable Release
+
+# Example job:
+# jobs:
+#   build:
+#     name: Release
+#     strategy:
+#       matrix:
+#         target:
+#           - x86_64-unknown-linux-gnu
+#           - aarch64-unknown-linux-gnu
+#           - x86_64-unknown-linux-musl
+#           - aarch64-unknown-linux-musl
+#           - i686-pc-windows-msvc
+#           - x86_64-pc-windows-msvc
+#           - aarch64-pc-windows-msvc
+#           - x86_64-apple-darwin
+#           - aarch64-apple-darwin
+#     uses: ./.github/workflows/reusable-build.yml
+#     with:
+#       target: ${{ matrix.target }}
+#       docker: true
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      docker:
+        required: true
+        type: boolean
+      tests:
+        description: "Run tests?"
+        default: false
+        required: false
+        type: boolean
+
+jobs:
+  select:
+    name: Select Host
+    runs-on: ubuntu-latest
+    outputs:
+      host: ${{ steps.run.outputs.host }}
+      docker: ${{ steps.run.outputs.docker }}
+    steps:
+      - name: Choose Target for ${{ inputs.target }}
+        id: run
+        shell: bash
+        run: |
+          if [[ "${{ contains(inputs.target, 'linux') }}" == "true" ]]; then
+            echo "host=ubuntu-latest" >> "$GITHUB_OUTPUT"
+            if [[ "${{ inputs.docker }}" == "true" ]]; then
+              echo "docker=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+          if [[ "${{ contains(inputs.target, 'windows') }}" == "true" ]]; then
+            echo "host=windows-latest" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "${{ contains(inputs.target, 'apple') }}" == "true" ]]; then
+            echo "host=macos-latest" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Build
+    needs: select
+    runs-on: ${{ needs.select.outputs.host }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Protoc
+        if: ${{ needs.select.outputs.docker != 'true' }}
+        uses: arduino/setup-protoc@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Rust
+        if: ${{ needs.select.outputs.docker != 'true' }}
+        run: rustup show
+
+      - name: Setup Rust Target
+        if: ${{ needs.select.outputs.docker != 'true' }}
+        run: rustup target add ${{ inputs.target }}
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: build-${{ inputs.target }}
+          workspaces: "./crates/node_binding -> target"
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      # Linux
+
+      - name: Build x86_64-unknown-linux-gnu in Docker
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        uses: ./.github/actions/docker-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
+          pre: sudo apt-get -y install protobuf-compiler
+          post: strip crates/node_binding/*.node
+
+      - name: Build aarch64-unknown-linux-gnu in Docker
+        if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
+        uses: ./.github/actions/docker-build
+        with:
+          target: ${{ inputs.target }}
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+          pre: sudo apt-get -y install protobuf-compiler
+          post: aarch64-unknown-linux-gnu-strip crates/node_binding/*.node
+
+      - name: Build x86_64-unknown-linux-musl in Docker
+        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
+        uses: ./.github/actions/docker-build
+        with:
+          target: ${{ inputs.target }}
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          pre: apk add --no-cache protoc
+          post: strip crates/node_binding/*.node
+
+      - name: Build aarch64-unknown-linux-musl in Docker
+        if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
+        uses: ./.github/actions/docker-build
+        with:
+          target: ${{ inputs.target }}
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          pre: |
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+            apk add --no-cache protoc
+          post: /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip crates/node_binding/*.node
+
+      # Windows
+
+      - name: Build i686-pc-windows-msvc
+        if: ${{ inputs.target == 'i686-pc-windows-msvc' }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+
+      - name: Build x86_64-pc-windows-msvc
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+
+      - name: Build aarch64-pc-windows-msvc
+        if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+
+      # Mac
+      - uses: goto-bus-stop/setup-zig@v2
+        if: ${{ contains(matrix.settings.target, 'apple') }}
+        with:
+          version: 0.10.1
+
+      - name: Build x86_64-apple-darwin
+        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
+        run: |
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          strip -x crates/node_binding/*.node
+
+      - name: Build aarch64-apple-darwin
+        if: ${{ inputs.target == 'aarch64-apple-darwin' }}
+        run: |
+          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
+          export CC=$(xcrun -f clang);
+          export CXX=$(xcrun -f clang++);
+          SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
+          export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          strip -x crates/node_binding/*.node
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/*.node
+          if-no-files-found: error
+
+  test:
+    needs: [select, build]
+    if: inputs.tests
+    runs-on: ${{ needs.select.outputs.host }}
+    # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [14, 16]
+    name: Test Node ${{ matrix.node }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download bindings
+        uses: actions/download-artifact@v3
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Show restored binding
+        shell: bash
+        run: ls -lah crates/node_binding/*.node
+
+      ### x86_64-unknown-linux-gnu
+
+      - name: Test x86_64-unknown-linux-gnu
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        uses: ./.github/actions/docker-test
+        with:
+          node: ${{ matrix.node }}
+
+      ### aarch64-unknown-linux-gnu
+
+      - name: Set up QEMU aarch64-unknown-linux-gnu
+        if: ${{ false && inputs.target == 'aarch64-unknown-linux-gnu' }}
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
+      - name: Set up qemu-user-static aarch64-unknown-linux-gnu
+        if: ${{ false && inputs.target == 'aarch64-unknown-linux-gnu' }}
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Test aarch64-unknown-linux-gnu
+        if: ${{ false && inputs.target == 'aarch64-unknown-linux-gnu' }}
+        uses: ./.github/actions/docker-test
+        with:
+          node: ${{ matrix.node }}
+          options: --platform linux/arm64
+
+      ### x86_64-unknown-linux-musl
+
+      - name: Test x86_64-unknown-linux-musl
+        if: ${{ false && inputs.target == 'x86_64-unknown-linux-musl' }}
+        uses: ./.github/actions/docker-test
+        with:
+          node: ${{ matrix.node }}
+          image: alpine
+
+      ### aarch64-unknown-linux-musl
+
+      - name: Set up QEMU aarch64-unknown-linux-musl
+        if: ${{ false && inputs.target == 'aarch64-unknown-linux-musl' }}
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+          image: alpine
+
+      - name: Set up qemu-user-static aarch64-unknown-linux-musl
+        if: ${{ false && inputs.target == 'aarch64-unknown-linux-musl' }}
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Test aarch64-unknown-linux-musl
+        if: ${{ false && inputs.target == 'aarch64-unknown-linux-musl' }}
+        uses: ./.github/actions/docker-test
+        with:
+          node: ${{ matrix.node }}
+          options: --platform linux/arm64
+
+      ### x86_64-apple-darwin
+
+      - name: Setup x86_64-apple-darwin
+        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Test x86_64-apple-darwin
+        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+          PUPPETEER_SKIP_DOWNLOAD: true
+        shell: bash
+        run: |
+          set -e
+          corepack enable
+          pnpm install
+          pnpm run build:js
+          pnpm run test:unit
+          pnpm run test:example
+          # pnpm run test:e2e
+
+      ### x86_64-pc-windows-msvc
+
+      - name: Setup x86_64-pc-windows-msvc
+        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Test x86_64-pc-windows-msvc
+        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+          PUPPETEER_SKIP_DOWNLOAD: true
+        shell: bash
+        run: |
+          set -e
+          corepack enable
+          pnpm install
+          pnpm run build:js
+          pnpm run test:unit
+          pnpm run test:example
+          # pnpm run test:e2e

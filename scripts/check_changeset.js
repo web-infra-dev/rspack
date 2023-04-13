@@ -1,7 +1,9 @@
+const { spawnSync } = require("child_process");
 const path = require("path");
+const util = require("util");
 const readChangesets = require("@changesets/read").default;
 
-async function run() {
+async function checkVersion() {
 	const changesets = await readChangesets(path.join(__dirname, "../"));
 
 	const errors = [];
@@ -15,11 +17,6 @@ async function run() {
 			}
 		});
 	}
-
-	return errors;
-}
-
-run().then(errors => {
 	if (errors.length) {
 		const messages = [
 			'Rspack is currently using "0.x" as the version number, so major or minor version upgrades are not allowed yet.',
@@ -31,6 +28,27 @@ run().then(errors => {
 		console.log(messages.join("\n"));
 		process.exit(1);
 	} else {
-		console.log("Check changeset succeed.");
+		console.log("Check changeset version succeed.");
 	}
+}
+
+async function checkBump() {
+	const result = spawnSync("pnpm", ["changeset", "version"], {
+		stdio: "pipe"
+	});
+	if (result.status !== 0) {
+		console.error("Check changeset bump failed", result.stderr.toString());
+		process.exit(1);
+	} else {
+		console.log("Check changeset bump succeed");
+	}
+}
+async function main() {
+	await checkVersion();
+	await checkBump();
+}
+
+main().catch(err => {
+	console.error("check changeset failed", err);
+	process.exit(1);
 });

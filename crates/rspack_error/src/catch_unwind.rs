@@ -43,39 +43,26 @@ pub mod PanicStrategy {
 
 #[inline]
 fn panic_hook_handler<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> R {
-  PANIC_HOOK.with(|hook| {
-    if !S::is_suppressed() {
-      *hook.borrow_mut() = Some(std::panic::take_hook());
-    }
-  });
+  let prev = std::panic::take_hook();
   std::panic::set_hook(Box::new(move |info| {
-    PANIC_HOOK.with(|hook| {
-      if let Some(hook) = &*hook.borrow() {
-        hook(info);
-      }
-    });
     PANIC_INFO_AND_BACKTRACE.with(|bt| {
       *bt.borrow_mut() = Some((
         info.to_string(),
         std::backtrace::Backtrace::force_capture().to_string(),
       ));
     });
+    if !S::is_suppressed() {
+      prev(info);
+    }
   }));
   let result = f();
-  PANIC_HOOK.with(|hook| {
-    if let Some(hook) = hook.borrow_mut().take() {
-      std::panic::set_hook(hook);
-    }
-  });
+  let _ = std::panic::take_hook();
 
   result
 }
 
-type PanicHook = Box<dyn Fn(&std::panic::PanicInfo<'_>) + 'static + Sync + Send>;
-
 thread_local! {
   static PANIC_INFO_AND_BACKTRACE: RefCell<Option<(String, String)>> = RefCell::new(None);
-  static PANIC_HOOK: RefCell<Option<PanicHook>> = RefCell::new(None);
 }
 
 pub fn catch_unwind<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> Result<R> {
