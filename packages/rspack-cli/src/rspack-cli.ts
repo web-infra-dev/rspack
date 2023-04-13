@@ -40,7 +40,7 @@ export class RspackCLI {
 		this.program = yargs();
 	}
 	async createCompiler(
-		options: RspackCLIOptions,
+		options: RspackBuildCLIOptions,
 		rspackCommand: Command,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
