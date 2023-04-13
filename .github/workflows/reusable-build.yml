@@ -185,8 +185,6 @@ jobs:
     runs-on: ${{ needs.select.outputs.host }}
     # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
     timeout-minutes: 15
-    # Failing tests are unavoidable right now, let them fall through and build a binary for debugging purposes.
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
