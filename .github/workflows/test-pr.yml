@@ -1,24 +1,21 @@
 name: Test PR
 on:
-  push:
+  merge_group:
+  pull_request:
+    paths:
+      - "crates/**"
+      - "packages/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
     branches:
-      - refactor-release
-  # merge_group:
-  # pull_request:
-    # paths:
-      # - "crates/**"
-      # - "packages/**"
-      # - "Cargo.toml"
-      # - "Cargo.lock"
-      # - "rust-toolchain.toml"
-      # - "package.json"
-      # - "pnpm-lock.yaml"
-      # - "pnpm-workspace.yaml"
-    # branches:
-      # - "**"
-      # - "!release-**"
-    # tags-ignore:
-      # - "**"
+      - "**"
+      - "!release-**"
+    tags-ignore:
+      - "**"
 
 # cancel previous job runs for the same workflow + pr
 concurrency:

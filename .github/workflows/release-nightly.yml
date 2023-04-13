@@ -1,9 +1,6 @@
 name: Release Nightly
 
 on:
-  push:
-    branches:
-      - refactor-release
   workflow_dispatch:
   schedule:
     # 00:07 AM Beijing Time, offset an odd number to avoid cron jobs firing off at the same time

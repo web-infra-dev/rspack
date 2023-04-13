@@ -3,16 +3,15 @@ on:
   push:
     branches:
       - main
-      - refactor-release
-    # paths:
-      # - "crates/**"
-      # - "packages/**"
-      # - "Cargo.toml"
-      # - "Cargo.lock"
-      # - "rust-toolchain.toml"
-      # - "package.json"
-      # - "pnpm-lock.yaml"
-      # - "pnpm-workspace.yaml"
+    paths:
+      - "crates/**"
+      - "packages/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
 
 jobs:
   build:

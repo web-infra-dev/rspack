@@ -1,9 +1,6 @@
 name: Release Full
 
 on:
-  # push:
-    # branches:
-      # - refactor-release
   workflow_dispatch:
     inputs:
       version:
