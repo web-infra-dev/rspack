@@ -1,6 +1,5 @@
+# Release Canary by commention with "!canary"
 name: Release Canary
-
-description: 'Release Canary by commention with "!canary"'
 
 on:
   issue_comment:
