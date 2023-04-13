@@ -221,6 +221,9 @@ impl Rspack {
   ) -> Result<()> {
     let handle_rebuild = |compiler: &mut Pin<Box<rspack_core::Compiler<_>>>| {
       // Safety: compiler is stored in a global hashmap, so it's guaranteed to be alive.
+      // The reason why use Box<Compiler> here instead of Compiler itself is that:
+      // Compilers may expand and change its layout underneath, make Compiler layout change.
+      // Use Box to make sure the Compiler layout won't change
       let compiler: &'static mut Pin<Box<rspack_core::Compiler<AsyncNodeWritableFileSystem>>> =
         unsafe { std::mem::transmute::<&'_ mut _, &'static mut _>(compiler) };
 
@@ -251,6 +254,9 @@ impl Rspack {
   pub fn unsafe_last_compilation<F: Fn(JsCompilation) -> Result<()>>(&self, f: F) -> Result<()> {
     let handle_last_compilation = |compiler: &mut Pin<Box<rspack_core::Compiler<_>>>| {
       // Safety: compiler is stored in a global hashmap, and compilation is only available in the callback of this function, so it is safe to cast to a static lifetime. See more in the warning part of this method.
+      // The reason why use Box<Compiler> here instead of Compiler itself is that:
+      // Compilers may expand and change its layout underneath, make Compiler layout change.
+      // Use Box to make sure the Compiler layout won't change
       let compiler: &'static mut Pin<Box<rspack_core::Compiler<AsyncNodeWritableFileSystem>>> =
         unsafe { std::mem::transmute::<&'_ mut _, &'static mut _>(compiler) };
       f(JsCompilation::from_compilation(&mut compiler.compilation))
