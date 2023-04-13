@@ -11,7 +11,7 @@ use swc_core::ecma::ast::{
   AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit,
   MemberExpr, MemberProp, MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Pat, PatOrExpr, Tpl,
 };
-use swc_core::ecma::atoms::js_word;
+use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
@@ -123,30 +123,51 @@ impl DependencyScanner<'_> {
     if let Callee::Import(_) = node.callee {
       if let Some(dyn_imported) = node.args.get(0) {
         if dyn_imported.spread.is_none() {
-          if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
-            let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
-            self.add_dependency(box EsmDynamicImportDependency::new(
-              imported.value.clone(),
-              Some(node.span.into()),
-              as_parent_path(ast_path),
-              chunk_name,
-            ));
-          }
-          if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
-            self.add_dependency(box ImportContextDependency::new(
-              ContextOptions {
-                mode: ContextMode::Lazy,
-                recursive: true,
-                reg_exp: RspackRegex::new(&reg).expect("reg failed"),
-                reg_str: reg,
-                include: None,
-                exclude: None,
-                category: DependencyCategory::Esm,
-                request: context,
-              },
-              Some(node.span.into()),
-              as_parent_path(ast_path),
-            ));
+          match dyn_imported.expr.as_ref() {
+            Expr::Lit(Lit::Str(imported)) => {
+              let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
+              self.add_dependency(box EsmDynamicImportDependency::new(
+                imported.value.clone(),
+                Some(node.span.into()),
+                as_parent_path(ast_path),
+                chunk_name,
+              ));
+            }
+            Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
+              let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
+              let request = JsWord::from(
+                tpl
+                  .quasis
+                  .first()
+                  .expect("should have one quasis")
+                  .raw
+                  .to_string(),
+              );
+              self.add_dependency(box EsmDynamicImportDependency::new(
+                request,
+                Some(node.span.into()),
+                as_parent_path(ast_path),
+                chunk_name,
+              ));
+            }
+            _ => {
+              if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
+                self.add_dependency(box ImportContextDependency::new(
+                  ContextOptions {
+                    mode: ContextMode::Lazy,
+                    recursive: true,
+                    reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                    reg_str: reg,
+                    include: None,
+                    exclude: None,
+                    category: DependencyCategory::Esm,
+                    request: context,
+                  },
+                  Some(node.span.into()),
+                  as_parent_path(ast_path),
+                ));
+              }
+            }
           }
         }
       }

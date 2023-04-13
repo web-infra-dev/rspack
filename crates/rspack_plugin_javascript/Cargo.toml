@@ -48,5 +48,5 @@ swc_emotion = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
-xxhash-rust = { workspace = true, features = ["xxh3"] }
 url = "2.3.1"
+xxhash-rust = { workspace = true, features = ["xxh3"] }
