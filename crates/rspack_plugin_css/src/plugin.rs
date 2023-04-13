@@ -701,11 +701,9 @@ impl Plugin for CssPlugin {
         output
       })
       .collect::<Vec<ConcatSource>>();
-    let is_no_sources = sources.is_empty();
-
     let source = ConcatSource::new(sources);
 
-    if is_no_sources {
+    if source.source().is_empty() {
       Ok(Default::default())
     } else {
       let filename_template = get_css_chunk_filename_template(
