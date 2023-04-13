@@ -1,1 +1,100 @@
-  Comparing two different types of values. Expected [32mobject[39m but received [31mstring[39m.
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- // Jest Snapshot v1, https://goo.gl/fbAQLP[39m
+[32m-[39m
+[32m- exports[`ConfigTestCases css urls exported tests should be able to handle styles in spacing.css 1`] = `[39m
+[32m- Object {[39m
+[32m-   "a": " url(img.09a1a1112c577c279435.png)",[39m
+[32m-   "b": " url(img.09a1a1112c577c279435.png)",[39m
+[32m-   "c": " url(img.09a1a1112c577c279435.png)",[39m
+[32m-   "d": " url(img.09a1a1112c577c279435.png#hash)",[39m
+[32m-   "e": " url(img.09a1a1112c577c279435.png)",[39m
+[32m-   "f": " green url(img.09a1a1112c577c279435.png) xyz",[39m
+[32m-   "g": " green url(img.09a1a1112c577c279435.png) xyz",[39m
+[32m-   "getPropertyValue": [Function],[39m
+[32m-   "h": " green url(img.09a1a1112c577c279435.png) xyz",[39m
+[32m-   "i": " green url(img.09a1a1112c577c279435.png) url(img.09a1a1112c577c279435.png) xyz",[39m
+[32m-   "j": " green url(img\\\\ img.09a1a1112c577c279435.png) xyz",[39m
+[32m-   "k": " green url(img\\\\ img.09a1a1112c577c279435.png) xyz",[39m
+[32m-   "l": " green url(img.09a1a1112c577c279435.png) xyz",[39m
+[32m- }[39m
+[32m- `;[39m
+[32m-[39m
+[32m- exports[`ConfigTestCases custom-modules json-custom exported tests should transform toml to json 1`] = `[39m
+[32m- Object {[39m
+[32m-   "owner": Object {[39m
+[32m-     "bio": "GitHub Cofounder & CEO[39m
+[32m- Likes tater tots and beer.",[39m
+[32m-     "dob": "1979-05-27T07:32:00.000Z",[39m
+[32m-     "name": "Tom Preston-Werner",[39m
+[32m-     "organization": "GitHub",[39m
+[32m-   },[39m
+[32m-   "title": "TOML Example",[39m
+[32m- }[39m
+[32m- `;[39m
+[32m-[39m
+[32m- exports[`ConfigTestCases records issue-2991 exported tests should write relative paths to records 1`] = `[39m
+[32m- "{[39m
+[32m-   \\"chunks\\": {[39m
+[32m-     \\"byName\\": {[39m
+[32m-       \\"main\\": 179[39m
+[32m-     },[39m
+[32m-     \\"bySource\\": {[39m
+[32m-       \\"0 main\\": 179[39m
+[32m-     },[39m
+[32m-     \\"usedIds\\": [[39m
+[32m-       179[39m
+[32m-     ][39m
+[32m-   },[39m
+[32m-   \\"modules\\": {[39m
+[32m-     \\"byIdentifier\\": {[39m
+[32m-       \\"./test.js\\": 393,[39m
+[32m-       \\"external node-commonjs \\\\\\"fs\\\\\\"\\": 147,[39m
+[32m-       \\"external node-commonjs \\\\\\"path\\\\\\"\\": 17,[39m
+[32m-       \\"ignored|./.|pkgs/somepackage/foo\\": 802[39m
+[32m-     },[39m
+[32m-     \\"usedIds\\": [[39m
+[32m-       17,[39m
+[32m-       147,[39m
+[32m-       393,[39m
+[32m-       802[39m
+[32m-     ][39m
+[32m-   }[39m
+[32m- }"[39m
+[32m- `;[39m
+[32m-[39m
+[32m- exports[`ConfigTestCases records issue-7339 exported tests should write relative dynamic-require paths to records 1`] = `[39m
+[32m- "{[39m
+[32m-   \\"chunks\\": {[39m
+[32m-     \\"byName\\": {[39m
+[32m-       \\"main\\": 179[39m
+[32m-     },[39m
+[32m-     \\"bySource\\": {[39m
+[32m-       \\"0 main\\": 179[39m
+[32m-     },[39m
+[32m-     \\"usedIds\\": [[39m
+[32m-       179[39m
+[32m-     ][39m
+[32m-   },[39m
+[32m-   \\"modules\\": {[39m
+[32m-     \\"byIdentifier\\": {[39m
+[32m-       \\"./dependencies/bar.js\\": 379,[39m
+[32m-       \\"./dependencies/foo.js\\": 117,[39m
+[32m-       \\"./dependencies|sync|/^\\\\\\\\.\\\\\\\\/.*$/\\": 412,[39m
+[32m-       \\"./test.js\\": 393,[39m
+[32m-       \\"external node-commonjs \\\\\\"fs\\\\\\"\\": 147,[39m
+[32m-       \\"external node-commonjs \\\\\\"path\\\\\\"\\": 17[39m
+[32m-     },[39m
+[32m-     \\"usedIds\\": [[39m
+[32m-       17,[39m
+[32m-       117,[39m
+[32m-       147,[39m
+[32m-       379,[39m
+[32m-       393,[39m
+[32m-       412[39m
+[32m-     ][39m
+[32m-   }[39m
+[32m- }"[39m
+[32m- `;[39m
+[32m-[39m
