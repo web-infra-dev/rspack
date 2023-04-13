@@ -4,8 +4,16 @@ const diff = require('jest-diff')
 
 let dirname = path.resolve(__dirname, "../__snapshots__/")
 const snapOrBakList = fs.readdirSync(dirname)
-console.log(snapOrBakList)
+const noColor = string => string;
 
+const options = {
+  aColor: noColor,
+  bColor: noColor,
+  changeColor: noColor,
+  commonColor: noColor,
+  patchColor: noColor,
+	expand: false
+};
 let bakList = snapOrBakList.filter(item => item.endsWith('.bak'));
 
 bakList.forEach(backupFileName => {
@@ -17,9 +25,7 @@ bakList.forEach(backupFileName => {
 	if (snapOrBakList.includes(snapfileName)) {
 		snapContent = fs.readFileSync(path.resolve(dirname, snapfileName)).toString()
 	}
-	let diffResult = diff.diff(backupContent, snapContent, {
-		expand: false
-	});
+	let diffResult = diff.diff(backupContent, snapContent, options);
 	fs.writeFileSync(path.resolve(dirname, `${snapfileName}.diff`), diffResult)
 })
 

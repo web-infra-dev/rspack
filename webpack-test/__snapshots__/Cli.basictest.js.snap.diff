@@ -1,27 +1,27 @@
-[32m- Expected[39m
-[31m+ Received[39m
+- Expected
++ Received
 
-[33m@@ -6681,23 +6681,10 @@[39m
-[2m      ],[22m
-[2m      "description": "The method of loading chunks (methods included by default are 'jsonp' (web), 'import' (ESM), 'importScripts' (WebWorker), 'require' (sync node.js), 'async-node' (async node.js), but others might be added by plugins).",[22m
-[2m      "multiple": false,[22m
-[2m      "simpleType": "string",[22m
-[2m    },[22m
-[32m-   "output-worker-public-path": Object {[39m
-[32m-     "configs": Array [[39m
-[32m-       Object {[39m
-[32m-         "description": "Worker public path. Much like the public path, this sets the location where the worker script file is intended to be found. If not set, webpack will use the publicPath. Don't set this option unless your worker scripts are located at a different path from your other script files.",[39m
-[32m-         "multiple": false,[39m
-[32m-         "path": "output.workerPublicPath",[39m
-[32m-         "type": "string",[39m
-[32m-       },[39m
-[32m-     ],[39m
-[32m-     "description": "Worker public path. Much like the public path, this sets the location where the worker script file is intended to be found. If not set, webpack will use the publicPath. Don't set this option unless your worker scripts are located at a different path from your other script files.",[39m
-[32m-     "multiple": false,[39m
-[32m-     "simpleType": "string",[39m
-[32m-   },[39m
-[2m    "output-worker-wasm-loading": Object {[22m
-[2m      "configs": Array [[22m
-[2m        Object {[22m
-[2m          "description": "The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",[22m
-[2m          "multiple": false,[22m
+@@ -6681,23 +6681,10 @@
+      ],
+      "description": "The method of loading chunks (methods included by default are 'jsonp' (web), 'import' (ESM), 'importScripts' (WebWorker), 'require' (sync node.js), 'async-node' (async node.js), but others might be added by plugins).",
+      "multiple": false,
+      "simpleType": "string",
+    },
+-   "output-worker-public-path": Object {
+-     "configs": Array [
+-       Object {
+-         "description": "Worker public path. Much like the public path, this sets the location where the worker script file is intended to be found. If not set, webpack will use the publicPath. Don't set this option unless your worker scripts are located at a different path from your other script files.",
+-         "multiple": false,
+-         "path": "output.workerPublicPath",
+-         "type": "string",
+-       },
+-     ],
+-     "description": "Worker public path. Much like the public path, this sets the location where the worker script file is intended to be found. If not set, webpack will use the publicPath. Don't set this option unless your worker scripts are located at a different path from your other script files.",
+-     "multiple": false,
+-     "simpleType": "string",
+-   },
+    "output-worker-wasm-loading": Object {
+      "configs": Array [
+        Object {
+          "description": "The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",
+          "multiple": false,
