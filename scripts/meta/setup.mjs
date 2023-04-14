@@ -1,10 +1,20 @@
 // Setup everything before pnpm install
-import "zx/globals";
+import { spawnSync } from "child_process";
 import * as path from "path";
 
-// Make sure developers are at the workspace root
+/**
+ *
+ * @param {string} context
+ * @param {(...args: any[]) => any} fn
+ */
+function runInContext(context, fn) {
+	console.log(`⏺️ Running \`${context}\``);
+	const status = fn();
+	console.log(`⏹️ Finish  \`${context}\` with ${status}`);
+}
 
 try {
+	// Make sure developers are at the workspace root
 	const { default: rootPkgJson } = await import(
 		path.join(process.cwd(), "package.json"),
 		{
@@ -25,4 +35,13 @@ try {
 	throw err;
 }
 
-await $`corepack enable`;
+runInContext(
+	"corepack enable",
+	() =>
+		spawnSync("corepack", ["enable"], {
+			cwd: process.cwd(),
+			env: process.env,
+			stdio: "inherit",
+			encoding: "utf-8"
+		}).status
+);

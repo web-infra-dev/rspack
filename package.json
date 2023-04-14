@@ -29,7 +29,7 @@
     "bump": "changeset version",
     "changeset": "changeset",
     "prepare": "is-ci || husky install",
-    "pnpm:devPreinstall": "is-ci || node ./scripts/meta/doctor.mjs",
+    "pnpm:devPreinstall": "is-ci || node ./scripts/doctor.mjs",
     "test:example": "pnpm --filter \"example-*\" build",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test"
