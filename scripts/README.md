@@ -1,4 +1,4 @@
-The scripts here are related to development workflow of Rspack.
+Scripts here are related to development workflow of Rspack.
 
 ## Usages
 
