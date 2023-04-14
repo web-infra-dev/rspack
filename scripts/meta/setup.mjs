@@ -25,11 +25,4 @@ try {
 	throw err;
 }
 
-try {
-	await $`corepack enable`;
-} catch (err) {
-	console.warn(
-		"Enable corepack failed. You might need install the correct version of Pnpm youself"
-	);
-	console.log(err);
-}
+await $`corepack enable`;
