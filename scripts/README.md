@@ -10,6 +10,8 @@ node ./scripts/xxxx.js
 
 ## Guidance
 
+Scripts in `meta` folder are self-contained and shouldn't rely on denpendencis outside the `meta` folder(especially modules in `node_modules`). Built-in modules of `node` are ok to use.
+
 ### Writing scripts with zx
 
 [zx](https://github.com/google/zx) is a wonderful tool for Writing scripts using JavaScript.
