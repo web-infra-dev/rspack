@@ -1,3 +1,4 @@
+// @ts-nocheck
 const PREFIX = "[x] ";
 
 const COLOR = {

@@ -4,18 +4,18 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _scriptJs = __webpack_require__("./package1/script.js");
-var _script2Js = __webpack_require__("./package1/script2.js");
-var _scriptJs1 = __webpack_require__("./package2/script.js");
+var _script = __webpack_require__("./package1/script.js");
+var _script2 = __webpack_require__("./package1/script2.js");
+var _script1 = __webpack_require__("./package2/script.js");
 it("should load module correctly", ()=>{
     __webpack_require__("./module.js");
 });
 it("default export should be unused", ()=>{
-    expect(_scriptJs.exportDefaultUsed).toBe(false);
-    expect(_script2Js.exportDefaultUsed).toBe(false);
+    expect(_script.exportDefaultUsed).toBe(false);
+    expect(_script2.exportDefaultUsed).toBe(false);
 });
 it("default export should be used", ()=>{
-    expect(_scriptJs1.exportDefaultUsed).toBe(true);
+    expect(_script1.exportDefaultUsed).toBe(true);
 });
 },
 "./module.js": function (module, exports, __webpack_require__) {
@@ -30,8 +30,8 @@ Object.defineProperty(exports, "mod", {
     }
 });
 __webpack_require__("./package1/script.js");
-var _scriptJs = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
-const mod = _scriptJs.default;
+var _script = __webpack_require__.ir(__webpack_require__("./package2/script.js"));
+const mod = _script.default;
 },
 "./package1/script.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -86,8 +86,8 @@ _export(exports, {
         return exportDefaultUsed;
     }
 });
-var _script1Js = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package2/script1.js"), exports));
-var _default = _script1Js.default;
+var _script1 = __webpack_require__.ir(__webpack_require__.es(__webpack_require__("./package2/script1.js"), exports));
+var _default = _script1.default;
 const exportDefaultUsed = __webpack_exports_info__.default.used;
 },
 "./package2/script1.js": function (module, exports, __webpack_require__) {
