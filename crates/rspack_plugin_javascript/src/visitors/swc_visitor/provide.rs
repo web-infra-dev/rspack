@@ -4,16 +4,16 @@ use rspack_core::Provide;
 use swc_core::common::Span;
 use swc_core::common::{Mark, DUMMY_SP};
 use swc_core::ecma::ast::{
-  BindingIdent, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, ExprStmt, Ident, Lit,
-  MemberExpr, MemberProp, Module, ModuleItem, Stmt, Str, VarDecl, VarDeclarator,
+  BindingIdent, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, Lit, MemberExpr,
+  MemberProp, ModuleItem, Stmt, Str, VarDecl, VarDeclarator,
 };
-use swc_core::ecma::atoms::JsWord;
 use swc_core::ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith};
 
 pub fn provide_builtin(opts: &Provide, unresolved_mark: Mark) -> impl Fold + '_ {
   as_folder(ProvideBuiltin::new(opts, unresolved_mark))
 }
-
+static SOURCE_DOT: &str = r#"."#;
+static MODULE_DOT: &str = r#"_dot_"#;
 pub struct ProvideBuiltin<'a> {
   opts: &'a Provide,
   unresolved_mark: Mark,
@@ -30,7 +30,7 @@ impl<'a> ProvideBuiltin<'a> {
   }
 
   fn handle_ident(&mut self, ident: &mut Ident) {
-    if let Some(module_path) = self.opts.get(&ident.sym.to_string()) {
+    if self.opts.get(&ident.sym.to_string()).is_some() {
       self.current_import_provide.insert(ident.sym.to_string());
     }
   }
@@ -39,7 +39,7 @@ impl<'a> ProvideBuiltin<'a> {
     let identifier_name = self.get_nested_identifier_name(member_expr);
     if self.opts.get(&identifier_name).is_some() {
       self.current_import_provide.insert(identifier_name.clone());
-      let new_ident_sym = identifier_name.replace(".", "_dot_");
+      let new_ident_sym = identifier_name.replace(SOURCE_DOT, MODULE_DOT);
       return Some(Ident::new(
         new_ident_sym.into(),
         member_expr.span.apply_mark(self.unresolved_mark),
@@ -175,7 +175,7 @@ impl<'a> ProvideBuiltin<'a> {
                 init: Some(Box::new(obj_expr)),
                 name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
                   id: Ident::new(
-                    provide_module_name.replace(".", "_dot_").clone().into(),
+                    provide_module_name.replace(SOURCE_DOT, MODULE_DOT).into(),
                     DUMMY_SP.apply_mark(self.unresolved_mark),
                   ),
                   type_ann: None,
