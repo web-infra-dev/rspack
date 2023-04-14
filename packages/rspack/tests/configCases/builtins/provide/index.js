@@ -49,17 +49,15 @@ it("should not provide for mjs", function () {
 	expect(foo()).toBe("esm");
 });
 
-it("should not provide for mjs", function () {
-	var foo = require("./foo.mjs").default;
-	expect(foo()).toBe("esm");
+it("should variable coverage", function () {
+	expect(process).toBe(undefined);
+	var process = {};
+	process.a = 123;
+	expect(process.a).toBe(123);
 });
 
-it("should not provide for mjs", function () {
-	var foo = require("process").a;
-	expect(foo()).toBe("esm");
-});
 // TODO: Add support for these cases
-// it("should provide a module for a nested var within a IIFE's this", function () {
+// it("should pvovide a module for a nested var within a IIFE's this", function () {
 // 	(function () {
 // 		expect(this.env.NODE_ENV).toBe("development");
 // 		var x = this.env.NODE_ENV;

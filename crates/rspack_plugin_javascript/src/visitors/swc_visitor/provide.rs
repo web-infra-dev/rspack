@@ -31,8 +31,6 @@ impl<'a> ProvideBuiltin<'a> {
 
   fn handle_ident(&mut self, ident: &mut Ident) {
     if let Some(module_path) = self.opts.get(&ident.sym.to_string()) {
-      // dbg!(&ident);
-      // self.create_obj_expr(ident.span, module_path)
       self.current_import_provide.insert(ident.sym.to_string());
     }
   }
@@ -40,8 +38,6 @@ impl<'a> ProvideBuiltin<'a> {
   fn handle_member_expr(&mut self, member_expr: &MemberExpr) -> Option<Ident> {
     let identifier_name = self.get_nested_identifier_name(member_expr);
     if self.opts.get(&identifier_name).is_some() {
-      println!("匹配到的");
-      dbg!(&identifier_name);
       self.current_import_provide.insert(identifier_name.clone());
       let new_ident_sym = identifier_name.replace(".", "_dot_");
       return Some(Ident::new(
@@ -132,13 +128,9 @@ impl<'a> ProvideBuiltin<'a> {
       .iter()
       .for_each(|provide_module_name| {
         if let Some(provide_module_path) = self.opts.get(provide_module_name) {
-          println!(
-            "路径 {:#?}, 方法 {provide_module_name}",
-            provide_module_path
-          );
           // require({module_path})
           let call = CallExpr {
-            span: DUMMY_SP,
+            span: DUMMY_SP.apply_mark(self.unresolved_mark),
             callee: Callee::Expr(Box::new(Expr::Ident(Ident::new(
               "require".into(),
               Span::apply_mark(DUMMY_SP, self.unresolved_mark),
@@ -146,7 +138,7 @@ impl<'a> ProvideBuiltin<'a> {
             args: vec![ExprOrSpread {
               spread: None,
               expr: Box::new(Expr::Lit(Lit::Str(Str {
-                span: DUMMY_SP,
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
                 value: provide_module_path[0].clone().into(),
                 raw: None,
               }))),
@@ -216,12 +208,13 @@ impl VisitMut for ProvideBuiltin<'_> {
 
   fn visit_mut_module(&mut self, n: &mut swc_core::ecma::ast::Module) {
     n.visit_mut_children_with(self);
-    println!("当前需要导入的文件");
-    dbg!(&self.current_import_provide);
     let module_item_vec = self.create_provide_require();
-    // dbg!(&module_item_vec);
     module_item_vec.into_iter().for_each(|module_item| {
       n.body.insert(0, module_item);
     });
+  }
+
+  fn visit_mut_var_decl(&mut self, n: &mut VarDecl) {
+    n.visit_mut_children_with(self);
   }
 }

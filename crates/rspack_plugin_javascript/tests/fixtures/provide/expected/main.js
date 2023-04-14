@@ -1,7 +1,9 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-console.log('hello, world');
-console.log(__webpack_require__.c);
+var process = __webpack_require__("./process.js");
+console.log(process.env);
+},
+"./process.js": function (module, exports, __webpack_require__) {
 },
 
 },function(__webpack_require__) {

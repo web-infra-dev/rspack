@@ -1,16 +1,8 @@
 {
 	"builtins": {
 		"provide": {
-			"aaa": [
-				"./aaa"
-			],
-			"bbb": [
-				"./aaa",
-				"c",
-				"d"
-			],
-			"bbb.ccc": [
-				"./aaa.js"
+			"process": [
+				"./process.js"
 			]
 		},
 		"treeShaking": true
