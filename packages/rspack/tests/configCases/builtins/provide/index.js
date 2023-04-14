@@ -57,7 +57,7 @@ it("should variable coverage", function () {
 });
 
 // TODO: Add support for these cases
-// it("should pvovide a module for a nested var within a IIFE's this", function () {
+// it("should provide a module for a nested var within a IIFE's this", function () {
 // 	(function () {
 // 		expect(this.env.NODE_ENV).toBe("development");
 // 		var x = this.env.NODE_ENV;
