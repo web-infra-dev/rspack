@@ -29,7 +29,7 @@ impl<'a> ProvideBuiltin<'a> {
     }
   }
 
-  fn handle_ident(&mut self, ident: &Ident) {
+  fn handle_ident(&mut self, ident: &mut Ident) {
     if let Some(module_path) = self.opts.get(&ident.sym.to_string()) {
       // dbg!(&ident);
       // self.create_obj_expr(ident.span, module_path)
@@ -37,15 +37,19 @@ impl<'a> ProvideBuiltin<'a> {
     }
   }
 
-  fn handle_member_expr(&self, member_expr: &MemberExpr) {
+  fn handle_member_expr(&mut self, member_expr: &MemberExpr) -> Option<Ident> {
     let identifier_name = self.get_nested_identifier_name(member_expr);
-    dbg!(&identifier_name);
-    if let Some(module_path) = self.opts.get(&identifier_name) {
-      dbg!("true");
-      // self.current_import_provide.insert(ident.to_string());
-      // let unresolved_span = DUMMY_SP.apply_mark(self.unresolved_mark);
-      // self.create_obj_expr(unresolved_span, module_path)
+    if self.opts.get(&identifier_name).is_some() {
+      println!("匹配到的");
+      dbg!(&identifier_name);
+      self.current_import_provide.insert(identifier_name.clone());
+      let new_ident_sym = identifier_name.replace(".", "_dot_");
+      return Some(Ident::new(
+        new_ident_sym.into(),
+        member_expr.span.apply_mark(self.unresolved_mark),
+      ));
     }
+    None
   }
 
   fn create_obj_expr(&self, span: Span, module_path: &[String]) -> Expr {
@@ -123,67 +127,74 @@ impl<'a> ProvideBuiltin<'a> {
 
   fn create_provide_require(&self) -> Vec<ModuleItem> {
     let mut module_item_vec = Vec::new();
-    self.current_import_provide.iter().for_each(|item| {
-      dbg!(item);
-      if let Some(module_path) = self.opts.get(item) {
-        let call = CallExpr {
-          span: DUMMY_SP,
-          callee: Callee::Expr(Box::new(Expr::Ident(Ident::new(
-            "require".into(),
-            Span::apply_mark(DUMMY_SP, self.unresolved_mark),
-          )))),
-          args: vec![ExprOrSpread {
-            spread: None,
-            expr: Box::new(Expr::Lit(Lit::Str(Str {
-              span: DUMMY_SP,
-              value: module_path[0].clone().into(),
-              raw: None,
-            }))),
-          }],
-          type_args: Default::default(),
-        };
-        let mut obj_expr = Expr::Call(call);
-
-        for module_name in module_path.iter().skip(1) {
-          let member_expr = MemberExpr {
+    self
+      .current_import_provide
+      .iter()
+      .for_each(|provide_module_name| {
+        if let Some(provide_module_path) = self.opts.get(provide_module_name) {
+          println!(
+            "路径 {:#?}, 方法 {provide_module_name}",
+            provide_module_path
+          );
+          // require({module_path})
+          let call = CallExpr {
             span: DUMMY_SP,
-            obj: Box::new(obj_expr),
-            prop: MemberProp::Computed(ComputedPropName {
-              span: DUMMY_SP,
+            callee: Callee::Expr(Box::new(Expr::Ident(Ident::new(
+              "require".into(),
+              Span::apply_mark(DUMMY_SP, self.unresolved_mark),
+            )))),
+            args: vec![ExprOrSpread {
+              spread: None,
               expr: Box::new(Expr::Lit(Lit::Str(Str {
                 span: DUMMY_SP,
-                value: module_name.to_string().into(),
+                value: provide_module_path[0].clone().into(),
                 raw: None,
               }))),
-            }),
-          };
-
-          obj_expr = Expr::Member(member_expr);
-        }
-        let module_item = ModuleItem::Stmt(Stmt::Decl(swc_core::ecma::ast::Decl::Var(Box::new(
-          VarDecl {
-            span: DUMMY_SP,
-            declare: false,
-            kind: swc_core::ecma::ast::VarDeclKind::Var,
-            decls: vec![VarDeclarator {
-              span: DUMMY_SP,
-              definite: false,
-              init: Some(Box::new(obj_expr)),
-              name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-                id: Ident::new(
-                  item.clone().into(),
-                  DUMMY_SP.apply_mark(self.unresolved_mark),
-                ),
-                type_ann: None,
-              }),
             }],
-          },
-        ))));
+            type_args: Default::default(),
+          };
+          let mut obj_expr = Expr::Call(call);
+          // [""]
+          for provide_module_member in provide_module_path.iter().skip(1) {
+            let member_expr = MemberExpr {
+              span: DUMMY_SP.apply_mark(self.unresolved_mark),
+              obj: Box::new(obj_expr),
+              prop: MemberProp::Computed(ComputedPropName {
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
+                expr: Box::new(Expr::Lit(Lit::Str(Str {
+                  span: DUMMY_SP.apply_mark(self.unresolved_mark),
+                  value: provide_module_member.to_string().into(),
+                  raw: None,
+                }))),
+              }),
+            };
 
-        module_item_vec.push(module_item);
-      }
-    });
-    dbg!(&module_item_vec);
+            obj_expr = Expr::Member(member_expr);
+          }
+          // var {provide_module_name} = require(provide_module_path)?[provide_args]
+          let module_item = ModuleItem::Stmt(Stmt::Decl(swc_core::ecma::ast::Decl::Var(Box::new(
+            VarDecl {
+              span: DUMMY_SP.apply_mark(self.unresolved_mark),
+              declare: false,
+              kind: swc_core::ecma::ast::VarDeclKind::Var,
+              decls: vec![VarDeclarator {
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
+                definite: false,
+                init: Some(Box::new(obj_expr)),
+                name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+                  id: Ident::new(
+                    provide_module_name.replace(".", "_dot_").clone().into(),
+                    DUMMY_SP.apply_mark(self.unresolved_mark),
+                  ),
+                  type_ann: None,
+                }),
+              }],
+            },
+          ))));
+
+          module_item_vec.push(module_item);
+        }
+      });
     module_item_vec
   }
 }
@@ -192,7 +203,11 @@ impl VisitMut for ProvideBuiltin<'_> {
   fn visit_mut_expr(&mut self, expr: &mut Expr) {
     match expr {
       Expr::Ident(ident) => self.handle_ident(ident),
-      // Expr::Member(member_expr) => self.handle_member_expr(member_expr),
+      Expr::Member(member_expr) => {
+        if let Some(ident) = self.handle_member_expr(member_expr) {
+          *expr = Expr::Ident(ident);
+        }
+      }
       _ => {}
     };
 
@@ -201,11 +216,11 @@ impl VisitMut for ProvideBuiltin<'_> {
 
   fn visit_mut_module(&mut self, n: &mut swc_core::ecma::ast::Module) {
     n.visit_mut_children_with(self);
-    dbg!(&n);
+    println!("当前需要导入的文件");
+    dbg!(&self.current_import_provide);
     let module_item_vec = self.create_provide_require();
     // dbg!(&module_item_vec);
     module_item_vec.into_iter().for_each(|module_item| {
-      dbg!(&module_item);
       n.body.insert(0, module_item);
     });
   }

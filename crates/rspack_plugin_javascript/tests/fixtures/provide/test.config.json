@@ -6,8 +6,13 @@
 			],
 			"bbb": [
 				"./aaa",
-				"c"
+				"c",
+				"d"
+			],
+			"bbb.ccc": [
+				"./aaa.js"
 			]
-		}
+		},
+		"treeShaking": true
 	}
 }
