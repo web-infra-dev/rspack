@@ -4,13 +4,13 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _innerJs = __webpack_require__("./inner.js");
-var _moduleJs = __webpack_require__("./module.js");
+var _inner = __webpack_require__("./inner.js");
+var _module = __webpack_require__("./module.js");
 it("export should be unused when only unused functions use it", ()=>{
-    expect((0, _moduleJs.y)("a")).toBe("okBAA");
-    expect(_innerJs.exportAUsed).toBe(true);
-    expect(_innerJs.exportBUsed).toBe(true);
-    expect(_innerJs.exportCUsed).toBe(false);
+    expect((0, _module.y)("a")).toBe("okBAA");
+    expect(_inner.exportAUsed).toBe(true);
+    expect(_inner.exportBUsed).toBe(true);
+    expect(_inner.exportCUsed).toBe(false);
     return __webpack_require__.el("./chunk.js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir);
 });
 },
@@ -71,7 +71,7 @@ _export(exports, {
         return y;
     }
 });
-var _innerJs = __webpack_require__("./inner.js");
+var _inner = __webpack_require__("./inner.js");
 function x(type) {
     switch(type){
         case "a":
@@ -87,11 +87,11 @@ function y(v) {
 }
 function withA(v) {
     const value = x(v);
-    return (0, _innerJs.A)(value);
+    return (0, _inner.A)(value);
 }
 function withB(v) {
     const value = x(v);
-    return (0, _innerJs.B)(value);
+    return (0, _inner.B)(value);
 }
 },
 
