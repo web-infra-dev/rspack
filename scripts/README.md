@@ -10,9 +10,9 @@ node ./scripts/xxxx.js
 
 ## Guidance
 
-### Writting scripts with zx
+### Writing scripts with zx
 
-[zx](https://github.com/google/zx) is a wonderful tool for writting scripts using JavaScript.
+[zx](https://github.com/google/zx) is a wonderful tool for Writing scripts using JavaScript.
 
 There are many [ways](https://github.com/google/zx#documentation) to use zx. The way we recommended is import globals explicitly.
 

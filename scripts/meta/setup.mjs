@@ -1,4 +1,4 @@
-// Setup everyhing before pnpm install
+// Setup everything before pnpm install
 import "zx/globals";
 import * as path from "path";
 
