@@ -12,6 +12,7 @@ export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
 }
 export interface RawPattern {
   from: string
@@ -311,6 +312,7 @@ export interface RawCrossOriginLoading {
 }
 export interface RawOutputOptions {
   path: string
+  clean: boolean
   publicPath: string
   assetModuleFilename: string
   wasmLoading: string
@@ -322,6 +324,7 @@ export interface RawOutputOptions {
   cssFilename: string
   cssChunkFilename: string
   uniqueName: string
+  chunkLoadingGlobal: string
   library?: RawLibraryOptions
   strictModuleErrorHandling: boolean
   enabledLibraryTypes?: Array<string>
@@ -529,6 +532,8 @@ export interface JsStatsModuleReason {
   moduleIdentifier?: string
   moduleName?: string
   moduleId?: string
+  type?: string
+  userRequest?: string
 }
 export interface JsStatsChunk {
   type: string

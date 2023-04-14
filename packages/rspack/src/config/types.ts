@@ -112,6 +112,7 @@ export interface EntryDescriptionNormalized {
 export interface Output {
 	path?: Path;
 	publicPath?: PublicPath;
+	clean?: Clean;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
 	crossOriginLoading?: CrossOriginLoading;
@@ -119,6 +120,7 @@ export interface Output {
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	libraryExport?: LibraryExport;
 	libraryTarget?: LibraryType;
@@ -146,10 +148,12 @@ export type CssFilename = FilenameTemplate;
 export type CssChunkFilename = FilenameTemplate;
 export type FilenameTemplate = string;
 export type UniqueName = string;
+export type ChunkLoadingGlobal = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
 export type Iife = boolean;
+export type Clean = boolean;
 export interface LibraryCustomUmdCommentObject {
 	amd?: string;
 	commonjs?: string;
@@ -204,6 +208,7 @@ export type WasmLoadingType =
 export type EnabledWasmLoadingTypes = WasmLoadingType[];
 export interface OutputNormalized {
 	path?: Path;
+	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
@@ -212,6 +217,7 @@ export interface OutputNormalized {
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	library?: LibraryOptions;
 	module?: OutputModule;

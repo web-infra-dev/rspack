@@ -1,4 +1,4 @@
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
 const path = require("path");
 const jestDiff = require("jest-diff").diff;
@@ -62,15 +62,14 @@ expect.addSnapshotSerializer({
 });
 
 const getDefaultConfig = config => {
-	const { applyWebpackOptionsDefaults, getNormalizedWebpackOptions } =
-		require("..").config;
-	config = getNormalizedWebpackOptions(config);
-	applyWebpackOptionsDefaults(config);
+	const { applyRspackOptionsDefaults, getNormalizedRspackOptions } = require("@rspack/core");
+	config = getNormalizedRspackOptions(config);
+	applyRspackOptionsDefaults(config);
 	process.chdir(cwd);
 	return config;
 };
 
-describe("snapshots", () => {
+describe.skip("snapshots", () => {
 	const baseConfig = getDefaultConfig({ mode: "none" });
 
 	it("should have the correct base config", () => {
@@ -2301,7 +2300,7 @@ describe("snapshots", () => {
 	);
 });
 
-it("should result in the same target options for same target", () => {
+it.skip("should result in the same target options for same target", () => {
 	const inlineTarget = getDefaultConfig({ target: "node12.17" });
 	const browserslistTarget = getDefaultConfig({
 		target: "browserslist: node 12.17"

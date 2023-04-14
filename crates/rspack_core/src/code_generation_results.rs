@@ -27,6 +27,7 @@ pub struct CodeGenerationResult {
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: HashMap<String, String>,
   pub runtime_requirements: RuntimeGlobals,
+  pub hash: u64,
 }
 
 impl CodeGenerationResult {
@@ -60,6 +61,17 @@ impl CodeGenerationResult {
   pub fn add(&mut self, source_type: SourceType, generation_result: impl Into<GenerationResult>) {
     let result = self.inner.insert(source_type, generation_result.into());
     debug_assert!(result.is_none());
+  }
+
+  pub fn set_hash(&mut self) {
+    let mut state = Xxh3::default();
+    for (source_type, generation_result) in &self.inner {
+      source_type.hash(&mut state);
+      if let Some(source) = generation_result.ast_or_source.as_source() {
+        source.hash(&mut state);
+      }
+    }
+    self.hash = state.finish();
   }
 }
 
@@ -153,21 +165,16 @@ impl CodeGenerationResults {
     }
   }
 
+  #[allow(clippy::unwrap_in_result)]
   pub fn get_hash(
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> u64 {
+  ) -> Option<u64> {
     let code_generation_result = self
       .get(module_identifier, runtime)
       .expect("should have code generation result");
-    let mut hash = Xxh3::default();
-    for (source_type, generation_result) in code_generation_result.inner() {
-      source_type.hash(&mut hash);
-      if let Some(source) = generation_result.ast_or_source.as_source() {
-        source.hash(&mut hash);
-      }
-    }
-    hash.finish()
+
+    Some(code_generation_result.hash)
   }
 }

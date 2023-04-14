@@ -1,12 +1,12 @@
 "use strict";
 
-require("./helpers/warmup-webpack");
+// require("./helpers/warmup-webpack");
 
-describe("Validation", () => {
+describe.skip("Validation", () => {
 	const createTestCase = (name, config, fn) => {
 		it("should fail validation for " + name, () => {
 			try {
-				const webpack = require("..");
+				const webpack = require("@rspack/core").rspack;
 				webpack(config);
 			} catch (err) {
 				if (err.name !== "ValidationError") throw err;

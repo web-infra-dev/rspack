@@ -200,3 +200,8 @@ justfile
 
 # align to webpack
 /webpack-test/js
+/webpack-test/browsertest/js
+/webpack-test/fixtures/temp-*
+/webpack-test/temp
+/webpack-test/ChangesAndRemovals
+/webpack-test/**/dev-defaults.webpack.lock

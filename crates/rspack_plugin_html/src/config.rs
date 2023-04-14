@@ -134,7 +134,7 @@ impl HtmlPluginConfig {
         .public_path
         .render(compilation, filename),
     };
-    if !public_path.ends_with('/') {
+    if !public_path.is_empty() && !public_path.ends_with('/') {
       public_path + "/"
     } else {
       public_path

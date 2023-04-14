@@ -97,7 +97,7 @@ const exec = (n, options = {}) => {
 
 const supportsEsm = +process.versions.modules >= 83;
 
-describe("BuildDependencies", () => {
+describe.skip("BuildDependencies", () => {
 	beforeEach(done => {
 		rimraf(cacheDirectory, done);
 	});

@@ -1,24 +1,24 @@
 use rspack_core::{
   CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
-  Dependency, DependencyCategory, ImportContextDependency, ModuleDependency,
-  RequireContextDependency, ResourceData, RuntimeGlobals,
+  Dependency, DependencyCategory, EsmDynamicImportDependency, ImportContextDependency,
+  ModuleDependency, RequireContextDependency, ResourceData, RuntimeGlobals,
 };
 use rspack_regex::RspackRegex;
-use swc_core::common::DUMMY_SP;
+use swc_core::common::comments::Comments;
 use swc_core::common::{pass::AstNodePath, SyntaxContext};
+use swc_core::common::{Span, DUMMY_SP};
 use swc_core::ecma::ast::{
   AssignExpr, AssignOp, BinExpr, BinaryOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit,
   MemberExpr, MemberProp, MetaPropExpr, MetaPropKind, ModuleDecl, NewExpr, Pat, PatOrExpr, Tpl,
 };
-use swc_core::ecma::atoms::js_word;
+use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
 use super::{as_parent_path, is_require_context_call, match_member_expr};
 use crate::dependency::{
-  CommonJSRequireDependency, EsmDynamicImportDependency, EsmExportDependency, EsmImportDependency,
-  URLDependency,
+  CommonJSRequireDependency, EsmExportDependency, EsmImportDependency, URLDependency,
 };
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
@@ -31,6 +31,7 @@ pub struct DependencyScanner<'a> {
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
+  pub comments: Option<&'a dyn Comments>,
 }
 
 impl DependencyScanner<'_> {
@@ -93,32 +94,80 @@ impl DependencyScanner<'_> {
       }
     }
   }
+
+  fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
+    use once_cell::sync::Lazy;
+    use swc_core::common::comments::CommentKind;
+    static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
+      regex::Regex::new(r#"webpackChunkName\s*:\s*["|'|`]\s*(\w[\w0-9]*)\s*["|'|`]"#)
+        .expect("invalid regex")
+    });
+    self
+      .comments
+      .with_leading(first_arg_span_of_import_call.lo, |comments| {
+        let ret = comments
+          .iter()
+          .rev()
+          .filter(|c| matches!(c.kind, CommentKind::Block))
+          .find_map(|comment| {
+            WEBPACK_CHUNK_NAME_CAPTURE_RE
+              .captures(&comment.text)
+              .and_then(|captures| captures.get(1))
+              .map(|mat| mat.as_str().to_string())
+          });
+        ret
+      })
+  }
+
   fn add_dynamic_import(&mut self, node: &CallExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
     if let Callee::Import(_) = node.callee {
       if let Some(dyn_imported) = node.args.get(0) {
         if dyn_imported.spread.is_none() {
-          if let Expr::Lit(Lit::Str(imported)) = dyn_imported.expr.as_ref() {
-            self.add_dependency(box EsmDynamicImportDependency::new(
-              imported.value.clone(),
-              Some(node.span.into()),
-              as_parent_path(ast_path),
-            ));
-          }
-          if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
-            self.add_dependency(box ImportContextDependency::new(
-              ContextOptions {
-                mode: ContextMode::Lazy,
-                recursive: true,
-                reg_exp: RspackRegex::new(&reg).expect("reg failed"),
-                reg_str: reg,
-                include: None,
-                exclude: None,
-                category: DependencyCategory::Esm,
-                request: context,
-              },
-              Some(node.span.into()),
-              as_parent_path(ast_path),
-            ));
+          match dyn_imported.expr.as_ref() {
+            Expr::Lit(Lit::Str(imported)) => {
+              let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
+              self.add_dependency(box EsmDynamicImportDependency::new(
+                imported.value.clone(),
+                Some(node.span.into()),
+                as_parent_path(ast_path),
+                chunk_name,
+              ));
+            }
+            Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
+              let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
+              let request = JsWord::from(
+                tpl
+                  .quasis
+                  .first()
+                  .expect("should have one quasis")
+                  .raw
+                  .to_string(),
+              );
+              self.add_dependency(box EsmDynamicImportDependency::new(
+                request,
+                Some(node.span.into()),
+                as_parent_path(ast_path),
+                chunk_name,
+              ));
+            }
+            _ => {
+              if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
+                self.add_dependency(box ImportContextDependency::new(
+                  ContextOptions {
+                    mode: ContextMode::Lazy,
+                    recursive: true,
+                    reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                    reg_str: reg,
+                    include: None,
+                    exclude: None,
+                    category: DependencyCategory::Esm,
+                    request: context,
+                  },
+                  Some(node.span.into()),
+                  as_parent_path(ast_path),
+                ));
+              }
+            }
           }
         }
       }
@@ -384,6 +433,7 @@ impl<'a> DependencyScanner<'a> {
     compiler_options: &'a CompilerOptions,
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
     presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
+    comments: Option<&'a dyn Comments>,
   ) -> Self {
     Self {
       unresolved_ctxt,
@@ -391,6 +441,7 @@ impl<'a> DependencyScanner<'a> {
       presentational_dependencies,
       compiler_options,
       resource_data,
+      comments,
     }
   }
 }

@@ -1,7 +1,9 @@
 {
   "entry": {
     "index": {
-      "import": ["./app.js"]
+      "import": [
+        "./app.js"
+      ]
     }
   }
 }

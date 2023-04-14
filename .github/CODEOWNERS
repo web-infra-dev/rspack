@@ -34,7 +34,7 @@ pnpm-lock.yaml
 /crates/rspack_core/src/tree_shaking @IWANABETHATGUY
 /crates/rspack_core @h-a-n-a @hyf0
 /crates/rspack_database @hyf0
-/crates/rspack_error @h-a-n-a
+/crates/rspack_error @IWANABETHATGUY @ahabhgk @h-a-n-a
 /crates/rspack_fs @h-a-n-a
 /crates/rspack_fs_node @h-a-n-a
 /crates/rspack_futures @h-a-n-a

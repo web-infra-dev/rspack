@@ -922,11 +922,7 @@ impl Compilation {
       })
       .collect::<FuturesResults<_>>();
 
-    let chunk_ukey_and_manifest = results
-      .into_inner()
-      .into_iter()
-      .collect::<std::result::Result<Vec<_>, _>>()
-      .expect("Failed to resolve render_manifest results");
+    let chunk_ukey_and_manifest = results.into_inner();
 
     chunk_ukey_and_manifest
       .into_iter()
@@ -1169,8 +1165,7 @@ impl Compilation {
       })
       .collect::<FuturesResults<_>>()
       .into_inner();
-    for item in chunk_hash_results {
-      let (chunk_ukey, hash) = item.expect("Failed to resolve chunk_hash results");
+    for (chunk_ukey, hash) in chunk_hash_results {
       if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
         hash?.hash(&mut chunk.hash);
       }
@@ -1184,7 +1179,11 @@ impl Compilation {
           .chunk_graph
           .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
           .into_iter()
-          .filter_map(|m| self.module_graph.get_module_hash(&m.identifier()))
+          .filter_map(|m| {
+            self
+              .code_generation_results
+              .get_hash(&m.identifier(), Some(&chunk.runtime))
+          })
           .inspect(|hash| hash.hash(&mut chunk.hash))
       })
       .collect::<Vec<_>>()
@@ -1193,7 +1192,7 @@ impl Compilation {
         hash.hash(&mut compilation_hasher);
       });
 
-    tracing::trace!("hash chunks");
+    tracing::trace!("hash normal chunks chunk hash");
 
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
     // runtime chunks should be hashed after all other chunks
@@ -1202,39 +1201,14 @@ impl Compilation {
       .keys()
       .filter(|key| !runtime_chunk_ukeys.contains(key))
       .copied()
-      .chain(runtime_chunk_ukeys.clone())
       .collect::<Vec<_>>();
+    self.create_chunk_content_hash(content_hash_chunks, plugin_driver.clone())?;
 
-    let hash_results = content_hash_chunks
-      .iter()
-      .map(|chunk_ukey| async {
-        let hashes = plugin_driver
-          .read()
-          .await
-          .content_hash(&ContentHashArgs {
-            chunk_ukey: *chunk_ukey,
-            compilation: self,
-          })
-          .await;
-        (*chunk_ukey, hashes)
-      })
-      .collect::<FuturesResults<_>>()
-      .into_inner();
-
-    for item in hash_results {
-      let (chunk_ukey, hashes) = item.expect("Failed to resolve content_hash results");
-      hashes?.into_iter().for_each(|hash| {
-        if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
-          chunk.content_hash.insert(source_type, hash);
-        }
-      });
-    }
-
-    tracing::trace!("calculate chunks content hash");
+    tracing::trace!("calculate normal chunks content hash");
 
     self.create_runtime_module_hash();
 
-    tracing::trace!("hash runtime chunks");
+    tracing::trace!("hash runtime modules");
 
     let mut entry_chunks = self
       .chunk_by_ukey
@@ -1257,9 +1231,49 @@ impl Compilation {
       .for_each(|hash| {
         hash.hash(&mut compilation_hasher);
       });
+    tracing::trace!("calculate runtime chunks hash");
+
+    self.create_chunk_content_hash(
+      Vec::from_iter(runtime_chunk_ukeys.into_iter()),
+      plugin_driver.clone(),
+    )?;
+    tracing::trace!("calculate runtime chunks content hash");
 
     self.hash = format!("{:x}", compilation_hasher.finish());
     tracing::trace!("compilation hash");
+    Ok(())
+  }
+
+  #[allow(clippy::unwrap_in_result)]
+  fn create_chunk_content_hash(
+    &mut self,
+    chunks: Vec<ChunkUkey>,
+    plugin_driver: SharedPluginDriver,
+  ) -> Result<()> {
+    let hash_results = chunks
+      .iter()
+      .map(|chunk_ukey| async {
+        let hashes = plugin_driver
+          .read()
+          .await
+          .content_hash(&ContentHashArgs {
+            chunk_ukey: *chunk_ukey,
+            compilation: self,
+          })
+          .await;
+        (*chunk_ukey, hashes)
+      })
+      .collect::<FuturesResults<_>>()
+      .into_inner();
+
+    for (chunk_ukey, hashes) in hash_results {
+      hashes?.into_iter().for_each(|hash| {
+        if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
+          chunk.content_hash.insert(source_type, hash);
+        }
+      });
+    }
+
     Ok(())
   }
 

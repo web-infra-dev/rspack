@@ -1,15 +1,20 @@
 import {
 	RawCacheGroupOptions,
-	RawModuleRule,
-	RawRuleSetCondition,
-	RawRuleSetLogicalConditions,
-	RawOptions,
 	RawExternalItem,
-	RawExternalItemValue
+	RawExternalItemValue,
+	RawModuleRule,
+	RawOptions,
+	RawRuleSetCondition,
+	RawRuleSetLogicalConditions
 } from "@rspack/binding";
 import assert from "assert";
+import { Compiler } from "../compiler";
 import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
+import {
+	ComposeJsUseOptions,
+	createRawModuleRuleUses
+} from "./adapter-rule-use";
 import {
 	CrossOriginLoading,
 	EntryNormalized,
@@ -33,11 +38,6 @@ import {
 	StatsValue,
 	Target
 } from "./types";
-import {
-	ComposeJsUseOptions,
-	createRawModuleRuleUses
-} from "./adapter-rule-use";
-import { Compiler } from "../compiler";
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -161,6 +161,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 	return {
 		path: output.path!,
 		publicPath: output.publicPath!,
+		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
 		chunkFilename: output.chunkFilename!,
@@ -168,6 +169,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
 		uniqueName: output.uniqueName!,
+		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
 		strictModuleErrorHandling: output.strictModuleErrorHandling!,

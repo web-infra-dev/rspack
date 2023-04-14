@@ -341,7 +341,7 @@ impl<'me> CodeSplitter<'me> {
       });
     }
 
-    for module_identifier in mgm
+    for (module_identifier, chunk_name) in mgm
       .dynamic_depended_modules(&self.compilation.module_graph)
       .into_iter()
       .rev()
@@ -363,7 +363,15 @@ impl<'me> CodeSplitter<'me> {
         self.split_point_modules.insert(*module_identifier);
       }
 
-      let chunk = Compilation::add_chunk(&mut self.compilation.chunk_by_ukey);
+      let chunk = if let Some(chunk_name) = chunk_name {
+        Compilation::add_named_chunk(
+          chunk_name.to_string(),
+          &mut self.compilation.chunk_by_ukey,
+          &mut self.compilation.named_chunks,
+        )
+      } else {
+        Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
+      };
       chunk
         .chunk_reasons
         .push(format!("DynamicImport({module_identifier})"));
@@ -386,8 +394,14 @@ impl<'me> CodeSplitter<'me> {
       let mut chunk_group = ChunkGroup::new(
         ChunkGroupKind::Normal,
         item_chunk_group.runtime.clone(),
-        None,
+        chunk_name.map(|i| i.to_owned()),
       );
+      if let Some(name) = &chunk_group.options.name {
+        self
+          .compilation
+          .named_chunk_groups
+          .insert(name.to_owned(), chunk_group.ukey);
+      }
 
       self
         .compilation

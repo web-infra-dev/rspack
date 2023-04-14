@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`HashTestCases should print correct hash for package-path-change-0 1`] = `
+[
+  "runtime.ced6a4f438676fab.js",
+  "main.8ba66a6d562c9f41.js",
+  "0.28a2cb9e99b496d6.js",
+]
+`;
+
+exports[`HashTestCases should print correct hash for package-path-change-1 1`] = `
+[
+  "runtime.bbbe2a6c0d629b10.js",
+  "main.b11af1dbcee032b1.js",
+  "0.1984e8e54b0d14de.js",
+]
+`;

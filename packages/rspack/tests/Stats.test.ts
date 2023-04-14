@@ -92,7 +92,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "ff293361e645d785",
+		  "hash": "a8535b55b7de03c8",
 		  "modules": [
 		    {
 		      "chunks": [
@@ -129,7 +129,7 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: ff293361e645d785
+		"Hash: a8535b55b7de03c8
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  215 bytes    main  [emitted]  main
@@ -158,7 +158,7 @@ describe("Stats", () => {
 			entry: "./fixtures/abc"
 		});
 		expect(stats?.toString({ timings: false })).toMatchInlineSnapshot(`
-		"Hash: 2168fece27972fed
+		"Hash: ef19f9b69eb0c2d0
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main

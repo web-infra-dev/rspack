@@ -123,8 +123,12 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       }
       source.add(RawSource::Source(");".to_string()));
     } else {
+      let chunk_loading_global = &args.compilation.options.output.chunk_loading_global;
+
       source.add(RawSource::from(format!(
-        r#"(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["{}"], "#,
+        r#"(self['{}'] = self['{}'] || []).push([["{}"], "#,
+        chunk_loading_global,
+        chunk_loading_global,
         chunk.expect_id(),
       )));
       source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);

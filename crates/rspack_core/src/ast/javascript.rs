@@ -21,7 +21,7 @@ use swc_core::ecma::visit::{
 #[derive(Clone)]
 pub struct Program {
   pub(crate) program: SwcProgram,
-  pub(crate) comments: Option<SwcComments>,
+  pub comments: Option<SwcComments>,
 }
 
 impl std::hash::Hash for Program {

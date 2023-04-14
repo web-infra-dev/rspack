@@ -221,14 +221,12 @@ impl Stats<'_> {
   }
 
   pub fn get_entrypoints(&self) -> Vec<StatsChunkGroup> {
-    let mut entrypoints: Vec<StatsChunkGroup> = self
+    self
       .compilation
       .entrypoints
       .iter()
       .map(|(name, ukey)| self.get_chunk_group(name, ukey))
-      .collect();
-    entrypoints.sort_by_cached_key(|e| e.name.to_string());
-    entrypoints
+      .collect()
   }
 
   pub fn get_named_chunk_groups(&self) -> Vec<StatsChunkGroup> {
@@ -316,10 +314,20 @@ impl Stats<'_> {
               .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
               .map(|m| get_stats_module_name_and_id(m, self.compilation))
               .unzip();
+            let dependency = self
+              .compilation
+              .module_graph
+              .dependency_by_id(&connection.dependency_id);
+
+            let r#type = dependency.map(|d| d.dependency_type().to_string());
+
+            let user_request = dependency.map(|d| d.user_request().to_string());
             StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,
               module_id,
+              r#type,
+              user_request,
             }
           })
           .collect();
@@ -514,4 +522,6 @@ pub struct StatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub r#type: Option<String>,
+  pub user_request: Option<String>,
 }

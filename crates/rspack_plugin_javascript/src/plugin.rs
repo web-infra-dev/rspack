@@ -349,6 +349,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         context.unresolved_mark,
         resource_data,
         compiler_options,
+        module_type,
       )
     });
 
@@ -523,8 +524,8 @@ impl Plugin for JsPlugin {
       .map(|mgm| {
         (
           compilation
-            .module_graph
-            .get_module_hash(&mgm.module_identifier),
+            .code_generation_results
+            .get_hash(&mgm.module_identifier, Some(&chunk.runtime)),
           compilation.chunk_graph.get_module_id(mgm.module_identifier),
         )
       })
