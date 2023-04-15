@@ -6,7 +6,8 @@
 // const JavascriptParser = require("../lib/javascript/JavascriptParser");
 
 describe.skip("JavascriptParser", () => {
-
+	it("filtered", () => {})
+	return
 	/* eslint-disable no-undef */
 	/* eslint-disable no-unused-vars */
 	/* eslint-disable no-inner-declarations */

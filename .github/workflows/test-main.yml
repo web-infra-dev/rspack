@@ -1,0 +1,28 @@
+name: Test Main
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "crates/**"
+      - "packages/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - x86_64-apple-darwin
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: ${{ matrix.target }}
+      docker: true
+      tests: true

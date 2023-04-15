@@ -1,0 +1,85 @@
+name: Release Nightly
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 00:07 AM Beijing Time, offset an odd number to avoid cron jobs firing off at the same time
+    - cron:  '7 16 * * *'
+
+jobs:
+  build:
+    name: Release Nightly
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - i686-pc-windows-msvc
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: ${{ matrix.target }}
+      docker: true
+      tests: true
+
+  release:
+    name: Nightly
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          # This makes Actions fetch only one branch to release
+          fetch-depth: 1
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Build node packages
+        run: pnpm run build:js
+
+      - name: Move artifacts
+        run: node scripts/build-npm.js
+
+      - name: Show binding packages
+        run: ls -R npm
+
+      - name: Link optional dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Prevent changeset crashing on empty changesets
+        shell: bash
+        run: |
+          pnpm run changeset add --empty
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .
+          git commit -m "chore: bump nightly"
+
+      - name: Release
+        uses: web-infra-dev/actions@v2
+        with:
+          version: "canary"
+          npmTag: "nightly"
+          type: "release"
+          branch: ""
+          tools: "changeset"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          ONLY_RELEASE_TAG: true

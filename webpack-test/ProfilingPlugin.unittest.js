@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const ProfilingPlugin = require("../lib/debug/ProfilingPlugin");
+// const ProfilingPlugin = require("../lib/debug/ProfilingPlugin");
 
 describe.skip("Profiling Plugin", () => {
 	it("should persist the passed output path", () => {

@@ -31,12 +31,6 @@ impl ProgressPlugin {
       ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {percent}% {wide_msg}")
         .expect("TODO:"),
     );
-    progress_bar.set_prefix(
-      options
-        .prefix
-        .clone()
-        .unwrap_or_else(|| "Rspack".to_string()),
-    );
     Self {
       options,
       progress_bar,
@@ -55,6 +49,13 @@ impl Plugin for ProgressPlugin {
 
   async fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
     self.progress_bar.reset();
+    self.progress_bar.set_prefix(
+      self
+        .options
+        .prefix
+        .clone()
+        .unwrap_or_else(|| "Rspack".to_string()),
+    );
     self.modules_count.store(0, SeqCst);
     self.modules_done.store(0, SeqCst);
     self.progress_bar.set_message("make");

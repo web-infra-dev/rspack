@@ -1,5 +1,13 @@
 name: pnpm cache
+
 description: Install Node.js with pnpm global cache
+
+inputs:
+  node-version:
+    default: '16'
+    required: false
+    type: string
+
 runs:
   using: composite
   steps:
@@ -11,7 +19,7 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: "16"
+        node-version: ${{ inputs.node-version }}
         cache: 'pnpm'
 
     - name: Install Npm Dependencies
