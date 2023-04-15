@@ -33,7 +33,7 @@ jobs:
       - name: Run Hmr benchmark
         run: |
           corepack enable
-          corepack prepare pnpm@8.2.0 --enable
+          corepack prepare pnpm@8.2.0 --activate
           pnpm i
           ./x build cli:release
           export ROOT_DIR=$(pwd) && cd benchcases/react-refresh && pnpm dev

@@ -38,6 +38,6 @@ runs:
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
           corepack enable
-          corepack prepare pnpm@8.2.0 --enable
+          corepack prepare pnpm@8.2.0 --activate
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
           ${{ inputs.post }}
