@@ -49,7 +49,7 @@ runInContext(
 runInContext(
 	"corepack prepare pnpm@8.2.0",
 	() =>
-		spawnSync("corepack", ["prepare", "pnpm@7.25.0", "--activate"], {
+		spawnSync("corepack", ["prepare", "pnpm@8.2.0", "--activate"], {
 			cwd: process.cwd(),
 			env: process.env,
 			stdio: "inherit",
