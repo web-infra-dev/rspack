@@ -1,9 +1,10 @@
 ---
 source: crates/rspack_error/tests/fixtures.rs
+assertion_line: 41
 expression: should_not_warn_export_destructring
 ---
-warning[internal]: ./a.js did not export `notExist`, imported by ./index.js
-
 warning[internal]: ./a.js did not export `rename`, imported by ./index.js
+
+warning[internal]: ./a.js did not export `notExist`, imported by ./index.js
 
 
