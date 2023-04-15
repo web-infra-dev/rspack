@@ -168,7 +168,7 @@ impl JsCompilation {
         Some(module) => {
           let compat_source = CompatSource::from(source).boxed();
           *module.ast_or_source_mut() =
-            NormalModuleAstOrSource::new_built(AstOrSource::Source(compat_source), &vec![]);
+            NormalModuleAstOrSource::new_built(AstOrSource::Source(compat_source), &[]);
           true
         }
         None => false,
@@ -245,7 +245,7 @@ impl JsCompilation {
       .map(|(n, _)| {
         (
           n.clone(),
-          JsChunkGroup::from_chunk_group(self.inner.entrypoint_by_name(n), &self.inner),
+          JsChunkGroup::from_chunk_group(self.inner.entrypoint_by_name(n), self.inner),
         )
       })
       .collect()
@@ -317,7 +317,7 @@ impl JsCompilation {
     self
       .inner
       .file_dependencies
-      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+      .extend(deps.into_iter().map(PathBuf::from))
   }
 
   #[napi]
@@ -325,7 +325,7 @@ impl JsCompilation {
     self
       .inner
       .context_dependencies
-      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+      .extend(deps.into_iter().map(PathBuf::from))
   }
 
   #[napi]
@@ -333,7 +333,7 @@ impl JsCompilation {
     self
       .inner
       .missing_dependencies
-      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+      .extend(deps.into_iter().map(PathBuf::from))
   }
 
   #[napi]
@@ -341,7 +341,7 @@ impl JsCompilation {
     self
       .inner
       .build_dependencies
-      .extend(deps.into_iter().map(|i| PathBuf::from(i)))
+      .extend(deps.into_iter().map(PathBuf::from))
   }
 }
 
