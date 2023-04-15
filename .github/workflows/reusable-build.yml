@@ -276,7 +276,6 @@ jobs:
         run: |
           set -e
           corepack enable
-          corepack prepare pnpm@8.2.0 --activate
           pnpm install
           pnpm run build:js
           pnpm run test:unit
@@ -300,7 +299,6 @@ jobs:
         run: |
           set -e
           corepack enable
-          corepack prepare pnpm@8.2.0 --activate
           pnpm install
           pnpm run build:js
           pnpm run test:unit

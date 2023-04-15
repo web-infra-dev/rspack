@@ -45,14 +45,3 @@ runInContext(
 			encoding: "utf-8"
 		}).status
 );
-
-runInContext(
-	"corepack prepare pnpm@8.2.0",
-	() =>
-		spawnSync("corepack", ["prepare", "pnpm@8.2.0", "--activate"], {
-			cwd: process.cwd(),
-			env: process.env,
-			stdio: "inherit",
-			encoding: "utf-8"
-		}).status
-);

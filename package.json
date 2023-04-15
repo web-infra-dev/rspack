@@ -5,6 +5,7 @@
   "description": "A Fast Rust-based web bundler",
   "private": true,
   "scripts": {
+    "preinstall": "node scripts/meta/setup.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
     "init": "./x i",
@@ -41,7 +42,7 @@
   },
   "engines": {
     "pnpm": "8.2.0",
-    "node" : ">=16.14"
+    "node": ">=16.14"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
