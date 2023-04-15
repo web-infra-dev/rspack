@@ -38,12 +38,16 @@ const tests = fs
 describe("StatsTestCases", () => {
 	jest.setTimeout(30000);
 	let stderr;
-	beforeEach(() => {
-		stderr = captureStdio(process.stderr, true);
-	});
-	afterEach(() => {
-		stderr.restore();
-	});
+	if (tests.length) {
+		beforeEach(() => {
+			stderr = captureStdio(process.stderr, true);
+		});
+	}
+	if (tests.length) {
+		afterEach(() => {
+			stderr.restore();
+		});
+	}
 	tests.forEach(testName => {
 		it("should print correct stats for " + testName, done => {
 			const outputDirectory = path.join(outputBase, testName);

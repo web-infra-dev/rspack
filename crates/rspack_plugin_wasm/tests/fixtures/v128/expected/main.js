@@ -6,12 +6,12 @@ __webpack_require__.a(module, async function(__webpack_handle_async_dependencies
         Object.defineProperty(exports, "__esModule", {
             value: true
         });
-        var _v128Wasm = __webpack_require__.ir(__webpack_require__("./v128.wasm"));
+        var _v128wasm = __webpack_require__.ir(__webpack_require__("./v128.wasm"));
         var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([
-            _v128Wasm
+            _v128wasm
         ]);
-        [_v128Wasm] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
-        console.log(_v128Wasm.default.x);
+        [_v128wasm] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__;
+        console.log(_v128wasm.default.x);
         __webpack_async_result__();
     } catch (e) {
         __webpack_async_result__(e);

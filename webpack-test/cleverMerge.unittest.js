@@ -10,6 +10,8 @@
 // } = require("../lib/util/cleverMerge");
 
 describe.skip("cleverMerge", () => {
+	it("filtered", () => {})
+	return
 	const base = {
 		a1: [1],
 		a2: [1],

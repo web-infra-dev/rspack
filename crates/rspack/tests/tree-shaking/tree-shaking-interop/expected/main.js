@@ -26,8 +26,8 @@ exports.test = 30;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
-(0, _fooJs.default)();
+var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
+(0, _foo.default)();
 },
 
 },function(__webpack_require__) {

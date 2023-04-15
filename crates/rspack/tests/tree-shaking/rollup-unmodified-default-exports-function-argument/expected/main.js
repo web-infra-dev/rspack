@@ -31,9 +31,9 @@ function bar() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
-var answer = (0, _fooJs.default)();
-(0, _fooJs.bar)();
+var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
+var answer = (0, _foo.default)();
+(0, _foo.bar)();
 console.log(answer);
 },
 

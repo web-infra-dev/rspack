@@ -4,9 +4,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _bJs = __webpack_require__("./b.js");
+var _b = __webpack_require__("./b.js");
 __webpack_require__.es(__webpack_require__("./c.js"), exports);
-_bJs.d;
+_b.d;
 },
 "./b.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -39,8 +39,8 @@ const ccc = 30;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _aJs = __webpack_require__("./a.js");
-_aJs.ccc;
+var _a = __webpack_require__("./a.js");
+_a.ccc;
 },
 
 },function(__webpack_require__) {

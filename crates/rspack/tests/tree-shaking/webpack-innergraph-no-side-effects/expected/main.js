@@ -23,8 +23,8 @@ _export(exports, {
         return test;
     }
 });
-var _indexJs = __webpack_require__("./package/index.js");
-var _default = _indexJs.a;
+var _index = __webpack_require__("./package/index.js");
+var _default = _index.a;
 function test() {}
 },
 "./package/index.js": function (module, exports, __webpack_require__) {

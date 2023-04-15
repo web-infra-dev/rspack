@@ -17,9 +17,9 @@ const answer = 30;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _appJs = __webpack_require__("./app.js");
+var _app = __webpack_require__("./app.js");
 const a = test(()=>__webpack_require__.el("./lib.js").then(__webpack_require__.bind(__webpack_require__, "./lib.js")).then(__webpack_require__.ir));
-(0, _appJs.answer)();
+(0, _app.answer)();
 a;
 },
 

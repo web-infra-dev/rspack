@@ -4,9 +4,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _moduleJs = __webpack_require__("./module.js");
-expect(_moduleJs.ok).toBe(true);
-expect(_moduleJs.ok2).toBe(true);
+var _module = __webpack_require__("./module.js");
+expect(_module.ok).toBe(true);
+expect(_module.ok2).toBe(true);
 },
 "./index.js": function (module, exports, __webpack_require__) {
 it("should not threat globals as pure", ()=>{

@@ -4,11 +4,10 @@ module.exports = {
 		filename: "[name].[contenthash].js"
 	},
 	optimization: {
-		moduleIds: 'named',
+		moduleIds: "named",
 		minimize: false,
 		runtimeChunk: {
-			name: 'runtime'
+			name: "runtime"
 		}
-	},
-	
+	}
 };
