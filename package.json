@@ -5,7 +5,6 @@
   "description": "A Fast Rust-based web bundler",
   "private": true,
   "scripts": {
-    "preinstall": "node scripts/meta/setup.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
     "init": "./x i",
