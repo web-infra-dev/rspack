@@ -188,7 +188,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16]
+        node: [16]
     name: Test Node ${{ matrix.node }}
     steps:
       - uses: actions/checkout@v3
@@ -300,6 +300,7 @@ jobs:
         run: |
           set -e
           corepack enable
+          corepack prepare pnpm@8.2.0 --activate
           pnpm install
           pnpm run build:js
           pnpm run test:unit
