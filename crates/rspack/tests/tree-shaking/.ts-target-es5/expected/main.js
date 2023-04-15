@@ -1,4 +1,120 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    _async_to_generator: function() {
+        return _async_to_generator;
+    },
+    _: function() {
+        return _async_to_generator;
+    }
+});
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    try {
+        var info = gen[key](arg);
+        var value = info.value;
+    } catch (error) {
+        reject(error);
+        return;
+    }
+    if (info.done) resolve(value);
+    else Promise.resolve(value).then(_next, _throw);
+}
+function _async_to_generator(fn) {
+    return function() {
+        var self = this, args = arguments;
+        return new Promise(function(resolve, reject) {
+            var gen = fn.apply(self, args);
+            function _next(value) {
+                asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            }
+            function _throw(err) {
+                asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            }
+            _next(undefined);
+        });
+    };
+}
+},
+"../../../../../node_modules/@swc/helpers/esm/_instanceof.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    _instanceof: function() {
+        return _instanceof1;
+    },
+    _: function() {
+        return _instanceof1;
+    }
+});
+var _instanceof = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_instanceof.js");
+function _instanceof1(left, right) {
+    if (right != null && typeof Symbol !== "undefined" && right[Symbol.hasInstance]) return !!right[Symbol.hasInstance](left);
+    else return _instanceof._(left, right);
+}
+},
+"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    _: function() {
+        return _tslibes6.__generator;
+    },
+    _ts_generator: function() {
+        return _tslibes6.__generator;
+    }
+});
+var _tslibes6 = __webpack_require__("../../../../../node_modules/tslib/tslib.es6.js");
+},
+"../../../../../node_modules/@swc/helpers/esm/_type_of.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    _type_of: function() {
+        return _type_of;
+    },
+    _: function() {
+        return _type_of;
+    }
+});
+function _type_of(obj) {
+    "@swc/helpers - typeof";
+    return obj && typeof Symbol !== "undefined" && obj.constructor === Symbol ? "symbol" : typeof obj;
+}
+},
 "../../../../../node_modules/tslib/tslib.es6.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -10,10 +126,8 @@ Object.defineProperty(exports, "__generator", {
         return __generator;
     }
 });
-var _instanceofMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_instanceof.mjs"));
-__webpack_require__("../../../../../node_modules/@swc/helpers/src/_type_of.mjs");
 var extendStatics = function extendStatics1(d, b) {
-    extendStatics = Object.setPrototypeOf || (0, _instanceofMjs.default)({
+    extendStatics = Object.setPrototypeOf || _instanceof({
         __proto__: []
     }, Array) && function(d, b) {
         d.__proto__ = b;
@@ -150,90 +264,6 @@ Object.create ? function __setModuleDefault(o, v) {
     o["default"] = v;
 };
 },
-"../../../../../node_modules/@swc/helpers/src/_async_to_generator.mjs": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _asyncToGenerator;
-    }
-});
-function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
-    try {
-        var info = gen[key](arg);
-        var value = info.value;
-    } catch (error) {
-        reject(error);
-        return;
-    }
-    if (info.done) resolve(value);
-    else Promise.resolve(value).then(_next, _throw);
-}
-function _asyncToGenerator(fn) {
-    return function() {
-        var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
-            var gen = fn.apply(self, args);
-            function _next(value) {
-                asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
-            }
-            function _throw(err) {
-                asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
-            }
-            _next(undefined);
-        });
-    };
-}
-},
-"../../../../../node_modules/@swc/helpers/src/_instanceof.mjs": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _instanceof;
-    }
-});
-var _instanceofMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_instanceof.mjs"));
-function _instanceof(left, right) {
-    if (right != null && typeof Symbol !== "undefined" && right[Symbol.hasInstance]) return !!right[Symbol.hasInstance](left);
-    else return (0, _instanceofMjs.default)(left, right);
-}
-},
-"../../../../../node_modules/@swc/helpers/src/_ts_generator.mjs": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _tslibEs6Js["__generator"];
-    }
-});
-var _tslibEs6Js = __webpack_require__("../../../../../node_modules/tslib/tslib.es6.js");
-},
-"../../../../../node_modules/@swc/helpers/src/_type_of.mjs": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _typeof;
-    }
-});
-function _typeof(obj) {
-    "@swc/helpers - typeof";
-    return obj && obj.constructor === Symbol ? "symbol" : typeof obj;
-}
-},
 "./index.ts": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -245,14 +275,14 @@ Object.defineProperty(exports, "test", {
         return test;
     }
 });
-var _asyncToGeneratorMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_async_to_generator.mjs"));
-var _tsGeneratorMjs = __webpack_require__.ir(__webpack_require__("../../../../../node_modules/@swc/helpers/src/_ts_generator.mjs"));
+var _async_to_generator = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js");
+var _ts_generator = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_ts_generator.js");
 function test() {
     return _test.apply(this, arguments);
 }
 function _test() {
-    _test = (0, _asyncToGeneratorMjs.default)(function() {
-        return (0, _tsGeneratorMjs.default)(this, function(_state) {
+    _test = _async_to_generator._(function() {
+        return _ts_generator._(this, function(_state) {
             return [
                 2
             ];
@@ -260,6 +290,7 @@ function _test() {
     });
     return _test.apply(this, arguments);
 }
+test();
 },
 
 },function(__webpack_require__) {

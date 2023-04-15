@@ -20,10 +20,10 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _aJs = __webpack_require__("./a.js");
-var _aSvg = __webpack_require__.ir(__webpack_require__("./a.svg"));
-_aJs.a;
-_aSvg.default;
+var _a = __webpack_require__("./a.js");
+var _asvg = __webpack_require__.ir(__webpack_require__("./a.svg"));
+_a.a;
+_asvg.default;
 },
 
 },function(__webpack_require__) {

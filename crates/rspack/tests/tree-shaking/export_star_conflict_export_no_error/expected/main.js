@@ -27,8 +27,8 @@ __webpack_require__.es(__webpack_require__("./result.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _barJs = __webpack_require__("./bar.js");
-(0, _barJs.b)();
+var _bar = __webpack_require__("./bar.js");
+(0, _bar.b)();
 },
 "./result.js": function (module, exports, __webpack_require__) {
 "use strict";

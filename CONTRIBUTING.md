@@ -75,6 +75,14 @@ nvm alias default 16
 nvm use 16
 ```
 
+#### Running setup script
+
+Make sure you are under the workspace root
+
+```bash
+node ./scripts/meta/setup.mjs
+```
+
 #### Install Dependencies
 
 Install Node.js dependencies via [pnpm](https://pnpm.io/).
