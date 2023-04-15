@@ -679,6 +679,7 @@ impl Plugin for CssPlugin {
     let sources = ordered_modules
       .par_iter()
       .map(|module_id| {
+        dbg!(module_id);
         let code_gen_result = compilation
           .code_generation_results
           .get(module_id, Some(&chunk.runtime))?;
@@ -688,7 +689,19 @@ impl Plugin for CssPlugin {
           .map(|result| result.ast_or_source.clone().try_into_source())
           .transpose()
       })
-      .collect::<Result<Vec<Option<BoxSource>>>>()?
+      .filter(|result| {
+        if let Ok(result) = result {
+          return result.is_some();
+        };
+        false
+      })
+      .collect::<Result<Vec<Option<BoxSource>>>>()?;
+
+    if sources.is_empty() {
+      return Ok(Default::default());
+    }
+
+    let sources = sources
       .into_par_iter()
       .enumerate()
       .fold(ConcatSource::default, |mut output, (idx, cur)| {
@@ -701,28 +714,25 @@ impl Plugin for CssPlugin {
         output
       })
       .collect::<Vec<ConcatSource>>();
+
     let source = ConcatSource::new(sources);
 
-    if source.source().is_empty() {
-      Ok(Default::default())
-    } else {
-      let filename_template = get_css_chunk_filename_template(
-        chunk,
-        &args.compilation.options.output,
-        &args.compilation.chunk_group_by_ukey,
-      );
+    let filename_template = get_css_chunk_filename_template(
+      chunk,
+      &args.compilation.options.output,
+      &args.compilation.chunk_group_by_ukey,
+    );
 
-      let output_path = filename_template.render_with_chunk(chunk, ".css", &SourceType::Css);
+    let output_path = filename_template.render_with_chunk(chunk, ".css", &SourceType::Css);
 
-      let path_data = PathData {
-        chunk_ukey: args.chunk_ukey,
-      };
-      Ok(vec![RenderManifestEntry::new(
-        source.boxed(),
-        output_path,
-        path_data,
-      )])
-    }
+    let path_data = PathData {
+      chunk_ukey: args.chunk_ukey,
+    };
+    Ok(vec![RenderManifestEntry::new(
+      source.boxed(),
+      output_path,
+      path_data,
+    )])
   }
 
   async fn process_assets_stage_optimize_size(
