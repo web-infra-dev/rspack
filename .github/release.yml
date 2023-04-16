@@ -4,6 +4,9 @@ changelog:
   exclude:
     labels:
       - "release: ignore"
+    authors:
+      # Ignore the release PR created by github-actions
+      - github-actions
   categories:
     - title: Breaking Changes 🛠
       labels:
