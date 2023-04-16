@@ -4,17 +4,20 @@ changelog:
   exclude:
     labels:
       - "release: ignore"
+    authors:
+      # Ignore the release PR created by github-actions
+      - github-actions
   categories:
     - title: Breaking Changes 🛠
       labels:
         - "release: breaking change"
-    - title: Performance improvements ⚡
+    - title: Performance Improvements ⚡
       labels:
         - "release: performance"
     - title: Exciting New Features 🎉
       labels:
         - "release: feature"
-    - title: Bug fixes 🐞
+    - title: Bug Fixes 🐞
       labels:
         - "release: bug fix"
     - title: Other Changes
