@@ -38,60 +38,24 @@ importers:
       sass-embedded-win32-ia32: 1.58.3
       sass-embedded-win32-x64: 1.58.3
     devDependencies:
-      '@changesets/cli':
-        specifier: 2.24.4
-        version: 2.24.4
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:packages/rspack-cli
-      '@taplo/cli':
-        specifier: ^0.5.2
-        version: 0.5.2
-      '@types/react':
-        specifier: 17.0.52
-        version: 17.0.52
-      '@types/react-dom':
-        specifier: 17.0.19
-        version: 17.0.19
-      commander:
-        specifier: 9.4.0
-        version: 9.4.0
-      esbuild:
-        specifier: ^0.15.9
-        version: 0.15.9
-      husky:
-        specifier: ^7.0.4
-        version: 7.0.4
-      is-ci:
-        specifier: 3.0.1
-        version: 3.0.1
-      jest:
-        specifier: 29.0.3
-        version: 29.0.3
-      lint-staged:
-        specifier: ^12.5.0
-        version: 12.5.0
-      prettier:
-        specifier: 2.5.1
-        version: 2.5.1
-      rimraf:
-        specifier: 3.0.2
-        version: 3.0.2
-      ts-jest:
-        specifier: 29.0.1
-        version: 29.0.1(@babel/core@7.21.0)(esbuild@0.15.9)(jest@29.0.3)(typescript@5.0.2)
-      typescript:
-        specifier: 5.0.2
-        version: 5.0.2
-      webpack:
-        specifier: 5.74.0
-        version: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-cli:
-        specifier: 4.10.0
-        version: 4.10.0(webpack@5.74.0)
-      why-is-node-running:
-        specifier: 2.2.1
-        version: 2.2.1
+      '@changesets/cli': 2.24.4
+      '@rspack/cli': link:packages/rspack-cli
+      '@taplo/cli': 0.5.2
+      '@types/react': 17.0.52
+      '@types/react-dom': 17.0.19
+      commander: 9.4.0
+      esbuild: 0.15.9
+      husky: 7.0.4
+      is-ci: 3.0.1
+      jest: 29.0.3
+      lint-staged: 12.5.0
+      prettier: 2.5.1
+      rimraf: 3.0.2
+      ts-jest: 29.0.1_pujexpxunlzq6ak2jdeum2jpha
+      typescript: 5.0.2
+      webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
+      webpack-cli: 4.10.0_webpack@5.74.0
+      why-is-node-running: 2.2.1
 
   benchcases/react-refresh:
     specifiers:
@@ -121,18 +85,10 @@ importers:
       '@rspack/binding-linux-x64-gnu': link:../../npm/linux-x64-gnu
       '@rspack/binding-win32-x64-msvc': link:../../npm/win32-x64-msvc
     devDependencies:
-      '@napi-rs/cli':
-        specifier: 2.15.2
-        version: 2.15.2
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
-      npm-run-all:
-        specifier: 4.1.5
-        version: 4.1.5
-      why-is-node-running:
-        specifier: 2.2.1
-        version: 2.2.1
+      '@napi-rs/cli': 2.14.2
+      cross-env: 7.0.3
+      npm-run-all: 4.1.5
+      why-is-node-running: 2.2.1
 
   crates/rspack_fs_node:
     specifiers:
@@ -185,121 +141,45 @@ importers:
       style-loader: ^3.3.1
       swc-loader: ^0.2.3
     dependencies:
-      '@antv/data-set':
-        specifier: ^0.11.8
-        version: 0.11.8
-      '@arco-design/color':
-        specifier: ^0.4.0
-        version: 0.4.0
-      '@arco-design/web-react':
-        specifier: 2.29.2
-        version: 2.29.2(react-dom@17.0.2)(react@17.0.2)
-      '@arco-themes/react-arco-pro':
-        specifier: ^0.0.7
-        version: 0.0.7(@arco-design/web-react@2.29.2)
-      '@loadable/component':
-        specifier: ^5.15.2
-        version: 5.15.2(react@17.0.2)
-      '@turf/turf':
-        specifier: ^6.5.0
-        version: 6.5.0
-      arco-design-pro:
-        specifier: ^2.3.0
-        version: 2.7.0
-      axios:
-        specifier: ^0.24.0
-        version: 0.24.0
-      bizcharts:
-        specifier: ^4.1.15
-        version: 4.1.22(react@17.0.2)
-      classnames:
-        specifier: ^2.3.1
-        version: 2.3.2
-      copy-to-clipboard:
-        specifier: ^3.3.1
-        version: 3.3.3
-      dayjs:
-        specifier: ^1.10.7
-        version: 1.11.7
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
-      mockjs:
-        specifier: ^1.1.0
-        version: 1.1.0
-      nprogress:
-        specifier: ^0.2.0
-        version: 0.2.0
-      query-string:
-        specifier: ^6.14.1
-        version: 6.14.1
-      react:
-        specifier: ^17.0.2
-        version: 17.0.2
-      react-color:
-        specifier: ^2.19.3
-        version: 2.19.3(react@17.0.2)
-      react-dom:
-        specifier: ^17.0.2
-        version: 17.0.2(react@17.0.2)
-      react-redux:
-        specifier: ^7.2.6
-        version: 7.2.9(react-dom@17.0.2)(react@17.0.2)
-      react-router:
-        specifier: ^5.2.1
-        version: 5.3.4(react@17.0.2)
-      react-router-dom:
-        specifier: ^5.3.0
-        version: 5.3.4(react@17.0.2)
-      redux:
-        specifier: ^4.1.2
-        version: 4.2.0
-      regenerator-runtime:
-        specifier: 0.13.9
-        version: 0.13.9
+      '@antv/data-set': 0.11.8
+      '@arco-design/color': 0.4.0
+      '@arco-design/web-react': 2.29.2_sfoxds7t5ydpegc3knd667wn6m
+      '@arco-themes/react-arco-pro': 0.0.7_ukqlr2dsvgygpqtt7k6pq4rpp4
+      '@loadable/component': 5.15.2_react@17.0.2
+      '@turf/turf': 6.5.0
+      arco-design-pro: 2.7.0
+      axios: 0.24.0
+      bizcharts: 4.1.22_react@17.0.2
+      classnames: 2.3.2
+      copy-to-clipboard: 3.3.3
+      dayjs: 1.11.7
+      lodash: 4.17.21
+      mockjs: 1.1.0
+      nprogress: 0.2.0
+      query-string: 6.14.1
+      react: 17.0.2
+      react-color: 2.19.3_react@17.0.2
+      react-dom: 17.0.2_react@17.0.2
+      react-redux: 7.2.9_sfoxds7t5ydpegc3knd667wn6m
+      react-router: 5.3.4_react@17.0.2
+      react-router-dom: 5.3.4_react@17.0.2
+      redux: 4.2.0
+      regenerator-runtime: 0.13.9
     devDependencies:
-      '@pmmmwh/react-refresh-webpack-plugin':
-        specifier: ^0.5.9
-        version: 0.5.10
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@rspack/plugin-html':
-        specifier: workspace:*
-        version: link:../../packages/rspack-plugin-html
-      '@svgr/webpack':
-        specifier: ^6.5.1
-        version: 6.5.1
-      '@swc/core':
-        specifier: ^1.3.14
-        version: 1.3.23
-      bundle-stats:
-        specifier: ^4.1.2
-        version: 4.1.6
-      css-loader:
-        specifier: ^6.7.1
-        version: 6.7.3
-      html-webpack-plugin:
-        specifier: ^5.5.0
-        version: 5.5.0
-      less-loader:
-        specifier: ^11.1.0
-        version: 11.1.0
-      mini-css-extract-plugin:
-        specifier: ^2.6.1
-        version: 2.7.2
-      postcss-loader:
-        specifier: 7.0.2
-        version: 7.0.2
-      serve:
-        specifier: 14.1.2
-        version: 14.1.2
-      style-loader:
-        specifier: ^3.3.1
-        version: 3.3.1
-      swc-loader:
-        specifier: ^0.2.3
-        version: 0.2.3(@swc/core@1.3.23)
+      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10
+      '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/plugin-html': link:../../packages/rspack-plugin-html
+      '@svgr/webpack': 6.5.1
+      '@swc/core': 1.3.23
+      bundle-stats: 4.1.6
+      css-loader: 6.7.3
+      html-webpack-plugin: 5.5.0
+      less-loader: 11.1.0
+      mini-css-extract-plugin: 2.7.2
+      postcss-loader: 7.0.2
+      serve: 14.1.2
+      style-loader: 3.3.1
+      swc-loader: 0.2.3_@swc+core@1.3.23
 
   examples/basic:
     specifiers:
@@ -353,18 +233,10 @@ importers:
       react: '17'
       react-dom: '17'
     dependencies:
-      '@emotion/react':
-        specifier: 11.10.6
-        version: 11.10.6(react@17.0.2)
-      '@emotion/styled':
-        specifier: 11.10.6
-        version: 11.10.6(@emotion/react@11.10.6)(react@17.0.2)
-      react:
-        specifier: '17'
-        version: 17.0.2
-      react-dom:
-        specifier: '17'
-        version: 17.0.2(react@17.0.2)
+      '@emotion/react': 11.10.6_react@17.0.2
+      '@emotion/styled': 11.10.6_lppulqnmkkrmfes7eqrbphxjnm
+      react: 17.0.2
+      react-dom: 17.0.2_react@17.0.2
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
@@ -393,54 +265,22 @@ importers:
       url-loader: 4.1.1
       yaml-loader: 0.8.0
     devDependencies:
-      '@babel/preset-env':
-        specifier: 7.20.2
-        version: 7.20.2
-      '@mdx-js/loader':
-        specifier: 2.2.1
-        version: 2.2.1
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@svgr/webpack':
-        specifier: 6.5.1
-        version: 6.5.1
-      autoprefixer:
-        specifier: 10.4.13
-        version: 10.4.13
-      babel-loader:
-        specifier: 9.1.2
-        version: 9.1.2
-      json-loader:
-        specifier: 0.5.7
-        version: 0.5.7
-      less-loader:
-        specifier: 11.1.0
-        version: 11.1.0
-      postcss-loader:
-        specifier: 7.0.2
-        version: 7.0.2
-      raw-loader:
-        specifier: 4.0.2
-        version: 4.0.2
-      sass-loader:
-        specifier: 13.2.0
-        version: 13.2.0
-      source-map-loader:
-        specifier: 4.0.1
-        version: 4.0.1
-      stylus:
-        specifier: 0.59.0
-        version: 0.59.0
-      stylus-loader:
-        specifier: 7.1.0
-        version: 7.1.0(stylus@0.59.0)
-      url-loader:
-        specifier: 4.1.1
-        version: 4.1.1
-      yaml-loader:
-        specifier: 0.8.0
-        version: 0.8.0
+      '@babel/preset-env': 7.20.2
+      '@mdx-js/loader': 2.2.1
+      '@rspack/cli': link:../../packages/rspack-cli
+      '@svgr/webpack': 6.5.1
+      autoprefixer: 10.4.13
+      babel-loader: 9.1.2
+      json-loader: 0.5.7
+      less-loader: 11.1.0
+      postcss-loader: 7.0.2
+      raw-loader: 4.0.2
+      sass-loader: 13.2.0
+      source-map-loader: 4.0.1
+      stylus: 0.59.0
+      stylus-loader: 7.1.0_stylus@0.59.0
+      url-loader: 4.1.1
+      yaml-loader: 0.8.0
 
   examples/multi-entry:
     specifiers:
@@ -473,21 +313,11 @@ importers:
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
     devDependencies:
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@rspack/plugin-html':
-        specifier: workspace:*
-        version: link:../../packages/rspack-plugin-html
-      copy-webpack-plugin:
-        specifier: 5.1.2
-        version: 5.1.2
-      webpack-bundle-analyzer:
-        specifier: 4.7.0
-        version: 4.7.0
-      webpack-stats-plugin:
-        specifier: 1.1.1
-        version: 1.1.1
+      '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/plugin-html': link:../../packages/rspack-plugin-html
+      copy-webpack-plugin: 5.1.2
+      webpack-bundle-analyzer: 4.7.0
+      webpack-stats-plugin: 1.1.1
 
   examples/postcss:
     specifiers:
@@ -554,21 +384,11 @@ importers:
       react: 17.0.0
       react-dom: 17.0.0
     dependencies:
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      less-loader:
-        specifier: 11.1.0
-        version: 11.1.0
-      normalize.css:
-        specifier: 8.0.1
-        version: 8.0.1
-      react:
-        specifier: 17.0.0
-        version: 17.0.0
-      react-dom:
-        specifier: 17.0.0
-        version: 17.0.0(react@17.0.0)
+      '@rspack/cli': link:../../packages/rspack-cli
+      less-loader: 11.1.0
+      normalize.css: 8.0.1
+      react: 17.0.0
+      react-dom: 17.0.0_react@17.0.0
 
   examples/react-with-sass:
     specifiers:
@@ -577,18 +397,10 @@ importers:
       react-dom: 17.0.0
       sass-loader: ^13.2.0
     dependencies:
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      react:
-        specifier: 17.0.0
-        version: 17.0.0
-      react-dom:
-        specifier: 17.0.0
-        version: 17.0.0(react@17.0.0)
-      sass-loader:
-        specifier: ^13.2.0
-        version: 13.2.0
+      '@rspack/cli': link:../../packages/rspack-cli
+      react: 17.0.0
+      react-dom: 17.0.0_react@17.0.0
+      sass-loader: 13.2.0
 
   examples/solid:
     specifiers:
@@ -599,24 +411,12 @@ importers:
       solid-js: 1.6.9
       solid-refresh: 0.5.2
     dependencies:
-      '@babel/core':
-        specifier: 7.20.12
-        version: 7.20.12
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      babel-loader:
-        specifier: 9.1.2
-        version: 9.1.2(@babel/core@7.20.12)
-      babel-preset-solid:
-        specifier: 1.6.9
-        version: 1.6.9(@babel/core@7.20.12)
-      solid-js:
-        specifier: 1.6.9
-        version: 1.6.9
-      solid-refresh:
-        specifier: 0.5.2
-        version: 0.5.2(solid-js@1.6.9)
+      '@babel/core': 7.20.12
+      '@rspack/cli': link:../../packages/rspack-cli
+      babel-loader: 9.1.2_@babel+core@7.20.12
+      babel-preset-solid: 1.6.9_@babel+core@7.20.12
+      solid-js: 1.6.9
+      solid-refresh: 0.5.2_solid-js@1.6.9
 
   examples/styled-components:
     specifiers:
@@ -626,18 +426,10 @@ importers:
       react-dom: '17'
       styled-components: 5.3.6
     dependencies:
-      '@types/styled-components':
-        specifier: 5.1.26
-        version: 5.1.26
-      react:
-        specifier: '17'
-        version: 17.0.2
-      react-dom:
-        specifier: '17'
-        version: 17.0.2(react@17.0.2)
-      styled-components:
-        specifier: 5.3.6
-        version: 5.3.6(react-dom@17.0.2)(react@17.0.2)
+      '@types/styled-components': 5.1.26
+      react: 17.0.2
+      react-dom: 17.0.2_react@17.0.2
+      styled-components: 5.3.6_sfoxds7t5ydpegc3knd667wn6m
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
@@ -656,7 +448,6 @@ importers:
       typescript: 5.0.2
       webpack-bundle-analyzer: 4.6.1
     devDependencies:
-<<<<<<< HEAD
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-html': link:../../packages/rspack-plugin-html
       '@tsconfig/svelte': 3.0.0
@@ -669,81 +460,6 @@ importers:
       tslib: 2.5.0
       typescript: 5.0.2
       webpack-bundle-analyzer: 4.6.1
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@rspack/plugin-html':
-        specifier: workspace:*
-        version: link:../../packages/rspack-plugin-html
-      '@tsconfig/svelte':
-        specifier: ^3.0.0
-        version: 3.0.0
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
-      postcss-load-config:
-        specifier: 4.0.1
-        version: 4.0.1
-      svelte:
-        specifier: ^3.55.1
-        version: 3.55.1
-      svelte-check:
-        specifier: ^3.0.3
-        version: 3.0.3(@babel/core@7.21.0)(postcss-load-config@4.0.1)(svelte@3.55.1)
-      svelte-loader:
-        specifier: ^3.1.5
-        version: 3.1.5(svelte@3.55.1)
-      svelte-preprocess:
-        specifier: ^5.0.1
-        version: 5.0.1(@babel/core@7.21.0)(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@5.0.2)
-      tslib:
-        specifier: ^2.5.0
-        version: 2.5.0
-      typescript:
-        specifier: 5.0.2
-        version: 5.0.2
-      webpack-bundle-analyzer:
-        specifier: 4.6.1
-        version: 4.6.1
-=======
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@rspack/plugin-html':
-        specifier: workspace:*
-        version: link:../../packages/rspack-plugin-html
-      '@tsconfig/svelte':
-        specifier: ^3.0.0
-        version: 3.0.0
-      cross-env:
-        specifier: ^7.0.3
-        version: 7.0.3
-      postcss-load-config:
-        specifier: 4.0.1
-        version: 4.0.1
-      svelte:
-        specifier: ^3.55.1
-        version: 3.55.1
-      svelte-check:
-        specifier: ^3.0.3
-        version: 3.0.3(postcss-load-config@4.0.1)(svelte@3.55.1)
-      svelte-loader:
-        specifier: ^3.1.5
-        version: 3.1.5(svelte@3.55.1)
-      svelte-preprocess:
-        specifier: ^5.0.1
-        version: 5.0.1(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@5.0.2)
-      tslib:
-        specifier: ^2.5.0
-        version: 2.5.0
-      typescript:
-        specifier: 5.0.2
-        version: 5.0.2
-      webpack-bundle-analyzer:
-        specifier: 4.6.1
-        version: 4.6.1
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   examples/svgr:
     specifiers:
@@ -753,45 +469,11 @@ importers:
       react-dom: '15'
       url-loader: 4.1.1
     devDependencies:
-<<<<<<< HEAD
       '@rspack/cli': link:../../packages/rspack-cli
       '@svgr/webpack': 6.5.1
       react: 15.7.0
       react-dom: 15.7.0_react@15.7.0
       url-loader: 4.1.1
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@svgr/webpack':
-        specifier: 6.5.1
-        version: 6.5.1
-      react:
-        specifier: '15'
-        version: 15.7.0
-      react-dom:
-        specifier: '15'
-        version: 15.7.0(react@15.7.0)
-      url-loader:
-        specifier: 4.1.1
-        version: 4.1.1(webpack@5.74.0)
-=======
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@svgr/webpack':
-        specifier: 6.5.1
-        version: 6.5.1
-      react:
-        specifier: '15'
-        version: 15.7.0
-      react-dom:
-        specifier: '15'
-        version: 15.7.0(react@15.7.0)
-      url-loader:
-        specifier: 4.1.1
-        version: 4.1.1
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   examples/tailwind:
     specifiers:
@@ -801,45 +483,11 @@ importers:
       postcss-loader: 7.2.3
       tailwindcss: 3.3.1
     devDependencies:
-<<<<<<< HEAD
       '@rspack/cli': link:../../packages/rspack-cli
       autoprefixer: 10.4.14_postcss@8.4.21
       postcss: 8.4.21
       postcss-loader: 7.2.3_postcss@8.4.21
       tailwindcss: 3.3.1_postcss@8.4.21
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      autoprefixer:
-        specifier: 10.4.14
-        version: 10.4.14(postcss@8.4.21)
-      postcss:
-        specifier: 8.4.21
-        version: 8.4.21
-      postcss-loader:
-        specifier: 7.2.3
-        version: 7.2.3(@types/node@18.7.9)(postcss@8.4.21)(ts-node@10.9.1)(typescript@4.9.4)(webpack@5.74.0)
-      tailwindcss:
-        specifier: 3.3.1
-        version: 3.3.1(postcss@8.4.21)(ts-node@10.9.1)
-=======
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      autoprefixer:
-        specifier: 10.4.14
-        version: 10.4.14(postcss@8.4.21)
-      postcss:
-        specifier: 8.4.21
-        version: 8.4.21
-      postcss-loader:
-        specifier: 7.2.3
-        version: 7.2.3(postcss@8.4.21)
-      tailwindcss:
-        specifier: 3.3.1
-        version: 3.3.1(postcss@8.4.21)
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   examples/tailwind-jit:
     specifiers:
@@ -849,45 +497,11 @@ importers:
       postcss-loader: 7.2.3
       tailwindcss: 3.3.1
     devDependencies:
-<<<<<<< HEAD
       '@rspack/cli': link:../../packages/rspack-cli
       autoprefixer: 10.4.14_postcss@8.4.21
       postcss: 8.4.21
       postcss-loader: 7.2.3_postcss@8.4.21
       tailwindcss: 3.3.1_postcss@8.4.21
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      autoprefixer:
-        specifier: 10.4.14
-        version: 10.4.14(postcss@8.4.21)
-      postcss:
-        specifier: 8.4.21
-        version: 8.4.21
-      postcss-loader:
-        specifier: 7.2.3
-        version: 7.2.3(@types/node@18.7.9)(postcss@8.4.21)(ts-node@10.9.1)(typescript@4.9.4)(webpack@5.74.0)
-      tailwindcss:
-        specifier: 3.3.1
-        version: 3.3.1(postcss@8.4.21)(ts-node@10.9.1)
-=======
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      autoprefixer:
-        specifier: 10.4.14
-        version: 10.4.14(postcss@8.4.21)
-      postcss:
-        specifier: 8.4.21
-        version: 8.4.21
-      postcss-loader:
-        specifier: 7.2.3
-        version: 7.2.3(postcss@8.4.21)
-      tailwindcss:
-        specifier: 3.3.1
-        version: 3.3.1(postcss@8.4.21)
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   examples/vue:
     specifiers:
@@ -911,38 +525,10 @@ importers:
     dependencies:
       vue: 3.2.45
     devDependencies:
-<<<<<<< HEAD
       '@babel/core': 7.21.0
       '@rspack/cli': link:../../packages/rspack-cli
       '@vue/babel-plugin-jsx': 1.1.1_@babel+core@7.21.0
       babel-loader: 9.1.2_@babel+core@7.21.0
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@babel/core':
-        specifier: 7.21.0
-        version: 7.21.0
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@vue/babel-plugin-jsx':
-        specifier: 1.1.1
-        version: 1.1.1(@babel/core@7.21.0)
-      babel-loader:
-        specifier: 9.1.2
-        version: 9.1.2(@babel/core@7.21.0)(webpack@5.74.0)
-=======
-      '@babel/core':
-        specifier: 7.21.0
-        version: 7.21.0
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@vue/babel-plugin-jsx':
-        specifier: 1.1.1
-        version: 1.1.1(@babel/core@7.21.0)
-      babel-loader:
-        specifier: 9.1.2
-        version: 9.1.2(@babel/core@7.21.0)
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   examples/wasm-simple:
     specifiers:
@@ -1078,7 +664,6 @@ importers:
       watchpack: 2.4.0
       webpack-sources: 3.2.3
     devDependencies:
-<<<<<<< HEAD
       '@rspack/core': 'link:'
       '@rspack/plugin-minify': link:../rspack-plugin-minify
       '@rspack/plugin-node-polyfill': link:../rspack-plugin-node-polyfill
@@ -1113,213 +698,6 @@ importers:
       uvu: 0.5.6
       wast-loader: 1.11.4
       webpack-dev-server: 4.13.1
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/core':
-        specifier: workspace:*
-        version: 'link:'
-      '@rspack/plugin-minify':
-        specifier: workspace:^
-        version: link:../rspack-plugin-minify
-      '@rspack/plugin-node-polyfill':
-        specifier: workspace:^
-        version: link:../rspack-plugin-node-polyfill
-      '@rspack/postcss-loader':
-        specifier: workspace:^
-        version: link:../postcss-loader
-      '@types/jest':
-        specifier: 29.0.2
-        version: 29.0.2
-      '@types/node':
-        specifier: ^18.6.3
-        version: 18.7.9
-      '@types/rimraf':
-        specifier: 3.0.2
-        version: 3.0.2
-      '@types/sinon':
-        specifier: 10.0.13
-        version: 10.0.13
-      '@types/watchpack':
-        specifier: ^2.4.0
-        version: 2.4.0
-      '@types/webpack-sources':
-        specifier: 3.2.0
-        version: 3.2.0
-      '@types/ws':
-        specifier: 8.5.3
-        version: 8.5.3
-      ajv:
-        specifier: ^8.12.0
-        version: 8.12.0
-      babel-loader:
-        specifier: ^9.1.0
-        version: 9.1.2(@babel/core@7.21.0)(webpack@5.74.0)
-      babel-plugin-import:
-        specifier: ^1.13.5
-        version: 1.13.5
-      chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
-      copy-webpack-plugin:
-        specifier: '5'
-        version: 5.1.2(webpack@5.74.0)
-      file-loader:
-        specifier: ^6.2.0
-        version: 6.2.0(webpack@5.74.0)
-      jest-serializer-path:
-        specifier: ^0.1.15
-        version: 0.1.15
-      less:
-        specifier: 4.1.3
-        version: 4.1.3
-      less-loader:
-        specifier: ^11.1.0
-        version: 11.1.0(less@4.1.3)(webpack@5.74.0)
-      postcss-loader:
-        specifier: ^7.0.2
-        version: 7.0.2(postcss@8.4.21)(webpack@5.74.0)
-      postcss-pxtorem:
-        specifier: ^6.0.0
-        version: 6.0.0(postcss@8.4.21)
-      react-relay:
-        specifier: ^14.1.0
-        version: 14.1.0(react@17.0.2)
-      rimraf:
-        specifier: 3.0.2
-        version: 3.0.2
-      sass:
-        specifier: ^1.56.2
-        version: 1.56.2
-      sass-loader:
-        specifier: ^13.2.0
-        version: 13.2.0(sass@1.56.2)(webpack@5.74.0)
-      sinon:
-        specifier: 14.0.0
-        version: 14.0.0
-      source-map:
-        specifier: ^0.7.4
-        version: 0.7.4
-      terser:
-        specifier: 5.16.1
-        version: 5.16.1
-      ts-node:
-        specifier: 10.9.1
-        version: 10.9.1(@types/node@18.7.9)(typescript@4.9.4)
-      util:
-        specifier: 0.12.5
-        version: 0.12.5
-      uvu:
-        specifier: 0.5.6
-        version: 0.5.6
-      wast-loader:
-        specifier: ^1.11.4
-        version: 1.11.4
-      webpack-dev-server:
-        specifier: 4.13.1
-        version: 4.13.1(webpack-cli@4.10.0)(webpack@5.74.0)
-=======
-      '@rspack/core':
-        specifier: workspace:*
-        version: 'link:'
-      '@rspack/plugin-minify':
-        specifier: workspace:^
-        version: link:../rspack-plugin-minify
-      '@rspack/plugin-node-polyfill':
-        specifier: workspace:^
-        version: link:../rspack-plugin-node-polyfill
-      '@rspack/postcss-loader':
-        specifier: workspace:^
-        version: link:../postcss-loader
-      '@types/jest':
-        specifier: 29.0.2
-        version: 29.0.2
-      '@types/node':
-        specifier: ^18.6.3
-        version: 18.7.9
-      '@types/rimraf':
-        specifier: 3.0.2
-        version: 3.0.2
-      '@types/sinon':
-        specifier: 10.0.13
-        version: 10.0.13
-      '@types/watchpack':
-        specifier: ^2.4.0
-        version: 2.4.0
-      '@types/webpack-sources':
-        specifier: 3.2.0
-        version: 3.2.0
-      '@types/ws':
-        specifier: 8.5.3
-        version: 8.5.3
-      ajv:
-        specifier: ^8.12.0
-        version: 8.12.0
-      babel-loader:
-        specifier: ^9.1.0
-        version: 9.1.2
-      babel-plugin-import:
-        specifier: ^1.13.5
-        version: 1.13.5
-      chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
-      copy-webpack-plugin:
-        specifier: '5'
-        version: 5.1.2
-      file-loader:
-        specifier: ^6.2.0
-        version: 6.2.0
-      jest-serializer-path:
-        specifier: ^0.1.15
-        version: 0.1.15
-      less:
-        specifier: 4.1.3
-        version: 4.1.3
-      less-loader:
-        specifier: ^11.1.0
-        version: 11.1.0(less@4.1.3)
-      postcss-loader:
-        specifier: ^7.0.2
-        version: 7.0.2
-      postcss-pxtorem:
-        specifier: ^6.0.0
-        version: 6.0.0
-      react-relay:
-        specifier: ^14.1.0
-        version: 14.1.0
-      rimraf:
-        specifier: 3.0.2
-        version: 3.0.2
-      sass:
-        specifier: ^1.56.2
-        version: 1.56.2
-      sass-loader:
-        specifier: ^13.2.0
-        version: 13.2.0(sass@1.56.2)
-      sinon:
-        specifier: 14.0.0
-        version: 14.0.0
-      source-map:
-        specifier: ^0.7.4
-        version: 0.7.4
-      terser:
-        specifier: 5.16.1
-        version: 5.16.1
-      ts-node:
-        specifier: 10.9.1
-        version: 10.9.1(@types/node@18.7.9)
-      util:
-        specifier: 0.12.5
-        version: 0.12.5
-      uvu:
-        specifier: 0.5.6
-        version: 0.5.6
-      wast-loader:
-        specifier: ^1.11.4
-        version: 1.11.4
-      webpack-dev-server:
-        specifier: 4.13.1
-        version: 4.13.1
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   packages/rspack-cli:
     specifiers:
@@ -1346,7 +724,6 @@ importers:
       webpack-bundle-analyzer: 4.6.1
       yargs: 17.6.2
     devDependencies:
-<<<<<<< HEAD
       '@types/webpack-bundle-analyzer': 4.6.0
       concat-stream: 2.0.0
       cross-env: 7.0.3
@@ -1354,51 +731,6 @@ importers:
       internal-ip: 6.2.0
       source-map-support: 0.5.21
       ts-node: 10.9.1
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@types/webpack-bundle-analyzer':
-        specifier: ^4.6.0
-        version: 4.6.0(esbuild@0.15.9)(webpack-cli@4.10.0)
-      concat-stream:
-        specifier: ^2.0.0
-        version: 2.0.0
-      cross-env:
-        specifier: 7.0.3
-        version: 7.0.3
-      execa:
-        specifier: ^5.0.0
-        version: 5.1.1
-      internal-ip:
-        specifier: 6.2.0
-        version: 6.2.0
-      source-map-support:
-        specifier: ^0.5.19
-        version: 0.5.21
-      ts-node:
-        specifier: 10.9.1
-        version: 10.9.1(@types/node@18.7.9)(typescript@4.9.4)
-=======
-      '@types/webpack-bundle-analyzer':
-        specifier: ^4.6.0
-        version: 4.6.0
-      concat-stream:
-        specifier: ^2.0.0
-        version: 2.0.0
-      cross-env:
-        specifier: 7.0.3
-        version: 7.0.3
-      execa:
-        specifier: ^5.0.0
-        version: 5.1.1
-      internal-ip:
-        specifier: 6.2.0
-        version: 6.2.0
-      source-map-support:
-        specifier: ^0.5.19
-        version: 0.5.21
-      ts-node:
-        specifier: 10.9.1
-        version: 10.9.1
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   packages/rspack-dev-client:
     specifiers:
@@ -1410,45 +742,11 @@ importers:
       webpack-dev-server: 4.11.1
       ws: 8.8.1
     dependencies:
-<<<<<<< HEAD
       '@pmmmwh/react-refresh-webpack-plugin': 0.5.10_pvgfg2i233iclh4uhrrgev3t5a
       events: 3.3.0
       webpack: 5.74.0
       webpack-dev-server: 4.11.1_webpack@5.74.0
       ws: 8.8.1
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@pmmmwh/react-refresh-webpack-plugin':
-        specifier: 0.5.10
-        version: 0.5.10(react-refresh@0.14.0)(webpack-dev-server@4.11.1)(webpack@5.74.0)
-      events:
-        specifier: 3.3.0
-        version: 3.3.0
-      webpack:
-        specifier: 5.74.0
-        version: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-dev-server:
-        specifier: 4.11.1
-        version: 4.11.1(webpack-cli@4.10.0)(webpack@5.74.0)
-      ws:
-        specifier: 8.8.1
-        version: 8.8.1
-=======
-      '@pmmmwh/react-refresh-webpack-plugin':
-        specifier: 0.5.10
-        version: 0.5.10(react-refresh@0.14.0)(webpack-dev-server@4.11.1)(webpack@5.74.0)
-      events:
-        specifier: 3.3.0
-        version: 3.3.0
-      webpack:
-        specifier: 5.74.0
-        version: 5.74.0
-      webpack-dev-server:
-        specifier: 4.11.1
-        version: 4.11.1(webpack@5.74.0)
-      ws:
-        specifier: 8.8.1
-        version: 8.8.1
->>>>>>> d23e019d (chore: 🤖 bump napi)
     devDependencies:
       '@types/node': 16.11.7
       react-refresh: 0.14.0
@@ -1460,31 +758,9 @@ importers:
       mime-types: 2.1.35
       webpack-dev-middleware: 6.0.2
     dependencies:
-<<<<<<< HEAD
       '@rspack/core': link:../rspack
       mime-types: 2.1.35
       webpack-dev-middleware: 6.0.2
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../rspack
-      mime-types:
-        specifier: 2.1.35
-        version: 2.1.35
-      webpack-dev-middleware:
-        specifier: 6.0.2
-        version: 6.0.2(webpack@5.74.0)
-=======
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../rspack
-      mime-types:
-        specifier: 2.1.35
-        version: 2.1.35
-      webpack-dev-middleware:
-        specifier: 6.0.2
-        version: 6.0.2
->>>>>>> d23e019d (chore: 🤖 bump napi)
     devDependencies:
       '@types/mime-types': 2.1.1
 
@@ -1508,7 +784,6 @@ importers:
       webpack-dev-server: 4.13.1
       ws: 8.8.1
     dependencies:
-<<<<<<< HEAD
       '@rspack/dev-client': link:../rspack-dev-client
       '@rspack/dev-middleware': link:../rspack-dev-middleware
       '@rspack/dev-server': 'link:'
@@ -1519,69 +794,6 @@ importers:
       webpack: 5.74.0
       webpack-dev-server: 4.13.1_webpack@5.74.0
       ws: 8.8.1
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/dev-client':
-        specifier: workspace:*
-        version: link:../rspack-dev-client
-      '@rspack/dev-middleware':
-        specifier: workspace:*
-        version: link:../rspack-dev-middleware
-      '@rspack/dev-server':
-        specifier: workspace:*
-        version: 'link:'
-      chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
-      connect-history-api-fallback:
-        specifier: 2.0.0
-        version: 2.0.0
-      express:
-        specifier: 4.18.1
-        version: 4.18.1
-      http-proxy-middleware:
-        specifier: 2.0.6
-        version: 2.0.6(@types/express@4.17.14)
-      webpack:
-        specifier: 5.74.0
-        version: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-dev-server:
-        specifier: 4.13.1
-        version: 4.13.1(webpack-cli@4.10.0)(webpack@5.74.0)
-      ws:
-        specifier: 8.8.1
-        version: 8.8.1
-=======
-      '@rspack/dev-client':
-        specifier: workspace:*
-        version: link:../rspack-dev-client
-      '@rspack/dev-middleware':
-        specifier: workspace:*
-        version: link:../rspack-dev-middleware
-      '@rspack/dev-server':
-        specifier: workspace:*
-        version: 'link:'
-      chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
-      connect-history-api-fallback:
-        specifier: 2.0.0
-        version: 2.0.0
-      express:
-        specifier: 4.18.1
-        version: 4.18.1
-      http-proxy-middleware:
-        specifier: 2.0.6
-        version: 2.0.6(@types/express@4.17.14)
-      webpack:
-        specifier: 5.74.0
-        version: 5.74.0
-      webpack-dev-server:
-        specifier: 4.13.1
-        version: 4.13.1(webpack@5.74.0)
-      ws:
-        specifier: 8.8.1
-        version: 8.8.1
->>>>>>> d23e019d (chore: 🤖 bump napi)
     devDependencies:
       '@rspack/core': link:../rspack
       '@types/connect-history-api-fallback': 1.3.5
@@ -1613,52 +825,12 @@ importers:
       parse5: 7.1.1
       tapable: 2.2.1
     devDependencies:
-<<<<<<< HEAD
       '@types/lodash.template': 4.5.1
       '@types/pug': 2.0.6
       html-loader: 4.2.0
       jest: 29.0.3
       loader-runner: 4.3.0
       pug: 3.0.2
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@types/lodash.template':
-        specifier: ^4.5.1
-        version: 4.5.1
-      '@types/pug':
-        specifier: ^2.0.6
-        version: 2.0.6
-      html-loader:
-        specifier: ^4.2.0
-        version: 4.2.0(webpack@5.74.0)
-      jest:
-        specifier: 29.0.3
-        version: 29.0.3
-      loader-runner:
-        specifier: ^4.3.0
-        version: 4.3.0
-      pug:
-        specifier: ^3.0.2
-        version: 3.0.2
-=======
-      '@types/lodash.template':
-        specifier: ^4.5.1
-        version: 4.5.1
-      '@types/pug':
-        specifier: ^2.0.6
-        version: 2.0.6
-      html-loader:
-        specifier: ^4.2.0
-        version: 4.2.0
-      jest:
-        specifier: 29.0.3
-        version: 29.0.3
-      loader-runner:
-        specifier: ^4.3.0
-        version: 4.3.0
-      pug:
-        specifier: ^3.0.2
-        version: 3.0.2
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   packages/rspack-plugin-minify:
     specifiers:
@@ -1790,7 +962,6 @@ importers:
       watchpack: 2.4.0
       webpack-sources: 3.2.3
     devDependencies:
-<<<<<<< HEAD
       '@rspack/core': link:../packages/rspack
       '@rspack/plugin-minify': link:../packages/rspack-plugin-minify
       '@rspack/plugin-node-polyfill': link:../packages/rspack-plugin-node-polyfill
@@ -1825,213 +996,6 @@ importers:
       util: 0.12.5
       uvu: 0.5.6
       webpack-dev-server: 4.13.1
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../packages/rspack
-      '@rspack/plugin-minify':
-        specifier: workspace:^
-        version: link:../packages/rspack-plugin-minify
-      '@rspack/plugin-node-polyfill':
-        specifier: workspace:^
-        version: link:../packages/rspack-plugin-node-polyfill
-      '@rspack/postcss-loader':
-        specifier: workspace:^
-        version: link:../packages/postcss-loader
-      '@types/jest':
-        specifier: 29.0.2
-        version: 29.0.2
-      '@types/node':
-        specifier: ^18.6.3
-        version: 18.7.9
-      '@types/rimraf':
-        specifier: 3.0.2
-        version: 3.0.2
-      '@types/sinon':
-        specifier: 10.0.13
-        version: 10.0.13
-      '@types/watchpack':
-        specifier: ^2.4.0
-        version: 2.4.0
-      '@types/webpack-sources':
-        specifier: 3.2.0
-        version: 3.2.0
-      '@types/ws':
-        specifier: 8.5.3
-        version: 8.5.3
-      ajv:
-        specifier: ^8.12.0
-        version: 8.12.0
-      babel-loader:
-        specifier: ^9.1.0
-        version: 9.1.2(@babel/core@7.21.0)(webpack@5.74.0)
-      babel-plugin-import:
-        specifier: ^1.13.5
-        version: 1.13.5
-      chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
-      copy-webpack-plugin:
-        specifier: '5'
-        version: 5.1.2(webpack@5.74.0)
-      file-loader:
-        specifier: ^6.2.0
-        version: 6.2.0(webpack@5.74.0)
-      jest-serializer-path:
-        specifier: ^0.1.15
-        version: 0.1.15
-      less:
-        specifier: 4.1.3
-        version: 4.1.3
-      less-loader:
-        specifier: ^11.1.0
-        version: 11.1.0(less@4.1.3)(webpack@5.74.0)
-      postcss-loader:
-        specifier: ^7.0.2
-        version: 7.0.2(postcss@8.4.21)(webpack@5.74.0)
-      postcss-pxtorem:
-        specifier: ^6.0.0
-        version: 6.0.0(postcss@8.4.21)
-      react-relay:
-        specifier: ^14.1.0
-        version: 14.1.0(react@17.0.2)
-      rimraf:
-        specifier: 3.0.2
-        version: 3.0.2
-      sass:
-        specifier: ^1.56.2
-        version: 1.56.2
-      sass-loader:
-        specifier: ^13.2.0
-        version: 13.2.0(sass@1.56.2)(webpack@5.74.0)
-      sinon:
-        specifier: 14.0.0
-        version: 14.0.0
-      source-map:
-        specifier: ^0.7.4
-        version: 0.7.4
-      terser:
-        specifier: 5.16.1
-        version: 5.16.1
-      ts-node:
-        specifier: 10.9.1
-        version: 10.9.1(@types/node@18.7.9)(typescript@4.9.4)
-      typescript:
-        specifier: ^4.7.4
-        version: 4.9.4
-      util:
-        specifier: 0.12.5
-        version: 0.12.5
-      uvu:
-        specifier: 0.5.6
-        version: 0.5.6
-      webpack-dev-server:
-        specifier: 4.13.1
-        version: 4.13.1(webpack-cli@4.10.0)(webpack@5.74.0)
-=======
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../packages/rspack
-      '@rspack/plugin-minify':
-        specifier: workspace:^
-        version: link:../packages/rspack-plugin-minify
-      '@rspack/plugin-node-polyfill':
-        specifier: workspace:^
-        version: link:../packages/rspack-plugin-node-polyfill
-      '@rspack/postcss-loader':
-        specifier: workspace:^
-        version: link:../packages/postcss-loader
-      '@types/jest':
-        specifier: 29.0.2
-        version: 29.0.2
-      '@types/node':
-        specifier: ^18.6.3
-        version: 18.7.9
-      '@types/rimraf':
-        specifier: 3.0.2
-        version: 3.0.2
-      '@types/sinon':
-        specifier: 10.0.13
-        version: 10.0.13
-      '@types/watchpack':
-        specifier: ^2.4.0
-        version: 2.4.0
-      '@types/webpack-sources':
-        specifier: 3.2.0
-        version: 3.2.0
-      '@types/ws':
-        specifier: 8.5.3
-        version: 8.5.3
-      ajv:
-        specifier: ^8.12.0
-        version: 8.12.0
-      babel-loader:
-        specifier: ^9.1.0
-        version: 9.1.2
-      babel-plugin-import:
-        specifier: ^1.13.5
-        version: 1.13.5
-      chokidar:
-        specifier: 3.5.3
-        version: 3.5.3
-      copy-webpack-plugin:
-        specifier: '5'
-        version: 5.1.2
-      file-loader:
-        specifier: ^6.2.0
-        version: 6.2.0
-      jest-serializer-path:
-        specifier: ^0.1.15
-        version: 0.1.15
-      less:
-        specifier: 4.1.3
-        version: 4.1.3
-      less-loader:
-        specifier: ^11.1.0
-        version: 11.1.0(less@4.1.3)
-      postcss-loader:
-        specifier: ^7.0.2
-        version: 7.0.2
-      postcss-pxtorem:
-        specifier: ^6.0.0
-        version: 6.0.0
-      react-relay:
-        specifier: ^14.1.0
-        version: 14.1.0
-      rimraf:
-        specifier: 3.0.2
-        version: 3.0.2
-      sass:
-        specifier: ^1.56.2
-        version: 1.56.2
-      sass-loader:
-        specifier: ^13.2.0
-        version: 13.2.0(sass@1.56.2)
-      sinon:
-        specifier: 14.0.0
-        version: 14.0.0
-      source-map:
-        specifier: ^0.7.4
-        version: 0.7.4
-      terser:
-        specifier: 5.16.1
-        version: 5.16.1
-      ts-node:
-        specifier: 10.9.1
-        version: 10.9.1(@types/node@18.7.9)(typescript@4.9.4)
-      typescript:
-        specifier: ^4.7.4
-        version: 4.9.4
-      util:
-        specifier: 0.12.5
-        version: 0.12.5
-      uvu:
-        specifier: 0.5.6
-        version: 0.5.6
-      webpack-dev-server:
-        specifier: 4.13.1
-        version: 4.13.1
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
 packages:
 
@@ -2250,13 +1214,7 @@ packages:
       color: 3.2.1
     dev: false
 
-<<<<<<< HEAD
   /@arco-design/web-react/2.29.2_sfoxds7t5ydpegc3knd667wn6m:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@arco-design/web-react@2.29.2(@types/react@17.0.52)(react-dom@17.0.2)(react@17.0.2):
-=======
-  /@arco-design/web-react@2.29.2(react-dom@17.0.2)(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-nDMIWfuvYKlxc8lFBtaLPPDURtAJLmXu77r0KCH0Y6GB3S8mUQb7hs0hCC/K+1Pp5yzuVr05ESrEYovM8O5AvQ==}
     peerDependencies:
       react: '>=16'
@@ -2271,19 +1229,9 @@ packages:
       lodash: 4.17.21
       number-precision: 1.6.0
       react: 17.0.2
-<<<<<<< HEAD
       react-dom: 17.0.2_react@17.0.2
       react-focus-lock: 2.9.2_react@17.0.2
       react-transition-group: 4.4.5_sfoxds7t5ydpegc3knd667wn6m
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      react-dom: 17.0.2(react@17.0.2)
-      react-focus-lock: 2.9.2(@types/react@17.0.52)(react@17.0.2)
-      react-transition-group: 4.4.5(react-dom@17.0.2)(react@17.0.2)
-=======
-      react-dom: 17.0.2(react@17.0.2)
-      react-focus-lock: 2.9.2(react@17.0.2)
-      react-transition-group: 4.4.5(react-dom@17.0.2)(react@17.0.2)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       resize-observer-polyfill: 1.5.1
       scroll-into-view-if-needed: 2.2.20
       shallowequal: 1.1.0
@@ -2296,13 +1244,7 @@ packages:
     peerDependencies:
       '@arco-design/web-react': ^2.25.1
     dependencies:
-<<<<<<< HEAD
       '@arco-design/web-react': 2.29.2_sfoxds7t5ydpegc3knd667wn6m
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@arco-design/web-react': 2.29.2(@types/react@17.0.52)(react-dom@17.0.2)(react@17.0.2)
-=======
-      '@arco-design/web-react': 2.29.2(react-dom@17.0.2)(react@17.0.2)
->>>>>>> d23e019d (chore: 🤖 bump napi)
     dev: false
 
   /@babel/code-frame/7.18.6:
@@ -2384,7 +1326,6 @@ packages:
       '@babel/types': 7.21.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/helper-compilation-targets/7.20.7:
     resolution: {integrity: sha512-4tGORmfQcrc+bvrjb5y3dG9Mx1IOZjsHqQVUz7XCNHO+iTmqxWnVg3KRygjGmpRLJGdQSKuvFinbIb0CnZwHAQ==}
     engines: {node: '>=6.9.0'}
@@ -2398,23 +1339,6 @@ packages:
       semver: 6.3.0
 
   /@babel/helper-compilation-targets/7.20.7_@babel+core@7.20.12:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/helper-compilation-targets@7.20.7(@babel/core@7.20.12):
-=======
-  /@babel/helper-compilation-targets@7.20.7:
-    resolution: {integrity: sha512-4tGORmfQcrc+bvrjb5y3dG9Mx1IOZjsHqQVUz7XCNHO+iTmqxWnVg3KRygjGmpRLJGdQSKuvFinbIb0CnZwHAQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-    dependencies:
-      '@babel/compat-data': 7.20.14
-      '@babel/helper-validator-option': 7.18.6
-      browserslist: 4.21.4
-      lru-cache: 5.1.1
-      semver: 6.3.0
-
-  /@babel/helper-compilation-targets@7.20.7(@babel/core@7.20.12):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-4tGORmfQcrc+bvrjb5y3dG9Mx1IOZjsHqQVUz7XCNHO+iTmqxWnVg3KRygjGmpRLJGdQSKuvFinbIb0CnZwHAQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2440,29 +1364,7 @@ packages:
       browserslist: 4.21.4
       lru-cache: 5.1.1
       semver: 6.3.0
-<<<<<<< HEAD
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-=======
-    dev: true
-
-  /@babel/helper-create-class-features-plugin@7.20.5:
-    resolution: {integrity: sha512-3RCdA/EmEaikrhayahwToF0fpweU/8o2p8vhc1c/1kftHOdTKuC65kik/TLc+qfbS8JKw4qqJbne4ovICDhmww==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-    dependencies:
-      '@babel/helper-annotate-as-pure': 7.18.6
-      '@babel/helper-environment-visitor': 7.18.9
-      '@babel/helper-function-name': 7.21.0
-      '@babel/helper-member-expression-to-functions': 7.18.9
-      '@babel/helper-optimise-call-expression': 7.18.6
-      '@babel/helper-replace-supers': 7.19.1
-      '@babel/helper-split-export-declaration': 7.18.6
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /@babel/helper-create-class-features-plugin/7.20.5:
     resolution: {integrity: sha512-3RCdA/EmEaikrhayahwToF0fpweU/8o2p8vhc1c/1kftHOdTKuC65kik/TLc+qfbS8JKw4qqJbne4ovICDhmww==}
@@ -2499,7 +1401,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/helper-create-regexp-features-plugin/7.20.5:
     resolution: {integrity: sha512-m68B1lkg3XDGX5yCvGO0kPx3v9WIYLnzjKfPcQiwntEQa5ZeRkPmo2X/ISJc8qxWGfwUr+kvZAeEzAwLec2r2w==}
     engines: {node: '>=6.9.0'}
@@ -2511,21 +1412,6 @@ packages:
     dev: true
 
   /@babel/helper-create-regexp-features-plugin/7.20.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/helper-create-regexp-features-plugin@7.20.5(@babel/core@7.21.0):
-=======
-  /@babel/helper-create-regexp-features-plugin@7.20.5:
-    resolution: {integrity: sha512-m68B1lkg3XDGX5yCvGO0kPx3v9WIYLnzjKfPcQiwntEQa5ZeRkPmo2X/ISJc8qxWGfwUr+kvZAeEzAwLec2r2w==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-    dependencies:
-      '@babel/helper-annotate-as-pure': 7.18.6
-      regexpu-core: 5.2.2
-    dev: true
-
-  /@babel/helper-create-regexp-features-plugin@7.20.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-m68B1lkg3XDGX5yCvGO0kPx3v9WIYLnzjKfPcQiwntEQa5ZeRkPmo2X/ISJc8qxWGfwUr+kvZAeEzAwLec2r2w==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2536,12 +1422,7 @@ packages:
       regexpu-core: 5.2.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/helper-define-polyfill-provider/0.3.3:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/helper-define-polyfill-provider@0.3.3(@babel/core@7.21.0):
-=======
-  /@babel/helper-define-polyfill-provider@0.3.3:
     resolution: {integrity: sha512-z5aQKU4IzbqCC1XH0nAqfsFLMVSo22SBKUc0BxGrLkolTdPTructy0ToNnlO2zA4j9Q/7pjMZf0DSY+DSTYzww==}
     peerDependencies:
       '@babel/core': ^7.4.0-0
@@ -2554,22 +1435,6 @@ packages:
       semver: 6.3.0
     transitivePeerDependencies:
       - supports-color
-
-  /@babel/helper-define-polyfill-provider@0.3.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
-    resolution: {integrity: sha512-z5aQKU4IzbqCC1XH0nAqfsFLMVSo22SBKUc0BxGrLkolTdPTructy0ToNnlO2zA4j9Q/7pjMZf0DSY+DSTYzww==}
-    peerDependencies:
-      '@babel/core': ^7.4.0-0
-    dependencies:
-      '@babel/helper-compilation-targets': 7.20.7
-      '@babel/helper-plugin-utils': 7.20.2
-      debug: 4.3.4
-      lodash.debounce: 4.0.8
-      resolve: 1.22.1
-      semver: 6.3.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
 
   /@babel/helper-define-polyfill-provider/0.3.3_@babel+core@7.21.0:
     resolution: {integrity: sha512-z5aQKU4IzbqCC1XH0nAqfsFLMVSo22SBKUc0BxGrLkolTdPTructy0ToNnlO2zA4j9Q/7pjMZf0DSY+DSTYzww==}
@@ -2650,7 +1515,6 @@ packages:
     resolution: {integrity: sha512-8RvlJG2mj4huQ4pZ+rU9lqKi9ZKiRmuvGuM2HlWmkmgOhbs6zEAw6IEiJ5cQqGbDzGZOhwuOQNtZMi/ENLjZoQ==}
     engines: {node: '>=6.9.0'}
 
-<<<<<<< HEAD
   /@babel/helper-remap-async-to-generator/7.18.9:
     resolution: {integrity: sha512-dI7q50YKd8BAv3VEfgg7PS7yD3Rtbi2J1XMXaalXO0W0164hYLnh8zpjRS0mte9MfVp/tltvr/cfdXPvJr1opA==}
     engines: {node: '>=6.9.0'}
@@ -2666,25 +1530,6 @@ packages:
     dev: true
 
   /@babel/helper-remap-async-to-generator/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/helper-remap-async-to-generator@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/helper-remap-async-to-generator@7.18.9:
-    resolution: {integrity: sha512-dI7q50YKd8BAv3VEfgg7PS7yD3Rtbi2J1XMXaalXO0W0164hYLnh8zpjRS0mte9MfVp/tltvr/cfdXPvJr1opA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-    dependencies:
-      '@babel/helper-annotate-as-pure': 7.18.6
-      '@babel/helper-environment-visitor': 7.18.9
-      '@babel/helper-wrap-function': 7.20.5
-      '@babel/types': 7.21.2
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/helper-remap-async-to-generator@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-dI7q50YKd8BAv3VEfgg7PS7yD3Rtbi2J1XMXaalXO0W0164hYLnh8zpjRS0mte9MfVp/tltvr/cfdXPvJr1opA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2780,7 +1625,6 @@ packages:
     dependencies:
       '@babel/types': 7.21.2
 
-<<<<<<< HEAD
   /@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression/7.18.6:
     resolution: {integrity: sha512-Dgxsyg54Fx1d4Nge8UnvTrED63vrwOdPmyvPzlNN/boaliRP54pm3pGzZD1SJUwrBA+Cs/xdG8kXX6Mn/RfISQ==}
     engines: {node: '>=6.9.0'}
@@ -2791,20 +1635,6 @@ packages:
     dev: true
 
   /@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression@7.18.6:
-    resolution: {integrity: sha512-Dgxsyg54Fx1d4Nge8UnvTrED63vrwOdPmyvPzlNN/boaliRP54pm3pGzZD1SJUwrBA+Cs/xdG8kXX6Mn/RfISQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-Dgxsyg54Fx1d4Nge8UnvTrED63vrwOdPmyvPzlNN/boaliRP54pm3pGzZD1SJUwrBA+Cs/xdG8kXX6Mn/RfISQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2814,7 +1644,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining/7.18.9:
     resolution: {integrity: sha512-AHrP9jadvH7qlOj6PINbgSuphjQUAK7AOT7DPjBo9EHoLhQTnnK5u45e1Hd4DbSQEO9nqPWtQ89r+XEOWFScKg==}
     engines: {node: '>=6.9.0'}
@@ -2827,22 +1656,6 @@ packages:
     dev: true
 
   /@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining@7.18.9:
-    resolution: {integrity: sha512-AHrP9jadvH7qlOj6PINbgSuphjQUAK7AOT7DPjBo9EHoLhQTnnK5u45e1Hd4DbSQEO9nqPWtQ89r+XEOWFScKg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.13.0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-skip-transparent-expression-wrappers': 7.20.0
-      '@babel/plugin-proposal-optional-chaining': 7.18.9
-    dev: true
-
-  /@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-AHrP9jadvH7qlOj6PINbgSuphjQUAK7AOT7DPjBo9EHoLhQTnnK5u45e1Hd4DbSQEO9nqPWtQ89r+XEOWFScKg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2854,7 +1667,6 @@ packages:
       '@babel/plugin-proposal-optional-chaining': 7.18.9_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-async-generator-functions/7.20.1:
     resolution: {integrity: sha512-Gh5rchzSwE4kC+o/6T8waD0WHEQIsDmjltY8WnWRXHUdH8axZhuH86Ov9M72YhJfDrZseQwuuWaaIT/TmePp3g==}
     engines: {node: '>=6.9.0'}
@@ -2870,25 +1682,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-async-generator-functions/7.20.1_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-async-generator-functions@7.20.1(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-async-generator-functions@7.20.1:
-    resolution: {integrity: sha512-Gh5rchzSwE4kC+o/6T8waD0WHEQIsDmjltY8WnWRXHUdH8axZhuH86Ov9M72YhJfDrZseQwuuWaaIT/TmePp3g==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-environment-visitor': 7.18.9
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-remap-async-to-generator': 7.18.9
-      '@babel/plugin-syntax-async-generators': 7.8.4
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-proposal-async-generator-functions@7.20.1(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-Gh5rchzSwE4kC+o/6T8waD0WHEQIsDmjltY8WnWRXHUdH8axZhuH86Ov9M72YhJfDrZseQwuuWaaIT/TmePp3g==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2903,7 +1696,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-class-properties/7.18.6:
     resolution: {integrity: sha512-cumfXOF0+nzZrrN8Rf0t7M+tF6sZc7vhQwYQck9q1/5w2OExlD+b4v4RpMJFaV1Z7WcDRgO6FqvxqxGlwo+RHQ==}
     engines: {node: '>=6.9.0'}
@@ -2917,23 +1709,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-class-properties/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-class-properties@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-class-properties@7.18.6:
-    resolution: {integrity: sha512-cumfXOF0+nzZrrN8Rf0t7M+tF6sZc7vhQwYQck9q1/5w2OExlD+b4v4RpMJFaV1Z7WcDRgO6FqvxqxGlwo+RHQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-create-class-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-proposal-class-properties@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-cumfXOF0+nzZrrN8Rf0t7M+tF6sZc7vhQwYQck9q1/5w2OExlD+b4v4RpMJFaV1Z7WcDRgO6FqvxqxGlwo+RHQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2946,7 +1721,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-class-static-block/7.18.6:
     resolution: {integrity: sha512-+I3oIiNxrCpup3Gi8n5IGMwj0gOCAjcJUSQEcotNnCCPMEnixawOQ+KeJPlgfjzx+FKQ1QSyZOWe7wmoJp7vhw==}
     engines: {node: '>=6.9.0'}
@@ -2961,24 +1735,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-class-static-block/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-class-static-block@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-class-static-block@7.18.6:
-    resolution: {integrity: sha512-+I3oIiNxrCpup3Gi8n5IGMwj0gOCAjcJUSQEcotNnCCPMEnixawOQ+KeJPlgfjzx+FKQ1QSyZOWe7wmoJp7vhw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.12.0
-    dependencies:
-      '@babel/helper-create-class-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-class-static-block': 7.14.5
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-proposal-class-static-block@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-+I3oIiNxrCpup3Gi8n5IGMwj0gOCAjcJUSQEcotNnCCPMEnixawOQ+KeJPlgfjzx+FKQ1QSyZOWe7wmoJp7vhw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -2992,7 +1748,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-dynamic-import/7.18.6:
     resolution: {integrity: sha512-1auuwmK+Rz13SJj36R+jqFPMJWyKEDd7lLSdOj4oJK0UTgGueSAtkrCvz9ewmgyU/P941Rv2fQwZJN8s6QruXw==}
     engines: {node: '>=6.9.0'}
@@ -3004,21 +1759,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-dynamic-import/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-dynamic-import@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-dynamic-import@7.18.6:
-    resolution: {integrity: sha512-1auuwmK+Rz13SJj36R+jqFPMJWyKEDd7lLSdOj4oJK0UTgGueSAtkrCvz9ewmgyU/P941Rv2fQwZJN8s6QruXw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-dynamic-import': 7.8.3
-    dev: true
-
-  /@babel/plugin-proposal-dynamic-import@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-1auuwmK+Rz13SJj36R+jqFPMJWyKEDd7lLSdOj4oJK0UTgGueSAtkrCvz9ewmgyU/P941Rv2fQwZJN8s6QruXw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3029,7 +1769,6 @@ packages:
       '@babel/plugin-syntax-dynamic-import': 7.8.3_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-export-namespace-from/7.18.9:
     resolution: {integrity: sha512-k1NtHyOMvlDDFeb9G5PhUXuGj8m/wiwojgQVEhJ/fsVsMCpLyOP4h0uGEjYJKrRI+EVPlb5Jk+Gt9P97lOGwtA==}
     engines: {node: '>=6.9.0'}
@@ -3041,21 +1780,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-export-namespace-from/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-export-namespace-from@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-export-namespace-from@7.18.9:
-    resolution: {integrity: sha512-k1NtHyOMvlDDFeb9G5PhUXuGj8m/wiwojgQVEhJ/fsVsMCpLyOP4h0uGEjYJKrRI+EVPlb5Jk+Gt9P97lOGwtA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-export-namespace-from': 7.8.3
-    dev: true
-
-  /@babel/plugin-proposal-export-namespace-from@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-k1NtHyOMvlDDFeb9G5PhUXuGj8m/wiwojgQVEhJ/fsVsMCpLyOP4h0uGEjYJKrRI+EVPlb5Jk+Gt9P97lOGwtA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3066,7 +1790,6 @@ packages:
       '@babel/plugin-syntax-export-namespace-from': 7.8.3_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-json-strings/7.18.6:
     resolution: {integrity: sha512-lr1peyn9kOdbYc0xr0OdHTZ5FMqS6Di+H0Fz2I/JwMzGmzJETNeOFq2pBySw6X/KFL5EWDjlJuMsUGRFb8fQgQ==}
     engines: {node: '>=6.9.0'}
@@ -3078,21 +1801,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-json-strings/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-json-strings@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-json-strings@7.18.6:
-    resolution: {integrity: sha512-lr1peyn9kOdbYc0xr0OdHTZ5FMqS6Di+H0Fz2I/JwMzGmzJETNeOFq2pBySw6X/KFL5EWDjlJuMsUGRFb8fQgQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-json-strings': 7.8.3
-    dev: true
-
-  /@babel/plugin-proposal-json-strings@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-lr1peyn9kOdbYc0xr0OdHTZ5FMqS6Di+H0Fz2I/JwMzGmzJETNeOFq2pBySw6X/KFL5EWDjlJuMsUGRFb8fQgQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3103,7 +1811,6 @@ packages:
       '@babel/plugin-syntax-json-strings': 7.8.3_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-logical-assignment-operators/7.18.9:
     resolution: {integrity: sha512-128YbMpjCrP35IOExw2Fq+x55LMP42DzhOhX2aNNIdI9avSWl2PI0yuBWarr3RYpZBSPtabfadkH2yeRiMD61Q==}
     engines: {node: '>=6.9.0'}
@@ -3115,21 +1822,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-logical-assignment-operators/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-logical-assignment-operators@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-logical-assignment-operators@7.18.9:
-    resolution: {integrity: sha512-128YbMpjCrP35IOExw2Fq+x55LMP42DzhOhX2aNNIdI9avSWl2PI0yuBWarr3RYpZBSPtabfadkH2yeRiMD61Q==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-logical-assignment-operators': 7.10.4
-    dev: true
-
-  /@babel/plugin-proposal-logical-assignment-operators@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-128YbMpjCrP35IOExw2Fq+x55LMP42DzhOhX2aNNIdI9avSWl2PI0yuBWarr3RYpZBSPtabfadkH2yeRiMD61Q==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3140,7 +1832,6 @@ packages:
       '@babel/plugin-syntax-logical-assignment-operators': 7.10.4_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-nullish-coalescing-operator/7.18.6:
     resolution: {integrity: sha512-wQxQzxYeJqHcfppzBDnm1yAY0jSRkUXR2z8RePZYrKwMKgMlE8+Z6LUno+bd6LvbGh8Gltvy74+9pIYkr+XkKA==}
     engines: {node: '>=6.9.0'}
@@ -3152,21 +1843,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-nullish-coalescing-operator/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-nullish-coalescing-operator@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-nullish-coalescing-operator@7.18.6:
-    resolution: {integrity: sha512-wQxQzxYeJqHcfppzBDnm1yAY0jSRkUXR2z8RePZYrKwMKgMlE8+Z6LUno+bd6LvbGh8Gltvy74+9pIYkr+XkKA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-nullish-coalescing-operator': 7.8.3
-    dev: true
-
-  /@babel/plugin-proposal-nullish-coalescing-operator@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-wQxQzxYeJqHcfppzBDnm1yAY0jSRkUXR2z8RePZYrKwMKgMlE8+Z6LUno+bd6LvbGh8Gltvy74+9pIYkr+XkKA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3177,7 +1853,6 @@ packages:
       '@babel/plugin-syntax-nullish-coalescing-operator': 7.8.3_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-numeric-separator/7.18.6:
     resolution: {integrity: sha512-ozlZFogPqoLm8WBr5Z8UckIoE4YQ5KESVcNudyXOR8uqIkliTEgJ3RoketfG6pmzLdeZF0H/wjE9/cCEitBl7Q==}
     engines: {node: '>=6.9.0'}
@@ -3189,21 +1864,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-numeric-separator/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-numeric-separator@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-numeric-separator@7.18.6:
-    resolution: {integrity: sha512-ozlZFogPqoLm8WBr5Z8UckIoE4YQ5KESVcNudyXOR8uqIkliTEgJ3RoketfG6pmzLdeZF0H/wjE9/cCEitBl7Q==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-numeric-separator': 7.10.4
-    dev: true
-
-  /@babel/plugin-proposal-numeric-separator@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-ozlZFogPqoLm8WBr5Z8UckIoE4YQ5KESVcNudyXOR8uqIkliTEgJ3RoketfG6pmzLdeZF0H/wjE9/cCEitBl7Q==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3214,7 +1874,6 @@ packages:
       '@babel/plugin-syntax-numeric-separator': 7.10.4_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-object-rest-spread/7.20.2:
     resolution: {integrity: sha512-Ks6uej9WFK+fvIMesSqbAto5dD8Dz4VuuFvGJFKgIGSkJuRGcrwGECPA1fDgQK3/DbExBJpEkTeYeB8geIFCSQ==}
     engines: {node: '>=6.9.0'}
@@ -3229,24 +1888,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-object-rest-spread/7.20.2_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-object-rest-spread@7.20.2(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-object-rest-spread@7.20.2:
-    resolution: {integrity: sha512-Ks6uej9WFK+fvIMesSqbAto5dD8Dz4VuuFvGJFKgIGSkJuRGcrwGECPA1fDgQK3/DbExBJpEkTeYeB8geIFCSQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/compat-data': 7.20.14
-      '@babel/helper-compilation-targets': 7.20.7
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-object-rest-spread': 7.8.3
-      '@babel/plugin-transform-parameters': 7.20.5
-    dev: true
-
-  /@babel/plugin-proposal-object-rest-spread@7.20.2(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-Ks6uej9WFK+fvIMesSqbAto5dD8Dz4VuuFvGJFKgIGSkJuRGcrwGECPA1fDgQK3/DbExBJpEkTeYeB8geIFCSQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3260,7 +1901,6 @@ packages:
       '@babel/plugin-transform-parameters': 7.20.5_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-optional-catch-binding/7.18.6:
     resolution: {integrity: sha512-Q40HEhs9DJQyaZfUjjn6vE8Cv4GmMHCYuMGIWUnlxH6400VGxOuwWsPt4FxXxJkC/5eOzgn0z21M9gMT4MOhbw==}
     engines: {node: '>=6.9.0'}
@@ -3272,21 +1912,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-optional-catch-binding/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-optional-catch-binding@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-optional-catch-binding@7.18.6:
-    resolution: {integrity: sha512-Q40HEhs9DJQyaZfUjjn6vE8Cv4GmMHCYuMGIWUnlxH6400VGxOuwWsPt4FxXxJkC/5eOzgn0z21M9gMT4MOhbw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-optional-catch-binding': 7.8.3
-    dev: true
-
-  /@babel/plugin-proposal-optional-catch-binding@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-Q40HEhs9DJQyaZfUjjn6vE8Cv4GmMHCYuMGIWUnlxH6400VGxOuwWsPt4FxXxJkC/5eOzgn0z21M9gMT4MOhbw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3297,7 +1922,6 @@ packages:
       '@babel/plugin-syntax-optional-catch-binding': 7.8.3_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-optional-chaining/7.18.9:
     resolution: {integrity: sha512-v5nwt4IqBXihxGsW2QmCWMDS3B3bzGIk/EQVZz2ei7f3NJl8NzAJVvUmpDW5q1CRNY+Beb/k58UAH1Km1N411w==}
     engines: {node: '>=6.9.0'}
@@ -3310,22 +1934,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-optional-chaining/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-optional-chaining@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-optional-chaining@7.18.9:
-    resolution: {integrity: sha512-v5nwt4IqBXihxGsW2QmCWMDS3B3bzGIk/EQVZz2ei7f3NJl8NzAJVvUmpDW5q1CRNY+Beb/k58UAH1Km1N411w==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-skip-transparent-expression-wrappers': 7.20.0
-      '@babel/plugin-syntax-optional-chaining': 7.8.3
-    dev: true
-
-  /@babel/plugin-proposal-optional-chaining@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-v5nwt4IqBXihxGsW2QmCWMDS3B3bzGIk/EQVZz2ei7f3NJl8NzAJVvUmpDW5q1CRNY+Beb/k58UAH1Km1N411w==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3337,7 +1945,6 @@ packages:
       '@babel/plugin-syntax-optional-chaining': 7.8.3_@babel+core@7.21.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-private-methods/7.18.6:
     resolution: {integrity: sha512-nutsvktDItsNn4rpGItSNV2sz1XwS+nfU0Rg8aCx3W3NOKVzdMjJRu0O5OkgDp3ZGICSTbgRpxZoWsxoKRvbeA==}
     engines: {node: '>=6.9.0'}
@@ -3351,23 +1958,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-private-methods/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-private-methods@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-private-methods@7.18.6:
-    resolution: {integrity: sha512-nutsvktDItsNn4rpGItSNV2sz1XwS+nfU0Rg8aCx3W3NOKVzdMjJRu0O5OkgDp3ZGICSTbgRpxZoWsxoKRvbeA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-create-class-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-proposal-private-methods@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-nutsvktDItsNn4rpGItSNV2sz1XwS+nfU0Rg8aCx3W3NOKVzdMjJRu0O5OkgDp3ZGICSTbgRpxZoWsxoKRvbeA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3380,7 +1970,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-private-property-in-object/7.20.5:
     resolution: {integrity: sha512-Vq7b9dUA12ByzB4EjQTPo25sFhY+08pQDBSZRtUAkj7lb7jahaHR5igera16QZ+3my1nYR4dKsNdYj5IjPHilQ==}
     engines: {node: '>=6.9.0'}
@@ -3396,25 +1985,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-private-property-in-object/7.20.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-private-property-in-object@7.20.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-private-property-in-object@7.20.5:
-    resolution: {integrity: sha512-Vq7b9dUA12ByzB4EjQTPo25sFhY+08pQDBSZRtUAkj7lb7jahaHR5igera16QZ+3my1nYR4dKsNdYj5IjPHilQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-annotate-as-pure': 7.18.6
-      '@babel/helper-create-class-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-syntax-private-property-in-object': 7.14.5
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-proposal-private-property-in-object@7.20.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-Vq7b9dUA12ByzB4EjQTPo25sFhY+08pQDBSZRtUAkj7lb7jahaHR5igera16QZ+3my1nYR4dKsNdYj5IjPHilQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3429,7 +1999,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-proposal-unicode-property-regex/7.18.6:
     resolution: {integrity: sha512-2BShG/d5yoZyXZfVePH91urL5wTG6ASZU9M4o03lKK8u8UW1y08OMttBSOADTcJrnPMpvDXRG3G8fyLh4ovs8w==}
     engines: {node: '>=4'}
@@ -3441,21 +2010,6 @@ packages:
     dev: true
 
   /@babel/plugin-proposal-unicode-property-regex/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-proposal-unicode-property-regex@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-proposal-unicode-property-regex@7.18.6:
-    resolution: {integrity: sha512-2BShG/d5yoZyXZfVePH91urL5wTG6ASZU9M4o03lKK8u8UW1y08OMttBSOADTcJrnPMpvDXRG3G8fyLh4ovs8w==}
-    engines: {node: '>=4'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-create-regexp-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-proposal-unicode-property-regex@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-2BShG/d5yoZyXZfVePH91urL5wTG6ASZU9M4o03lKK8u8UW1y08OMttBSOADTcJrnPMpvDXRG3G8fyLh4ovs8w==}
     engines: {node: '>=4'}
     peerDependencies:
@@ -3466,7 +2020,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-async-generators/7.8.4:
     resolution: {integrity: sha512-tycmZxkGfZaxhMRbXlPXuVFpdWlXpir2W4AMhSJgRKzk/eDlIXOhb2LHWoLpDF7TEHylV5zNhykX6KAgHJmTNw==}
     peerDependencies:
@@ -3476,19 +2029,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-async-generators/7.8.4_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-async-generators@7.8.4(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-async-generators@7.8.4:
-    resolution: {integrity: sha512-tycmZxkGfZaxhMRbXlPXuVFpdWlXpir2W4AMhSJgRKzk/eDlIXOhb2LHWoLpDF7TEHylV5zNhykX6KAgHJmTNw==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-async-generators@7.8.4(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-tycmZxkGfZaxhMRbXlPXuVFpdWlXpir2W4AMhSJgRKzk/eDlIXOhb2LHWoLpDF7TEHylV5zNhykX6KAgHJmTNw==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3506,7 +2046,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-class-properties/7.12.13:
     resolution: {integrity: sha512-fm4idjKla0YahUNgFNLCB0qySdsoPiZP3iQE3rky0mBUtMZ23yDJ9SJdg6dXTSDnulOVqiF3Hgr9nbXvXTQZYA==}
     peerDependencies:
@@ -3516,19 +2055,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-class-properties/7.12.13_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-class-properties@7.12.13(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-class-properties@7.12.13:
-    resolution: {integrity: sha512-fm4idjKla0YahUNgFNLCB0qySdsoPiZP3iQE3rky0mBUtMZ23yDJ9SJdg6dXTSDnulOVqiF3Hgr9nbXvXTQZYA==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-class-properties@7.12.13(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-fm4idjKla0YahUNgFNLCB0qySdsoPiZP3iQE3rky0mBUtMZ23yDJ9SJdg6dXTSDnulOVqiF3Hgr9nbXvXTQZYA==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3537,7 +2063,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-class-static-block/7.14.5:
     resolution: {integrity: sha512-b+YyPmr6ldyNnM6sqYeMWE+bgJcJpO6yS4QD7ymxgH34GBPNDM/THBh8iunyvKIZztiwLH4CJZ0RxTk9emgpjw==}
     engines: {node: '>=6.9.0'}
@@ -3548,20 +2073,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-class-static-block/7.14.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-class-static-block@7.14.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-class-static-block@7.14.5:
-    resolution: {integrity: sha512-b+YyPmr6ldyNnM6sqYeMWE+bgJcJpO6yS4QD7ymxgH34GBPNDM/THBh8iunyvKIZztiwLH4CJZ0RxTk9emgpjw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-class-static-block@7.14.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-b+YyPmr6ldyNnM6sqYeMWE+bgJcJpO6yS4QD7ymxgH34GBPNDM/THBh8iunyvKIZztiwLH4CJZ0RxTk9emgpjw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3571,7 +2082,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-dynamic-import/7.8.3:
     resolution: {integrity: sha512-5gdGbFon+PszYzqs83S3E5mpi7/y/8M9eC90MRTZfduQOYW76ig6SOSPNe41IG5LoP3FGBn2N0RjVDSQiS94kQ==}
     peerDependencies:
@@ -3581,19 +2091,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-dynamic-import/7.8.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-dynamic-import@7.8.3(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-dynamic-import@7.8.3:
-    resolution: {integrity: sha512-5gdGbFon+PszYzqs83S3E5mpi7/y/8M9eC90MRTZfduQOYW76ig6SOSPNe41IG5LoP3FGBn2N0RjVDSQiS94kQ==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-dynamic-import@7.8.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-5gdGbFon+PszYzqs83S3E5mpi7/y/8M9eC90MRTZfduQOYW76ig6SOSPNe41IG5LoP3FGBn2N0RjVDSQiS94kQ==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3602,7 +2099,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-export-namespace-from/7.8.3:
     resolution: {integrity: sha512-MXf5laXo6c1IbEbegDmzGPwGNTsHZmEy6QGznu5Sh2UCWvueywb2ee+CCE4zQiZstxU9BMoQO9i6zUFSY0Kj0Q==}
     peerDependencies:
@@ -3612,19 +2108,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-export-namespace-from/7.8.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-export-namespace-from@7.8.3(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-export-namespace-from@7.8.3:
-    resolution: {integrity: sha512-MXf5laXo6c1IbEbegDmzGPwGNTsHZmEy6QGznu5Sh2UCWvueywb2ee+CCE4zQiZstxU9BMoQO9i6zUFSY0Kj0Q==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-export-namespace-from@7.8.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-MXf5laXo6c1IbEbegDmzGPwGNTsHZmEy6QGznu5Sh2UCWvueywb2ee+CCE4zQiZstxU9BMoQO9i6zUFSY0Kj0Q==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3633,7 +2116,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-import-assertions/7.20.0:
     resolution: {integrity: sha512-IUh1vakzNoWalR8ch/areW7qFopR2AEw03JlG7BbrDqmQ4X3q9uuipQwSGrUn7oGiemKjtSLDhNtQHzMHr1JdQ==}
     engines: {node: '>=6.9.0'}
@@ -3644,20 +2126,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-import-assertions/7.20.0_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-import-assertions@7.20.0(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-import-assertions@7.20.0:
-    resolution: {integrity: sha512-IUh1vakzNoWalR8ch/areW7qFopR2AEw03JlG7BbrDqmQ4X3q9uuipQwSGrUn7oGiemKjtSLDhNtQHzMHr1JdQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-import-assertions@7.20.0(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-IUh1vakzNoWalR8ch/areW7qFopR2AEw03JlG7BbrDqmQ4X3q9uuipQwSGrUn7oGiemKjtSLDhNtQHzMHr1JdQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3676,7 +2144,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-json-strings/7.8.3:
     resolution: {integrity: sha512-lY6kdGpWHvjoe2vk4WrAapEuBR69EMxZl+RoGRhrFGNYVK8mOPAW8VfbT/ZgrFbXlDNiiaxQnAtgVCZ6jv30EA==}
     peerDependencies:
@@ -3686,19 +2153,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-json-strings/7.8.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-json-strings@7.8.3(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-json-strings@7.8.3:
-    resolution: {integrity: sha512-lY6kdGpWHvjoe2vk4WrAapEuBR69EMxZl+RoGRhrFGNYVK8mOPAW8VfbT/ZgrFbXlDNiiaxQnAtgVCZ6jv30EA==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-json-strings@7.8.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-lY6kdGpWHvjoe2vk4WrAapEuBR69EMxZl+RoGRhrFGNYVK8mOPAW8VfbT/ZgrFbXlDNiiaxQnAtgVCZ6jv30EA==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3727,7 +2181,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-logical-assignment-operators/7.10.4:
     resolution: {integrity: sha512-d8waShlpFDinQ5MtvGU9xDAOzKH47+FFoney2baFIoMr952hKOLp1HR7VszoZvOsV/4+RRszNY7D17ba0te0ig==}
     peerDependencies:
@@ -3737,19 +2190,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-logical-assignment-operators/7.10.4_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-logical-assignment-operators@7.10.4(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-logical-assignment-operators@7.10.4:
-    resolution: {integrity: sha512-d8waShlpFDinQ5MtvGU9xDAOzKH47+FFoney2baFIoMr952hKOLp1HR7VszoZvOsV/4+RRszNY7D17ba0te0ig==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-logical-assignment-operators@7.10.4(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-d8waShlpFDinQ5MtvGU9xDAOzKH47+FFoney2baFIoMr952hKOLp1HR7VszoZvOsV/4+RRszNY7D17ba0te0ig==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3758,7 +2198,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-nullish-coalescing-operator/7.8.3:
     resolution: {integrity: sha512-aSff4zPII1u2QD7y+F8oDsz19ew4IGEJg9SVW+bqwpwtfFleiQDMdzA/R+UlWDzfnHFCxxleFT0PMIrR36XLNQ==}
     peerDependencies:
@@ -3768,19 +2207,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-nullish-coalescing-operator/7.8.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-nullish-coalescing-operator@7.8.3(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-nullish-coalescing-operator@7.8.3:
-    resolution: {integrity: sha512-aSff4zPII1u2QD7y+F8oDsz19ew4IGEJg9SVW+bqwpwtfFleiQDMdzA/R+UlWDzfnHFCxxleFT0PMIrR36XLNQ==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-nullish-coalescing-operator@7.8.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-aSff4zPII1u2QD7y+F8oDsz19ew4IGEJg9SVW+bqwpwtfFleiQDMdzA/R+UlWDzfnHFCxxleFT0PMIrR36XLNQ==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3789,7 +2215,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-numeric-separator/7.10.4:
     resolution: {integrity: sha512-9H6YdfkcK/uOnY/K7/aA2xpzaAgkQn37yzWUMRK7OaPOqOpGS1+n0H5hxT9AUw9EsSjPW8SVyMJwYRtWs3X3ug==}
     peerDependencies:
@@ -3799,19 +2224,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-numeric-separator/7.10.4_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-numeric-separator@7.10.4(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-numeric-separator@7.10.4:
-    resolution: {integrity: sha512-9H6YdfkcK/uOnY/K7/aA2xpzaAgkQn37yzWUMRK7OaPOqOpGS1+n0H5hxT9AUw9EsSjPW8SVyMJwYRtWs3X3ug==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-numeric-separator@7.10.4(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-9H6YdfkcK/uOnY/K7/aA2xpzaAgkQn37yzWUMRK7OaPOqOpGS1+n0H5hxT9AUw9EsSjPW8SVyMJwYRtWs3X3ug==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3820,7 +2232,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-object-rest-spread/7.8.3:
     resolution: {integrity: sha512-XoqMijGZb9y3y2XskN+P1wUGiVwWZ5JmoDRwx5+3GmEplNyVM2s2Dg8ILFQm8rWM48orGy5YpI5Bl8U1y7ydlA==}
     peerDependencies:
@@ -3830,19 +2241,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-object-rest-spread/7.8.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-object-rest-spread@7.8.3(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-object-rest-spread@7.8.3:
-    resolution: {integrity: sha512-XoqMijGZb9y3y2XskN+P1wUGiVwWZ5JmoDRwx5+3GmEplNyVM2s2Dg8ILFQm8rWM48orGy5YpI5Bl8U1y7ydlA==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-object-rest-spread@7.8.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-XoqMijGZb9y3y2XskN+P1wUGiVwWZ5JmoDRwx5+3GmEplNyVM2s2Dg8ILFQm8rWM48orGy5YpI5Bl8U1y7ydlA==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3851,7 +2249,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-optional-catch-binding/7.8.3:
     resolution: {integrity: sha512-6VPD0Pc1lpTqw0aKoeRTMiB+kWhAoT24PA+ksWSBrFtl5SIRVpZlwN3NNPQjehA2E/91FV3RjLWoVTglWcSV3Q==}
     peerDependencies:
@@ -3861,19 +2258,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-optional-catch-binding/7.8.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-optional-catch-binding@7.8.3(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-optional-catch-binding@7.8.3:
-    resolution: {integrity: sha512-6VPD0Pc1lpTqw0aKoeRTMiB+kWhAoT24PA+ksWSBrFtl5SIRVpZlwN3NNPQjehA2E/91FV3RjLWoVTglWcSV3Q==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-optional-catch-binding@7.8.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-6VPD0Pc1lpTqw0aKoeRTMiB+kWhAoT24PA+ksWSBrFtl5SIRVpZlwN3NNPQjehA2E/91FV3RjLWoVTglWcSV3Q==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3882,7 +2266,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-optional-chaining/7.8.3:
     resolution: {integrity: sha512-KoK9ErH1MBlCPxV0VANkXW2/dw4vlbGDrFgz8bmUsBGYkFRcbRwMh6cIJubdPrkxRwuGdtCk0v/wPTKbQgBjkg==}
     peerDependencies:
@@ -3892,19 +2275,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-optional-chaining/7.8.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-optional-chaining@7.8.3(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-optional-chaining@7.8.3:
-    resolution: {integrity: sha512-KoK9ErH1MBlCPxV0VANkXW2/dw4vlbGDrFgz8bmUsBGYkFRcbRwMh6cIJubdPrkxRwuGdtCk0v/wPTKbQgBjkg==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-optional-chaining@7.8.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-KoK9ErH1MBlCPxV0VANkXW2/dw4vlbGDrFgz8bmUsBGYkFRcbRwMh6cIJubdPrkxRwuGdtCk0v/wPTKbQgBjkg==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -3913,7 +2283,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-private-property-in-object/7.14.5:
     resolution: {integrity: sha512-0wVnp9dxJ72ZUJDV27ZfbSj6iHLoytYZmh3rFcxNnvsJF3ktkzLDZPy/mA17HGsaQT3/DQsWYX1f1QGWkCoVUg==}
     engines: {node: '>=6.9.0'}
@@ -3924,20 +2293,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-private-property-in-object/7.14.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-private-property-in-object@7.14.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-private-property-in-object@7.14.5:
-    resolution: {integrity: sha512-0wVnp9dxJ72ZUJDV27ZfbSj6iHLoytYZmh3rFcxNnvsJF3ktkzLDZPy/mA17HGsaQT3/DQsWYX1f1QGWkCoVUg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-private-property-in-object@7.14.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-0wVnp9dxJ72ZUJDV27ZfbSj6iHLoytYZmh3rFcxNnvsJF3ktkzLDZPy/mA17HGsaQT3/DQsWYX1f1QGWkCoVUg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3947,7 +2302,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-syntax-top-level-await/7.14.5:
     resolution: {integrity: sha512-hx++upLv5U1rgYfwe1xBQUhRmU41NEvpUvrp8jkrSCdvGSnM5/qdRMtylJ6PG5OFkBaHkbTAKTnd3/YyESRHFw==}
     engines: {node: '>=6.9.0'}
@@ -3958,20 +2312,6 @@ packages:
     dev: true
 
   /@babel/plugin-syntax-top-level-await/7.14.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-syntax-top-level-await@7.14.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-syntax-top-level-await@7.14.5:
-    resolution: {integrity: sha512-hx++upLv5U1rgYfwe1xBQUhRmU41NEvpUvrp8jkrSCdvGSnM5/qdRMtylJ6PG5OFkBaHkbTAKTnd3/YyESRHFw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-syntax-top-level-await@7.14.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-hx++upLv5U1rgYfwe1xBQUhRmU41NEvpUvrp8jkrSCdvGSnM5/qdRMtylJ6PG5OFkBaHkbTAKTnd3/YyESRHFw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -3991,7 +2331,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-arrow-functions/7.18.6:
     resolution: {integrity: sha512-9S9X9RUefzrsHZmKMbDXxweEH+YlE8JJEuat9FdvW9Qh1cw7W64jELCtWNkPBPX5En45uy28KGvA/AySqUh8CQ==}
     engines: {node: '>=6.9.0'}
@@ -4002,20 +2341,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-arrow-functions/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-arrow-functions@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-arrow-functions@7.18.6:
-    resolution: {integrity: sha512-9S9X9RUefzrsHZmKMbDXxweEH+YlE8JJEuat9FdvW9Qh1cw7W64jELCtWNkPBPX5En45uy28KGvA/AySqUh8CQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-arrow-functions@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-9S9X9RUefzrsHZmKMbDXxweEH+YlE8JJEuat9FdvW9Qh1cw7W64jELCtWNkPBPX5En45uy28KGvA/AySqUh8CQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4025,7 +2350,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-async-to-generator/7.18.6:
     resolution: {integrity: sha512-ARE5wZLKnTgPW7/1ftQmSi1CmkqqHo2DNmtztFhvgtOWSDfq0Cq9/9L+KnZNYSNrydBekhW3rwShduf59RoXag==}
     engines: {node: '>=6.9.0'}
@@ -4040,24 +2364,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-async-to-generator/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-async-to-generator@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-async-to-generator@7.18.6:
-    resolution: {integrity: sha512-ARE5wZLKnTgPW7/1ftQmSi1CmkqqHo2DNmtztFhvgtOWSDfq0Cq9/9L+KnZNYSNrydBekhW3rwShduf59RoXag==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-module-imports': 7.18.6
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-remap-async-to-generator': 7.18.9
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-transform-async-to-generator@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-ARE5wZLKnTgPW7/1ftQmSi1CmkqqHo2DNmtztFhvgtOWSDfq0Cq9/9L+KnZNYSNrydBekhW3rwShduf59RoXag==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4071,7 +2377,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-block-scoped-functions/7.18.6:
     resolution: {integrity: sha512-ExUcOqpPWnliRcPqves5HJcJOvHvIIWfuS4sroBUenPuMdmW+SMHDakmtS7qOo13sVppmUijqeTv7qqGsvURpQ==}
     engines: {node: '>=6.9.0'}
@@ -4082,20 +2387,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-block-scoped-functions/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-block-scoped-functions@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-block-scoped-functions@7.18.6:
-    resolution: {integrity: sha512-ExUcOqpPWnliRcPqves5HJcJOvHvIIWfuS4sroBUenPuMdmW+SMHDakmtS7qOo13sVppmUijqeTv7qqGsvURpQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-block-scoped-functions@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-ExUcOqpPWnliRcPqves5HJcJOvHvIIWfuS4sroBUenPuMdmW+SMHDakmtS7qOo13sVppmUijqeTv7qqGsvURpQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4105,7 +2396,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-block-scoping/7.20.5:
     resolution: {integrity: sha512-WvpEIW9Cbj9ApF3yJCjIEEf1EiNJLtXagOrL5LNWEZOo3jv8pmPoYTSNJQvqej8OavVlgOoOPw6/htGZro6IkA==}
     engines: {node: '>=6.9.0'}
@@ -4116,20 +2406,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-block-scoping/7.20.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-block-scoping@7.20.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-block-scoping@7.20.5:
-    resolution: {integrity: sha512-WvpEIW9Cbj9ApF3yJCjIEEf1EiNJLtXagOrL5LNWEZOo3jv8pmPoYTSNJQvqej8OavVlgOoOPw6/htGZro6IkA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-block-scoping@7.20.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-WvpEIW9Cbj9ApF3yJCjIEEf1EiNJLtXagOrL5LNWEZOo3jv8pmPoYTSNJQvqej8OavVlgOoOPw6/htGZro6IkA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4139,12 +2415,7 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-classes/7.20.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-classes@7.20.2(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-classes@7.20.2:
     resolution: {integrity: sha512-9rbPp0lCVVoagvtEyQKSo5L8oo0nQS/iif+lwlAz29MccX2642vWDlSZK+2T2buxbopotId2ld7zZAzRfz9j1g==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4163,27 +2434,6 @@ packages:
       - supports-color
     dev: true
 
-  /@babel/plugin-transform-classes@7.20.2(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
-    resolution: {integrity: sha512-9rbPp0lCVVoagvtEyQKSo5L8oo0nQS/iif+lwlAz29MccX2642vWDlSZK+2T2buxbopotId2ld7zZAzRfz9j1g==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-annotate-as-pure': 7.18.6
-      '@babel/helper-compilation-targets': 7.20.7
-      '@babel/helper-environment-visitor': 7.18.9
-      '@babel/helper-function-name': 7.21.0
-      '@babel/helper-optimise-call-expression': 7.18.6
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-replace-supers': 7.19.1
-      '@babel/helper-split-export-declaration': 7.18.6
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-<<<<<<< HEAD
   /@babel/plugin-transform-classes/7.20.2_@babel+core@7.21.0:
     resolution: {integrity: sha512-9rbPp0lCVVoagvtEyQKSo5L8oo0nQS/iif+lwlAz29MccX2642vWDlSZK+2T2buxbopotId2ld7zZAzRfz9j1g==}
     engines: {node: '>=6.9.0'}
@@ -4214,20 +2464,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-computed-properties/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-computed-properties@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-computed-properties@7.18.9:
-    resolution: {integrity: sha512-+i0ZU1bCDymKakLxn5srGHrsAPRELC2WIbzwjLhHW9SIE1cPYkLCL0NlnXMZaM1vhfgA2+M7hySk42VBvrkBRw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-computed-properties@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-+i0ZU1bCDymKakLxn5srGHrsAPRELC2WIbzwjLhHW9SIE1cPYkLCL0NlnXMZaM1vhfgA2+M7hySk42VBvrkBRw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4237,7 +2473,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-destructuring/7.20.2:
     resolution: {integrity: sha512-mENM+ZHrvEgxLTBXUiQ621rRXZes3KWUv6NdQlrnr1TkWVw+hUjQBZuP2X32qKlrlG2BzgR95gkuCRSkJl8vIw==}
     engines: {node: '>=6.9.0'}
@@ -4248,20 +2483,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-destructuring/7.20.2_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-destructuring@7.20.2(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-destructuring@7.20.2:
-    resolution: {integrity: sha512-mENM+ZHrvEgxLTBXUiQ621rRXZes3KWUv6NdQlrnr1TkWVw+hUjQBZuP2X32qKlrlG2BzgR95gkuCRSkJl8vIw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-destructuring@7.20.2(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-mENM+ZHrvEgxLTBXUiQ621rRXZes3KWUv6NdQlrnr1TkWVw+hUjQBZuP2X32qKlrlG2BzgR95gkuCRSkJl8vIw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4271,7 +2492,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-dotall-regex/7.18.6:
     resolution: {integrity: sha512-6S3jpun1eEbAxq7TdjLotAsl4WpQI9DxfkycRcKrjhQYzU87qpXdknpBg/e+TdcMehqGnLFi7tnFUBR02Vq6wg==}
     engines: {node: '>=6.9.0'}
@@ -4283,21 +2503,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-dotall-regex/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-dotall-regex@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-dotall-regex@7.18.6:
-    resolution: {integrity: sha512-6S3jpun1eEbAxq7TdjLotAsl4WpQI9DxfkycRcKrjhQYzU87qpXdknpBg/e+TdcMehqGnLFi7tnFUBR02Vq6wg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-create-regexp-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-dotall-regex@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-6S3jpun1eEbAxq7TdjLotAsl4WpQI9DxfkycRcKrjhQYzU87qpXdknpBg/e+TdcMehqGnLFi7tnFUBR02Vq6wg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4308,7 +2513,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-duplicate-keys/7.18.9:
     resolution: {integrity: sha512-d2bmXCtZXYc59/0SanQKbiWINadaJXqtvIQIzd4+hNwkWBgyCd5F/2t1kXoUdvPMrxzPvhK6EMQRROxsue+mfw==}
     engines: {node: '>=6.9.0'}
@@ -4319,20 +2523,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-duplicate-keys/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-duplicate-keys@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-duplicate-keys@7.18.9:
-    resolution: {integrity: sha512-d2bmXCtZXYc59/0SanQKbiWINadaJXqtvIQIzd4+hNwkWBgyCd5F/2t1kXoUdvPMrxzPvhK6EMQRROxsue+mfw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-duplicate-keys@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-d2bmXCtZXYc59/0SanQKbiWINadaJXqtvIQIzd4+hNwkWBgyCd5F/2t1kXoUdvPMrxzPvhK6EMQRROxsue+mfw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4342,7 +2532,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-exponentiation-operator/7.18.6:
     resolution: {integrity: sha512-wzEtc0+2c88FVR34aQmiz56dxEkxr2g8DQb/KfaFa1JYXOFVsbhvAonFN6PwVWj++fKmku8NP80plJ5Et4wqHw==}
     engines: {node: '>=6.9.0'}
@@ -4354,21 +2543,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-exponentiation-operator/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-exponentiation-operator@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-exponentiation-operator@7.18.6:
-    resolution: {integrity: sha512-wzEtc0+2c88FVR34aQmiz56dxEkxr2g8DQb/KfaFa1JYXOFVsbhvAonFN6PwVWj++fKmku8NP80plJ5Et4wqHw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-builder-binary-assignment-operator-visitor': 7.18.9
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-exponentiation-operator@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-wzEtc0+2c88FVR34aQmiz56dxEkxr2g8DQb/KfaFa1JYXOFVsbhvAonFN6PwVWj++fKmku8NP80plJ5Et4wqHw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4379,7 +2553,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-for-of/7.18.8:
     resolution: {integrity: sha512-yEfTRnjuskWYo0k1mHUqrVWaZwrdq8AYbfrpqULOJOaucGSp4mNMVps+YtA8byoevxS/urwU75vyhQIxcCgiBQ==}
     engines: {node: '>=6.9.0'}
@@ -4390,20 +2563,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-for-of/7.18.8_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-for-of@7.18.8(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-for-of@7.18.8:
-    resolution: {integrity: sha512-yEfTRnjuskWYo0k1mHUqrVWaZwrdq8AYbfrpqULOJOaucGSp4mNMVps+YtA8byoevxS/urwU75vyhQIxcCgiBQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-for-of@7.18.8(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-yEfTRnjuskWYo0k1mHUqrVWaZwrdq8AYbfrpqULOJOaucGSp4mNMVps+YtA8byoevxS/urwU75vyhQIxcCgiBQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4413,7 +2572,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-function-name/7.18.9:
     resolution: {integrity: sha512-WvIBoRPaJQ5yVHzcnJFor7oS5Ls0PYixlTYE63lCj2RtdQEl15M68FXQlxnG6wdraJIXRdR7KI+hQ7q/9QjrCQ==}
     engines: {node: '>=6.9.0'}
@@ -4426,22 +2584,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-function-name/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-function-name@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-function-name@7.18.9:
-    resolution: {integrity: sha512-WvIBoRPaJQ5yVHzcnJFor7oS5Ls0PYixlTYE63lCj2RtdQEl15M68FXQlxnG6wdraJIXRdR7KI+hQ7q/9QjrCQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-compilation-targets': 7.20.7
-      '@babel/helper-function-name': 7.21.0
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-function-name@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-WvIBoRPaJQ5yVHzcnJFor7oS5Ls0PYixlTYE63lCj2RtdQEl15M68FXQlxnG6wdraJIXRdR7KI+hQ7q/9QjrCQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4453,7 +2595,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-literals/7.18.9:
     resolution: {integrity: sha512-IFQDSRoTPnrAIrI5zoZv73IFeZu2dhu6irxQjY9rNjTT53VmKg9fenjvoiOWOkJ6mm4jKVPtdMzBY98Fp4Z4cg==}
     engines: {node: '>=6.9.0'}
@@ -4464,20 +2605,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-literals/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-literals@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-literals@7.18.9:
-    resolution: {integrity: sha512-IFQDSRoTPnrAIrI5zoZv73IFeZu2dhu6irxQjY9rNjTT53VmKg9fenjvoiOWOkJ6mm4jKVPtdMzBY98Fp4Z4cg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-literals@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-IFQDSRoTPnrAIrI5zoZv73IFeZu2dhu6irxQjY9rNjTT53VmKg9fenjvoiOWOkJ6mm4jKVPtdMzBY98Fp4Z4cg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4487,7 +2614,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-member-expression-literals/7.18.6:
     resolution: {integrity: sha512-qSF1ihLGO3q+/g48k85tUjD033C29TNTVB2paCwZPVmOsjn9pClvYYrM2VeJpBY2bcNkuny0YUyTNRyRxJ54KA==}
     engines: {node: '>=6.9.0'}
@@ -4498,20 +2624,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-member-expression-literals/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-member-expression-literals@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-member-expression-literals@7.18.6:
-    resolution: {integrity: sha512-qSF1ihLGO3q+/g48k85tUjD033C29TNTVB2paCwZPVmOsjn9pClvYYrM2VeJpBY2bcNkuny0YUyTNRyRxJ54KA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-member-expression-literals@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-qSF1ihLGO3q+/g48k85tUjD033C29TNTVB2paCwZPVmOsjn9pClvYYrM2VeJpBY2bcNkuny0YUyTNRyRxJ54KA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4521,7 +2633,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-modules-amd/7.19.6:
     resolution: {integrity: sha512-uG3od2mXvAtIFQIh0xrpLH6r5fpSQN04gIVovl+ODLdUMANokxQLZnPBHcjmv3GxRjnqwLuHvppjjcelqUFZvg==}
     engines: {node: '>=6.9.0'}
@@ -4535,23 +2646,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-modules-amd/7.19.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-modules-amd@7.19.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-modules-amd@7.19.6:
-    resolution: {integrity: sha512-uG3od2mXvAtIFQIh0xrpLH6r5fpSQN04gIVovl+ODLdUMANokxQLZnPBHcjmv3GxRjnqwLuHvppjjcelqUFZvg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-module-transforms': 7.21.2
-      '@babel/helper-plugin-utils': 7.20.2
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-transform-modules-amd@7.19.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-uG3od2mXvAtIFQIh0xrpLH6r5fpSQN04gIVovl+ODLdUMANokxQLZnPBHcjmv3GxRjnqwLuHvppjjcelqUFZvg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4564,7 +2658,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-modules-commonjs/7.19.6:
     resolution: {integrity: sha512-8PIa1ym4XRTKuSsOUXqDG0YaOlEuTVvHMe5JCfgBMOtHvJKw/4NGovEGN33viISshG/rZNVrACiBmPQLvWN8xQ==}
     engines: {node: '>=6.9.0'}
@@ -4578,23 +2671,6 @@ packages:
       - supports-color
 
   /@babel/plugin-transform-modules-commonjs/7.19.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-modules-commonjs@7.19.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-modules-commonjs@7.19.6:
-    resolution: {integrity: sha512-8PIa1ym4XRTKuSsOUXqDG0YaOlEuTVvHMe5JCfgBMOtHvJKw/4NGovEGN33viISshG/rZNVrACiBmPQLvWN8xQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-module-transforms': 7.21.2
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-simple-access': 7.20.2
-    transitivePeerDependencies:
-      - supports-color
-
-  /@babel/plugin-transform-modules-commonjs@7.19.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-8PIa1ym4XRTKuSsOUXqDG0YaOlEuTVvHMe5JCfgBMOtHvJKw/4NGovEGN33viISshG/rZNVrACiBmPQLvWN8xQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4606,26 +2682,7 @@ packages:
       '@babel/helper-simple-access': 7.20.2
     transitivePeerDependencies:
       - supports-color
-<<<<<<< HEAD
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-=======
-    dev: true
-
-  /@babel/plugin-transform-modules-systemjs@7.19.6:
-    resolution: {integrity: sha512-fqGLBepcc3kErfR9R3DnVpURmckXP7gj7bAlrTQyBxrigFqszZCkFkcoxzCp2v32XmwXLvbw+8Yq9/b+QqksjQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-hoist-variables': 7.18.6
-      '@babel/helper-module-transforms': 7.21.2
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-validator-identifier': 7.19.1
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /@babel/plugin-transform-modules-systemjs/7.19.6:
     resolution: {integrity: sha512-fqGLBepcc3kErfR9R3DnVpURmckXP7gj7bAlrTQyBxrigFqszZCkFkcoxzCp2v32XmwXLvbw+8Yq9/b+QqksjQ==}
@@ -4656,7 +2713,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-modules-umd/7.18.6:
     resolution: {integrity: sha512-dcegErExVeXcRqNtkRU/z8WlBLnvD4MRnHgNs3MytRO1Mn1sHRyhbcpYbVMGclAqOjdW+9cfkdZno9dFdfKLfQ==}
     engines: {node: '>=6.9.0'}
@@ -4670,23 +2726,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-modules-umd/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-modules-umd@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-modules-umd@7.18.6:
-    resolution: {integrity: sha512-dcegErExVeXcRqNtkRU/z8WlBLnvD4MRnHgNs3MytRO1Mn1sHRyhbcpYbVMGclAqOjdW+9cfkdZno9dFdfKLfQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-module-transforms': 7.21.2
-      '@babel/helper-plugin-utils': 7.20.2
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-transform-modules-umd@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-dcegErExVeXcRqNtkRU/z8WlBLnvD4MRnHgNs3MytRO1Mn1sHRyhbcpYbVMGclAqOjdW+9cfkdZno9dFdfKLfQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4699,7 +2738,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-named-capturing-groups-regex/7.20.5:
     resolution: {integrity: sha512-mOW4tTzi5iTLnw+78iEq3gr8Aoq4WNRGpmSlrogqaiCBoR1HFhpU4JkpQFOHfeYx3ReVIFWOQJS4aZBRvuZ6mA==}
     engines: {node: '>=6.9.0'}
@@ -4711,21 +2749,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-named-capturing-groups-regex/7.20.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-named-capturing-groups-regex@7.20.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-named-capturing-groups-regex@7.20.5:
-    resolution: {integrity: sha512-mOW4tTzi5iTLnw+78iEq3gr8Aoq4WNRGpmSlrogqaiCBoR1HFhpU4JkpQFOHfeYx3ReVIFWOQJS4aZBRvuZ6mA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0
-    dependencies:
-      '@babel/helper-create-regexp-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-named-capturing-groups-regex@7.20.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-mOW4tTzi5iTLnw+78iEq3gr8Aoq4WNRGpmSlrogqaiCBoR1HFhpU4JkpQFOHfeYx3ReVIFWOQJS4aZBRvuZ6mA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4736,7 +2759,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-new-target/7.18.6:
     resolution: {integrity: sha512-DjwFA/9Iu3Z+vrAn+8pBUGcjhxKguSMlsFqeCKbhb9BAV756v0krzVK04CRDi/4aqmk8BsHb4a/gFcaA5joXRw==}
     engines: {node: '>=6.9.0'}
@@ -4747,20 +2769,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-new-target/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-new-target@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-new-target@7.18.6:
-    resolution: {integrity: sha512-DjwFA/9Iu3Z+vrAn+8pBUGcjhxKguSMlsFqeCKbhb9BAV756v0krzVK04CRDi/4aqmk8BsHb4a/gFcaA5joXRw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-new-target@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-DjwFA/9Iu3Z+vrAn+8pBUGcjhxKguSMlsFqeCKbhb9BAV756v0krzVK04CRDi/4aqmk8BsHb4a/gFcaA5joXRw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4770,7 +2778,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-object-super/7.18.6:
     resolution: {integrity: sha512-uvGz6zk+pZoS1aTZrOvrbj6Pp/kK2mp45t2B+bTDre2UgsZZ8EZLSJtUg7m/no0zOJUWgFONpB7Zv9W2tSaFlA==}
     engines: {node: '>=6.9.0'}
@@ -4784,23 +2791,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-object-super/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-object-super@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-object-super@7.18.6:
-    resolution: {integrity: sha512-uvGz6zk+pZoS1aTZrOvrbj6Pp/kK2mp45t2B+bTDre2UgsZZ8EZLSJtUg7m/no0zOJUWgFONpB7Zv9W2tSaFlA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-replace-supers': 7.19.1
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/plugin-transform-object-super@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-uvGz6zk+pZoS1aTZrOvrbj6Pp/kK2mp45t2B+bTDre2UgsZZ8EZLSJtUg7m/no0zOJUWgFONpB7Zv9W2tSaFlA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4813,7 +2803,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-parameters/7.20.5:
     resolution: {integrity: sha512-h7plkOmcndIUWXZFLgpbrh2+fXAi47zcUX7IrOQuZdLD0I0KvjJ6cvo3BEcAOsDOcZhVKGJqv07mkSqK0y2isQ==}
     engines: {node: '>=6.9.0'}
@@ -4824,20 +2813,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-parameters/7.20.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-parameters@7.20.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-parameters@7.20.5:
-    resolution: {integrity: sha512-h7plkOmcndIUWXZFLgpbrh2+fXAi47zcUX7IrOQuZdLD0I0KvjJ6cvo3BEcAOsDOcZhVKGJqv07mkSqK0y2isQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-parameters@7.20.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-h7plkOmcndIUWXZFLgpbrh2+fXAi47zcUX7IrOQuZdLD0I0KvjJ6cvo3BEcAOsDOcZhVKGJqv07mkSqK0y2isQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4847,7 +2822,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-property-literals/7.18.6:
     resolution: {integrity: sha512-cYcs6qlgafTud3PAzrrRNbQtfpQ8+y/+M5tKmksS9+M1ckbH6kzY8MrexEM9mcA6JDsukE19iIRvAyYl463sMg==}
     engines: {node: '>=6.9.0'}
@@ -4858,20 +2832,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-property-literals/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-property-literals@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-property-literals@7.18.6:
-    resolution: {integrity: sha512-cYcs6qlgafTud3PAzrrRNbQtfpQ8+y/+M5tKmksS9+M1ckbH6kzY8MrexEM9mcA6JDsukE19iIRvAyYl463sMg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-property-literals@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-cYcs6qlgafTud3PAzrrRNbQtfpQ8+y/+M5tKmksS9+M1ckbH6kzY8MrexEM9mcA6JDsukE19iIRvAyYl463sMg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4936,7 +2896,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-regenerator/7.20.5:
     resolution: {integrity: sha512-kW/oO7HPBtntbsahzQ0qSE3tFvkFwnbozz3NWFhLGqH75vLEg+sCGngLlhVkePlCs3Jv0dBBHDzCHxNiFAQKCQ==}
     engines: {node: '>=6.9.0'}
@@ -4948,21 +2907,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-regenerator/7.20.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-regenerator@7.20.5(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-regenerator@7.20.5:
-    resolution: {integrity: sha512-kW/oO7HPBtntbsahzQ0qSE3tFvkFwnbozz3NWFhLGqH75vLEg+sCGngLlhVkePlCs3Jv0dBBHDzCHxNiFAQKCQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      regenerator-transform: 0.15.1
-    dev: true
-
-  /@babel/plugin-transform-regenerator@7.20.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-kW/oO7HPBtntbsahzQ0qSE3tFvkFwnbozz3NWFhLGqH75vLEg+sCGngLlhVkePlCs3Jv0dBBHDzCHxNiFAQKCQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -4973,7 +2917,6 @@ packages:
       regenerator-transform: 0.15.1
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-reserved-words/7.18.6:
     resolution: {integrity: sha512-oX/4MyMoypzHjFrT1CdivfKZ+XvIPMFXwwxHp/r0Ddy2Vuomt4HDFGmft1TAY2yiTKiNSsh3kjBAzcM8kSdsjA==}
     engines: {node: '>=6.9.0'}
@@ -4984,20 +2927,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-reserved-words/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-reserved-words@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-reserved-words@7.18.6:
-    resolution: {integrity: sha512-oX/4MyMoypzHjFrT1CdivfKZ+XvIPMFXwwxHp/r0Ddy2Vuomt4HDFGmft1TAY2yiTKiNSsh3kjBAzcM8kSdsjA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-reserved-words@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-oX/4MyMoypzHjFrT1CdivfKZ+XvIPMFXwwxHp/r0Ddy2Vuomt4HDFGmft1TAY2yiTKiNSsh3kjBAzcM8kSdsjA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5007,13 +2936,7 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-runtime/7.19.6:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-runtime@7.19.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-runtime@7.19.6:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-PRH37lz4JU156lYFW1p8OxE5i7d6Sl/zV58ooyr+q1J1lnQPyg5tIiXlIwNVhJaY4W3TmOtdc8jqdXQcB1v5Yw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5029,7 +2952,6 @@ packages:
       - supports-color
     dev: false
 
-<<<<<<< HEAD
   /@babel/plugin-transform-shorthand-properties/7.18.6:
     resolution: {integrity: sha512-eCLXXJqv8okzg86ywZJbRn19YJHU4XUa55oz2wbHhaQVn/MM+XhukiT7SYqp/7o00dg52Rj51Ny+Ecw4oyoygw==}
     engines: {node: '>=6.9.0'}
@@ -5040,20 +2962,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-shorthand-properties/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-shorthand-properties@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-shorthand-properties@7.18.6:
-    resolution: {integrity: sha512-eCLXXJqv8okzg86ywZJbRn19YJHU4XUa55oz2wbHhaQVn/MM+XhukiT7SYqp/7o00dg52Rj51Ny+Ecw4oyoygw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-shorthand-properties@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-eCLXXJqv8okzg86ywZJbRn19YJHU4XUa55oz2wbHhaQVn/MM+XhukiT7SYqp/7o00dg52Rj51Ny+Ecw4oyoygw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5063,7 +2971,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-spread/7.19.0:
     resolution: {integrity: sha512-RsuMk7j6n+r752EtzyScnWkQyuJdli6LdO5Klv8Yx0OfPVTcQkIUfS8clx5e9yHXzlnhOZF3CbQ8C2uP5j074w==}
     engines: {node: '>=6.9.0'}
@@ -5075,21 +2982,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-spread/7.19.0_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-spread@7.19.0(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-spread@7.19.0:
-    resolution: {integrity: sha512-RsuMk7j6n+r752EtzyScnWkQyuJdli6LdO5Klv8Yx0OfPVTcQkIUfS8clx5e9yHXzlnhOZF3CbQ8C2uP5j074w==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-skip-transparent-expression-wrappers': 7.20.0
-    dev: true
-
-  /@babel/plugin-transform-spread@7.19.0(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-RsuMk7j6n+r752EtzyScnWkQyuJdli6LdO5Klv8Yx0OfPVTcQkIUfS8clx5e9yHXzlnhOZF3CbQ8C2uP5j074w==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5100,7 +2992,6 @@ packages:
       '@babel/helper-skip-transparent-expression-wrappers': 7.20.0
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-sticky-regex/7.18.6:
     resolution: {integrity: sha512-kfiDrDQ+PBsQDO85yj1icueWMfGfJFKN1KCkndygtu/C9+XUfydLC8Iv5UYJqRwy4zk8EcplRxEOeLyjq1gm6Q==}
     engines: {node: '>=6.9.0'}
@@ -5111,20 +3002,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-sticky-regex/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-sticky-regex@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-sticky-regex@7.18.6:
-    resolution: {integrity: sha512-kfiDrDQ+PBsQDO85yj1icueWMfGfJFKN1KCkndygtu/C9+XUfydLC8Iv5UYJqRwy4zk8EcplRxEOeLyjq1gm6Q==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-sticky-regex@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-kfiDrDQ+PBsQDO85yj1icueWMfGfJFKN1KCkndygtu/C9+XUfydLC8Iv5UYJqRwy4zk8EcplRxEOeLyjq1gm6Q==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5134,7 +3011,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-template-literals/7.18.9:
     resolution: {integrity: sha512-S8cOWfT82gTezpYOiVaGHrCbhlHgKhQt8XH5ES46P2XWmX92yisoZywf5km75wv5sYcXDUCLMmMxOLCtthDgMA==}
     engines: {node: '>=6.9.0'}
@@ -5145,20 +3021,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-template-literals/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-template-literals@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-template-literals@7.18.9:
-    resolution: {integrity: sha512-S8cOWfT82gTezpYOiVaGHrCbhlHgKhQt8XH5ES46P2XWmX92yisoZywf5km75wv5sYcXDUCLMmMxOLCtthDgMA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-template-literals@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-S8cOWfT82gTezpYOiVaGHrCbhlHgKhQt8XH5ES46P2XWmX92yisoZywf5km75wv5sYcXDUCLMmMxOLCtthDgMA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5168,7 +3030,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-typeof-symbol/7.18.9:
     resolution: {integrity: sha512-SRfwTtF11G2aemAZWivL7PD+C9z52v9EvMqH9BuYbabyPuKUvSWks3oCg6041pT925L4zVFqaVBeECwsmlguEw==}
     engines: {node: '>=6.9.0'}
@@ -5179,20 +3040,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-typeof-symbol/7.18.9_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-typeof-symbol@7.18.9(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-typeof-symbol@7.18.9:
-    resolution: {integrity: sha512-SRfwTtF11G2aemAZWivL7PD+C9z52v9EvMqH9BuYbabyPuKUvSWks3oCg6041pT925L4zVFqaVBeECwsmlguEw==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-typeof-symbol@7.18.9(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-SRfwTtF11G2aemAZWivL7PD+C9z52v9EvMqH9BuYbabyPuKUvSWks3oCg6041pT925L4zVFqaVBeECwsmlguEw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5216,7 +3063,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-unicode-escapes/7.18.10:
     resolution: {integrity: sha512-kKAdAI+YzPgGY/ftStBFXTI1LZFju38rYThnfMykS+IXy8BVx+res7s2fxf1l8I35DV2T97ezo6+SGrXz6B3iQ==}
     engines: {node: '>=6.9.0'}
@@ -5227,20 +3073,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-unicode-escapes/7.18.10_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-unicode-escapes@7.18.10(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-unicode-escapes@7.18.10:
-    resolution: {integrity: sha512-kKAdAI+YzPgGY/ftStBFXTI1LZFju38rYThnfMykS+IXy8BVx+res7s2fxf1l8I35DV2T97ezo6+SGrXz6B3iQ==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-unicode-escapes@7.18.10(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-kKAdAI+YzPgGY/ftStBFXTI1LZFju38rYThnfMykS+IXy8BVx+res7s2fxf1l8I35DV2T97ezo6+SGrXz6B3iQ==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5250,7 +3082,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/plugin-transform-unicode-regex/7.18.6:
     resolution: {integrity: sha512-gE7A6Lt7YLnNOL3Pb9BNeZvi+d8l7tcRrG4+pwJjK9hD2xX4mEvjlQW60G9EEmfXVYRPv9VRQcyegIVHCql/AA==}
     engines: {node: '>=6.9.0'}
@@ -5262,21 +3093,6 @@ packages:
     dev: true
 
   /@babel/plugin-transform-unicode-regex/7.18.6_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/plugin-transform-unicode-regex@7.18.6(@babel/core@7.21.0):
-=======
-  /@babel/plugin-transform-unicode-regex@7.18.6:
-    resolution: {integrity: sha512-gE7A6Lt7YLnNOL3Pb9BNeZvi+d8l7tcRrG4+pwJjK9hD2xX4mEvjlQW60G9EEmfXVYRPv9VRQcyegIVHCql/AA==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-create-regexp-features-plugin': 7.20.5
-      '@babel/helper-plugin-utils': 7.20.2
-    dev: true
-
-  /@babel/plugin-transform-unicode-regex@7.18.6(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-gE7A6Lt7YLnNOL3Pb9BNeZvi+d8l7tcRrG4+pwJjK9hD2xX4mEvjlQW60G9EEmfXVYRPv9VRQcyegIVHCql/AA==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5287,7 +3103,6 @@ packages:
       '@babel/helper-plugin-utils': 7.20.2
     dev: true
 
-<<<<<<< HEAD
   /@babel/preset-env/7.20.2:
     resolution: {integrity: sha512-1G0efQEWR1EHkKvKHqbG+IN/QdgwfByUpM5V5QroDzGV2t3S/WXNQd693cHiHTlCFMpr9B6FkPFXDA2lQcKoDg==}
     engines: {node: '>=6.9.0'}
@@ -5374,96 +3189,6 @@ packages:
     dev: true
 
   /@babel/preset-env/7.20.2_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/preset-env@7.20.2(@babel/core@7.21.0):
-=======
-  /@babel/preset-env@7.20.2:
-    resolution: {integrity: sha512-1G0efQEWR1EHkKvKHqbG+IN/QdgwfByUpM5V5QroDzGV2t3S/WXNQd693cHiHTlCFMpr9B6FkPFXDA2lQcKoDg==}
-    engines: {node: '>=6.9.0'}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/compat-data': 7.20.14
-      '@babel/helper-compilation-targets': 7.20.7
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/helper-validator-option': 7.18.6
-      '@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression': 7.18.6
-      '@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining': 7.18.9
-      '@babel/plugin-proposal-async-generator-functions': 7.20.1
-      '@babel/plugin-proposal-class-properties': 7.18.6
-      '@babel/plugin-proposal-class-static-block': 7.18.6
-      '@babel/plugin-proposal-dynamic-import': 7.18.6
-      '@babel/plugin-proposal-export-namespace-from': 7.18.9
-      '@babel/plugin-proposal-json-strings': 7.18.6
-      '@babel/plugin-proposal-logical-assignment-operators': 7.18.9
-      '@babel/plugin-proposal-nullish-coalescing-operator': 7.18.6
-      '@babel/plugin-proposal-numeric-separator': 7.18.6
-      '@babel/plugin-proposal-object-rest-spread': 7.20.2
-      '@babel/plugin-proposal-optional-catch-binding': 7.18.6
-      '@babel/plugin-proposal-optional-chaining': 7.18.9
-      '@babel/plugin-proposal-private-methods': 7.18.6
-      '@babel/plugin-proposal-private-property-in-object': 7.20.5
-      '@babel/plugin-proposal-unicode-property-regex': 7.18.6
-      '@babel/plugin-syntax-async-generators': 7.8.4
-      '@babel/plugin-syntax-class-properties': 7.12.13
-      '@babel/plugin-syntax-class-static-block': 7.14.5
-      '@babel/plugin-syntax-dynamic-import': 7.8.3
-      '@babel/plugin-syntax-export-namespace-from': 7.8.3
-      '@babel/plugin-syntax-import-assertions': 7.20.0
-      '@babel/plugin-syntax-json-strings': 7.8.3
-      '@babel/plugin-syntax-logical-assignment-operators': 7.10.4
-      '@babel/plugin-syntax-nullish-coalescing-operator': 7.8.3
-      '@babel/plugin-syntax-numeric-separator': 7.10.4
-      '@babel/plugin-syntax-object-rest-spread': 7.8.3
-      '@babel/plugin-syntax-optional-catch-binding': 7.8.3
-      '@babel/plugin-syntax-optional-chaining': 7.8.3
-      '@babel/plugin-syntax-private-property-in-object': 7.14.5
-      '@babel/plugin-syntax-top-level-await': 7.14.5
-      '@babel/plugin-transform-arrow-functions': 7.18.6
-      '@babel/plugin-transform-async-to-generator': 7.18.6
-      '@babel/plugin-transform-block-scoped-functions': 7.18.6
-      '@babel/plugin-transform-block-scoping': 7.20.5
-      '@babel/plugin-transform-classes': 7.20.2
-      '@babel/plugin-transform-computed-properties': 7.18.9
-      '@babel/plugin-transform-destructuring': 7.20.2
-      '@babel/plugin-transform-dotall-regex': 7.18.6
-      '@babel/plugin-transform-duplicate-keys': 7.18.9
-      '@babel/plugin-transform-exponentiation-operator': 7.18.6
-      '@babel/plugin-transform-for-of': 7.18.8
-      '@babel/plugin-transform-function-name': 7.18.9
-      '@babel/plugin-transform-literals': 7.18.9
-      '@babel/plugin-transform-member-expression-literals': 7.18.6
-      '@babel/plugin-transform-modules-amd': 7.19.6
-      '@babel/plugin-transform-modules-commonjs': 7.19.6
-      '@babel/plugin-transform-modules-systemjs': 7.19.6
-      '@babel/plugin-transform-modules-umd': 7.18.6
-      '@babel/plugin-transform-named-capturing-groups-regex': 7.20.5
-      '@babel/plugin-transform-new-target': 7.18.6
-      '@babel/plugin-transform-object-super': 7.18.6
-      '@babel/plugin-transform-parameters': 7.20.5
-      '@babel/plugin-transform-property-literals': 7.18.6
-      '@babel/plugin-transform-regenerator': 7.20.5
-      '@babel/plugin-transform-reserved-words': 7.18.6
-      '@babel/plugin-transform-shorthand-properties': 7.18.6
-      '@babel/plugin-transform-spread': 7.19.0
-      '@babel/plugin-transform-sticky-regex': 7.18.6
-      '@babel/plugin-transform-template-literals': 7.18.9
-      '@babel/plugin-transform-typeof-symbol': 7.18.9
-      '@babel/plugin-transform-unicode-escapes': 7.18.10
-      '@babel/plugin-transform-unicode-regex': 7.18.6
-      '@babel/preset-modules': 0.1.5
-      '@babel/types': 7.21.2
-      babel-plugin-polyfill-corejs2: 0.3.3
-      babel-plugin-polyfill-corejs3: 0.6.0
-      babel-plugin-polyfill-regenerator: 0.4.1
-      core-js-compat: 3.26.1
-      semver: 6.3.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /@babel/preset-env@7.20.2(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-1G0efQEWR1EHkKvKHqbG+IN/QdgwfByUpM5V5QroDzGV2t3S/WXNQd693cHiHTlCFMpr9B6FkPFXDA2lQcKoDg==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
@@ -5549,7 +3274,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /@babel/preset-modules/0.1.5:
     resolution: {integrity: sha512-A57th6YRG7oR3cq/yt/Y84MvGgE0eJG2F1JLhKuyG+jFxEgrd/HAMJatiFtmOiZurz+0DkrvbheCLaV5f2JfjA==}
     peerDependencies:
@@ -5563,23 +3287,6 @@ packages:
     dev: true
 
   /@babel/preset-modules/0.1.5_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/preset-modules@0.1.5(@babel/core@7.21.0):
-=======
-  /@babel/preset-modules@0.1.5:
-    resolution: {integrity: sha512-A57th6YRG7oR3cq/yt/Y84MvGgE0eJG2F1JLhKuyG+jFxEgrd/HAMJatiFtmOiZurz+0DkrvbheCLaV5f2JfjA==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-plugin-utils': 7.20.2
-      '@babel/plugin-proposal-unicode-property-regex': 7.18.6
-      '@babel/plugin-transform-dotall-regex': 7.18.6
-      '@babel/types': 7.21.2
-      esutils: 2.0.3
-    dev: true
-
-  /@babel/preset-modules@0.1.5(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-A57th6YRG7oR3cq/yt/Y84MvGgE0eJG2F1JLhKuyG+jFxEgrd/HAMJatiFtmOiZurz+0DkrvbheCLaV5f2JfjA==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -5635,12 +3342,7 @@ packages:
       '@babel/parser': 7.21.2
       '@babel/types': 7.21.2
 
-<<<<<<< HEAD
   /@babel/traverse/7.21.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@babel/traverse@7.21.2(supports-color@5.5.0):
-=======
-  /@babel/traverse@7.21.2:
     resolution: {integrity: sha512-ts5FFU/dSUPS13tv8XiEObDu9K+iagEKME9kAbaP7r0Y9KtZJZ+NGndDvWoRAYNpeWafbpFeki3q9QoMD6gxyw==}
     engines: {node: '>=6.9.0'}
     dependencies:
@@ -5656,25 +3358,6 @@ packages:
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
-
-  /@babel/traverse@7.21.2(supports-color@5.5.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
-    resolution: {integrity: sha512-ts5FFU/dSUPS13tv8XiEObDu9K+iagEKME9kAbaP7r0Y9KtZJZ+NGndDvWoRAYNpeWafbpFeki3q9QoMD6gxyw==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/code-frame': 7.18.6
-      '@babel/generator': 7.21.1
-      '@babel/helper-environment-visitor': 7.18.9
-      '@babel/helper-function-name': 7.21.0
-      '@babel/helper-hoist-variables': 7.18.6
-      '@babel/helper-split-export-declaration': 7.18.6
-      '@babel/parser': 7.21.2
-      '@babel/types': 7.21.2
-      debug: 4.3.4
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-    dev: false
 
   /@babel/traverse/7.21.2_supports-color@5.5.0:
     resolution: {integrity: sha512-ts5FFU/dSUPS13tv8XiEObDu9K+iagEKME9kAbaP7r0Y9KtZJZ+NGndDvWoRAYNpeWafbpFeki3q9QoMD6gxyw==}
@@ -5989,13 +3672,7 @@ packages:
     resolution: {integrity: sha512-G/YwXTkv7Den9mXDO7AhLWkE3q+I92B+VqAE+dYG4NGPaHZGvt3G8Q0p9vmE+sq7rTGphUbAvmQ9YpbfMQGGlA==}
     dev: false
 
-<<<<<<< HEAD
   /@emotion/react/11.10.6_react@17.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@emotion/react@11.10.6(@types/react@17.0.52)(react@17.0.2):
-=======
-  /@emotion/react@11.10.6(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-6HT8jBmcSkfzO7mc+N1L9uwvOnlcGoix8Zn7srt+9ga0MjREo6lRpuVX0kzo6Jp6oTqDhREOFsygN6Ew4fEQbw==}
     peerDependencies:
       '@types/react': '*'
@@ -6029,13 +3706,7 @@ packages:
     resolution: {integrity: sha512-zxRBwl93sHMsOj4zs+OslQKg/uhF38MB+OMKoCrVuS0nyTkqnau+BM3WGEoOptg9Oz45T/aIGs1qbVAsEFo3nA==}
     dev: false
 
-<<<<<<< HEAD
   /@emotion/styled/11.10.6_lppulqnmkkrmfes7eqrbphxjnm:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@emotion/styled@11.10.6(@emotion/react@11.10.6)(@types/react@17.0.52)(react@17.0.2):
-=======
-  /@emotion/styled@11.10.6(@emotion/react@11.10.6)(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-OXtBzOmDSJo5Q0AFemHCfl+bUueT8BIcPSxu0EGTpGk6DmI5dnhSzQANm1e1ze0YZL7TDyAyy6s/b/zmGOS3Og==}
     peerDependencies:
       '@emotion/react': ^11.0.0-rc.0
@@ -6048,13 +3719,7 @@ packages:
       '@babel/runtime': 7.21.0
       '@emotion/babel-plugin': 11.10.6
       '@emotion/is-prop-valid': 1.2.0
-<<<<<<< HEAD
       '@emotion/react': 11.10.6_react@17.0.2
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@emotion/react': 11.10.6(@types/react@17.0.52)(react@17.0.2)
-=======
-      '@emotion/react': 11.10.6(react@17.0.2)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       '@emotion/serialize': 1.1.1
       '@emotion/use-insertion-effect-with-fallbacks': 1.0.0_react@17.0.2
       '@emotion/utils': 1.2.0
@@ -6664,13 +4329,7 @@ packages:
       read-yaml-file: 1.1.0
     dev: true
 
-<<<<<<< HEAD
   /@mdx-js/loader/2.2.1:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@mdx-js/loader@2.2.1(webpack@5.74.0):
-=======
-  /@mdx-js/loader@2.2.1:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-J4E8A5H+xtk4otZiEZ5AXl61Tj04Avm5MqLQazITdI3+puVXVnTTuZUKM1oNHTtfDIfOl0uMt+o/Ij+x6Fvf+g==}
     peerDependencies:
       webpack: '>=4'
@@ -6711,19 +4370,7 @@ packages:
     hasBin: true
     dev: true
 
-<<<<<<< HEAD
   /@nestjs/common/9.4.0_whg6pvy6vwu66ypq7idiq2suxq:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@nestjs/common@9.4.0(reflect-metadata@0.1.13)(rxjs@7.6.0):
-=======
-  /@napi-rs/cli@2.15.2:
-    resolution: {integrity: sha512-80tBCtCnEhAmFtB9oPM0FL74uW7fAmtpeqjvERH7Q1z/aZzCAs/iNfE7U3ehpwg9Q07Ob2Eh/+1guyCdX/p24w==}
-    engines: {node: '>= 10'}
-    hasBin: true
-    dev: true
-
-  /@nestjs/common@9.4.0(reflect-metadata@0.1.13)(rxjs@7.6.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-RUcVAQsEF4WPrmzFXEOUfZnPwrLTe1UVlzXTlSyfqfqbdWDPKDGlIPVelBLfc5/+RRUQ0I5iE4+CQvpCmkqldw==}
     peerDependencies:
       cache-manager: <=5
@@ -6828,7 +4475,6 @@ packages:
       - encoding
     dev: false
 
-<<<<<<< HEAD
   /@pmmmwh/react-refresh-webpack-plugin/0.5.10:
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
     engines: {node: '>= 10.13'}
@@ -6867,48 +4513,6 @@ packages:
     dev: true
 
   /@pmmmwh/react-refresh-webpack-plugin/0.5.10_pvgfg2i233iclh4uhrrgev3t5a:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(webpack-dev-server@4.11.1)(webpack@5.74.0):
-=======
-  /@pmmmwh/react-refresh-webpack-plugin@0.5.10:
-    resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
-    engines: {node: '>= 10.13'}
-    peerDependencies:
-      '@types/webpack': 4.x || 5.x
-      react-refresh: '>=0.10.0 <1.0.0'
-      sockjs-client: ^1.4.0
-      type-fest: '>=0.17.0 <4.0.0'
-      webpack: '>=4.43.0 <6.0.0'
-      webpack-dev-server: 3.x || 4.x
-      webpack-hot-middleware: 2.x
-      webpack-plugin-serve: 0.x || 1.x
-    peerDependenciesMeta:
-      '@types/webpack':
-        optional: true
-      sockjs-client:
-        optional: true
-      type-fest:
-        optional: true
-      webpack-dev-server:
-        optional: true
-      webpack-hot-middleware:
-        optional: true
-      webpack-plugin-serve:
-        optional: true
-    dependencies:
-      ansi-html-community: 0.0.8
-      common-path-prefix: 3.0.0
-      core-js-pure: 3.26.1
-      error-stack-parser: 2.1.4
-      find-up: 5.0.0
-      html-entities: 2.3.3
-      loader-utils: 2.0.4
-      schema-utils: 3.1.1
-      source-map: 0.7.4
-    dev: true
-
-  /@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(webpack-dev-server@4.11.1)(webpack@5.74.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
     engines: {node: '>= 10.13'}
     peerDependencies:
@@ -6944,18 +4548,9 @@ packages:
       react-refresh: 0.14.0
       schema-utils: 3.1.1
       source-map: 0.7.4
-<<<<<<< HEAD
       webpack: 5.74.0
       webpack-dev-server: 4.11.1_webpack@5.74.0
     dev: false
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-dev-server: 4.11.1(webpack-cli@4.10.0)(webpack@5.74.0)
-=======
-      webpack: 5.74.0
-      webpack-dev-server: 4.11.1(webpack@5.74.0)
-    dev: false
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /@polka/url/1.0.0-next.21:
     resolution: {integrity: sha512-a5Sab1C4/icpTZVzZc5Ghpz88yQtGOyNqYXcZgOssB2uuAr+wF/MvN6bgtW32q7HHrvBki+BsZ0OuNv6EV3K9g==}
@@ -8713,13 +6308,7 @@ packages:
       '@types/node': 18.7.9
     dev: true
 
-<<<<<<< HEAD
   /@types/webpack-bundle-analyzer/4.6.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /@types/webpack-bundle-analyzer@4.6.0(esbuild@0.15.9)(webpack-cli@4.10.0):
-=======
-  /@types/webpack-bundle-analyzer@4.6.0:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-XeQmQCCXdZdap+A/60UKmxW5Mz31Vp9uieGlHB3T4z/o2OLVLtTI3bvTuS6A2OWd/rbAAQiGGWIEFQACu16szA==}
     dependencies:
       '@types/node': 18.7.9
@@ -9045,18 +6634,9 @@ packages:
       webpack: 4.x.x || 5.x.x
       webpack-cli: 4.x.x
     dependencies:
-<<<<<<< HEAD
       webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
       webpack-cli: 4.10.0_webpack@5.74.0
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-cli: 4.10.0(webpack@5.74.0)
-=======
-      webpack: 5.74.0(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-cli: 4.10.0(webpack@5.74.0)
-    dev: true
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /@webpack-cli/info/1.5.0_webpack-cli@4.10.0:
     resolution: {integrity: sha512-e8tSXZpw2hPl2uMJY6fsMswaok5FdlGNRTktvFk2sD8RjH0hE2+XistawJx1vmKteh4NmGmNUrp+Tb2w+udPcQ==}
@@ -9064,15 +6644,8 @@ packages:
       webpack-cli: 4.x.x
     dependencies:
       envinfo: 7.8.1
-<<<<<<< HEAD
       webpack-cli: 4.10.0_webpack@5.74.0
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack-cli: 4.10.0(webpack@5.74.0)
-=======
-      webpack-cli: 4.10.0(webpack@5.74.0)
-    dev: true
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /@webpack-cli/serve/1.7.0_webpack-cli@4.10.0:
     resolution: {integrity: sha512-oxnCNGj88fL+xzV+dacXs44HcDwf1ovs3AuEzvP7mqXw7fQntqIhQ1BRmynh4qEKQSSSRSWVyXRjmTbZIX9V2Q==}
@@ -9083,15 +6656,8 @@ packages:
       webpack-dev-server:
         optional: true
     dependencies:
-<<<<<<< HEAD
       webpack-cli: 4.10.0_webpack@5.74.0
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack-cli: 4.10.0(webpack@5.74.0)
-=======
-      webpack-cli: 4.10.0(webpack@5.74.0)
-    dev: true
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /@xtuc/ieee754/1.2.0:
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -9440,13 +7006,7 @@ packages:
     hasBin: true
     dev: true
 
-<<<<<<< HEAD
   /autoprefixer/10.4.13:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /autoprefixer@10.4.13(postcss@8.4.21):
-=======
-  /autoprefixer@10.4.13:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-49vKpMqcZYsJjwotvt4+h/BCjJVnhGwcLpDt5xkcaOG3eLrG/HUYLagrihYsQ+qrIBgIzX1Rw7a6L8I/ZA1Atg==}
     engines: {node: ^10 || ^12 || >=14}
     hasBin: true
@@ -9515,7 +7075,6 @@ packages:
       - supports-color
     dev: true
 
-<<<<<<< HEAD
   /babel-loader/9.1.2:
     resolution: {integrity: sha512-mN14niXW43tddohGl8HPu5yfQq70iUThvFL/4QzESA7GcZoC0eVOhvWdQ8+3UlSjaDE9MVtsW9mxDY07W7VpVA==}
     engines: {node: '>= 14.15.0'}
@@ -9528,22 +7087,6 @@ packages:
     dev: true
 
   /babel-loader/9.1.2_@babel+core@7.20.12:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /babel-loader@9.1.2(@babel/core@7.20.12)(webpack@5.74.0):
-=======
-  /babel-loader@9.1.2:
-    resolution: {integrity: sha512-mN14niXW43tddohGl8HPu5yfQq70iUThvFL/4QzESA7GcZoC0eVOhvWdQ8+3UlSjaDE9MVtsW9mxDY07W7VpVA==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      '@babel/core': ^7.12.0
-      webpack: '>=5'
-    dependencies:
-      find-cache-dir: 3.3.2
-      schema-utils: 4.0.0
-    dev: true
-
-  /babel-loader@9.1.2(@babel/core@7.20.12):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-mN14niXW43tddohGl8HPu5yfQq70iUThvFL/4QzESA7GcZoC0eVOhvWdQ8+3UlSjaDE9MVtsW9mxDY07W7VpVA==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -9555,13 +7098,7 @@ packages:
       schema-utils: 4.0.0
     dev: false
 
-<<<<<<< HEAD
   /babel-loader/9.1.2_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /babel-loader@9.1.2(@babel/core@7.21.0)(webpack@5.74.0):
-=======
-  /babel-loader@9.1.2(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-mN14niXW43tddohGl8HPu5yfQq70iUThvFL/4QzESA7GcZoC0eVOhvWdQ8+3UlSjaDE9MVtsW9mxDY07W7VpVA==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -9624,7 +7161,6 @@ packages:
       resolve: 1.22.1
     dev: false
 
-<<<<<<< HEAD
   /babel-plugin-polyfill-corejs2/0.3.3:
     resolution: {integrity: sha512-8hOdmFYFSZhqg2C/JgLUQ+t52o5nirNwaWM2B9LWteozwIvM14VSwdsCAUET10qT+kmySAlseadmfeeSWFCy+Q==}
     peerDependencies:
@@ -9637,22 +7173,6 @@ packages:
       - supports-color
 
   /babel-plugin-polyfill-corejs2/0.3.3_@babel+core@7.21.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /babel-plugin-polyfill-corejs2@0.3.3(@babel/core@7.21.0):
-=======
-  /babel-plugin-polyfill-corejs2@0.3.3:
-    resolution: {integrity: sha512-8hOdmFYFSZhqg2C/JgLUQ+t52o5nirNwaWM2B9LWteozwIvM14VSwdsCAUET10qT+kmySAlseadmfeeSWFCy+Q==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/compat-data': 7.20.14
-      '@babel/helper-define-polyfill-provider': 0.3.3
-      semver: 6.3.0
-    transitivePeerDependencies:
-      - supports-color
-
-  /babel-plugin-polyfill-corejs2@0.3.3(@babel/core@7.21.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-8hOdmFYFSZhqg2C/JgLUQ+t52o5nirNwaWM2B9LWteozwIvM14VSwdsCAUET10qT+kmySAlseadmfeeSWFCy+Q==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -9663,22 +7183,7 @@ packages:
       semver: 6.3.0
     transitivePeerDependencies:
       - supports-color
-<<<<<<< HEAD
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-=======
-    dev: true
-
-  /babel-plugin-polyfill-corejs3@0.6.0:
-    resolution: {integrity: sha512-+eHqR6OPcBhJOGgsIar7xoAB1GcSwVUA3XjAd7HJNzOXT4wv6/H7KIdA/Nc60cvUlDbKApmqNvD1B1bzOt4nyA==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-define-polyfill-provider': 0.3.3
-      core-js-compat: 3.26.1
-    transitivePeerDependencies:
-      - supports-color
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /babel-plugin-polyfill-corejs3/0.6.0:
     resolution: {integrity: sha512-+eHqR6OPcBhJOGgsIar7xoAB1GcSwVUA3XjAd7HJNzOXT4wv6/H7KIdA/Nc60cvUlDbKApmqNvD1B1bzOt4nyA==}
@@ -9700,21 +7205,7 @@ packages:
       core-js-compat: 3.26.1
     transitivePeerDependencies:
       - supports-color
-<<<<<<< HEAD
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-=======
-    dev: true
-
-  /babel-plugin-polyfill-regenerator@0.4.1:
-    resolution: {integrity: sha512-NtQGmyQDXjQqQ+IzRkBVwEOz9lQ4zxAQZgoAYEtU9dJjnl1Oc98qnN7jcp+bE7O7aYzVpavXE3/VKXNzUbh7aw==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-    dependencies:
-      '@babel/helper-define-polyfill-provider': 0.3.3
-    transitivePeerDependencies:
-      - supports-color
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /babel-plugin-polyfill-regenerator/0.4.1:
     resolution: {integrity: sha512-NtQGmyQDXjQqQ+IzRkBVwEOz9lQ4zxAQZgoAYEtU9dJjnl1Oc98qnN7jcp+bE7O7aYzVpavXE3/VKXNzUbh7aw==}
@@ -9746,26 +7237,14 @@ packages:
       babel-plugin-syntax-jsx: 6.18.0
       lodash: 4.17.21
       picomatch: 2.3.1
-<<<<<<< HEAD
       styled-components: 5.3.6_sfoxds7t5ydpegc3knd667wn6m
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      styled-components: 5.3.6(react-dom@17.0.2)(react-is@18.2.0)(react@17.0.2)
-=======
-      styled-components: 5.3.6(react-dom@17.0.2)(react@17.0.2)
->>>>>>> d23e019d (chore: 🤖 bump napi)
     dev: false
 
   /babel-plugin-syntax-jsx/6.18.0:
     resolution: {integrity: sha512-qrPaCSo9c8RHNRHIotaufGbuOBN8rtdC4QrrFFc43vyWCCz7Kl7GL1PGaXtMGQZUXrkCjNEgxDfmAuAabr/rlw==}
     dev: false
 
-<<<<<<< HEAD
   /babel-plugin-transform-replace-object-assign/2.0.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /babel-plugin-transform-replace-object-assign@2.0.0(@babel/core@7.21.0):
-=======
-  /babel-plugin-transform-replace-object-assign@2.0.0:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-PMT+dRz6JAHbXIsJB4XjcIstmKK9SFj9MYZGcEWW/1jISiemGz9w6TVLrj4hgpR89X0J9mFuHq61zPvP8lgZZQ==}
     peerDependencies:
       '@babel/core': ^7.0.0
@@ -9847,13 +7326,7 @@ packages:
     resolution: {integrity: sha512-jDctJ/IVQbZoJykoeHbhXpOlNBqGNcwXJKJog42E5HDPUwQTSdjCHdihjj0DlnheQ7blbT6dHOafNAiS8ooQKA==}
     engines: {node: '>=8'}
 
-<<<<<<< HEAD
   /bizcharts/4.1.22_react@17.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /bizcharts@4.1.22(@babel/core@7.21.0)(react@17.0.2):
-=======
-  /bizcharts@4.1.22(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-mTHUr6svp35z8474rfJZULGvS3mkhhpESZFuHyERvoSiziq9cmYukNyH4ziV+wrUwcGt4HoqVVsvosYxurvgNQ==}
     dependencies:
       '@antv/component': 0.8.28
@@ -10743,13 +8216,7 @@ packages:
       toggle-selection: 1.0.6
     dev: false
 
-<<<<<<< HEAD
   /copy-webpack-plugin/5.1.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /copy-webpack-plugin@5.1.2(webpack@5.74.0):
-=======
-  /copy-webpack-plugin@5.1.2:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-Uh7crJAco3AjBvgAy9Z75CjK8IG+gxaErro71THQ+vv/bl4HaQcpkexAY8KVW/T6D2W2IRr+couF/knIRkZMIQ==}
     engines: {node: '>= 6.9.0'}
     peerDependencies:
@@ -10798,13 +8265,7 @@ packages:
       vary: 1.1.2
     dev: false
 
-<<<<<<< HEAD
   /cosmiconfig-typescript-loader/4.3.0_cosmiconfig@8.1.3:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /cosmiconfig-typescript-loader@4.3.0(@types/node@18.7.9)(cosmiconfig@8.1.3)(ts-node@10.9.1)(typescript@4.9.4):
-=======
-  /cosmiconfig-typescript-loader@4.3.0(cosmiconfig@8.1.3):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-NTxV1MFfZDLPiBMjxbHRwSh5LaLcPMwNdCutmnHJCKoVnlvldPWlllonKwrsRJ5pYZBIBGRWWU2tfvzxgeSW5Q==}
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
@@ -10953,13 +8414,7 @@ packages:
     engines: {node: '>=4'}
     dev: false
 
-<<<<<<< HEAD
   /css-loader/6.7.3:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /css-loader@6.7.3(webpack@5.74.0):
-=======
-  /css-loader@6.7.3:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-qhOH1KlBMnZP8FzRO6YCH9UHXQhVMcEGLyNdb7Hv2cpcmJbW0YrddO+tG1ab5nT41KpHIYGsbeHqxB9xPu1pKQ==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
@@ -11208,7 +8663,6 @@ packages:
     dev: true
     optional: true
 
-<<<<<<< HEAD
   /debug/4.3.4:
     resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
     engines: {node: '>=6.0'}
@@ -11221,22 +8675,6 @@ packages:
       ms: 2.1.2
 
   /debug/4.3.4_supports-color@5.5.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /debug@4.3.4(supports-color@5.5.0):
-=======
-  /debug@4.3.4:
-    resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
-    engines: {node: '>=6.0'}
-    peerDependencies:
-      supports-color: '*'
-    peerDependenciesMeta:
-      supports-color:
-        optional: true
-    dependencies:
-      ms: 2.1.2
-
-  /debug@4.3.4(supports-color@5.5.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
     engines: {node: '>=6.0'}
     peerDependencies:
@@ -11777,30 +9215,7 @@ packages:
     dev: true
     optional: true
 
-<<<<<<< HEAD
   /esbuild-linux-arm/0.15.9:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /esbuild-linux-arm64@0.15.9:
-    resolution: {integrity: sha512-a+bTtxJmYmk9d+s2W4/R1SYKDDAldOKmWjWP0BnrWtDbvUBNOm++du0ysPju4mZVoEFgS1yLNW+VXnG/4FNwdQ==}
-    engines: {node: '>=12'}
-    cpu: [arm64]
-    os: [linux]
-    requiresBuild: true
-    optional: true
-
-  /esbuild-linux-arm@0.15.9:
-=======
-  /esbuild-linux-arm64@0.15.9:
-    resolution: {integrity: sha512-a+bTtxJmYmk9d+s2W4/R1SYKDDAldOKmWjWP0BnrWtDbvUBNOm++du0ysPju4mZVoEFgS1yLNW+VXnG/4FNwdQ==}
-    engines: {node: '>=12'}
-    cpu: [arm64]
-    os: [linux]
-    requiresBuild: true
-    dev: true
-    optional: true
-
-  /esbuild-linux-arm@0.15.9:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-3Zf2GVGUOI7XwChH3qrnTOSqfV1V4CAc/7zLVm4lO6JT6wbJrTgEYCCiNSzziSju+J9Jhf9YGWk/26quWPC6yQ==}
     engines: {node: '>=12'}
     cpu: [arm]
@@ -12322,13 +9737,7 @@ packages:
     resolution: {integrity: sha512-0btnI/H8f2pavGMN8w40mlSKOfTK2SVJmBfBeVIj3kNw0swwgzyRq0d5TJVOwodFmtvpPeWPN/MCcfuWF0Ezbw==}
     dev: true
 
-<<<<<<< HEAD
   /file-loader/6.2.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /file-loader@6.2.0(webpack@5.74.0):
-=======
-  /file-loader@6.2.0:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-qo3glqyTa61Ytg4u73GultjHGjdRyig3tG6lPtyX/jOEJvHif9uB0/OCI2Kif6ctF3caQTW2G5gym21oAsI4pw==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -12900,13 +10309,7 @@ packages:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
     dev: true
 
-<<<<<<< HEAD
   /html-loader/4.2.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /html-loader@4.2.0(webpack@5.74.0):
-=======
-  /html-loader@4.2.0:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-OxCHD3yt+qwqng2vvcaPApCEvbx+nXWu+v69TYHx1FO8bffHn/JjHtE3TTQZmHjwvnJe4xxzuecetDVBrQR1Zg==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -12948,13 +10351,7 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-<<<<<<< HEAD
   /html-webpack-plugin/5.5.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /html-webpack-plugin@5.5.0(webpack@5.74.0):
-=======
-  /html-webpack-plugin@5.5.0:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-sy88PC2cRTVxvETRgUHFrL4No3UxvcH8G1NepGhqaTT+GXN2kTamqasot0inS5hXeg1cMbFDt27zzo9p35lZVw==}
     engines: {node: '>=10.13.0'}
     peerDependencies:
@@ -13680,51 +11077,7 @@ packages:
       - ts-node
     dev: true
 
-<<<<<<< HEAD
   /jest-config/29.0.3:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /jest-config@29.0.3(@types/node@18.7.9):
-=======
-  /jest-config@29.0.3:
-    resolution: {integrity: sha512-U5qkc82HHVYe3fNu2CRXLN4g761Na26rWKf7CjM8LlZB3In1jadEkZdMwsE37rd9RSPV0NfYaCjHdk/gu3v+Ew==}
-    engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
-    peerDependencies:
-      '@types/node': '*'
-      ts-node: '>=9.0.0'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      ts-node:
-        optional: true
-    dependencies:
-      '@babel/core': 7.21.0
-      '@jest/test-sequencer': 29.0.3
-      '@jest/types': 29.4.3
-      babel-jest: 29.4.3(@babel/core@7.21.0)
-      chalk: 4.1.2
-      ci-info: 3.3.2
-      deepmerge: 4.2.2
-      glob: 7.2.3
-      graceful-fs: 4.2.10
-      jest-circus: 29.0.3
-      jest-environment-node: 29.0.3
-      jest-get-type: 29.0.0
-      jest-regex-util: 29.4.3
-      jest-resolve: 29.0.3
-      jest-runner: 29.0.3
-      jest-util: 29.4.3
-      jest-validate: 29.0.3
-      micromatch: 4.0.5
-      parse-json: 5.2.0
-      pretty-format: 29.0.3
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
-
-  /jest-config@29.0.3(@types/node@18.7.9):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-U5qkc82HHVYe3fNu2CRXLN4g761Na26rWKf7CjM8LlZB3In1jadEkZdMwsE37rd9RSPV0NfYaCjHdk/gu3v+Ew==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     peerDependencies:
@@ -14058,19 +11411,9 @@ packages:
     dependencies:
       '@babel/core': 7.21.0
       '@babel/generator': 7.21.1
-<<<<<<< HEAD
       '@babel/plugin-syntax-jsx': 7.18.6_@babel+core@7.21.0
       '@babel/plugin-syntax-typescript': 7.20.0_@babel+core@7.21.0
       '@babel/traverse': 7.21.2
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      '@babel/plugin-syntax-jsx': 7.18.6(@babel/core@7.21.0)
-      '@babel/plugin-syntax-typescript': 7.20.0(@babel/core@7.21.0)
-      '@babel/traverse': 7.21.2(supports-color@5.5.0)
-=======
-      '@babel/plugin-syntax-jsx': 7.18.6(@babel/core@7.21.0)
-      '@babel/plugin-syntax-typescript': 7.20.0(@babel/core@7.21.0)
-      '@babel/traverse': 7.21.2
->>>>>>> d23e019d (chore: 🤖 bump napi)
       '@babel/types': 7.21.2
       '@jest/expect-utils': 29.0.3
       '@jest/transform': 29.4.3
@@ -14346,7 +11689,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: false
 
-<<<<<<< HEAD
   /less-loader/11.1.0:
     resolution: {integrity: sha512-C+uDBV7kS7W5fJlUjq5mPBeBVhYpTIm5gB09APT9o3n/ILeaXVsiSFTbZpTJCJwQ/Crczfn3DmfQFwxYusWFug==}
     engines: {node: '>= 14.15.0'}
@@ -14357,20 +11699,6 @@ packages:
       klona: 2.0.5
 
   /less-loader/11.1.0_less@4.1.3:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /less-loader@11.1.0(less@4.1.3)(webpack@5.74.0):
-=======
-  /less-loader@11.1.0:
-    resolution: {integrity: sha512-C+uDBV7kS7W5fJlUjq5mPBeBVhYpTIm5gB09APT9o3n/ILeaXVsiSFTbZpTJCJwQ/Crczfn3DmfQFwxYusWFug==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      less: ^3.5.0 || ^4.0.0
-      webpack: ^5.0.0
-    dependencies:
-      klona: 2.0.5
-
-  /less-loader@11.1.0(less@4.1.3):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-C+uDBV7kS7W5fJlUjq5mPBeBVhYpTIm5gB09APT9o3n/ILeaXVsiSFTbZpTJCJwQ/Crczfn3DmfQFwxYusWFug==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -15285,13 +12613,7 @@ packages:
     engines: {node: '>=4'}
     dev: true
 
-<<<<<<< HEAD
   /mini-css-extract-plugin/2.7.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /mini-css-extract-plugin@2.7.2(webpack@5.74.0):
-=======
-  /mini-css-extract-plugin@2.7.2:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-EdlUizq13o0Pd+uCp+WO/JpkLvHRVGt97RqfeGhXqAcorYo1ypJSpkV+WDT0vY/kmh/p7wRdJNJtuyK540PXDw==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
@@ -16048,13 +13370,7 @@ packages:
       postcss: 8.4.21
     dev: true
 
-<<<<<<< HEAD
   /postcss-load-config/3.1.4_postcss@8.4.21:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /postcss-load-config@3.1.4(postcss@8.4.21)(ts-node@10.9.1):
-=======
-  /postcss-load-config@3.1.4(postcss@8.4.21):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-6DiM4E7v4coTE4uzA8U//WhtPwyhiim3eyjEMFCnUpzbrkK9wJHgKDT2mR+HbtSrd/NubVaYTOpSpjUl8NQeRg==}
     engines: {node: '>= 10'}
     peerDependencies:
@@ -16087,13 +13403,7 @@ packages:
       yaml: 2.2.1
     dev: true
 
-<<<<<<< HEAD
   /postcss-loader/7.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /postcss-loader@7.0.2(postcss@8.4.21)(webpack@5.74.0):
-=======
-  /postcss-loader@7.0.2:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-fUJzV/QH7NXUAqV8dWJ9Lg4aTkDCezpTS5HgJ2DvqznexTbSTxgi/dTECvTZ15BwKTtk8G/bqI/QTu2HPd3ZCg==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -16105,13 +13415,7 @@ packages:
       semver: 7.3.8
     dev: true
 
-<<<<<<< HEAD
   /postcss-loader/7.2.3_postcss@8.4.21:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /postcss-loader@7.2.3(@types/node@18.7.9)(postcss@8.4.21)(ts-node@10.9.1)(typescript@4.9.4)(webpack@5.74.0):
-=======
-  /postcss-loader@7.2.3(postcss@8.4.21):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-H/PIjgbn2q7zFnmUMPvEupIFnOAg+fYWC/4F6DugK8uPITVYyEflnSjLFV0u20B3Qi88PzPiAlzn8hBSu3f8oA==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -16126,13 +13430,7 @@ packages:
         optional: true
     dependencies:
       cosmiconfig: 8.1.3
-<<<<<<< HEAD
       cosmiconfig-typescript-loader: 4.3.0_cosmiconfig@8.1.3
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      cosmiconfig-typescript-loader: 4.3.0(@types/node@18.7.9)(cosmiconfig@8.1.3)(ts-node@10.9.1)(typescript@4.9.4)
-=======
-      cosmiconfig-typescript-loader: 4.3.0(cosmiconfig@8.1.3)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       klona: 2.0.6
       postcss: 8.4.21
       semver: 7.3.8
@@ -16203,7 +13501,6 @@ packages:
       postcss-selector-parser: 6.0.11
     dev: true
 
-<<<<<<< HEAD
   /postcss-pxtorem/6.0.0:
     resolution: {integrity: sha512-ZRXrD7MLLjLk2RNGV6UA4f5Y7gy+a/j1EqjAfp9NdcNYVjUMvg5HTYduTjSkKBkRkfqbg/iKrjMO70V4g1LZeg==}
     peerDependencies:
@@ -16211,17 +13508,6 @@ packages:
     dev: true
 
   /postcss-pxtorem/6.0.0_postcss@8.4.20:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /postcss-pxtorem@6.0.0(postcss@8.4.20):
-=======
-  /postcss-pxtorem@6.0.0:
-    resolution: {integrity: sha512-ZRXrD7MLLjLk2RNGV6UA4f5Y7gy+a/j1EqjAfp9NdcNYVjUMvg5HTYduTjSkKBkRkfqbg/iKrjMO70V4g1LZeg==}
-    peerDependencies:
-      postcss: ^8.0.0
-    dev: true
-
-  /postcss-pxtorem@6.0.0(postcss@8.4.20):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-ZRXrD7MLLjLk2RNGV6UA4f5Y7gy+a/j1EqjAfp9NdcNYVjUMvg5HTYduTjSkKBkRkfqbg/iKrjMO70V4g1LZeg==}
     peerDependencies:
       postcss: ^8.0.0
@@ -16229,21 +13515,7 @@ packages:
       postcss: 8.4.20
     dev: false
 
-<<<<<<< HEAD
   /postcss-selector-parser/6.0.10:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /postcss-pxtorem@6.0.0(postcss@8.4.21):
-    resolution: {integrity: sha512-ZRXrD7MLLjLk2RNGV6UA4f5Y7gy+a/j1EqjAfp9NdcNYVjUMvg5HTYduTjSkKBkRkfqbg/iKrjMO70V4g1LZeg==}
-    peerDependencies:
-      postcss: ^8.0.0
-    dependencies:
-      postcss: 8.4.21
-    dev: true
-
-  /postcss-selector-parser@6.0.10:
-=======
-  /postcss-selector-parser@6.0.10:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w==}
     engines: {node: '>=4'}
     dependencies:
@@ -16681,13 +13953,7 @@ packages:
       unpipe: 1.0.0
     dev: false
 
-<<<<<<< HEAD
   /raw-loader/4.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /raw-loader@4.0.2(webpack@5.74.0):
-=======
-  /raw-loader@4.0.2:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-ZnScIV3ag9A4wPX/ZayxL/jZH+euYb6FcUinPcgiQW0+UBtEv0O6Q3lGd3cqJ+GHH+rksEv3Pj99oxJ3u3VIKA==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -16814,13 +14080,7 @@ packages:
       react: 17.0.2
     dev: false
 
-<<<<<<< HEAD
   /react-focus-lock/2.9.2_react@17.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /react-focus-lock@2.9.2(@types/react@17.0.52)(react@17.0.2):
-=======
-  /react-focus-lock@2.9.2(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-5JfrsOKyA5Zn3h958mk7bAcfphr24jPoMoznJ8vaJF6fUrPQ8zrtEd3ILLOK8P5jvGxdMd96OxWNjDzATfR2qw==}
     peerDependencies:
       '@types/react': ^16.8.0 || ^17.0.0 || ^18.0.0
@@ -16833,19 +14093,9 @@ packages:
       focus-lock: 0.11.4
       prop-types: 15.8.1
       react: 17.0.2
-<<<<<<< HEAD
       react-clientside-effect: 1.2.6_react@17.0.2
       use-callback-ref: 1.3.0_react@17.0.2
       use-sidecar: 1.1.2_react@17.0.2
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      react-clientside-effect: 1.2.6(react@17.0.2)
-      use-callback-ref: 1.3.0(@types/react@17.0.52)(react@17.0.2)
-      use-sidecar: 1.1.2(@types/react@17.0.52)(react@17.0.2)
-=======
-      react-clientside-effect: 1.2.6(react@17.0.2)
-      use-callback-ref: 1.3.0(react@17.0.2)
-      use-sidecar: 1.1.2(react@17.0.2)
->>>>>>> d23e019d (chore: 🤖 bump napi)
     dev: false
 
   /react-is/16.13.1:
@@ -16903,13 +14153,7 @@ packages:
     resolution: {integrity: sha512-wViHqhAd8OHeLS/IRMJjTSDHF3U9eWi62F/MledQGPdJGDhodXJ9PBLNGr6WWL7qlH12Mt3TyTpbS+hGXMjCzQ==}
     engines: {node: '>=0.10.0'}
 
-<<<<<<< HEAD
   /react-relay/14.1.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /react-relay@14.1.0(react@17.0.2):
-=======
-  /react-relay@14.1.0:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-U4oHb5wn1LEi17x3AcZOy66MXs83tnYbsK7/YE1/3cQKCPrXhyVUQbEOC9L7jMX659jtS1NACae+7b03bryMCQ==}
     peerDependencies:
       react: ^16.9.0 || ^17 || ^18
@@ -17525,7 +14769,6 @@ packages:
     dev: false
     optional: true
 
-<<<<<<< HEAD
   /sass-loader/13.2.0:
     resolution: {integrity: sha512-JWEp48djQA4nbZxmgC02/Wh0eroSUutulROUusYJO9P9zltRbNN80JCBHqRGzjd4cmZCa/r88xgfkjGD0TXsHg==}
     engines: {node: '>= 14.15.0'}
@@ -17549,33 +14792,6 @@ packages:
       neo-async: 2.6.2
 
   /sass-loader/13.2.0_sass@1.56.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /sass-loader@13.2.0(sass@1.56.2)(webpack@5.74.0):
-=======
-  /sass-loader@13.2.0:
-    resolution: {integrity: sha512-JWEp48djQA4nbZxmgC02/Wh0eroSUutulROUusYJO9P9zltRbNN80JCBHqRGzjd4cmZCa/r88xgfkjGD0TXsHg==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      fibers: '>= 3.1.0'
-      node-sass: ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
-      sass: ^1.3.0
-      sass-embedded: '*'
-      webpack: ^5.0.0
-    peerDependenciesMeta:
-      fibers:
-        optional: true
-      node-sass:
-        optional: true
-      sass:
-        optional: true
-      sass-embedded:
-        optional: true
-    dependencies:
-      klona: 2.0.5
-      neo-async: 2.6.2
-
-  /sass-loader@13.2.0(sass@1.56.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-JWEp48djQA4nbZxmgC02/Wh0eroSUutulROUusYJO9P9zltRbNN80JCBHqRGzjd4cmZCa/r88xgfkjGD0TXsHg==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -18005,13 +15221,7 @@ packages:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
     engines: {node: '>=0.10.0'}
 
-<<<<<<< HEAD
   /source-map-loader/4.0.1:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /source-map-loader@4.0.1(webpack@5.74.0):
-=======
-  /source-map-loader@4.0.1:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-oqXpzDIByKONVY8g1NUPOTQhe0UTU5bWUl32GSkqK2LjJj0HmwTMVKxcUip0RgAYhY1mqgOxjbQM48a0mmeNfA==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -18351,13 +15561,7 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-<<<<<<< HEAD
   /style-loader/3.3.1:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /style-loader@3.3.1(webpack@5.74.0):
-=======
-  /style-loader@3.3.1:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-GPcQ+LDJbrcxHORTRes6Jy2sfvK2kS6hpSfI/fXhPt+spVzxF6LJ1dHLN9zIGmVaaP044YKaIatFaufENRiDoQ==}
     engines: {node: '>= 12.13.0'}
     peerDependencies:
@@ -18370,13 +15574,7 @@ packages:
       inline-style-parser: 0.1.1
     dev: true
 
-<<<<<<< HEAD
   /styled-components/5.3.6_sfoxds7t5ydpegc3knd667wn6m:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /styled-components@5.3.6(react-dom@17.0.2)(react-is@18.2.0)(react@17.0.2):
-=======
-  /styled-components@5.3.6(react-dom@17.0.2)(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-hGTZquGAaTqhGWldX7hhfzjnIYBZ0IXQXkCYdvF1Sq3DsUaLx6+NTHC5Jj1ooM2F68sBiVz3lvhfwQs/S3l6qg==}
     engines: {node: '>=10'}
     requiresBuild: true
@@ -18394,14 +15592,7 @@ packages:
       css-to-react-native: 3.2.0
       hoist-non-react-statics: 3.3.2
       react: 17.0.2
-<<<<<<< HEAD
       react-dom: 17.0.2_react@17.0.2
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      react-dom: 17.0.2(react@17.0.2)
-      react-is: 18.2.0
-=======
-      react-dom: 17.0.2(react@17.0.2)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       shallowequal: 1.1.0
       supports-color: 5.5.0
     dev: false
@@ -18410,13 +15601,7 @@ packages:
     resolution: {integrity: sha512-GP6WDNWf+o403jrEp9c5jibKavrtLW+/qYGhFxFrG8maXhwTBI7gLLhiBb0o7uFccWN+EOS9aMO6cGHWAO07OA==}
     dev: false
 
-<<<<<<< HEAD
   /stylus-loader/7.1.0_stylus@0.59.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /stylus-loader@7.1.0(stylus@0.59.0)(webpack@5.74.0):
-=======
-  /stylus-loader@7.1.0(stylus@0.59.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-gNUEjjozR+oZ8cuC/Fx4LVXqZOgDKvpW9t2hpXHcxjfPYqSjQftaGwZUK+wL9B0QJ26uS6p1EmoWHmvld1dF7g==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -18500,13 +15685,7 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-<<<<<<< HEAD
   /svelte-check/3.0.3_hauqram6hvgn56rvtbovahy7jm:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /svelte-check@3.0.3(@babel/core@7.21.0)(postcss-load-config@4.0.1)(svelte@3.55.1):
-=======
-  /svelte-check@3.0.3(postcss-load-config@4.0.1)(svelte@3.55.1):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-ByBFXo3bfHRGIsYEasHkdMhLkNleVfszX/Ns1oip58tPJlKdo5Ssr8kgVIuo5oq00hss8AIcdesuy0Xt0BcTvg==}
     hasBin: true
     peerDependencies:
@@ -18519,13 +15698,7 @@ packages:
       picocolors: 1.0.0
       sade: 1.8.1
       svelte: 3.55.1
-<<<<<<< HEAD
       svelte-preprocess: 5.0.1_cyxqinykkdmv35hwxp6bhcouii
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      svelte-preprocess: 5.0.1(@babel/core@7.21.0)(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@4.9.4)
-=======
-      svelte-preprocess: 5.0.1(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@4.9.4)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       typescript: 4.9.4
     transitivePeerDependencies:
       - '@babel/core'
@@ -18563,13 +15736,7 @@ packages:
       svelte-hmr: 0.14.12_svelte@3.55.1
     dev: true
 
-<<<<<<< HEAD
   /svelte-preprocess/5.0.1_cyxqinykkdmv35hwxp6bhcouii:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /svelte-preprocess@5.0.1(@babel/core@7.21.0)(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@4.9.4):
-=======
-  /svelte-preprocess@5.0.1(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@4.9.4):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-0HXyhCoc9rsW4zGOgtInylC6qj259E1hpFnJMJWTf+aIfeqh4O/QHT31KT2hvPEqQfdjmqBR/kO2JDkkciBLrQ==}
     engines: {node: '>= 14.10.0'}
     requiresBuild: true
@@ -18618,13 +15785,7 @@ packages:
       typescript: 4.9.4
     dev: true
 
-<<<<<<< HEAD
   /svelte-preprocess/5.0.1_fgsixxaxqkmmnk2d2zstzcy2wi:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /svelte-preprocess@5.0.1(@babel/core@7.21.0)(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@5.0.2):
-=======
-  /svelte-preprocess@5.0.1(postcss-load-config@4.0.1)(svelte@3.55.1)(typescript@5.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-0HXyhCoc9rsW4zGOgtInylC6qj259E1hpFnJMJWTf+aIfeqh4O/QHT31KT2hvPEqQfdjmqBR/kO2JDkkciBLrQ==}
     engines: {node: '>= 14.10.0'}
     requiresBuild: true
@@ -18700,13 +15861,7 @@ packages:
       stable: 0.1.8
     dev: true
 
-<<<<<<< HEAD
   /swc-loader/0.2.3_@swc+core@1.3.23:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /swc-loader@0.2.3(@swc/core@1.3.23)(webpack@5.74.0):
-=======
-  /swc-loader@0.2.3(@swc/core@1.3.23):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-D1p6XXURfSPleZZA/Lipb3A8pZ17fP4NObZvFCDjK/OKljroqDpPmsBdTraWhVBqUNpcWBQY1imWdoPScRlQ7A==}
     peerDependencies:
       '@swc/core': ^1.2.147
@@ -18715,13 +15870,7 @@ packages:
       '@swc/core': 1.3.23
     dev: true
 
-<<<<<<< HEAD
   /tailwindcss/3.3.1_postcss@8.4.21:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /tailwindcss@3.3.1(postcss@8.4.21)(ts-node@10.9.1):
-=======
-  /tailwindcss@3.3.1(postcss@8.4.21):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-Vkiouc41d4CEq0ujXl6oiGFQ7bA3WEhUZdTgXAhtKxSy49OmKs8rEfQmupsfF0IGW8fv2iQkp1EVUuapCFrZ9g==}
     engines: {node: '>=12.13.0'}
     hasBin: true
@@ -18743,22 +15892,10 @@ packages:
       object-hash: 3.0.0
       picocolors: 1.0.0
       postcss: 8.4.21
-<<<<<<< HEAD
       postcss-import: 14.1.0_postcss@8.4.21
       postcss-js: 4.0.1_postcss@8.4.21
       postcss-load-config: 3.1.4_postcss@8.4.21
       postcss-nested: 6.0.0_postcss@8.4.21
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      postcss-import: 14.1.0(postcss@8.4.21)
-      postcss-js: 4.0.1(postcss@8.4.21)
-      postcss-load-config: 3.1.4(postcss@8.4.21)(ts-node@10.9.1)
-      postcss-nested: 6.0.0(postcss@8.4.21)
-=======
-      postcss-import: 14.1.0(postcss@8.4.21)
-      postcss-js: 4.0.1(postcss@8.4.21)
-      postcss-load-config: 3.1.4(postcss@8.4.21)
-      postcss-nested: 6.0.0(postcss@8.4.21)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       postcss-selector-parser: 6.0.11
       postcss-value-parser: 4.2.0
       quick-lru: 5.1.1
@@ -18826,13 +15963,7 @@ packages:
       supports-hyperlinks: 2.3.0
     dev: true
 
-<<<<<<< HEAD
   /terser-webpack-plugin/5.3.6_k7xlqms7gtkxek3uz4vwbhfvde:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /terser-webpack-plugin@5.3.6(@swc/core@1.3.23)(esbuild@0.15.9)(webpack@5.74.0):
-=======
-  /terser-webpack-plugin@5.3.6(esbuild@0.15.9)(webpack@5.74.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-kfLFk+PoLUQIbLmB1+PZDMRSZS99Mp+/MHqDNmMA6tOItzRt+Npe3E+fsMs5mfcM0wCtrrdU387UnV+vnSffXQ==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -18854,38 +15985,8 @@ packages:
       schema-utils: 3.1.1
       serialize-javascript: 6.0.0
       terser: 5.16.1
-<<<<<<< HEAD
       webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-=======
-      webpack: 5.74.0(esbuild@0.15.9)(webpack-cli@4.10.0)
-    dev: true
-
-  /terser-webpack-plugin@5.3.6(webpack@5.74.0):
-    resolution: {integrity: sha512-kfLFk+PoLUQIbLmB1+PZDMRSZS99Mp+/MHqDNmMA6tOItzRt+Npe3E+fsMs5mfcM0wCtrrdU387UnV+vnSffXQ==}
-    engines: {node: '>= 10.13.0'}
-    peerDependencies:
-      '@swc/core': '*'
-      esbuild: '*'
-      uglify-js: '*'
-      webpack: ^5.1.0
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      esbuild:
-        optional: true
-      uglify-js:
-        optional: true
-    dependencies:
-      '@jridgewell/trace-mapping': 0.3.17
-      jest-worker: 27.5.1
-      schema-utils: 3.1.1
-      serialize-javascript: 6.0.0
-      terser: 5.16.1
-      webpack: 5.74.0
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /terser-webpack-plugin/5.3.6_webpack@5.74.0:
     resolution: {integrity: sha512-kfLFk+PoLUQIbLmB1+PZDMRSZS99Mp+/MHqDNmMA6tOItzRt+Npe3E+fsMs5mfcM0wCtrrdU387UnV+vnSffXQ==}
@@ -19054,13 +16155,7 @@ packages:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
     dev: true
 
-<<<<<<< HEAD
   /ts-jest/29.0.1_pujexpxunlzq6ak2jdeum2jpha:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /ts-jest@29.0.1(@babel/core@7.21.0)(esbuild@0.15.9)(jest@29.0.3)(typescript@5.0.2):
-=======
-  /ts-jest@29.0.1(esbuild@0.15.9)(jest@29.0.3)(typescript@5.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-htQOHshgvhn93QLxrmxpiQPk69+M1g7govO1g6kf6GsjCv4uvRV0znVmDrrvjUrVCnTYeY4FBxTYYYD4airyJA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     hasBin: true
@@ -19094,7 +16189,6 @@ packages:
       yargs-parser: 21.1.1
     dev: true
 
-<<<<<<< HEAD
   /ts-node/10.9.1:
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
@@ -19125,70 +16219,6 @@ packages:
     dev: true
 
   /ts-node/10.9.1_3cs3zdlytrbp4mm23txabjguba:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /ts-node@10.9.1(@types/node@18.7.9)(typescript@4.9.4):
-=======
-  /ts-node@10.9.1:
-    resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
-    hasBin: true
-    peerDependencies:
-      '@swc/core': '>=1.2.50'
-      '@swc/wasm': '>=1.2.50'
-      '@types/node': '*'
-      typescript: '>=2.7'
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      '@swc/wasm':
-        optional: true
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.9
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.3
-      acorn: 8.8.0
-      acorn-walk: 8.2.0
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    dev: true
-
-  /ts-node@10.9.1(@types/node@18.7.9):
-    resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
-    hasBin: true
-    peerDependencies:
-      '@swc/core': '>=1.2.50'
-      '@swc/wasm': '>=1.2.50'
-      '@types/node': '*'
-      typescript: '>=2.7'
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      '@swc/wasm':
-        optional: true
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.9
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.3
-      '@types/node': 18.7.9
-      acorn: 8.8.0
-      acorn-walk: 8.2.0
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    dev: true
-
-  /ts-node@10.9.1(@types/node@18.7.9)(typescript@4.9.4):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -19554,13 +16584,7 @@ packages:
     dependencies:
       punycode: 2.1.1
 
-<<<<<<< HEAD
   /url-loader/4.1.1:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /url-loader@4.1.1(webpack@5.74.0):
-=======
-  /url-loader@4.1.1:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-3BTV812+AVHHOJQO8O5MkWgZ5aosP7GnROJwvzLS9hWDj00lZ6Z0wNak423Lp9PBZN05N+Jk/N5Si8jRAlGyWA==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -19589,13 +16613,7 @@ packages:
       querystring: 0.2.0
     dev: false
 
-<<<<<<< HEAD
   /use-callback-ref/1.3.0_react@17.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /use-callback-ref@1.3.0(@types/react@17.0.52)(react@17.0.2):
-=======
-  /use-callback-ref@1.3.0(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-3FT9PRuRdbB9HfXhEq35u4oZkvpJ5kuYbpqhCfmiZyReuRgpnhDlbr2ZEnnuS0RrJAPn6l23xjFg9kpDM+Ms7w==}
     engines: {node: '>=10'}
     peerDependencies:
@@ -19609,13 +16627,7 @@ packages:
       tslib: 2.5.0
     dev: false
 
-<<<<<<< HEAD
   /use-sidecar/1.1.2_react@17.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /use-sidecar@1.1.2(@types/react@17.0.52)(react@17.0.2):
-=======
-  /use-sidecar@1.1.2(react@17.0.2):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
     engines: {node: '>=10'}
     peerDependencies:
@@ -19870,33 +16882,9 @@ packages:
       import-local: 3.1.0
       interpret: 2.2.0
       rechoir: 0.7.1
-<<<<<<< HEAD
       webpack: 5.74.0_s76zm2l7l4ywgel5skomka3v5u
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-=======
-      webpack: 5.74.0(esbuild@0.15.9)(webpack-cli@4.10.0)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       webpack-merge: 5.8.0
-<<<<<<< HEAD
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-=======
-    dev: true
-
-  /webpack-dev-middleware@5.3.3:
-    resolution: {integrity: sha512-hj5CYrY0bZLB+eTO+x/j67Pkrquiy7kWepMHmUMoPsmcUaeEnQJqFzHJOyxgWlq746/wUuA64p9ta34Kyb01pA==}
-    engines: {node: '>= 12.13.0'}
-    peerDependencies:
-      webpack: ^4.0.0 || ^5.0.0
-    dependencies:
-      colorette: 2.0.19
-      memfs: 3.4.12
-      mime-types: 2.1.35
-      range-parser: 1.2.1
-      schema-utils: 4.0.0
-    dev: true
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /webpack-dev-middleware/5.3.3:
     resolution: {integrity: sha512-hj5CYrY0bZLB+eTO+x/j67Pkrquiy7kWepMHmUMoPsmcUaeEnQJqFzHJOyxgWlq746/wUuA64p9ta34Kyb01pA==}
@@ -19909,16 +16897,8 @@ packages:
       mime-types: 2.1.35
       range-parser: 1.2.1
       schema-utils: 4.0.0
-<<<<<<< HEAD
     dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-=======
-      webpack: 5.74.0
-    dev: false
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
-<<<<<<< HEAD
   /webpack-dev-middleware/5.3.3_webpack@5.74.0:
     resolution: {integrity: sha512-hj5CYrY0bZLB+eTO+x/j67Pkrquiy7kWepMHmUMoPsmcUaeEnQJqFzHJOyxgWlq746/wUuA64p9ta34Kyb01pA==}
     engines: {node: '>= 12.13.0'}
@@ -19934,11 +16914,6 @@ packages:
     dev: false
 
   /webpack-dev-middleware/6.0.2:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /webpack-dev-middleware@6.0.2(webpack@5.74.0):
-=======
-  /webpack-dev-middleware@6.0.2:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-iOddiJzPcQC6lwOIu60vscbGWth8PCRcWRCwoQcTQf9RMoOWBHg5EyzpGdtSmGMrSPd5vHEfFXmVErQEmkRngQ==}
     engines: {node: '>= 14.15.0'}
     peerDependencies:
@@ -19954,13 +16929,7 @@ packages:
       schema-utils: 4.0.0
     dev: false
 
-<<<<<<< HEAD
   /webpack-dev-server/4.11.1_webpack@5.74.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /webpack-dev-server@4.11.1(webpack-cli@4.10.0)(webpack@5.74.0):
-=======
-  /webpack-dev-server@4.11.1(webpack@5.74.0):
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-lILVz9tAUy1zGFwieuaQtYiadImb5M3d+H+L1zDYalYoDl0cksAB1UNyuE5MMWJrG6zR1tXkCP2fitl7yoUJiw==}
     engines: {node: '>= 12.13.0'}
     hasBin: true
@@ -19998,17 +16967,8 @@ packages:
       serve-index: 1.9.1
       sockjs: 0.3.24
       spdy: 4.0.2
-<<<<<<< HEAD
       webpack: 5.74.0
       webpack-dev-middleware: 5.3.3_webpack@5.74.0
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-cli: 4.10.0(webpack@5.74.0)
-      webpack-dev-middleware: 5.3.3(webpack@5.74.0)
-=======
-      webpack: 5.74.0
-      webpack-dev-middleware: 5.3.3(webpack@5.74.0)
->>>>>>> d23e019d (chore: 🤖 bump napi)
       ws: 8.10.0
     transitivePeerDependencies:
       - bufferutil
@@ -20017,13 +16977,7 @@ packages:
       - utf-8-validate
     dev: false
 
-<<<<<<< HEAD
   /webpack-dev-server/4.13.1:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /webpack-dev-server@4.13.1(webpack-cli@4.10.0)(webpack@5.74.0):
-=======
-  /webpack-dev-server@4.13.1:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-5tWg00bnWbYgkN+pd5yISQKDejRBYGEw15RaEEslH+zdbNDxxaZvEAO2WulaSaFKb5n3YG8JXsGaDsut1D0xdA==}
     engines: {node: '>= 12.13.0'}
     hasBin: true
@@ -20064,13 +17018,6 @@ packages:
       serve-index: 1.9.1
       sockjs: 0.3.24
       spdy: 4.0.2
-<<<<<<< HEAD
-      webpack-dev-middleware: 5.3.3
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      webpack: 5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0)
-      webpack-cli: 4.10.0(webpack@5.74.0)
-      webpack-dev-middleware: 5.3.3(webpack@5.74.0)
-=======
       webpack-dev-middleware: 5.3.3
       ws: 8.13.0
     transitivePeerDependencies:
@@ -20079,63 +17026,6 @@ packages:
       - supports-color
       - utf-8-validate
     dev: true
-
-  /webpack-dev-server@4.13.1(webpack@5.74.0):
-    resolution: {integrity: sha512-5tWg00bnWbYgkN+pd5yISQKDejRBYGEw15RaEEslH+zdbNDxxaZvEAO2WulaSaFKb5n3YG8JXsGaDsut1D0xdA==}
-    engines: {node: '>= 12.13.0'}
-    hasBin: true
-    peerDependencies:
-      webpack: ^4.37.0 || ^5.0.0
-      webpack-cli: '*'
-    peerDependenciesMeta:
-      webpack:
-        optional: true
-      webpack-cli:
-        optional: true
-    dependencies:
-      '@types/bonjour': 3.5.10
-      '@types/connect-history-api-fallback': 1.3.5
-      '@types/express': 4.17.14
-      '@types/serve-index': 1.9.1
-      '@types/serve-static': 1.15.0
-      '@types/sockjs': 0.3.33
-      '@types/ws': 8.5.3
-      ansi-html-community: 0.0.8
-      bonjour-service: 1.0.14
-      chokidar: 3.5.3
-      colorette: 2.0.19
-      compression: 1.7.4
-      connect-history-api-fallback: 2.0.0
-      default-gateway: 6.0.3
-      express: 4.18.2
-      graceful-fs: 4.2.10
-      html-entities: 2.3.3
-      http-proxy-middleware: 2.0.6(@types/express@4.17.14)
-      ipaddr.js: 2.0.1
-      launch-editor: 2.6.0
-      open: 8.4.0
-      p-retry: 4.6.2
-      rimraf: 3.0.2
-      schema-utils: 4.0.0
-      selfsigned: 2.1.1
-      serve-index: 1.9.1
-      sockjs: 0.3.24
-      spdy: 4.0.2
-      webpack: 5.74.0
-      webpack-dev-middleware: 5.3.3(webpack@5.74.0)
->>>>>>> d23e019d (chore: 🤖 bump napi)
-      ws: 8.13.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - supports-color
-      - utf-8-validate
-<<<<<<< HEAD
-    dev: true
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-=======
-    dev: false
->>>>>>> d23e019d (chore: 🤖 bump napi)
 
   /webpack-dev-server/4.13.1_webpack@5.74.0:
     resolution: {integrity: sha512-5tWg00bnWbYgkN+pd5yISQKDejRBYGEw15RaEEslH+zdbNDxxaZvEAO2WulaSaFKb5n3YG8JXsGaDsut1D0xdA==}
@@ -20212,13 +17102,7 @@ packages:
     resolution: {integrity: sha512-aWwE/YuO2W7VCOyWwyDJ7BRSYRYjeXat+X31YiasMM3FS6/4X9W4Mb9Q0g+jIdVgArr1Mb08sHBJKMT5M9+gVA==}
     dev: true
 
-<<<<<<< HEAD
   /webpack/5.74.0:
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-  /webpack@5.74.0(@swc/core@1.3.23)(esbuild@0.15.9)(webpack-cli@4.10.0):
-=======
-  /webpack@5.74.0:
->>>>>>> d23e019d (chore: 🤖 bump napi)
     resolution: {integrity: sha512-A2InDwnhhGN4LYctJj6M1JEaGL7Luj6LOmyBHjcI8529cm5p6VXiTIW2sn6ffvEAKmveLzvu4jrihwXtPojlAA==}
     engines: {node: '>=10.13.0'}
     hasBin: true
@@ -20249,59 +17133,13 @@ packages:
       neo-async: 2.6.2
       schema-utils: 3.1.1
       tapable: 2.2.1
-<<<<<<< HEAD
       terser-webpack-plugin: 5.3.6_webpack@5.74.0
-||||||| parent of d23e019d (chore: 🤖 bump napi)
-      terser-webpack-plugin: 5.3.6(@swc/core@1.3.23)(esbuild@0.15.9)(webpack@5.74.0)
-=======
-      terser-webpack-plugin: 5.3.6(webpack@5.74.0)
       watchpack: 2.4.0
       webpack-sources: 3.2.3
     transitivePeerDependencies:
       - '@swc/core'
       - esbuild
       - uglify-js
-
-  /webpack@5.74.0(esbuild@0.15.9)(webpack-cli@4.10.0):
-    resolution: {integrity: sha512-A2InDwnhhGN4LYctJj6M1JEaGL7Luj6LOmyBHjcI8529cm5p6VXiTIW2sn6ffvEAKmveLzvu4jrihwXtPojlAA==}
-    engines: {node: '>=10.13.0'}
-    hasBin: true
-    peerDependencies:
-      webpack-cli: '*'
-    peerDependenciesMeta:
-      webpack-cli:
-        optional: true
-    dependencies:
-      '@types/eslint-scope': 3.7.4
-      '@types/estree': 0.0.51
-      '@webassemblyjs/ast': 1.11.1
-      '@webassemblyjs/wasm-edit': 1.11.1
-      '@webassemblyjs/wasm-parser': 1.11.1
-      acorn: 8.8.0
-      acorn-import-assertions: 1.8.0(acorn@8.8.0)
-      browserslist: 4.21.4
-      chrome-trace-event: 1.0.3
-      enhanced-resolve: 5.12.0
-      es-module-lexer: 0.9.3
-      eslint-scope: 5.1.1
-      events: 3.3.0
-      glob-to-regexp: 0.4.1
-      graceful-fs: 4.2.10
-      json-parse-even-better-errors: 2.3.1
-      loader-runner: 4.3.0
-      mime-types: 2.1.35
-      neo-async: 2.6.2
-      schema-utils: 3.1.1
-      tapable: 2.2.1
-      terser-webpack-plugin: 5.3.6(esbuild@0.15.9)(webpack@5.74.0)
->>>>>>> d23e019d (chore: 🤖 bump napi)
-      watchpack: 2.4.0
-      webpack-sources: 3.2.3
-    transitivePeerDependencies:
-      - '@swc/core'
-      - esbuild
-      - uglify-js
-    dev: true
 
   /webpack/5.74.0_s76zm2l7l4ywgel5skomka3v5u:
     resolution: {integrity: sha512-A2InDwnhhGN4LYctJj6M1JEaGL7Luj6LOmyBHjcI8529cm5p6VXiTIW2sn6ffvEAKmveLzvu4jrihwXtPojlAA==}
