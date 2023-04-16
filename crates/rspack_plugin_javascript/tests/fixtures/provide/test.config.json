@@ -1,0 +1,10 @@
+{
+	"builtins": {
+		"provide": {
+			"process": [
+				"./process.js"
+			]
+		},
+		"treeShaking": true
+	}
+}

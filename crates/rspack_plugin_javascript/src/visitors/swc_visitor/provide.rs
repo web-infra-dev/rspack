@@ -1,18 +1,23 @@
+use std::collections::HashSet;
+
 use rspack_core::Provide;
 use swc_core::common::Span;
 use swc_core::common::{Mark, DUMMY_SP};
 use swc_core::ecma::ast::{
-  CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, Lit, MemberExpr, MemberProp, Str,
+  BindingIdent, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, Lit, MemberExpr,
+  MemberProp, ModuleItem, Stmt, Str, VarDecl, VarDeclarator,
 };
 use swc_core::ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith};
 
 pub fn provide_builtin(opts: &Provide, unresolved_mark: Mark) -> impl Fold + '_ {
   as_folder(ProvideBuiltin::new(opts, unresolved_mark))
 }
-
+static SOURCE_DOT: &str = r#"."#;
+static MODULE_DOT: &str = r#"_dot_"#;
 pub struct ProvideBuiltin<'a> {
   opts: &'a Provide,
   unresolved_mark: Mark,
+  current_import_provide: HashSet<String>,
 }
 
 impl<'a> ProvideBuiltin<'a> {
@@ -20,25 +25,27 @@ impl<'a> ProvideBuiltin<'a> {
     ProvideBuiltin {
       opts,
       unresolved_mark,
+      current_import_provide: HashSet::new(),
     }
   }
 
-  fn handle_ident(&self, ident: &mut Ident) -> Expr {
-    if let Some(module_path) = self.opts.get(&ident.sym.to_string()) {
-      self.create_obj_expr(ident.span, module_path)
-    } else {
-      Expr::Ident(ident.clone())
+  fn handle_ident(&mut self, ident: &mut Ident) {
+    if self.opts.get(&ident.sym.to_string()).is_some() {
+      self.current_import_provide.insert(ident.sym.to_string());
     }
   }
 
-  fn handle_member_expr(&self, member_expr: &mut MemberExpr) -> Expr {
+  fn handle_member_expr(&mut self, member_expr: &MemberExpr) -> Option<Ident> {
     let identifier_name = self.get_nested_identifier_name(member_expr);
-    if let Some(module_path) = self.opts.get(&identifier_name) {
-      let unresolved_span = DUMMY_SP.apply_mark(self.unresolved_mark);
-      self.create_obj_expr(unresolved_span, module_path)
-    } else {
-      Expr::Member(member_expr.clone())
+    if self.opts.get(&identifier_name).is_some() {
+      self.current_import_provide.insert(identifier_name.clone());
+      let new_ident_sym = identifier_name.replace(SOURCE_DOT, MODULE_DOT);
+      return Some(Ident::new(
+        new_ident_sym.into(),
+        member_expr.span.apply_mark(self.unresolved_mark),
+      ));
     }
+    None
   }
 
   fn create_obj_expr(&self, span: Span, module_path: &[String]) -> Expr {
@@ -113,16 +120,101 @@ impl<'a> ProvideBuiltin<'a> {
     build_identifier_name(member_expr, &mut identifier_name);
     identifier_name
   }
+
+  fn create_provide_require(&self) -> Vec<ModuleItem> {
+    let mut module_item_vec = Vec::new();
+    self
+      .current_import_provide
+      .iter()
+      .for_each(|provide_module_name| {
+        if let Some(provide_module_path) = self.opts.get(provide_module_name) {
+          // require({module_path})
+          let call = CallExpr {
+            span: DUMMY_SP.apply_mark(self.unresolved_mark),
+            callee: Callee::Expr(Box::new(Expr::Ident(Ident::new(
+              "require".into(),
+              Span::apply_mark(DUMMY_SP, self.unresolved_mark),
+            )))),
+            args: vec![ExprOrSpread {
+              spread: None,
+              expr: Box::new(Expr::Lit(Lit::Str(Str {
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
+                value: provide_module_path[0].clone().into(),
+                raw: None,
+              }))),
+            }],
+            type_args: Default::default(),
+          };
+          let mut obj_expr = Expr::Call(call);
+          // [""]
+          for provide_module_member in provide_module_path.iter().skip(1) {
+            let member_expr = MemberExpr {
+              span: DUMMY_SP.apply_mark(self.unresolved_mark),
+              obj: Box::new(obj_expr),
+              prop: MemberProp::Computed(ComputedPropName {
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
+                expr: Box::new(Expr::Lit(Lit::Str(Str {
+                  span: DUMMY_SP.apply_mark(self.unresolved_mark),
+                  value: provide_module_member.to_string().into(),
+                  raw: None,
+                }))),
+              }),
+            };
+
+            obj_expr = Expr::Member(member_expr);
+          }
+          // var {provide_module_name} = require(provide_module_path)?[provide_args]
+          let module_item = ModuleItem::Stmt(Stmt::Decl(swc_core::ecma::ast::Decl::Var(Box::new(
+            VarDecl {
+              span: DUMMY_SP.apply_mark(self.unresolved_mark),
+              declare: false,
+              kind: swc_core::ecma::ast::VarDeclKind::Var,
+              decls: vec![VarDeclarator {
+                span: DUMMY_SP.apply_mark(self.unresolved_mark),
+                definite: false,
+                init: Some(Box::new(obj_expr)),
+                name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+                  id: Ident::new(
+                    provide_module_name.replace(SOURCE_DOT, MODULE_DOT).into(),
+                    DUMMY_SP.apply_mark(self.unresolved_mark),
+                  ),
+                  type_ann: None,
+                }),
+              }],
+            },
+          ))));
+
+          module_item_vec.push(module_item);
+        }
+      });
+    module_item_vec
+  }
 }
 
 impl VisitMut for ProvideBuiltin<'_> {
   fn visit_mut_expr(&mut self, expr: &mut Expr) {
-    *expr = match expr {
+    match expr {
       Expr::Ident(ident) => self.handle_ident(ident),
-      Expr::Member(member_expr) => self.handle_member_expr(member_expr),
-      _ => expr.clone(),
+      Expr::Member(member_expr) => {
+        if let Some(ident) = self.handle_member_expr(member_expr) {
+          *expr = Expr::Ident(ident);
+        }
+      }
+      _ => {}
     };
 
     expr.visit_mut_children_with(self);
+  }
+
+  fn visit_mut_module(&mut self, n: &mut swc_core::ecma::ast::Module) {
+    n.visit_mut_children_with(self);
+    let module_item_vec = self.create_provide_require();
+    module_item_vec.into_iter().for_each(|module_item| {
+      n.body.insert(0, module_item);
+    });
+  }
+
+  fn visit_mut_var_decl(&mut self, n: &mut VarDecl) {
+    n.visit_mut_children_with(self);
   }
 }
