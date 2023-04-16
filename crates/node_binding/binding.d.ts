@@ -369,7 +369,6 @@ export interface RawSplitChunksOptions {
 }
 export interface RawCacheGroupOptions {
   priority?: number
-  reuseExistingChunk?: boolean
   test?: string
   /** What kind of chunks should be selected. */
   chunks?: string

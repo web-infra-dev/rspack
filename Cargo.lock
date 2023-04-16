@@ -2328,6 +2328,7 @@ dependencies = [
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_split_chunks",
+ "rspack_plugin_split_chunks_new",
  "rspack_plugin_wasm",
  "rspack_regex",
  "serde",
@@ -2779,6 +2780,22 @@ dependencies = [
  "derivative",
  "rspack_core",
  "rspack_identifier",
+ "rspack_util",
+ "rustc-hash",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_split_chunks_new"
+version = "0.1.0"
+dependencies = [
+ "dashmap",
+ "derivative",
+ "rayon",
+ "regex",
+ "rspack_core",
+ "rspack_identifier",
+ "rspack_regex",
  "rspack_util",
  "rustc-hash",
  "tracing",

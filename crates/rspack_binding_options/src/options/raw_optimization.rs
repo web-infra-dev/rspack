@@ -25,7 +25,9 @@ impl RawOptionsApply for RawOptimizationOptions {
     plugins: &mut Vec<Box<dyn rspack_core::Plugin>>,
   ) -> Result<Self::Options, rspack_error::Error> {
     if let Some(options) = self.split_chunks {
-      let split_chunks_plugin = SplitChunksPlugin::new(options.into()).boxed();
+      // let split_chunks_plugin = SplitChunksPlugin::new(options.into()).boxed();
+      let split_chunks_plugin =
+        rspack_plugin_split_chunks_new::SplitChunksPlugin::new(options.into()).boxed();
       plugins.push(split_chunks_plugin);
     }
     let module_ids_plugin = match self.module_ids.as_ref() {
