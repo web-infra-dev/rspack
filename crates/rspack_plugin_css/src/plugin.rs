@@ -679,7 +679,6 @@ impl Plugin for CssPlugin {
     let sources = ordered_modules
       .par_iter()
       .map(|module_id| {
-        dbg!(module_id);
         let code_gen_result = compilation
           .code_generation_results
           .get(module_id, Some(&chunk.runtime))?;

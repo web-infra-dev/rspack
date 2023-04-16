@@ -577,6 +577,9 @@ importers:
   packages/playground/fixtures/cross-origin-loading:
     specifiers: {}
 
+  packages/playground/fixtures/import-empty-css-file:
+    specifiers: {}
+
   packages/playground/fixtures/react:
     specifiers:
       react: ^18.2.0

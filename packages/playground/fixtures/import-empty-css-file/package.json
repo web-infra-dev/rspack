@@ -1,5 +1,5 @@
 {
-    "name": "test-case",
-    "private": true,
-    "dependencies": {}
+  "name": "test-case",
+  "private": true,
+  "dependencies": {}
 }
