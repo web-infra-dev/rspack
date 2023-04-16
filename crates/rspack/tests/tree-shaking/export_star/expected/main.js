@@ -7,10 +7,10 @@ Object.defineProperty(exports, "__esModule", {
 Object.defineProperty(exports, "bar", {
     enumerable: true,
     get: function() {
-        return _fooJs;
+        return _foo;
     }
 });
-var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
+var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
 __webpack_require__.es(__webpack_require__("./result.js"), exports);
 },
 "./foo.js": function (module, exports, __webpack_require__) {
@@ -42,9 +42,9 @@ const foo = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__("./foo.js");
-_fooJs.bar.a;
-(0, _fooJs.c)();
+var _foo = __webpack_require__("./foo.js");
+_foo.bar.a;
+(0, _foo.c)();
 },
 "./result.js": function (module, exports, __webpack_require__) {
 "use strict";

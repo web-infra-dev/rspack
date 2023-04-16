@@ -23,8 +23,8 @@ function _default() {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
-assert.equal((0, _fooJs.default)(), "foo");
+var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
+assert.equal((0, _foo.default)(), "foo");
 },
 
 },function(__webpack_require__) {

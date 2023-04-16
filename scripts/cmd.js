@@ -1,3 +1,4 @@
+// @ts-nocheck
 const cp = require("child_process");
 const log = require("./log");
 const { Command } = require("commander");

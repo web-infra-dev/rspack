@@ -30,10 +30,10 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _aJs = __webpack_require__("./a.js");
-var _bJs = __webpack_require__("./ b.js");
-_aJs.a;
-_bJs.b;
+var _a = __webpack_require__("./a.js");
+var _b = __webpack_require__("./ b.js");
+_a.a;
+_b.b;
 },
 
 },function(__webpack_require__) {

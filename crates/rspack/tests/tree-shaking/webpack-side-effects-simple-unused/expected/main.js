@@ -15,13 +15,13 @@ _export(exports, {
         return x;
     },
     z: function() {
-        return _cJs.z;
+        return _c.z;
     }
 });
-var _cJs = __webpack_require__("../node_modules/pmodule/c.js");
-var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
+var _c = __webpack_require__("../node_modules/pmodule/c.js");
+var _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
 var x = "x";
-(0, _trackerJs.track)("b.js");
+(0, _tracker.track)("b.js");
 },
 "../node_modules/pmodule/c.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -34,9 +34,9 @@ Object.defineProperty(exports, "z", {
         return z;
     }
 });
-var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
+var _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
 var z = "z";
-(0, _trackerJs.track)("c.js");
+(0, _tracker.track)("c.js");
 },
 "../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -51,18 +51,18 @@ function _export(target, all) {
 }
 _export(exports, {
     x: function() {
-        return _bJs.x;
+        return _b.x;
     },
     z: function() {
-        return _bJs.z;
+        return _b.z;
     },
     default: function() {
         return _default;
     }
 });
-var _bJs = __webpack_require__("../node_modules/pmodule/b.js");
-var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-(0, _trackerJs.track)("index.js");
+var _b = __webpack_require__("../node_modules/pmodule/b.js");
+var _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
+(0, _tracker.track)("index.js");
 var _default = "def";
 },
 "../node_modules/pmodule/tracker.js": function (module, exports, __webpack_require__) {
@@ -95,12 +95,12 @@ var log = [];
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _trackerJs = __webpack_require__("../node_modules/pmodule/tracker.js");
-var _indexJs = __webpack_require__.ir(__webpack_require__("../node_modules/pmodule/index.js"));
-_indexJs.default.should.be.eql("def");
-_indexJs.x.should.be.eql("x");
-_indexJs.z.should.be.eql("z");
-_trackerJs.log.should.be.eql([
+var _tracker = __webpack_require__("../node_modules/pmodule/tracker.js");
+var _index = __webpack_require__.ir(__webpack_require__("../node_modules/pmodule/index.js"));
+_index.default.should.be.eql("def");
+_index.x.should.be.eql("x");
+_index.z.should.be.eql("z");
+_tracker.log.should.be.eql([
     "b.js",
     "c.js",
     "index.js"

@@ -1,3 +1,4 @@
+// @ts-nocheck
 const path = require("path");
 const fs = require("fs");
 const TOML = require("@iarna/toml");

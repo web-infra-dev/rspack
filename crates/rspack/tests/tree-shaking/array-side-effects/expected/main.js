@@ -10,9 +10,9 @@ Object.defineProperty(exports, "app", {
         return app;
     }
 });
-var _libJs = __webpack_require__("./lib.js");
+var _lib = __webpack_require__("./lib.js");
 function app() {}
-app.prototype.result = _libJs.result;
+app.prototype.result = _lib.result;
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -39,8 +39,8 @@ const result = 20000;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _appJs = __webpack_require__("./app.js");
-_appJs.app;
+var _app = __webpack_require__("./app.js");
+_app.app;
 },
 
 },function(__webpack_require__) {
