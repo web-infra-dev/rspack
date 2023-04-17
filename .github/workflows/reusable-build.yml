@@ -205,18 +205,11 @@ jobs:
 
       ### x86_64-unknown-linux-gnu
 
-      - name: Test x86_64-unknown-linux-gnu (16)
+      - name: Test x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         uses: ./.github/actions/docker-test
         with:
-          node: 16
-          pre: corepack enable
-
-      - name: Test x86_64-unknown-linux-gnu (14)
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        uses: ./.github/actions/docker-test
-        with:
-          node: 14
+          node: ${{ matrix.node }}
           pre: corepack disable && npm install -g pnpm@7.25.0
 
       ### aarch64-unknown-linux-gnu
