@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
-  OutputOptions, PluginExt, TargetPlatform,
+  OutputOptions, PluginExt,
 };
 use serde::Deserialize;
 
@@ -116,22 +116,6 @@ impl RawOptionsApply for RawOptions {
       .boxed(),
     );
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
-    match &target.platform {
-      TargetPlatform::Web => {
-        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
-      }
-      TargetPlatform::Node(_) => {
-        plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
-      }
-      _ => {
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-      }
-    };
     if dev_server.hot {
       plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
     }

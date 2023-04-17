@@ -106,11 +106,13 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       .compilation
       .chunk_graph
       .get_chunk_runtime_modules_in_order(args.chunk_ukey);
+    let global_object: &String = &args.compilation.options.output.global_object;
     let mut source = ConcatSource::default();
 
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
       source.add(RawSource::Source(format!(
-        "self['hotUpdate']('{}', ",
+        "{}['hotUpdate']('{}', ",
+        global_object,
         chunk.expect_id()
       )));
       source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
@@ -126,8 +128,10 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
       let chunk_loading_global = &args.compilation.options.output.chunk_loading_global;
 
       source.add(RawSource::from(format!(
-        r#"(self['{}'] = self['{}'] || []).push([["{}"], "#,
+        r#"({}['{}'] = {}['{}'] || []).push([["{}"], "#,
+        global_object,
         chunk_loading_global,
+        global_object,
         chunk_loading_global,
         chunk.expect_id(),
       )));
