@@ -95,14 +95,17 @@ async fn process_resource<C>(
   for plugin in plugins {
     if let Some(processed_resource) = plugin.process_resource(&resource_data).await? {
       loader_context.content = Some(processed_resource);
-      return Ok(());
     }
   }
 
-  // let result = tokio::fs::read(&resource_data.resource_path).await?;
-  // Ok(Content::from(result))
-  loader_context.content = Some(Content::Buffer(vec![]));
-  Ok(())
+  if loader_context.content.is_none() {
+    let result = tokio::fs::read(&resource_data.resource_path).await?;
+    loader_context.content = Some(Content::from(result));
+  }
+
+  // loader_context.content = Some(Content::Buffer(vec![]));
+  loader_context.loader_index = loader_context.loader_items.len() - 1;
+  iterate_normal_loaders(loader_context, resource_data).await
 }
 
 async fn create_loader_context<'c, C: 'c>(
@@ -221,51 +224,287 @@ pub async fn run_loaders<C: Debug>(
 }
 
 #[cfg(test)]
+#[allow(unused)]
 mod test {
-  use std::sync::Arc;
+  use std::{cell::RefCell, sync::Arc};
 
   use rspack_error::Result;
   use rspack_identifier::{Identifiable, Identifier};
 
   use super::{run_loaders, Loader, LoaderContext, ResourceData};
-  use crate::loader::test::{Custom, Custom2};
+  use crate::{
+    content::Content,
+    loader::test::{Composed, Custom, Custom2},
+    plugin::LoaderRunnerPlugin,
+    DisplayWithSuffix,
+  };
 
-  struct Pitching {}
+  struct TestContentPlugin {}
 
-  impl Identifiable for Pitching {
-    fn identifier(&self) -> Identifier {
-      "/rspack/pitching-loader".into()
+  #[async_trait::async_trait]
+  impl LoaderRunnerPlugin for TestContentPlugin {
+    fn name(&self) -> &'static str {
+      "test-content"
     }
-  }
 
-  #[async_trait::async_trait(?Send)]
-  impl Loader<()> for Pitching {
-    async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
-      dbg!(loader_context.remaining_request());
-      dbg!(loader_context.previous_request());
-      Ok(())
+    async fn process_resource(&self, _resource_data: &ResourceData) -> Result<Option<Content>> {
+      Ok(Some(Content::Buffer(vec![])))
     }
   }
 
   #[tokio::test]
-  async fn should_() {
+  async fn should_have_the_correct_requests() {
+    thread_local! {
+      static IDENTS: RefCell<Vec<String>> = RefCell::default();
+    }
+
+    struct Pitching {}
+
+    impl Identifiable for Pitching {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitching-loader".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for Pitching {
+      async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| {
+          i.borrow_mut()
+            .push(loader_context.remaining_request().to_string());
+          i.borrow_mut()
+            .push(loader_context.previous_request().to_string());
+          i.borrow_mut()
+            .push(loader_context.current_request().to_string());
+          i.borrow_mut().push(
+            loader_context
+              .current_request()
+              .display_with_suffix(loader_context.resource),
+          );
+        });
+        Ok(())
+      }
+    }
     let c1 = Arc::new(Custom {}) as Arc<dyn Loader<()>>;
+    let i1 = c1.identifier();
     let c2 = Arc::new(Custom2 {}) as Arc<dyn Loader<()>>;
+    let i2 = c2.identifier();
+    let c3 = Arc::new(Composed {}) as Arc<dyn Loader<()>>;
+    let i3 = c3.identifier();
     let p1 = Arc::new(Pitching {}) as Arc<dyn Loader<()>>;
+    let i0 = p1.identifier();
+
+    let rs = ResourceData {
+      resource: "/rspack/main.js?abc=123#efg".to_owned(),
+      resource_description: None,
+      resource_fragment: None,
+      resource_query: None,
+      resource_path: Default::default(),
+    };
 
     run_loaders(
-      &[c1, p1, c2],
-      &ResourceData {
-        resource: Default::default(),
-        resource_description: None,
-        resource_fragment: None,
-        resource_query: None,
-        resource_path: Default::default(),
-      },
-      &[],
+      &[c1, p1, c2, c3],
+      &rs,
+      &[Box::new(TestContentPlugin {})],
       (),
     )
     .await
     .unwrap();
+
+    IDENTS.with(|i| {
+      let i = i.borrow();
+      // remaining request
+      let expected = "".to_owned() + &**i2 + "!" + &**i3;
+      assert_eq!(i[0], expected);
+      // previous request
+      let expected = "".to_owned() + &**i1;
+      assert_eq!(i[1], expected);
+      // current request
+      let expected = "".to_owned() + &**i0 + "!" + &**i2 + "!" + &**i3;
+      assert_eq!(i[2], expected);
+      let expected = expected + "!" + &*rs.resource;
+      assert_eq!(i[3], expected);
+    });
+  }
+
+  #[tokio::test]
+  async fn should_have_the_right_execution_order() {
+    thread_local! {
+      static IDENTS: RefCell<Vec<String>> = RefCell::default();
+    }
+
+    struct Pitching {}
+
+    impl Identifiable for Pitching {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitching-loader1".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for Pitching {
+      async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch1".to_string()));
+        Ok(())
+      }
+    }
+
+    struct Pitching2 {}
+
+    impl Identifiable for Pitching2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitching-loader2".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for Pitching2 {
+      async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch2".to_string()));
+        Ok(())
+      }
+    }
+
+    struct Normal {}
+
+    impl Identifiable for Normal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader1".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for Normal {
+      async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("normal1".to_string()));
+        Ok(())
+      }
+    }
+
+    struct Normal2 {}
+
+    impl Identifiable for Normal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/normal-loader2".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for Normal2 {
+      async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("normal2".to_string()));
+        Ok(())
+      }
+    }
+
+    struct PitchNormalBase {}
+
+    impl Identifiable for PitchNormalBase {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitch-normal-base-loader".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for PitchNormalBase {
+      async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch-normal-base-normal".to_string()));
+        Ok(())
+      }
+
+      async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch-normal-base-pitch".to_string()));
+        Ok(())
+      }
+    }
+
+    struct PitchNormal {}
+
+    impl Identifiable for PitchNormal {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitch-normal-loader".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for PitchNormal {
+      async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal".to_string()));
+        Ok(())
+      }
+
+      async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch-normal-pitch".to_string()));
+        loader_context.content = Some(Content::Buffer(vec![]));
+        Ok(())
+      }
+    }
+
+    struct PitchNormal2 {}
+
+    impl Identifiable for PitchNormal2 {
+      fn identifier(&self) -> Identifier {
+        "/rspack/pitch-normal-2-loader".into()
+      }
+    }
+
+    #[async_trait::async_trait(?Send)]
+    impl Loader<()> for PitchNormal2 {
+      async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal-2".to_string()));
+        Ok(())
+      }
+
+      async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
+        IDENTS.with(|i| i.borrow_mut().push("pitch-normal-pitch-2".to_string()));
+        loader_context.content = Some(Content::Buffer(vec![]));
+        Ok(())
+      }
+    }
+
+    let c1 = Arc::new(Normal {}) as Arc<dyn Loader<()>>;
+    let c2 = Arc::new(Normal2 {}) as Arc<dyn Loader<()>>;
+    let p1 = Arc::new(Pitching {}) as Arc<dyn Loader<()>>;
+    let p2 = Arc::new(Pitching2 {}) as Arc<dyn Loader<()>>;
+
+    let rs = ResourceData {
+      resource: "/rspack/main.js?abc=123#efg".to_owned(),
+      resource_description: None,
+      resource_fragment: None,
+      resource_query: None,
+      resource_path: Default::default(),
+    };
+
+    run_loaders::<()>(
+      &[p1, p2, c1, c2],
+      &rs,
+      &[Box::new(TestContentPlugin {})],
+      (),
+    )
+    .await
+    .unwrap();
+    IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
+    IDENTS.with(|i| i.borrow_mut().clear());
+
+    let p1 = Arc::new(PitchNormalBase {}) as Arc<dyn Loader<()>>;
+    let p2 = Arc::new(PitchNormal {}) as Arc<dyn Loader<()>>;
+    let p3 = Arc::new(PitchNormal2 {}) as Arc<dyn Loader<()>>;
+
+    run_loaders::<()>(&[p1, p2, p3], &rs, &[Box::new(TestContentPlugin {})], ())
+      .await
+      .unwrap();
+    IDENTS.with(|i| {
+      dbg!(&i.borrow());
+      // should not execute p3, as p2 pitched successfully.
+      assert!(!i.borrow().contains(&"pitch-normal-normal-2".to_string()));
+      assert!(!i.borrow().contains(&"pitch-normal-pitch-2".to_string()));
+      // should skip normal stage of p2.
+      assert!(!i.borrow().contains(&"pitch-normal-normal".to_string()));
+      // should still run the normal stage of pitch normal base.
+      assert_eq!(i.borrow()[0], "pitch-normal-base-pitch".to_string());
+      assert_eq!(i.borrow()[2], "pitch-normal-base-normal".to_string());
+      // p2 pitched successfully.
+      assert_eq!(i.borrow()[1], "pitch-normal-pitch".to_string());
+    });
   }
 }

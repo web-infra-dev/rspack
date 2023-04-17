@@ -241,7 +241,7 @@ impl<C> Identifiable for LoaderItem<C> {
 }
 
 #[async_trait(?Send)]
-pub trait Loader<C>: Identifiable + Send {
+pub trait Loader<C>: Identifiable + Send + Sync {
   async fn run(&self, _loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
     // noop
     Ok(())
