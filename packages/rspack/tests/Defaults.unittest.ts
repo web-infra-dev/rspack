@@ -120,6 +120,7 @@ describe("snapshots", () => {
 		    "asyncWebAssembly": false,
 		    "incrementalRebuild": true,
 		    "lazyCompilation": false,
+		    "newSplitChunks": false,
 		  },
 		  "externals": undefined,
 		  "externalsPresets": {

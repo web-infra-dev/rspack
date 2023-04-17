@@ -58,7 +58,7 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
               CacheGroupOptions {
                 name: v.name,
                 priority: v.priority,
-                reuse_existing_chunk: v.reuse_existing_chunk,
+                reuse_existing_chunk: Some(false),
                 test: v.test.clone().map(|test| {
                   let f: TestFn = Arc::new(move |module| {
                     let re = rspack_regex::RspackRegex::new(&test)
@@ -90,7 +90,7 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
 #[napi(object)]
 pub struct RawCacheGroupOptions {
   pub priority: Option<i32>,
-  pub reuse_existing_chunk: Option<bool>,
+  // pub reuse_existing_chunk: Option<bool>,
   //   pub r#type: SizeType,
   pub test: Option<String>,
   //   pub filename: String,
@@ -113,4 +113,46 @@ pub struct RawCacheGroupOptions {
   //   pub max_initial_size: usize,
   pub name: Option<String>,
   // used_exports: bool,
+}
+
+use rspack_plugin_split_chunks_new as new_split_chunks_plugin;
+
+impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
+  fn from(raw_opts: RawSplitChunksOptions) -> Self {
+    let mut cache_groups = vec![];
+
+    let overall_chunk_filter = raw_opts
+      .chunks
+      .map(|chunks| match chunks.as_str() {
+        "initial" => new_split_chunks_plugin::create_initial_chunk_filter(),
+        "async" => new_split_chunks_plugin::create_async_chunk_filter(),
+        "all" => new_split_chunks_plugin::create_all_chunk_filter(),
+        _ => panic!("Invalid chunk type: {chunks}"),
+      })
+      .unwrap_or_else(new_split_chunks_plugin::create_async_chunk_filter);
+
+    cache_groups.extend(
+      raw_opts
+        .cache_groups
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(k, v)| new_split_chunks_plugin::CacheGroup {
+          name: v.name.unwrap_or(k),
+          priority: v.priority.unwrap_or(-20) as f64,
+          test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
+          chunk_filter: v
+            .chunks
+            .map(|chunks| match chunks.as_str() {
+              "initial" => new_split_chunks_plugin::create_initial_chunk_filter(),
+              "async" => new_split_chunks_plugin::create_async_chunk_filter(),
+              "all" => new_split_chunks_plugin::create_all_chunk_filter(),
+              _ => panic!("Invalid chunk type: {chunks}"),
+            })
+            .unwrap_or_else(|| overall_chunk_filter.clone()),
+          min_chunks: v.min_chunks.unwrap_or(1),
+        }),
+    );
+
+    new_split_chunks_plugin::PluginOptions { cache_groups }
+  }
 }

@@ -44,6 +44,7 @@ rspack_plugin_progress = { path = "../rspack_plugin_progress" }
 rspack_plugin_remove_empty_chunks = { path = "../rspack_plugin_remove_empty_chunks" }
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
 rspack_plugin_split_chunks = { path = "../rspack_plugin_split_chunks" }
+rspack_plugin_split_chunks_new = { path = "../rspack_plugin_split_chunks_new" }
 rspack_plugin_wasm = { path = "../rspack_plugin_wasm" }
 rspack_regex = { path = "../rspack_regex" }
 serde = { workspace = true, features = ["derive"] }
@@ -54,6 +55,7 @@ swc_core = { workspace = true, default-features = false, features = [
 # swc_ecma_transforms = { workspace = true, features = [
 #   "swc_ecma_transforms_react",
 # ] }
+better_scoped_tls = { workspace = true }
 swc_emotion = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = [
