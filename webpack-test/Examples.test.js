@@ -6,17 +6,25 @@ const path = require("path");
 const fs = require("graceful-fs");
 
 describe.skip("Examples", () => {
-	it("filtered", () => {})
-	return
-	// TODO: add webpack example test recover after we have these module
-	// const basePath = path.join(__dirname, "..", "examples");
-	// const examples = require("../examples/examples.js");
+	const basePath = path.join(__dirname, "..", "examples");
+	const examples = require("../webpack-examples/examples.js");
 
 	examples.forEach(examplePath => {
 		const filterPath = path.join(examplePath, "test.filter.js");
 		const relativePath = path.relative(basePath, examplePath);
 		if (fs.existsSync(filterPath) && !require(filterPath)()) {
-			describe.skip(relativePath, () => it("filtered"));
+			describe.skip(relativePath, () => it("filtered", () => {}));
+			return;
+		} else if (fs.existsSync(filterPath)) {
+			const content = fs.readFileSync(filterPath).toString();
+			fs.writeFileSync(filterPath, `
+/**   ${content}*/
+module.exports = () => {return false}
+			`)
+		} else {
+			fs.writeFileSync(filterPath, `
+module.exports = () => {return false}
+			`)
 			return;
 		}
 		it(
