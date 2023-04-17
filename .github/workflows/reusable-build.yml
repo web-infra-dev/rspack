@@ -103,7 +103,7 @@ jobs:
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
-          pre: sudo apt-get -y install protobuf-compiler && corepack enable && corepacek prepare pnpm@7.25.0 --activate
+          pre: sudo apt-get -y install protobuf-compiler && corepack enable && corepack prepare pnpm@7.25.0 --activate
           post: strip crates/node_binding/*.node 
 
       - name: Build aarch64-unknown-linux-gnu in Docker
