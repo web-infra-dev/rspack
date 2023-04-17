@@ -86,6 +86,17 @@ export interface RawHtmlPluginConfig {
   favicon?: string
   meta?: Record<string, Record<string, string>>
 }
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
 export interface RawStyleConfig {
   styleLibraryDirectory?: string
   custom?: string
