@@ -5,7 +5,11 @@ const child_process = require("child_process");
 const TOML = require("@iarna/toml");
 
 const crates_dir = path.resolve(__dirname, "../crates");
-const ignore_deps = [];
+
+// 'bitflags': napi has upgraded to latest `bitfalgs@2.x.x`, but there are still lots of dependencies still use `bitflags@1.x.x`, like `clap, swc`,
+// this cause CI failed in version checking, `bitflags@2.x.x` still need some time to adopt in rust community, but we need upgrade napi-rs to latest to fix some bug.
+// so bypass `bitflags` for now.
+const ignore_deps = ['bitflags'];
 
 function getRepeatDeps() {
 	const treeResult = child_process
@@ -28,10 +32,6 @@ function getRepeatDeps() {
 }
 
 async function main() {
-	// 'bitflags': napi has upgraded to latest `bitfalgs@2.x.x`, but there are still lots of dependencies still use `bitflags@1.x.x`, like `clap, swc`,
-	// this cause CI failed in version checking, `bitflags@2.x.x` still need some time to adopt in rust community, but we need upgrade napi-rs to latest to fix some bug.
-	// so bypass `bitflags` for now.
-	let byPassDepList = ['bitflags']
 	const repeat_deps = getRepeatDeps();
 
 	const error_messages = [];
