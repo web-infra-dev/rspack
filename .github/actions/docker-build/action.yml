@@ -11,11 +11,11 @@ inputs:
     type: string
   pre:
     required: false
-    default: ""
+    default: ''
     type: string
   post:
     required: false
-    default: ""
+    default: ''
     type: string
 
 runs:
