@@ -36,7 +36,8 @@
   },
   "lint-staged": {
     "*.rs": "rustfmt --edition 2021",
-    "packages/**/*.{ts,js},crates/rspack_plugin_runtime/**/*.{ts,js}": "prettier --write",
+    "packages/**/*.{ts,js}": "prettier --write",
+    "crates/rspack_plugin_runtime/**/*.{ts,js}": "prettier --write",
     "*.toml": "npx @taplo/cli format"
   },
   "engines": {

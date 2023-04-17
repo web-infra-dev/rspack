@@ -16,7 +16,6 @@ packages/rspack/tests/js/**/*
 packages/rspack/tests/copyPlugin/build/**/*
 
 benchcases/**/*
-crates/**/*
 target/**/*
 
 webpack-test/**/*

@@ -17,3 +17,5 @@ function onError() {
 	/* ignore */
 }
 // var dispose = client.keepAlive({ data: data, active: true, module: module, onError: onError });
+
+let a = 3;
