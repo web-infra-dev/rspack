@@ -164,6 +164,7 @@ export interface RawExperiments {
   lazyCompilation: boolean
   incrementalRebuild: boolean
   asyncWebAssembly: boolean
+  newSplitChunks: boolean
 }
 export interface RawExternalItem {
   type: "string" | "regexp" | "object"
