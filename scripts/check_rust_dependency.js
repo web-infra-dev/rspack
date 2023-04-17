@@ -47,7 +47,7 @@ async function main() {
 			...Object.keys(toml["build-dependencies"] || {})
 		];
 		for (const dep of deps) {
-			if (!byPassDepList.includes(dep) && repeat_deps[dep]) {
+			if (repeat_deps[dep]) {
 				error_messages.push(
 					`crate ${name} has multiple version dependence ${dep}(${repeat_deps[
 						dep
