@@ -210,7 +210,7 @@ jobs:
         uses: ./.github/actions/docker-test
         with:
           node: ${{ matrix.node }}
-        pre: corepack enable && corepack prepare pnpm@7.25.0 --activate
+          pre: corepack enable && corepack prepare pnpm@7.25.0 --activate
           
 
       ### aarch64-unknown-linux-gnu
