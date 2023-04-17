@@ -22,7 +22,6 @@ const crates_dir = path.resolve(__dirname, "../crates");
 // this cause CI failed in version checking, `bitflags@2.x.x` still need some time to adopt in rust community, but we need upgrade napi-rs to latest to fix some bug.
 // so bypass `bitflags` for now.
 const ignore_deps = ['bitflags'];
-const ignore_deps = [];
 
 function getRepeatDeps() {
 	const treeResult = child_process
