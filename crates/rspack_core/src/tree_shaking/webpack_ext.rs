@@ -1,3 +1,5 @@
+//! All webpack compatible related code goes here.
+
 use swc_core::ecma::atoms::JsWord;
 
 use super::visitor::TreeShakingResult;
