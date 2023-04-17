@@ -84,10 +84,6 @@ describe("Stats", () => {
 			    "entryA": {
 			      "assets": [
 			        {
-			          "name": "entryA.css",
-			          "size": 0,
-			        },
-			        {
 			          "name": "entryA.js",
 			          "size": 215,
 			        },
@@ -100,10 +96,6 @@ describe("Stats", () => {
 			    },
 			    "entryB": {
 			      "assets": [
-			        {
-			          "name": "entryB.css",
-			          "size": 0,
-			        },
 			        {
 			          "name": "entryB.js",
 			          "size": 227,
@@ -140,10 +132,6 @@ describe("Stats", () => {
 			    "chunkB": {
 			      "assets": [
 			        {
-			          "name": "chunkB.css",
-			          "size": 0,
-			        },
-			        {
 			          "name": "chunkB.js",
 			          "size": 160,
 			        },
@@ -157,10 +145,6 @@ describe("Stats", () => {
 			    "entryA": {
 			      "assets": [
 			        {
-			          "name": "entryA.css",
-			          "size": 0,
-			        },
-			        {
 			          "name": "entryA.js",
 			          "size": 3608,
 			        },
@@ -173,10 +157,6 @@ describe("Stats", () => {
 			    },
 			    "entryB": {
 			      "assets": [
-			        {
-			          "name": "entryB.css",
-			          "size": 0,
-			        },
 			        {
 			          "name": "entryB.js",
 			          "size": 4747,
