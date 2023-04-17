@@ -743,6 +743,9 @@ importers:
 
   packages/playground/fixtures/cross-origin-loading: {}
 
+  packages/playground/fixtures/import-empty-css-file:
+    specifiers: {}
+
   packages/playground/fixtures/react:
     dependencies:
       react:

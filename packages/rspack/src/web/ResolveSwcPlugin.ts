@@ -1,11 +1,11 @@
 import { Compiler } from "../compiler";
 import path from "path";
-import { compareVersions } from 'compare-versions';
+import { compareVersions } from "compare-versions";
 
 export class ResolveSwcPlugin {
 	apply(compiler: Compiler) {
 		const swcHelperVersion = require("@swc/helpers/package.json").version;
-		if (compareVersions(swcHelperVersion, '0.5.0') === -1) {
+		if (compareVersions(swcHelperVersion, "0.5.0") === -1) {
 			throw new Error("Please bump @swc/helpers to ^0.5.0");
 		}
 		const swcPath = path.dirname(require.resolve("@swc/helpers/package.json"));
