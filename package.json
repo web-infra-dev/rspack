@@ -40,7 +40,7 @@
     "*.toml": "pnpm run format:toml"
   },
   "engines": {
-    "pnpm": ">=7.25.0"
+    "pnpm": ">=7.32.0"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -77,5 +77,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.25.0"
+  "packageManager": "pnpm@7.32.0"
 }
