@@ -6,7 +6,6 @@ const path = require("path");
 const fs = require("graceful-fs");
 
 describe.skip("Examples", () => {
-	// TODO: add webpack example test recover after we have these module
 	const basePath = path.join(__dirname, "..", "webpack-examples");
 	const examples = require("../webpack-examples/examples.js");
 
