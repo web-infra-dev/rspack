@@ -104,7 +104,9 @@ impl RawOptionsApply for RawOptions {
     let stats = self.stats.into();
     let cache = self.cache.into();
     let snapshot = self.snapshot.into();
-    let optimization = self.optimization.apply(plugins)?;
+    let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
+      self.optimization.apply(plugins)
+    })?;
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
     let builtins = self.builtins.apply(plugins)?;
