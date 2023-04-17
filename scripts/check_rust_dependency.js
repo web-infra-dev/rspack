@@ -28,6 +28,7 @@ function getRepeatDeps() {
 }
 
 async function main() {
+	let byPassDepList = ['bitflags']
 	const repeat_deps = getRepeatDeps();
 
 	const error_messages = [];
@@ -43,7 +44,7 @@ async function main() {
 			...Object.keys(toml["build-dependencies"] || {})
 		];
 		for (const dep of deps) {
-			if (repeat_deps[dep]) {
+			if (!byPassDepList.includes(dep) && repeat_deps[dep]) {
 				error_messages.push(
 					`crate ${name} has multiple version dependence ${dep}(${repeat_deps[
 						dep
