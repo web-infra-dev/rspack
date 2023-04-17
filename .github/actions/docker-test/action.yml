@@ -7,11 +7,11 @@ inputs:
     required: true
     type: string
   image:
-    default: "slim" # slim or alpine
+    default: 'slim' # slim or alpine
     required: false
     type: string
   options:
-    default: ""
+    default: ''
     required: false
     type: string
 
