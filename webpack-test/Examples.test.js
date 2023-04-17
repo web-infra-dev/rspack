@@ -15,17 +15,6 @@ describe.skip("Examples", () => {
 		if (fs.existsSync(filterPath) && !require(filterPath)()) {
 			describe.skip(relativePath, () => it("filtered", () => {}));
 			return;
-		} else if (fs.existsSync(filterPath)) {
-			const content = fs.readFileSync(filterPath).toString();
-			fs.writeFileSync(filterPath, `
-/**   ${content}*/
-module.exports = () => {return false}
-			`)
-		} else {
-			fs.writeFileSync(filterPath, `
-module.exports = () => {return false}
-			`)
-			return;
 		}
 		it(
 			"should compile " + relativePath,
