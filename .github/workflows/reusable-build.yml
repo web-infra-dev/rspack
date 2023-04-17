@@ -210,7 +210,6 @@ jobs:
         uses: ./.github/actions/docker-test
         with:
           node: ${{ matrix.node }}
-          pre: corepack disable && npm install -g pnpm@7.25.0
 
       ### aarch64-unknown-linux-gnu
 
