@@ -190,6 +190,10 @@ impl Module for Box<dyn Module> {
   fn get_resolve_options(&self) -> Option<&Resolve> {
     (**self).get_resolve_options()
   }
+
+  fn name_for_condition(&self) -> Option<Cow<str>> {
+    (**self).name_for_condition()
+  }
 }
 
 impl PartialEq for dyn Module + '_ {
