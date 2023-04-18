@@ -8,6 +8,7 @@ pub trait ExportInfoExt {
   fn ordered_exports(&self) -> Vec<ExportInfo>;
 }
 
+#[derive(Debug)]
 pub struct ExportInfo {
   pub name: JsWord,
 }

@@ -16,8 +16,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, fast_set, CompilerOptions, LoaderRunnerRunner, Plugin, PluginDriver,
-  SharedPluginDriver,
+  cache::Cache, fast_set, tree_shaking::webpack_ext::ExportInfoExt, CompilerOptions,
+  LoaderRunnerRunner, Plugin, PluginDriver, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -159,7 +159,21 @@ where
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
-      self.compilation.tree_shaking_result = analyze_result.analyze_results;
+      for entry in &self.compilation.entry_module_identifiers {
+        self.compilation.exports_info_map.insert(
+          *entry,
+          analyze_result
+            .analyze_results
+            .get(entry)
+            .expect("should have entry analyze results")
+            .ordered_exports(),
+        );
+      }
+      // This is only used when testing
+      #[cfg(debug_assertions)]
+      {
+        self.compilation.tree_shaking_result = analyze_result.analyze_results;
+      }
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
