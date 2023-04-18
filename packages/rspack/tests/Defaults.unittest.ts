@@ -259,11 +259,16 @@ describe("snapshots", () => {
 		  "output": {
 		    "assetModuleFilename": "[hash][ext][query]",
 		    "chunkFilename": "[name].js",
+		    "chunkFormat": "array-push",
+		    "chunkLoading": "jsonp",
 		    "chunkLoadingGlobal": "webpackChunk@rspack/core",
 		    "clean": false,
 		    "crossOriginLoading": false,
 		    "cssChunkFilename": "[name].css",
 		    "cssFilename": "[name].css",
+		    "enabledChunkLoadingTypes": [
+		      "jsonp",
+		    ],
 		    "enabledLibraryTypes": [],
 		    "enabledWasmLoadingTypes": [
 		      "fetch",
@@ -850,6 +855,14 @@ describe("snapshots", () => {
 		+     "__filename": "eval-only",
 		+     "global": false,
 		@@ ... @@
+		-     "chunkFormat": "array-push",
+		-     "chunkLoading": "jsonp",
+		+     "chunkFormat": "commonjs",
+		+     "chunkLoading": "require",
+		@@ ... @@
+		-       "jsonp",
+		+       "require",
+		@@ ... @@
 		-       "fetch",
 		+       "async-node",
 		@@ ... @@
@@ -898,6 +911,12 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "chunkLoading": "jsonp",
+		+     "chunkLoading": "import-scripts",
+		@@ ... @@
+		-       "jsonp",
+		+       "import-scripts",
+		@@ ... @@
 		+       "worker",
 		@@ ... @@
 		-   "target": "web",
@@ -919,6 +938,14 @@ describe("snapshots", () => {
 		+     "__dirname": "eval-only",
 		+     "__filename": "eval-only",
 		+     "global": false,
+		@@ ... @@
+		-     "chunkFormat": "array-push",
+		-     "chunkLoading": "jsonp",
+		+     "chunkFormat": "commonjs",
+		+     "chunkLoading": "require",
+		@@ ... @@
+		-       "jsonp",
+		+       "require",
 		@@ ... @@
 		-       "fetch",
 		+       "async-node",
@@ -978,6 +1005,14 @@ describe("snapshots", () => {
 		+     "__dirname": "eval-only",
 		+     "__filename": "eval-only",
 		+     "global": false,
+		@@ ... @@
+		-     "chunkFormat": "array-push",
+		-     "chunkLoading": "jsonp",
+		+     "chunkFormat": "commonjs",
+		+     "chunkLoading": "require",
+		@@ ... @@
+		-       "jsonp",
+		+       "require",
 		@@ ... @@
 		-       "fetch",
 		+       "async-node",
@@ -1273,6 +1308,8 @@ describe("snapshots", () => {
 			- Expected
 			+ Received
 
+			@@ ... @@
+			+       "require",
 			@@ ... @@
 			+       "async-node",
 		`)
