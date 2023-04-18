@@ -1,0 +1,38 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_loader_runner_testing"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+
+[dev-dependencies]
+similar-asserts = "1.2.0"
+url             = { workspace = true }
+
+[dependencies]
+async-recursion = { workspace = true }
+async-trait = { workspace = true }
+bitflags = { workspace = true }
+rustc-hash = { workspace = true }
+tokio = { workspace = true, features = [
+  "rt",
+  "rt-multi-thread",
+  "macros",
+  "test-util",
+  "parking_lot",
+  "fs",
+] }
+
+nodejs-resolver    = { workspace = true }
+once_cell          = { workspace = true }
+regex              = { workspace = true }
+rspack_error       = { path = "../rspack_error" }
+rspack_identifier  = { path = "../rspack_identifier" }
+rspack_sources     = { workspace = true }
+tracing            = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
