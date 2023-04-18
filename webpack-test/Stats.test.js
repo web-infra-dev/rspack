@@ -243,9 +243,11 @@ describe("Stats", () => {
 			      "chunkB.js",
 			    ],
 			    "entryA": [
+			      "entryA.css",
 			      "entryA.js",
 			    ],
 			    "entryB": [
+			      "entryB.css",
 			      "entryB.js",
 			    ],
 			  },
