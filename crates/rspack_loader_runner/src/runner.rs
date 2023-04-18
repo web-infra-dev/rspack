@@ -111,13 +111,9 @@ async fn process_resource<C>(
 async fn create_loader_context<'c, C: 'c>(
   loader_items: &'c [LoaderItem<C>],
   resource_data: &'c ResourceData,
-  plugins: &[Box<dyn LoaderRunnerPlugin>],
   context: C,
   is_composed: bool,
 ) -> Result<LoaderContext<'c, C>> {
-  // let content = process_resource(resource_data, plugins).await?;
-
-  // TODO: FileUriPlugin
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
   file_dependencies.insert(resource_data.resource_path.clone());
 
@@ -215,7 +211,7 @@ pub async fn run_loaders<C: Debug>(
     .collect::<Vec<LoaderItem<C>>>();
 
   let mut loader_context =
-    create_loader_context(&loaders[..], resource_data, plugins, context, false).await?;
+    create_loader_context(&loaders[..], resource_data, context, false).await?;
 
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context, resource_data, plugins).await?;
@@ -494,7 +490,6 @@ mod test {
       .await
       .unwrap();
     IDENTS.with(|i| {
-      dbg!(&i.borrow());
       // should not execute p3, as p2 pitched successfully.
       assert!(!i.borrow().contains(&"pitch-normal-normal-2".to_string()));
       assert!(!i.borrow().contains(&"pitch-normal-pitch-2".to_string()));

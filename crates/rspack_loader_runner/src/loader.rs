@@ -1,7 +1,7 @@
 use std::{
   cell::Cell,
   fmt::{Debug, Display},
-  ops::{Index, Range, RangeFrom, RangeTo},
+  ops::Deref,
   sync::Arc,
 };
 
@@ -17,7 +17,7 @@ use crate::runner::LoaderContext;
 struct LoaderItemDataInner {
   /// An absolute path or a virtual path for represent the loader.
   /// The absolute path is used to represent a loader stayed on the JS side.
-  /// `$` splitted chain may be used to represent a composed loader chain from the JS side.
+  /// `$` split chain may be used to represent a composed loader chain from the JS side.
   /// Virtual path with a builtin protocol to represent a loader from the native side. e.g "builtin:".
   path: Box<str>,
   /// Query of a loader, starts with `?`
@@ -167,41 +167,11 @@ impl<C> Display for LoaderItem<C> {
 #[derive(Debug)]
 pub struct LoaderItemList<'l, C>(pub(crate) &'l [LoaderItem<C>]);
 
-impl<'l, C> LoaderItemList<'l, C> {
-  pub fn len(&self) -> usize {
-    self.0.len()
-  }
-}
+impl<'l, C> Deref for LoaderItemList<'l, C> {
+  type Target = [LoaderItem<C>];
 
-impl<'l, C> Index<usize> for LoaderItemList<'l, C> {
-  type Output = LoaderItem<C>;
-
-  fn index(&self, index: usize) -> &Self::Output {
-    &self.0[index]
-  }
-}
-
-impl<'l, C> Index<Range<usize>> for LoaderItemList<'l, C> {
-  type Output = [LoaderItem<C>];
-
-  fn index(&self, index: Range<usize>) -> &Self::Output {
-    &self.0[..][index]
-  }
-}
-
-impl<'l, C> Index<RangeFrom<usize>> for LoaderItemList<'l, C> {
-  type Output = [LoaderItem<C>];
-
-  fn index(&self, index: RangeFrom<usize>) -> &Self::Output {
-    &self.0[..][index]
-  }
-}
-
-impl<'l, C> Index<RangeTo<usize>> for LoaderItemList<'l, C> {
-  type Output = [LoaderItem<C>];
-
-  fn index(&self, index: RangeTo<usize>) -> &Self::Output {
-    &self.0[..][index]
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
 
