@@ -187,7 +187,7 @@ impl NormalModuleFactory {
     let request = if !loaders.is_empty() {
       let s = loaders
         .iter()
-        .map(|i| i.name())
+        .map(|i| i.identifier().as_str())
         .collect::<Vec<_>>()
         .join("!");
       format!("{s}!{}", resource_data.resource)

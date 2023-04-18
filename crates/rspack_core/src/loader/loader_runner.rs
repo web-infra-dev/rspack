@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use rspack_error::{Result, TWithDiagnosticArray};
-pub use rspack_loader_runner2::{
-  run_loaders as raw_run_loaders, Content, Loader, LoaderContext, ResourceData,
-};
+pub use rspack_loader_runner2::{run_loaders, Content, Loader, LoaderContext, ResourceData};
 
 use crate::{
   CompilerOptions, LoaderRunnerPluginProcessResource, ResolverFactory, SharedPluginDriver,

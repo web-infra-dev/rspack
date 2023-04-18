@@ -42,8 +42,8 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
   CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
   DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier,
-  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
+  FactorizeTask, FactorizeTaskResult, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
   ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };

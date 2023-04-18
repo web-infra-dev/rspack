@@ -1,5 +1,4 @@
 use std::{
-  collections::HashSet,
   fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
@@ -8,6 +7,7 @@ use std::{
 use nodejs_resolver::DescriptionData;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   content::Content,
@@ -85,7 +85,7 @@ impl<'c, C> LoaderContext<'c, C> {
   }
 }
 
-async fn process_resource<C>(
+async fn process_resource<C: Send>(
   loader_context: &mut LoaderContext<'_, C>,
   resource_data: &ResourceData,
   plugins: &[Box<dyn LoaderRunnerPlugin>],
@@ -99,6 +99,19 @@ async fn process_resource<C>(
   if loader_context.content.is_none() {
     let result = tokio::fs::read(&resource_data.resource_path).await?;
     loader_context.content = Some(Content::from(result));
+  }
+
+  // Bail out if loader does not exist,
+  // or the last loader has been executed.
+  if loader_context.loader_index == 0
+    && (loader_context.loader_items.get(0).is_none()
+      || loader_context
+        .loader_items
+        .get(0)
+        .map(|loader| loader.normal_executed())
+        .unwrap_or_default())
+  {
+    return Ok(());
   }
 
   loader_context.loader_index = loader_context.loader_items.len() - 1;
@@ -135,8 +148,8 @@ async fn create_loader_context<'c, C: 'c>(
   Ok(loader_context)
 }
 
-#[async_recursion::async_recursion(?Send)]
-async fn iterate_normal_loaders<C>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
+#[async_recursion::async_recursion]
+async fn iterate_normal_loaders<C: Send>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
   let current_loader_item = loader_context.current_loader();
 
   if current_loader_item.normal_executed() {
@@ -154,8 +167,8 @@ async fn iterate_normal_loaders<C>(loader_context: &mut LoaderContext<'_, C>) ->
   iterate_normal_loaders(loader_context).await
 }
 
-#[async_recursion::async_recursion(?Send)]
-async fn iterate_pitching_loaders<C>(
+#[async_recursion::async_recursion]
+async fn iterate_pitching_loaders<C: Send>(
   loader_context: &mut LoaderContext<'_, C>,
   resource_data: &ResourceData,
   plugins: &[Box<dyn LoaderRunnerPlugin>],
@@ -221,7 +234,7 @@ impl<C> From<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
   }
 }
 
-pub async fn run_loaders<C>(
+pub async fn run_loaders<C: Send>(
   loaders: &[Arc<dyn Loader<C>>],
   resource_data: &ResourceData,
   plugins: &[Box<dyn LoaderRunnerPlugin>],
@@ -283,7 +296,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for Pitching {
       async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| {
@@ -358,7 +371,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for Pitching {
       async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch1".to_string()));
@@ -374,7 +387,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for Pitching2 {
       async fn pitch(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch2".to_string()));
@@ -390,7 +403,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for Normal {
       async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("normal1".to_string()));
@@ -406,7 +419,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for Normal2 {
       async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("normal2".to_string()));
@@ -422,7 +435,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for PitchNormalBase {
       async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-base-normal".to_string()));
@@ -443,7 +456,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for PitchNormal {
       async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal".to_string()));
@@ -465,7 +478,7 @@ mod test {
       }
     }
 
-    #[async_trait::async_trait(?Send)]
+    #[async_trait::async_trait]
     impl Loader<()> for PitchNormal2 {
       async fn run(&self, loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
         IDENTS.with(|i| i.borrow_mut().push("pitch-normal-normal-2".to_string()));

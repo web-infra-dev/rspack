@@ -505,15 +505,17 @@ impl Module for NormalModule {
     let mut build_info = Default::default();
     let mut build_meta = Default::default();
     let mut diagnostics = Vec::new();
-    let loader_result = run_loaders(
-      &*self.loaders,
-      &self.resource_data,
-      &[Box::new(LoaderRunnerPluginProcessResource {
-        plugin_driver: build_context.plugin_driver.clone(),
-      })],
-      build_context.compiler_context,
-    )
-    .await;
+    let loader_result = {
+      run_loaders(
+        &*self.loaders,
+        &self.resource_data,
+        &[Box::new(LoaderRunnerPluginProcessResource {
+          plugin_driver: build_context.plugin_driver.clone(),
+        })],
+        build_context.compiler_context,
+      )
+      .await
+    };
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {

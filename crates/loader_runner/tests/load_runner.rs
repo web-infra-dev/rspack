@@ -27,7 +27,7 @@ macro_rules! fixtures {
 
 macro_rules! run_loader {
   (@base $loader:expr, $resource:tt, $expected:expr) => {{
-    use rspack_loader_runner2::*;
+    use rspack_loader_runner::*;
 
     let resource = format!("file://{}", fixtures!($resource));
 
@@ -86,7 +86,7 @@ macro_rules! run_loader {
 #[cfg(test)]
 mod fixtures {
   use rspack_error::Result;
-  use rspack_loader_runner2::*;
+  use rspack_loader_runner::*;
 
   #[derive(Debug)]
   pub struct DirectPassLoader {}
@@ -202,7 +202,7 @@ console.log(3);"#
 mod tests {
   #[test]
   fn should_run_single_loader() {
-    use rspack_loader_runner2::*;
+    use rspack_loader_runner::*;
 
     let loaders: Vec<&dyn Loader<(), ()>> = vec![&super::fixtures::SimpleCssLoader {}];
 
@@ -220,7 +220,7 @@ html {
 
   #[test]
   fn should_run_loader_chain_from_right_to_left() {
-    use rspack_loader_runner2::*;
+    use rspack_loader_runner::*;
 
     let loaders: Vec<&dyn Loader<(), ()>> = vec![
       &super::fixtures::LoaderChain2 {},
@@ -238,7 +238,7 @@ console.log(3);"#
 
   #[test]
   fn should_work_with_binary_formatted_files() {
-    use rspack_loader_runner2::*;
+    use rspack_loader_runner::*;
 
     let expected = Content::from(std::fs::read(fixtures!("file.png")).expect("TODO:"));
     let loaders: Vec<&dyn Loader<(), ()>> = vec![&super::fixtures::DirectPassLoader {}];

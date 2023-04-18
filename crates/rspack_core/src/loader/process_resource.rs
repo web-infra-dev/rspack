@@ -4,7 +4,7 @@ use rspack_loader_runner2::{Content, LoaderRunnerPlugin, ResourceData};
 use crate::SharedPluginDriver;
 
 pub struct LoaderRunnerPluginProcessResource {
-  plugin_driver: SharedPluginDriver,
+  pub plugin_driver: SharedPluginDriver,
 }
 
 impl LoaderRunnerPluginProcessResource {

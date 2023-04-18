@@ -4,10 +4,10 @@ use rspack_error::{Diagnostic, Result};
 
 use crate::{
   cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerContext,
-  CompilerOptions, ContextModuleFactory, DependencyId, DependencyType, LoaderRunnerRunner, Module,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
-  ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
-  ResolverFactory, SharedPluginDriver, WorkerQueue,
+  CompilerOptions, ContextModuleFactory, DependencyId, DependencyType, Module, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, ResolverFactory,
+  SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -256,9 +256,9 @@ impl WorkerTask for BuildTask {
           .build(BuildContext {
             compiler_context: CompilerContext {
               options: compiler_options.clone(),
-              resolver_factory,
+              resolver_factory: resolver_factory.clone(),
             },
-            plugin_driver,
+            plugin_driver: plugin_driver.clone(),
             compiler_options: &compiler_options,
           })
           .await;

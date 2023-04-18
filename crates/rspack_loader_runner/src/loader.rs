@@ -2,7 +2,10 @@ use std::{
   cell::Cell,
   fmt::{Debug, Display},
   ops::Deref,
-  sync::Arc,
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
 };
 
 use async_trait::async_trait;
@@ -39,8 +42,8 @@ enum LoaderItemData {
 pub struct LoaderItem<C> {
   pub(crate) loader: Arc<dyn Loader<C>>,
   data: LoaderItemData,
-  pitch_executed: Cell<bool>,
-  normal_executed: Cell<bool>,
+  pitch_executed: AtomicBool,
+  normal_executed: AtomicBool,
 }
 
 impl<C> Debug for LoaderItem<C> {
@@ -58,19 +61,19 @@ impl<C> LoaderItem<C> {
   }
 
   pub(crate) fn pitch_executed(&self) -> bool {
-    self.pitch_executed.get()
+    self.pitch_executed.load(Ordering::Relaxed)
   }
 
   pub(crate) fn normal_executed(&self) -> bool {
-    self.normal_executed.get()
+    self.normal_executed.load(Ordering::Relaxed)
   }
 
   pub(crate) fn set_pitch_executed(&self) {
-    self.pitch_executed.set(true)
+    self.pitch_executed.store(true, Ordering::Relaxed)
   }
 
   pub(crate) fn set_normal_executed(&self) {
-    self.normal_executed.set(true)
+    self.normal_executed.store(true, Ordering::Relaxed)
   }
 }
 
@@ -222,7 +225,7 @@ impl<C> Identifiable for LoaderItem<C> {
   }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 pub trait Loader<C>: Identifiable + Send + Sync {
   async fn run(&self, _loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
     // noop
@@ -253,8 +256,8 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
     Self {
       data,
       loader,
-      pitch_executed: Cell::new(false),
-      normal_executed: Cell::new(false),
+      pitch_executed: AtomicBool::new(false),
+      normal_executed: AtomicBool::new(false),
     }
   }
 }
@@ -313,7 +316,7 @@ pub(crate) mod test {
 
   pub(crate) struct Custom {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Custom {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())
@@ -331,7 +334,7 @@ pub(crate) mod test {
 
   pub(crate) struct Custom2 {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Custom2 {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())
@@ -349,7 +352,7 @@ pub(crate) mod test {
 
   pub(crate) struct Composed {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Composed {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())
@@ -367,7 +370,7 @@ pub(crate) mod test {
 
   pub(crate) struct Builtin {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Builtin {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())
