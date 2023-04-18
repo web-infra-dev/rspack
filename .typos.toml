@@ -4,7 +4,7 @@
 
 [files]
 extend-exclude = [
-  "**/*.{css,map,json,txt,ts,tsx,js,snap,bak}",
+  "**/*.{css,map,json,txt,ts,tsx,js,snap,bak,diff}",
   "./examples",
   "**/CHANGELOG.md",
   "pnpm-lock.yaml",
