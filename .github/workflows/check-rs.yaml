@@ -44,6 +44,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: check
+          save-if: ${{ github.ref_name == 'main' }}
 
       - name: Spell Check
         uses: crate-ci/typos@master
