@@ -23,5 +23,5 @@ it("should transfrom arrow", () => {
 		b();
 	}
 
-	a.apply(obj, [1]);
+	fn.apply(obj, [1]);
 });
