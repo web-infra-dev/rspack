@@ -1,5 +1,22 @@
 # @rspack/core
 
+## 0.1.8
+
+### Patch Changes
+
+- a72daa0: Support for provide top-level imports
+- ef030d4: fix: extend chunkGroup name from EsmDynamicImportDependency
+- f54621d: chore: bump swc 0.74.6
+- fdc5fd9: fix: fix crash in multiCompiler
+- Updated dependencies [352e563]
+- Updated dependencies [9822cef]
+- Updated dependencies [27afffc]
+- Updated dependencies [fdc5fd9]
+- Updated dependencies [d28a9d0]
+- Updated dependencies [aa91ce7]
+  - @rspack/binding@0.1.8
+  - @rspack/dev-client@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes

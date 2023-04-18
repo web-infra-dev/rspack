@@ -1,5 +1,16 @@
 # @rspack/binding
 
+## 0.1.8
+
+### Patch Changes
+
+- 352e563: fix(html): html inject public path incorrect
+- 9822cef: fix templete literal in dynamic import
+- 27afffc: fix: panic hook failed to restore after being suppressed
+- fdc5fd9: fix: fix crash in multiCompiler
+- d28a9d0: fix(react-refresh): lazily access module.exports to prevent unexpected/potential TDZ error
+- aa91ce7: fix(progress): should not display empty progress bar
+
 ## 0.1.7
 
 ### Patch Changes
