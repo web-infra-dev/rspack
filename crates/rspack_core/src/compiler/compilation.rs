@@ -85,7 +85,6 @@ pub struct Compilation {
   pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
-  #[cfg(debug_assertions)]
   pub tree_shaking_result: IdentifierMap<TreeShakingResult>,
 
   pub code_generation_results: CodeGenerationResults,
@@ -137,7 +136,6 @@ impl Compilation {
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
-      #[cfg(debug_assertions)]
       tree_shaking_result: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
