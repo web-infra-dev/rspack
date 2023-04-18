@@ -507,7 +507,7 @@ impl Module for NormalModule {
     let mut diagnostics = Vec::new();
     let loader_result = {
       run_loaders(
-        &*self.loaders,
+        &self.loaders,
         &self.resource_data,
         &[Box::new(LoaderRunnerPluginProcessResource {
           plugin_driver: build_context.plugin_driver.clone(),
