@@ -68,27 +68,6 @@ impl<C> LoaderItem<C> {
   pub(crate) fn set_normal_executed(&self) {
     self.normal_executed.set(true)
   }
-
-  pub(crate) fn path(&self) -> &str {
-    match &self.data {
-      LoaderItemData::Composed(_) => "",
-      LoaderItemData::Normal(i) => &*i.path,
-    }
-  }
-
-  pub(crate) fn query(&self) -> Option<&str> {
-    match &self.data {
-      LoaderItemData::Composed(_) => None,
-      LoaderItemData::Normal(i) => i.query.as_deref(),
-    }
-  }
-
-  pub(crate) fn fragment(&self) -> Option<&str> {
-    match &self.data {
-      LoaderItemData::Composed(_) => None,
-      LoaderItemData::Normal(i) => i.fragment.as_deref(),
-    }
-  }
 }
 
 bitflags::bitflags! {

@@ -32,7 +32,7 @@ pub struct ResourceData {
 pub struct LoaderContext<'c, C> {
   /// Content of loader, represented by string or buffer
   /// Content should always be exist if at normal stage,
-  /// However, it might be `None` at pitching stage.
+  /// It will be `None` at pitching stage.
   pub content: Option<Content>,
 
   /// The resource part of the request, including query and fragment.
@@ -60,8 +60,8 @@ pub struct LoaderContext<'c, C> {
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
 
-  pub loader_index: usize,
-  pub loader_items: LoaderItemList<'c, C>,
+  pub(crate) loader_index: usize,
+  pub(crate) loader_items: LoaderItemList<'c, C>,
 
   pub diagnostic: Vec<Diagnostic>,
 }
@@ -80,6 +80,10 @@ impl<'c, C> LoaderContext<'c, C> {
 
   pub fn previous_request(&self) -> LoaderItemList<'_, C> {
     LoaderItemList(&self.loader_items[..self.loader_index])
+  }
+
+  pub(crate) fn current_loader(&self) -> &LoaderItem<C> {
+    &self.loader_items[self.loader_index]
   }
 }
 
@@ -103,7 +107,6 @@ async fn process_resource<C>(
     loader_context.content = Some(Content::from(result));
   }
 
-  // loader_context.content = Some(Content::Buffer(vec![]));
   loader_context.loader_index = loader_context.loader_items.len() - 1;
   iterate_normal_loaders(loader_context, resource_data).await
 }
@@ -145,7 +148,7 @@ async fn iterate_normal_loaders<C>(
   loader_context: &mut LoaderContext<'_, C>,
   resource_data: &ResourceData,
 ) -> Result<()> {
-  let current_loader_item = &loader_context.loader_items[loader_context.loader_index];
+  let current_loader_item = loader_context.current_loader();
 
   if current_loader_item.normal_executed() {
     if loader_context.loader_index == 0 {
@@ -172,7 +175,7 @@ async fn iterate_pitching_loaders<C>(
     return process_resource(loader_context, resource_data, plugins).await;
   }
 
-  let current_loader_item = &loader_context.loader_items[loader_context.loader_index];
+  let current_loader_item = loader_context.current_loader();
 
   if current_loader_item.pitch_executed() {
     loader_context.loader_index += 1;
