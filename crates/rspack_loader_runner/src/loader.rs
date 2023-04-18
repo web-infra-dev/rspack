@@ -137,7 +137,7 @@ impl Display for LoaderItemData {
 
 impl<C> Display for LoaderItem<C> {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{}", self.data.to_string())?;
+    write!(f, "{}", self.data)?;
 
     Ok(())
   }
@@ -150,7 +150,7 @@ impl<'l, C> Deref for LoaderItemList<'l, C> {
   type Target = [LoaderItem<C>];
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    self.0
   }
 }
 
@@ -209,13 +209,12 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
     let data = if ident.contains('$') {
       let loaders = ident
         .split('$')
-        .into_iter()
         .map(convert_to_loader_item_inner)
         .collect::<Vec<_>>();
       assert!(loaders.len() > 1);
       LoaderItemData::Composed(loaders)
     } else {
-      LoaderItemData::Normal(convert_to_loader_item_inner(&*ident))
+      LoaderItemData::Normal(convert_to_loader_item_inner(&ident))
     };
 
     Self {
@@ -238,7 +237,7 @@ fn to_segment_owned(v: Option<Match<'_>>) -> Option<String> {
 
 fn convert_to_loader_item_inner(ident: &str) -> LoaderItemDataInner {
   let groups = PATH_QUERY_FRAGMENT_REGEXP
-    .captures(&ident)
+    .captures(ident)
     .expect("Group expected");
 
   LoaderItemDataInner {

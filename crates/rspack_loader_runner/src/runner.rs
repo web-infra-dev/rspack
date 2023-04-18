@@ -97,7 +97,7 @@ async fn process_resource<C>(
   plugins: &[Box<dyn LoaderRunnerPlugin>],
 ) -> Result<()> {
   for plugin in plugins {
-    if let Some(processed_resource) = plugin.process_resource(&resource_data).await? {
+    if let Some(processed_resource) = plugin.process_resource(resource_data).await? {
       loader_context.content = Some(processed_resource);
     }
   }
@@ -108,7 +108,7 @@ async fn process_resource<C>(
   }
 
   loader_context.loader_index = loader_context.loader_items.len() - 1;
-  iterate_normal_loaders(loader_context, resource_data).await
+  iterate_normal_loaders(loader_context).await
 }
 
 async fn create_loader_context<'c, C: 'c>(
@@ -144,10 +144,7 @@ async fn create_loader_context<'c, C: 'c>(
 }
 
 #[async_recursion::async_recursion(?Send)]
-async fn iterate_normal_loaders<C>(
-  loader_context: &mut LoaderContext<'_, C>,
-  resource_data: &ResourceData,
-) -> Result<()> {
+async fn iterate_normal_loaders<C>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
   let current_loader_item = loader_context.current_loader();
 
   if current_loader_item.normal_executed() {
@@ -155,14 +152,14 @@ async fn iterate_normal_loaders<C>(
       return Ok(());
     }
     loader_context.loader_index -= 1;
-    return iterate_normal_loaders(loader_context, resource_data).await;
+    return iterate_normal_loaders(loader_context).await;
   }
 
   let loader = current_loader_item.loader.clone();
   current_loader_item.set_normal_executed();
   loader.run(loader_context).await?;
 
-  iterate_normal_loaders(loader_context, resource_data).await
+  iterate_normal_loaders(loader_context).await
 }
 
 #[async_recursion::async_recursion(?Send)]
@@ -194,7 +191,7 @@ async fn iterate_pitching_loaders<C>(
       return Ok(());
     }
     loader_context.loader_index -= 1;
-    iterate_normal_loaders(loader_context, resource_data).await?;
+    iterate_normal_loaders(loader_context).await?;
   } else {
     iterate_pitching_loaders(loader_context, resource_data, plugins).await?;
   }
@@ -209,7 +206,7 @@ pub async fn run_loaders<C: Debug>(
   context: C,
 ) -> Result<()> {
   let loaders = loaders
-    .into_iter()
+    .iter()
     .map(|i| i.clone().into())
     .collect::<Vec<LoaderItem<C>>>();
 
