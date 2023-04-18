@@ -164,6 +164,7 @@ export interface RawExperiments {
   lazyCompilation: boolean
   incrementalRebuild: boolean
   asyncWebAssembly: boolean
+  newSplitChunks: boolean
 }
 export interface RawExternalItem {
   type: "string" | "regexp" | "object"
@@ -372,7 +373,6 @@ export interface RawSplitChunksOptions {
 }
 export interface RawCacheGroupOptions {
   priority?: number
-  reuseExistingChunk?: boolean
   test?: string
   /** What kind of chunks should be selected. */
   chunks?: string

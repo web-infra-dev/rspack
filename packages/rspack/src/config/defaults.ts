@@ -142,6 +142,7 @@ const applyExperimentsDefaults = (experiments: Experiments) => {
 	D(experiments, "incrementalRebuild", true);
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
+	D(experiments, "newSplitChunks", false);
 };
 
 const applySnapshotDefaults = (

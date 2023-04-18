@@ -9,6 +9,7 @@ pub struct RawExperiments {
   pub lazy_compilation: bool,
   pub incremental_rebuild: bool,
   pub async_web_assembly: bool,
+  pub new_split_chunks: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -17,6 +18,7 @@ impl From<RawExperiments> for Experiments {
       lazy_compilation: value.lazy_compilation,
       incremental_rebuild: value.incremental_rebuild,
       async_web_assembly: value.async_web_assembly,
+      new_split_chunks: value.new_split_chunks,
     }
   }
 }

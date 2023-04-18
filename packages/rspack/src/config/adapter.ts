@@ -451,16 +451,23 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: Experiments
 ): RawOptions["experiments"] {
-	const { lazyCompilation, incrementalRebuild, asyncWebAssembly } = experiments;
+	const {
+		lazyCompilation,
+		incrementalRebuild,
+		asyncWebAssembly,
+		newSplitChunks
+	} = experiments;
 	assert(
 		!isNil(lazyCompilation) &&
 			!isNil(incrementalRebuild) &&
-			!isNil(asyncWebAssembly)
+			!isNil(asyncWebAssembly) &&
+			!isNil(newSplitChunks)
 	);
 	return {
 		lazyCompilation,
 		incrementalRebuild,
-		asyncWebAssembly
+		asyncWebAssembly,
+		newSplitChunks
 	};
 }
 
