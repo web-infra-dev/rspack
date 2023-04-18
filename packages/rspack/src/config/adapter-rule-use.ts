@@ -139,7 +139,7 @@ export function createRawModuleRuleUses(
 	): RuleSetLoaderWithOptions =>
 		typeof item === "string" ? { loader: item } : item;
 	const allUses = Array.isArray(uses)
-		? [...uses].reverse().map(normalizeRuleSetUseItem)
+		? [...uses].map(normalizeRuleSetUseItem)
 		: [normalizeRuleSetUseItem(uses)];
 	return createRawModuleRuleUsesImpl(allUses, options, allUses);
 }

@@ -181,7 +181,7 @@ impl NormalModuleFactory {
 
     let loaders = resolved_module_rules
       .iter()
-      .flat_map(|module_rule| module_rule.r#use.iter().cloned().rev())
+      .flat_map(|module_rule| module_rule.r#use.iter().cloned())
       .collect::<Vec<_>>();
 
     let request = if !loaders.is_empty() {
