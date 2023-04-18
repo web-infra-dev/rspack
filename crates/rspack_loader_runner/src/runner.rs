@@ -85,10 +85,6 @@ impl<'c, C> LoaderContext<'c, C> {
   }
 }
 
-/// Process resource
-///
-/// Plugins are loaded in order, if a plugin returns `Some(Content)`, then the returning content will be used as the result.
-/// If plugins returned nothing, the runner will read via the `resource_path`.
 async fn process_resource<C>(
   loader_context: &mut LoaderContext<'_, C>,
   resource_data: &ResourceData,
