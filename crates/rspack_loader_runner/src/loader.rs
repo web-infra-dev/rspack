@@ -53,6 +53,10 @@ impl<C> Debug for LoaderItem<C> {
 }
 
 impl<C> LoaderItem<C> {
+  pub fn is_composed(&self) -> bool {
+    matches!(self.data, LoaderItemData::Composed(_))
+  }
+
   pub(crate) fn pitch_executed(&self) -> bool {
     self.pitch_executed.get()
   }

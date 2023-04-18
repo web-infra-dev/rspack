@@ -52,8 +52,6 @@ pub struct LoaderContext<'c, C> {
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<String>,
   pub cacheable: bool,
-  /// Is this a JS composed loader
-  pub is_composed: bool,
 
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -82,7 +80,7 @@ impl<'c, C> LoaderContext<'c, C> {
     LoaderItemList(&self.loader_items[..self.loader_index])
   }
 
-  pub(crate) fn current_loader(&self) -> &LoaderItem<C> {
+  pub fn current_loader(&self) -> &LoaderItem<C> {
     &self.loader_items[self.loader_index]
   }
 }
@@ -115,7 +113,6 @@ async fn create_loader_context<'c, C: 'c>(
   loader_items: &'c [LoaderItem<C>],
   resource_data: &'c ResourceData,
   context: C,
-  is_composed: bool,
 ) -> Result<LoaderContext<'c, C>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
   file_dependencies.insert(resource_data.resource_path.clone());
@@ -132,7 +129,6 @@ async fn create_loader_context<'c, C: 'c>(
     resource_query: resource_data.resource_query.as_deref(),
     resource_fragment: resource_data.resource_fragment.as_deref(),
     context,
-    is_composed,
     source_map: None,
     additional_data: None,
     loader_index: 0,
@@ -210,8 +206,7 @@ pub async fn run_loaders<C: Debug>(
     .map(|i| i.clone().into())
     .collect::<Vec<LoaderItem<C>>>();
 
-  let mut loader_context =
-    create_loader_context(&loaders[..], resource_data, context, false).await?;
+  let mut loader_context = create_loader_context(&loaders[..], resource_data, context).await?;
 
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context, resource_data, plugins).await?;
