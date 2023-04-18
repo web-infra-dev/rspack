@@ -203,8 +203,7 @@ class Compiler {
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
 					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
-						this.#normalModuleFactoryResolveForScheme.bind(this),
-					chunkAsset: this.#chunkAsset.bind(this)
+						this.#normalModuleFactoryResolveForScheme.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
 			);
@@ -326,8 +325,7 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
-			finishModules: this.compilation.hooks.finishModules,
-			chunkAsset: this.compilation.hooks.chunkAsset
+			finishModules: this.compilation.hooks.finishModules
 			// normalModuleFactoryResolveForScheme: this.#
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
@@ -367,10 +365,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
-		this.compilation.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
-		this.#updateDisabledHooks();
-	}
 	async #finish_modules() {
 		await this.compilation.hooks.finishModules.promise(
 			this.compilation.getModules()
