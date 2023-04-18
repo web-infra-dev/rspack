@@ -1,7 +1,7 @@
 [package]
 edition    = "2021"
 license    = "MIT"
-name       = "rspack_loader_runner2"
+name       = "rspack_loader_runner"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 

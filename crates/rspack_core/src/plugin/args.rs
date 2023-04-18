@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use rspack_error::{internal_error, Result};
-use rspack_loader_runner2::ResourceData;
+use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
 use xxhash_rust::xxh3::Xxh3;

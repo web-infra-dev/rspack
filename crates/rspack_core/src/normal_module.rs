@@ -16,7 +16,7 @@ use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_identifier::Identifiable;
-use rspack_loader_runner2::{run_loaders, Content, ResourceData};
+use rspack_loader_runner::{run_loaders, Content, ResourceData};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -29,10 +29,10 @@ use crate::{
   contextify, dependency::EsmDynamicImportDependency, is_async_dependency,
   module_graph::ConnectionId, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
   BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  CompilerContext, CompilerOptions, Context, Dependency, DependencyId, FactoryMeta,
-  GenerateContext, LibIdentOptions, LoaderRunnerContext, LoaderRunnerPluginProcessResource, Module,
-  ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
+  CompilerOptions, Context, Dependency, DependencyId, FactoryMeta, GenerateContext,
+  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
 };
 
 bitflags! {

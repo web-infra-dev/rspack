@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use rspack_error::{Result, TWithDiagnosticArray};
-use rspack_loader_runner2::ResourceData;
+use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 

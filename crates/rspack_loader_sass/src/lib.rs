@@ -18,7 +18,7 @@ use rspack_error::{
   internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
   TraceableError,
 };
-use rspack_loader_runner2::{Identifiable, Identifier, Loader, LoaderContext};
+use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use sass_embedded::{
   legacy::{
     IndentType, LegacyImporter, LegacyImporterResult, LegacyImporterThis, LegacyOptions,

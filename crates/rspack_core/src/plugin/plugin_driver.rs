@@ -5,7 +5,7 @@ use std::{
 
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
-use rspack_loader_runner2::ResourceData;
+use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{

@@ -1970,7 +1970,7 @@ dependencies = [
  "rspack_fs",
  "rspack_futures",
  "rspack_identifier",
- "rspack_loader_runner2",
+ "rspack_loader_runner",
  "rspack_regex",
  "rspack_sources",
  "rspack_symbol",
@@ -2065,7 +2065,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_loader_runner2"
+name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
  "async-recursion",
@@ -2093,7 +2093,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
- "rspack_loader_runner2",
+ "rspack_loader_runner",
  "sass-embedded",
  "serde",
  "str_indices",
