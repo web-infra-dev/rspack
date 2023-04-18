@@ -1,5 +1,5 @@
 use rspack_error::Result;
-use rspack_loader_runner::{Content, LoaderRunnerPlugin, ResourceData};
+use rspack_loader_runner2::{Content, LoaderRunnerPlugin, ResourceData};
 
 use crate::SharedPluginDriver;
 

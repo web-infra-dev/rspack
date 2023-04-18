@@ -9,13 +9,14 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsAny, CodeGenerationResult, Compilation, CompilerOptions, Context, ContextModule, Dependency,
-  DynEq, DynHash, ExternalModule, LoaderRunnerRunner, ModuleDependency, ModuleType, NormalModule,
-  RawModule, Resolve, SourceType,
+  AsAny, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context,
+  ContextModule, Dependency, DynEq, DynHash, ExternalModule, ModuleDependency, ModuleType,
+  NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
-  pub loader_runner_runner: &'a LoaderRunnerRunner,
+  pub compiler_context: CompilerContext,
+  pub plugin_driver: SharedPluginDriver,
   pub compiler_options: &'a CompilerOptions,
 }
 

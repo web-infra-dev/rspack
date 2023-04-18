@@ -3,11 +3,11 @@ use std::{path::PathBuf, sync::Arc};
 use rspack_error::{Diagnostic, Result};
 
 use crate::{
-  cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerOptions,
-  ContextModuleFactory, DependencyId, DependencyType, LoaderRunnerRunner, Module, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, SharedPluginDriver,
-  WorkerQueue,
+  cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerContext,
+  CompilerOptions, ContextModuleFactory, DependencyId, DependencyType, LoaderRunnerRunner, Module,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
+  ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -220,7 +220,7 @@ pub type AddQueue = WorkerQueue<AddTask>;
 pub struct BuildTask {
   pub module: Box<dyn Module>,
   pub dependencies: Vec<DependencyId>,
-  pub loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
@@ -239,7 +239,7 @@ impl WorkerTask for BuildTask {
   async fn run(self) -> Result<TaskResult> {
     let mut module = self.module;
     let compiler_options = self.compiler_options;
-    let loader_runner_runner = self.loader_runner_runner;
+    let resolver_factory = self.resolver_factory;
     let cache = self.cache;
     let plugin_driver = self.plugin_driver;
 
@@ -254,7 +254,11 @@ impl WorkerTask for BuildTask {
 
         let result = module
           .build(BuildContext {
-            loader_runner_runner: &loader_runner_runner,
+            compiler_context: CompilerContext {
+              options: compiler_options.clone(),
+              resolver_factory,
+            },
+            plugin_driver,
             compiler_options: &compiler_options,
           })
           .await;

@@ -6,7 +6,7 @@ use std::{
 };
 
 use nodejs_resolver::DescriptionData;
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
 
 use crate::{
@@ -191,12 +191,42 @@ async fn iterate_pitching_loaders<C>(
   Ok(())
 }
 
-pub async fn run_loaders<C: Debug>(
+#[derive(Debug)]
+pub struct LoaderResult {
+  pub cacheable: bool,
+  pub file_dependencies: HashSet<PathBuf>,
+  pub context_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: HashSet<PathBuf>,
+  pub build_dependencies: HashSet<PathBuf>,
+  pub content: Content,
+  pub source_map: Option<SourceMap>,
+  pub additional_data: Option<String>,
+}
+
+impl<C> From<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
+  fn from(loader_context: LoaderContext<'_, C>) -> Self {
+    LoaderResult {
+      cacheable: loader_context.cacheable,
+      file_dependencies: loader_context.file_dependencies,
+      context_dependencies: loader_context.context_dependencies,
+      missing_dependencies: loader_context.missing_dependencies,
+      build_dependencies: loader_context.build_dependencies,
+      content: loader_context
+        .content
+        .expect("content expected for loader result"),
+      source_map: loader_context.source_map,
+      additional_data: loader_context.additional_data,
+    }
+    .with_diagnostic(loader_context.diagnostic)
+  }
+}
+
+pub async fn run_loaders<C>(
   loaders: &[Arc<dyn Loader<C>>],
   resource_data: &ResourceData,
   plugins: &[Box<dyn LoaderRunnerPlugin>],
   context: C,
-) -> Result<()> {
+) -> Result<TWithDiagnosticArray<LoaderResult>> {
   let loaders = loaders
     .iter()
     .map(|i| i.clone().into())
@@ -207,7 +237,7 @@ pub async fn run_loaders<C: Debug>(
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context, resource_data, plugins).await?;
 
-  Ok(())
+  Ok(loader_context.into())
 }
 
 #[cfg(test)]

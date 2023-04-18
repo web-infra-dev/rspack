@@ -12,14 +12,14 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::SourceMap, CompilationContext, CompilerContext, DependencyCategory,
-  DependencyType, Resolve, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory,
+  DependencyType, LoaderRunnerContext, Resolve, ResolveOptionsWithDependencyType, ResolveResult,
+  Resolver, ResolverFactory,
 };
 use rspack_error::{
   internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
   TraceableError,
 };
-use rspack_loader_runner::{Loader, LoaderContext};
+use rspack_loader_runner2::{Loader, LoaderContext};
 use sass_embedded::{
   legacy::{
     IndentType, LegacyImporter, LegacyImporterResult, LegacyImporterThis, LegacyOptions,
@@ -461,15 +461,12 @@ impl SassLoader {
 }
 
 #[async_trait::async_trait]
-impl Loader<CompilerContext, CompilationContext> for SassLoader {
+impl Loader<LoaderRunnerContext> for SassLoader {
   fn name(&self) -> &'static str {
     "builtin:sass-loader"
   }
 
-  async fn run(
-    &self,
-    loader_context: &mut LoaderContext<'_, '_, CompilerContext, CompilationContext>,
-  ) -> Result<()> {
+  async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
     let content = loader_context.content.to_owned();
     let (tx, rx) = mpsc::sync_channel(8);
     let logger = RspackLogger { tx };

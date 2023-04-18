@@ -7,7 +7,7 @@ use std::{
 use indexmap::IndexMap;
 use rspack_core::{
   CompilationContext, CompilerContext, CompilerOptions, Loader, LoaderRunner,
-  LoaderRunnerAdditionalContext, ResourceData, SideEffectOption,
+  LoaderRunnerAdditionalContext, LoaderRunnerContext, ResourceData, SideEffectOption,
 };
 use rspack_loader_sass::{SassLoader, SassLoaderOptions};
 use rspack_testing::{fixture, test_fixture};
@@ -31,8 +31,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     vec![],
   )
   .run(
-    [&SassLoader::new(SassLoaderOptions::default())
-      as &dyn Loader<CompilerContext, CompilationContext>],
+    [&SassLoader::new(SassLoaderOptions::default()) as &dyn Loader<LoaderRunnerContext>],
     &LoaderRunnerAdditionalContext {
       compiler: &CompilerContext {
         options: std::sync::Arc::new(CompilerOptions {

@@ -78,12 +78,37 @@ bitflags::bitflags! {
   struct LoaderItemDataMeta: u8 {
     /// Builtin loader
     const BUILTIN = 1 << 0;
+    /// JS loader
+    const JS = 1 << 1;
   }
 }
 
 impl LoaderItemDataMeta {
-  pub(crate) fn builtin(&mut self) {
+  fn insert_builtin(&mut self) {
     self.insert(Self::BUILTIN);
+  }
+  fn insert_js(&mut self) {
+    self.insert(Self::JS)
+  }
+  fn has_builtin(&self) -> bool {
+    self.contains(Self::BUILTIN)
+  }
+  fn has_js(&self) -> bool {
+    self.contains(Self::JS)
+  }
+}
+
+impl Display for LoaderItemDataMeta {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let proto = if self.has_js() {
+      "js:"
+    } else if self.has_builtin() {
+      "builtin:"
+    } else {
+      ""
+    };
+
+    write!(f, "{proto}")
   }
 }
 
@@ -92,7 +117,11 @@ impl From<&str> for LoaderItemDataMeta {
     let mut meta = Self::empty();
 
     if value.starts_with("builtin:") {
-      meta.builtin();
+      meta.insert_builtin();
+    }
+
+    if value.starts_with("js:") {
+      meta.insert_js();
     }
 
     meta

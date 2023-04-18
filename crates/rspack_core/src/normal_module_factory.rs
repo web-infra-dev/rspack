@@ -94,7 +94,9 @@ impl NormalModuleFactory {
           resource: ResourceData {
             resource: specifier.to_string(),
             resource_description: None,
-            ..Default::default()
+            resource_fragment: None,
+            resource_query: None,
+            resource_path: "".into(),
           },
           scheme,
         })
