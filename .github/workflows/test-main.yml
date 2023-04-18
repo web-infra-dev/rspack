@@ -16,8 +16,8 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
-        fail-fast: false # Build and test everything so we can look at all the errors
         target:
           - x86_64-unknown-linux-gnu
           - x86_64-pc-windows-msvc
