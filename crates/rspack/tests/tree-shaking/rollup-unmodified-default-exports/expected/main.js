@@ -26,8 +26,8 @@ Foo.prototype = {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
-new _fooJs.default();
+var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
+new _foo.default();
 },
 
 },function(__webpack_require__) {

@@ -150,7 +150,7 @@ impl Plugin for HtmlPlugin {
             Some(if let Some(inject) = &config.inject {
               *inject
             } else {
-              HtmlPluginConfigInject::Body
+              HtmlPluginConfigInject::Head
             }),
             &config.script_loading,
           ))

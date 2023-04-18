@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies && and build lib
         run: |
           node -e "console.log(process.arch)"
-          npm install -g pnpm@7.25.0
+          corepack enable
           pnpm -v
           pnpm install
           pnpm run format-ci:toml

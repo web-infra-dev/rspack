@@ -688,7 +688,19 @@ impl Plugin for CssPlugin {
           .map(|result| result.ast_or_source.clone().try_into_source())
           .transpose()
       })
-      .collect::<Result<Vec<Option<BoxSource>>>>()?
+      .filter(|result| {
+        if let Ok(result) = result {
+          return result.is_some();
+        };
+        false
+      })
+      .collect::<Result<Vec<Option<BoxSource>>>>()?;
+
+    if sources.is_empty() {
+      return Ok(Default::default());
+    }
+
+    let sources = sources
       .into_par_iter()
       .enumerate()
       .fold(ConcatSource::default, |mut output, (idx, cur)| {
@@ -701,30 +713,25 @@ impl Plugin for CssPlugin {
         output
       })
       .collect::<Vec<ConcatSource>>();
-    let is_no_sources = sources.is_empty();
 
     let source = ConcatSource::new(sources);
 
-    if is_no_sources {
-      Ok(Default::default())
-    } else {
-      let filename_template = get_css_chunk_filename_template(
-        chunk,
-        &args.compilation.options.output,
-        &args.compilation.chunk_group_by_ukey,
-      );
+    let filename_template = get_css_chunk_filename_template(
+      chunk,
+      &args.compilation.options.output,
+      &args.compilation.chunk_group_by_ukey,
+    );
 
-      let output_path = filename_template.render_with_chunk(chunk, ".css", &SourceType::Css);
+    let output_path = filename_template.render_with_chunk(chunk, ".css", &SourceType::Css);
 
-      let path_data = PathData {
-        chunk_ukey: args.chunk_ukey,
-      };
-      Ok(vec![RenderManifestEntry::new(
-        source.boxed(),
-        output_path,
-        path_data,
-      )])
-    }
+    let path_data = PathData {
+      chunk_ukey: args.chunk_ukey,
+    };
+    Ok(vec![RenderManifestEntry::new(
+      source.boxed(),
+      output_path,
+      path_data,
+    )])
   }
 
   async fn process_assets_stage_optimize_size(

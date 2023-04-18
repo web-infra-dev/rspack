@@ -72,9 +72,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .runtime_requirements
       .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     {
-      source.add(RawSource::from(include_str!(
-        "runtime/jsonp_chunk_loading_with_hmr.js"
-      )));
+      source.add(RawSource::from(
+        include_str!("runtime/jsonp_chunk_loading_with_hmr.js")
+          .replace("$globalObject$", &compilation.options.output.global_object),
+      ));
       source.add(RawSource::from(
         include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
       ));
@@ -107,7 +108,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_callback.js")
-          .replace("CHUNK_LOADING_GLOBAL_NAME", chunk_loading_global),
+          .replace("CHUNK_LOADING_GLOBAL_NAME", chunk_loading_global)
+          .replace("$globalObject$", &compilation.options.output.global_object),
       ));
     }
 

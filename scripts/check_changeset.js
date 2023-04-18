@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { spawnSync } = require("child_process");
 const path = require("path");
 const util = require("util");

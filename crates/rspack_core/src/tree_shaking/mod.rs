@@ -12,6 +12,7 @@ pub mod optimizer;
 pub mod symbol_graph;
 pub mod utils;
 pub mod visitor;
+pub mod webpack_ext;
 
 mod test;
 #[derive(Debug)]

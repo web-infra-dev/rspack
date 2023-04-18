@@ -332,6 +332,9 @@ export interface RawOutputOptions {
   importFunctionName: string
   iife: boolean
   module: boolean
+  chunkFormat?: string
+  chunkLoading?: string
+  enabledChunkLoadingTypes?: Array<string>
 }
 export interface RawResolveOptions {
   preferRelative?: boolean

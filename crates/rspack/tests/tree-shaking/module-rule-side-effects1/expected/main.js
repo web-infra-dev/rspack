@@ -20,9 +20,9 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _aJs = __webpack_require__("./a.js");
+var _a = __webpack_require__("./a.js");
 __webpack_require__("./c.js");
-_aJs.a;
+_a.a;
 },
 
 },function(__webpack_require__) {

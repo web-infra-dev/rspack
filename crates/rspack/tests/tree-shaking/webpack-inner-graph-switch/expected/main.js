@@ -10,9 +10,9 @@ Object.defineProperty(exports, "test", {
         return test;
     }
 });
-var _moduleJs = __webpack_require__.ir(__webpack_require__("./module.js"));
+var _module = __webpack_require__.ir(__webpack_require__("./module.js"));
 function test() {
-    (0, _moduleJs.default)({
+    (0, _module.default)({
         type: "inline"
     });
 }
@@ -37,18 +37,18 @@ Object.defineProperty(exports, "default", {
         return _default;
     }
 });
-var _someModuleJs = __webpack_require__("./some-module.js");
+var _somemodule = __webpack_require__("./some-module.js");
 function getType(obj) {
     return obj.type;
 }
 function doSomethingWithBlock(obj) {
-    return _someModuleJs.Block.doSomething(obj);
+    return _somemodule.Block.doSomething(obj);
 }
 function doSomethingWithInline(obj) {
-    return _someModuleJs.Inline.doSomething(obj);
+    return _somemodule.Inline.doSomething(obj);
 }
 function doSomethingWithDocument(obj) {
-    return _someModuleJs.Document.doSomething(obj);
+    return _somemodule.Document.doSomething(obj);
 }
 function doSomething(obj) {
     const type = getType(obj);
