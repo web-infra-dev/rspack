@@ -472,6 +472,7 @@ export interface JsChunkGroup {
 export interface JsHooks {
   processAssetsStageAdditional: (...args: any[]) => any
   processAssetsStagePreProcess: (...args: any[]) => any
+  processAssetsStageAdditions: (...args: any[]) => any
   processAssetsStageNone: (...args: any[]) => any
   processAssetsStageOptimizeInline: (...args: any[]) => any
   processAssetsStageSummarize: (...args: any[]) => any

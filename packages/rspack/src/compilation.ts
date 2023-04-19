@@ -679,8 +679,8 @@ export class Compilation {
 				return this.hooks.processAssets.stageAdditional;
 			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
 				return this.hooks.processAssets.stagePreProcess;
-			// case Compilation.PROCESS_ASSETS_STAGE_ADDITIONS:
-			// 	return this.hooks.processAssets.stageAdditions;
+			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONS:
+				return this.hooks.processAssets.stageAdditions;
 			case Compilation.PROCESS_ASSETS_STAGE_NONE:
 				return this.hooks.processAssets.stageNone;
 			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:

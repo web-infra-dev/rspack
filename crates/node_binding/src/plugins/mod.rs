@@ -22,6 +22,7 @@ pub struct JsHooksAdapter {
   pub this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_additions_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
@@ -173,8 +174,13 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::ProcessAssetsStageAdditions) {
       return Ok(());
     }
-    // todo: need support js hook?
-    Ok(())
+
+    self
+      .process_assets_stage_additions_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call process assets stage additions: {err}",))?
   }
 
   async fn process_assets_stage_none(
@@ -325,6 +331,7 @@ impl JsHooksAdapter {
       make,
       process_assets_stage_additional,
       process_assets_stage_pre_process,
+      process_assets_stage_additions,
       process_assets_stage_none,
       process_assets_stage_optimize_inline,
       process_assets_stage_summarize,
@@ -342,6 +349,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(process_assets_stage_additional, env);
     let process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_pre_process, env);
+    let process_assets_stage_additions_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_theadsafe_fn!(process_assets_stage_additions, env);
     let process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_none, env);
     let process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()> =
@@ -371,6 +380,7 @@ impl JsHooksAdapter {
       make_tsfn,
       process_assets_stage_additional_tsfn,
       process_assets_stage_pre_process_tsfn,
+      process_assets_stage_additions_tsfn,
       process_assets_stage_none_tsfn,
       process_assets_stage_optimize_inline_tsfn,
       process_assets_stage_summarize_tsfn,
