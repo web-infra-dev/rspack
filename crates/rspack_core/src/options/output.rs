@@ -218,7 +218,7 @@ impl PublicPath {
           .options
           .output
           .path
-          .relative(compilation.options.output.path.join(dirname).resolve())
+          .relative(compilation.options.output.path.join(dirname).absolutize())
           .to_string_lossy()
           .to_string(),
       },
