@@ -2073,6 +2073,7 @@ dependencies = [
  "async-recursion",
  "async-trait",
  "bitflags",
+ "derivative",
  "nodejs-resolver",
  "once_cell",
  "regex",

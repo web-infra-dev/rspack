@@ -208,6 +208,8 @@ export interface JsLoader {
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content?: Buffer
+  /** Original content will always be available for pitching stage */
+  originalContent?: Buffer
   additionalData?: Buffer
   sourceMap?: Buffer
   resource: string

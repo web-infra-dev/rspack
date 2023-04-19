@@ -512,4 +512,5 @@ export async function runLoader(
 		}
 		return options;
 	};
+	console.log(rawContext.content, "content");
 }

@@ -15,6 +15,7 @@ url             = { workspace = true }
 async-recursion = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+derivative = { workspace = true }
 rustc-hash = { workspace = true }
 tokio = { workspace = true, features = [
   "rt",

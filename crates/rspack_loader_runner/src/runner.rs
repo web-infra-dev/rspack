@@ -4,6 +4,7 @@ use std::{
   sync::Arc,
 };
 
+use derivative::Derivative;
 use nodejs_resolver::DescriptionData;
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_sources::SourceMap;
@@ -28,12 +29,14 @@ pub struct ResourceData {
   pub resource_description: Option<Arc<DescriptionData>>,
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct LoaderContext<'c, C> {
   /// Content of loader, represented by string or buffer
   /// Content should always be exist if at normal stage,
   /// It will be `None` at pitching stage.
   pub content: Option<Content>,
+  pub original_content: Option<Content>,
 
   /// The resource part of the request, including query and fragment.
   /// E.g. /abc/resource.js?query=1#some-fragment
@@ -60,11 +63,21 @@ pub struct LoaderContext<'c, C> {
 
   pub(crate) loader_index: usize,
   pub(crate) loader_items: LoaderItemList<'c, C>,
+  #[derivative(Debug = "ignore")]
+  pub(crate) plugins: &'c [Box<dyn LoaderRunnerPlugin>],
+  pub(crate) resource_data: &'c ResourceData,
 
   pub diagnostic: Vec<Diagnostic>,
 }
 
 impl<'c, C> LoaderContext<'c, C> {
+  pub async fn fetch_original_content(&mut self) -> Result<()> {
+    if self.original_content.is_none() {
+      self.original_content = get_original_content(self.plugins, self.resource_data).await?;
+    }
+    Ok(())
+  }
+
   pub fn remaining_request(&self) -> LoaderItemList<'_, C> {
     if self.loader_index >= self.loader_items.len() - 1 {
       return Default::default();
@@ -93,21 +106,30 @@ impl<'c, C> LoaderContext<'c, C> {
   }
 }
 
+async fn get_original_content(
+  plugins: &[Box<dyn LoaderRunnerPlugin>],
+  resource_data: &ResourceData,
+) -> Result<Option<Content>> {
+  let mut content = None;
+  for plugin in plugins {
+    if let Some(processed_resource) = plugin.process_resource(resource_data).await? {
+      content = Some(processed_resource);
+    }
+  }
+  if content.is_none() {
+    let result = tokio::fs::read(&resource_data.resource_path).await?;
+    content = Some(Content::from(result));
+  }
+  Ok(content)
+}
+
 async fn process_resource<C: Send>(
   loader_context: &mut LoaderContext<'_, C>,
   resource_data: &ResourceData,
   plugins: &[Box<dyn LoaderRunnerPlugin>],
 ) -> Result<()> {
-  for plugin in plugins {
-    if let Some(processed_resource) = plugin.process_resource(resource_data).await? {
-      loader_context.content = Some(processed_resource);
-    }
-  }
-
-  if loader_context.content.is_none() {
-    let result = tokio::fs::read(&resource_data.resource_path).await?;
-    loader_context.content = Some(Content::from(result));
-  }
+  loader_context.fetch_original_content().await?;
+  loader_context.content = loader_context.original_content.clone();
 
   // Bail out if loader does not exist,
   // or the last loader has been executed.
@@ -129,6 +151,7 @@ async fn process_resource<C: Send>(
 async fn create_loader_context<'c, C: 'c>(
   loader_items: &'c [LoaderItem<C>],
   resource_data: &'c ResourceData,
+  plugins: &'c [Box<dyn LoaderRunnerPlugin>],
   context: C,
 ) -> Result<LoaderContext<'c, C>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
@@ -141,6 +164,7 @@ async fn create_loader_context<'c, C: 'c>(
     missing_dependencies: Default::default(),
     build_dependencies: Default::default(),
     content: None,
+    original_content: None,
     resource: &resource_data.resource,
     resource_path: &resource_data.resource_path,
     resource_query: resource_data.resource_query.as_deref(),
@@ -150,6 +174,8 @@ async fn create_loader_context<'c, C: 'c>(
     additional_data: None,
     loader_index: 0,
     loader_items: LoaderItemList(loader_items),
+    plugins,
+    resource_data,
     diagnostic: vec![],
   };
 
@@ -253,7 +279,8 @@ pub async fn run_loaders<C: Send>(
     .map(|i| i.clone().into())
     .collect::<Vec<LoaderItem<C>>>();
 
-  let mut loader_context = create_loader_context(&loaders[..], resource_data, context).await?;
+  let mut loader_context =
+    create_loader_context(&loaders[..], resource_data, plugins, context).await?;
 
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context, resource_data, plugins).await?;
