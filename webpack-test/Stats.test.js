@@ -80,6 +80,42 @@ describe("Stats", () => {
 			).toMatchInlineSnapshot(`
 			{
 			  "errorsCount": 1,
+			  "namedChunkGroups": {
+			    "entryA": {
+			      "assets": [
+			        {
+			          "name": "entryA.css",
+			          "size": 0,
+			        },
+			        {
+			          "name": "entryA.js",
+			          "size": 215,
+			        },
+			      ],
+			      "assetsSize": 215,
+			      "chunks": [
+			        "entryA",
+			      ],
+			      "name": "entryA",
+			    },
+			    "entryB": {
+			      "assets": [
+			        {
+			          "name": "entryB.css",
+			          "size": 0,
+			        },
+			        {
+			          "name": "entryB.js",
+			          "size": 227,
+			        },
+			      ],
+			      "assetsSize": 227,
+			      "chunks": [
+			        "entryB",
+			      ],
+			      "name": "entryB",
+			    },
+			  },
 			}
 		`);
 		});
@@ -100,6 +136,59 @@ describe("Stats", () => {
 			).toMatchInlineSnapshot(`
 			{
 			  "errorsCount": 1,
+			  "namedChunkGroups": {
+			    "chunkB": {
+			      "assets": [
+			        {
+			          "name": "chunkB.css",
+			          "size": 0,
+			        },
+			        {
+			          "name": "chunkB.js",
+			          "size": 160,
+			        },
+			      ],
+			      "assetsSize": 160,
+			      "chunks": [
+			        "chunkB",
+			      ],
+			      "name": "chunkB",
+			    },
+			    "entryA": {
+			      "assets": [
+			        {
+			          "name": "entryA.css",
+			          "size": 0,
+			        },
+			        {
+			          "name": "entryA.js",
+			          "size": 3608,
+			        },
+			      ],
+			      "assetsSize": 3608,
+			      "chunks": [
+			        "entryA",
+			      ],
+			      "name": "entryA",
+			    },
+			    "entryB": {
+			      "assets": [
+			        {
+			          "name": "entryB.css",
+			          "size": 0,
+			        },
+			        {
+			          "name": "entryB.js",
+			          "size": 4747,
+			        },
+			      ],
+			      "assetsSize": 4747,
+			      "chunks": [
+			        "entryB",
+			      ],
+			      "name": "entryB",
+			    },
+			  },
 			}
 		`);
 		});
@@ -168,15 +257,66 @@ describe("Stats", () => {
 			      "size": 160,
 			      "type": "asset",
 			    },
+			    {
+			      "chunkNames": [
+			        "chunkB",
+			      ],
+			      "chunks": [
+			        "chunkB",
+			      ],
+			      "emitted": true,
+			      "info": {
+			        "development": false,
+			        "hotModuleReplacement": false,
+			      },
+			      "name": "chunkB.css",
+			      "size": 0,
+			      "type": "asset",
+			    },
+			    {
+			      "chunkNames": [
+			        "entryA",
+			      ],
+			      "chunks": [
+			        "entryA",
+			      ],
+			      "emitted": true,
+			      "info": {
+			        "development": false,
+			        "hotModuleReplacement": false,
+			      },
+			      "name": "entryA.css",
+			      "size": 0,
+			      "type": "asset",
+			    },
+			    {
+			      "chunkNames": [
+			        "entryB",
+			      ],
+			      "chunks": [
+			        "entryB",
+			      ],
+			      "emitted": true,
+			      "info": {
+			        "development": false,
+			        "hotModuleReplacement": false,
+			      },
+			      "name": "entryB.css",
+			      "size": 0,
+			      "type": "asset",
+			    },
 			  ],
 			  "assetsByChunkName": {
 			    "chunkB": [
+			      "chunkB.css",
 			      "chunkB.js",
 			    ],
 			    "entryA": [
+			      "entryA.css",
 			      "entryA.js",
 			    ],
 			    "entryB": [
+			      "entryB.css",
 			      "entryB.js",
 			    ],
 			  },

@@ -1,3 +1,4 @@
+use better_scoped_tls::scoped_tls;
 use napi_derive::napi;
 use rspack_core::{Optimization, PluginExt, SideEffectOption};
 use rspack_error::internal_error;
@@ -6,6 +7,8 @@ use rspack_plugin_split_chunks::SplitChunksPlugin;
 use serde::Deserialize;
 
 use crate::{RawOptionsApply, RawSplitChunksOptions};
+
+scoped_tls!(pub(crate) static IS_ENABLE_NEW_SPLIT_CHUNKS: bool);
 
 #[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
@@ -25,7 +28,14 @@ impl RawOptionsApply for RawOptimizationOptions {
     plugins: &mut Vec<Box<dyn rspack_core::Plugin>>,
   ) -> Result<Self::Options, rspack_error::Error> {
     if let Some(options) = self.split_chunks {
-      let split_chunks_plugin = SplitChunksPlugin::new(options.into()).boxed();
+      let split_chunks_plugin = IS_ENABLE_NEW_SPLIT_CHUNKS.with(|is_enable_new_split_chunks| {
+        if *is_enable_new_split_chunks {
+          rspack_plugin_split_chunks_new::SplitChunksPlugin::new(options.into()).boxed()
+        } else {
+          SplitChunksPlugin::new(options.into()).boxed()
+        }
+      });
+
       plugins.push(split_chunks_plugin);
     }
     let module_ids_plugin = match self.module_ids.as_ref() {

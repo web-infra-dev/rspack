@@ -42,7 +42,6 @@ runs:
           pnpm install
           pnpm run build:js
           pnpm run test:unit
-          # These two breaks on many targets, diabled for now
-          # pnpm run test:example
+          pnpm run test:example
           # e2e is disabled because this does not run on some targets
           # pnpm run test:e2e

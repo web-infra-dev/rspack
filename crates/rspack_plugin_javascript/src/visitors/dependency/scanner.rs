@@ -99,7 +99,7 @@ impl DependencyScanner<'_> {
     use once_cell::sync::Lazy;
     use swc_core::common::comments::CommentKind;
     static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
-      regex::Regex::new(r#"webpackChunkName\s*:\s*["|'|`]\s*(\w[\w0-9]*)\s*["|'|`]"#)
+      regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-]+/)*?[\w0-9_\-]+)"|'(?P<_2>(\./)?([\w0-9_\-]+/)*?[\w0-9_\-]+)'|`(?P<_3>(\./)?([\w0-9_\-]+/)*?[\w0-9_\-]+)`)"#)
         .expect("invalid regex")
     });
     self
@@ -112,7 +112,15 @@ impl DependencyScanner<'_> {
           .find_map(|comment| {
             WEBPACK_CHUNK_NAME_CAPTURE_RE
               .captures(&comment.text)
-              .and_then(|captures| captures.get(1))
+              .and_then(|captures| {
+                if let Some(cap) = captures.name("_1") {
+                  Some(cap)
+                } else if let Some(cap) = captures.name("_2") {
+                  Some(cap)
+                } else {
+                  captures.name("_3")
+                }
+              })
               .map(|mat| mat.as_str().to_string())
           });
         ret

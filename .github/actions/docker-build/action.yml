@@ -11,11 +11,11 @@ inputs:
     type: string
   pre:
     required: false
-    default: ''
+    default: ""
     type: string
   post:
     required: false
-    default: ''
+    default: ""
     type: string
 
 runs:
@@ -37,5 +37,6 @@ runs:
           set -e
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
+          corepack enable
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
           ${{ inputs.post }}

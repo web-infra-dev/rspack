@@ -10,9 +10,9 @@ Object.defineProperty(exports, "default", {
         return _default;
     }
 });
-var _testJs = __webpack_require__.ir(__webpack_require__("./test.js"));
+var _test = __webpack_require__.ir(__webpack_require__("./test.js"));
 function myanswer() {
-    _testJs.default;
+    _test.default;
 }
 var _default = myanswer;
 },

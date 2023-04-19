@@ -9,7 +9,7 @@ use swc_core::ecma::visit::Fold;
 
 fn compat_by_preset_env(
   preset_env_config: Option<PresetEnv>,
-  top_level_mark: Mark,
+  unresolved_mark: Mark,
   assumptions: Assumptions,
   comments: Option<&SingleThreadedComments>,
 ) -> impl Fold + '_ {
@@ -21,7 +21,7 @@ fn compat_by_preset_env(
     };
 
     Either::Left(swc_ecma_preset_env::preset_env(
-      top_level_mark,
+      unresolved_mark, // here should be unresolved_mark, swc not update function signature
       comments,
       swc_ecma_preset_env::Config {
         mode: mode.map(Into::into),
@@ -151,13 +151,13 @@ pub fn compat(
   preset_env_config: Option<PresetEnv>,
   es_version: Option<EsVersion>,
   assumptions: Assumptions,
-  top_level_mark: Mark,
+  _top_level_mark: Mark,
   unresolved_mark: Mark,
   comments: Option<&SingleThreadedComments>,
   is_typescript: bool,
 ) -> impl Fold + '_ {
   chain!(
-    compat_by_preset_env(preset_env_config, top_level_mark, assumptions, comments),
+    compat_by_preset_env(preset_env_config, unresolved_mark, assumptions, comments),
     compat_by_es_version(
       es_version,
       unresolved_mark,

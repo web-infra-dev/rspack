@@ -25,9 +25,9 @@ Object.defineProperty(exports, "Something", {
         return Something;
     }
 });
-var _layoutJs = __webpack_require__("./Layout.js");
+var _Layout = __webpack_require__("./Layout.js");
 function callit() {
-    _layoutJs.defaults.test;
+    _Layout.defaults.test;
 }
 callit();
 var Something = 20000;
@@ -37,8 +37,8 @@ var Something = 20000;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _exportJs = __webpack_require__("./export.js");
-(0, _exportJs.Something)();
+var _export = __webpack_require__("./export.js");
+(0, _export.Something)();
 },
 
 },function(__webpack_require__) {

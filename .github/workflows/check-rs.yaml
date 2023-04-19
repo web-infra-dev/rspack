@@ -44,6 +44,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: check
+          save-if: ${{ github.ref_name == 'main' }}
 
       - name: Spell Check
         uses: crate-ci/typos@master
@@ -57,7 +58,9 @@ jobs:
           args: --all -- --check
 
       - name: Run Cargo Check
-        run: cargo check --workspace --all-targets --release --locked
+        run: |
+          cargo check --workspace --all-targets --release --locked
+          cd crates/node_binding && cargo check --workspace --all-targets --release --locked && cd ../../
 
       - name: Run Clippy
         uses: actions-rs/cargo@v1
@@ -69,7 +72,6 @@ jobs:
         run: node ./scripts/check_rust_dependency.js
 
       - name: Run test
-        # We need to install sass first to enable sass-loader
         run: |
           node -e "console.log(process.arch)"
           cargo test --workspace  -- --nocapture --test-threads=1

@@ -40,7 +40,7 @@ fn custom(fixture_path: PathBuf) {
     settings.bind(|| {
       insta::assert_snapshot!(
         dirname.as_str(),
-        stats.emit_diagnostics_string(false).expect("TODO:"),
+        stats.emit_diagnostics_string(true).expect("TODO:"),
         dirname.as_str()
       );
     });

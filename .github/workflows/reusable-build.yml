@@ -91,6 +91,7 @@ jobs:
         with:
           shared-key: build-${{ inputs.target }}
           workspaces: "./crates/node_binding -> target"
+          save-if: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
@@ -151,7 +152,7 @@ jobs:
 
       # Mac
       - uses: goto-bus-stop/setup-zig@v2
-        if: ${{ contains(matrix.settings.target, 'apple') }}
+        if: ${{ contains(inputs.target, 'apple') }}
         with:
           version: 0.10.1
 
@@ -186,7 +187,7 @@ jobs:
     # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
     timeout-minutes: 15
     strategy:
-      fail-fast: false
+      fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
         node: [14, 16]
     name: Test Node ${{ matrix.node }}
@@ -279,8 +280,7 @@ jobs:
           pnpm install
           pnpm run build:js
           pnpm run test:unit
-          # These two breaks on many targets, diabled for now
-          # pnpm run test:example
+          pnpm run test:example
           # pnpm run test:e2e
 
       ### x86_64-pc-windows-msvc
@@ -303,6 +303,5 @@ jobs:
           pnpm install
           pnpm run build:js
           pnpm run test:unit
-          # These two breaks on many targets, diabled for now
-          # pnpm run test:example
+          pnpm run test:example
           # pnpm run test:e2e

@@ -1,7 +1,7 @@
 import path from "path";
 import { createFsFromVolume, Volume } from "memfs";
 import { FileSystemInfoEntry, Watcher } from "../src/util/fs";
-import { MultiRspackOptions, rspack, RspackOptions } from "../src";
+import { Compiler, MultiRspackOptions, rspack, RspackOptions } from "../src";
 import { assert } from "console";
 
 const createMultiCompiler = (
@@ -671,4 +671,59 @@ describe("MultiCompiler", function () {
 			compiler.close(done);
 		});
 	}, 20000);
+});
+
+describe("Pressure test", function () {
+	it("should work well in multiCompilers", done => {
+		const configs = Array(100).fill({
+			context: path.join(__dirname, "fixtures"),
+			entry: "./a.js"
+		});
+
+		const multiCompiler = rspack(configs);
+
+		multiCompiler.run(err => {
+			if (err) done(err);
+			else done();
+		});
+	});
+
+	it("should work well in concurrent", async () => {
+		const total = 100;
+
+		let finish = 0;
+
+		const runnings: Promise<null>[] = [];
+
+		for (let i = 0; i < total; i++) {
+			if (i % 10 == 0) {
+				// Insert new instance while we are running
+				rspack(
+					{
+						context: path.join(__dirname, "fixtures"),
+						entry: "./a.js"
+					},
+					() => {}
+				);
+			}
+
+			runnings.push(
+				new Promise(resolve => {
+					rspack(
+						{
+							context: path.join(__dirname, "fixtures"),
+							entry: "./a.js"
+						},
+						err => {
+							resolve(null);
+							if (!err) finish++;
+						}
+					);
+				})
+			);
+		}
+
+		await Promise.all(runnings);
+		expect(finish).toBe(total);
+	});
 });

@@ -10,9 +10,9 @@ Object.defineProperty(exports, "default", {
         return abc;
     }
 });
-var _depJsA = __webpack_require__("./dep.js?a");
+var _depjsa = __webpack_require__("./dep.js?a");
 function abc() {
-    return _depJsA.x;
+    return _depjsa.x;
 }
 },
 "./b.js": function (module, exports, __webpack_require__) {
@@ -27,9 +27,9 @@ __webpack_require__("./dep.js?b");
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _depJsC = __webpack_require__("./dep.js?c");
+var _depjsc = __webpack_require__("./dep.js?c");
 function abc() {
-    return _depJsC.x;
+    return _depjsc.x;
 }
 abc();
 },
@@ -44,10 +44,10 @@ Object.defineProperty(exports, "default", {
         return def;
     }
 });
-var _depJsD = __webpack_require__("./dep.js?d");
+var _depjsd = __webpack_require__("./dep.js?d");
 class def {
     method() {
-        return _depJsD.x;
+        return _depjsd.x;
     }
 }
 },
@@ -177,10 +177,10 @@ __webpack_require__("./dep.js?e");
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _depJsF = __webpack_require__("./dep.js?f");
+var _depjsf = __webpack_require__("./dep.js?f");
 class def {
     method() {
-        return _depJsF.x;
+        return _depjsf.x;
     }
 }
 new def().method();
@@ -190,39 +190,39 @@ new def().method();
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _aJs = __webpack_require__.ir(__webpack_require__("./a.js"));
+var _a = __webpack_require__.ir(__webpack_require__("./a.js"));
 __webpack_require__("./b.js");
 __webpack_require__("./c.js");
-var _dJs = __webpack_require__.ir(__webpack_require__("./d.js"));
+var _d = __webpack_require__.ir(__webpack_require__("./d.js"));
 __webpack_require__("./e.js");
 __webpack_require__("./f.js");
-var _depJsA = __webpack_require__.ir(__webpack_require__("./dep.js?a"));
-var _depJsB = __webpack_require__.ir(__webpack_require__("./dep.js?b"));
-var _depJsC = __webpack_require__.ir(__webpack_require__("./dep.js?c"));
-var _depJsD = __webpack_require__.ir(__webpack_require__("./dep.js?d"));
-var _depJsE = __webpack_require__.ir(__webpack_require__("./dep.js?e"));
-var _depJsF = __webpack_require__.ir(__webpack_require__("./dep.js?f"));
+var _depjsa = __webpack_require__.ir(__webpack_require__("./dep.js?a"));
+var _depjsb = __webpack_require__.ir(__webpack_require__("./dep.js?b"));
+var _depjsc = __webpack_require__.ir(__webpack_require__("./dep.js?c"));
+var _depjsd = __webpack_require__.ir(__webpack_require__("./dep.js?d"));
+var _depjse = __webpack_require__.ir(__webpack_require__("./dep.js?e"));
+var _depjsf = __webpack_require__.ir(__webpack_require__("./dep.js?f"));
 it("should generate valid code", ()=>{
-    expect((0, _aJs.default)()).toBe("x");
-    expect(new _dJs.default().method()).toBe("x");
+    expect((0, _a.default)()).toBe("x");
+    expect(new _d.default().method()).toBe("x");
 });
 it("a should be used", ()=>{
-    expect(_depJsA.default).toBe(true);
+    expect(_depjsa.default).toBe(true);
 });
 it("b should be unused", ()=>{
-    expect(_depJsB.default).toBe(false);
+    expect(_depjsb.default).toBe(false);
 });
 it("c should be used", ()=>{
-    expect(_depJsC.default).toBe(true);
+    expect(_depjsc.default).toBe(true);
 });
 it("d should be used", ()=>{
-    expect(_depJsD.default).toBe(true);
+    expect(_depjsd.default).toBe(true);
 });
 it("e should be unused", ()=>{
-    expect(_depJsE.default).toBe(false);
+    expect(_depjse.default).toBe(false);
 });
 it("f should be used", ()=>{
-    expect(_depJsF.default).toBe(true);
+    expect(_depjsf.default).toBe(true);
 });
 },
 

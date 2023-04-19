@@ -78,7 +78,12 @@ export const applyRspackOptionsDefaults = (
 
 	applyOutputDefaults(options.output, {
 		context: options.context!,
-		targetProperties
+		targetProperties,
+		isAffectedByBrowserslist:
+			target === undefined ||
+			(typeof target === "string" && target.startsWith("browserslist")) ||
+			(Array.isArray(target) &&
+				target.some(target => target.startsWith("browserslist")))
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -137,6 +142,7 @@ const applyExperimentsDefaults = (experiments: Experiments) => {
 	D(experiments, "incrementalRebuild", true);
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
+	D(experiments, "newSplitChunks", false);
 };
 
 const applySnapshotDefaults = (
@@ -282,7 +288,15 @@ const applyModuleDefaults = (
 
 const applyOutputDefaults = (
 	output: OutputNormalized,
-	{ context, targetProperties: tp }: { context: Context; targetProperties: any }
+	{
+		context,
+		targetProperties: tp,
+		isAffectedByBrowserslist
+	}: {
+		context: Context;
+		targetProperties: any;
+		isAffectedByBrowserslist: boolean;
+	}
 ) => {
 	F(output, "uniqueName", () => {
 		const pkgPath = path.resolve(context, "package.json");
@@ -341,6 +355,78 @@ const applyOutputDefaults = (
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
 	}
+	F(output, "chunkFormat", () => {
+		if (tp) {
+			const helpMessage = isAffectedByBrowserslist
+				? "Make sure that your 'browserslist' includes only platforms that support these features or select an appropriate 'target' to allow selecting a chunk format by default. Alternatively specify the 'output.chunkFormat' directly."
+				: "Select an appropriate 'target' to allow selecting one by default, or specify the 'output.chunkFormat' directly.";
+			if (output.module) {
+				if (tp.dynamicImport) return "module";
+				if (tp.document) return "array-push";
+				throw new Error(
+					"For the selected environment is no default ESM chunk format available:\n" +
+						"ESM exports can be chosen when 'import()' is available.\n" +
+						"JSONP Array push can be chosen when 'document' is available.\n" +
+						helpMessage
+				);
+			} else {
+				if (tp.document) return "array-push";
+				if (tp.require) return "commonjs";
+				if (tp.nodeBuiltins) return "commonjs";
+				if (tp.importScripts) return "array-push";
+				throw new Error(
+					"For the selected environment is no default script chunk format available:\n" +
+						"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
+						"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
+						helpMessage
+				);
+			}
+		}
+		throw new Error(
+			"Chunk format can't be selected by default when no target is specified"
+		);
+	});
+	F(output, "chunkLoading", () => {
+		if (tp) {
+			switch (output.chunkFormat) {
+				case "array-push":
+					if (tp.document) return "jsonp";
+					if (tp.importScripts) return "import-scripts";
+					break;
+				case "commonjs":
+					if (tp.require) return "require";
+					if (tp.nodeBuiltins) return "async-node";
+					break;
+				case "module":
+					if (tp.dynamicImport) return "import";
+					break;
+			}
+			if (
+				tp.require === null ||
+				tp.nodeBuiltins === null ||
+				tp.document === null ||
+				tp.importScripts === null
+			) {
+				return "universal";
+			}
+		}
+		return false;
+	});
+	A(output, "enabledChunkLoadingTypes", () => {
+		const enabledChunkLoadingTypes = new Set<string>();
+		if (output.chunkLoading) {
+			enabledChunkLoadingTypes.add(output.chunkLoading);
+		}
+		// if (output.workerChunkLoading) {
+		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
+		// }
+		// forEachEntry(desc => {
+		// 	if (desc.chunkLoading) {
+		// 		enabledChunkLoadingTypes.add(desc.chunkLoading);
+		// 	}
+		// });
+		return Array.from(enabledChunkLoadingTypes);
+	});
 	F(output, "wasmLoading", () => {
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";

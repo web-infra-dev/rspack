@@ -44,3 +44,16 @@ jobs:
           disallowScopes: |
             [A-Z]+
           # Configure additional validation for the subject based on a regex.
+
+  release-labeling:
+    # See context at https://github.com/web-infra-dev/rspack/discussions/2760
+    name: Labeling for releasing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: github/issue-labeler@v2.5 #May not be the latest version
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          configuration-path: .github/pr-labeler.yml
+          enable-versioned-regex: 0
+          include-title: 1
+          sync-labels: 1

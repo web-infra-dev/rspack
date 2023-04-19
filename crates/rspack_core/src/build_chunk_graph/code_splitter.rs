@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use rspack_error::Result;
-use rspack_identifier::IdentifierSet;
+use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
@@ -14,6 +14,7 @@ pub(super) struct CodeSplitter<'me> {
   queue_delayed: Vec<QueueItem>,
   split_point_modules: IdentifierSet,
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
+  depended_modules_cache: IdentifierMap<Vec<ModuleIdentifier>>,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -26,6 +27,7 @@ impl<'me> CodeSplitter<'me> {
       queue_delayed: Default::default(),
       split_point_modules: Default::default(),
       remove_parent_modules_context: Default::default(),
+      depended_modules_cache: Default::default(),
     }
   }
 
@@ -322,24 +324,32 @@ impl<'me> CodeSplitter<'me> {
 
   fn process_module(&mut self, item: &QueueItem) {
     tracing::trace!("process_module {:?}", item);
+
     let mgm = self
       .compilation
       .module_graph
       .module_graph_module_by_identifier(&item.module_identifier)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module_identifier));
 
-    for module_identifier in mgm
-      .depended_modules(&self.compilation.module_graph)
-      .into_iter()
-      .rev()
-    {
-      self.queue.push(QueueItem {
+    let queue_items = self
+      .depended_modules_cache
+      .entry(item.module_identifier)
+      .or_insert_with(|| {
+        mgm
+          .depended_modules(&self.compilation.module_graph)
+          .into_iter()
+          .rev()
+          .copied()
+          .collect::<Vec<_>>()
+      })
+      .iter()
+      .map(|module_identifier| QueueItem {
         action: QueueAction::AddAndEnter,
         chunk: item.chunk,
         chunk_group: item.chunk_group,
         module_identifier: *module_identifier,
       });
-    }
+    self.queue.extend(queue_items.into_iter());
 
     for (module_identifier, chunk_name) in mgm
       .dynamic_depended_modules(&self.compilation.module_graph)

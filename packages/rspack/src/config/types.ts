@@ -137,6 +137,9 @@ export interface Output {
 	wasmLoading?: WasmLoading;
 	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
 	webassemblyModuleFilename?: WebassemblyModuleFilename;
+	chunkFormat?: string | false;
+	chunkLoading?: string | false;
+	enabledChunkLoadingTypes?: string[];
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -230,6 +233,9 @@ export interface OutputNormalized {
 	wasmLoading?: WasmLoading;
 	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
 	webassemblyModuleFilename?: WebassemblyModuleFilename;
+	chunkFormat?: string | false;
+	chunkLoading?: string | false;
+	enabledChunkLoadingTypes?: string[];
 }
 
 ///// Resolve /////
@@ -519,6 +525,7 @@ export interface Experiments {
 	lazyCompilation?: boolean;
 	incrementalRebuild?: boolean;
 	asyncWebAssembly?: boolean;
+	newSplitChunks?: boolean;
 }
 
 ///// Watch /////

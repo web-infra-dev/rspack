@@ -49,10 +49,10 @@ const b = 'foo';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _cJs = __webpack_require__("./c.js");
-_cJs.a;
-_cJs.b;
-_cJs.c;
+var _c = __webpack_require__("./c.js");
+_c.a;
+_c.b;
+_c.c;
 },
 
 },function(__webpack_require__) {

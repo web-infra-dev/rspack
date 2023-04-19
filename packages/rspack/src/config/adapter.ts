@@ -168,7 +168,10 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
+		chunkFormat: output.chunkFormat === false ? undefined : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
+		chunkLoading:
+			output.chunkLoading === false ? undefined : output.chunkLoading!,
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
@@ -183,6 +186,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		module: output.module!,
 		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
 		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
+		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
 		webassemblyModuleFilename: output.webassemblyModuleFilename!
 	};
 }
@@ -484,16 +488,23 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: Experiments
 ): RawOptions["experiments"] {
-	const { lazyCompilation, incrementalRebuild, asyncWebAssembly } = experiments;
+	const {
+		lazyCompilation,
+		incrementalRebuild,
+		asyncWebAssembly,
+		newSplitChunks
+	} = experiments;
 	assert(
 		!isNil(lazyCompilation) &&
 			!isNil(incrementalRebuild) &&
-			!isNil(asyncWebAssembly)
+			!isNil(asyncWebAssembly) &&
+			!isNil(newSplitChunks)
 	);
 	return {
 		lazyCompilation,
 		incrementalRebuild,
-		asyncWebAssembly
+		asyncWebAssembly,
+		newSplitChunks
 	};
 }
 

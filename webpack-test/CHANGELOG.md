@@ -1,5 +1,18 @@
 # webpack-test
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [352e563]
+- Updated dependencies [9822cef]
+- Updated dependencies [27afffc]
+- Updated dependencies [fdc5fd9]
+- Updated dependencies [d28a9d0]
+- Updated dependencies [aa91ce7]
+  - @rspack/binding@0.1.8
+  - @rspack/dev-client@0.1.8
+
 ## 0.0.3
 
 ### Patch Changes

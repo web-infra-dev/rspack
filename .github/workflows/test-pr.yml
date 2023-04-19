@@ -25,6 +25,7 @@ concurrency:
 jobs:
   build:
     strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
         target:
           - x86_64-unknown-linux-gnu

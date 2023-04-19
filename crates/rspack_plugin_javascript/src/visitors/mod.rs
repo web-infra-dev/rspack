@@ -2,6 +2,7 @@ mod dependency;
 use std::collections::LinkedList;
 
 pub use dependency::*;
+use xxhash_rust::xxh32::xxh32;
 mod finalize;
 use either::Either;
 use finalize::finalize;
@@ -64,6 +65,7 @@ pub fn run_before_pass(
     rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
     _ => None,
   };
+  let hash = build_info.hash;
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
@@ -117,6 +119,7 @@ pub fn run_before_pass(
           swc_emotion::emotion(
             emotion_options.clone(),
             &resource_data.resource_path,
+            xxh32(&hash.to_be_bytes(), 0),
             cm.clone(),
             comments,
           )

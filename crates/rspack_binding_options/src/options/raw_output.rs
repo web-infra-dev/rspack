@@ -3,6 +3,7 @@ use rspack_core::{
   to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
   LibraryOptions, OutputOptions, PluginExt, WasmLoading,
 };
+use rspack_error::internal_error;
 use serde::Deserialize;
 
 use crate::RawOptionsApply;
@@ -120,11 +121,17 @@ pub struct RawOutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
+  pub chunk_format: Option<String>,
+  pub chunk_loading: Option<String>,
+  pub enabled_chunk_loading_types: Option<Vec<String>>,
 }
 
 impl RawOptionsApply for RawOutputOptions {
   type Options = OutputOptions;
   fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<OutputOptions, rspack_error::Error> {
+    self.apply_chunk_format_plugin(plugins)?;
+    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
+    self.apply_chunk_loading_plugin(plugins)?;
     self.apply_library_plugin(plugins);
     for wasm_loading in self.enabled_wasm_loading_types {
       plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
@@ -161,6 +168,56 @@ impl RawOptionsApply for RawOutputOptions {
 }
 
 impl RawOutputOptions {
+  fn apply_chunk_format_plugin(
+    &self,
+    plugins: &mut Vec<BoxPlugin>,
+  ) -> Result<(), rspack_error::Error> {
+    if let Some(chunk_format) = &self.chunk_format {
+      match chunk_format.as_str() {
+        "array-push" => {
+          plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
+        }
+        "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
+        _ => {
+          return Err(internal_error!(
+            "Unsupported chunk format '{chunk_format}'."
+          ))
+        }
+      }
+    }
+    Ok(())
+  }
+
+  fn apply_chunk_loading_plugin(
+    &self,
+    plugins: &mut Vec<BoxPlugin>,
+  ) -> Result<(), rspack_error::Error> {
+    if let Some(enabled_chunk_loading_types) = &self.enabled_chunk_loading_types {
+      for chunk_loading in enabled_chunk_loading_types {
+        match chunk_loading.as_str() {
+          "jsonp" => {
+            plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
+            plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
+          }
+          "require" => {
+            plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
+          }
+          "universal" => {
+            return Err(internal_error!(
+              "Universal Chunk Loading is not implemented yet.",
+            ))
+          }
+          _ => {
+            return Err(internal_error!(
+              "Unsupported chunk loading type ${chunk_loading}.",
+            ))
+          }
+        }
+      }
+    }
+    Ok(())
+  }
+
   fn apply_library_plugin(&self, plugins: &mut Vec<BoxPlugin>) {
     if let Some(enabled_library_types) = &self.enabled_library_types {
       for library in enabled_library_types {

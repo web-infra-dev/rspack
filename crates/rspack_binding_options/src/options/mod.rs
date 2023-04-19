@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
-  OutputOptions, PluginExt, TargetPlatform,
+  OutputOptions, PluginExt,
 };
 use serde::Deserialize;
 
@@ -104,7 +104,9 @@ impl RawOptionsApply for RawOptions {
     let stats = self.stats.into();
     let cache = self.cache.into();
     let snapshot = self.snapshot.into();
-    let optimization = self.optimization.apply(plugins)?;
+    let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
+      self.optimization.apply(plugins)
+    })?;
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
     let builtins = self.builtins.apply(plugins)?;
@@ -116,22 +118,6 @@ impl RawOptionsApply for RawOptions {
       .boxed(),
     );
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
-    match &target.platform {
-      TargetPlatform::Web => {
-        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
-      }
-      TargetPlatform::Node(_) => {
-        plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
-      }
-      _ => {
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-      }
-    };
     if dev_server.hot {
       plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
     }

@@ -62,6 +62,42 @@ module.exports = {
 				}
 			]
 		},
+		ChunkFormat: {
+			description:
+				"The format of chunks (formats included by default are 'array-push' (web/WebWorker), 'commonjs' (node.js), 'module' (ESM), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: ["array-push", "commonjs", "module", false]
+				},
+				{
+					type: "string"
+				}
+			]
+		},
+		ChunkLoading: {
+			description:
+				"The method of loading chunks (methods included by default are 'jsonp' (web), 'import' (ESM), 'importScripts' (WebWorker), 'require' (sync node.js), 'async-node' (async node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: [false]
+				},
+				{
+					$ref: "#/definitions/ChunkLoadingType"
+				}
+			]
+		},
+		ChunkLoadingType: {
+			description:
+				"The method of loading chunks (methods included by default are 'jsonp' (web), 'import' (ESM), 'importScripts' (WebWorker), 'require' (sync node.js), 'async-node' (async node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: ["jsonp", "import-scripts", "require", "async-node", "import"]
+				},
+				{
+					type: "string"
+				}
+			]
+		},
 		CrossOriginLoading: {
 			description: "This option enables cross-origin loading of chunks.",
 			enum: [false, "anonymous", "use-credentials"]
@@ -100,6 +136,14 @@ module.exports = {
 			type: "array",
 			items: {
 				$ref: "#/definitions/WasmLoadingType"
+			}
+		},
+		EnabledChunkLoadingTypes: {
+			description:
+				"List of chunk loading types enabled for use by entry points.",
+			type: "array",
+			items: {
+				$ref: "#/definitions/ChunkLoadingType"
 			}
 		},
 		WasmLoading: {
@@ -994,6 +1038,15 @@ module.exports = {
 							$ref: "#/definitions/AuxiliaryComment"
 						}
 					]
+				},
+				chunkFormat: {
+					$ref: "#/definitions/ChunkFormat"
+				},
+				chunkLoading: {
+					$ref: "#/definitions/ChunkLoading"
+				},
+				enabledChunkLoadingTypes: {
+					$ref: "#/definitions/EnabledChunkLoadingTypes"
 				},
 				chunkFilename: {
 					$ref: "#/definitions/ChunkFilename"

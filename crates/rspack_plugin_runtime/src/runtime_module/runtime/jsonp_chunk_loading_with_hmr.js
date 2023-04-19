@@ -33,7 +33,7 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 	});
 }
 
-self["hotUpdate"] = function (chunkId, moreModules, runtime) {
+$globalObject$["hotUpdate"] = function (chunkId, moreModules, runtime) {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
 			currentUpdate[moduleId] = moreModules[moduleId];

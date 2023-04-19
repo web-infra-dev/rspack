@@ -11,8 +11,8 @@ __webpack_require__.es(__webpack_require__("./lib.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _appJs = __webpack_require__("./app.js");
-(0, _appJs.something)();
+var _app = __webpack_require__("./app.js");
+(0, _app.something)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";

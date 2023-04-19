@@ -1,5 +1,17 @@
 # @rspack/cli
 
+## 0.1.8
+
+### Patch Changes
+
+- c1df742: check cli command and options
+- Updated dependencies [a72daa0]
+- Updated dependencies [ef030d4]
+- Updated dependencies [f54621d]
+- Updated dependencies [fdc5fd9]
+  - @rspack/core@0.1.8
+  - @rspack/dev-server@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes
