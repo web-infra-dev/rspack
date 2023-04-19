@@ -186,6 +186,9 @@ bitflags! {
     const BASE_URI = 1 << 32;
 
     const MODULE_LOADED = 1 << 33;
+
+    const STARTUP_ENTRYPOINT = 1 << 34;
+
   }
 }
 
@@ -246,6 +249,7 @@ impl RuntimeGlobals {
       R::INSTANTIATE_WASM => "__webpack_require__.v",
       R::ASYNC_MODULE => "__webpack_require__.a",
       R::BASE_URI => "__webpack_require__.b",
+      R::STARTUP_ENTRYPOINT => "__webpack_require__.X",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

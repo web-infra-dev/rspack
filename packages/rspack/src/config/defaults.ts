@@ -83,7 +83,8 @@ export const applyRspackOptionsDefaults = (
 			target === undefined ||
 			(typeof target === "string" && target.startsWith("browserslist")) ||
 			(Array.isArray(target) &&
-				target.some(target => target.startsWith("browserslist")))
+				target.some(target => target.startsWith("browserslist"))),
+		outputModule: options.experiments.outputModule
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -290,10 +291,12 @@ const applyOutputDefaults = (
 	output: OutputNormalized,
 	{
 		context,
+		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist
 	}: {
 		context: Context;
+		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
 	}
@@ -313,8 +316,10 @@ const applyOutputDefaults = (
 	});
 
 	F(output, "chunkLoadingGlobal", () => "webpackChunk" + output.uniqueName);
+	F(output, "module", () => !!outputModule);
+	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
+	F(output, "iife", () => !output.module);
 
-	D(output, "filename", "[name].js");
 	F(output, "chunkFilename", () => {
 		const filename = output.filename!;
 		if (typeof filename !== "function") {
@@ -454,9 +459,7 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
-	F(output, "iife", () => !output.module);
 	F(output, "clean", () => !!output.clean);
-	F(output, "module", () => false); // TODO experiments.outputModule
 
 	A(output, "enabledWasmLoadingTypes", () => {
 		const enabledWasmLoadingTypes = new Set<string>();

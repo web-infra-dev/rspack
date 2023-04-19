@@ -28,3 +28,27 @@ pub fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation
     .collect::<Vec<_>>()
     .join(", ")
 }
+
+// pub fn normalize_name(o: &Option<LibraryOptions>) -> Result<Option<String>> {
+//   if let Some(LibraryOptions {
+//     name: Some(LibraryName {
+//       root: Some(root), ..
+//     }),
+//     ..
+//   }) = o
+//   {
+//     // TODO error "AMD library name must be a simple string or unset."
+//     if let Some(name) = root.get(0) {
+//       return Ok(Some(name.to_string()));
+//     }
+//   }
+//   Ok(None)
+// }
+
+pub fn property_access(o: &Vec<String>) -> String {
+  let mut str = String::default();
+  for property in o {
+    str.push_str(format!(r#"["{property}"]"#).as_str());
+  }
+  str
+}

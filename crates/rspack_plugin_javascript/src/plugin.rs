@@ -186,6 +186,12 @@ impl JsPlugin {
       if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
         sources.add(RawSource::from("return __webpack_exports__;\n"));
       }
+      let last_entry_module = compilation
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey)
+        .keys()
+        .last()
+        .expect("should have last entry module");
       if let Some(source) =
         compilation
           .plugin_driver
@@ -194,6 +200,7 @@ impl JsPlugin {
           .render_startup(RenderStartupArgs {
             compilation,
             chunk: &chunk.ukey,
+            module: *last_entry_module,
           })?
       {
         sources.add(source);

@@ -6,11 +6,6 @@ import { rspack, RspackOptions } from "../src";
 import assert from "assert";
 import createLazyTestEnv from "./helpers/createLazyTestEnv";
 
-const define = function (...args) {
-	const factory = args.pop();
-	factory();
-};
-
 // most of these could be removed when we support external builtins by default
 export function describeCases(config: { name: string; casePath: string }) {
 	const casesPath = path.resolve(__dirname, config.casePath);
@@ -134,8 +129,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 										bundlePath,
 										_it,
 										expect,
-										jest,
-										define
+										jest
 									);
 									return m.exports;
 								});

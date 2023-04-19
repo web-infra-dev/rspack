@@ -33,7 +33,9 @@ use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
-  tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
+  tree_shaking::{
+    optimizer, visitor::SymbolRef, webpack_ext::ExportInfo, BailoutFlag, OptimizeDependencyResult,
+  },
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
   BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
@@ -85,6 +87,7 @@ pub struct Compilation {
   pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
+  pub exports_info_map: IdentifierMap<Vec<ExportInfo>>,
   #[cfg(debug_assertions)]
   pub tree_shaking_result: IdentifierMap<TreeShakingResult>,
 
@@ -137,6 +140,7 @@ impl Compilation {
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
+      exports_info_map: IdentifierMap::default(),
       #[cfg(debug_assertions)]
       tree_shaking_result: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),

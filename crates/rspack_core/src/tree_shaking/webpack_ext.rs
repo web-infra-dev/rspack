@@ -8,8 +8,9 @@ pub trait ExportInfoExt {
   fn ordered_exports(&self) -> Vec<ExportInfo>;
 }
 
+#[derive(Debug)]
 pub struct ExportInfo {
-  name: JsWord,
+  pub name: JsWord,
 }
 
 impl ExportInfoExt for TreeShakingResult {

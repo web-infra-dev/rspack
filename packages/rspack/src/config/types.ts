@@ -523,6 +523,7 @@ export interface Experiments {
 	lazyCompilation?: boolean;
 	incrementalRebuild?: boolean;
 	asyncWebAssembly?: boolean;
+	outputModule?: boolean;
 	newSplitChunks?: boolean;
 }
 
