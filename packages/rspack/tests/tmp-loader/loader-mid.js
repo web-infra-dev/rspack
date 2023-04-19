@@ -3,5 +3,5 @@ module.exports = function () {
 };
 module.exports.pitch = function (remaining, previous) {
 	console.log("mid pitch");
-	return "abc";
+	// return "a";
 };

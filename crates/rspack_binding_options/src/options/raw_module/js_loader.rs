@@ -124,10 +124,10 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
       .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
 
     if let Some(loader_result) = loader_result {
-      // This indicate that the JS loaders finishes the pitching stage,
+      // This indicate that the JS loaders pitched(return something) successfully
+      // and executed the normal loader on the JS loader side(in that group),
       // then here we want to change the control flow in order
-      // to execute the remaining normal loaders.
-      dbg!(loader_result.is_pitching);
+      // to execute the remaining normal loaders on the native side.
       if !loader_result.is_pitching {
         loader_context
           .current_loader()

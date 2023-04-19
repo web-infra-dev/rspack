@@ -553,8 +553,6 @@ export async function runLoader(
 		} else {
 			// normal
 			loaderContext.loaderIndex = loaderContext.loaders.length - 1;
-			console.log("normallllllll", loaders);
-
 			iterateNormalLoaders(
 				rawContext.content!,
 				loaderContext,

@@ -34,6 +34,22 @@ rspack(
 									return [1, 2, 3];
 								}
 							}
+						},
+						{
+							loader: require.resolve("./tmp-loader/loader-c.js"),
+							options: {
+								getItems() {
+									return [1, 2, 3];
+								}
+							}
+						},
+						{
+							loader: require.resolve("./tmp-loader/loader-d.js"),
+							options: {
+								getItems() {
+									return [1, 2, 3];
+								}
+							}
 						}
 					]
 				}
