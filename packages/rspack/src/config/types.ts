@@ -335,8 +335,24 @@ export interface ModuleOptionsNormalized {
 	parser: ParserOptionsByModuleType;
 }
 
+export type AvailableTarget =
+	| "node"
+	| "web"
+	| "web-worker"
+	| "es3"
+	| "es5"
+	| "es2015"
+	| "es2016"
+	| "es2017"
+	| "es2018"
+	| "es2019"
+	| "es2020"
+	| "es2021"
+	| "es2022"
+	| "browserslist";
+
 ///// Target /////
-export type Target = false | string[] | string;
+export type Target = false | AvailableTarget[] | AvailableTarget;
 
 ///// Externals /////
 export type Externals = ExternalItem[] | ExternalItem;
