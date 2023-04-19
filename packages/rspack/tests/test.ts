@@ -7,7 +7,13 @@ rspack(
 				import: "./fixtures/a.js"
 			}
 		},
+		output: {
+			filename: require("path").resolve(__dirname, "./dist/aa")
+		},
 		context: __dirname,
+		optimization: {
+			minimize: false
+		},
 		module: {
 			rules: [
 				{

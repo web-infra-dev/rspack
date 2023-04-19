@@ -14,7 +14,8 @@ import {
 	LoaderContext,
 	LoaderObject,
 	isUseSimpleSourceMap,
-	isUseSourceMap
+	isUseSourceMap,
+	toBuffer
 } from "../config/adapter-rule-use";
 import { concatErrorMsgAndStack } from "../util";
 import {
@@ -26,6 +27,7 @@ import {
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
+import loadLoader = require("./loadLoader");
 
 const PATH_QUERY_FRAGMENT_REGEXP =
 	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
@@ -90,7 +92,7 @@ function createLoaderObject(loader: any, compiler: Compiler): LoaderObject {
 				obj.query = splittedRequest.query;
 				obj.fragment = splittedRequest.fragment;
 
-				if (obj.query.startsWith === "??") {
+				if (obj.query.startsWith("??")) {
 					const ident = obj.query.slice(2);
 					if (ident === "[[missing ident]]") {
 						throw new Error(
@@ -166,6 +168,7 @@ export async function runLoader(
 	const resourceQuery = splittedResource.query;
 	const resourceFragment = splittedResource.fragment;
 	const contextDirectory = dirname(resourcePath);
+	const originalContent = rawContext.originalContent;
 
 	// execution state
 	let isPitching = rawContext.isPitching;
@@ -512,5 +515,275 @@ export async function runLoader(
 		}
 		return options;
 	};
-	console.log(rawContext.content, "content");
+
+	return new Promise((resolve, reject) => {
+		if (isPitching) {
+			// `originalContent` is always available in pitching stage
+			iteratePitchingLoaders(
+				originalContent!,
+				loaderContext,
+				[],
+				(err: Error, result: any[]) => {
+					if (err) {
+						return reject(err);
+					}
+					const [content, sourceMap, additionalData] = result;
+					resolve({
+						content: content ? toBuffer(content) : undefined,
+						sourceMap: sourceMap
+							? toBuffer(
+									typeof sourceMap === "string"
+										? sourceMap
+										: JSON.stringify(sourceMap)
+							  )
+							: undefined,
+						additionalData: additionalData
+							? toBuffer(JSON.stringify(additionalData))
+							: undefined,
+						buildDependencies,
+						cacheable,
+						fileDependencies,
+						contextDependencies,
+						missingDependencies
+					});
+				}
+			);
+		} else {
+			// normal
+			loaderContext.loaderIndex = loaderContext.loaders.length - 1;
+			iterateNormalLoaders(
+				rawContext.content!,
+				loaderContext,
+				[rawContext.content, rawContext.sourceMap, rawContext.additionalData],
+				(err: Error, result: any[]) => {
+					if (err) {
+						return reject(err);
+					}
+					const [content, sourceMap, additionalData] = result;
+					resolve({
+						content: content ? toBuffer(content) : undefined,
+						sourceMap: sourceMap
+							? toBuffer(
+									typeof sourceMap === "string"
+										? sourceMap
+										: JSON.stringify(sourceMap)
+							  )
+							: undefined,
+						additionalData: additionalData
+							? toBuffer(JSON.stringify(additionalData))
+							: undefined,
+						buildDependencies,
+						cacheable,
+						fileDependencies,
+						contextDependencies,
+						missingDependencies
+					});
+				}
+			);
+		}
+	});
+}
+
+function utf8BufferToString(buf: Buffer) {
+	var str = buf.toString("utf-8");
+	if (str.charCodeAt(0) === 0xfeff) {
+		return str.slice(1);
+	} else {
+		return str;
+	}
+}
+
+function convertArgs(args: any[], raw: boolean) {
+	if (!raw && Buffer.isBuffer(args[0])) args[0] = utf8BufferToString(args[0]);
+	else if (raw && typeof args[0] === "string")
+		args[0] = Buffer.from(args[0], "utf-8");
+}
+
+function runSyncOrAsync(
+	fn: Function,
+	context: LoaderContext,
+	args: any[],
+	callback: Function
+) {
+	var isSync = true;
+	var isDone = false;
+	var isError = false; // internal error
+	var reportedError = false;
+	// @ts-expect-error loader-runner leverages `arguments` to achieve the same functionality.
+	context.async = function async() {
+		if (isDone) {
+			if (reportedError) return; // ignore
+			throw new Error("async(): The callback was already called.");
+		}
+		isSync = false;
+		return innerCallback;
+	};
+	var innerCallback = (context.callback = function () {
+		if (isDone) {
+			if (reportedError) return; // ignore
+			throw new Error("callback(): The callback was already called.");
+		}
+		isDone = true;
+		isSync = false;
+		try {
+			callback.apply(null, arguments);
+		} catch (e) {
+			isError = true;
+			throw e;
+		}
+	});
+	try {
+		var result = (function LOADER_EXECUTION() {
+			return fn.apply(context, args);
+		})();
+		if (isSync) {
+			isDone = true;
+			if (result === undefined) return callback();
+			if (
+				result &&
+				typeof result === "object" &&
+				typeof result.then === "function"
+			) {
+				return result.then(function (r: unknown) {
+					callback(null, r);
+				}, callback);
+			}
+			return callback(null, result);
+		}
+	} catch (e: unknown) {
+		if (isError) throw e;
+		if (isDone) {
+			// loader is already "done", so we cannot use the callback function
+			// for better debugging we print the error on the console
+			if (e instanceof Error) console.error(e.stack);
+			else console.error(e);
+			return;
+		}
+		isDone = true;
+		reportedError = true;
+		callback(e);
+	}
+}
+
+function iteratePitchingLoaders(
+	originalContent: Buffer,
+	loaderContext: LoaderContext,
+	args: any[],
+	callback: Function
+): void {
+	// Running out of js loaders
+	// Directly callback as we may still have other loaders on the rust side,
+	// The difference between rspack loader-runner and webpack loader-runner is
+	// that we do not run the loaders in the normal stage if pitching is not successful.
+	if (loaderContext.loaderIndex >= loaderContext.loaders.length)
+		return callback(null, args);
+
+	var currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
+
+	// iterate
+	if (currentLoaderObject.pitchExecuted) {
+		loaderContext.loaderIndex++;
+		return iteratePitchingLoaders(
+			originalContent,
+			loaderContext,
+			args,
+			callback
+		);
+	}
+
+	// load loader module
+	loadLoader(currentLoaderObject, function (err: Error) {
+		if (err) {
+			loaderContext.cacheable(false);
+			return callback(err);
+		}
+		var fn = currentLoaderObject.pitch;
+		currentLoaderObject.pitchExecuted = true;
+
+		if (!fn)
+			return iteratePitchingLoaders(
+				originalContent,
+				loaderContext,
+				args,
+				callback
+			);
+
+		runSyncOrAsync(
+			fn,
+			loaderContext,
+			[
+				loaderContext.remainingRequest,
+				loaderContext.previousRequest,
+				(currentLoaderObject.data = {})
+			],
+			function (err: Error) {
+				if (err) return callback(err);
+				var args = Array.prototype.slice.call(arguments, 1);
+				// Determine whether to continue the pitching process based on
+				// argument values (as opposed to argument presence) in order
+				// to support synchronous and asynchronous usages.
+				var hasArg = args.some(function (value) {
+					return value !== undefined;
+				});
+				// If a loader pitched successfully,
+				// then It should execute normal loaders too.
+				if (hasArg) {
+					loaderContext.loaderIndex--;
+					iterateNormalLoaders(originalContent, loaderContext, args, callback);
+				} else {
+					iteratePitchingLoaders(
+						originalContent,
+						loaderContext,
+						args,
+						callback
+					);
+				}
+			}
+		);
+	});
+}
+
+function iterateNormalLoaders(
+	originalContent: Buffer,
+	loaderContext: LoaderContext,
+	args: any[],
+	callback: Function
+): void {
+	// JS loaders ends
+	if (loaderContext.loaderIndex < 0) return callback(null, args);
+
+	var currentLoaderObject = loaderContext.loaders[loaderContext.loaderIndex];
+
+	// iterate
+	if (currentLoaderObject.normalExecuted) {
+		loaderContext.loaderIndex--;
+		return iterateNormalLoaders(originalContent, loaderContext, args, callback);
+	}
+
+	loadLoader(currentLoaderObject, function (err: Error) {
+		if (err) {
+			loaderContext.cacheable(false);
+			return callback(err);
+		}
+
+		var fn = currentLoaderObject.normal;
+		currentLoaderObject.normalExecuted = true;
+		if (!fn) {
+			return iterateNormalLoaders(
+				originalContent,
+				loaderContext,
+				args,
+				callback
+			);
+		}
+
+		convertArgs(args, !!currentLoaderObject.raw);
+
+		runSyncOrAsync(fn, loaderContext, args, function (err: Error) {
+			if (err) return callback(err);
+
+			var args = Array.prototype.slice.call(arguments, 1);
+			iterateNormalLoaders(originalContent, loaderContext, args, callback);
+		});
+	});
 }

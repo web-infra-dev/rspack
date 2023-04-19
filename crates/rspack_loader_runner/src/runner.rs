@@ -123,11 +123,7 @@ async fn get_original_content(
   Ok(content)
 }
 
-async fn process_resource<C: Send>(
-  loader_context: &mut LoaderContext<'_, C>,
-  resource_data: &ResourceData,
-  plugins: &[Box<dyn LoaderRunnerPlugin>],
-) -> Result<()> {
+async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
   loader_context.fetch_original_content().await?;
   loader_context.content = loader_context.original_content.clone();
 

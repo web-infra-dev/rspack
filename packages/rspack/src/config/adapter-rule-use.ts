@@ -704,7 +704,7 @@ function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {
 	};
 }
 
-const toBuffer = (bufLike: string | Buffer): Buffer => {
+export const toBuffer = (bufLike: string | Buffer): Buffer => {
 	if (Buffer.isBuffer(bufLike)) {
 		return bufLike;
 	} else if (typeof bufLike === "string") {

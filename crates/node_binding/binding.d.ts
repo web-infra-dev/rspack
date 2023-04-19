@@ -181,11 +181,22 @@ export interface RawEntryItem {
   import: Array<string>
   runtime?: string
 }
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
 export interface RawExperiments {
   lazyCompilation: boolean
   incrementalRebuild: boolean
   asyncWebAssembly: boolean
   newSplitChunks: boolean
+}
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
 }
 export interface RawExternalItem {
   type: "string" | "regexp" | "object"
