@@ -290,7 +290,6 @@ function _test() {
     });
     return _test.apply(this, arguments);
 }
-test();
 },
 
 },function(__webpack_require__) {
