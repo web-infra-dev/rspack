@@ -111,7 +111,6 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
     &self,
     loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
   ) -> rspack_error::Result<()> {
-    dbg!("pitching", loader_context.request().to_string());
     let mut js_loader_context: JsLoaderContext =
       <JsLoaderContext as AsyncTryFrom<_>>::try_from(loader_context).await?;
     js_loader_context.is_pitching = true;

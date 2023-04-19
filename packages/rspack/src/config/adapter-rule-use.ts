@@ -229,14 +229,20 @@ function composeJsUse(
 	return {
 		jsLoader: {
 			identifier: uses
-				.map(use => stringifyLoaders(use, options.compiler))
+				.map(use => resolveStringifyLoaders(use, options.compiler))
 				.join("$")
 		}
 	};
 }
 
-function stringifyLoaders(use: RuleSetLoaderWithOptions, compiler: Compiler) {
+function resolveStringifyLoaders(
+	use: RuleSetLoaderWithOptions,
+	compiler: Compiler
+) {
 	const obj = parsePathQueryFragment(use.loader);
+	obj.path = require.resolve(obj.path, {
+		paths: [compiler.context]
+	});
 	let ident: string | null = null;
 
 	if (use.options === null) obj.query = "";
