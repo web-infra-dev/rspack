@@ -207,6 +207,7 @@ pub struct RenderStartupArgs<'a> {
   // pub module_source: &'a BoxSource,
   pub compilation: &'a Compilation,
   pub chunk: &'a ChunkUkey,
+  pub module: ModuleIdentifier,
 }
 
 impl<'me> RenderStartupArgs<'me> {

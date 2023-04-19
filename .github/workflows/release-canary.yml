@@ -42,7 +42,7 @@ jobs:
       - name: Build
         run: |
           set -e
-          USE_ZIG=1 ./x build cli:release:all
+          USE_ZIG=1 pnpm -w build:cli:release:all
 
       - name: Release
         uses: modern-js-dev/actions@v2

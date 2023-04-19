@@ -148,13 +148,13 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
         }
         if has_entry {
           source.add(generate_chunk_entry_code(args.compilation, args.chunk_ukey));
-          let runtime_requirements = args
+          let last_entry_module = args
             .compilation
             .chunk_graph
-            .get_tree_runtime_requirements(args.chunk_ukey);
-          if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-            source.add(RawSource::from("return __webpack_exports__;\n"));
-          }
+            .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey)
+            .keys()
+            .last()
+            .expect("should have last entry module");
           if let Some(s) =
             args
               .compilation
@@ -164,9 +164,17 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
               .render_startup(RenderStartupArgs {
                 compilation: args.compilation,
                 chunk: &chunk.ukey,
+                module: *last_entry_module,
               })?
           {
             source.add(s);
+          }
+          let runtime_requirements = args
+            .compilation
+            .chunk_graph
+            .get_tree_runtime_requirements(args.chunk_ukey);
+          if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
+            source.add(RawSource::from("return __webpack_exports__;\n"));
           }
         }
         source.add(RawSource::from("\n}\n"));

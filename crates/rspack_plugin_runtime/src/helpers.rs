@@ -1,6 +1,10 @@
 use std::hash::Hash;
 
-use rspack_core::{ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation};
+use anyhow::anyhow;
+use rspack_core::{
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, FilenameRenderOptions, RenderChunkArgs,
+};
+use rspack_error::Result;
 use rspack_identifier::IdentifierLinkedMap;
 use rustc_hash::FxHashSet as HashSet;
 use xxhash_rust::xxh3::Xxh3;
@@ -87,4 +91,50 @@ pub fn get_all_chunks(
   );
 
   chunks
+}
+
+pub fn get_runtime_chunk_path(args: &RenderChunkArgs) -> Result<String> {
+  let entry_point = {
+    let entry_points = args
+      .compilation
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey);
+
+    let (_, entry_point_ukey) = entry_points
+      .iter()
+      .next()
+      .ok_or_else(|| anyhow!("should has entry point ukey"))?;
+
+    args
+      .compilation
+      .chunk_group_by_ukey
+      .get(entry_point_ukey)
+      .ok_or_else(|| anyhow!("should has entry point"))?
+  };
+
+  let runtime_chunk_filename = {
+    let runtime_chunk = args
+      .compilation
+      .chunk_by_ukey
+      .get(&entry_point.get_runtime_chunk())
+      .ok_or_else(|| anyhow!("should has runtime chunk"))?;
+
+    let hash = Some(runtime_chunk.get_render_hash());
+    args
+      .compilation
+      .options
+      .output
+      .chunk_filename
+      .render(FilenameRenderOptions {
+        name: runtime_chunk.name_for_filename_template(),
+        extension: Some(".js".to_string()),
+        id: runtime_chunk.id.clone(),
+        contenthash: hash.clone(),
+        chunkhash: hash.clone(),
+        hash,
+        ..Default::default()
+      })
+  };
+
+  Ok(format!("./{}", runtime_chunk_filename))
 }

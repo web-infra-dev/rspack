@@ -1,1 +1,3 @@
-console.log('hello')
+it("should run", () => {
+    console.log('hello');
+})

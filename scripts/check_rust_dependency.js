@@ -1,4 +1,15 @@
 // @ts-nocheck
+
+// The code checks for multiple version dependencies in Rust crates.
+// It reads the Cargo.toml files of all crates in a specified directory and extracts the dependencies.
+// It then uses the cargo tree command to get a list of all dependencies and their versions and
+// checks if any of the dependencies have multiple versions.
+// If a crate has multiple version dependencies, an error message is pushed to an array. Finally,
+// if there are any error messages, they are logged to the console along with a command to run for more information.
+
+// This is a best effort checking. It's possible that some dependencies may be missed, especially if
+// they are not listed in the Cargo.toml file or if they are not direct dependencies of the crate.
+
 const path = require("path");
 const fs = require("fs");
 const child_process = require("child_process");

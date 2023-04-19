@@ -579,6 +579,21 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		+     "outputModule": true,
+		@@ ... @@
+		-   "externalsType": "var",
+		+   "externalsType": "module",
+		@@ ... @@
+		-     "chunkFilename": "[name].js",
+		+     "chunkFilename": "[name].mjs",
+		@@ ... @@
+		-     "filename": "[name].js",
+		+     "filename": "[name].mjs",
+		@@ ... @@
+		-     "iife": true,
+		+     "iife": false,
+		@@ ... @@
+		-     "module": false,
+		+     "module": true,
 	`)
 	);
 
