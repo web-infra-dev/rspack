@@ -177,7 +177,7 @@ impl BannerPlugin {
       ]);
     }
 
-    *old = source.clone().boxed();
+    *old = source.boxed();
 
     self.cache.insert(old_source, CachedStruct { comment });
   }
