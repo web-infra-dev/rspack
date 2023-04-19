@@ -5,7 +5,9 @@ import {
 	RawModuleRule,
 	RawOptions,
 	RawRuleSetCondition,
-	RawRuleSetLogicalConditions
+	RawRuleSetLogicalConditions,
+	RawBannerConditions,
+	RawBannerCondition
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../compiler";
@@ -16,6 +18,8 @@ import {
 	createRawModuleRuleUses
 } from "./adapter-rule-use";
 import {
+	BannerConditions,
+	BannerCondition,
 	CrossOriginLoading,
 	EntryNormalized,
 	Experiments,
@@ -327,6 +331,39 @@ function getRawRuleSetCondition(
 	throw new Error(
 		"unreachable: condition should be one of string, RegExp, Array, Object"
 	);
+}
+
+export function getBannerCondition(
+	condition: BannerCondition
+): RawBannerCondition {
+	if (typeof condition === "string") {
+		return {
+			type: "string",
+			stringMatcher: condition
+		};
+	}
+	if (condition instanceof RegExp) {
+		return {
+			type: "regexp",
+			regexpMatcher: condition.source
+		};
+	}
+	throw new Error("unreachable: condition should be one of string, RegExp");
+}
+
+export function getBannerConditions(
+	condition?: BannerConditions
+): RawBannerConditions | undefined {
+	if (!condition) return undefined;
+
+	if (Array.isArray(condition)) {
+		return {
+			type: "array",
+			arrayMatcher: condition.map(i => getBannerCondition(i))
+		};
+	}
+
+	return getBannerCondition(condition);
 }
 
 function getRawRuleSetLogicalConditions(

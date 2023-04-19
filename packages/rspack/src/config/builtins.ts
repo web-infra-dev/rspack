@@ -2,6 +2,7 @@ import * as path from "path";
 
 import type {
 	RawBuiltins,
+	RawBannerConfig,
 	RawHtmlPluginConfig,
 	RawDecoratorOptions,
 	RawMinification,
@@ -16,6 +17,7 @@ import type {
 	RawRelayConfig
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
+import { getBannerConditions } from "./adapter";
 import { Optimization } from "..";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
@@ -60,6 +62,7 @@ export interface Builtins {
 	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
 	copy?: CopyConfig;
+	banner?: BannerConfig;
 	pluginImport?: PluginImportConfig[];
 	relay?: RelayConfig;
 }
@@ -84,6 +87,22 @@ export type CopyConfig = {
 				from: string;
 		  } & Partial<RawPattern>)[];
 };
+
+export type BannerCondition = string | RegExp;
+
+export type BannerConditions = BannerCondition | BannerCondition[];
+
+export type BannerConfig =
+	| string
+	| {
+			banner: string;
+			entryOnly?: boolean;
+			footer?: boolean;
+			raw?: boolean;
+			test?: BannerConditions;
+			exclude?: BannerConditions;
+			include?: BannerConditions;
+	  };
 
 export type RelayConfig = boolean | RawRelayConfig;
 
@@ -348,6 +367,7 @@ export function resolveBuiltinsOptions(
 		emotion: resolveEmotion(builtins.emotion, production),
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
 		copy: resolveCopy(builtins.copy),
+		banner: resolveBanner(builtins.banner),
 		pluginImport: resolvePluginImport(builtins.pluginImport),
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
@@ -355,6 +375,26 @@ export function resolveBuiltinsOptions(
 	};
 }
 
+function resolveBanner(
+	bannerConfig?: BannerConfig
+): RawBannerConfig | undefined {
+	if (!bannerConfig) {
+		return undefined;
+	}
+
+	if (typeof bannerConfig === "string") {
+		return {
+			banner: bannerConfig
+		};
+	}
+
+	return {
+		...bannerConfig,
+		test: getBannerConditions(bannerConfig.test),
+		include: getBannerConditions(bannerConfig.include),
+		exclude: getBannerConditions(bannerConfig.exclude)
+	};
+}
 export function resolveMinifyOptions(
 	builtins: Builtins,
 	optimization: Optimization

@@ -165,6 +165,18 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage pre-process: {err}",))?
   }
 
+  async fn process_assets_stage_additions(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageAdditions) {
+      return Ok(());
+    }
+    // todo: need support js hook?
+    Ok(())
+  }
+
   async fn process_assets_stage_none(
     &mut self,
     _ctx: rspack_core::PluginContext,
