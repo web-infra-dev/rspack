@@ -361,13 +361,13 @@ export async function runLoader(
 			}
 		};
 	};
-	(loaderContext.getLogger = function getLogger(name) {
+	loaderContext.getLogger = function getLogger(name) {
 		return compiler.getInfrastructureLogger(() =>
 			[name, resource].filter(Boolean).join("|")
 		);
-	}),
-		// @ts-expect-error TODO
-		(loaderContext.rootContext = compiler.options.context);
+	};
+	// @ts-expect-error TODO
+	loaderContext.rootContext = compiler.options.context;
 	loaderContext.emitError = function emitError(error) {
 		const title = "Module Error";
 		const message =
@@ -392,7 +392,7 @@ export async function runLoader(
 			)})`
 		);
 	};
-	(loaderContext.emitFile = function emitFile(
+	loaderContext.emitFile = function emitFile(
 		name,
 		content,
 		sourceMap?,
@@ -428,8 +428,8 @@ export async function runLoader(
 		}
 		// @ts-expect-error
 		compiler.compilation.emitAsset(name, source, assetInfo);
-	}),
-		(loaderContext.fs = compiler.inputFileSystem);
+	};
+	loaderContext.fs = compiler.inputFileSystem;
 
 	const getAbsolutify = memoize(() => absolutify.bindCache(compiler.root));
 	const getAbsolutifyInContext = memoize(() =>
