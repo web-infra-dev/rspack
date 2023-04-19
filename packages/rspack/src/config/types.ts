@@ -334,7 +334,6 @@ export interface ModuleOptionsNormalized {
 	rules: RuleSetRules;
 	parser: ParserOptionsByModuleType;
 }
-// es3, es5, es2015, es2016, es2017, es2018, es2019, , ,
 
 export type AvailableTarget =
 	| "node"
