@@ -144,7 +144,13 @@ where
         .output
         .enabled_library_types
         .as_ref()
-        .map(|types| types.contains(&"module".to_string()))
+        .and_then(|types| {
+          if types.contains(&"module".to_string()) {
+            Some(())
+          } else {
+            None
+          }
+        })
         .is_some()
     {
       let (analyze_result, diagnostics) = self
