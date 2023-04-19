@@ -166,14 +166,12 @@ where
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
       for entry in &self.compilation.entry_module_identifiers {
-        self.compilation.exports_info_map.insert(
-          *entry,
-          analyze_result
-            .analyze_results
-            .get(entry)
-            .expect("should have entry analyze results")
-            .ordered_exports(),
-        );
+        if let Some(analyze_results) = analyze_result.analyze_results.get(entry) {
+          self
+            .compilation
+            .exports_info_map
+            .insert(*entry, analyze_results.ordered_exports());
+        }
       }
       // This is only used when testing
       #[cfg(debug_assertions)]
