@@ -51,14 +51,14 @@ const createLogger = appendTarget => {
 		info: l => appendTarget.push(l),
 		warn: console.warn.bind(console),
 		error: console.error.bind(console),
-		logTime: () => {},
-		group: () => {},
-		groupCollapsed: () => {},
-		groupEnd: () => {},
-		profile: () => {},
-		profileEnd: () => {},
-		clear: () => {},
-		status: () => {}
+		logTime: () => { },
+		group: () => { },
+		groupCollapsed: () => { },
+		groupEnd: () => { },
+		profile: () => { },
+		profileEnd: () => { },
+		clear: () => { },
+		status: () => { }
 	};
 };
 
@@ -83,7 +83,7 @@ export const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath) && !require(filterPath)()) {
 							describe.skip(testName, () => {
-								it("filtered", () => {});
+								it("filtered", () => { });
 							});
 							return;
 						}
@@ -588,8 +588,8 @@ export const describeCases = config => {
 																		path.dirname(
 																			referencingModule.identifier
 																				? referencingModule.identifier.slice(
-																						esmIdentifier.length + 1
-																				  )
+																					esmIdentifier.length + 1
+																				)
 																				: fileURLToPath(referencingModule.url)
 																		),
 																		options,
@@ -662,7 +662,6 @@ export const describeCases = config => {
 													const fn = runInNewContext
 														? vm.runInNewContext(code, globalContext, p)
 														: vm.runInThisContext(code, p);
-													debugger;
 													fn.call(
 														testConfig.nonEsmThis
 															? testConfig.nonEsmThis(module)
