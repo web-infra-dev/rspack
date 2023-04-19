@@ -2,6 +2,7 @@ mod dependency;
 use std::collections::LinkedList;
 
 pub use dependency::*;
+use swc_core::ecma::minifier;
 use xxhash_rust::xxh32::xxh32;
 mod finalize;
 use either::Either;
@@ -37,7 +38,7 @@ use swc_emotion::EmotionOptions;
 use tree_shaking::tree_shaking_visitor;
 mod async_module;
 
-use crate::ast::stringify;
+use crate::ast::{minify, stringify};
 use crate::visitors::async_module::{build_async_module, build_await_dependencies};
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
