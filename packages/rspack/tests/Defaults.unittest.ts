@@ -913,10 +913,12 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "chunkLoading": "jsonp",
-		+     "chunkLoading": "import-scripts",
+		+     "chunkLoading": false,
 		@@ ... @@
+		-     "enabledChunkLoadingTypes": Array [
 		-       "jsonp",
-		+       "import-scripts",
+		-     ],
+		+     "enabledChunkLoadingTypes": Array [],
 		@@ ... @@
 		+       "worker",
 		@@ ... @@

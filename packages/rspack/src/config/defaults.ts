@@ -391,7 +391,7 @@ const applyOutputDefaults = (
 			switch (output.chunkFormat) {
 				case "array-push":
 					if (tp.document) return "jsonp";
-					if (tp.importScripts) return "import-scripts";
+					if (tp.importScripts) return false; // temporarily takedown import-scripts since we don't support it yet
 					break;
 				case "commonjs":
 					if (tp.require) return "require";
