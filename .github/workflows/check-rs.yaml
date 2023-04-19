@@ -60,7 +60,7 @@ jobs:
       - name: Run Cargo Check
         run: |
           cargo check --workspace --all-targets --release --locked
-          cd crates/node_binding && cargo check --workspace --all-targets --release --locked && cd ../../
+          cd crates/node_binding && cargo check --workspace --all-targets --release --locked --target-dir ../../target && cd ../../
 
       - name: Run Clippy
         uses: actions-rs/cargo@v1
