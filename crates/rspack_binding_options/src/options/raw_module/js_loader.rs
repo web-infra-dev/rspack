@@ -124,6 +124,15 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
       .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
 
     if let Some(loader_result) = loader_result {
+      // This indicate that the JS loaders finishes the pitching stage,
+      // then here we want to change the control flow in order
+      // to execute the remaining normal loaders.
+      dbg!(loader_result.is_pitching);
+      if !loader_result.is_pitching {
+        loader_context
+          .current_loader()
+          .__do_not_use_or_you_will_be_fired_set_normal_executed();
+      }
       sync_loader_context(loader_result, loader_context)?;
     }
 
@@ -135,6 +144,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
   ) -> rspack_error::Result<()> {
     let mut js_loader_context: JsLoaderContext =
       <JsLoaderContext as AsyncTryFrom<_>>::try_from(loader_context).await?;
+    // Instruct the JS loader-runner to execute loaders in backwards.
     js_loader_context.is_pitching = false;
 
     let loader_result = self
@@ -348,6 +358,8 @@ pub struct JsLoaderResult {
   pub source_map: Option<Buffer>,
   pub additional_data: Option<Buffer>,
   pub cacheable: bool,
+  /// Used to instruct how rust loaders should execute
+  pub is_pitching: bool,
 }
 
 #[cfg(feature = "node-api")]

@@ -182,6 +182,7 @@ export async function runLoader(
 		.split("$")
 		.map(loader => createLoaderObject(loader, compiler));
 
+	loaderContext.__internal__isPitching = isPitching;
 	loaderContext.context = contextDirectory;
 	loaderContext.loaderIndex = 0;
 	loaderContext.loaders = loaders;
@@ -544,13 +545,16 @@ export async function runLoader(
 						cacheable,
 						fileDependencies,
 						contextDependencies,
-						missingDependencies
+						missingDependencies,
+						isPitching: loaderContext.__internal__isPitching
 					});
 				}
 			);
 		} else {
 			// normal
 			loaderContext.loaderIndex = loaderContext.loaders.length - 1;
+			console.log("normallllllll", loaders);
+
 			iterateNormalLoaders(
 				rawContext.content!,
 				loaderContext,
@@ -576,7 +580,8 @@ export async function runLoader(
 						cacheable,
 						fileDependencies,
 						contextDependencies,
-						missingDependencies
+						missingDependencies,
+						isPitching: loaderContext.__internal__isPitching
 					});
 				}
 			);
@@ -728,6 +733,8 @@ function iteratePitchingLoaders(
 				// If a loader pitched successfully,
 				// then It should execute normal loaders too.
 				if (hasArg) {
+					// Instruct rust side to execute loaders in backwards.
+					loaderContext.__internal__isPitching = false;
 					loaderContext.loaderIndex--;
 					iterateNormalLoaders(originalContent, loaderContext, args, callback);
 				} else {

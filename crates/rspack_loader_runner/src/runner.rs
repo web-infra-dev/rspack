@@ -204,7 +204,7 @@ async fn iterate_pitching_loaders<C: Send>(
   plugins: &[Box<dyn LoaderRunnerPlugin>],
 ) -> Result<()> {
   if loader_context.loader_index >= loader_context.loader_items.len() {
-    return process_resource(loader_context, resource_data, plugins).await;
+    return process_resource(loader_context).await;
   }
 
   let current_loader_item = loader_context.current_loader();
@@ -218,10 +218,14 @@ async fn iterate_pitching_loaders<C: Send>(
   current_loader_item.set_pitch_executed();
   loader.pitch(loader_context).await?;
 
+  let current_loader_item = loader_context.current_loader();
+
   // If pitching loader modifies the content,
   // runner should skip the remaining pitching loaders
   // and redirect pipeline to the normal stage.
-  if loader_context.content.is_some() {
+  // Or, if a pitching loader finishes the normal stage, then we should execute backwards.
+  // Yes, the second one is a backdoor for JS loaders.
+  if loader_context.content.is_some() || current_loader_item.normal_executed() {
     if loader_context.loader_index == 0 {
       return Ok(());
     }

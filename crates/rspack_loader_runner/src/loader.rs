@@ -74,6 +74,10 @@ impl<C> LoaderItem<C> {
   pub(crate) fn set_normal_executed(&self) {
     self.normal_executed.store(true, Ordering::Relaxed)
   }
+
+  pub fn __do_not_use_or_you_will_be_fired_set_normal_executed(&self) {
+    self.set_normal_executed()
+  }
 }
 
 bitflags::bitflags! {
