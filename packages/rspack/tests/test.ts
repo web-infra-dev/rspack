@@ -24,6 +24,10 @@ rspack(
 							options: "heihei"
 						},
 						{
+							loader: require.resolve("./tmp-loader/loader-mid.js"),
+							options: "test"
+						},
+						{
 							loader: require.resolve("./tmp-loader/loader-b.js"),
 							options: {
 								getItems() {

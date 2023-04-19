@@ -256,7 +256,7 @@ impl<C> From<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
       build_dependencies: loader_context.build_dependencies,
       content: loader_context
         .content
-        .expect("content expected for loader result"),
+        .expect("Final loader didn't return a Buffer or String"),
       source_map: loader_context.source_map,
       additional_data: loader_context.additional_data,
     }

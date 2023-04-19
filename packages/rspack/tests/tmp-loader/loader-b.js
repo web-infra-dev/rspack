@@ -1,4 +1,6 @@
 module.exports = function (content) {
-	console.log("b", this.getOptions());
-	return content + `\nconsole.log("b")`;
+	console.log("b normal");
+};
+module.exports.pitch = function () {
+	console.log("b pitch");
 };
