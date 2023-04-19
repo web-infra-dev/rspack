@@ -2,6 +2,7 @@
   "name": "workflow",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "scripts": {},
   "keywords": [],
   "author": "",
