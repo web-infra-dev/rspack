@@ -113,16 +113,13 @@ impl DependencyScanner<'_> {
             WEBPACK_CHUNK_NAME_CAPTURE_RE
               .captures(&comment.text)
               .and_then(|captures| {
-                let cap = if let Some(cap) = captures.name("_1") {
+                if let Some(cap) = captures.name("_1") {
                   Some(cap)
                 } else if let Some(cap) = captures.name("_2") {
                   Some(cap)
-                } else if let Some(cap) = captures.name("_3") {
-                  Some(cap)
                 } else {
-                  None
-                };
-                cap
+                  captures.name("_3")
+                }
               })
               .map(|mat| mat.as_str().to_string())
           });
