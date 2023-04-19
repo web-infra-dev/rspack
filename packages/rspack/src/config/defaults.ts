@@ -20,6 +20,7 @@ import {
 	getTargetsProperties
 } from "./target";
 import type {
+	AvailableTarget,
 	Context,
 	Experiments,
 	ExternalsPresets,
@@ -40,7 +41,7 @@ export const applyRspackOptionsDefaults = (
 ) => {
 	F(options, "context", () => process.cwd());
 	F(options, "target", () => {
-		return getDefaultTarget(options.context!);
+		return getDefaultTarget(options.context!) as AvailableTarget;
 	});
 
 	const { mode, target } = options;
