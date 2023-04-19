@@ -2,7 +2,7 @@ mod js_loader;
 
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
-use js_loader::JsLoader;
+pub use js_loader::*;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
@@ -20,7 +20,7 @@ use {
   rspack_napi_shared::{NapiResultExt, NAPI_ENV},
 };
 
-use crate::RawResolveOptions;
+use crate::{RawOptionsApply, RawResolveOptions};
 
 fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
   match builtin {
@@ -55,7 +55,7 @@ pub struct RawModuleRuleUse {
 impl Debug for RawModuleRuleUse {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawModuleRuleUse")
-      .field("loader", &self.js_loader.as_ref().map(|i| &i.name))
+      .field("loader", &self.js_loader.as_ref().map(|i| &i.identifier))
       .field("builtin_loader", &self.builtin_loader)
       .field("options", &self.options)
       .finish()
@@ -325,46 +325,58 @@ pub struct RawModuleOptions {
   pub parser: Option<RawParserOptions>,
 }
 
-impl TryFrom<RawModuleRule> for ModuleRule {
-  type Error = rspack_error::Error;
+impl RawOptionsApply for RawModuleRule {
+  type Options = ModuleRule;
 
-  fn try_from(value: RawModuleRule) -> std::result::Result<Self, Self::Error> {
+  fn apply(
+    self,
+    plugins: &mut Vec<rspack_core::BoxPlugin>,
+    #[cfg(feature = "node-api")] loader_runner: &JsLoaderRunner,
+  ) -> std::result::Result<Self::Options, rspack_error::Error> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
-    let uses = value
-      .r#use
-      .map(|uses| {
-        uses
-          .into_iter()
-          .map(|rule_use| {
-            #[cfg(feature = "node-api")]
-            {
-              if let Some(raw_js_loader) = rule_use.js_loader {
-                return JsLoaderAdapter::try_from(raw_js_loader).map(|i| Arc::new(i) as BoxLoader);
+    let uses = self
+        .r#use
+        .map(|uses| {
+          uses
+            .into_iter()
+            .map(|rule_use| {
+              #[cfg(feature = "node-api")]
+              {
+                if let Some(raw_js_loader) = rule_use.js_loader {
+                  return Ok(Arc::new(JsLoaderAdapter {runner: loader_runner.clone(), identifier: raw_js_loader.identifier.into()}) as BoxLoader);
+                }
               }
-            }
-            if let Some(builtin_loader) = rule_use.builtin_loader {
-              return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
-            }
-            panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
-          })
-          .collect::<anyhow::Result<Vec<_>>>()
-      })
-      .transpose()?
-      .unwrap_or_default();
+              if let Some(builtin_loader) = rule_use.builtin_loader {
+                return Ok(get_builtin_loader(&builtin_loader, rule_use.options.as_deref()));
+              }
+              panic!("`loader` field or `builtin_loader` field in `use` must not be `None` at the same time.");
+            })
+            .collect::<anyhow::Result<Vec<_>>>()
+        })
+        .transpose()?
+        .unwrap_or_default();
 
-    let module_type = value.r#type.map(|t| (&*t).try_into()).transpose()?;
+    let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
 
-    let one_of = value
+    let one_of = self
       .one_of
       .map(|one_of| {
         one_of
           .into_iter()
-          .map(|raw| raw.try_into())
+          .map(|raw| {
+            raw.apply(
+              plugins,
+              #[cfg(feature = "node-api")]
+              {
+                loader_runner
+              },
+            )
+          })
           .collect::<rspack_error::Result<Vec<_>>>()
       })
       .transpose()?;
 
-    let description_data = value
+    let description_data = self
       .description_data
       .map(|data| {
         data
@@ -375,38 +387,49 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       .transpose()?;
 
     Ok(ModuleRule {
-      test: value.test.map(|raw| raw.try_into()).transpose()?,
-      include: value.include.map(|raw| raw.try_into()).transpose()?,
-      exclude: value.exclude.map(|raw| raw.try_into()).transpose()?,
-      resource_query: value.resource_query.map(|raw| raw.try_into()).transpose()?,
-      resource: value.resource.map(|raw| raw.try_into()).transpose()?,
+      test: self.test.map(|raw| raw.try_into()).transpose()?,
+      include: self.include.map(|raw| raw.try_into()).transpose()?,
+      exclude: self.exclude.map(|raw| raw.try_into()).transpose()?,
+      resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
+      resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
       r#use: uses,
       r#type: module_type,
-      parser: value.parser.map(|raw| raw.into()),
-      generator: value.generator.map(|raw| raw.into()),
-      resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
-      side_effects: value.side_effects,
-      issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
-      dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
+      parser: self.parser.map(|raw| raw.into()),
+      generator: self.generator.map(|raw| raw.into()),
+      resolve: self.resolve.map(|raw| raw.try_into()).transpose()?,
+      side_effects: self.side_effects,
+      issuer: self.issuer.map(|raw| raw.try_into()).transpose()?,
+      dependency: self.dependency.map(|raw| raw.try_into()).transpose()?,
       one_of,
     })
   }
 }
 
-impl TryFrom<RawModuleOptions> for ModuleOptions {
-  type Error = rspack_error::Error;
+impl RawOptionsApply for RawModuleOptions {
+  type Options = ModuleOptions;
 
-  fn try_from(value: RawModuleOptions) -> std::result::Result<Self, Self::Error> {
-    // FIXME: temporary implementation
-    let rules = value
+  fn apply(
+    self,
+    plugins: &mut Vec<rspack_core::BoxPlugin>,
+    #[cfg(feature = "node-api")] loader_runner: &JsLoaderRunner,
+  ) -> std::result::Result<Self::Options, rspack_error::Error> {
+    let rules = self
       .rules
       .into_iter()
-      .map(|rule| rule.try_into())
+      .map(|rule| {
+        rule.apply(
+          plugins,
+          #[cfg(feature = "node-api")]
+          {
+            loader_runner
+          },
+        )
+      })
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
     Ok(ModuleOptions {
       rules,
-      parser: value.parser.map(|x| ParserOptions {
+      parser: self.parser.map(|x| ParserOptions {
         asset: x.asset.map(|y| y.into()),
       }),
     })

@@ -1,9 +1,12 @@
-use napi::bindgen_prelude::*;
+use std::ops::Deref;
+
 use napi_derive::napi;
 #[cfg(feature = "node-api")]
 use {
+  napi::bindgen_prelude::*,
   napi::NapiRaw,
   rspack_binding_macros::call_js_function_with_napi_objects,
+  rspack_core::{Loader, LoaderContext, LoaderRunnerContext},
   rspack_error::internal_error,
   rspack_identifier::{Identifiable, Identifier},
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
@@ -13,29 +16,37 @@ use {
 #[napi(object)]
 pub struct JsLoader {
   /// composed loader name, xx-loader!yy-loader!zz-loader
-  pub name: String,
-  pub func: JsFunction,
+  pub identifier: String,
 }
 
 #[cfg(feature = "node-api")]
-pub struct JsLoaderAdapter {
-  pub func: ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>,
-  pub name: Identifier,
+#[derive(Clone)]
+pub struct JsLoaderRunner(ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>);
+
+#[cfg(feature = "node-api")]
+impl Deref for JsLoaderRunner {
+  type Target = ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
 }
 
 #[cfg(feature = "node-api")]
-impl TryFrom<JsLoader> for JsLoaderAdapter {
-  type Error = anyhow::Error;
-  fn try_from(js_loader: JsLoader) -> anyhow::Result<Self> {
-    let js_loader_func = unsafe { js_loader.func.raw() };
+impl TryFrom<JsFunction> for JsLoaderRunner {
+  type Error = napi::Error;
+
+  fn try_from(value: JsFunction) -> std::result::Result<Self, Self::Error> {
+    let loader_runner = unsafe { value.raw() };
 
     let func = NAPI_ENV.with(|env| -> anyhow::Result<_> {
       let env = env
         .borrow()
         .expect("Failed to get env, did you forget to call it from node?");
+
       let mut func = ThreadsafeFunction::<JsLoaderContext, LoaderThreadsafeLoaderResult>::create(
         env,
-        js_loader_func,
+        loader_runner,
         0,
         |ctx| {
           let (ctx, resolver) = ctx.split_into_parts();
@@ -65,18 +76,23 @@ impl TryFrom<JsLoader> for JsLoaderAdapter {
       func.unref(&Env::from(env))?;
       Ok(func)
     })?;
-    Ok(JsLoaderAdapter {
-      func,
-      name: js_loader.name.into(),
-    })
+
+    Ok(JsLoaderRunner(func))
   }
+}
+
+#[cfg(feature = "node-api")]
+pub struct JsLoaderAdapter {
+  // pub func: ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>,
+  pub runner: JsLoaderRunner,
+  pub identifier: Identifier,
 }
 
 #[cfg(feature = "node-api")]
 impl std::fmt::Debug for JsLoaderAdapter {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsLoaderAdapter")
-      .field("loaders", &self.name)
+      .field("loaders", &self.identifier)
       .finish()
   }
 }
@@ -84,21 +100,21 @@ impl std::fmt::Debug for JsLoaderAdapter {
 #[cfg(feature = "node-api")]
 impl Identifiable for JsLoaderAdapter {
   fn identifier(&self) -> Identifier {
-    self.name
+    self.identifier
   }
 }
 
 #[cfg(feature = "node-api")]
 #[async_trait::async_trait]
-impl rspack_core::Loader<rspack_core::LoaderRunnerContext> for JsLoaderAdapter {
+impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
   async fn run(
     &self,
-    loader_context: &mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
+    loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
   ) -> rspack_error::Result<()> {
     let js_loader_context = (&*loader_context).try_into()?;
 
     let loader_result = self
-      .func
+      .runner
       .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
@@ -133,9 +149,9 @@ impl rspack_core::Loader<rspack_core::LoaderRunnerContext> for JsLoaderAdapter {
         .into_iter()
         .map(std::path::PathBuf::from)
         .collect();
-      loader_context.content = Some(rspack_core::Content::from(Into::<Vec<u8>>::into(
-        loader_result.content,
-      )));
+      loader_context.content = loader_result
+        .content
+        .map(|c| rspack_core::Content::from(Into::<Vec<u8>>::into(c)));
       loader_context.source_map = source_map;
       loader_context.additional_data = loader_result
         .additional_data
@@ -162,16 +178,18 @@ pub struct JsLoaderContext {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
+
+  pub current_loader: String,
 }
 
 #[cfg(feature = "node-api")]
-impl<'c> TryFrom<&rspack_core::LoaderContext<'c, rspack_core::LoaderRunnerContext>>
+impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
   for JsLoaderContext
 {
   type Error = rspack_error::Error;
 
   fn try_from(
-    cx: &rspack_core::LoaderContext<'c, rspack_core::LoaderRunnerContext>,
+    cx: &rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
   ) -> rspack_error::Result<Self> {
     Ok(JsLoaderContext {
       content: cx
@@ -211,6 +229,8 @@ impl<'c> TryFrom<&rspack_core::LoaderContext<'c, rspack_core::LoaderRunnerContex
         .iter()
         .map(|i| i.to_string_lossy().to_string())
         .collect(),
+
+      current_loader: cx.current_loader().to_string(),
     })
   }
 }
@@ -218,7 +238,8 @@ impl<'c> TryFrom<&rspack_core::LoaderContext<'c, rspack_core::LoaderRunnerContex
 #[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct JsLoaderResult {
-  pub content: Buffer,
+  /// Content in pitching stage can be empty
+  pub content: Option<Buffer>,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,

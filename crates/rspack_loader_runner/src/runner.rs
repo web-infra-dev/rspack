@@ -80,8 +80,16 @@ impl<'c, C> LoaderContext<'c, C> {
     LoaderItemList(&self.loader_items[..self.loader_index])
   }
 
+  pub fn request(&self) -> LoaderItemList<'_, C> {
+    LoaderItemList(&self.loader_items[..])
+  }
+
   pub fn current_loader(&self) -> &LoaderItem<C> {
     &self.loader_items[self.loader_index]
+  }
+
+  pub fn loader_index(&self) -> usize {
+    self.loader_index
   }
 }
 

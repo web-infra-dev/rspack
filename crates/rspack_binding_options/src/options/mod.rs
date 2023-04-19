@@ -48,7 +48,11 @@ pub use raw_target::*;
 
 pub trait RawOptionsApply {
   type Options;
-  fn apply(self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error>;
+  fn apply(
+    self,
+    plugins: &mut Vec<BoxPlugin>,
+    #[cfg(feature = "node-api")] loader_runner: &JsLoaderRunner,
+  ) -> Result<Self::Options, rspack_error::Error>;
 }
 
 #[derive(Deserialize, Debug)]
@@ -87,29 +91,63 @@ pub struct RawOptions {
 impl RawOptionsApply for RawOptions {
   type Options = CompilerOptions;
 
-  fn apply(mut self, plugins: &mut Vec<BoxPlugin>) -> Result<Self::Options, rspack_error::Error> {
+  fn apply(
+    mut self,
+    plugins: &mut Vec<BoxPlugin>,
+    #[cfg(feature = "node-api")] loader_runner: &JsLoaderRunner,
+  ) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
     let entry = self
       .__entry_order
       .into_iter()
       .filter_map(|key| self.entry.remove_entry(&key).map(|(k, v)| (k, v.into())))
       .collect::<IndexMap<String, EntryItem>>();
-    let output: OutputOptions = self.output.apply(plugins)?;
+    let output: OutputOptions = self.output.apply(
+      plugins,
+      #[cfg(feature = "node-api")]
+      {
+        loader_runner
+      },
+    )?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();
-    let module: ModuleOptions = self.module.try_into()?;
-    let target = self.target.apply(plugins)?;
+    let module: ModuleOptions = self.module.apply(
+      plugins,
+      #[cfg(feature = "node-api")]
+      {
+        loader_runner
+      },
+    )?;
+    let target = self.target.apply(
+      plugins,
+      #[cfg(feature = "node-api")]
+      {
+        loader_runner
+      },
+    )?;
     let experiments: Experiments = self.experiments.into();
     let stats = self.stats.into();
     let cache = self.cache.into();
     let snapshot = self.snapshot.into();
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
-      self.optimization.apply(plugins)
+      self.optimization.apply(
+        plugins,
+        #[cfg(feature = "node-api")]
+        {
+          loader_runner
+        },
+      )
     })?;
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
-    let builtins = self.builtins.apply(plugins)?;
+    let builtins = self.builtins.apply(
+      plugins,
+      #[cfg(feature = "node-api")]
+      {
+        loader_runner
+      },
+    )?;
 
     plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {

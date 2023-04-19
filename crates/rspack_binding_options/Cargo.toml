@@ -30,6 +30,7 @@ rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids" }
+rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_loader_sass = { path = "../rspack_loader_sass" }
 rspack_plugin_asset = { path = "../rspack_plugin_asset" }
 rspack_plugin_banner = { path = "../rspack_plugin_banner" }

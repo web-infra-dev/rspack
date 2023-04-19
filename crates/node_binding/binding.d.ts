@@ -203,8 +203,7 @@ export interface RawExternalsPresets {
 }
 export interface JsLoader {
   /** composed loader name, xx-loader!yy-loader!zz-loader */
-  name: string
-  func: (...args: any[]) => any
+  identifier: string
 }
 export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
@@ -220,9 +219,11 @@ export interface JsLoaderContext {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   buildDependencies: Array<string>
+  currentLoader: string
 }
 export interface JsLoaderResult {
-  content: Buffer
+  /** Content in pitching stage can be empty */
+  content?: Buffer
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -647,7 +648,7 @@ export class JsStats {
   getHash(): string
 }
 export class Rspack {
-  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS)
+  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor
