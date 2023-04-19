@@ -286,13 +286,13 @@ jobs:
       ### x86_64-pc-windows-msvc
 
       - name: Setup x86_64-pc-windows-msvc
-        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         uses: ./.github/actions/pnpm-cache
         with:
           node-version: ${{ matrix.node }}
 
       - name: Test x86_64-pc-windows-msvc
-        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
           PUPPETEER_SKIP_DOWNLOAD: true

@@ -3,6 +3,7 @@ on:
   merge_group:
   pull_request:
     paths:
+      - "workflows/test-pr.yml"
       - "crates/**"
       - "packages/**"
       - "Cargo.toml"
@@ -29,6 +30,8 @@ jobs:
       matrix:
         target:
           - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - x86_64-apple-darwin
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.target }}
