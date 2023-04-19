@@ -10,29 +10,17 @@ version    = "0.1.0"
 [lib]
 crate-type = ["cdylib"]
 
-[dev-dependencies]
-similar-asserts = "1.2.0"
-url             = { workspace = true }
-
 [dependencies]
-async-recursion = { workspace = true }
 async-trait = { workspace = true }
-bitflags = { workspace = true }
-rustc-hash = { workspace = true }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-  "fs",
+napi = { workspace = true, features = ["napi4", "tokio_rt"] }
+napi-derive = { workspace = true }
+rspack_core = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_fs = { path = "../rspack_fs", default-features = false, features = [
+  "rspack-error",
 ] }
+rspack_identifier = { path = "../rspack_identifier" }
+rspack_napi_shared = { path = "../rspack_napi_shared" }
 
-nodejs-resolver    = { workspace = true }
-once_cell          = { workspace = true }
-regex              = { workspace = true }
-rspack_error       = { path = "../rspack_error" }
-rspack_identifier  = { path = "../rspack_identifier" }
-rspack_sources     = { workspace = true }
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
+[build-dependencies]
+napi-build = { workspace = true }

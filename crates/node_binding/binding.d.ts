@@ -201,6 +201,36 @@ export interface RawExternalItemValue {
 export interface RawExternalsPresets {
   node: boolean
 }
+export interface JsLoader {
+  /** composed loader name, xx-loader!yy-loader!zz-loader */
+  name: string
+  func: (...args: any[]) => any
+}
+export interface JsLoaderContext {
+  /** Content maybe empty in pitching stage */
+  content?: Buffer
+  additionalData?: Buffer
+  sourceMap?: Buffer
+  resource: string
+  resourcePath: string
+  resourceQuery?: string
+  resourceFragment?: string
+  cacheable: boolean
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+}
+export interface JsLoaderResult {
+  content: Buffer
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  sourceMap?: Buffer
+  additionalData?: Buffer
+  cacheable: boolean
+}
 /**
  * `loader` is for js side loader, `builtin_loader` is for rust side loader,
  * which is mapped to real rust side loader by [get_builtin_loader].
@@ -216,11 +246,6 @@ export interface RawModuleRuleUse {
   jsLoader?: JsLoader
   builtinLoader?: string
   options?: string
-}
-export interface JsLoader {
-  /** composed loader name, xx-loader!yy-loader!zz-loader */
-  name: string
-  func: (...args: any[]) => any
 }
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
@@ -273,30 +298,6 @@ export interface RawParserOptions {
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: RawParserOptions
-}
-export interface JsLoaderContext {
-  content: Buffer
-  additionalData?: Buffer
-  sourceMap?: Buffer
-  resource: string
-  resourcePath: string
-  resourceQuery?: string
-  resourceFragment?: string
-  cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-}
-export interface JsLoaderResult {
-  content: Buffer
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  sourceMap?: Buffer
-  additionalData?: Buffer
-  cacheable: boolean
 }
 export interface RawNodeOption {
   dirname: string

@@ -1911,6 +1911,7 @@ dependencies = [
  "rspack_binding_macros",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_ids",
  "rspack_loader_sass",
  "rspack_napi_shared",
