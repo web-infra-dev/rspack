@@ -84,10 +84,6 @@ describe("Stats", () => {
 			    "entryA": {
 			      "assets": [
 			        {
-			          "name": "entryA.css",
-			          "size": 0,
-			        },
-			        {
 			          "name": "entryA.js",
 			          "size": 215,
 			        },
@@ -100,10 +96,6 @@ describe("Stats", () => {
 			    },
 			    "entryB": {
 			      "assets": [
-			        {
-			          "name": "entryB.css",
-			          "size": 0,
-			        },
 			        {
 			          "name": "entryB.js",
 			          "size": 227,
@@ -140,10 +132,6 @@ describe("Stats", () => {
 			    "chunkB": {
 			      "assets": [
 			        {
-			          "name": "chunkB.css",
-			          "size": 0,
-			        },
-			        {
 			          "name": "chunkB.js",
 			          "size": 160,
 			        },
@@ -157,10 +145,6 @@ describe("Stats", () => {
 			    "entryA": {
 			      "assets": [
 			        {
-			          "name": "entryA.css",
-			          "size": 0,
-			        },
-			        {
 			          "name": "entryA.js",
 			          "size": 3608,
 			        },
@@ -173,10 +157,6 @@ describe("Stats", () => {
 			    },
 			    "entryB": {
 			      "assets": [
-			        {
-			          "name": "entryB.css",
-			          "size": 0,
-			        },
 			        {
 			          "name": "entryB.js",
 			          "size": 4747,
@@ -257,66 +237,15 @@ describe("Stats", () => {
 			      "size": 160,
 			      "type": "asset",
 			    },
-			    {
-			      "chunkNames": [
-			        "chunkB",
-			      ],
-			      "chunks": [
-			        "chunkB",
-			      ],
-			      "emitted": true,
-			      "info": {
-			        "development": false,
-			        "hotModuleReplacement": false,
-			      },
-			      "name": "chunkB.css",
-			      "size": 0,
-			      "type": "asset",
-			    },
-			    {
-			      "chunkNames": [
-			        "entryA",
-			      ],
-			      "chunks": [
-			        "entryA",
-			      ],
-			      "emitted": true,
-			      "info": {
-			        "development": false,
-			        "hotModuleReplacement": false,
-			      },
-			      "name": "entryA.css",
-			      "size": 0,
-			      "type": "asset",
-			    },
-			    {
-			      "chunkNames": [
-			        "entryB",
-			      ],
-			      "chunks": [
-			        "entryB",
-			      ],
-			      "emitted": true,
-			      "info": {
-			        "development": false,
-			        "hotModuleReplacement": false,
-			      },
-			      "name": "entryB.css",
-			      "size": 0,
-			      "type": "asset",
-			    },
 			  ],
 			  "assetsByChunkName": {
 			    "chunkB": [
-			      "chunkB.css",
 			      "chunkB.js",
 			    ],
 			    "entryA": [
-			      "entryA.css",
 			      "entryA.js",
 			    ],
 			    "entryB": [
-			      "entryB.css",
 			      "entryB.js",
 			    ],
 			  },
