@@ -2,7 +2,6 @@ mod dependency;
 use std::collections::LinkedList;
 
 pub use dependency::*;
-use swc_core::ecma::minifier;
 use xxhash_rust::xxh32::xxh32;
 mod finalize;
 use either::Either;
@@ -17,7 +16,7 @@ mod strict;
 use strict::strict_mode;
 mod format;
 use format::*;
-use rspack_core::{BuildInfo, Devtool, EsVersion, Module, ModuleType, RuntimeGlobals};
+use rspack_core::{BuildInfo, EsVersion, Module, ModuleType, RuntimeGlobals};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::module::util::ImportInterop;
@@ -38,7 +37,6 @@ use swc_emotion::EmotionOptions;
 use tree_shaking::tree_shaking_visitor;
 mod async_module;
 
-use crate::ast::{minify, stringify};
 use crate::visitors::async_module::{build_async_module, build_await_dependencies};
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
@@ -176,9 +174,6 @@ pub fn run_before_pass(
     Ok(())
   })?;
 
-  let res = stringify(&ast, &Devtool::default()).unwrap();
-  println!("{}", resource_data.resource_path.display());
-  println!("{}", &res.code);
   Ok(())
 }
 

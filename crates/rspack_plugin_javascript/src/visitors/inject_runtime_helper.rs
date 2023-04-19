@@ -81,9 +81,8 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
         return;
       }
 
-      match word {
-        "_instanceof" => return,
-        _ => {}
+      if "_instanceof" == word {
+        return;
       };
       // have some unhandled helper
       debug_assert!(false, "have unhandled helper: word = {word}");
