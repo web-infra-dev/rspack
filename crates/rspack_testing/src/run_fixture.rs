@@ -50,7 +50,7 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
   let errors = stats.get_errors();
   if !errors.is_empty() {
     panic!(
-      "Failed to compile in fixtrue {:?}, errors: {:?}",
+      "Failed to compile in fixtrue {:?}, errors: \n{}",
       fixture_path,
       stats
         .emit_diagnostics_string(true)
