@@ -202,7 +202,7 @@ export interface RawExternalsPresets {
   node: boolean
 }
 export interface JsLoader {
-  /** composed loader name, xx-loader!yy-loader!zz-loader */
+  /** composed loader name, xx-loader$yy-loader$zz-loader */
   identifier: string
 }
 export interface JsLoaderContext {
@@ -220,6 +220,7 @@ export interface JsLoaderContext {
   missingDependencies: Array<string>
   buildDependencies: Array<string>
   currentLoader: string
+  isPitching: boolean
 }
 export interface JsLoaderResult {
   /** Content in pitching stage can be empty */

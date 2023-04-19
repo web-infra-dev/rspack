@@ -15,7 +15,7 @@ use {
 
 #[napi(object)]
 pub struct JsLoader {
-  /// composed loader name, xx-loader!yy-loader!zz-loader
+  /// composed loader name, xx-loader$yy-loader$zz-loader
   pub identifier: String,
 }
 
@@ -107,11 +107,13 @@ impl Identifiable for JsLoaderAdapter {
 #[cfg(feature = "node-api")]
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
-  async fn run(
+  async fn pitch(
     &self,
     loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
   ) -> rspack_error::Result<()> {
-    let js_loader_context = (&*loader_context).try_into()?;
+    dbg!("pitching", loader_context.request().to_string());
+    let mut js_loader_context: JsLoaderContext = (&*loader_context).try_into()?;
+    js_loader_context.is_pitching = true;
 
     let loader_result = self
       .runner
@@ -120,46 +122,74 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
       .await
       .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
 
-    let source_map = loader_result
-      .as_ref()
-      .and_then(|r| r.source_map.as_ref())
-      .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
-      .transpose()
-      .map_err(|e| internal_error!(e.to_string()))?;
-
     if let Some(loader_result) = loader_result {
-      loader_context.cacheable = loader_result.cacheable;
-      loader_context.file_dependencies = loader_result
-        .file_dependencies
-        .into_iter()
-        .map(std::path::PathBuf::from)
-        .collect();
-      loader_context.context_dependencies = loader_result
-        .context_dependencies
-        .into_iter()
-        .map(std::path::PathBuf::from)
-        .collect();
-      loader_context.missing_dependencies = loader_result
-        .missing_dependencies
-        .into_iter()
-        .map(std::path::PathBuf::from)
-        .collect();
-      loader_context.build_dependencies = loader_result
-        .build_dependencies
-        .into_iter()
-        .map(std::path::PathBuf::from)
-        .collect();
-      loader_context.content = loader_result
-        .content
-        .map(|c| rspack_core::Content::from(Into::<Vec<u8>>::into(c)));
-      loader_context.source_map = source_map;
-      loader_context.additional_data = loader_result
-        .additional_data
-        .map(|item| String::from_utf8_lossy(&item).to_string());
+      sync_loader_context(loader_result, loader_context)?;
     }
 
     Ok(())
   }
+  async fn run(
+    &self,
+    loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
+  ) -> rspack_error::Result<()> {
+    let mut js_loader_context: JsLoaderContext = (&*loader_context).try_into()?;
+    js_loader_context.is_pitching = false;
+
+    let loader_result = self
+      .runner
+      .call(js_loader_context, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call loader: {err}"))??;
+
+    if let Some(loader_result) = loader_result {
+      sync_loader_context(loader_result, loader_context)?;
+    }
+
+    Ok(())
+  }
+}
+
+#[cfg(feature = "node-api")]
+fn sync_loader_context(
+  loader_result: JsLoaderResult,
+  loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
+) -> rspack_error::Result<()> {
+  loader_context.cacheable = loader_result.cacheable;
+  loader_context.file_dependencies = loader_result
+    .file_dependencies
+    .into_iter()
+    .map(std::path::PathBuf::from)
+    .collect();
+  loader_context.context_dependencies = loader_result
+    .context_dependencies
+    .into_iter()
+    .map(std::path::PathBuf::from)
+    .collect();
+  loader_context.missing_dependencies = loader_result
+    .missing_dependencies
+    .into_iter()
+    .map(std::path::PathBuf::from)
+    .collect();
+  loader_context.build_dependencies = loader_result
+    .build_dependencies
+    .into_iter()
+    .map(std::path::PathBuf::from)
+    .collect();
+  loader_context.content = loader_result
+    .content
+    .map(|c| rspack_core::Content::from(Into::<Vec<u8>>::into(c)));
+  loader_context.source_map = loader_result
+    .source_map
+    .as_ref()
+    .map(|s| rspack_core::rspack_sources::SourceMap::from_slice(s))
+    .transpose()
+    .map_err(|e| internal_error!(e.to_string()))?;
+  loader_context.additional_data = loader_result
+    .additional_data
+    .map(|item| String::from_utf8_lossy(&item).to_string());
+
+  Ok(())
 }
 
 #[cfg(feature = "node-api")]
@@ -180,6 +210,7 @@ pub struct JsLoaderContext {
   pub build_dependencies: Vec<String>,
 
   pub current_loader: String,
+  pub is_pitching: bool,
 }
 
 #[cfg(feature = "node-api")]
@@ -231,6 +262,7 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
         .collect(),
 
       current_loader: cx.current_loader().to_string(),
+      is_pitching: true,
     })
   }
 }

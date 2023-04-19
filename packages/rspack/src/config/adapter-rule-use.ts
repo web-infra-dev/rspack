@@ -28,6 +28,7 @@ import {
 	RuleSetUseItem,
 	RuleSetLoaderWithOptions
 } from "./types";
+import { parsePathQueryFragment } from "../loader-runner";
 
 const BUILTIN_LOADER_PREFIX = "builtin:";
 
@@ -51,12 +52,27 @@ export interface AdditionalData {
 	[index: string]: any;
 }
 
-export interface LoaderContext
-	extends Pick<
-		JsLoaderContext,
-		"resource" | "resourcePath" | "resourceQuery" | "resourceFragment"
-	> {
+export interface LoaderObject {
+	request: string;
+	path: string;
+	query: string;
+	fragment: string;
+	options: object | string | undefined;
+	ident: string;
+	normal: Function | undefined;
+	pitch: Function | undefined;
+	raw: boolean | undefined;
+	data: object | undefined;
+	pitchExecuted: boolean;
+	normalExecuted: boolean;
+}
+
+export interface LoaderContext {
 	version: 2;
+	resource: string;
+	resourcePath: string;
+	resourceQuery: string;
+	resourceFragment: string;
 	async(): (
 		err: Error | null,
 		content: string | Buffer,
@@ -74,6 +90,29 @@ export interface LoaderContext
 	rootContext: string;
 	context: string;
 	loaderIndex: number;
+	remainingRequest: string;
+	currentRequest: string;
+	previousRequest: string;
+	request: string;
+	/**
+	 * An array of all the loaders. It is writeable in the pitch phase.
+	 * loaders = [{request: string, path: string, query: string, module: function}]
+	 *
+	 * In the example:
+	 * [
+	 *   { request: "/abc/loader1.js?xyz",
+	 *     path: "/abc/loader1.js",
+	 *     query: "?xyz",
+	 *     module: [Function]
+	 *   },
+	 *   { request: "/abc/node_modules/loader2/index.js",
+	 *     path: "/abc/node_modules/loader2/index.js",
+	 *     query: "",
+	 *     module: [Function]
+	 *   }
+	 * ]
+	 */
+	loaders: LoaderObject[];
 	mode?: Mode;
 	hot?: boolean;
 	getOptions(schema?: any): unknown;
@@ -186,7 +225,8 @@ function composeJsUse(
 		const moduleContext = path.dirname(data.resourcePath);
 
 		let cacheable: boolean = data.cacheable;
-		let content: string | Buffer = data.content;
+		// not right change this!
+		let content: string | Buffer = data.content || "";
 		let sourceMap: string | SourceMap | undefined =
 			data.sourceMap?.toString("utf-8");
 		let additionalData: AdditionalData | undefined = data.additionalData
@@ -601,10 +641,45 @@ function composeJsUse(
 
 	return {
 		jsLoader: {
-			func: loader,
-			name: uses.map(use => use.loader).join("!")
+			identifier: uses
+				.map(use => stringifyLoaders(use, options.compiler))
+				.join("$")
 		}
 	};
+}
+
+function stringifyLoaders(use: RuleSetLoaderWithOptions, compiler: Compiler) {
+	const obj = parsePathQueryFragment(use.loader);
+	let ident: string | null = null;
+
+	if (use.options === null) obj.query = "";
+	else if (use.options === undefined) obj.query = "";
+	else if (typeof use.options === "string") obj.query = "?" + use.options;
+	else if (use.ident) obj.query = "??" + (ident = use.ident);
+	else if (typeof use.options === "object" && use.options.ident)
+		obj.query = "??" + (ident = use.options.ident);
+	else if (typeof use.options === "object")
+		obj.query = "??" + (ident = generateRandomString(10));
+	else obj.query = "?" + JSON.stringify(use.options);
+
+	if (ident) {
+		if (typeof use.options === "object") {
+			compiler.ruleSet.references.set(ident, use.options);
+		}
+	}
+
+	return obj.path + obj.query + obj.fragment;
+}
+
+function generateRandomString(length: number) {
+	let result = "";
+	const characters =
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	const charactersLength = characters.length;
+	for (let i = 0; i < length; i++) {
+		result += characters.charAt(Math.floor(Math.random() * charactersLength));
+	}
+	return result;
 }
 
 function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {

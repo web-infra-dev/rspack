@@ -316,7 +316,7 @@ export type RuleSetUse = RuleSetUseItem[] | RuleSetUseItem;
 export type RuleSetUseItem = RuleSetLoaderWithOptions | RuleSetLoader;
 export type RuleSetLoader = string;
 export type RuleSetLoaderWithOptions = {
-	// ident?: string;
+	ident?: string;
 	loader: RuleSetLoader;
 	options?: RuleSetLoaderOptions;
 };
