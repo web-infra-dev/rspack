@@ -338,7 +338,7 @@ export interface ModuleOptionsNormalized {
 export type AvailableTarget =
 	| "node"
 	| "web"
-	| "web-worker"
+	| "webworker"
 	| "es3"
 	| "es5"
 	| "es2015"
