@@ -152,7 +152,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     let dead_nodes_index = HashSet::default();
     // dependency_replacement();
-    self.finalize_symbol(
+    self.compilation.include_module_ids = self.finalize_symbol(
       side_effects_options,
       &analyze_result_map,
       used_export_module_identifiers,
