@@ -19,7 +19,7 @@ pub fn tree_shaking_visitor<'a>(
   side_effects_free_modules: &'a IdentifierSet,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
   extra_mark: ExtraMark,
-  include_module_ids: IdentifierSet,
+  include_module_ids: &'a IdentifierSet,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
@@ -32,12 +32,13 @@ pub fn tree_shaking_visitor<'a>(
     last_module_item_index: 0,
     module_item_map,
     extra_mark,
+    include_module_ids,
   }
 }
 
 pub struct ExtraMark {
-  top_level_mark: Mark,
-  helper_mark: Mark,
+  pub top_level_mark: Mark,
+  pub helper_mark: Mark,
 }
 
 /// The basic idea of shaking the tree is pretty easy,
@@ -63,7 +64,7 @@ struct TreeShaker<'a> {
   last_module_item_index: usize,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
   extra_mark: ExtraMark,
-  include_module_ids: IdentifierSet,
+  include_module_ids: &'a IdentifierSet,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -173,7 +174,7 @@ impl<'a> TreeShaker<'a> {
             true
           }
           ImportSpecifier::Default(default) => {
-            if default.local.to_id().1.outer() == self.helper_mark {
+            if default.local.to_id().1.outer() == self.extra_mark.helper_mark {
               return true;
             }
             let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {

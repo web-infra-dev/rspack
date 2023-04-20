@@ -95,11 +95,7 @@ pub struct ModuleGraphModule {
 }
 
 impl ModuleGraphModule {
-  pub fn new(
-    module_identifier: ModuleIdentifier,
-    module_type: ModuleType,
-    default_used: bool,
-  ) -> Self {
+  pub fn new(module_identifier: ModuleIdentifier, module_type: ModuleType) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
