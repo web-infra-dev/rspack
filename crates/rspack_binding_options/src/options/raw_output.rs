@@ -178,6 +178,9 @@ impl RawOutputOptions {
           plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
         }
         "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
+        "module" => {
+          plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin {}.boxed());
+        }
         _ => {
           return Err(internal_error!(
             "Unsupported chunk format '{chunk_format}'."
@@ -201,6 +204,9 @@ impl RawOutputOptions {
           }
           "require" => {
             plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
+          }
+          "import" => {
+            plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
           }
           "universal" => {
             return Err(internal_error!(
@@ -341,6 +347,9 @@ impl RawOutputOptions {
             plugins.push(
               rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed(),
             );
+          }
+          "module" => {
+            plugins.push(rspack_plugin_library::ModuleLibraryPlugin::default().boxed());
           }
           _ => {}
         }

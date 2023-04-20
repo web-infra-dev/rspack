@@ -9,7 +9,8 @@ use crate::AsyncWasmLoadingRuntimeModule;
 pub fn enable_wasm_loading_plugin(wasm_loading_type: WasmLoadingType) -> BoxPlugin {
   match wasm_loading_type {
     WasmLoadingType::Fetch => FetchCompileAsyncWasmPlugin.boxed(),
-    WasmLoadingType::AsyncNode => ReadFileCompileAsyncWasmPlugin.boxed(),
+    WasmLoadingType::AsyncNode => ReadFileCompileAsyncWasmPlugin::new(false).boxed(),
+    WasmLoadingType::AsyncNodeModule => ReadFileCompileAsyncWasmPlugin::new(true).boxed(),
   }
 }
 
@@ -46,7 +47,15 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
 }
 
 #[derive(Debug)]
-pub struct ReadFileCompileAsyncWasmPlugin;
+pub struct ReadFileCompileAsyncWasmPlugin {
+  import: bool,
+}
+
+impl ReadFileCompileAsyncWasmPlugin {
+  fn new(import: bool) -> Self {
+    Self { import }
+  }
+}
 
 #[async_trait::async_trait]
 impl Plugin for ReadFileCompileAsyncWasmPlugin {
@@ -65,24 +74,11 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
       runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
       args.compilation.add_runtime_module(
         args.chunk,
-        AsyncWasmLoadingRuntimeModule::new(
-          "new Promise(function (resolve, reject) {
-  try {
-    var { readFile } = require('fs');
-    var { join } = require('path');
-
-    readFile(join(__dirname, $PATH), function(err, buffer){
-      if (err) return reject(err);
-
-      // Fake fetch response
-      resolve({
-        arrayBuffer() { return buffer; }
-      });
-    });
-  } catch (err) { reject(err); }
-});"
-            .to_string(),
-        )
+        AsyncWasmLoadingRuntimeModule::new(if self.import {
+          include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
+        } else {
+          include_str!("runtime/read_file_compile_async_wasm.js").to_string()
+        })
         .boxed(),
       );
     }

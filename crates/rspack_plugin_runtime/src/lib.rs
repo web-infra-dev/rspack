@@ -27,8 +27,11 @@ mod common_js_chunk_loading;
 pub use common_js_chunk_loading::CommonJsChunkLoadingPlugin;
 mod jsonp_chunk_loading;
 pub use jsonp_chunk_loading::JsonpChunkLoadingPlugin;
+mod module_chunk_format;
+pub use module_chunk_format::ModuleChunkFormatPlugin;
+mod module_chunk_loading;
+pub use module_chunk_loading::ModuleChunkLoadingPlugin;
 mod runtime_module;
-
 #[derive(Debug)]
 pub struct RuntimePlugin {}
 
