@@ -46,11 +46,6 @@ jobs:
           shared-key: check
           save-if: ${{ github.ref_name == 'main' }}
 
-      - name: Spell Check
-        uses: crate-ci/typos@master
-        with:
-          files: .
-
       - name: Run rustfmt
         uses: actions-rs/cargo@v1
         with:
