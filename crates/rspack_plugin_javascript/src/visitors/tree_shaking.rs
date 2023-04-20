@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, ModuleGraph, ModuleIdentifier,
+  CodeGeneratableDeclMappings, CompilerOptions, DependencyCategory, DependencyType, ModuleGraph,
+  ModuleIdentifier,
 };
 use rspack_identifier::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};
@@ -20,6 +23,7 @@ pub fn tree_shaking_visitor<'a>(
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
   extra_mark: ExtraMark,
   include_module_ids: &'a IdentifierSet,
+  options: Arc<CompilerOptions>,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
@@ -33,6 +37,7 @@ pub fn tree_shaking_visitor<'a>(
     module_item_map,
     extra_mark,
     include_module_ids,
+    options,
   }
 }
 
@@ -65,6 +70,7 @@ struct TreeShaker<'a> {
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
   extra_mark: ExtraMark,
   include_module_ids: &'a IdentifierSet,
+  options: Arc<CompilerOptions>,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -155,7 +161,10 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
-    if !self.include_module_ids.contains(&mgm.module_identifier) {
+    if !mgm.included_in_chunk(
+      self.include_module_ids,
+      self.options.optimization.side_effects,
+    ) {
       return Self::create_empty_stmt_module_item();
     }
     // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));
@@ -344,7 +353,10 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
-    if !self.include_module_ids.contains(&mgm.module_identifier) {
+    if !mgm.included_in_chunk(
+      self.include_module_ids,
+      self.options.optimization.side_effects,
+    ) {
       Self::create_empty_stmt_module_item()
     } else {
       ModuleItem::ModuleDecl(ModuleDecl::ExportAll(export_all))
