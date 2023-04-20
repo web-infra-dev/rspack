@@ -25,10 +25,10 @@ import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import { NormalModuleFactory } from "./normalModuleFactory";
 
 class EntryPlugin {
-	apply() { }
+	apply() {}
 }
 class HotModuleReplacementPlugin {
-	apply() { }
+	apply() {}
 }
 
 class Compiler {
@@ -370,7 +370,10 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 	async #optimize_modules() {
-		await this.compilation.hooks.optimizeModules.promise(this.compilation.getModules())
+		await this.compilation.hooks.optimizeModules.promise(
+			this.compilation.getModules()
+		);
+		this.#updateDisabledHooks();
 	}
 
 	async #finish_modules() {
