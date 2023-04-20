@@ -1,9 +1,0 @@
-[package]
-edition = "2021"
-name    = "xtask"
-version = "0.1.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-xshell = "0.2.2"

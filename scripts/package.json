@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "scripts": {},
   "keywords": [],
   "author": "",
   "license": "MIT",
   "private": true,
+  "scripts": {
+    "typecheck": "pnpm tsc --noEmit"
+  },
   "dependencies": {
     "@changesets/read": "0.5.9",
     "@iarna/toml": "2.2.5",

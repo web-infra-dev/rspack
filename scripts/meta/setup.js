@@ -1,6 +1,5 @@
 // Setup everything before pnpm install
 import { spawnSync } from "child_process";
-import * as path from "path";
 
 /**
  *
@@ -13,27 +12,7 @@ function runInContext(context, fn) {
 	console.log(`⏹️ Finish  \`${context}\` with ${status}`);
 }
 
-try {
-	// Make sure developers are at the workspace root
-	const { default: rootPkgJson } = await import(
-		path.join(process.cwd(), "package.json"),
-		{
-			assert: {
-				type: "json"
-			}
-		}
-	);
-	if (rootPkgJson.name != "monorepo") {
-		throw new Error(`Unexpected cwd ${process.cwd()}`);
-	}
-} catch (oldErr) {
-	const err = new Error(
-		`Make sure you are in workspace root to run this script`
-	);
-	// @ts-expect-error
-	err.cause = oldErr;
-	throw err;
-}
+await import("./check_is_workspace_root");
 
 runInContext(
 	"corepack enable",
