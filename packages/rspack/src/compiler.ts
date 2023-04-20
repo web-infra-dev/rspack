@@ -175,6 +175,10 @@ class Compiler {
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS
 					),
+					processAssetsStageAdditions: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
+					),
 					processAssetsStageNone: this.#processAssets.bind(
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_NONE

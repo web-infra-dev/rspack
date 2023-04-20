@@ -4,6 +4,7 @@ use napi::bindgen_prelude::*;
 pub struct JsHooks {
   pub process_assets_stage_additional: JsFunction,
   pub process_assets_stage_pre_process: JsFunction,
+  pub process_assets_stage_additions: JsFunction,
   pub process_assets_stage_none: JsFunction,
   pub process_assets_stage_optimize_inline: JsFunction,
   pub process_assets_stage_summarize: JsFunction,

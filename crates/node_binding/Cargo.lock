@@ -1915,6 +1915,7 @@ dependencies = [
  "rspack_loader_sass",
  "rspack_napi_shared",
  "rspack_plugin_asset",
+ "rspack_plugin_banner",
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_dev_friendly_split_chunks",
@@ -2156,6 +2157,17 @@ dependencies = [
  "sugar_path",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_banner"
+version = "0.1.0"
+dependencies = [
+ "async-recursion",
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
+ "rspack_regex",
 ]
 
 [[package]]

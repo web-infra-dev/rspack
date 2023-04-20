@@ -91,7 +91,7 @@ impl RuleSetLogicalConditions {
   }
 }
 
-async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
+pub async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
 where
   Fut: Future<Output = Result<bool>>,
   F: Fn(T) -> Fut,
