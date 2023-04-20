@@ -6,7 +6,9 @@ use std::{
 
 use derivative::Derivative;
 use nodejs_resolver::DescriptionData;
-use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{
+  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
+};
 use rspack_sources::SourceMap;
 use rustc_hash::FxHashSet as HashSet;
 
@@ -36,7 +38,6 @@ pub struct LoaderContext<'c, C> {
   /// Content should always be exist if at normal stage,
   /// It will be `None` at pitching stage.
   pub content: Option<Content>,
-  pub original_content: Option<Content>,
 
   /// The resource part of the request, including query and fragment.
   /// E.g. /abc/resource.js?query=1#some-fragment
@@ -71,13 +72,6 @@ pub struct LoaderContext<'c, C> {
 }
 
 impl<'c, C> LoaderContext<'c, C> {
-  pub async fn fetch_original_content(&mut self) -> Result<()> {
-    if self.original_content.is_none() {
-      self.original_content = get_original_content(self.plugins, self.resource_data).await?;
-    }
-    Ok(())
-  }
-
   pub fn remaining_request(&self) -> LoaderItemList<'_, C> {
     if self.loader_index >= self.loader_items.len() - 1 {
       return Default::default();
@@ -106,26 +100,20 @@ impl<'c, C> LoaderContext<'c, C> {
   }
 }
 
-async fn get_original_content(
-  plugins: &[Box<dyn LoaderRunnerPlugin>],
-  resource_data: &ResourceData,
-) -> Result<Option<Content>> {
-  let mut content = None;
-  for plugin in plugins {
-    if let Some(processed_resource) = plugin.process_resource(resource_data).await? {
-      content = Some(processed_resource);
+async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
+  for plugin in loader_context.plugins {
+    if let Some(processed_resource) = plugin
+      .process_resource(loader_context.resource_data)
+      .await?
+    {
+      loader_context.content = Some(processed_resource);
     }
   }
-  if content.is_none() {
-    let result = tokio::fs::read(&resource_data.resource_path).await?;
-    content = Some(Content::from(result));
-  }
-  Ok(content)
-}
 
-async fn process_resource<C: Send>(loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
-  loader_context.fetch_original_content().await?;
-  loader_context.content = loader_context.original_content.clone();
+  if loader_context.content.is_none() {
+    let result = tokio::fs::read(&loader_context.resource_data.resource_path).await?;
+    loader_context.content = Some(Content::from(result));
+  }
 
   // Bail out if loader does not exist,
   // or the last loader has been executed.
@@ -160,7 +148,6 @@ async fn create_loader_context<'c, C: 'c>(
     missing_dependencies: Default::default(),
     build_dependencies: Default::default(),
     content: None,
-    original_content: None,
     resource: &resource_data.resource,
     resource_path: &resource_data.resource_path,
     resource_query: resource_data.resource_query.as_deref(),
@@ -250,21 +237,31 @@ pub struct LoaderResult {
   pub additional_data: Option<String>,
 }
 
-impl<C> From<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
-  fn from(loader_context: LoaderContext<'_, C>) -> Self {
-    LoaderResult {
-      cacheable: loader_context.cacheable,
-      file_dependencies: loader_context.file_dependencies,
-      context_dependencies: loader_context.context_dependencies,
-      missing_dependencies: loader_context.missing_dependencies,
-      build_dependencies: loader_context.build_dependencies,
-      content: loader_context
-        .content
-        .expect("Final loader didn't return a Buffer or String"),
-      source_map: loader_context.source_map,
-      additional_data: loader_context.additional_data,
-    }
-    .with_diagnostic(loader_context.diagnostic)
+impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
+  type Error = rspack_error::Error;
+  fn try_from(loader_context: LoaderContext<'_, C>) -> std::result::Result<Self, Self::Error> {
+    let content = loader_context.content.ok_or_else(|| {
+      if !loader_context.loader_items.is_empty() {
+        let loader = loader_context.loader_items[0].to_string();
+        internal_error!("Final loader({loader}) didn't return a Buffer or String")
+      } else {
+        internal_error!("Content is not available, it is a bug")
+      }
+    })?;
+
+    Ok(
+      LoaderResult {
+        cacheable: loader_context.cacheable,
+        file_dependencies: loader_context.file_dependencies,
+        context_dependencies: loader_context.context_dependencies,
+        missing_dependencies: loader_context.missing_dependencies,
+        build_dependencies: loader_context.build_dependencies,
+        content,
+        source_map: loader_context.source_map,
+        additional_data: loader_context.additional_data,
+      }
+      .with_diagnostic(loader_context.diagnostic),
+    )
   }
 }
 
@@ -285,7 +282,7 @@ pub async fn run_loaders<C: Send>(
   assert!(loader_context.content.is_none());
   iterate_pitching_loaders(&mut loader_context, resource_data, plugins).await?;
 
-  Ok(loader_context.into())
+  loader_context.try_into()
 }
 
 #[cfg(test)]

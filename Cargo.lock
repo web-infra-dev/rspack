@@ -2510,21 +2510,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rspack_loader_runner_testing"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "napi",
- "napi-build",
- "napi-derive",
- "rspack_core",
- "rspack_error",
- "rspack_fs",
- "rspack_identifier",
- "rspack_napi_shared",
-]
-
-[[package]]
 name = "rspack_loader_sass"
 version = "0.1.0"
 dependencies = [

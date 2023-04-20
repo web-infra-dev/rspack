@@ -9,6 +9,13 @@
  */
 
 import { JsLoaderContext } from "@rspack/binding";
+import {
+	OriginalSource,
+	RawSource,
+	Source,
+	SourceMapSource
+} from "webpack-sources";
+
 import { Compiler } from "../compiler";
 import {
 	LoaderContext,
@@ -17,13 +24,7 @@ import {
 	isUseSourceMap,
 	toBuffer
 } from "../config/adapter-rule-use";
-import { concatErrorMsgAndStack } from "../util";
-import {
-	OriginalSource,
-	RawSource,
-	Source,
-	SourceMapSource
-} from "webpack-sources";
+import { concatErrorMsgAndStack, isNil } from "../util";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
@@ -168,7 +169,6 @@ export async function runLoader(
 	const resourceQuery = splittedResource.query;
 	const resourceFragment = splittedResource.fragment;
 	const contextDirectory = dirname(resourcePath);
-	const originalContent = rawContext.originalContent;
 
 	// execution state
 	let isPitching = rawContext.isPitching;
@@ -316,7 +316,7 @@ export async function runLoader(
 	loaderContext.hot = compiler.options.devServer?.hot;
 
 	const getResolveContext = () => {
-		// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc.
+		// FIXME: resolve's fileDependencies will includes lots of dir, '/', etc
 		return {
 			fileDependencies: {
 				// @ts-expect-error
@@ -520,41 +520,35 @@ export async function runLoader(
 	return new Promise((resolve, reject) => {
 		if (isPitching) {
 			// `originalContent` is always available in pitching stage
-			iteratePitchingLoaders(
-				originalContent!,
-				loaderContext,
-				[],
-				(err: Error, result: any[]) => {
-					if (err) {
-						return reject(err);
-					}
-					const [content, sourceMap, additionalData] = result;
-					resolve({
-						content: content ? toBuffer(content) : undefined,
-						sourceMap: sourceMap
-							? toBuffer(
-									typeof sourceMap === "string"
-										? sourceMap
-										: JSON.stringify(sourceMap)
-							  )
-							: undefined,
-						additionalData: additionalData
-							? toBuffer(JSON.stringify(additionalData))
-							: undefined,
-						buildDependencies,
-						cacheable,
-						fileDependencies,
-						contextDependencies,
-						missingDependencies,
-						isPitching: loaderContext.__internal__isPitching
-					});
+			iteratePitchingLoaders(loaderContext, [], (err: Error, result: any[]) => {
+				if (err) {
+					return reject(err);
 				}
-			);
+				const [content, sourceMap, additionalData] = result;
+				resolve({
+					content: isNil(content) ? undefined : toBuffer(content),
+					sourceMap: isNil(sourceMap)
+						? undefined
+						: toBuffer(
+								typeof sourceMap === "string"
+									? sourceMap
+									: JSON.stringify(sourceMap)
+						  ),
+					additionalData: isNil(additionalData)
+						? undefined
+						: toBuffer(JSON.stringify(additionalData)),
+					buildDependencies,
+					cacheable,
+					fileDependencies,
+					contextDependencies,
+					missingDependencies,
+					isPitching: loaderContext.__internal__isPitching
+				});
+			});
 		} else {
 			// normal
 			loaderContext.loaderIndex = loaderContext.loaders.length - 1;
 			iterateNormalLoaders(
-				rawContext.content!,
 				loaderContext,
 				[rawContext.content, rawContext.sourceMap, rawContext.additionalData],
 				(err: Error, result: any[]) => {
@@ -563,17 +557,17 @@ export async function runLoader(
 					}
 					const [content, sourceMap, additionalData] = result;
 					resolve({
-						content: content ? toBuffer(content) : undefined,
-						sourceMap: sourceMap
-							? toBuffer(
+						content: isNil(content) ? undefined : toBuffer(content),
+						sourceMap: isNil(sourceMap)
+							? undefined
+							: toBuffer(
 									typeof sourceMap === "string"
 										? sourceMap
 										: JSON.stringify(sourceMap)
-							  )
-							: undefined,
-						additionalData: additionalData
-							? toBuffer(JSON.stringify(additionalData))
-							: undefined,
+							  ),
+						additionalData: isNil(additionalData)
+							? undefined
+							: toBuffer(JSON.stringify(additionalData)),
 						buildDependencies,
 						cacheable,
 						fileDependencies,
@@ -669,12 +663,11 @@ function runSyncOrAsync(
 }
 
 function iteratePitchingLoaders(
-	originalContent: Buffer,
 	loaderContext: LoaderContext,
 	args: any[],
 	callback: Function
 ): void {
-	// Running out of js loaders
+	// Running out of js loaders, so yield back to rust.
 	// Directly callback as we may still have other loaders on the rust side,
 	// The difference between rspack loader-runner and webpack loader-runner is
 	// that we do not run the loaders in the normal stage if pitching is not successful.
@@ -686,12 +679,7 @@ function iteratePitchingLoaders(
 	// iterate
 	if (currentLoaderObject.pitchExecuted) {
 		loaderContext.loaderIndex++;
-		return iteratePitchingLoaders(
-			originalContent,
-			loaderContext,
-			args,
-			callback
-		);
+		return iteratePitchingLoaders(loaderContext, args, callback);
 	}
 
 	// load loader module
@@ -703,13 +691,7 @@ function iteratePitchingLoaders(
 		var fn = currentLoaderObject.pitch;
 		currentLoaderObject.pitchExecuted = true;
 
-		if (!fn)
-			return iteratePitchingLoaders(
-				originalContent,
-				loaderContext,
-				args,
-				callback
-			);
+		if (!fn) return iteratePitchingLoaders(loaderContext, args, callback);
 
 		runSyncOrAsync(
 			fn,
@@ -734,14 +716,9 @@ function iteratePitchingLoaders(
 					// Instruct rust side to execute loaders in backwards.
 					loaderContext.__internal__isPitching = false;
 					loaderContext.loaderIndex--;
-					iterateNormalLoaders(originalContent, loaderContext, args, callback);
+					iterateNormalLoaders(loaderContext, args, callback);
 				} else {
-					iteratePitchingLoaders(
-						originalContent,
-						loaderContext,
-						args,
-						callback
-					);
+					iteratePitchingLoaders(loaderContext, args, callback);
 				}
 			}
 		);
@@ -749,7 +726,6 @@ function iteratePitchingLoaders(
 }
 
 function iterateNormalLoaders(
-	originalContent: Buffer,
 	loaderContext: LoaderContext,
 	args: any[],
 	callback: Function
@@ -762,7 +738,7 @@ function iterateNormalLoaders(
 	// iterate
 	if (currentLoaderObject.normalExecuted) {
 		loaderContext.loaderIndex--;
-		return iterateNormalLoaders(originalContent, loaderContext, args, callback);
+		return iterateNormalLoaders(loaderContext, args, callback);
 	}
 
 	loadLoader(currentLoaderObject, function (err: Error) {
@@ -774,12 +750,7 @@ function iterateNormalLoaders(
 		var fn = currentLoaderObject.normal;
 		currentLoaderObject.normalExecuted = true;
 		if (!fn) {
-			return iterateNormalLoaders(
-				originalContent,
-				loaderContext,
-				args,
-				callback
-			);
+			return iterateNormalLoaders(loaderContext, args, callback);
 		}
 
 		convertArgs(args, !!currentLoaderObject.raw);
@@ -788,7 +759,7 @@ function iterateNormalLoaders(
 			if (err) return callback(err);
 
 			var args = Array.prototype.slice.call(arguments, 1);
-			iterateNormalLoaders(originalContent, loaderContext, args, callback);
+			iterateNormalLoaders(loaderContext, args, callback);
 		});
 	});
 }

@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use napi_derive::napi;
 #[cfg(feature = "node-api")]
 use {
@@ -24,7 +22,7 @@ pub struct JsLoader {
 pub struct JsLoaderRunner(ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>);
 
 #[cfg(feature = "node-api")]
-impl Deref for JsLoaderRunner {
+impl std::ops::Deref for JsLoaderRunner {
   type Target = ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>;
 
   fn deref(&self) -> &Self::Target {
@@ -111,8 +109,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
     &self,
     loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
   ) -> rspack_error::Result<()> {
-    let mut js_loader_context: JsLoaderContext =
-      <JsLoaderContext as AsyncTryFrom<_>>::try_from(loader_context).await?;
+    let mut js_loader_context: JsLoaderContext = (&*loader_context).try_into()?;
     js_loader_context.is_pitching = true;
 
     let loader_result = self
@@ -141,8 +138,7 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
     &self,
     loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
   ) -> rspack_error::Result<()> {
-    let mut js_loader_context: JsLoaderContext =
-      <JsLoaderContext as AsyncTryFrom<_>>::try_from(loader_context).await?;
+    let mut js_loader_context: JsLoaderContext = (&*loader_context).try_into()?;
     // Instruct the JS loader-runner to execute loaders in backwards.
     js_loader_context.is_pitching = false;
 
@@ -208,8 +204,6 @@ fn sync_loader_context(
 pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
   pub content: Option<Buffer>,
-  /// Original content will always be available for pitching stage
-  pub original_content: Option<Buffer>,
   pub additional_data: Option<Buffer>,
   pub source_map: Option<Buffer>,
   pub resource: String,
@@ -226,28 +220,18 @@ pub struct JsLoaderContext {
   pub is_pitching: bool,
 }
 
-trait AsyncTryFrom<T>: Sized {
-  async fn try_from(value: T) -> rspack_error::Result<Self>;
-}
-
 #[cfg(feature = "node-api")]
-impl AsyncTryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
+impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
   for JsLoaderContext
 {
-  async fn try_from(
-    cx: &mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
-  ) -> rspack_error::Result<Self> {
-    // Fetch original content for pitching stage executing Js loaders in the normal stage.
-    cx.fetch_original_content().await?;
-    assert!(cx.original_content.is_some());
+  type Error = rspack_error::Error;
 
+  fn try_from(
+    cx: &rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
+  ) -> std::result::Result<Self, Self::Error> {
     Ok(JsLoaderContext {
       content: cx
         .content
-        .as_ref()
-        .map(|c| c.to_owned().into_bytes().into()),
-      original_content: cx
-        .original_content
         .as_ref()
         .map(|c| c.to_owned().into_bytes().into()),
       additional_data: cx.additional_data.to_owned().map(|v| v.into_bytes().into()),
@@ -289,61 +273,6 @@ impl AsyncTryFrom<&mut rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerC
     })
   }
 }
-
-// #[cfg(feature = "node-api")]
-// impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
-//   for JsLoaderContext
-// {
-//   type Error = rspack_error::Error;
-
-//   fn try_from(
-//     cx: &rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>,
-//   ) -> rspack_error::Result<Self> {
-//     Ok(JsLoaderContext {
-//       content: cx
-//         .content
-//         .as_ref()
-//         .map(|c| c.to_owned().into_bytes().into()),
-//       original_content: cx.original_content().await,
-//       additional_data: cx.additional_data.to_owned().map(|v| v.into_bytes().into()),
-//       source_map: cx
-//         .source_map
-//         .clone()
-//         .map(|v| v.to_json())
-//         .transpose()
-//         .map_err(|e| internal_error!(e.to_string()))?
-//         .map(|v| v.into_bytes().into()),
-//       resource: cx.resource.to_owned(),
-//       resource_path: cx.resource_path.to_string_lossy().to_string(),
-//       resource_fragment: cx.resource_fragment.map(|r| r.to_owned()),
-//       resource_query: cx.resource_query.map(|r| r.to_owned()),
-//       cacheable: cx.cacheable,
-//       file_dependencies: cx
-//         .file_dependencies
-//         .iter()
-//         .map(|i| i.to_string_lossy().to_string())
-//         .collect(),
-//       context_dependencies: cx
-//         .context_dependencies
-//         .iter()
-//         .map(|i| i.to_string_lossy().to_string())
-//         .collect(),
-//       missing_dependencies: cx
-//         .missing_dependencies
-//         .iter()
-//         .map(|i| i.to_string_lossy().to_string())
-//         .collect(),
-//       build_dependencies: cx
-//         .build_dependencies
-//         .iter()
-//         .map(|i| i.to_string_lossy().to_string())
-//         .collect(),
-
-//       current_loader: cx.current_loader().to_string(),
-//       is_pitching: true,
-//     })
-//   }
-// }
 
 #[cfg(feature = "node-api")]
 #[napi(object)]
