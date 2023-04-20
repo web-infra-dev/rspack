@@ -373,7 +373,10 @@ impl<'a> TreeShaker<'a> {
         .module_graph
         .module_graph_module_by_identifier(&module_identifier)
         .expect("TODO:");
-      if !self.include_module_ids.contains(&mgm.module_identifier) {
+      if !mgm.included_in_chunk(
+        self.include_module_ids,
+        self.options.optimization.side_effects,
+      ) {
         return Self::create_empty_stmt_module_item();
       }
       let specifiers = named
