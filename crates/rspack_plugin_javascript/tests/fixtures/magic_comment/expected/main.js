@@ -4,6 +4,8 @@ __webpack_require__.el("./normal.js").then(__webpack_require__.bind(__webpack_re
 __webpack_require__.el("./sub_fold.js").then(__webpack_require__.bind(__webpack_require__, "./sub_fold.js")).then(__webpack_require__.ir);
 __webpack_require__.el("./single_quote.js").then(__webpack_require__.bind(__webpack_require__, "./single_quote.js")).then(__webpack_require__.ir);
 __webpack_require__.el("./other.js").then(__webpack_require__.bind(__webpack_require__, "./other.js")).then(__webpack_require__.ir);
+__webpack_require__.el("./user/1.js").then(__webpack_require__.bind(__webpack_require__, "./user/1.js")).then(__webpack_require__.ir);
+__webpack_require__.el("./user/page/2.js").then(__webpack_require__.bind(__webpack_require__, "./user/page/2.js")).then(__webpack_require__.ir);
 __webpack_require__.el("./bug_only_single_quote.js").then(__webpack_require__.bind(__webpack_require__, "./bug_only_single_quote.js")).then(__webpack_require__.ir);
 },
 

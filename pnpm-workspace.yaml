@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+  - "scripts"
   - "packages/playground/fixtures/**"
   - "npm/*"
   - "crates/node_binding"

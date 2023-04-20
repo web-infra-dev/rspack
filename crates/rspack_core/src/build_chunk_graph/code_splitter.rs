@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use rspack_error::Result;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
@@ -73,7 +75,7 @@ impl<'me> CodeSplitter<'me> {
 
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::Entrypoint,
-        HashSet::from_iter([name.to_string()]),
+        HashSet::from_iter([Arc::from(name.to_string())]),
         Some(name.to_string()),
       );
       if options.runtime.is_none() {

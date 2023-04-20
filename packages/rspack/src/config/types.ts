@@ -13,6 +13,8 @@ import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 
+export type { BannerConditions, BannerCondition } from "./builtins";
+
 export type { LoaderContext } from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
@@ -343,7 +345,7 @@ export interface ModuleOptionsNormalized {
 export type AvailableTarget =
 	| "node"
 	| "web"
-	| "web-worker"
+	| "webworker"
 	| "es3"
 	| "es5"
 	| "es2015"

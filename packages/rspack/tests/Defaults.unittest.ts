@@ -75,6 +75,7 @@ describe("snapshots", () => {
 		expect(baseConfig).toMatchInlineSnapshot(`
 		{
 		  "builtins": {
+		    "banner": undefined,
 		    "copy": undefined,
 		    "css": {
 		      "modules": {

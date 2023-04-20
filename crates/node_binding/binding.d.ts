@@ -14,6 +14,26 @@ export interface ThreadsafeNodeFS {
   mkdirp: (...args: any[]) => any
   removeDirAll: (...args: any[]) => any
 }
+export interface RawBannerCondition {
+  type: "string" | "regexp"
+  stringMatcher?: string
+  regexpMatcher?: string
+}
+export interface RawBannerConditions {
+  type: "string" | "regexp" | "array"
+  stringMatcher?: string
+  regexpMatcher?: string
+  arrayMatcher?: Array<RawBannerCondition>
+}
+export interface RawBannerConfig {
+  banner: string
+  entryOnly?: boolean
+  footer?: boolean
+  raw?: boolean
+  test?: RawBannerConditions
+  include?: RawBannerConditions
+  exclude?: RawBannerConditions
+}
 export interface RawPattern {
   from: string
   to?: string
@@ -139,6 +159,7 @@ export interface RawBuiltins {
   emotion?: string
   devFriendlySplitChunks: boolean
   copy?: RawCopyConfig
+  banner?: Array<RawBannerConfig>
   pluginImport?: Array<RawPluginImportConfig>
   relay?: RawRelayConfig
 }
@@ -455,6 +476,7 @@ export interface JsChunkGroup {
 export interface JsHooks {
   processAssetsStageAdditional: (...args: any[]) => any
   processAssetsStagePreProcess: (...args: any[]) => any
+  processAssetsStageAdditions: (...args: any[]) => any
   processAssetsStageNone: (...args: any[]) => any
   processAssetsStageOptimizeInline: (...args: any[]) => any
   processAssetsStageSummarize: (...args: any[]) => any

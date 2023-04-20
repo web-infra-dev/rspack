@@ -667,6 +667,7 @@ export class Compilation {
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
+	static PROCESS_ASSETS_STAGE_ADDITIONS = -100;
 	static PROCESS_ASSETS_STAGE_NONE = 0;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
@@ -678,6 +679,8 @@ export class Compilation {
 				return this.hooks.processAssets.stageAdditional;
 			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
 				return this.hooks.processAssets.stagePreProcess;
+			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONS:
+				return this.hooks.processAssets.stageAdditions;
 			case Compilation.PROCESS_ASSETS_STAGE_NONE:
 				return this.hooks.processAssets.stageNone;
 			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:

@@ -31,6 +31,7 @@ export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 		) => createFakeTap(options, fn, "tapPromise"),
 		stageAdditional: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stagePreProcess: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageAdditions: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageNone: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageOptimizeInline: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageSummarize: new tapable.AsyncSeriesHook<Assets>(["assets"]),

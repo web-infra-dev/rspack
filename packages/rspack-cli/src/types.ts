@@ -20,18 +20,29 @@ export interface RspackCLILogger {
 }
 
 export interface RspackCLIOptions {
-	entry?: string[];
 	config?: string;
+	argv?: Record<string, any>;
+	configName?: string[];
+}
+
+export interface RspackBuildCLIOptions extends RspackCLIOptions {
+	entry?: string[];
 	devtool?: boolean;
 	mode?: string;
 	watch?: boolean;
 	analyze?: boolean;
-	argv?: Record<string, any>;
 	env?: Record<string, any>;
 	nodeEnv?: string;
-	configName?: string[];
 }
 
+export interface RspackPreviewCLIOptions extends RspackCLIOptions {
+	dir?: string;
+	port?: number;
+	host?: string;
+	open?: boolean;
+	server?: string;
+	publicPath: string;
+}
 export interface RspackCommand {
 	apply(cli: RspackCLI): Promise<void>;
 }

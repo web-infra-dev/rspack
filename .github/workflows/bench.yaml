@@ -53,6 +53,9 @@ jobs:
       - name: Install critcmp
         run: cargo install critcmp
 
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
       - name: Run Bench on PR Branch
         run: cargo bench --bench main -- --save-baseline pr
 
