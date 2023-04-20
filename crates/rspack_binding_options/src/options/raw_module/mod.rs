@@ -14,8 +14,6 @@ use serde::Deserialize;
 #[cfg(feature = "node-api")]
 use {
   js_loader::JsLoaderAdapter,
-  napi::NapiRaw,
-  rspack_binding_macros::call_js_function_with_napi_objects,
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   rspack_napi_shared::{NapiResultExt, NAPI_ENV},
 };
