@@ -51,5 +51,5 @@ impl_runtime_module!(GetMainFilenameRuntimeModule);
 
 #[inline]
 fn stringify_runtime(runtime: &RuntimeSpec) -> String {
-  Vec::from_iter(runtime.iter().map(|s| s.as_str())).join("_")
+  Vec::from_iter(runtime.iter().map(|s| (*s).as_ref())).join("_")
 }
