@@ -2,10 +2,10 @@ import "zx/globals";
 
 await import("../meta/check_is_workspace_root.js");
 
-fs.ensureDir("./benchcases/threejs10x");
+fs.ensureDir("./benchcases/threejs10x/src");
 
 for (const i in Array(10).fill(null)) {
-	await $`cp -r ./benchcases/.three/src ./benchcases/threejs10x/copy${i}`;
+	await $`cp -r ./benchcases/.three/src ./benchcases/threejs10x/src/copy${i}`;
 }
 
 const entryCode = Array(10)
@@ -16,7 +16,7 @@ const entryCode = Array(10)
 	)
 	.join("\n");
 
-fs.writeFile("./benchcases/threejs10x/entry.js", entryCode);
+fs.writeFile("./benchcases/threejs10x/src/entry.js", entryCode);
 
 // Create test.config.json
 
