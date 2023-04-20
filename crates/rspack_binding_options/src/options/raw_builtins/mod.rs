@@ -1,7 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv, Provide};
 use rspack_error::internal_error;
-use rspack_plugin_banner::BannerPlugin;
+use rspack_plugin_banner::{BannerConfig, BannerPlugin};
 use rspack_plugin_copy::CopyPlugin;
 use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
 use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
@@ -97,7 +97,7 @@ pub struct RawBuiltins {
   pub emotion: Option<String>,
   pub dev_friendly_split_chunks: bool,
   pub copy: Option<RawCopyConfig>,
-  pub banner: Option<RawBannerConfig>,
+  pub banner: Option<Vec<RawBannerConfig>>,
   pub plugin_import: Option<Vec<RawPluginImportConfig>>,
   pub relay: Option<RawRelayConfig>,
 }
@@ -136,8 +136,15 @@ impl RawOptionsApply for RawBuiltins {
       plugins.push(CopyPlugin::new(copy.patterns.into_iter().map(Into::into).collect()).boxed());
     }
 
-    if let Some(banner) = self.banner {
-      plugins.push(BannerPlugin::new(banner.try_into()?).boxed());
+    if let Some(banners) = self.banner {
+      let configs: Vec<BannerConfig> = banners
+        .into_iter()
+        .map(|banner| banner.try_into())
+        .collect::<rspack_error::Result<Vec<_>>>()?;
+
+      configs
+        .into_iter()
+        .for_each(|banner| plugins.push(BannerPlugin::new(banner).boxed()));
     }
 
     Ok(Builtins {

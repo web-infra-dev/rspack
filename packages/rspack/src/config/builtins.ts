@@ -62,7 +62,7 @@ export interface Builtins {
 	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
 	copy?: CopyConfig;
-	banner?: BannerConfig;
+	banner?: BannerConfigs;
 	pluginImport?: PluginImportConfig[];
 	relay?: RelayConfig;
 }
@@ -92,7 +92,7 @@ export type BannerCondition = string | RegExp;
 
 export type BannerConditions = BannerCondition | BannerCondition[];
 
-export type BannerConfig =
+type BannerConfig =
 	| string
 	| {
 			banner: string;
@@ -103,6 +103,8 @@ export type BannerConfig =
 			exclude?: BannerConditions;
 			include?: BannerConditions;
 	  };
+
+export type BannerConfigs = BannerConfig | BannerConfig[];
 
 export type RelayConfig = boolean | RawRelayConfig;
 
@@ -375,13 +377,7 @@ export function resolveBuiltinsOptions(
 	};
 }
 
-function resolveBanner(
-	bannerConfig?: BannerConfig
-): RawBannerConfig | undefined {
-	if (!bannerConfig) {
-		return undefined;
-	}
-
+function resolveBannerConfig(bannerConfig: BannerConfig): RawBannerConfig {
 	if (typeof bannerConfig === "string") {
 		return {
 			banner: bannerConfig
@@ -395,6 +391,21 @@ function resolveBanner(
 		exclude: getBannerConditions(bannerConfig.exclude)
 	};
 }
+
+function resolveBanner(
+	bannerConfigs?: BannerConfigs
+): RawBannerConfig[] | undefined {
+	if (!bannerConfigs) {
+		return undefined;
+	}
+
+	if (Array.isArray(bannerConfigs)) {
+		return bannerConfigs.map(resolveBannerConfig);
+	}
+
+	return [resolveBannerConfig(bannerConfigs)];
+}
+
 export function resolveMinifyOptions(
 	builtins: Builtins,
 	optimization: Optimization

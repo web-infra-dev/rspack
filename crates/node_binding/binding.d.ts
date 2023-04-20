@@ -159,7 +159,7 @@ export interface RawBuiltins {
   emotion?: string
   devFriendlySplitChunks: boolean
   copy?: RawCopyConfig
-  banner?: RawBannerConfig
+  banner?: Array<RawBannerConfig>
   pluginImport?: Array<RawPluginImportConfig>
   relay?: RawRelayConfig
 }
