@@ -1,6 +1,6 @@
 import "zx/globals";
 
-await import("../meta/check_is_workspace_root");
+await import("../meta/check_is_workspace_root.js");
 
 const testConfig = `
 {
