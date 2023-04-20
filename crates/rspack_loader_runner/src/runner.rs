@@ -187,8 +187,6 @@ async fn iterate_normal_loaders<C: Send>(loader_context: &mut LoaderContext<'_, 
 #[async_recursion::async_recursion]
 async fn iterate_pitching_loaders<C: Send>(
   loader_context: &mut LoaderContext<'_, C>,
-  resource_data: &ResourceData,
-  plugins: &[Box<dyn LoaderRunnerPlugin>],
 ) -> Result<()> {
   if loader_context.loader_index >= loader_context.loader_items.len() {
     return process_resource(loader_context).await;
@@ -198,7 +196,7 @@ async fn iterate_pitching_loaders<C: Send>(
 
   if current_loader_item.pitch_executed() {
     loader_context.loader_index += 1;
-    return iterate_pitching_loaders(loader_context, resource_data, plugins).await;
+    return iterate_pitching_loaders(loader_context).await;
   }
 
   let loader = current_loader_item.loader.clone();
@@ -219,7 +217,7 @@ async fn iterate_pitching_loaders<C: Send>(
     loader_context.loader_index -= 1;
     iterate_normal_loaders(loader_context).await?;
   } else {
-    iterate_pitching_loaders(loader_context, resource_data, plugins).await?;
+    iterate_pitching_loaders(loader_context).await?;
   }
 
   Ok(())
@@ -280,7 +278,7 @@ pub async fn run_loaders<C: Send>(
     create_loader_context(&loaders[..], resource_data, plugins, context).await?;
 
   assert!(loader_context.content.is_none());
-  iterate_pitching_loaders(&mut loader_context, resource_data, plugins).await?;
+  iterate_pitching_loaders(&mut loader_context).await?;
 
   loader_context.try_into()
 }

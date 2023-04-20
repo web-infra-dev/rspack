@@ -328,7 +328,7 @@ impl RawOptionsApply for RawModuleRule {
 
   fn apply(
     self,
-    plugins: &mut Vec<rspack_core::BoxPlugin>,
+    _plugins: &mut Vec<rspack_core::BoxPlugin>,
     #[cfg(feature = "node-api")] loader_runner: &JsLoaderRunner,
   ) -> std::result::Result<Self::Options, rspack_error::Error> {
     // Even this part is using the plural version of loader, it's recommended to use singular version from js side to reduce overhead (This behavior maybe changed later for advanced usage).
@@ -363,7 +363,7 @@ impl RawOptionsApply for RawModuleRule {
           .into_iter()
           .map(|raw| {
             raw.apply(
-              plugins,
+              _plugins,
               #[cfg(feature = "node-api")]
               {
                 loader_runner
