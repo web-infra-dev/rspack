@@ -2,7 +2,7 @@
 
 use swc_core::ecma::atoms::JsWord;
 
-use super::visitor::TreeShakingResult;
+use super::visitor::DepdencyAnalyzeResult;
 
 pub trait ExportInfoExt {
   fn ordered_exports(&self) -> Vec<ExportInfo>;
@@ -13,7 +13,7 @@ pub struct ExportInfo {
   pub name: JsWord,
 }
 
-impl ExportInfoExt for TreeShakingResult {
+impl ExportInfoExt for DepdencyAnalyzeResult {
   fn ordered_exports(&self) -> Vec<ExportInfo> {
     let mut res: Vec<ExportInfo> = self
       .export_map

@@ -24,12 +24,14 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
 use super::{
+  analyzer::DependencyAnalyzer,
+  js_module::JsModule,
   symbol_graph::SymbolGraph,
-  visitor::{MarkInfo, ModuleRefAnalyze, SymbolRef, TreeShakingResult},
+  visitor::{DepdencyAnalyzeResult, MarkInfo, ModuleRefAnalyze, SymbolRef},
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, DependencyType,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
   ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
@@ -248,7 +250,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_bailout_module(
     &mut self,
-    analyze_result_map: &IdentifierMap<TreeShakingResult>,
+    analyze_result_map: &IdentifierMap<DepdencyAnalyzeResult>,
     mut evaluated_module_identifiers: IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
@@ -275,7 +277,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_entry_symbol(
     &mut self,
-    analyze_result_map: &IdentifierMap<TreeShakingResult>,
+    analyze_result_map: &IdentifierMap<DepdencyAnalyzeResult>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
@@ -301,7 +303,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn finalize_symbol(
     &mut self,
     side_effects_analyze: bool,
-    analyze_results: &IdentifierMap<TreeShakingResult>,
+    analyze_results: &IdentifierMap<DepdencyAnalyzeResult>,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
     visited_symbol_ref: HashSet<SymbolRef>,
@@ -580,7 +582,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_used_symbol_with(
     &mut self,
-    analyze_map: &IdentifierMap<TreeShakingResult>,
+    analyze_map: &IdentifierMap<DepdencyAnalyzeResult>,
     mut init_queue: VecDeque<SymbolRef>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
@@ -608,7 +610,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn mark_symbol(
     &mut self,
     current_symbol_ref: SymbolRef,
-    analyze_map: &IdentifierMap<TreeShakingResult>,
+    analyze_map: &IdentifierMap<DepdencyAnalyzeResult>,
     symbol_queue: &mut VecDeque<SymbolRef>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
@@ -1045,7 +1047,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn collect_from_entry_like(
     &mut self,
-    analyze_map: &IdentifierMap<TreeShakingResult>,
+    analyze_map: &IdentifierMap<DepdencyAnalyzeResult>,
     entry_identifier: ModuleIdentifier,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
@@ -1137,7 +1139,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 fn get_inherit_export_ref_graph(
   analyze_result_map: &mut std::collections::HashMap<
     Identifier,
-    TreeShakingResult,
+    DepdencyAnalyzeResult,
     std::hash::BuildHasherDefault<ustr::IdentityHasher>,
   >,
 ) -> GraphMap<Identifier, (), Directed> {
@@ -1184,7 +1186,7 @@ async fn par_analyze_module(
   compilation: &mut Compilation,
 ) -> std::collections::HashMap<
   Identifier,
-  TreeShakingResult,
+  DepdencyAnalyzeResult,
   std::hash::BuildHasherDefault<ustr::IdentityHasher>,
 > {
   let analyze_results = {
@@ -1193,7 +1195,6 @@ async fn par_analyze_module(
       .module_graph_modules()
       .par_iter()
       .filter_map(|(module_identifier, mgm)| {
-        let uri_key = *module_identifier;
         let ast = if mgm.module_type.is_js_like() {
           match compilation
             .module_graph
@@ -1213,37 +1214,26 @@ async fn par_analyze_module(
           // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
           return None;
         };
-        let analyzer: TreeShakingResult = ast.visit(|program, context| {
-          let top_level_mark = context.top_level_mark;
-          let unresolved_mark = context.unresolved_mark;
 
-          let mut analyzer = ModuleRefAnalyze::new(
-            MarkInfo::new(top_level_mark, unresolved_mark),
-            uri_key,
-            &compilation.module_graph,
-            &compilation.options,
-            program.comments.as_ref(),
-          );
-          program.visit_with(&mut analyzer);
-          analyzer.into()
-        });
+        let analyzer = JsModule::new(ast, *module_identifier).analyze(&compilation);
 
         // Keep this debug info until we stabilize the tree-shaking
-        // dbg_matches!(
-        //   *uri_key,
-        //   &uri_key,
-        //   // &analyzer.export_all_list,
-        //   &analyzer.export_map,
-        //   &analyzer.import_map,
-        //   &analyzer.reachable_import_of_export,
-        //   &analyzer.used_symbol_refs,
-        //   analyzer.top_level_mark,
-        //   analyzer.unresolved_mark,
-        // );
-        //
-        Some((uri_key, analyzer))
+        // if debug_care_module_id(&uri_key.as_str()) {
+        //   dbg!(
+        //     &uri_key,
+        //     // &analyzer.export_all_list,
+        //     &analyzer.export_map,
+        //     &analyzer.import_map,
+        //     &analyzer.maybe_lazy_reference_map,
+        //     &analyzer.immediate_evaluate_reference_map,
+        //     &analyzer.reachable_import_and_export,
+        //     &analyzer.used_symbol_ref
+        //   );
+        // }
+
+        Some((*module_identifier, analyzer))
       })
-      .collect::<IdentifierMap<TreeShakingResult>>()
+      .collect::<IdentifierMap<DepdencyAnalyzeResult>>()
   };
   analyze_results
 }
@@ -1347,7 +1337,7 @@ fn get_reachable(
 }
 
 fn create_inherit_graph(
-  analyze_map: &IdentifierMap<TreeShakingResult>,
+  analyze_map: &IdentifierMap<DepdencyAnalyzeResult>,
 ) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
@@ -1373,7 +1363,7 @@ pub fn merge_used_export_type(
   }
 }
 
-fn get_inherit_export_symbol_ref(entry_module_result: &TreeShakingResult) -> Vec<SymbolRef> {
+fn get_inherit_export_symbol_ref(entry_module_result: &DepdencyAnalyzeResult) -> Vec<SymbolRef> {
   let mut export_atom = HashSet::default();
   let mut inherit_export_symbols = vec![];
   // All the reexport star symbol should be included in the bundle

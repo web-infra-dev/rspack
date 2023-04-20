@@ -1,3 +1,3 @@
 import test from './a.svg'
 
-export const a =  3   ;
+export const a =  3 + test;

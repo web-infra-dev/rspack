@@ -28,7 +28,7 @@ use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
 #[cfg(debug_assertions)]
-use crate::tree_shaking::visitor::TreeShakingResult;
+use crate::tree_shaking::visitor::DepdencyAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -45,7 +45,7 @@ use crate::{
   FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier,
   ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
   ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -89,7 +89,7 @@ pub struct Compilation {
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
   pub exports_info_map: IdentifierMap<Vec<ExportInfo>>,
   #[cfg(debug_assertions)]
-  pub tree_shaking_result: IdentifierMap<TreeShakingResult>,
+  pub tree_shaking_result: IdentifierMap<DepdencyAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,

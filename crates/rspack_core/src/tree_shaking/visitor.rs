@@ -1469,9 +1469,9 @@ impl<'a> ModuleRefAnalyze<'a> {
 /// The `allow(unused)` will be removed after the Tree shaking is finished
 #[derive(Debug)]
 #[allow(unused)]
-pub struct TreeShakingResult {
-  pub top_level_mark: Mark,
-  pub unresolved_mark: Mark,
+pub struct DepdencyAnalyzeResult {
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
@@ -1486,7 +1486,7 @@ pub struct TreeShakingResult {
   pub(crate) module_syntax: ModuleSyntax,
 }
 
-impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
+impl From<ModuleRefAnalyze<'_>> for DepdencyAnalyzeResult {
   fn from(analyze: ModuleRefAnalyze<'_>) -> Self {
     Self {
       top_level_mark: analyze.top_level_mark,
