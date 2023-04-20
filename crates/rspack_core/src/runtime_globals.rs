@@ -189,6 +189,11 @@ bitflags! {
 
     const STARTUP_ENTRYPOINT = 1 << 34;
 
+    const CREATE_SCRIPT_URL = 1 << 35;
+
+    const CREATE_SCRIPT = 1 << 36;
+
+    const GET_TRUSTED_TYPES_POLICY = 1 << 37;
   }
 }
 
@@ -250,6 +255,9 @@ impl RuntimeGlobals {
       R::ASYNC_MODULE => "__webpack_require__.a",
       R::BASE_URI => "__webpack_require__.b",
       R::STARTUP_ENTRYPOINT => "__webpack_require__.X",
+      R::CREATE_SCRIPT_URL => "__webpack_require__.tu",
+      R::CREATE_SCRIPT => "__webpack_require__.ts",
+      R::GET_TRUSTED_TYPES_POLICY => "__webpack_require__.tt",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

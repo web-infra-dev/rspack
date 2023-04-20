@@ -292,7 +292,7 @@ export function describeCases(config: {
 												const code =
 													"(function(require, module, exports, __dirname, __filename, it, beforeEach, afterEach, expect, jest, self, window, fetch, document, importScripts, Worker, EventSource, NEXT, STATS) {" +
 													"global.expect = expect;" +
-													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }\n' +
 													fs.readFileSync(p, "utf-8") +
 													"\n})";
 												const fn = vm.runInThisContext(code, p);

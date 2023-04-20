@@ -32,6 +32,12 @@ pub struct OutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
+  pub trusted_types: Option<TrustedTypes>,
+}
+
+#[derive(Debug)]
+pub struct TrustedTypes {
+  pub policy_name: Option<String>,
 }
 
 #[derive(Debug)]

@@ -1,4 +1,4 @@
-use rspack_core::{ChunkUkey, Compilation, SourceType};
+use rspack_core::{get_js_chunk_filename_template, Chunk, ChunkUkey, Compilation, SourceType};
 use rustc_hash::FxHashSet as HashSet;
 
 // pub fn condition_map_to_string(map: &HashMap<String, bool>, _value: String) -> String {
@@ -139,6 +139,20 @@ pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> Strin
   } else {
     append
   }
+}
+
+pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative: bool) -> String {
+  let filename = get_js_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.chunk_group_by_ukey,
+  );
+  let output_dir = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
+  get_undo_path(
+    output_dir.as_str(),
+    compilation.options.output.path.display().to_string(),
+    enforce_relative,
+  )
 }
 
 #[test]

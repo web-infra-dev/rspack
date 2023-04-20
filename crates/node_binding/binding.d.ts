@@ -288,6 +288,9 @@ export interface RawOptimizationOptions {
   removeAvailableModules: boolean
   sideEffects: string
 }
+export interface RawTrustedTypes {
+  policyName?: string
+}
 export interface RawLibraryName {
   amd?: string
   commonjs?: string
@@ -336,6 +339,7 @@ export interface RawOutputOptions {
   chunkFormat?: string
   chunkLoading?: string
   enabledChunkLoadingTypes?: Array<string>
+  trustedTypes?: RawTrustedTypes
 }
 export interface RawResolveOptions {
   preferRelative?: boolean
