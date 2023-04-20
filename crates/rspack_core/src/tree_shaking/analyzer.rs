@@ -1,6 +1,6 @@
-use super::visitor::DepdencyAnalyzeResult;
+use super::visitor::OptimizeAnalyzeResult;
 use crate::Compilation;
 
-pub trait DependencyAnalyzer {
-  fn analyze(&self, compilation: &Compilation) -> DepdencyAnalyzeResult;
+pub trait OptimizeAnalyzer {
+  fn analyze(&self, compilation: &Compilation) -> OptimizeAnalyzeResult;
 }

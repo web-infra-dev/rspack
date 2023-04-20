@@ -4,7 +4,7 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::ast::ModuleItem;
 
-use self::visitor::{DepdencyAnalyzeResult, SymbolRef};
+use self::visitor::{OptimizeAnalyzeResult, SymbolRef};
 
 pub(crate) mod analyzer;
 pub mod asset_module;
@@ -19,7 +19,7 @@ mod test;
 #[derive(Debug)]
 pub struct OptimizeDependencyResult {
   pub used_symbol_ref: HashSet<SymbolRef>,
-  pub analyze_results: IdentifierMap<DepdencyAnalyzeResult>,
+  pub analyze_results: IdentifierMap<OptimizeAnalyzeResult>,
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
@@ -81,4 +81,10 @@ bitflags::bitflags! {
 pub enum SideEffect {
   Configuration(bool),
   Analyze(bool),
+}
+
+impl Default for SideEffect {
+  fn default() -> Self {
+    SideEffect::Analyze(true)
+  }
 }

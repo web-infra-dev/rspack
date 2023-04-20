@@ -1,6 +1,6 @@
 use super::{
-  analyzer::DependencyAnalyzer,
-  visitor::{DepdencyAnalyzeResult, MarkInfo, ModuleRefAnalyze},
+  analyzer::OptimizeAnalyzer,
+  visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult},
 };
 use crate::{ast::javascript::Ast, ModuleIdentifier};
 
@@ -18,8 +18,8 @@ impl<'a> JsModule<'a> {
   }
 }
 
-impl<'a> DependencyAnalyzer for JsModule<'a> {
-  fn analyze(&self, compilation: &crate::Compilation) -> super::visitor::DepdencyAnalyzeResult {
+impl<'a> OptimizeAnalyzer for JsModule<'a> {
+  fn analyze(&self, compilation: &crate::Compilation) -> super::visitor::OptimizeAnalyzeResult {
     self.ast.visit(|program, context| {
       let top_level_mark = context.top_level_mark;
       let unresolved_mark = context.unresolved_mark;

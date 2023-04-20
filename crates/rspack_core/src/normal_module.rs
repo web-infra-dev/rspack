@@ -36,6 +36,7 @@ use crate::{
 };
 
 bitflags! {
+  #[derive(Default)]
   pub struct ModuleSyntax: u8 {
     const COMMONJS = 1 << 0;
     const ESM = 1 << 1;

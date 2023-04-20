@@ -1467,9 +1467,9 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 /// The `allow(unused)` will be removed after the Tree shaking is finished
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[allow(unused)]
-pub struct DepdencyAnalyzeResult {
+pub struct OptimizeAnalyzeResult {
   top_level_mark: Mark,
   unresolved_mark: Mark,
   pub module_identifier: ModuleIdentifier,
@@ -1486,7 +1486,7 @@ pub struct DepdencyAnalyzeResult {
   pub(crate) module_syntax: ModuleSyntax,
 }
 
-impl From<ModuleRefAnalyze<'_>> for DepdencyAnalyzeResult {
+impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
   fn from(analyze: ModuleRefAnalyze<'_>) -> Self {
     Self {
       top_level_mark: analyze.top_level_mark,
