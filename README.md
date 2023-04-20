@@ -60,6 +60,10 @@ This repo has adopted the ByteDance Open Source Code of Conduct. Please check [C
 
 <a href="https://github.com/web-infra-dev/rspack/graphs/contributors"><img src="https://opencollective.com/rspack/contributors.svg?width=890&button=false" /></a>
 
+## Benchmark
+
+See [Benchmark](https://speedy-js.github.io/metrics/dev/bench/)
+
 ## Credits
 
 Thanks to:
