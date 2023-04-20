@@ -5,8 +5,7 @@ CARGO_WORKSPACE_DIR = { value = "", relative = true }
 [alias]
 lint = "clippy --workspace --all-targets -- --deny warnings"
 # AKA `test-update`, handy cargo rst update without install `cargo-rst` binary
-tu    = "run -p cargo-rst -- update"
-xtask = "run --package xtask --"
+tu = "run -p cargo-rst -- update"
 [target.'cfg(all())']
 rustflags = [
   "-Dclippy::unwrap_in_result", # https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_in_result
