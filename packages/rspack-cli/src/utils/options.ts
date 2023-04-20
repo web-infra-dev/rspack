@@ -35,6 +35,48 @@ export const commonOptions = (yargs: yargs.Argv<{}>) => {
 	});
 };
 
+export const previewOptions = (yargs: yargs.Argv<{}>) => {
+	return yargs
+		.positional("dir", {
+			type: "string",
+			describe: "directory want to preview"
+		})
+		.options({
+			publicPath: {
+				type: "string",
+				describe: "static resource server path"
+			},
+			config: {
+				g: true,
+				type: "string",
+				describe: "config file",
+				alias: "c"
+			},
+			port: {
+				type: "number",
+				describe: "preview server port"
+			},
+			host: {
+				type: "string",
+				describe: "preview server host"
+			},
+			open: {
+				type: "boolean",
+				describe: "open browser"
+			},
+			// same as devServer.server
+			server: {
+				type: "string",
+				describe: "Configuration items for the server."
+			},
+			configName: {
+				type: "array",
+				string: true,
+				describe: "Name of the configuration to use."
+			}
+		});
+};
+
 export function normalizeEnv(argv) {
 	function parseValue(previous, value) {
 		const [allKeys, val] = value.split(/=(.+)/, 2);

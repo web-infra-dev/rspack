@@ -6,7 +6,6 @@ import { RspackOptions, MultiRspackOptions } from "@rspack/core";
 
 const supportedExtensions = [".js", ".ts", ".mjs", ".cjs"];
 const defaultConfig = "rspack.config";
-const defaultEntry = "src/index";
 
 export type LoadedRspackConfig =
 	| undefined
@@ -35,23 +34,7 @@ export async function loadRspackConfig(
 		if (defaultConfigPath != null) {
 			loadedConfig = await requireWithAdditionalExtension(defaultConfigPath);
 		} else {
-			let entry: Record<string, string> = {};
-			if (options.entry) {
-				entry = {
-					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
-				};
-			} else {
-				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
-				const defaultEntryPath =
-					findFileWithSupportedExtensions(defaultEntryBase) ||
-					defaultEntryBase + ".js"; // default entry is js
-				entry = {
-					main: defaultEntryPath
-				};
-			}
-			loadedConfig = {
-				entry
-			};
+			loadedConfig = {};
 		}
 	}
 	return loadedConfig;
@@ -59,7 +42,9 @@ export async function loadRspackConfig(
 
 // takes a basePath like `webpack.config`, return `webpack.config.{js,ts}` if
 // exists. returns null if none of them exists
-function findFileWithSupportedExtensions(basePath: string): string | null {
+export function findFileWithSupportedExtensions(
+	basePath: string
+): string | null {
 	for (const extension of supportedExtensions) {
 		if (fs.existsSync(basePath + extension)) {
 			return basePath + extension;
