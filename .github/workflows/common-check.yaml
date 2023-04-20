@@ -1,4 +1,4 @@
-name: check-rs
+name: common-check
 
 on:
   push:
