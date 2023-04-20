@@ -152,7 +152,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     let dead_nodes_index = HashSet::default();
     // dependency_replacement();
-    self.compilation.include_module_ids = self.finalize_symbol(
+    let include_module_ids = self.finalize_symbol(
       side_effects_options,
       &analyze_result_map,
       used_export_module_identifiers,
@@ -167,6 +167,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         bail_out_module_identifiers: std::mem::take(&mut self.bailout_modules),
         side_effects_free_modules: std::mem::take(&mut self.side_effects_free_modules),
         module_item_map: IdentifierMap::default(),
+        include_module_ids,
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )

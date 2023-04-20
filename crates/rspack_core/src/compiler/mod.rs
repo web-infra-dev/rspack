@@ -11,6 +11,7 @@ pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
+use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::RwLock;
 use tracing::instrument;
@@ -160,6 +161,20 @@ where
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
+      // 1. if `tree_shaking` is false, then whatever `side_effects` is, all the module should be used by default.
+      // 2. if `tree_shaking` is true, then only `side_effects` is false, `module.used` should be true.
+      if !self.options.builtins.tree_shaking || !self.options.optimization.side_effects.is_enable()
+      {
+        self.compilation.include_module_ids = self
+          .compilation
+          .module_graph
+          .modules()
+          .iter()
+          .map(|module| module.0.clone())
+          .collect::<IdentifierSet>();
+      } else {
+        self.compilation.include_module_ids = analyze_result.include_module_ids;
+      }
       for entry in &self.compilation.entry_module_identifiers {
         if let Some(analyze_results) = analyze_result.analyze_results.get(entry) {
           self

@@ -22,6 +22,7 @@ pub struct OptimizeDependencyResult {
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
+  pub include_module_ids: IdentifierSet,
 }
 const ANALYZE_LOGGING: bool = true;
 static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
