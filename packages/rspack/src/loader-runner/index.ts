@@ -173,10 +173,10 @@ export async function runLoader(
 	// execution state
 	let isPitching = rawContext.isPitching;
 	let cacheable = true;
-	let fileDependencies: string[] = [];
-	let contextDependencies: string[] = [];
-	let missingDependencies: string[] = [];
-	let buildDependencies: string[] = [];
+	let fileDependencies: string[] = rawContext.fileDependencies.slice();
+	let contextDependencies: string[] = rawContext.contextDependencies.slice();
+	let missingDependencies: string[] = rawContext.missingDependencies.slice();
+	let buildDependencies: string[] = rawContext.buildDependencies.slice();
 
 	const loaders = rawContext.currentLoader
 		.split("$")
