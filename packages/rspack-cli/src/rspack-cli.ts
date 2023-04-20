@@ -2,9 +2,15 @@ import semver from "semver";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
-import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
+import {
+	RspackBuildCLIOptions,
+	RspackCLIColors,
+	RspackCLILogger,
+	RspackCLIOptions
+} from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
+import { PreviewCommand } from "./commands/preview";
 import {
 	RspackOptions,
 	MultiCompiler,
@@ -15,11 +21,17 @@ import {
 	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import { loadRspackConfig } from "./utils/loadConfig";
+import {
+	loadRspackConfig,
+	findFileWithSupportedExtensions
+} from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
 import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import path from "path";
 
 type Command = "serve" | "build";
+
+const defaultEntry = "src/index";
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv<{}>;
@@ -28,7 +40,7 @@ export class RspackCLI {
 		this.program = yargs();
 	}
 	async createCompiler(
-		options: RspackCLIOptions,
+		options: RspackBuildCLIOptions,
 		rspackCommand: Command,
 		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
@@ -93,14 +105,18 @@ export class RspackCLI {
 		await this.program.parseAsync(hideBin(argv));
 	}
 	async registerCommands() {
-		const builtinCommands = [new BuildCommand(), new ServeCommand()];
+		const builtinCommands = [
+			new BuildCommand(),
+			new ServeCommand(),
+			new PreviewCommand()
+		];
 		for (const command of builtinCommands) {
 			command.apply(this);
 		}
 	}
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
-		options: RspackCLIOptions,
+		options: RspackBuildCLIOptions,
 		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
 		let commandDefaultEnv: "production" | "development" =
@@ -108,6 +124,23 @@ export class RspackCLI {
 		let isBuild = command === "build";
 		let isServe = command === "serve";
 		const internalBuildConfig = async (item: RspackOptions) => {
+			let entry = {};
+			if (!item.entry) {
+				if (options.entry) {
+					entry = {
+						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
+					};
+				} else {
+					const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
+					const defaultEntryPath =
+						findFileWithSupportedExtensions(defaultEntryBase) ||
+						defaultEntryBase + ".js"; // default entry is js
+					entry = {
+						main: defaultEntryPath
+					};
+				}
+				item.entry = entry;
+			}
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
 					"webpack-bundle-analyzer"
@@ -192,6 +225,7 @@ export class RspackCLI {
 			return internalBuildConfig(item as RspackOptions);
 		}
 	}
+
 	async loadConfig(
 		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {

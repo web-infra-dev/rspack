@@ -2819,9 +2819,9 @@ dependencies = [
 
 [[package]]
 name = "sugar_path"
-version = "0.0.9"
+version = "0.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee844c02e1da98f3d28be447c4de7103a54a8fbbcdb4a5967a7946674a8d35d3"
+checksum = "2c23ada2c5165fc936136721f5f69c8dac6eceb5407de40262f32934510bd7b9"
 dependencies = [
  "once_cell",
 ]
