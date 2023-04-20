@@ -25,6 +25,7 @@ use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
 use super::{
   analyzer::OptimizeAnalyzer,
+  asset_module::AssetModule,
   js_module::JsModule,
   symbol_graph::SymbolGraph,
   visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult, SymbolRef},
@@ -1210,9 +1211,7 @@ async fn par_analyze_module(
             }
           }
         } else {
-          // Ignore analyzing other module for now
-          // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
-          return None;
+          AssetModule::new(*module_identifier).analyze(&compilation)
         };
 
         // Keep this debug info until we stabilize the tree-shaking

@@ -1643,7 +1643,7 @@ pub enum SideEffects {
 }
 
 impl SideEffects {
-  fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
+  pub fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
     description
       .data()
       .raw()
