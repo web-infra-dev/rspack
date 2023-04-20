@@ -42,9 +42,9 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
   CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
   DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals,
+  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier,
+  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals,
   RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
@@ -99,6 +99,7 @@ pub struct Compilation {
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
+  pub include_module_ids: IdentifierSet,
 
   pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
@@ -160,6 +161,7 @@ impl Compilation {
       build_dependencies: Default::default(),
       side_effects_free_modules: IdentifierSet::default(),
       module_item_map: IdentifierMap::default(),
+      include_module_ids: IdentifierSet::default(),
     }
   }
 

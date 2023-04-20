@@ -198,7 +198,9 @@ pub fn run_after_pass(
         .module_graph
         .module_graph_module_by_identifier(&module.identifier())
         .expect("should have module graph module");
-      let need_tree_shaking = mgm.used;
+      let need_tree_shaking = compilation
+        .include_module_ids
+        .contains(&module.identifier());
       let build_meta = mgm.build_meta.as_ref().expect("should have build meta");
       let build_info = mgm.build_info.as_ref().expect("should have build info");
 

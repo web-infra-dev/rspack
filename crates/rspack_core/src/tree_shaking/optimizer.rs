@@ -305,7 +305,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     used_symbol_ref: &mut HashSet<SymbolRef>,
     visited_symbol_ref: HashSet<SymbolRef>,
     dead_node_index: &HashSet<NodeIndex>,
-  ) {
+  ) -> IdentifierSet {
+    let mut include_module_ids = IdentifierSet::default();
     if side_effects_analyze {
       let symbol_graph = &self.symbol_graph;
       let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
@@ -355,7 +356,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               .unwrap_or_else(|| {
                 panic!("Failed to get mgm by module identifier {module_identifier}")
               });
-            mgm.used = true;
+            include_module_ids.insert(mgm.module_identifier);
             continue;
           }
         };
@@ -382,7 +383,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           .module_graph
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
-        mgm.used = true;
+        include_module_ids.insert(mgm.module_identifier);
         if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
             update_reachable_dependency(
@@ -482,6 +483,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       *used_symbol_ref = visited_symbol_ref;
     }
+    include_module_ids
   }
 
   fn get_side_effects_free_modules(

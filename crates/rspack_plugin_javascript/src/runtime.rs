@@ -29,9 +29,12 @@ pub fn render_chunk_modules(
       .block_on(async move { compilation.plugin_driver.read().await })
   });
 
+  let side_effects_enable = compilation.options.optimization.side_effects.is_enable();
+  let include_module_ids = &compilation.include_module_ids;
+
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|mgm| mgm.used)
+    .filter(|mgm| !side_effects_enable || include_module_ids.contains(&mgm.module_identifier))
     .map(|mgm| {
       let code_gen_result = compilation
         .code_generation_results

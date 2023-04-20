@@ -16,24 +16,28 @@ pub fn tree_shaking_visitor<'a>(
   module_graph: &'a ModuleGraph,
   module_id: Identifier,
   used_symbol_set: &'a HashSet<SymbolRef>,
-  top_level_mark: Mark,
   side_effects_free_modules: &'a IdentifierSet,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
-  helper_mark: Mark,
+  extra_mark: ExtraMark,
+  include_module_ids: IdentifierSet,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
     decl_mappings,
     module_identifier: module_id,
     used_symbol_set,
-    top_level_mark,
     module_item_index: 0,
     insert_item_tuple_list: Vec::new(),
     side_effects_free_modules,
     last_module_item_index: 0,
     module_item_map,
-    helper_mark,
+    extra_mark,
   }
+}
+
+pub struct ExtraMark {
+  top_level_mark: Mark,
+  helper_mark: Mark,
 }
 
 /// The basic idea of shaking the tree is pretty easy,
@@ -52,14 +56,14 @@ struct TreeShaker<'a> {
   decl_mappings: &'a CodeGeneratableDeclMappings,
   module_identifier: Identifier,
   used_symbol_set: &'a HashSet<SymbolRef>,
-  top_level_mark: Mark,
   /// First element of tuple is the position of body you want to insert with, the second element is the item you want to insert
   insert_item_tuple_list: Vec<(usize, ModuleItem)>,
   module_item_index: usize,
   side_effects_free_modules: &'a IdentifierSet,
   last_module_item_index: usize,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
-  helper_mark: Mark,
+  extra_mark: ExtraMark,
+  include_module_ids: IdentifierSet,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -121,7 +125,9 @@ impl<'a> Fold for TreeShaker<'a> {
 impl<'a> TreeShaker<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
     let mut default_ident = quote_ident!("default");
-    default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
+    default_ident.span = default_ident
+      .span
+      .apply_mark(self.extra_mark.top_level_mark);
     Symbol::new(
       self.module_identifier,
       default_ident.to_id().into(),
@@ -148,8 +154,7 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
-
-    if !mgm.used {
+    if !self.include_module_ids.contains(&self.module_identifier) {
       return Self::create_empty_stmt_module_item();
     }
     // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));
@@ -338,7 +343,7 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
-    if !mgm.used {
+    if !self.include_module_ids.contains(&self.module_identifier) {
       Self::create_empty_stmt_module_item()
     } else {
       ModuleItem::ModuleDecl(ModuleDecl::ExportAll(export_all))
@@ -355,7 +360,7 @@ impl<'a> TreeShaker<'a> {
         .module_graph
         .module_graph_module_by_identifier(&module_identifier)
         .expect("TODO:");
-      if !mgm.used {
+      if !self.include_module_ids.contains(&self.module_identifier) {
         return Self::create_empty_stmt_module_item();
       }
       let specifiers = named
