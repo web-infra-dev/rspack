@@ -162,7 +162,7 @@ impl<'a> TreeShaker<'a> {
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
 
-    if self.include_module_ids.contains(&mgm.module_identifier) {
+    if !self.include_module_ids.contains(&mgm.module_identifier) {
       return Self::create_empty_stmt_module_item();
     }
     // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));
@@ -351,7 +351,7 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
-    if self.include_module_ids.contains(&mgm.module_identifier) {
+    if !self.include_module_ids.contains(&mgm.module_identifier) {
       Self::create_empty_stmt_module_item()
     } else {
       ModuleItem::ModuleDecl(ModuleDecl::ExportAll(export_all))
@@ -368,7 +368,7 @@ impl<'a> TreeShaker<'a> {
         .module_graph
         .module_graph_module_by_identifier(&module_identifier)
         .expect("TODO:");
-      if self.include_module_ids.contains(&mgm.module_identifier) {
+      if !self.include_module_ids.contains(&mgm.module_identifier) {
         return Self::create_empty_stmt_module_item();
       }
       let specifiers = named
