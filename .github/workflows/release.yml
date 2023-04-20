@@ -60,7 +60,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Move artifacts
-        run: node scripts/build-npm.js
+        run: node scripts/build-npm.cjs
 
       - name: Show binding packages
         run: ls -R npm

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     # 00:07 AM Beijing Time, offset an odd number to avoid cron jobs firing off at the same time
-    - cron:  '7 16 * * *'
+    - cron: "7 16 * * *"
 
 jobs:
   build:
@@ -53,7 +53,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Move artifacts
-        run: node scripts/build-npm.js
+        run: node scripts/build-npm.cjs
 
       - name: Show binding packages
         run: ls -R npm

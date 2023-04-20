@@ -69,7 +69,7 @@ jobs:
           args: --workspace --all-targets -- -D warnings
 
       - name: Check Dependencies
-        run: node ./scripts/check_rust_dependency.js
+        run: node ./scripts/check_rust_dependency.cjs
 
       - name: Run test
         run: |
