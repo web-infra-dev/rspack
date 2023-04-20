@@ -25,6 +25,10 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install toolchain
         run: rustup show
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
       - name: Run benchmark
         run: |
           set -o pipefail 
