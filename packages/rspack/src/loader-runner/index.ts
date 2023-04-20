@@ -370,8 +370,7 @@ export async function runLoader(
 			[name, resource].filter(Boolean).join("|")
 		);
 	};
-	// @ts-expect-error TODO
-	loaderContext.rootContext = compiler.options.context;
+	loaderContext.rootContext = compiler.context;
 	loaderContext.emitError = function emitError(error) {
 		const title = "Module Error";
 		const message =
@@ -519,7 +518,6 @@ export async function runLoader(
 
 	return new Promise((resolve, reject) => {
 		if (isPitching) {
-			// `originalContent` is always available in pitching stage
 			iteratePitchingLoaders(loaderContext, [], (err: Error, result: any[]) => {
 				if (err) {
 					return reject(err);
