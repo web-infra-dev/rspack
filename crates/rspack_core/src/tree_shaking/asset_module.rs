@@ -1,7 +1,7 @@
 use sugar_path::SugarPath;
 
 use super::visitor::SideEffects;
-use super::{analyzer::OptimizeAnalyzer, visitor::OptimizeAnalyzeResult, SideEffect};
+use super::{analyzer::OptimizeAnalyzer, visitor::OptimizeAnalyzeResult, SideEffectType};
 use crate::tree_shaking::visitor::get_side_effects_from_package_json;
 use crate::{Compilation, FactoryMeta, ModuleIdentifier};
 
@@ -14,7 +14,7 @@ impl AssetModule {
     Self { module_identifier }
   }
 
-  fn get_side_effects_from_config(&self, compilation: &Compilation) -> Option<SideEffect> {
+  fn get_side_effects_from_config(&self, compilation: &Compilation) -> Option<SideEffectType> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
     if let Some(mgm) = compilation
@@ -22,7 +22,7 @@ impl AssetModule {
       .module_graph_module_by_identifier(&self.module_identifier)
       && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
     {
-      return Some(SideEffect::Analyze(*side_effects))
+      return Some(SideEffectType::Analyze(*side_effects))
     }
 
     let resource_data = compilation
@@ -41,7 +41,7 @@ impl AssetModule {
       relative_path,
     ));
 
-    side_effects.map(SideEffect::Configuration)
+    side_effects.map(SideEffectType::Configuration)
   }
 }
 
@@ -50,7 +50,7 @@ impl OptimizeAnalyzer for AssetModule {
     let mut result = OptimizeAnalyzeResult::default();
     result.side_effects = self
       .get_side_effects_from_config(compilation)
-      .unwrap_or_else(|| SideEffect::Configuration(true));
+      .unwrap_or_else(|| SideEffectType::Configuration(true));
     result
   }
 }

@@ -29,7 +29,7 @@ use super::{
   js_module::JsModule,
   symbol_graph::SymbolGraph,
   visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult, SymbolRef},
-  BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
+  BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
   contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
@@ -69,7 +69,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       .optimization
       .side_effects
       .is_enable();
-    let mut side_effect_map: IdentifierMap<SideEffect> = IdentifierMap::default();
+    let mut side_effect_map: IdentifierMap<SideEffectType> = IdentifierMap::default();
     for analyze_result in analyze_result_map.values() {
       side_effect_map.insert(
         analyze_result.module_identifier,
@@ -85,7 +85,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       if forced_side_effects
         || !matches!(
           analyze_result.side_effects,
-          SideEffect::Configuration(false)
+          SideEffectType::Configuration(false)
         )
       {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
@@ -492,7 +492,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
   fn get_side_effects_free_modules(
     &self,
-    mut side_effect_map: IdentifierMap<SideEffect>,
+    mut side_effect_map: IdentifierMap<SideEffectType>,
   ) -> IdentifierSet {
     // normalize side_effects, there are two kinds of `side_effects` one from configuration and another from analyze ast
     for entry_module_ident in self.compilation.entry_module_identifiers.iter() {
@@ -508,8 +508,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       .iter()
       .filter_map(|(k, v)| {
         let side_effect = match v {
-          SideEffect::Configuration(value) => value,
-          SideEffect::Analyze(value) => value,
+          SideEffectType::Configuration(value) => value,
+          SideEffectType::Analyze(value) => value,
         };
         if !side_effect {
           Some(*k)
@@ -525,7 +525,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     cur: Identifier,
     module_graph: &ModuleGraph,
     visited_module: &mut IdentifierSet,
-    side_effects_map: &mut IdentifierMap<SideEffect>,
+    side_effects_map: &mut IdentifierMap<SideEffectType>,
   ) {
     if visited_module.contains(&cur) {
       return;
@@ -556,14 +556,14 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     let need_change_to_side_effects_true = match side_effects_map.get(&cur) {
       // skip no deps or user already specified side effect in package.json
-      Some(SideEffect::Configuration(_)) | None => false,
+      Some(SideEffectType::Configuration(_)) | None => false,
       // already marked as side-effectful
-      Some(SideEffect::Analyze(true)) => false,
-      Some(SideEffect::Analyze(false)) => {
+      Some(SideEffectType::Analyze(true)) => false,
+      Some(SideEffectType::Analyze(false)) => {
         let mut side_effect_list = module_ident_list.into_iter().filter(|ident| {
           matches!(
             side_effects_map.get(ident),
-            Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
+            Some(SideEffectType::Analyze(true)) | Some(SideEffectType::Configuration(true))
           )
         });
         side_effect_list.next().is_some()
@@ -575,7 +575,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     if need_change_to_side_effects_true {
       if let Some(cur) = side_effects_map.get_mut(&cur) {
-        *cur = SideEffect::Analyze(true);
+        *cur = SideEffectType::Analyze(true);
       }
     }
   }

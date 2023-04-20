@@ -78,13 +78,13 @@ bitflags::bitflags! {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum SideEffect {
+pub enum SideEffectType {
   Configuration(bool),
   Analyze(bool),
 }
 
-impl Default for SideEffect {
+impl Default for SideEffectType {
   fn default() -> Self {
-    SideEffect::Analyze(true)
+    SideEffectType::Analyze(true)
   }
 }
