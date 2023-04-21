@@ -105,18 +105,15 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
 /// Match the expr is `import.meta.webpackHot`
 pub fn is_expr_exact_import_meta_webpack_hot(expr: &Expr) -> bool {
   use swc_core::ecma::ast;
-  match expr {
-    ast::Expr::Member(ast::MemberExpr {
-      obj:
-        box ast::Expr::MetaProp(ast::MetaPropExpr {
-          kind: ast::MetaPropKind::ImportMeta,
-          ..
-        }),
-      prop: ast::MemberProp::Ident(ast::Ident { sym: prop, .. }),
-      ..
-    }) if prop == "webpackHot" => true,
-    _ => false,
-  }
+  matches!(expr, ast::Expr::Member(ast::MemberExpr {
+    obj:
+      box ast::Expr::MetaProp(ast::MetaPropExpr {
+        kind: ast::MetaPropKind::ImportMeta,
+        ..
+      }),
+    prop: ast::MemberProp::Ident(ast::Ident { sym: prop, .. }),
+    ..
+  }) if prop == "webpackHot")
 }
 
 pub fn is_member_expr_starts_with_import_meta_webpack_hot(expr: &Expr) -> bool {
