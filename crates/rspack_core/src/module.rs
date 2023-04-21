@@ -194,6 +194,18 @@ impl Module for Box<dyn Module> {
     }
 }
 
+impl DynEq for Box<dyn Module> {
+  fn dyn_eq(&self, other: &dyn Any) -> bool {
+      if let Some(other) = other.as_any().downcast_ref::<Self>() {
+          // If the concrete types are the same, compare their DynHash values
+          self.dyn_hash() == other.dyn_hash()
+      } else {
+          // If the concrete types are different, they cannot be equal
+          false
+      }
+  }
+}
+
 
 impl dyn Module + '_ {
   pub fn downcast_ref<T: Module + Any>(&self) -> Option<&T> {
