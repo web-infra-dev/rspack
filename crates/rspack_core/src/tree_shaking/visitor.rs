@@ -470,7 +470,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
-    // dbg!(&self.used_id_set);
+    dbg!(&self.used_id_set);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {
@@ -1479,8 +1479,9 @@ impl<'a> ModuleRefAnalyze<'a> {
 #[derive(Debug)]
 #[allow(unused)]
 pub struct TreeShakingResult {
-  top_level_mark: Mark,
-  unresolved_mark: Mark,
+  pub top_level_mark: Mark,
+  pub unresolved_mark: Mark,
+  pub helper_mark: Mark,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
@@ -1512,6 +1513,7 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       bail_out_module_identifiers: analyze.bail_out_module_identifiers,
       side_effects: analyze.side_effects,
       module_syntax: analyze.module_syntax,
+      helper_mark: analyze.helper_mark,
     }
   }
 }

@@ -24,6 +24,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
 use super::{
+  debug_care_module_id,
   symbol_graph::SymbolGraph,
   visitor::{MarkInfo, ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
@@ -1223,18 +1224,22 @@ async fn par_analyze_module(
         });
 
         // Keep this debug info until we stabilize the tree-shaking
-        // if debug_care_module_id(&uri_key.as_str()) {
-        //   dbg!(
-        //     &uri_key,
-        //     // &analyzer.export_all_list,
-        //     &analyzer.export_map,
-        //     &analyzer.import_map,
-        //     &analyzer.maybe_lazy_reference_map,
-        //     &analyzer.immediate_evaluate_reference_map,
-        //     &analyzer.reachable_import_and_export,
-        //     &analyzer.used_symbol_ref
-        //   );
-        // }
+        if debug_care_module_id(&uri_key.as_str()) {
+          // ast.visit(|p, c| {
+          //   dbg!(&p);
+          // });
+          dbg!(
+            &uri_key,
+            // &analyzer.export_all_list,
+            &analyzer.export_map,
+            &analyzer.import_map,
+            &analyzer.reachable_import_of_export,
+            &analyzer.used_symbol_refs,
+            analyzer.helper_mark,
+            analyzer.top_level_mark,
+            analyzer.unresolved_mark
+          );
+        }
 
         Some((uri_key, analyzer))
       })
