@@ -1452,6 +1452,10 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				enforce: {
+					description: "Enforce this rule as pre or post step.",
+					enum: ["pre", "post"]
+				},
 				exclude: {
 					description: "Shortcut for resource.exclude.",
 					oneOf: [

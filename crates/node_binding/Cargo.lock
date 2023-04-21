@@ -1902,6 +1902,7 @@ dependencies = [
  "better_scoped_tls",
  "cfg-if",
  "dashmap",
+ "derivative",
  "glob",
  "indexmap",
  "napi",
