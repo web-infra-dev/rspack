@@ -16,7 +16,7 @@ use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
-use super::{as_parent_path, is_require_context_call, match_member_expr};
+use super::{as_parent_path, expr_matcher, is_require_context_call};
 use crate::dependency::{
   CommonJSRequireDependency, EsmExportDependency, EsmImportDependency, URLDependency,
 };
@@ -417,13 +417,13 @@ impl VisitAstPath for DependencyScanner<'_> {
           _ => {}
         }
       }
-    } else if match_member_expr(expr, "require.cache") {
+    } else if expr_matcher::is_require_cache(expr) {
       self.add_presentational_dependency(box ConstDependency::new(
         *member_expr!(DUMMY_SP, __webpack_require__.c),
         Some(RuntimeGlobals::MODULE_CACHE),
         as_parent_path(ast_path),
       ));
-    } else if match_member_expr(expr, "__webpack_module__.id") {
+    } else if expr_matcher::is_webpack_module_id(expr) {
       self.add_presentational_dependency(box ConstDependency::new(
         *member_expr!(DUMMY_SP, module.id),
         Some(RuntimeGlobals::MODULE_CACHE),

@@ -7,8 +7,8 @@ use swc_core::quote;
 use url::Url;
 
 use super::{
-  as_parent_path, is_import_meta, is_import_meta_member_expr,
-  is_member_expr_starts_with_import_meta_webpack_hot, match_import_meta_member_expr,
+  as_parent_path, expr_matcher, is_member_expr_starts_with_import_meta,
+  is_member_expr_starts_with_import_meta_webpack_hot,
 };
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
@@ -52,7 +52,7 @@ impl VisitAstPath for ImportMetaScanner<'_> {
       return;
     }
     // import.meta.url
-    if match_import_meta_member_expr(expr, "import.meta.url") {
+    if expr_matcher::is_import_meta_url(expr) {
       let url = Url::from_file_path(&self.resource_data.resource).expect("should be a path");
       self.add_presentational_dependency(box ConstDependency::new(
         Expr::Lit(Lit::Str(Str {
@@ -65,7 +65,7 @@ impl VisitAstPath for ImportMetaScanner<'_> {
       ));
     }
     // import.meta.xxx
-    else if is_import_meta_member_expr(expr) {
+    else if is_member_expr_starts_with_import_meta(expr) {
       self.add_presentational_dependency(box ConstDependency::new(
         quote!("undefined" as Expr),
         None,
@@ -73,7 +73,7 @@ impl VisitAstPath for ImportMetaScanner<'_> {
       ));
     }
     // import.meta
-    else if is_import_meta(expr) {
+    else if expr_matcher::is_import_meta(expr) {
       // TODO add warning
       self.add_presentational_dependency(box ConstDependency::new(
         quote!("({})" as Expr),
@@ -87,7 +87,7 @@ impl VisitAstPath for ImportMetaScanner<'_> {
     }) = expr
     {
       // typeof import.meta.url
-      if match_import_meta_member_expr(expr, "import.meta.url") {
+      if expr_matcher::is_import_meta_url(expr) {
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("'string'" as Expr),
           None,
@@ -95,7 +95,7 @@ impl VisitAstPath for ImportMetaScanner<'_> {
         ));
       }
       // typeof import.meta.xxx
-      else if is_import_meta_member_expr(expr) {
+      else if is_member_expr_starts_with_import_meta(expr) {
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("undefined" as Expr),
           None,
@@ -103,7 +103,7 @@ impl VisitAstPath for ImportMetaScanner<'_> {
         ));
       }
       // typeof import.meta
-      else if is_import_meta(expr) {
+      else if expr_matcher::is_import_meta(expr) {
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("'object'" as Expr),
           None,
