@@ -7,8 +7,8 @@ use swc_core::quote;
 use url::Url;
 
 use super::{
-  as_parent_path, is_import_meta, is_import_meta_hot, is_import_meta_member_expr,
-  match_import_meta_member_expr,
+  as_parent_path, is_import_meta, is_import_meta_member_expr,
+  is_member_expr_starts_with_import_meta_webpack_hot, match_import_meta_member_expr,
 };
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/ImportMetaPlugin.js
@@ -48,7 +48,7 @@ impl VisitAstPath for ImportMetaScanner<'_> {
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
     // exclude import.meta.webpackHot
-    if is_import_meta_hot(expr) {
+    if is_member_expr_starts_with_import_meta_webpack_hot(expr) {
       return;
     }
     // import.meta.url
