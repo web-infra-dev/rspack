@@ -3,6 +3,8 @@ use std::path::PathBuf;
 
 use napi::bindgen_prelude::*;
 use napi::NapiRaw;
+use rspack_core::rspack_sources::BoxSource;
+use rspack_core::AssetInfo;
 use rspack_core::{rspack_sources::SourceExt, AstOrSource, NormalModuleAstOrSource};
 use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
@@ -33,7 +35,7 @@ impl JsCompilation {
     self
       .inner
       .update_asset(&filename, |original_source, original_info| {
-        let napi_result: napi::Result<()> = try {
+        let new_source: napi::Result<BoxSource> = try {
           let new_source = match new_source_or_function {
             Either::A(new_source) => Into::<CompatSource>::into(new_source).boxed(),
             Either::B(new_source_fn) => {
@@ -53,14 +55,14 @@ impl JsCompilation {
               compat_source.boxed()
             }
           };
-          *original_source = new_source;
+          new_source
         };
-        napi_result.into_rspack_result()?;
+        let new_source = new_source.into_rspack_result()?;
 
-        let napi_result: napi::Result<()> = try {
-          if let Some(asset_info_update_or_function) = asset_info_update_or_function {
-            let asset_info = match asset_info_update_or_function {
-              Either::A(asset_info) => asset_info,
+        let new_info: napi::Result<Option<AssetInfo>> = asset_info_update_or_function
+          .map(
+            |asset_info_update_or_function| match asset_info_update_or_function {
+              Either::A(asset_info) => Ok(asset_info.into()),
               Either::B(asset_info_fn) => {
                 let asset_info = unsafe {
                   call_js_function_with_napi_objects!(
@@ -70,17 +72,16 @@ impl JsCompilation {
                   )
                 }?;
 
-                unsafe {
+                let js_asset_info = unsafe {
                   convert_raw_napi_value_to_napi_value!(env, JsAssetInfo, asset_info.raw())
-                }?
+                }?;
+                Ok(js_asset_info.into())
               }
-            };
-
-            *original_info = asset_info.into();
-          }
-        };
-        napi_result.into_rspack_result()?;
-        Ok(())
+            },
+          )
+          .transpose();
+        let new_info = new_info.into_rspack_result()?;
+        Ok((new_source, new_info.unwrap_or(original_info)))
       })
       .map_err(|err| napi::Error::from_reason(err.to_string()))
   }

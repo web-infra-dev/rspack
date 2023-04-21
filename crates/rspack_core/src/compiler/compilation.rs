@@ -170,20 +170,30 @@ impl Compilation {
   pub fn update_asset(
     &mut self,
     filename: &str,
-    updater: impl FnOnce(&mut BoxSource, &mut AssetInfo) -> Result<()>,
+    updater: impl FnOnce(BoxSource, AssetInfo) -> Result<(BoxSource, AssetInfo)>,
   ) -> Result<()> {
     // Safety: we don't move anything from compilation
     let assets = &mut self.assets;
 
-    match assets.get_mut(filename) {
+    let (new_source, new_info) = match assets.remove(filename) {
       Some(CompilationAsset {
         source: Some(source),
         info,
-      }) => updater(source, info),
-      _ => Err(internal_error!(
-        "Called Compilation.updateAsset for not existing filename {filename}"
-      )),
-    }
+      }) => updater(source, info)?,
+      _ => {
+        return Err(internal_error!(
+          "Called Compilation.updateAsset for not existing filename {filename}"
+        ))
+      }
+    };
+    self.emit_asset(
+      filename.to_owned(),
+      CompilationAsset {
+        source: Some(new_source),
+        info: new_info,
+      },
+    );
+    Ok(())
   }
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {

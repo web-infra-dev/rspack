@@ -3,6 +3,7 @@ module.exports = {
 		main: "./index",
 		a: "./a"
 	},
+	devtool: "source-map",
 	builtins: {
 		banner: [
 			"MMMMMMM",
