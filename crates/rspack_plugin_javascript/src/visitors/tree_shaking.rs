@@ -149,6 +149,7 @@ impl<'a> TreeShaker<'a> {
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
     if !mgm.used {
+      println!("unused : {}", mgm.module_identifier);
       return Self::create_empty_stmt_module_item();
     }
     // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));

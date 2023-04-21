@@ -1,2 +1,2 @@
 import Test from '../source'
-console.log('somethjing')
+console.log('somethjing', Test)

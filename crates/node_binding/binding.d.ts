@@ -293,8 +293,6 @@ export interface RawModuleRule {
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
-  /** Specifies the category of the loader. No value means normal loader. */
-  enforce?: 'pre' | 'post'
 }
 export interface RawModuleRuleGenerator {
   filename?: string
@@ -655,6 +653,64 @@ export class JsCompilation {
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
+  getAssets(): Readonly<JsAsset>[]
+  getAsset(name: string): JsAsset | null
+  getAssetSource(name: string): JsCompatSource | null
+  getModules(): Array<JsModule>
+  getChunks(): Array<JsChunk>
+  /**
+   * Only available for those none Js and Css source,
+   * return true if set module source successfully, false if failed.
+   */
+  setNoneAstModuleSource(moduleIdentifier: string, source: JsCompatSource): boolean
+  setAssetSource(name: string, source: JsCompatSource): void
+  deleteAssetSource(name: string): void
+  getAssetFilenames(): Array<string>
+  hasAsset(name: string): boolean
+  emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  deleteAsset(filename: string): void
+  get entrypoints(): Record<string, JsChunkGroup>
+  get hash(): string
+  getFileDependencies(): Array<string>
+  getContextDependencies(): Array<string>
+  getMissingDependencies(): Array<string>
+  getBuildDependencies(): Array<string>
+  pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
+  getStats(): JsStats
+  addFileDependencies(deps: Array<string>): void
+  addContextDependencies(deps: Array<string>): void
+  addMissingDependencies(deps: Array<string>): void
+  addBuildDependencies(deps: Array<string>): void
+  updateAsset(filename: string, newSourceOrFunction: JsCompatSource | ((source: JsCompatSource) => JsCompatSource), assetInfoUpdateOrFunction?: JsAssetInfo | ((assetInfo: JsAssetInfo) => JsAssetInfo)): void
+  getAssets(): Readonly<JsAsset>[]
+  getAsset(name: string): JsAsset | null
+  getAssetSource(name: string): JsCompatSource | null
+  getModules(): Array<JsModule>
+  getChunks(): Array<JsChunk>
+  /**
+   * Only available for those none Js and Css source,
+   * return true if set module source successfully, false if failed.
+   */
+  setNoneAstModuleSource(moduleIdentifier: string, source: JsCompatSource): boolean
+  setAssetSource(name: string, source: JsCompatSource): void
+  deleteAssetSource(name: string): void
+  getAssetFilenames(): Array<string>
+  hasAsset(name: string): boolean
+  emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
+  deleteAsset(filename: string): void
+  get entrypoints(): Record<string, JsChunkGroup>
+  get hash(): string
+  getFileDependencies(): Array<string>
+  getContextDependencies(): Array<string>
+  getMissingDependencies(): Array<string>
+  getBuildDependencies(): Array<string>
+  pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
+  getStats(): JsStats
+  addFileDependencies(deps: Array<string>): void
+  addContextDependencies(deps: Array<string>): void
+  addMissingDependencies(deps: Array<string>): void
+  addBuildDependencies(deps: Array<string>): void
 }
 export class JsStats {
   getAssets(): JsStatsGetAssets
@@ -665,8 +721,92 @@ export class JsStats {
   getErrors(): Array<JsStatsError>
   getWarnings(): Array<JsStatsWarning>
   getHash(): string
+  getAssets(): JsStatsGetAssets
+  getModules(): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean): Array<JsStatsChunk>
+  getEntrypoints(): Array<JsStatsChunkGroup>
+  getNamedChunkGroups(): Array<JsStatsChunkGroup>
+  getErrors(): Array<JsStatsError>
+  getWarnings(): Array<JsStatsWarning>
+  getHash(): string
+  getAssets(): JsStatsGetAssets
+  getModules(): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean): Array<JsStatsChunk>
+  getEntrypoints(): Array<JsStatsChunkGroup>
+  getNamedChunkGroups(): Array<JsStatsChunkGroup>
+  getErrors(): Array<JsStatsError>
+  getWarnings(): Array<JsStatsWarning>
+  getHash(): string
 }
 export class Rspack {
+  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  unsafe_set_disabled_hooks(hooks: Array<string>): void
+  /**
+   * Build with the given option passed to the constructor
+   *
+   * Warning:
+   * Calling this method recursively might cause a deadlock.
+   */
+  unsafe_build(callback: (err: null | Error) => void): void
+  /**
+   * Rebuild with the given option passed to the constructor
+   *
+   * Warning:
+   * Calling this method recursively will cause a deadlock.
+   */
+  unsafe_rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+  /**
+   * Get the last compilation
+   *
+   * Warning:
+   *
+   * Calling this method under the build or rebuild method might cause a deadlock.
+   *
+   * **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
+   */
+  unsafe_last_compilation(f: (arg0: JsCompilation) => void): void
+  /**
+   * Destroy the compiler
+   *
+   * Warning:
+   *
+   * Anything related to this compiler will be invalidated after this method is called.
+   */
+  unsafe_drop(): void
+  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
+  unsafe_set_disabled_hooks(hooks: Array<string>): void
+  /**
+   * Build with the given option passed to the constructor
+   *
+   * Warning:
+   * Calling this method recursively might cause a deadlock.
+   */
+  unsafe_build(callback: (err: null | Error) => void): void
+  /**
+   * Rebuild with the given option passed to the constructor
+   *
+   * Warning:
+   * Calling this method recursively will cause a deadlock.
+   */
+  unsafe_rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
+  /**
+   * Get the last compilation
+   *
+   * Warning:
+   *
+   * Calling this method under the build or rebuild method might cause a deadlock.
+   *
+   * **Note** that this method is not safe if you cache the _JsCompilation_ on the Node side, as it will be invalidated by the next build and accessing a dangling ptr is a UB.
+   */
+  unsafe_last_compilation(f: (arg0: JsCompilation) => void): void
+  /**
+   * Destroy the compiler
+   *
+   * Warning:
+   *
+   * Anything related to this compiler will be invalidated after this method is called.
+   */
+  unsafe_drop(): void
   constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**

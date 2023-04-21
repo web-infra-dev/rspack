@@ -30,8 +30,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, ModuleGraph,
-  ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, dbg_matches, join_string_component, tree_shaking::ConvertModulePath, Compilation,
+  ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -156,6 +156,15 @@ impl<'a> CodeSizeOptimizer<'a> {
       visited_symbol_ref,
       &dead_nodes_index,
     );
+    // dbg!(&used_symbol_ref);
+    let used_modules_ids = self
+      .compilation
+      .module_graph
+      .module_identifier_to_module_graph_module
+      .iter()
+      .map(|(id, mgm)| (*id, mgm.used))
+      .collect::<Vec<_>>();
+    // dbg!(&used_modules_ids);
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
@@ -1224,22 +1233,21 @@ async fn par_analyze_module(
         });
 
         // Keep this debug info until we stabilize the tree-shaking
-        if debug_care_module_id(&uri_key.as_str()) {
-          // ast.visit(|p, c| {
-          //   dbg!(&p);
-          // });
-          dbg!(
-            &uri_key,
-            // &analyzer.export_all_list,
-            &analyzer.export_map,
-            &analyzer.import_map,
-            &analyzer.reachable_import_of_export,
-            &analyzer.used_symbol_refs,
-            analyzer.helper_mark,
-            analyzer.top_level_mark,
-            analyzer.unresolved_mark
-          );
-        }
+        // ast.visit(|p, c| {
+        //   dbg!(&p);
+        // });
+        dbg_matches!(
+          *uri_key,
+          &uri_key,
+          // &analyzer.export_all_list,
+          &analyzer.export_map,
+          &analyzer.import_map,
+          &analyzer.reachable_import_of_export,
+          &analyzer.used_symbol_refs,
+          analyzer.helper_mark,
+          analyzer.top_level_mark,
+          analyzer.unresolved_mark
+        );
 
         Some((uri_key, analyzer))
       })
