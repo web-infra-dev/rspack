@@ -2312,7 +2312,9 @@ dependencies = [
  "rspack_binding_macros",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_ids",
+ "rspack_loader_runner",
  "rspack_loader_sass",
  "rspack_napi_shared",
  "rspack_plugin_asset",
@@ -2364,6 +2366,7 @@ dependencies = [
  "async-trait",
  "bitflags",
  "dashmap",
+ "derivative",
  "dyn-clone",
  "futures",
  "glob",
@@ -2488,26 +2491,10 @@ dependencies = [
 name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-trait",
- "nodejs-resolver",
- "rspack_error",
- "rspack_sources",
- "rustc-hash",
- "similar-asserts",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "url",
-]
-
-[[package]]
-name = "rspack_loader_runner2"
-version = "0.1.0"
-dependencies = [
  "async-recursion",
  "async-trait",
  "bitflags",
+ "derivative",
  "nodejs-resolver",
  "once_cell",
  "regex",

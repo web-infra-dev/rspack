@@ -4,6 +4,7 @@ use std::{
 };
 
 use async_recursion::async_recursion;
+use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
@@ -119,7 +120,8 @@ where
   Ok(true)
 }
 
-#[derive(Debug, Default)]
+#[derive(Derivative)]
+#[derivative(Debug, Default)]
 pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
@@ -135,6 +137,7 @@ pub struct ModuleRule {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
+  #[derivative(Debug = "ignore")]
   pub r#use: Vec<BoxLoader>,
   pub parser: Option<AssetParserOptions>,
   pub generator: Option<AssetGeneratorOptions>,

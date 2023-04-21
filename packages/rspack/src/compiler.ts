@@ -15,6 +15,7 @@ import Watching from "./watching";
 import * as binding from "@rspack/binding";
 import { Logger } from "./logging/Logger";
 import { RspackOptionsNormalized } from "./config";
+import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./stats";
 import { Compilation, CompilationParams } from "./compilation";
 import ResolverFactory from "./ResolverFactory";
@@ -23,6 +24,7 @@ import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { getRawOptions } from "./config/adapter";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import { NormalModuleFactory } from "./normalModuleFactory";
+import { runLoader } from "./loader-runner";
 
 class EntryPlugin {
 	apply() {}
@@ -46,6 +48,7 @@ class Compiler {
 	name?: string;
 	inputFileSystem: any;
 	outputFileSystem: typeof import("fs");
+	ruleSet: RuleSetCompiler;
 	// @ts-expect-error
 	watchFileSystem: WatchFileSystem;
 	intermediateFileSystem: any;
@@ -120,6 +123,7 @@ class Compiler {
 			}
 		};
 		this.root = this;
+		this.ruleSet = new RuleSetCompiler();
 		this.running = false;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
@@ -210,7 +214,8 @@ class Compiler {
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this)
 				},
-				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
+				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
+				loaderContext => runLoader(loaderContext, this)
 			);
 
 		return this.#_instance;

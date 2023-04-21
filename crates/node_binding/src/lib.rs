@@ -134,6 +134,7 @@ impl Rspack {
     options: RawOptions,
     js_hooks: Option<JsHooks>,
     output_filesystem: ThreadsafeNodeFS,
+    js_loader_runner: JsFunction,
   ) -> Result<Self> {
     init_custom_trace_subscriber(env)?;
     // rspack_tracing::enable_tracing_by_env();
@@ -146,8 +147,10 @@ impl Rspack {
       plugins.push(JsHooksAdapter::from_js_hooks(env, js_hooks, disabled_hooks.clone())?.boxed());
     }
 
+    let js_loader_runner: JsLoaderRunner = JsLoaderRunner::try_from(js_loader_runner)?;
+
     let compiler_options = options
-      .apply(&mut plugins)
+      .apply(&mut plugins, &js_loader_runner)
       .map_err(|e| Error::from_reason(format!("{e}")))?;
 
     tracing::info!("normalized_options: {:#?}", &compiler_options);

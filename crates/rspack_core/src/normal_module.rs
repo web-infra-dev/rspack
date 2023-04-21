@@ -11,11 +11,12 @@ use std::{
 
 use bitflags::bitflags;
 use dashmap::DashMap;
+use derivative::Derivative;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{Content, ResourceData};
+use rspack_loader_runner::{run_loaders, Content, ResourceData};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -29,9 +30,9 @@ use crate::{
   module_graph::ConnectionId, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
   BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
   CompilerOptions, Context, Dependency, DependencyId, FactoryMeta, GenerateContext,
-  LibIdentOptions, Module, ModuleAst, ModuleDependency, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve,
-  RuntimeGlobals, SourceType,
+  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
 };
 
 bitflags! {
@@ -315,7 +316,8 @@ impl From<BoxSource> for AstOrSource {
   }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct NormalModule {
   id: ModuleIdentifier,
   /// Request with loaders from config
@@ -331,6 +333,7 @@ pub struct NormalModule {
   /// Resource data (path, query, fragment etc.)
   resource_data: ResourceData,
   /// Loaders for the module
+  #[derivative(Debug = "ignore")]
   loaders: Vec<BoxLoader>,
 
   /// Original content of this module, will be available after module build
@@ -502,13 +505,17 @@ impl Module for NormalModule {
     let mut build_info = Default::default();
     let mut build_meta = Default::default();
     let mut diagnostics = Vec::new();
-    let loader_result = build_context
-      .loader_runner_runner
-      .run(
-        self.resource_data.clone(),
-        self.loaders.iter().map(|i| i.as_ref()).collect::<Vec<_>>(),
+    let loader_result = {
+      run_loaders(
+        &self.loaders,
+        &self.resource_data,
+        &[Box::new(LoaderRunnerPluginProcessResource {
+          plugin_driver: build_context.plugin_driver.clone(),
+        })],
+        build_context.compiler_context,
       )
-      .await;
+      .await
+    };
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {

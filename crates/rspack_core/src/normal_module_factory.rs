@@ -94,7 +94,9 @@ impl NormalModuleFactory {
           resource: ResourceData {
             resource: specifier.to_string(),
             resource_description: None,
-            ..Default::default()
+            resource_fragment: None,
+            resource_query: None,
+            resource_path: "".into(),
           },
           scheme,
         })
@@ -179,13 +181,13 @@ impl NormalModuleFactory {
 
     let loaders = resolved_module_rules
       .iter()
-      .flat_map(|module_rule| module_rule.r#use.iter().cloned().rev())
+      .flat_map(|module_rule| module_rule.r#use.iter().cloned())
       .collect::<Vec<_>>();
 
     let request = if !loaders.is_empty() {
       let s = loaders
         .iter()
-        .map(|i| i.name())
+        .map(|i| i.identifier().as_str())
         .collect::<Vec<_>>()
         .join("!");
       format!("{s}!{}", resource_data.resource)

@@ -150,7 +150,7 @@ where
         self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
-        self.loader_runner_runner.clone(),
+        self.resolver_factory.clone(),
         self.cache.clone(),
       );
 
