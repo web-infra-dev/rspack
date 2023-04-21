@@ -102,36 +102,36 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
   is_hmr_import_meta_api_call(node, "import.meta.webpackHot.decline")
 }
 
-pub fn is_import_meta_hot(expr: &Expr) -> bool {
-  let v = member_expr_to_string(expr);
-  v.starts_with("import.meta.webpackHot")
+/// Match the expr is `import.meta.webpackHot`
+pub fn is_expr_exact_import_meta_webpack_hot(expr: &Expr) -> bool {
+  use swc_core::ecma::ast;
+  matches!(expr, ast::Expr::Member(ast::MemberExpr {
+    obj:
+      box ast::Expr::MetaProp(ast::MetaPropExpr {
+        kind: ast::MetaPropKind::ImportMeta,
+        ..
+      }),
+    prop: ast::MemberProp::Ident(ast::Ident { sym: prop, .. }),
+    ..
+  }) if prop == "webpackHot")
 }
 
-pub fn member_expr_to_string(expr: &Expr) -> String {
-  fn collect_member_expr(expr: &Expr, arr: &mut Vec<String>) {
-    if let Expr::Member(member_expr) = expr {
-      if let MemberProp::Ident(ident) = &member_expr.prop {
-        arr.push(ident.sym.to_string());
+pub fn is_member_expr_starts_with_import_meta_webpack_hot(expr: &Expr) -> bool {
+  use swc_core::ecma::ast;
+  let mut match_target = expr;
+
+  loop {
+    match match_target {
+      // If the target self is `import.meta.webpackHot` just return true
+      ast::Expr::Member(..) if is_expr_exact_import_meta_webpack_hot(match_target) => return true,
+      // The expr is sub-part of `import.meta.webpackHot.xxx`. Recursively look up.
+      ast::Expr::Member(ast::MemberExpr { obj, .. }) if obj.is_member() => {
+        match_target = obj.as_ref();
       }
-      collect_member_expr(&member_expr.obj, arr);
-    }
-    // add length check to improve performance, avoid match extra expr
-    if arr.is_empty() {
-      return;
-    }
-    if is_import_meta(expr) {
-      arr.push("meta".to_string());
-      arr.push("import".to_string());
-    }
-    if let Expr::Ident(ident) = expr {
-      arr.push(ident.sym.to_string());
+      // The expr could never be `import.meta.webpackHot`
+      _ => return false,
     }
   }
-
-  let mut res = vec![];
-  collect_member_expr(expr, &mut res);
-  res.reverse();
-  res.join(".")
 }
 
 #[test]
@@ -162,7 +162,9 @@ fn test() {
     prop: MemberProp::Ident(Ident::new("accept".into(), DUMMY_SP)),
   });
   assert!(is_import_meta_member_expr(&import_meta_expr));
-  assert!(is_import_meta_hot(&import_meta_expr));
+  assert!(is_member_expr_starts_with_import_meta_webpack_hot(
+    &import_meta_expr
+  ));
   assert!(match_import_meta_member_expr(
     &import_meta_expr,
     "import.meta.webpackHot.accept"
