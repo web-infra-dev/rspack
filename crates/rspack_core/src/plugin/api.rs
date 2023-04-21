@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, path::Path};
 
 use rspack_error::{internal_error_bail, Result};
 use rspack_loader_runner::{Content, ResourceData};
@@ -291,6 +291,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn resolve_inline_loader(
     &self,
     _compiler_options: &CompilerOptions,
+    _context: &Path,
     _resolver: &Resolver,
     _loader_request: &str,
   ) -> Result<Option<BoxLoader>> {

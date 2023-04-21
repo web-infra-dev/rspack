@@ -3,7 +3,7 @@ use std::{fmt::Debug, path::Path, sync::Arc};
 use rspack_binding_options::{JsLoaderAdapter, JsLoaderRunner};
 use rspack_core::{
   resolve, BoxLoader, CompilerOptions, DependencyCategory, DependencyType, NormalModule, Plugin,
-  ResolveArgs, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  ResolveArgs, ResolveResult, Resolver, ResolverFactory,
 };
 use rspack_error::{internal_error, Result};
 
@@ -24,6 +24,7 @@ impl Plugin for InlineLoaderResolver {
   async fn resolve_inline_loader(
     &self,
     compiler_options: &CompilerOptions,
+    context: &Path,
     resolver: &Resolver,
     loader_request: &str,
   ) -> Result<Option<BoxLoader>> {
@@ -33,10 +34,10 @@ impl Plugin for InlineLoaderResolver {
       return Ok(None);
     }
 
-    let context = compiler_options.context.display().to_string();
-    let resolve_result = resolver
-      .resolve(&Path::new(&context), loader_request)
-      .map_err(|err| internal_error!("Failed to resolve loader: {err:?}"))?;
+    let resolve_result = resolver.resolve(context, loader_request).map_err(|err| {
+      let context = context.display();
+      internal_error!("Failed to resolve loader: {loader_request} in {context} {err:?}")
+    })?;
 
     match resolve_result {
       ResolveResult::Resource(resource) => {

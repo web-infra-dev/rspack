@@ -1,5 +1,6 @@
 use std::{
   collections::HashMap,
+  path::Path,
   sync::{Arc, Mutex},
 };
 
@@ -430,12 +431,13 @@ impl PluginDriver {
   pub async fn resolve_inline_loader(
     &self,
     compiler_options: &CompilerOptions,
+    context: &Path,
     resolver: &Resolver,
     loader_request: &str,
   ) -> Result<Option<BoxLoader>> {
     for plugin in &self.plugins {
       if let Some(loader) = plugin
-        .resolve_inline_loader(compiler_options, resolver, loader_request)
+        .resolve_inline_loader(compiler_options, context, resolver, loader_request)
         .await?
       {
         return Ok(Some(loader));

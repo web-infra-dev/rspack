@@ -5,6 +5,7 @@ use std::{
 
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifiable;
+use sugar_path::AsPath;
 use swc_core::common::Span;
 
 use crate::{
@@ -173,8 +174,27 @@ impl NormalModuleFactory {
 
         let plugin_driver = self.plugin_driver.read().await;
         for element in raw_elements {
+          let importer = resolve_args.importer.map(|i| i.display().to_string());
           let res = plugin_driver.resolve_inline_loader(
             &self.context.options,
+            {
+              if let Some(context) = &resolve_args.context {
+                context.as_path()
+              } else if let Some(i) = importer.as_ref() {
+                {
+                  // TODO: delete this fn after use `normalModule.context` rather than `importer`
+                  if let Some(index) = i.find('?') {
+                    Path::new(&i[0..index])
+                  } else {
+                    Path::new(i)
+                  }
+                }
+                .parent()
+                .ok_or_else(|| internal_error!("parent() failed for {:?}", importer))?
+              } else {
+                &plugin_driver.options.context
+              }
+            },
             &loader_resolver,
             element
             )
