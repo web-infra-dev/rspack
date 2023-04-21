@@ -413,7 +413,6 @@ export interface RawCacheGroupOptions {
 }
 export interface RawStatsOptions {
   colors: boolean
-  reasons: boolean
 }
 export interface RawOptions {
   entry: Record<string, RawEntryItem>
@@ -649,8 +648,8 @@ export class JsCompilation {
 }
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>

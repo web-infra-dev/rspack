@@ -264,10 +264,10 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_modules(&self) -> Vec<JsStatsModule> {
+  pub fn get_modules(&self, reasons: bool) -> Vec<JsStatsModule> {
     self
       .inner
-      .get_modules()
+      .get_modules(reasons)
       .expect("Failed to get modules")
       .into_iter()
       .map(Into::into)
@@ -275,10 +275,15 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_chunks(&self, chunk_modules: bool, chunks_relations: bool) -> Vec<JsStatsChunk> {
+  pub fn get_chunks(
+    &self,
+    chunk_modules: bool,
+    chunks_relations: bool,
+    reasons: bool,
+  ) -> Vec<JsStatsChunk> {
     self
       .inner
-      .get_chunks(chunk_modules, chunks_relations)
+      .get_chunks(chunk_modules, chunks_relations, reasons)
       .expect("Failed to get chunks")
       .into_iter()
       .map(Into::into)

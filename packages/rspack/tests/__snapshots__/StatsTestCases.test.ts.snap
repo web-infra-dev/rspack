@@ -67,6 +67,15 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           ],
           "moduleType": "javascript/auto",
           "name": "./dynamic.js",
+          "reasons": [
+            {
+              "moduleId": "2",
+              "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+              "moduleName": "./index.js",
+              "type": "dynamic import",
+              "userRequest": "./dynamic",
+            },
+          ],
           "size": 32,
           "type": "module",
         },
@@ -99,6 +108,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
           "size": 38,
           "type": "module",
         },
@@ -140,6 +155,12 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
       "size": 38,
       "type": "module",
     },
@@ -161,6 +182,15 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       ],
       "moduleType": "javascript/auto",
       "name": "./dynamic.js",
+      "reasons": [
+        {
+          "moduleId": "2",
+          "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/filename/index.js",
+          "moduleName": "./index.js",
+          "type": "dynamic import",
+          "userRequest": "./dynamic",
+        },
+      ],
       "size": 32,
       "type": "module",
     },
@@ -195,10 +225,14 @@ dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
  [471] ./dynamic.js 32 bytes {dynamic_js}
+     dynamic import ./dynamic [2]
 chunk {main} main.xxxx.js (main) 38 bytes [entry]
  [2] ./index.js 38 bytes {main}
+     entry ./index 
 [2] ./index.js 38 bytes {main}
-[471] ./dynamic.js 32 bytes {dynamic_js}"
+    entry ./index 
+[471] ./dynamic.js 32 bytes {dynamic_js}
+    dynamic import ./dynamic [2]"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -245,6 +279,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index.js",
+            },
+          ],
           "size": 25,
           "type": "module",
         },
@@ -286,6 +326,12 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index.js",
+        },
+      ],
       "size": 25,
       "type": "module",
     },
@@ -319,7 +365,9 @@ bundle.js  8.83 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 25 bytes [entry]
  [2] ./index.js 25 bytes {main}
-[2] ./index.js 25 bytes {main}"
+     entry ./index.js 
+[2] ./index.js 25 bytes {main}
+    entry ./index.js "
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -1218,6 +1266,12 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
           "size": 51,
           "type": "module",
         },
@@ -1239,6 +1293,15 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           ],
           "moduleType": "javascript/auto",
           "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing)",
+          "reasons": [
+            {
+              "moduleId": "2",
+              "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import",
+              "userRequest": "cycle-alias/a",
+            },
+          ],
           "size": 160,
           "type": "module",
         },
@@ -1291,6 +1354,12 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
       "size": 51,
       "type": "module",
     },
@@ -1312,6 +1381,15 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       ],
       "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing)",
+      "reasons": [
+        {
+          "moduleId": "2",
+          "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "cycle-alias/a",
+        },
+      ],
       "size": 160,
       "type": "module",
     },
@@ -1346,9 +1424,13 @@ bundle.js  363 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 211 bytes [entry]
  [2] ./index.js 51 bytes {main}
+     entry ./index 
  [193] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
+     esm import cycle-alias/a [2]
 [2] ./index.js 51 bytes {main}
+    entry ./index 
 [193] <PROJECT_ROOT>/tests/statsCases/resolve-overflowcycle-alias/a (missing) 160 bytes {main}
+    esm import cycle-alias/a [2]
 
 error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
@@ -1403,6 +1485,12 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
           "size": 39,
           "type": "module",
         },
@@ -1424,6 +1512,15 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           ],
           "moduleType": "javascript/auto",
           "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing)",
+          "reasons": [
+            {
+              "moduleId": "2",
+              "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+              "moduleName": "./index.js",
+              "type": "esm import",
+              "userRequest": "pkg-a",
+            },
+          ],
           "size": 160,
           "type": "module",
         },
@@ -1471,6 +1568,12 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
       "size": 39,
       "type": "module",
     },
@@ -1492,6 +1595,15 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       ],
       "moduleType": "javascript/auto",
       "name": "<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing)",
+      "reasons": [
+        {
+          "moduleId": "2",
+          "moduleIdentifier": "javascript/auto|<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/index.js",
+          "moduleName": "./index.js",
+          "type": "esm import",
+          "userRequest": "pkg-a",
+        },
+      ],
       "size": 160,
       "type": "module",
     },
@@ -1525,9 +1637,13 @@ bundle.js  972 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 199 bytes [entry]
  [2] ./index.js 39 bytes {main}
+     entry ./index 
  [481] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
+     esm import pkg-a [2]
 [2] ./index.js 39 bytes {main}
+    entry ./index 
 [481] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkgpkg-a (missing) 160 bytes {main}
+    esm import pkg-a [2]
 
 Export should be relative path and start with "./", but got ../../index.js
 "
@@ -1577,6 +1693,12 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
           "size": 26,
           "type": "module",
         },
@@ -1618,6 +1740,12 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
       "size": 26,
       "type": "module",
     },
@@ -1651,5 +1779,7 @@ bundle.js  317 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
  [2] ./index.js 26 bytes {main}
-[2] ./index.js 26 bytes {main}"
+     entry ./index 
+[2] ./index.js 26 bytes {main}
+    entry ./index "
 `;
