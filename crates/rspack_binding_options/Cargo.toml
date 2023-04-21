@@ -5,10 +5,6 @@ name       = "rspack_binding_options"
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-[features]
-default  = ["napi-derive/noop"]
-node-api = ["dep:rspack_napi_shared"]
-
 [dependencies]
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }

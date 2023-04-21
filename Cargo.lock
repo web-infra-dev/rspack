@@ -2540,6 +2540,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_node"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "backtrace",
+ "dashmap",
+ "futures",
+ "mimalloc-rust",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "napi-sys",
+ "once_cell",
+ "regex",
+ "rspack_binding_macros",
+ "rspack_binding_options",
+ "rspack_core",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_fs_node",
+ "rspack_identifier",
+ "rspack_napi_shared",
+ "rspack_plugin_html",
+ "rspack_tracing",
+ "serde",
+ "serde_json",
+ "testing_macros",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "rspack_plugin_asset"
 version = "0.1.0"
 dependencies = [
