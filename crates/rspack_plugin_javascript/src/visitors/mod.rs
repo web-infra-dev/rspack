@@ -271,7 +271,7 @@ pub fn run_after_pass(
             } else {
               Some(ImportInterop::None)
             },
-            allow_top_level_this: true,
+            allow_top_level_this: !build_meta.esm,
             ..Default::default()
           })),
           comments,

@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use rspack_core::Provide;
+use swc_core::common::util::take::Take;
 use swc_core::common::Span;
 use swc_core::common::{Mark, DUMMY_SP};
 use swc_core::ecma::ast::{
@@ -121,8 +122,8 @@ impl<'a> ProvideBuiltin<'a> {
     identifier_name
   }
 
-  fn create_provide_require(&self) -> Vec<ModuleItem> {
-    let mut module_item_vec = Vec::new();
+  fn create_provide_require(&self) -> Vec<Stmt> {
+    let mut stmt_item_vec = Vec::new();
     self
       .current_import_provide
       .iter()
@@ -164,30 +165,28 @@ impl<'a> ProvideBuiltin<'a> {
             obj_expr = Expr::Member(member_expr);
           }
           // var {provide_module_name} = require(provide_module_path)?[provide_args]
-          let module_item = ModuleItem::Stmt(Stmt::Decl(swc_core::ecma::ast::Decl::Var(Box::new(
-            VarDecl {
+          let stmt_item = Stmt::Decl(swc_core::ecma::ast::Decl::Var(Box::new(VarDecl {
+            span: DUMMY_SP.apply_mark(self.unresolved_mark),
+            declare: false,
+            kind: swc_core::ecma::ast::VarDeclKind::Var,
+            decls: vec![VarDeclarator {
               span: DUMMY_SP.apply_mark(self.unresolved_mark),
-              declare: false,
-              kind: swc_core::ecma::ast::VarDeclKind::Var,
-              decls: vec![VarDeclarator {
-                span: DUMMY_SP.apply_mark(self.unresolved_mark),
-                definite: false,
-                init: Some(Box::new(obj_expr)),
-                name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
-                  id: Ident::new(
-                    provide_module_name.replace(SOURCE_DOT, MODULE_DOT).into(),
-                    DUMMY_SP.apply_mark(self.unresolved_mark),
-                  ),
-                  type_ann: None,
-                }),
-              }],
-            },
-          ))));
+              definite: false,
+              init: Some(Box::new(obj_expr)),
+              name: swc_core::ecma::ast::Pat::Ident(BindingIdent {
+                id: Ident::new(
+                  provide_module_name.replace(SOURCE_DOT, MODULE_DOT).into(),
+                  DUMMY_SP.apply_mark(self.unresolved_mark),
+                ),
+                type_ann: None,
+              }),
+            }],
+          })));
 
-          module_item_vec.push(module_item);
+          stmt_item_vec.push(stmt_item);
         }
       });
-    module_item_vec
+    stmt_item_vec
   }
 }
 
@@ -206,12 +205,25 @@ impl VisitMut for ProvideBuiltin<'_> {
     expr.visit_mut_children_with(self);
   }
 
-  fn visit_mut_module(&mut self, n: &mut swc_core::ecma::ast::Module) {
-    n.visit_mut_children_with(self);
-    let module_item_vec = self.create_provide_require();
-    module_item_vec.into_iter().for_each(|module_item| {
-      n.body.insert(0, module_item);
-    });
+  fn visit_mut_program(&mut self, program: &mut swc_core::ecma::ast::Program) {
+    program.visit_mut_children_with(self);
+    let mut stmt_vec = self.create_provide_require();
+
+    match program {
+      swc_core::ecma::ast::Program::Module(module) => {
+        let new_body = stmt_vec
+          .into_iter()
+          .map(ModuleItem::Stmt)
+          .chain(module.body.take())
+          .collect();
+
+        module.body = new_body;
+      }
+      swc_core::ecma::ast::Program::Script(script) => {
+        stmt_vec.extend(script.body.take());
+        script.body = stmt_vec;
+      }
+    }
   }
 
   fn visit_mut_var_decl(&mut self, n: &mut VarDecl) {

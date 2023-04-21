@@ -441,26 +441,16 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
   "errors": [
     {
       "formatted": "error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:5
+  ┌─ bundle.js:1:9
   │
-1 │ let let = let;
-  │     ^^^ \`let\` cannot be used as an identifier in strict mode
+1 │ const a {}
+  │         ^ Expected a semicolon
 
 ",
-      "message": "\`let\` cannot be used as an identifier in strict mode",
-    },
-    {
-      "formatted": "error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:11
-  │
-1 │ let let = let;
-  │           ^^^ \`let\` cannot be used as an identifier in strict mode
-
-",
-      "message": "\`let\` cannot be used as an identifier in strict mode",
+      "message": "Expected a semicolon",
     },
   ],
-  "errorsCount": 2,
+  "errorsCount": 1,
   "warnings": [],
   "warningsCount": 0,
 }
@@ -469,18 +459,10 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
 "
 error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:5
+  ┌─ bundle.js:1:9
   │
-1 │ let let = let;
-  │     ^^^ \`let\` cannot be used as an identifier in strict mode
-
-
-
-error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:11
-  │
-1 │ let let = let;
-  │           ^^^ \`let\` cannot be used as an identifier in strict mode
+1 │ const a {}
+  │         ^ Expected a semicolon
 
 "
 `;
