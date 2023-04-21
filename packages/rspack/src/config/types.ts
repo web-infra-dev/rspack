@@ -140,6 +140,7 @@ export interface Output {
 	chunkFormat?: string | false;
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
+	trustedTypes?: true | string | TrustedTypes;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -211,6 +212,9 @@ export type WasmLoadingType =
 	| ("fetch-streaming" | "fetch" | "async-node")
 	| string;
 export type EnabledWasmLoadingTypes = WasmLoadingType[];
+export interface TrustedTypes {
+	policyName?: string;
+}
 export interface OutputNormalized {
 	path?: Path;
 	clean?: Clean;
@@ -236,6 +240,7 @@ export interface OutputNormalized {
 	chunkFormat?: string | false;
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
+	trustedTypes?: TrustedTypes;
 }
 
 ///// Resolve /////

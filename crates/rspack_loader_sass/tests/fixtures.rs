@@ -62,6 +62,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
             import_function_name: "import".to_string(),
             iife: true,
             module: false,
+            trusted_types: None,
           },
           target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
           resolve: rspack_core::Resolve::default(),

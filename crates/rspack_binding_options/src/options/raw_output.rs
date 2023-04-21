@@ -1,12 +1,27 @@
 use napi_derive::napi;
 use rspack_core::{
   to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
-  LibraryOptions, OutputOptions, PluginExt, WasmLoading,
+  LibraryOptions, OutputOptions, PluginExt, TrustedTypes, WasmLoading,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
 
 use crate::RawOptionsApply;
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawTrustedTypes {
+  pub policy_name: Option<String>,
+}
+
+impl From<RawTrustedTypes> for TrustedTypes {
+  fn from(value: RawTrustedTypes) -> Self {
+    Self {
+      policy_name: value.policy_name,
+    }
+  }
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -124,6 +139,7 @@ pub struct RawOutputOptions {
   pub chunk_format: Option<String>,
   pub chunk_loading: Option<String>,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
+  pub trusted_types: Option<RawTrustedTypes>,
 }
 
 impl RawOptionsApply for RawOutputOptions {
@@ -163,6 +179,7 @@ impl RawOptionsApply for RawOutputOptions {
       import_function_name: self.import_function_name,
       iife: self.iife,
       module: self.module,
+      trusted_types: self.trusted_types.map(Into::into),
     })
   }
 }
@@ -207,6 +224,9 @@ impl RawOutputOptions {
           }
           "import" => {
             plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
+          }
+          "import-scripts" => {
+            plugins.push(rspack_plugin_runtime::ImportScriptsChunkLoadingPlugin {}.boxed());
           }
           "universal" => {
             return Err(internal_error!(

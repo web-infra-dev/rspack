@@ -284,6 +284,7 @@ describe("snapshots", () => {
 		    "path": "<cwd>/dist",
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
+		    "trustedTypes": undefined,
 		    "uniqueName": "@rspack/core",
 		    "wasmLoading": "fetch",
 		    "webassemblyModuleFilename": "[hash].module.wasm",
@@ -1211,7 +1212,11 @@ describe("snapshots", () => {
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunk@@@Hello World!",
 			@@ ... @@
+			-     "trustedTypes": undefined,
 			-     "uniqueName": "@rspack/core",
+			+     "trustedTypes": Object {
+			+       "policyName": "@@@Hello_World_",
+			+     },
 			+     "uniqueName": "@@@Hello World!",
 		`)
 	);

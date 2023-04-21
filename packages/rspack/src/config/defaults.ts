@@ -479,6 +479,16 @@ const applyOutputDefaults = (
 	});
 
 	D(output, "crossOriginLoading", false);
+
+	const { trustedTypes } = output;
+	if (trustedTypes) {
+		F(
+			trustedTypes,
+			"policyName",
+			() =>
+				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
+		);
+	}
 };
 
 const applyExternalsPresetsDefaults = (

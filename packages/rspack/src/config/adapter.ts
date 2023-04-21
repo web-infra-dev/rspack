@@ -187,7 +187,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
 		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
 		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
-		webassemblyModuleFilename: output.webassemblyModuleFilename!
+		webassemblyModuleFilename: output.webassemblyModuleFilename!,
+		trustedTypes: output.trustedTypes!
 	};
 }
 
