@@ -190,13 +190,13 @@ impl NormalModuleFactory {
       for rule in &resolved_module_rules {
         match rule.enforce {
           ModuleRuleEnforce::Pre => {
-            pre_loaders.extend_from_slice(&*rule.r#use);
+            pre_loaders.extend_from_slice(&rule.r#use);
           }
           ModuleRuleEnforce::Normal => {
-            normal_loaders.extend_from_slice(&*rule.r#use);
+            normal_loaders.extend_from_slice(&rule.r#use);
           }
           ModuleRuleEnforce::Post => {
-            post_loaders.extend_from_slice(&*rule.r#use);
+            post_loaders.extend_from_slice(&rule.r#use);
           }
         }
       }
