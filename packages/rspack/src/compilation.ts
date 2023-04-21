@@ -105,7 +105,7 @@ export class Compilation {
 			/** @deprecated */
 			additionalAssets: processAssetsHooks.stageAdditional,
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
-			optimizeModules: new tapable.SyncBailHook(['modules']),
+			optimizeModules: new tapable.SyncBailHook(["modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
@@ -244,6 +244,7 @@ export class Compilation {
 			options.builtAt,
 			!context.forToString
 		);
+		options.moduleAssets = optionOrLocalFallback(options.moduleAssets, true);
 
 		return options;
 	}
@@ -666,8 +667,8 @@ export class Compilation {
 		return this.#inner;
 	}
 
-	seal() { }
-	unseal() { }
+	seal() {}
+	unseal() {}
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;

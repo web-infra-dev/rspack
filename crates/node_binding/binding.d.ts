@@ -219,6 +219,7 @@ export interface JsLoaderContext {
   contextDependencies: Array<string>
   missingDependencies: Array<string>
   buildDependencies: Array<string>
+  assetFilenames: Array<string>
   currentLoader: string
   isPitching: boolean
 }
@@ -563,6 +564,7 @@ export interface JsStatsModule {
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
+  assets?: Array<string>
 }
 export interface JsStatsModuleIssuer {
   identifier: string
@@ -648,8 +650,8 @@ export class JsCompilation {
 }
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean, moduleAssets: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>

@@ -6,7 +6,7 @@ import {
 	DevServer,
 	rspack,
 	RspackOptions,
-	MultiRspackOptions,
+	MultiRspackOptions
 } from "@rspack/core";
 import path from "node:path";
 

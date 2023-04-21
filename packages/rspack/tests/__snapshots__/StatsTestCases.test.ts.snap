@@ -50,6 +50,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "initial": false,
       "modules": [
         {
+          "assets": [],
           "chunks": [
             "dynamic_js",
           ],
@@ -100,6 +101,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "initial": true,
       "modules": [
         {
+          "assets": [],
           "chunks": [
             "main",
           ],
@@ -147,6 +149,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   "hash": "1896652891bba34c",
   "modules": [
     {
+      "assets": [],
       "chunks": [
         "main",
       ],
@@ -165,6 +168,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "type": "module",
     },
     {
+      "assets": [],
       "chunks": [
         "dynamic_js",
       ],
@@ -271,6 +275,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
       "initial": true,
       "modules": [
         {
+          "assets": [],
           "chunks": [
             "main",
           ],
@@ -318,6 +323,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   "hash": "e8bd6cade6020867",
   "modules": [
     {
+      "assets": [],
       "chunks": [
         "main",
       ],
@@ -1258,6 +1264,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "initial": true,
       "modules": [
         {
+          "assets": [],
           "chunks": [
             "main",
           ],
@@ -1276,6 +1283,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
           "type": "module",
         },
         {
+          "assets": [],
           "chunks": [
             "main",
           ],
@@ -1346,6 +1354,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
   "hash": "f56e1f7517aed26d",
   "modules": [
     {
+      "assets": [],
       "chunks": [
         "main",
       ],
@@ -1364,6 +1373,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "type": "module",
     },
     {
+      "assets": [],
       "chunks": [
         "main",
       ],
@@ -1477,6 +1487,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "initial": true,
       "modules": [
         {
+          "assets": [],
           "chunks": [
             "main",
           ],
@@ -1495,6 +1506,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
           "type": "module",
         },
         {
+          "assets": [],
           "chunks": [
             "main",
           ],
@@ -1560,6 +1572,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
   "hash": "178bdd60e81ac756",
   "modules": [
     {
+      "assets": [],
       "chunks": [
         "main",
       ],
@@ -1578,6 +1591,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "type": "module",
     },
     {
+      "assets": [],
       "chunks": [
         "main",
       ],
@@ -1685,6 +1699,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "initial": true,
       "modules": [
         {
+          "assets": [],
           "chunks": [
             "main",
           ],
@@ -1732,6 +1747,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   "hash": "340f80f80633a87",
   "modules": [
     {
+      "assets": [],
       "chunks": [
         "main",
       ],

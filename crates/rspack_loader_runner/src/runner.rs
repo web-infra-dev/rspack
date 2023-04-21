@@ -62,6 +62,8 @@ pub struct LoaderContext<'c, C> {
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
 
+  pub asset_filenames: HashSet<String>,
+
   pub(crate) loader_index: usize,
   pub(crate) loader_items: LoaderItemList<'c, C>,
   #[derivative(Debug = "ignore")]
@@ -147,6 +149,7 @@ async fn create_loader_context<'c, C: 'c>(
     context_dependencies: Default::default(),
     missing_dependencies: Default::default(),
     build_dependencies: Default::default(),
+    asset_filenames: Default::default(),
     content: None,
     resource: &resource_data.resource,
     resource_path: &resource_data.resource_path,
@@ -230,6 +233,7 @@ pub struct LoaderResult {
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
   pub build_dependencies: HashSet<PathBuf>,
+  pub asset_filenames: HashSet<String>,
   pub content: Content,
   pub source_map: Option<SourceMap>,
   pub additional_data: Option<String>,
@@ -254,6 +258,7 @@ impl<C> TryFrom<LoaderContext<'_, C>> for TWithDiagnosticArray<LoaderResult> {
         context_dependencies: loader_context.context_dependencies,
         missing_dependencies: loader_context.missing_dependencies,
         build_dependencies: loader_context.build_dependencies,
+        asset_filenames: loader_context.asset_filenames,
         content,
         source_map: loader_context.source_map,
         additional_data: loader_context.additional_data,

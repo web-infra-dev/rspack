@@ -88,7 +88,7 @@ impl JsCompilation {
 
   #[napi(ts_return_type = "Readonly<JsAsset>[]")]
   pub fn get_assets(&self) -> Result<Vec<JsAsset>> {
-    let mut assets = Vec::<JsAsset>::with_capacity(self.inner.assets.len());
+    let mut assets = Vec::<JsAsset>::with_capacity(self.inner.assets().len());
 
     for (filename, asset) in self.inner.assets() {
       assets.push(JsAsset {
@@ -107,7 +107,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
-    match self.inner.assets.get(&name) {
+    match self.inner.assets().get(&name) {
       Some(asset) => Ok(Some(JsAsset {
         name,
         source: asset
@@ -125,7 +125,7 @@ impl JsCompilation {
   pub fn get_asset_source(&self, name: String) -> Result<Option<JsCompatSource>> {
     self
       .inner
-      .assets
+      .assets()
       .get(&name)
       .and_then(|v| v.source.as_ref().map(|s| s.to_js_compat_source()))
       .transpose()
@@ -181,7 +181,7 @@ impl JsCompilation {
   #[napi]
   pub fn set_asset_source(&mut self, name: String, source: JsCompatSource) {
     let source = CompatSource::from(source).boxed();
-    match self.inner.assets.entry(name) {
+    match self.inner.assets_mut().entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
         e.insert(rspack_core::CompilationAsset::with_source(source));
@@ -193,7 +193,7 @@ impl JsCompilation {
   pub fn delete_asset_source(&mut self, name: String) {
     self
       .inner
-      .assets
+      .assets_mut()
       .entry(name)
       .and_modify(|a| a.set_source(None));
   }
@@ -202,7 +202,7 @@ impl JsCompilation {
   pub fn get_asset_filenames(&self) -> Result<Vec<String>> {
     let filenames = self
       .inner
-      .assets
+      .assets()
       .iter()
       .filter(|(_, asset)| asset.get_source().is_some())
       .map(|(filename, _)| filename)
@@ -213,7 +213,7 @@ impl JsCompilation {
 
   #[napi]
   pub fn has_asset(&self, name: String) -> Result<bool> {
-    Ok(self.inner.assets.contains_key(&name))
+    Ok(self.inner.assets().contains_key(&name))
   }
 
   #[napi]

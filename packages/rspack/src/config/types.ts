@@ -492,6 +492,7 @@ export interface StatsOptions {
 	chunkRelations?: boolean;
 	timings?: boolean;
 	builtAt?: boolean;
+	moduleAssets?: boolean;
 }
 
 ///// Optimization /////

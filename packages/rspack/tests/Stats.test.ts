@@ -54,6 +54,7 @@ describe("Stats", () => {
 		      "initial": true,
 		      "modules": [
 		        {
+		          "assets": [],
 		          "chunks": [
 		            "main",
 		          ],
@@ -101,6 +102,7 @@ describe("Stats", () => {
 		  "hash": "a8535b55b7de03c8",
 		  "modules": [
 		    {
+		      "assets": [],
 		      "chunks": [
 		        "main",
 		      ],

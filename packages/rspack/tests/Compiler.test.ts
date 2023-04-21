@@ -264,7 +264,7 @@ describe("Compiler", () => {
 				const response3 = compiler.isChild();
 				expect(response3).toBe(true);
 
-				compiler.parentCompilation = ["Array", 123, true, null, [], () => { }];
+				compiler.parentCompilation = ["Array", 123, true, null, [], () => {}];
 				const response4 = compiler.isChild();
 				expect(response4).toBe(true);
 
@@ -475,7 +475,7 @@ describe("Compiler", () => {
 					filename: "bundle.js"
 				}
 			},
-			() => { }
+			() => {}
 		);
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 		compiler.run((err, stats) => {
@@ -1262,12 +1262,12 @@ describe("Compiler", () => {
 		it("should call optimizeModules hook correctly", done => {
 			class MyPlugin {
 				apply(compiler: Compiler) {
-					compiler.hooks.compilation.tap("MyPlugin", (compilation) => {
-						compilation.hooks.optimizeModules.tap("MyPlugin", (modules) => {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						compilation.hooks.optimizeModules.tap("MyPlugin", modules => {
 							expect(modules.length).toEqual(1);
 							expect(modules[0].resource.includes("d.js")).toBeTruthy();
-						})
-					})
+						});
+					});
 				}
 			}
 			const compiler = rspack({
@@ -1276,9 +1276,9 @@ describe("Compiler", () => {
 				plugins: [new MyPlugin()]
 			});
 
-			compiler.build((err) => {
+			compiler.build(err => {
 				done(err);
 			});
-		})
+		});
 	});
 });

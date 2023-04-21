@@ -215,6 +215,7 @@ pub struct JsLoaderContext {
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
   pub build_dependencies: Vec<String>,
+  pub asset_filenames: Vec<String>,
 
   pub current_loader: String,
   pub is_pitching: bool,
@@ -267,6 +268,7 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
         .iter()
         .map(|i| i.to_string_lossy().to_string())
         .collect(),
+      asset_filenames: cx.asset_filenames.iter().map(|i| i.to_owned()).collect(),
 
       current_loader: cx.current_loader().to_string(),
       is_pitching: true,
