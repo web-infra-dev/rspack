@@ -351,6 +351,31 @@ function getRawExternals(externals: Externals): RawOptions["externals"] {
 			return { type: "string", stringPayload: item };
 		} else if (item instanceof RegExp) {
 			return { type: "regexp", regexpPayload: item.source };
+		} else if (typeof item === "function") {
+			return {
+				type: "function",
+				fnPayload: async ctx => {
+					return await new Promise((resolve, reject) => {
+						const promise = item(ctx, (err, result, type) => {
+							if (err) reject(err);
+							resolve({
+								result: getRawExternalItemValueFormFnResult(result),
+								external_type: type
+							});
+						});
+						if (promise && promise.then) {
+							promise.then(
+								result =>
+									resolve({
+										result: getRawExternalItemValueFormFnResult(result),
+										external_type: undefined
+									}),
+								e => reject(e)
+							);
+						}
+					});
+				}
+			};
 		}
 		return {
 			type: "object",
@@ -358,6 +383,9 @@ function getRawExternals(externals: Externals): RawOptions["externals"] {
 				Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
 			)
 		};
+	}
+	function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
+		return result === undefined ? result : getRawExternalItemValue(result);
 	}
 	function getRawExternalItemValue(
 		value: ExternalItemValue

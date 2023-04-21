@@ -356,7 +356,52 @@ export type Target = false | AvailableTarget[] | AvailableTarget;
 
 ///// Externals /////
 export type Externals = ExternalItem[] | ExternalItem;
-export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
+export type ExternalItem =
+	| string
+	| RegExp
+	| ExternalItemObjectUnknown
+	| (
+			| ((
+					data: ExternalItemFunctionData,
+					callback: (
+						err?: Error,
+						result?: ExternalItemValue,
+						type?: ExternalsType
+					) => void
+			  ) => void)
+			| ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>)
+	  );
+
+export interface ExternalItemFunctionData {
+	// /**
+	//  * The directory in which the request is placed.
+	//  */
+	// context?: string;
+	// /**
+	//  * Contextual information.
+	//  */
+	// contextInfo?: import("../lib/ModuleFactory").ModuleFactoryCreateDataContextInfo;
+	// /**
+	//  * The category of the referencing dependencies.
+	//  */
+	// dependencyType?: string;
+	// /**
+	//  * Get a resolve function with the current resolver options.
+	//  */
+	// getResolve?: (
+	// 	options?: ResolveOptions
+	// ) =>
+	// 	| ((
+	// 		context: string,
+	// 		request: string,
+	// 		callback: (err?: Error, result?: string) => void
+	// 	) => void)
+	// 	| ((context: string, request: string) => Promise<string>);
+	/**
+	 * The request as written by the user in the require/import expression/statement.
+	 */
+	request?: string;
+}
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }

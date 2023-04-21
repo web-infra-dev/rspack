@@ -1,3 +1,7 @@
+use std::fmt::Debug;
+
+use futures::future::BoxFuture;
+use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -12,11 +16,23 @@ pub enum ExternalItemValue {
 
 pub type ExternalItemObject = HashMap<String, ExternalItemValue>;
 
-#[derive(Debug)]
+pub struct ExternalItemFnCtx {
+  pub request: String,
+}
+
+pub struct ExternalItemFnResult {
+  pub external_type: Option<ExternalType>,
+  pub result: Option<ExternalItemValue>,
+}
+
+pub type ExternalItemFn =
+  Box<dyn Fn(ExternalItemFnCtx) -> BoxFuture<'static, Result<ExternalItemFnResult>> + Sync + Send>;
+
 pub enum ExternalItem {
   Object(ExternalItemObject),
   String(String),
   RegExp(RspackRegex),
+  Fn(ExternalItemFn),
 }
 
 impl From<ExternalItemObject> for ExternalItem {

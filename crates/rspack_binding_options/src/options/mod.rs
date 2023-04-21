@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use napi_derive::napi;
@@ -129,7 +129,10 @@ impl RawOptionsApply for RawOptions {
       plugins.push(
         rspack_plugin_externals::ExternalPlugin::new(
           self.externals_type,
-          externals.into_iter().map(Into::into).collect(),
+          externals
+            .into_iter()
+            .map(|e| e.try_into())
+            .collect::<Result<Vec<_>, _>>()?,
         )
         .boxed(),
       );

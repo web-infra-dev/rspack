@@ -358,6 +358,13 @@ module.exports = {
 					additionalProperties: {
 						$ref: "#/definitions/ExternalItemValue"
 					}
+				},
+				{
+					description:
+						"The function is called on each dependency (`function(context, request, callback(err, result))`).",
+					instanceof: "Function",
+					tsType:
+						"(((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>))"
 				}
 			]
 		},

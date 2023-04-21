@@ -167,15 +167,23 @@ export interface RawExperiments {
   newSplitChunks: boolean
 }
 export interface RawExternalItem {
-  type: "string" | "regexp" | "object"
+  type: "string" | "regexp" | "object" | "function"
   stringPayload?: string
   regexpPayload?: string
   objectPayload?: Record<string, RawExternalItemValue>
+  fnPayload?: (value: any) => any
 }
 export interface RawExternalItemValue {
   type: "string" | "bool"
   stringPayload?: string
   boolPayload?: boolean
+}
+export interface RawExternalItemFnResult {
+  externalType?: string
+  result?: RawExternalItemValue
+}
+export interface RawExternalItemFnCtx {
+  request: string
 }
 export interface RawExternalsPresets {
   node: boolean
