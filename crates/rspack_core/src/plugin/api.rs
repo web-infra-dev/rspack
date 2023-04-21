@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use rspack_error::Result;
+use rspack_error::{internal_error_bail, Result};
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
@@ -282,6 +282,22 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn finish_modules(&mut self, _modules: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  /// Webpack resolves loaders in `NormalModuleFactory`,
+  /// Rspack resolves it when normalizing configuration.
+  /// So this hook is used to resolve inline loader (inline loader requests).
+  async fn resolve_inline_loader(
+    &self,
+    _compiler_options: &CompilerOptions,
+    _resolver: &Resolver,
+    _loader_request: &str,
+  ) -> Result<Option<BoxLoader>> {
+    Ok(None)
+  }
+
+  async fn before_loaders(&self, _module: &mut NormalModule) -> Result<()> {
     Ok(())
   }
 

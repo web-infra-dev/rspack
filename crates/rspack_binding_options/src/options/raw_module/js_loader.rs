@@ -81,7 +81,6 @@ impl TryFrom<JsFunction> for JsLoaderRunner {
 
 #[cfg(feature = "node-api")]
 pub struct JsLoaderAdapter {
-  // pub func: ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>,
   pub runner: JsLoaderRunner,
   pub identifier: Identifier,
 }

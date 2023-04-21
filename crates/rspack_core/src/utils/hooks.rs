@@ -14,7 +14,7 @@ pub async fn resolve(
   plugin_driver: &SharedPluginDriver,
   //  _job_context: &mut NormalModuleFactoryContext,
 ) -> Result<ResolveResult, ResolveError> {
-  let plugin_driver = plugin_driver.read().await;
+  let plugin_driver: tokio::sync::RwLockReadGuard<crate::PluginDriver> = plugin_driver.read().await;
   let importer = args.importer.map(|i| i.display().to_string());
   let base_dir = if let Some(context) = &args.context {
     context.as_path()

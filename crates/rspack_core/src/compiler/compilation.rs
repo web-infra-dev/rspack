@@ -855,6 +855,7 @@ impl Compilation {
       side_effects,
       resolve_options,
       lazy_visit_modules,
+      resolver_factory: self.resolver_factory.clone(),
       options: self.options.clone(),
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),
