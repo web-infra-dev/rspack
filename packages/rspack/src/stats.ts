@@ -89,11 +89,12 @@ export class Stats {
 		if (options.chunks) {
 			obj.chunks = this.#inner.getChunks(
 				options.chunkModules!,
-				options.chunkRelations!
+				options.chunkRelations!,
+				options.reasons!
 			);
 		}
 		if (options.modules) {
-			obj.modules = this.#inner.getModules();
+			obj.modules = this.#inner.getModules(options.reasons!);
 		}
 		if (options.entrypoints) {
 			obj.entrypoints = this.#inner

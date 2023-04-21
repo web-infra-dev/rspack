@@ -526,7 +526,6 @@ function getRawNode(node: Node): RawOptions["node"] {
 function getRawStats(stats: StatsValue): RawOptions["stats"] {
 	const statsOptions = normalizeStatsPreset(stats);
 	return {
-		colors: statsOptions.colors ?? false,
-		reasons: statsOptions.reasons ?? false
+		colors: statsOptions.colors ?? false
 	};
 }

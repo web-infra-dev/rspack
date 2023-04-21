@@ -109,19 +109,24 @@ impl Stats<'_> {
     (assets, assets_by_chunk_name)
   }
 
-  pub fn get_modules(&self) -> Result<Vec<StatsModule>> {
+  pub fn get_modules(&self, reasons: bool) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module, self.compilation.options.stats.reasons))
+      .map(|module| self.get_module(module, reasons))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
   }
 
-  pub fn get_chunks(&self, chunk_modules: bool, chunk_relations: bool) -> Result<Vec<StatsChunk>> {
+  pub fn get_chunks(
+    &self,
+    chunk_modules: bool,
+    chunk_relations: bool,
+    reasons: bool,
+  ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
       .chunk_by_ukey
@@ -136,7 +141,7 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m, self.compilation.options.stats.reasons))
+            .map(|m| self.get_module(m, reasons))
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
