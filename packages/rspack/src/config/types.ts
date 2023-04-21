@@ -373,21 +373,21 @@ export type ExternalItem =
 	  );
 
 export interface ExternalItemFunctionData {
-	// /**
-	//  * The directory in which the request is placed.
-	//  */
-	// context?: string;
-	// /**
-	//  * Contextual information.
-	//  */
+	/**
+	 * The directory in which the request is placed.
+	 */
+	context?: string;
+	/**
+	 * Contextual information.
+	 */
 	// contextInfo?: import("../lib/ModuleFactory").ModuleFactoryCreateDataContextInfo;
-	// /**
-	//  * The category of the referencing dependencies.
-	//  */
-	// dependencyType?: string;
-	// /**
-	//  * Get a resolve function with the current resolver options.
-	//  */
+	/**
+	 * The category of the referencing dependencies.
+	 */
+	dependencyType?: string;
+	/**
+	 * Get a resolve function with the current resolver options.
+	 */
 	// getResolve?: (
 	// 	options?: ResolveOptions
 	// ) =>

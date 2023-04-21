@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, path::PathBuf};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -113,8 +113,15 @@ impl Plugin for ExternalPlugin {
         }
         ExternalItem::Fn(f) => {
           let request = args.dependency.request();
+
           let result = f(ExternalItemFnCtx {
+            context: PathBuf::from(request.to_string())
+              .parent()
+              .expect("should have context")
+              .to_string_lossy()
+              .to_string(),
             request: request.to_string(),
+            dependency_type: args.dependency.dependency_type().to_string(),
           })
           .await?;
           if let Some(r) = result.result {

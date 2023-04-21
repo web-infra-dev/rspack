@@ -18,6 +18,8 @@ pub type ExternalItemObject = HashMap<String, ExternalItemValue>;
 
 pub struct ExternalItemFnCtx {
   pub request: String,
+  pub context: String,
+  pub dependency_type: String,
 }
 
 pub struct ExternalItemFnResult {

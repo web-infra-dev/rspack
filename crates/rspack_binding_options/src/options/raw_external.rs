@@ -93,12 +93,16 @@ impl From<RawExternalItemFnResult> for ExternalItemFnResult {
 #[napi(object)]
 pub struct RawExternalItemFnCtx {
   pub request: String,
+  pub context: String,
+  pub dependency_type: String,
 }
 
 impl From<ExternalItemFnCtx> for RawExternalItemFnCtx {
   fn from(value: ExternalItemFnCtx) -> Self {
     Self {
       request: value.request,
+      dependency_type: value.dependency_type,
+      context: value.context,
     }
   }
 }

@@ -184,6 +184,8 @@ export interface RawExternalItemFnResult {
 }
 export interface RawExternalItemFnCtx {
   request: string
+  context: string
+  dependencyType: string
 }
 export interface RawExternalsPresets {
   node: boolean
