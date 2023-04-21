@@ -75,6 +75,7 @@ export class Compilation {
 			Assets,
 			tapable.UnsetAdditionalOptions
 		>;
+		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
@@ -103,6 +104,7 @@ export class Compilation {
 			/** @deprecated */
 			additionalAssets: processAssetsHooks.stageAdditional,
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
+			optimizeModules: new tapable.SyncBailHook(['modules']),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
@@ -662,8 +664,8 @@ export class Compilation {
 		return this.#inner;
 	}
 
-	seal() {}
-	unseal() {}
+	seal() { }
+	unseal() { }
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;

@@ -382,6 +382,14 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:optimize_modules", skip_all)]
+  pub async fn optimize_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &mut self.plugins {
+      plugin.optimize_modules(compilation).await?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:optimize_chunk_modules", skip_all)]
   pub async fn optimize_chunk_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
