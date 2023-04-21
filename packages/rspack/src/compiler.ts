@@ -382,7 +382,7 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	#chunkAsset(assetArg: binding.ChunkAssetArgs) {
+	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
 		this.compilation.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
 		this.#updateDisabledHooks();
 	}

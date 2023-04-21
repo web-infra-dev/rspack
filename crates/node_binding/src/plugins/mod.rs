@@ -5,15 +5,16 @@ use async_trait::async_trait;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_theadsafe_fn;
 use rspack_core::{
-  NormalModuleFactoryResolveForSchemeArgs, PluginNormalModuleFactoryResolveForSchemeOutput,
-  ResourceData,
+  ChunkAssetArgs, NormalModuleFactoryResolveForSchemeArgs,
+  PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
 };
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
-use crate::args::ChunkAssetArgs;
-use crate::js_values::{JsChunk, JsResourceData, JsStatsChunk, SchemeAndJsResourceData};
+use crate::js_values::{
+  JsChunk, JsChunkAssetArgs, JsResourceData, JsStatsChunk, SchemeAndJsResourceData,
+};
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
@@ -33,7 +34,7 @@ pub struct JsHooksAdapter {
   pub optimize_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
-  pub chunk_asset: ThreadsafeFunction<ChunkAssetArgs, ()>,
+  pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<SchemeAndJsResourceData, JsResourceData>,
 }
@@ -94,26 +95,20 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
 
-  async fn chunk_asset(
-    &mut self,
-    args: &rspack_core::ChunkAssetArgs,
-  ) -> rspack_core::PluginThisCompilationHookOutput {
+  async fn chunk_asset(&mut self, args: &ChunkAssetArgs) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::ChunkAsset) {
       return Ok(());
     }
 
     self
-      .chunk_asset
+      .chunk_asset_tsfn
       .call(
-        ChunkAssetArgs {
-          chunk: JsChunk::from(args.chunk),
-          filename: args.filename.to_string(),
-        },
+        JsChunkAssetArgs::from(args),
         ThreadsafeFunctionCallMode::NonBlocking,
       )
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
+      .map_err(|err| internal_error!("Failed to chunk asset: {err}"))?
   }
 
   #[tracing::instrument(name = "js_hooks_adapter::make", skip_all)]
@@ -423,7 +418,7 @@ impl JsHooksAdapter {
       SchemeAndJsResourceData,
       JsResourceData,
     > = js_fn_into_theadsafe_fn!(normal_module_factory_resolve_for_scheme, env);
-    let chunk_asset: ThreadsafeFunction<ChunkAssetArgs, ()> =
+    let chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()> =
       js_fn_into_theadsafe_fn!(chunk_asset, env);
 
     Ok(JsHooksAdapter {
@@ -444,7 +439,7 @@ impl JsHooksAdapter {
       optimize_chunk_modules_tsfn,
       normal_module_factory_resolve_for_scheme,
       finish_modules_tsfn,
-      chunk_asset,
+      chunk_asset_tsfn,
     })
   }
 

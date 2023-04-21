@@ -442,10 +442,6 @@ export interface RawOptions {
   experiments: RawExperiments
   node?: RawNodeOption
 }
-export interface ChunkAssetArgs {
-  chunk: JsChunk
-  filename: string
-}
 export interface JsAssetInfoRelated {
   sourceMap?: string
 }
@@ -480,6 +476,10 @@ export interface JsAsset {
 }
 export interface JsChunk {
   files: Array<string>
+}
+export interface JsChunkAssetArgs {
+  chunk: JsChunk
+  filename: string
 }
 export interface JsChunkGroup {
   chunks: Array<JsChunk>

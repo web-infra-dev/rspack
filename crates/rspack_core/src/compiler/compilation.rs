@@ -981,14 +981,14 @@ impl Compilation {
     filename: String,
     plugin_driver: SharedPluginDriver,
   ) -> Result<()> {
-    let chunk = self
+    let current_chunk = self
       .chunk_by_ukey
       .get(&chunk_ukey)
       .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
     _ = plugin_driver
       .write()
       .await
-      .chunk_asset(chunk, filename)
+      .chunk_asset(current_chunk, filename)
       .await;
     Ok(())
   }
