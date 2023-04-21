@@ -2,12 +2,13 @@ mod js_loader;
 
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
+use derivative::Derivative;
 pub use js_loader::*;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, DescriptionData,
-  ModuleOptions, ModuleRule, ParserOptions,
+  ModuleOptions, ModuleRule, ModuleRuleEnforce, ParserOptions,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
@@ -207,7 +208,8 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   }
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRule {
@@ -223,29 +225,17 @@ pub struct RawModuleRule {
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   pub r#type: Option<String>,
+  #[derivative(Debug = "ignore")]
   pub parser: Option<RawModuleRuleParser>,
+  #[derivative(Debug = "ignore")]
   pub generator: Option<RawModuleRuleGenerator>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
   pub one_of: Option<Vec<RawModuleRule>>,
-}
-
-impl Debug for RawModuleRule {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("RawModuleRule")
-      .field("test", &self.test)
-      .field("include", &self.include)
-      .field("exclude", &self.exclude)
-      .field("resource", &self.resource)
-      .field("resource_query", &self.resource_query)
-      .field("type", &self.r#type)
-      .field("side_effects", &self.side_effects)
-      .field("use", &self.r#use)
-      .field("issuer", &self.issuer)
-      .field("one_of", &self.one_of)
-      .finish()
-  }
+  /// Specifies the category of the loader. No value means normal loader.
+  #[napi(ts_type = "'pre' | 'post'")]
+  pub enforce: Option<String>,
 }
 
 #[derive(Deserialize, Default)]
@@ -384,6 +374,18 @@ impl RawOptionsApply for RawModuleRule {
       })
       .transpose()?;
 
+    let enforce = self
+      .enforce
+      .map(|enforce| match &*enforce {
+        "pre" => Ok(ModuleRuleEnforce::Pre),
+        "post" => Ok(ModuleRuleEnforce::Post),
+        _ => Err(internal_error!(
+          "Unsupported Rule.enforce type, supported: 'pre' | 'post' | undefined"
+        )),
+      })
+      .transpose()?
+      .unwrap_or_default();
+
     Ok(ModuleRule {
       test: self.test.map(|raw| raw.try_into()).transpose()?,
       include: self.include.map(|raw| raw.try_into()).transpose()?,
@@ -400,6 +402,7 @@ impl RawOptionsApply for RawModuleRule {
       issuer: self.issuer.map(|raw| raw.try_into()).transpose()?,
       dependency: self.dependency.map(|raw| raw.try_into()).transpose()?,
       one_of,
+      enforce,
     })
   }
 }

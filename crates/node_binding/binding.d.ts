@@ -283,6 +283,8 @@ export interface RawModuleRule {
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
+  /** Specifies the category of the loader. No value means normal loader. */
+  enforce?: 'pre' | 'post'
 }
 export interface RawModuleRuleGenerator {
   filename?: string

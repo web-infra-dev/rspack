@@ -143,6 +143,15 @@ pub struct ModuleRule {
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub one_of: Option<Vec<ModuleRule>>,
+  pub enforce: ModuleRuleEnforce,
+}
+
+#[derive(Debug, Default)]
+pub enum ModuleRuleEnforce {
+  #[default]
+  Normal,
+  Pre,
+  Post,
 }
 
 #[derive(Debug, Default)]

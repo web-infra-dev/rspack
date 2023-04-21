@@ -8,10 +8,10 @@ use rspack_identifier::Identifiable;
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions,
+  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions, BoxLoader,
   CompilerOptions, Dependency, DependencyCategory, FactorizeArgs, FactoryMeta, MissingModule,
   ModuleArgs, ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleType, NormalModule,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
   NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve, ResolveArgs, ResolveError,
   ResolveResult, ResourceData, SharedPluginDriver,
 };
@@ -179,10 +179,35 @@ impl NormalModuleFactory {
       .calculate_module_rules(&resource_data, data.dependency.category())
       .await?;
 
-    let loaders = resolved_module_rules
-      .iter()
-      .flat_map(|module_rule| module_rule.r#use.iter().cloned())
-      .collect::<Vec<_>>();
+    // TODO: move loader resolving to rust
+    let loaders: Vec<BoxLoader> = {
+      let mut pre_loaders: Vec<BoxLoader> = vec![];
+      let mut post_loaders: Vec<BoxLoader> = vec![];
+      let mut normal_loaders: Vec<BoxLoader> = vec![];
+
+      for rule in &resolved_module_rules {
+        match rule.enforce {
+          ModuleRuleEnforce::Pre => {
+            pre_loaders.extend_from_slice(&*rule.r#use);
+          }
+          ModuleRuleEnforce::Normal => {
+            normal_loaders.extend_from_slice(&*rule.r#use);
+          }
+          ModuleRuleEnforce::Post => {
+            post_loaders.extend_from_slice(&*rule.r#use);
+          }
+        }
+      }
+
+      let mut all_loaders =
+        Vec::with_capacity(pre_loaders.len() + post_loaders.len() + normal_loaders.len());
+
+      all_loaders.extend(post_loaders);
+      all_loaders.extend(normal_loaders);
+      all_loaders.extend(pre_loaders);
+
+      all_loaders
+    };
 
     let request = if !loaders.is_empty() {
       let s = loaders
