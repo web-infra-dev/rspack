@@ -122,12 +122,8 @@ pub async fn resolve(
         )
       } else {
         ResolveError(
-          "Failed to resolve {} in context".to_owned(),
-          internal_error!(
-            "Failed to resolve {} in {}",
-            args.specifier,
-            plugin_driver.options.context.display()
-          ),
+          format!("Failed to resolve {} in project root", args.specifier),
+          internal_error!("Failed to resolve {} in project root", args.specifier),
         )
       }
     }

@@ -299,6 +299,10 @@ export interface RuleSetRule {
 	};
 	resolve?: ResolveOptions;
 	sideEffects?: boolean;
+	/**
+	 * Specifies the category of the loader. No value means normal loader.
+	 */
+	enforce?: "pre" | "post";
 }
 export type RuleSetCondition =
 	| RegExp

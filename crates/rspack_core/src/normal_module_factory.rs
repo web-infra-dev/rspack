@@ -179,12 +179,14 @@ impl NormalModuleFactory {
       .calculate_module_rules(&resource_data, data.dependency.category())
       .await?;
 
-    // TODO: move loader resolving to rust
+    // TODO: move loader resolver to rust
     let loaders: Vec<BoxLoader> = {
       let mut pre_loaders: Vec<BoxLoader> = vec![];
       let mut post_loaders: Vec<BoxLoader> = vec![];
       let mut normal_loaders: Vec<BoxLoader> = vec![];
 
+      // Don't change to sort here, as the order of
+      // inline loader will be affected by match resource.
       for rule in &resolved_module_rules {
         match rule.enforce {
           ModuleRuleEnforce::Pre => {
