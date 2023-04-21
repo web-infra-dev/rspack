@@ -477,6 +477,10 @@ export interface JsAsset {
 export interface JsChunk {
   files: Array<string>
 }
+export interface JsChunkAssetArgs {
+  chunk: JsChunk
+  filename: string
+}
 export interface JsChunkGroup {
   chunks: Array<JsChunk>
 }
@@ -497,6 +501,7 @@ export interface JsHooks {
   optimizeChunkModule: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
+  chunkAsset: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource

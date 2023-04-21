@@ -18,6 +18,8 @@ pub enum Hook {
   OptimizeChunkModules,
   FinishModules,
   OptimizeModules,
+  /// webpack `compilation.hooks.chunkAsset`
+  ChunkAsset,
 }
 
 impl From<String> for Hook {
@@ -38,6 +40,7 @@ impl From<String> for Hook {
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
       "finishModules" => Hook::FinishModules,
       "optimizeModules" => Hook::OptimizeModules,
+      "chunkAsset" => Hook::ChunkAsset,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

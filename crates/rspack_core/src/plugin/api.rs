@@ -6,9 +6,9 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkHashArgs, ChunkUkey, Compilation,
-  CompilationArgs, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs,
-  ModuleFactoryResult, ModuleType, NormalModuleFactoryContext,
+  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkAssetArgs, ChunkHashArgs, ChunkUkey,
+  Compilation, CompilationArgs, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module,
+  ModuleArgs, ModuleFactoryResult, ModuleType, NormalModuleFactoryContext,
   NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
   RenderStartupArgs, SourceType, ThisCompilationArgs,
@@ -130,6 +130,11 @@ pub trait Plugin: Debug + Send + Sync {
     _args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
     Ok(None)
+  }
+
+  /// webpack `compilation.hooks.chunkAsset`
+  async fn chunk_asset(&mut self, _args: &ChunkAssetArgs) -> Result<()> {
+    Ok(())
   }
 
   // JavascriptModulesPlugin hook
