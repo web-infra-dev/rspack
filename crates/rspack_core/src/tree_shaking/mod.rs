@@ -38,8 +38,8 @@ static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
     Err(_) => vec![],
   }
 });
-pub static CARED_MODULE_ID: &[&str] = &["javascript/dynamic|/Users/bytedance/Documents/rspack/issues/rspack-modern-create-class-issue/node_modules/.pnpm/highlight.js@11.7.0/node_modules/highlight.js/lib/core.js"];
-// pub static CARED_MODULE_ID: &[&str] = &[];
+// pub static CARED_MODULE_ID: &[&str] = &["javascript/dynamic|/Users/bytedance/Documents/rspack/issues/rspack-modern-create-class-issue/node_modules/.pnpm/highlight.js@11.7.0/node_modules/highlight.js/lib/core.js"];
+pub static CARED_MODULE_ID: &[&str] = &["javascript/esm|/home/victor/Documents/rspack/rspack/node_modules/@swc/helpers/esm/_create_class.js"];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {

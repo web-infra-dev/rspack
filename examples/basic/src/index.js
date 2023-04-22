@@ -1,2 +1,2 @@
-import Test from '../source'
+require('../source')
 console.log('somethjing', Test)

@@ -1,6 +1,7 @@
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, ModuleGraph, ModuleIdentifier,
+  dbg_matches, CodeGeneratableDeclMappings, DependencyCategory, DependencyType, ModuleGraph,
+  ModuleIdentifier,
 };
 use rspack_identifier::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};
@@ -148,8 +149,12 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
+
+    println!(
+      "{} -> {}, used: {}",
+      import.src.value, module_identifier, mgm.used
+    );
     if !mgm.used {
-      println!("unused : {}", mgm.module_identifier);
       return Self::create_empty_stmt_module_item();
     }
     // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));
@@ -194,6 +199,7 @@ impl<'a> TreeShaker<'a> {
               ty: rspack_symbol::IndirectType::Import(local, imported),
               importer: self.module_identifier,
             });
+            dbg_matches!(module_identifier.as_str(), &symbol);
 
             self.used_symbol_set.contains(&symbol)
           }
@@ -201,6 +207,12 @@ impl<'a> TreeShaker<'a> {
       })
       .collect::<Vec<_>>();
 
+    println!(
+      "{}, before_length: {},  {}",
+      import.src.value,
+      before_length,
+      specifiers.len()
+    );
     // try if we could remove this export declaration
     if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
       return Self::create_empty_stmt_module_item();

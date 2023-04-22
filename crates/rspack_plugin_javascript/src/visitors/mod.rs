@@ -16,7 +16,9 @@ mod strict;
 use strict::strict_mode;
 mod format;
 use format::*;
-use rspack_core::{BuildInfo, Devtool, EsVersion, Module, ModuleType, RuntimeGlobals};
+use rspack_core::{
+  println_matches, BuildInfo, Devtool, EsVersion, Module, ModuleType, RuntimeGlobals,
+};
 use swc_core::common::pass::Repeat;
 use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::module::util::ImportInterop;
@@ -186,7 +188,12 @@ pub fn run_after_pass(
   let cm = ast.get_context().source_map.clone();
 
   let res = stringify(ast, &Devtool::default()).unwrap();
-  println!("{}\n{}", module.identifier(), res.code);
+  println_matches!(
+    module.identifier().as_str(),
+    "{}\n{}",
+    module.identifier(),
+    res.code
+  );
   ast
     .transform_with_handler(cm.clone(), |_, program, context| {
       let unresolved_mark = context.unresolved_mark;
