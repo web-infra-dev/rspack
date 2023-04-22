@@ -1315,19 +1315,19 @@ impl<'a> ModuleRefAnalyze<'a> {
         // if import is a helper injection then we should ignore now tree-shaking with that module
         // one more thing, only helper module inserted by swc transformer will be ignored
         // e.g. import ext from '@swc/helper/xxx'
-        if vac.key().ctxt.outer() == self.helper_mark {
-          match self
-            .bail_out_module_identifiers
-            .entry(symbol.module_identifier())
-          {
-            Entry::Occupied(mut occ) => {
-              *occ.get_mut() |= BailoutFlag::HELPER;
-            }
-            Entry::Vacant(vac) => {
-              vac.insert(BailoutFlag::HELPER);
-            }
-          }
-        }
+        // if vac.key().ctxt.outer() == self.helper_mark {
+        //   match self
+        //     .bail_out_module_identifiers
+        //     .entry(symbol.module_identifier())
+        //   {
+        //     Entry::Occupied(mut occ) => {
+        //       *occ.get_mut() |= BailoutFlag::HELPER;
+        //     }
+        //     Entry::Vacant(vac) => {
+        //       vac.insert(BailoutFlag::HELPER);
+        //     }
+        //   }
+        // }
         self.potential_top_mark.insert(vac.key().ctxt.outer());
         vac.insert(symbol);
       }
