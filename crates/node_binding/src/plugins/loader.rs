@@ -21,7 +21,7 @@ impl Debug for InlineLoaderResolver {
 
 #[async_trait::async_trait]
 impl Plugin for InlineLoaderResolver {
-  async fn resolve_inline_loader(
+  async fn resolve_loader(
     &self,
     compiler_options: &CompilerOptions,
     context: &Path,

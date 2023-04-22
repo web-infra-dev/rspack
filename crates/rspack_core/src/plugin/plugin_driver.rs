@@ -428,7 +428,7 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn resolve_inline_loader(
+  pub async fn resolve_loader(
     &self,
     compiler_options: &CompilerOptions,
     context: &Path,
@@ -437,7 +437,7 @@ impl PluginDriver {
   ) -> Result<Option<BoxLoader>> {
     for plugin in &self.plugins {
       if let Some(loader) = plugin
-        .resolve_inline_loader(compiler_options, context, resolver, loader_request)
+        .resolve_loader(compiler_options, context, resolver, loader_request)
         .await?
       {
         return Ok(Some(loader));

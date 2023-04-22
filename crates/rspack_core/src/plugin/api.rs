@@ -288,7 +288,7 @@ pub trait Plugin: Debug + Send + Sync {
   /// Webpack resolves loaders in `NormalModuleFactory`,
   /// Rspack resolves it when normalizing configuration.
   /// So this hook is used to resolve inline loader (inline loader requests).
-  async fn resolve_inline_loader(
+  async fn resolve_loader(
     &self,
     _compiler_options: &CompilerOptions,
     _context: &Path,

@@ -175,7 +175,7 @@ impl NormalModuleFactory {
         let plugin_driver = self.plugin_driver.read().await;
         for element in raw_elements {
           let importer = resolve_args.importer.map(|i| i.display().to_string());
-          let res = plugin_driver.resolve_inline_loader(
+          let res = plugin_driver.resolve_loader(
             &self.context.options,
             {
               if let Some(context) = &resolve_args.context {
