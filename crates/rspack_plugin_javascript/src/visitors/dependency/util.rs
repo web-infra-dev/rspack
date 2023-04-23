@@ -112,11 +112,11 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
     .unwrap_or_default()
 }
 
-// Notice: Doesn't include `import.meta` itself
+// Notice: Include `import.meta` itself
 pub fn is_member_expr_starts_with_import_meta(mut expr: &Expr) -> bool {
   loop {
     match expr {
-      Expr::Member(MemberExpr { obj, .. }) if expr_matcher::is_import_meta(obj) => return true,
+      _ if expr_matcher::is_import_meta(obj) => return true,
       Expr::Member(MemberExpr { obj, .. }) if obj.is_member() => expr = obj.as_ref(),
       _ => return false,
     }

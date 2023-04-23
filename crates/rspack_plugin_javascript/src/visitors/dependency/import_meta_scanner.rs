@@ -47,71 +47,72 @@ impl VisitAstPath for ImportMetaScanner<'_> {
     expr: &'ast Expr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    // exclude import.meta.webpackHot
-    if is_member_expr_starts_with_import_meta_webpack_hot(expr) {
-      return;
-    }
-    // import.meta.url
-    if expr_matcher::is_import_meta_url(expr) {
-      let url = Url::from_file_path(&self.resource_data.resource).expect("should be a path");
-      self.add_presentational_dependency(box ConstDependency::new(
-        Expr::Lit(Lit::Str(Str {
-          span: DUMMY_SP,
-          value: format!("'{}'", url.as_str()).into(),
-          raw: Some(format!("'{}'", url.as_str()).into()),
-        })),
-        None,
-        as_parent_path(ast_path),
-      ));
-    }
-    // import.meta.xxx
-    else if is_member_expr_starts_with_import_meta(expr) {
-      self.add_presentational_dependency(box ConstDependency::new(
-        quote!("undefined" as Expr),
-        None,
-        as_parent_path(ast_path),
-      ));
-    }
-    // import.meta
-    else if expr_matcher::is_import_meta(expr) {
-      // TODO add warning
-      self.add_presentational_dependency(box ConstDependency::new(
-        quote!("({})" as Expr),
-        None,
-        as_parent_path(ast_path),
-      ));
-    } else if let Expr::Unary(UnaryExpr {
+    // Deal with `typeof import.meta.url` and ``typeof import.meta.xxx`
+    if let Expr::Unary(UnaryExpr {
       op: UnaryOp::TypeOf,
       arg: box expr,
       ..
     }) = expr
     {
-      // typeof import.meta.url
-      if expr_matcher::is_import_meta_url(expr) {
+      // typeof import.meta
+      if expr_matcher::is_import_meta(expr) {
+        self.add_presentational_dependency(box ConstDependency::new(
+          quote!("'object'" as Expr),
+          None,
+          as_parent_path(ast_path),
+        ));
+      } else if expr_matcher::is_import_meta_url(expr) {
+        // typeof import.meta.url
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("'string'" as Expr),
           None,
           as_parent_path(ast_path),
         ));
-      }
-      // typeof import.meta.xxx
-      else if is_member_expr_starts_with_import_meta(expr) {
+      } else if is_member_expr_starts_with_import_meta(expr) {
+        // typeof import.meta.xxx
         self.add_presentational_dependency(box ConstDependency::new(
           quote!("undefined" as Expr),
           None,
           as_parent_path(ast_path),
         ));
       }
-      // typeof import.meta
-      else if expr_matcher::is_import_meta(expr) {
+    } else {
+      // Deal with `import.meta` and `import.meta.xxx`
+
+      // exclude import.meta.webpackHot
+      if is_member_expr_starts_with_import_meta_webpack_hot(expr) {
+        return;
+      }
+
+      // import.meta
+      if expr_matcher::is_import_meta(expr) {
+        // TODO(underfin): add warning
         self.add_presentational_dependency(box ConstDependency::new(
-          quote!("'object'" as Expr),
+          quote!("({})" as Expr),
+          None,
+          as_parent_path(ast_path),
+        ));
+      } else if expr_matcher::is_import_meta_url(expr) {
+        // import.meta.url
+        let url = Url::from_file_path(&self.resource_data.resource).expect("should be a path");
+        self.add_presentational_dependency(box ConstDependency::new(
+          Expr::Lit(Lit::Str(Str {
+            span: DUMMY_SP,
+            value: format!("'{}'", url.as_str()).into(),
+            raw: Some(format!("'{}'", url.as_str()).into()),
+          })),
+          None,
+          as_parent_path(ast_path),
+        ));
+      } else if is_member_expr_starts_with_import_meta(expr) {
+        // import.meta.xxx
+        self.add_presentational_dependency(box ConstDependency::new(
+          quote!("undefined" as Expr),
           None,
           as_parent_path(ast_path),
         ));
       }
     }
-
     expr.visit_children_with_path(self, ast_path);
   }
 }
