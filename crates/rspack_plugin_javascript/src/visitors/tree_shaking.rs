@@ -1,7 +1,6 @@
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  dbg_matches, CodeGeneratableDeclMappings, DependencyCategory, DependencyType, ModuleGraph,
-  ModuleIdentifier,
+  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, ModuleGraph, ModuleIdentifier,
 };
 use rspack_identifier::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};

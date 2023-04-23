@@ -24,14 +24,13 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
 use super::{
-  debug_care_module_id,
   symbol_graph::SymbolGraph,
   visitor::{MarkInfo, ModuleRefAnalyze, SymbolRef, TreeShakingResult},
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, dbg_matches, join_string_component, tree_shaking::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, DependencyType,
+  ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -256,11 +255,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
-    let bailout_entry_modules = self
-      .bailout_modules
-      .iter()
-      .map(|(module_id, reason)| *module_id)
-      .collect::<Vec<_>>();
+    let bailout_entry_modules = self.bailout_modules.keys().copied().collect::<Vec<_>>();
     for module_id in bailout_entry_modules {
       self.collect_from_entry_like(
         analyze_result_map,
@@ -339,8 +334,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         self
           .compilation
           .entry_modules()
-          .chain(context_entry_modules)
-          .map(|module_id| module_id),
+          .chain(context_entry_modules),
       );
       while let Some(module_identifier) = q.pop_front() {
         if visited.contains(&module_identifier) {
