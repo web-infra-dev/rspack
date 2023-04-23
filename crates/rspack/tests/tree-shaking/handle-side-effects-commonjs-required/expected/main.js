@@ -10,6 +10,7 @@ var Response = function() {
     "use strict";
     function Response(mode) {
         _class_call_check._(this, Response);
+        // eslint-disable-next-line no-undefined
         if (mode.data === undefined) mode.data = {};
         this.data = mode.data;
         this.isMatchIgnored = false;

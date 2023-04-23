@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::{mpsc, Mutex};
@@ -395,17 +394,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .try_into_ast()?
         .try_into_javascript()?;
       run_after_pass(&mut ast, module, generate_context)?;
-      let retain_comments = generate_context
-        .compilation
-        .options
-        .builtins
-        .minify_options
-        .is_none();
-      let output = crate::ast::stringify(
-        &ast,
-        &generate_context.compilation.options.devtool,
-        retain_comments,
-      )?;
+      let output = crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)?;
       if let Some(map) = output.map {
         Ok(GenerationResult {
           ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
@@ -631,6 +620,7 @@ impl Plugin for JsPlugin {
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
       let all_extracted_comments = Mutex::new(HashMap::new());
+      let extract_comments = &minify_options.extract_comments.clone();
       let emit_source_map_columns = !compilation.options.devtool.cheap();
       let compress = TerserCompressorOptions {
         passes: minify_options.passes,
@@ -660,7 +650,7 @@ impl Plugin for JsPlugin {
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
               emit_source_map_columns,
               ..Default::default()
-            }, input, filename, &all_extracted_comments, minify_options.extract_comments.clone()) {
+            }, input, filename, &all_extracted_comments, extract_comments) {
               Ok(r) => r,
               Err(e) => {
                 tx.send(e.into()).map_err(|e| internal_error!(e.to_string()))?;

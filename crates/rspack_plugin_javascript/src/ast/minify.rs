@@ -47,7 +47,7 @@ pub fn minify(
   input: String,
   filename: &str,
   all_extract_comments: &Mutex<HashMap<String, ExtractedCommentsInfo>>,
-  extract_comments: Option<String>,
+  extract_comments: &Option<String>,
 ) -> Result<TransformOutput> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(&Default::default(), || -> Result<TransformOutput> {
