@@ -745,8 +745,14 @@ impl Plugin for CssPlugin {
       return Ok(());
     }
 
+    let gen_source_map_config = crate::SwcCssSourceMapGenConfig {
+      enable: compilation.options.devtool.source_map(),
+      inline_sources_content: !compilation.options.devtool.no_sources(),
+      emit_columns: !compilation.options.devtool.cheap(),
+    };
+
     compilation
-      .assets
+      .assets_mut()
       .par_iter_mut()
       .filter(|(filename, _)| filename.ends_with(".css"))
       .try_for_each(|(filename, original)| -> Result<()> {
@@ -761,11 +767,7 @@ impl Plugin for CssPlugin {
             filename,
             input,
             input_source_map,
-            crate::SwcCssSourceMapGenConfig {
-              enable: compilation.options.devtool.source_map(),
-              inline_sources_content: !compilation.options.devtool.no_sources(),
-              emit_columns: !compilation.options.devtool.cheap(),
-            },
+            gen_source_map_config.clone(),
           )?;
           original.set_source(Some(minimized_source));
         }

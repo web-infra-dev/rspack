@@ -177,6 +177,7 @@ export async function runLoader(
 	let contextDependencies: string[] = rawContext.contextDependencies.slice();
 	let missingDependencies: string[] = rawContext.missingDependencies.slice();
 	let buildDependencies: string[] = rawContext.buildDependencies.slice();
+	let assetFilenames = rawContext.assetFilenames.slice();
 
 	const loaders = rawContext.currentLoader
 		.split("$")
@@ -429,8 +430,9 @@ export async function runLoader(
 				content
 			);
 		}
-		// @ts-expect-error
-		compiler.compilation.emitAsset(name, source, assetInfo);
+		assetFilenames.push(name),
+			// @ts-expect-error
+			compiler.compilation.emitAsset(name, source, assetInfo);
 	};
 	loaderContext.fs = compiler.inputFileSystem;
 
@@ -540,6 +542,7 @@ export async function runLoader(
 					fileDependencies,
 					contextDependencies,
 					missingDependencies,
+					assetFilenames,
 					isPitching: loaderContext.__internal__isPitching
 				});
 			});
@@ -571,6 +574,7 @@ export async function runLoader(
 						fileDependencies,
 						contextDependencies,
 						missingDependencies,
+						assetFilenames,
 						isPitching: loaderContext.__internal__isPitching
 					});
 				}

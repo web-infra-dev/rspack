@@ -44,27 +44,32 @@ impl Stats<'_> {
       }
     }
 
-    let mut assets: HashMap<&String, StatsAsset> =
-      HashMap::from_iter(self.compilation.assets.iter().filter_map(|(name, asset)| {
-        asset.get_source().map(|source| {
-          (
-            name,
-            StatsAsset {
-              r#type: "asset",
-              name: name.clone(),
-              size: source.size() as f64,
-              chunks: Vec::new(),
-              chunk_names: Vec::new(),
-              info: StatsAssetInfo {
-                development: asset.info.development,
-                hot_module_replacement: asset.info.hot_module_replacement,
+    let mut assets: HashMap<&String, StatsAsset> = HashMap::from_iter(
+      self
+        .compilation
+        .assets()
+        .iter()
+        .filter_map(|(name, asset)| {
+          asset.get_source().map(|source| {
+            (
+              name,
+              StatsAsset {
+                r#type: "asset",
+                name: name.clone(),
+                size: source.size() as f64,
+                chunks: Vec::new(),
+                chunk_names: Vec::new(),
+                info: StatsAssetInfo {
+                  development: asset.info.development,
+                  hot_module_replacement: asset.info.hot_module_replacement,
+                },
+                emitted: self.compilation.emitted_assets.contains(name),
               },
-              emitted: self.compilation.emitted_assets.contains(name),
-            },
-          )
-        })
-      }));
-    for asset in self.compilation.assets.values() {
+            )
+          })
+        }),
+    );
+    for asset in self.compilation.assets().values() {
       if let Some(source_map) = &asset.get_info().related.source_map {
         assets.remove(source_map);
       }
@@ -109,13 +114,13 @@ impl Stats<'_> {
     (assets, assets_by_chunk_name)
   }
 
-  pub fn get_modules(&self, reasons: bool) -> Result<Vec<StatsModule>> {
+  pub fn get_modules(&self, reasons: bool, module_assets: bool) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module, reasons))
+      .map(|module| self.get_module(module, reasons, module_assets))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
@@ -126,6 +131,7 @@ impl Stats<'_> {
     chunk_modules: bool,
     chunk_relations: bool,
     reasons: bool,
+    module_assets: bool,
   ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
@@ -141,7 +147,7 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m, reasons))
+            .map(|m| self.get_module(m, reasons, module_assets))
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -284,7 +290,12 @@ impl Stats<'_> {
     });
   }
 
-  fn get_module(&self, module: &BoxModule, show_reasons: bool) -> Result<StatsModule> {
+  fn get_module(
+    &self,
+    module: &BoxModule,
+    reasons: bool,
+    module_assets: bool,
+  ) -> Result<StatsModule> {
     let identifier = module.identifier();
     let mgm = self
       .compilation
@@ -309,7 +320,7 @@ impl Stats<'_> {
     }
     issuer_path.reverse();
 
-    let reasons = show_reasons
+    let reasons = reasons
       .then(|| -> Result<_> {
         let mut reasons: Vec<StatsModuleReason> = mgm
           .incoming_connections_unordered(&self.compilation.module_graph)?
@@ -359,6 +370,16 @@ impl Stats<'_> {
       .collect();
     chunks.sort_unstable();
 
+    let assets = module_assets.then(|| {
+      let mut assets: Vec<_> = mgm
+        .build_info
+        .as_ref()
+        .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
+        .unwrap_or_default();
+      assets.sort();
+      assets
+    });
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -374,6 +395,7 @@ impl Stats<'_> {
       issuer_id,
       issuer_path,
       reasons,
+      assets,
     })
   }
 
@@ -484,6 +506,7 @@ pub struct StatsModule {
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<StatsModuleIssuer>,
   pub reasons: Option<Vec<StatsModuleReason>>,
+  pub assets: Option<Vec<String>>,
 }
 
 #[derive(Debug)]

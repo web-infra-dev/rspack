@@ -75,7 +75,7 @@ pub struct Compilation {
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
-  pub assets: CompilationAssets,
+  assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
   pub plugin_driver: SharedPluginDriver,
@@ -240,6 +240,10 @@ impl Compilation {
 
   pub fn assets(&self) -> &CompilationAssets {
     &self.assets
+  }
+
+  pub fn assets_mut(&mut self) -> &mut CompilationAssets {
+    &mut self.assets
   }
 
   pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
