@@ -135,7 +135,7 @@ pub fn is_member_expr_starts_with_import_meta_webpack_hot(expr: &Expr) -> bool {
         return true
       }
       // The expr is sub-part of `import.meta.webpackHot.xxx`. Recursively look up.
-      ast::Expr::Member(ast::MemberExpr { obj, .. }) if obj.is_member() => {
+      ast::Expr::Member(ast::MemberExpr { obj, .. }) => {
         match_target = obj.as_ref();
       }
       // The expr could never be `import.meta.webpackHot`
