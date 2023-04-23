@@ -275,7 +275,6 @@ fn minify_file_comments(
     BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
       let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
         // Preserve license comments.
-
         vc.retain(|c: &Comment| c.text.contains("@license") || c.text.starts_with('!'));
         !vc.is_empty()
       };
