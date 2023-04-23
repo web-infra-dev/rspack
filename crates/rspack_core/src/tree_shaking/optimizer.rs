@@ -161,15 +161,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       visited_symbol_ref,
       &dead_nodes_index,
     );
-    dbg!(&used_symbol_ref);
-    // let used_modules_ids = self
-    //   .compilation
-    //   .module_graph
-    //   .module_identifier_to_module_graph_module
-    //   .iter()
-    //   .map(|(id, mgm)| (*id, mgm.used))
-    //   .collect::<Vec<_>>();
-    // dbg!(&used_modules_ids);
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
@@ -1228,10 +1219,9 @@ async fn par_analyze_module(
         let analyzer: TreeShakingResult = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
-          let helper_mark = context.helpers.mark();
 
           let mut analyzer = ModuleRefAnalyze::new(
-            MarkInfo::new(top_level_mark, unresolved_mark, helper_mark),
+            MarkInfo::new(top_level_mark, unresolved_mark),
             uri_key,
             &compilation.module_graph,
             &compilation.options,
@@ -1242,22 +1232,18 @@ async fn par_analyze_module(
         });
 
         // Keep this debug info until we stabilize the tree-shaking
-        // ast.visit(|p, c| {
-        //   dbg!(&p);
-        // });
-        dbg!(
-          *uri_key,
-          &uri_key,
-          // &analyzer.export_all_list,
-          &analyzer.export_map,
-          &analyzer.import_map,
-          &analyzer.reachable_import_of_export,
-          &analyzer.used_symbol_refs,
-          analyzer.helper_mark,
-          analyzer.top_level_mark,
-          analyzer.unresolved_mark,
-        );
-
+        // dbg_matches!(
+        //   *uri_key,
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.reachable_import_of_export,
+        //   &analyzer.used_symbol_refs,
+        //   analyzer.top_level_mark,
+        //   analyzer.unresolved_mark,
+        // );
+        //
         Some((uri_key, analyzer))
       })
       .collect::<IdentifierMap<TreeShakingResult>>()

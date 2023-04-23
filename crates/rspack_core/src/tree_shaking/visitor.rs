@@ -106,7 +106,6 @@ bitflags! {
 pub(crate) struct ModuleRefAnalyze<'a> {
   top_level_mark: Mark,
   unresolved_mark: Mark,
-  helper_mark: Mark,
   module_identifier: ModuleIdentifier,
   module_graph: &'a ModuleGraph,
   /// Value of `export_map` must have type [SymbolRef::Direct]
@@ -152,7 +151,6 @@ impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
     f.debug_struct("ModuleRefAnalyze")
       .field("top_level_mark", &self.top_level_mark)
       .field("unresolved_mark", &self.unresolved_mark)
-      .field("helper_mark", &self.helper_mark)
       .field("module_identifier", &self.module_identifier)
       .field("module_graph", &self.module_graph)
       .field("export_map", &self.export_map)
@@ -193,15 +191,13 @@ impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
 pub struct MarkInfo {
   top_level_mark: Mark,
   unresolved_mark: Mark,
-  helper_mark: Mark,
 }
 
 impl MarkInfo {
-  pub fn new(top_level_mark: Mark, unresolved_mark: Mark, helper_mark: Mark) -> Self {
+  pub fn new(top_level_mark: Mark, unresolved_mark: Mark) -> Self {
     Self {
       top_level_mark,
       unresolved_mark,
-      helper_mark,
     }
   }
 }
@@ -217,7 +213,6 @@ impl<'a> ModuleRefAnalyze<'a> {
     Self {
       top_level_mark: mark_info.top_level_mark,
       unresolved_mark: mark_info.unresolved_mark,
-      helper_mark: mark_info.helper_mark,
       module_identifier: uri,
       module_graph: dep_to_module_identifier,
       export_map: HashMap::default(),
@@ -470,7 +465,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       })
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
-    dbg!(&self.used_id_set);
     // all reachable export from used symbol in current module
     for used_id in &self.used_id_set {
       match used_id {
@@ -1312,22 +1306,6 @@ impl<'a> ModuleRefAnalyze<'a> {
         // TODO: should add some Diagnostic
       }
       Entry::Vacant(vac) => {
-        // if import is a helper injection then we should ignore now tree-shaking with that module
-        // one more thing, only helper module inserted by swc transformer will be ignored
-        // e.g. import ext from '@swc/helper/xxx'
-        // if vac.key().ctxt.outer() == self.helper_mark {
-        //   match self
-        //     .bail_out_module_identifiers
-        //     .entry(symbol.module_identifier())
-        //   {
-        //     Entry::Occupied(mut occ) => {
-        //       *occ.get_mut() |= BailoutFlag::HELPER;
-        //     }
-        //     Entry::Vacant(vac) => {
-        //       vac.insert(BailoutFlag::HELPER);
-        //     }
-        //   }
-        // }
         self.potential_top_mark.insert(vac.key().ctxt.outer());
         vac.insert(symbol);
       }
@@ -1481,7 +1459,6 @@ impl<'a> ModuleRefAnalyze<'a> {
 pub struct TreeShakingResult {
   pub top_level_mark: Mark,
   pub unresolved_mark: Mark,
-  pub helper_mark: Mark,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
@@ -1513,7 +1490,6 @@ impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
       bail_out_module_identifiers: analyze.bail_out_module_identifiers,
       side_effects: analyze.side_effects,
       module_syntax: analyze.module_syntax,
-      helper_mark: analyze.helper_mark,
     }
   }
 }

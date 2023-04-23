@@ -150,10 +150,6 @@ impl<'a> TreeShaker<'a> {
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
 
-    println!(
-      "{} -> {}, used: {}",
-      import.src.value, module_identifier, mgm.used
-    );
     if !mgm.used {
       return Self::create_empty_stmt_module_item();
     }
@@ -199,7 +195,6 @@ impl<'a> TreeShaker<'a> {
               ty: rspack_symbol::IndirectType::Import(local, imported),
               importer: self.module_identifier,
             });
-            dbg_matches!(module_identifier.as_str(), &symbol);
 
             self.used_symbol_set.contains(&symbol)
           }
@@ -207,12 +202,6 @@ impl<'a> TreeShaker<'a> {
       })
       .collect::<Vec<_>>();
 
-    println!(
-      "{}, before_length: {},  {}",
-      import.src.value,
-      before_length,
-      specifiers.len()
-    );
     // try if we could remove this export declaration
     if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
       return Self::create_empty_stmt_module_item();

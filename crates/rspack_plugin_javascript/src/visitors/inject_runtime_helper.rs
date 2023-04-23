@@ -80,8 +80,11 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
         n.args.visit_mut_children_with(self);
         return;
       }
-      return;
 
+      match word {
+        "_instanceof" => return,
+        _ => {}
+      };
       // have some unhandled helper
       debug_assert!(false, "have unhandled helper: word = {word}");
     }
