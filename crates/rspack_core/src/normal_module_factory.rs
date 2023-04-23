@@ -133,7 +133,7 @@ impl NormalModuleFactory {
       }
     } else {
       {
-        let mut request = resolve_args.specifier.chars();
+        let mut request = specifier.chars();
         let first_char = request.next();
         let second_char = request.next();
         // See: https://webpack.js.org/concepts/loaders/#inline
@@ -142,7 +142,7 @@ impl NormalModuleFactory {
         no_pre_post_auto_loaders = matches!(first_char, Some('!')) && matches!(second_char, Some('!'));
 
         let mut raw_elements = {
-          let s = match resolve_args.specifier.char_indices().nth({
+          let s = match specifier.char_indices().nth({
             if no_pre_auto_loaders || no_pre_post_auto_loaders {
               2
             } else if no_auto_loaders {
@@ -152,7 +152,7 @@ impl NormalModuleFactory {
             }
           }) {
             Some((pos, _)) => {
-              &resolve_args.specifier[pos..]
+              &specifier[pos..]
             },
             None=> {
               unreachable!()
