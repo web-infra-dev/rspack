@@ -8,6 +8,9 @@ pub use hooks::*;
 mod identifier;
 pub use identifier::*;
 
+mod comment;
+pub use comment::*;
+
 mod source;
 pub use source::*;
 

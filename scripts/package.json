@@ -2,11 +2,14 @@
   "name": "workflow",
   "version": "1.0.0",
   "description": "",
-  "scripts": {},
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "MIT",
   "private": true,
+  "scripts": {
+    "typecheck": "pnpm tsc --noEmit"
+  },
   "dependencies": {
     "@changesets/read": "0.5.9",
     "@iarna/toml": "2.2.5",

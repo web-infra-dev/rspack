@@ -80,7 +80,7 @@ nvm use 16
 Make sure you are under the workspace root
 
 ```bash
-node ./scripts/meta/setup.mjs
+node ./scripts/meta/setup.js
 ```
 
 #### Install Dependencies

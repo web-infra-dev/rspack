@@ -1,8 +1,8 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-pub type RuntimeSpec = HashSet<String>;
+pub type RuntimeSpec = HashSet<Arc<str>>;
 pub type RuntimeKey = String;
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -18,8 +18,8 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
     return false;
   }
 
-  let mut a: Vec<String> = Vec::from_iter(a.iter().cloned());
-  let mut b: Vec<String> = Vec::from_iter(b.iter().cloned());
+  let mut a: Vec<Arc<str>> = Vec::from_iter(a.iter().cloned());
+  let mut b: Vec<Arc<str>> = Vec::from_iter(b.iter().cloned());
 
   a.sort_unstable();
   b.sort_unstable();
@@ -28,7 +28,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
 }
 
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
-  let mut runtime: Vec<String> = Vec::from_iter(runtime.into_iter());
+  let mut runtime: Vec<Arc<str>> = Vec::from_iter(runtime.into_iter());
   runtime.sort_unstable();
   runtime.join("\n")
 }

@@ -8,6 +8,7 @@ pub enum Hook {
   ThisCompilation,
   ProcessAssetsStageAdditional,
   ProcessAssetsStagePreProcess,
+  ProcessAssetsStageAdditions,
   ProcessAssetsStageNone,
   ProcessAssetsStageOptimizeInline,
   ProcessAssetsStageSummarize,
@@ -16,6 +17,9 @@ pub enum Hook {
   AfterEmit,
   OptimizeChunkModules,
   FinishModules,
+  OptimizeModules,
+  /// webpack `compilation.hooks.chunkAsset`
+  ChunkAsset,
 }
 
 impl From<String> for Hook {
@@ -26,6 +30,7 @@ impl From<String> for Hook {
       "thisCompilation" => Hook::ThisCompilation,
       "processAssetsStageAdditional" => Hook::ProcessAssetsStageAdditional,
       "processAssetsStagePreProcess" => Hook::ProcessAssetsStagePreProcess,
+      "processAssetsStageAdditions" => Hook::ProcessAssetsStageAdditions,
       "processAssetsStageNone" => Hook::ProcessAssetsStageNone,
       "processAssetsStageOptimizeInline" => Hook::ProcessAssetsStageOptimizeInline,
       "processAssetsStageSummarize" => Hook::ProcessAssetsStageSummarize,
@@ -34,6 +39,8 @@ impl From<String> for Hook {
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
       "finishModules" => Hook::FinishModules,
+      "optimizeModules" => Hook::OptimizeModules,
+      "chunkAsset" => Hook::ChunkAsset,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

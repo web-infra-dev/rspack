@@ -6,10 +6,10 @@ use rspack_core::{
 use rspack_error::Result;
 
 use crate::runtime_module::{
-  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
-  GetMainFilenameRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, NormalRuntimeModule,
-  PublicPathRuntimeModule,
+  CreateScriptUrlRuntimeModule, GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule,
+  GetFullHashRuntimeModule, GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule,
+  GlobalRuntimeModule, HasOwnPropertyRuntimeModule, LoadChunkWithModuleRuntimeModule,
+  LoadScriptRuntimeModule, NormalRuntimeModule, PublicPathRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -61,6 +61,17 @@ impl Plugin for BasicRuntimeRequirementPlugin {
       )
     }
 
+    if compilation.options.output.trusted_types.is_some() {
+      if runtime_requirements.contains(RuntimeGlobals::LOAD_SCRIPT) {
+        runtime_requirements.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
+      }
+      if runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT)
+        || runtime_requirements.contains(RuntimeGlobals::CREATE_SCRIPT_URL)
+      {
+        runtime_requirements.insert(RuntimeGlobals::GET_TRUSTED_TYPES_POLICY);
+      }
+    }
+
     let mut sorted_runtime_requirement = runtime_requirements.iter().collect::<Vec<_>>();
     // TODO: we don't need sort since iter is deterministic for BitFlags
     sorted_runtime_requirement.sort_unstable_by_key(|r| r.name());
@@ -100,9 +111,10 @@ impl Plugin for BasicRuntimeRequirementPlugin {
         RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => {
           compilation.add_runtime_module(chunk, GetMainFilenameRuntimeModule::default().boxed())
         }
-        RuntimeGlobals::LOAD_SCRIPT => {
-          compilation.add_runtime_module(chunk, LoadScriptRuntimeModule::default().boxed())
-        }
+        RuntimeGlobals::LOAD_SCRIPT => compilation.add_runtime_module(
+          chunk,
+          LoadScriptRuntimeModule::new(compilation.options.output.trusted_types.is_some()).boxed(),
+        ),
         RuntimeGlobals::HAS_OWN_PROPERTY => {
           compilation.add_runtime_module(chunk, HasOwnPropertyRuntimeModule::default().boxed())
         }
@@ -115,6 +127,11 @@ impl Plugin for BasicRuntimeRequirementPlugin {
         RuntimeGlobals::GLOBAL => {
           compilation.add_runtime_module(chunk, GlobalRuntimeModule::default().boxed())
         }
+        RuntimeGlobals::CREATE_SCRIPT_URL => {
+          compilation.add_runtime_module(chunk, CreateScriptUrlRuntimeModule::default().boxed())
+        }
+        RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => compilation
+          .add_runtime_module(chunk, GetTrustedTypesPolicyRuntimeModule::default().boxed()),
         _ => {}
       }
     }

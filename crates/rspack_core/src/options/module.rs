@@ -91,7 +91,7 @@ impl RuleSetLogicalConditions {
   }
 }
 
-async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
+pub async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
 where
   Fut: Future<Output = Result<bool>>,
   F: Fn(T) -> Fut,
@@ -119,7 +119,7 @@ where
   Ok(true)
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
@@ -140,6 +140,46 @@ pub struct ModuleRule {
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub one_of: Option<Vec<ModuleRule>>,
+  pub enforce: ModuleRuleEnforce,
+}
+
+impl Debug for ModuleRule {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("ModuleRule")
+      .field("test", &self.test)
+      .field("include", &self.include)
+      .field("exclude", &self.exclude)
+      .field("resource", &self.resource)
+      .field("resource_query", &self.resource_query)
+      .field("dependency", &self.dependency)
+      .field("issuer", &self.issuer)
+      .field("description_data", &self.description_data)
+      .field("side_effects", &self.side_effects)
+      .field("r#type", &self.r#type)
+      .field(
+        "r#use",
+        &self
+          .r#use
+          .iter()
+          .map(|l| l.identifier().to_string())
+          .collect::<Vec<_>>()
+          .join("!"),
+      )
+      .field("parser", &self.parser)
+      .field("generator", &self.generator)
+      .field("resolve", &self.resolve)
+      .field("one_of", &self.one_of)
+      .field("enforce", &self.enforce)
+      .finish()
+  }
+}
+
+#[derive(Debug, Default)]
+pub enum ModuleRuleEnforce {
+  Post,
+  #[default]
+  Normal,
+  Pre,
 }
 
 #[derive(Debug, Default)]

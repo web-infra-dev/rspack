@@ -31,6 +31,8 @@ mod module_chunk_format;
 pub use module_chunk_format::ModuleChunkFormatPlugin;
 mod module_chunk_loading;
 pub use module_chunk_loading::ModuleChunkLoadingPlugin;
+mod import_scripts_chunk_loading;
+pub use import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin;
 mod runtime_module;
 #[derive(Debug)]
 pub struct RuntimePlugin {}

@@ -20,3 +20,4 @@ crates/**/*
 target/**/*
 
 webpack-test/**/*
+webpack-examples/**/*

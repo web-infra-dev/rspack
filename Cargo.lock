@@ -1562,9 +1562,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.78"
+version = "0.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "79acf3bd073a41a1fcf3aae7e18dd21329317b26ad15a4117bfba2712a89b00c"
+checksum = "6123a34b53527098bf3c30efd6762285d6648eb98dfb8fdcff30f86e9cf256e3"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -2303,6 +2303,7 @@ dependencies = [
  "better_scoped_tls",
  "cfg-if",
  "dashmap",
+ "derivative",
  "glob",
  "indexmap",
  "napi",
@@ -2312,10 +2313,13 @@ dependencies = [
  "rspack_binding_macros",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_ids",
+ "rspack_loader_runner",
  "rspack_loader_sass",
  "rspack_napi_shared",
  "rspack_plugin_asset",
+ "rspack_plugin_banner",
  "rspack_plugin_copy",
  "rspack_plugin_css",
  "rspack_plugin_dev_friendly_split_chunks",
@@ -2363,6 +2367,7 @@ dependencies = [
  "async-trait",
  "bitflags",
  "dashmap",
+ "derivative",
  "dyn-clone",
  "futures",
  "glob",
@@ -2487,26 +2492,10 @@ dependencies = [
 name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-trait",
- "nodejs-resolver",
- "rspack_error",
- "rspack_sources",
- "rustc-hash",
- "similar-asserts",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "url",
-]
-
-[[package]]
-name = "rspack_loader_runner2"
-version = "0.1.0"
-dependencies = [
  "async-recursion",
  "async-trait",
  "bitflags",
+ "derivative",
  "nodejs-resolver",
  "once_cell",
  "regex",
@@ -2570,6 +2559,19 @@ dependencies = [
  "sugar_path",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_banner"
+version = "0.1.0"
+dependencies = [
+ "async-recursion",
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
+ "rspack_regex",
+ "rspack_testing",
+ "testing_macros",
 ]
 
 [[package]]
@@ -5194,13 +5196,6 @@ name = "xshell-macros"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1dbabb1cbd15a1d6d12d9ed6b35cc6777d4af87ab3ba155ea37215f20beab80c"
-
-[[package]]
-name = "xtask"
-version = "0.1.0"
-dependencies = [
- "xshell",
-]
 
 [[package]]
 name = "xxhash-rust"

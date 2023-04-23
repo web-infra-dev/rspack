@@ -1,6 +1,7 @@
 use napi_derive::napi;
 use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv, Provide};
 use rspack_error::internal_error;
+use rspack_plugin_banner::{BannerConfig, BannerPlugin};
 use rspack_plugin_copy::CopyPlugin;
 use rspack_plugin_css::{plugin::CssConfig, CssPlugin};
 use rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin;
@@ -8,6 +9,10 @@ use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use serde::Deserialize;
 
+#[cfg(feature = "node-api")]
+use crate::JsLoaderRunner;
+
+mod raw_banner;
 mod raw_copy;
 mod raw_css;
 mod raw_decorator;
@@ -26,7 +31,8 @@ pub use raw_progress::*;
 pub use raw_react::*;
 
 use self::{
-  raw_copy::RawCopyConfig, raw_plugin_import::RawPluginImportConfig, raw_relay::RawRelayConfig,
+  raw_banner::RawBannerConfig, raw_copy::RawCopyConfig, raw_plugin_import::RawPluginImportConfig,
+  raw_relay::RawRelayConfig,
 };
 use crate::RawOptionsApply;
 
@@ -96,6 +102,7 @@ pub struct RawBuiltins {
   pub emotion: Option<String>,
   pub dev_friendly_split_chunks: bool,
   pub copy: Option<RawCopyConfig>,
+  pub banner: Option<Vec<RawBannerConfig>>,
   pub plugin_import: Option<Vec<RawPluginImportConfig>>,
   pub relay: Option<RawRelayConfig>,
 }
@@ -106,6 +113,7 @@ impl RawOptionsApply for RawBuiltins {
   fn apply(
     self,
     plugins: &mut Vec<rspack_core::BoxPlugin>,
+    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     if let Some(htmls) = self.html {
       for html in htmls {
@@ -132,6 +140,17 @@ impl RawOptionsApply for RawBuiltins {
     }
     if let Some(copy) = self.copy {
       plugins.push(CopyPlugin::new(copy.patterns.into_iter().map(Into::into).collect()).boxed());
+    }
+
+    if let Some(banners) = self.banner {
+      let configs: Vec<BannerConfig> = banners
+        .into_iter()
+        .map(|banner| banner.try_into())
+        .collect::<rspack_error::Result<Vec<_>>>()?;
+
+      configs
+        .into_iter()
+        .for_each(|banner| plugins.push(BannerPlugin::new(banner).boxed()));
     }
 
     Ok(Builtins {

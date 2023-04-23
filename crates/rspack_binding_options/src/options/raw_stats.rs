@@ -7,14 +7,12 @@ use serde::Deserialize;
 #[napi(object)]
 pub struct RawStatsOptions {
   pub colors: bool,
-  pub reasons: bool,
 }
 
 impl From<RawStatsOptions> for StatsOptions {
   fn from(value: RawStatsOptions) -> Self {
     Self {
       colors: value.colors,
-      reasons: value.reasons,
     }
   }
 }

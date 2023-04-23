@@ -1258,5 +1258,27 @@ describe("Compiler", () => {
 				done();
 			});
 		});
+
+		it("should call optimizeModules hook correctly", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						compilation.hooks.optimizeModules.tap("MyPlugin", modules => {
+							expect(modules.length).toEqual(1);
+							expect(modules[0].resource.includes("d.js")).toBeTruthy();
+						});
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(err => {
+				done(err);
+			});
+		});
 	});
 });

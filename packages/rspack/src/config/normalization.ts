@@ -92,7 +92,16 @@ export const getNormalizedRspackOptions = (
 						output.umdNamedDefine !== undefined
 							? output.umdNamedDefine
 							: libraryBase.umdNamedDefine
-				}
+				},
+				trustedTypes: optionalNestedConfig(
+					output.trustedTypes,
+					trustedTypes => {
+						if (trustedTypes === true) return {};
+						if (typeof trustedTypes === "string")
+							return { policyName: trustedTypes };
+						return { ...trustedTypes };
+					}
+				)
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({

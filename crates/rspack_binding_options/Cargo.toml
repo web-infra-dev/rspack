@@ -14,6 +14,7 @@ anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }
 cfg-if = "1.0.0"
 dashmap = { workspace = true }
+derivative = { workspace = true }
 glob = "0.3.1"
 indexmap = { workspace = true }
 napi = { workspace = true, features = [
@@ -28,9 +29,12 @@ regex = { workspace = true }
 rspack_binding_macros = { path = "../rspack_binding_macros" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids" }
+rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_loader_sass = { path = "../rspack_loader_sass" }
 rspack_plugin_asset = { path = "../rspack_plugin_asset" }
+rspack_plugin_banner = { path = "../rspack_plugin_banner" }
 rspack_plugin_copy = { path = "../rspack_plugin_copy" }
 rspack_plugin_css = { path = "../rspack_plugin_css" }
 rspack_plugin_dev_friendly_split_chunks = { path = "../rspack_plugin_dev_friendly_split_chunks" }

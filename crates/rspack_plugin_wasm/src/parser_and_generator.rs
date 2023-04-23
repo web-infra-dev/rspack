@@ -6,10 +6,11 @@ use std::path::Path;
 use dashmap::DashMap;
 use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
+// use rspack_core::StaticExportsDependency;
 use rspack_core::{
   AstOrSource, Context, Dependency, Filename, FilenameRenderOptions, GenerateContext,
   GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType, StaticExportsDependency,
+  ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
@@ -88,8 +89,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       }
     }
 
-    dependencies
-      .push(box StaticExportsDependency::new(exports, false) as Box<dyn ModuleDependency>);
+    // FIXME: marking StatsExportDependency as a ModuleDependency is not correct
+    // dependencies
+    //   .push(box StaticExportsDependency::new(exports, false) as Box<dyn ModuleDependency>);
 
     Ok(
       ParseResult {

@@ -109,7 +109,7 @@ where
 
     let mut hot_update_main_content_by_runtime = all_old_runtime
       .iter()
-      .map(|id| (id.clone(), HotUpdateContent::new(id)))
+      .map(|id| (id.to_string(), HotUpdateContent::new(id.as_ref())))
       .collect::<HashMap<String, HotUpdateContent>>();
 
     let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
@@ -150,7 +150,7 @@ where
         self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
-        self.loader_runner_runner.clone(),
+        self.resolver_factory.clone(),
         self.cache.clone(),
       );
 
@@ -323,7 +323,7 @@ where
       }
 
       for removed in removed_from_runtime {
-        if let Some(info) = hot_update_main_content_by_runtime.get_mut(&removed) {
+        if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed.as_ref()) {
           info.removed_chunk_ids.insert(chunk_id.to_string());
         }
         // TODO:
@@ -407,7 +407,7 @@ where
         }
 
         new_runtime.iter().for_each(|runtime| {
-          if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+          if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime.as_ref()) {
             info.updated_chunk_ids.insert(chunk_id.to_string());
           }
         });

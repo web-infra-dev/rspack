@@ -75,11 +75,13 @@ export class Compilation {
 			Assets,
 			tapable.UnsetAdditionalOptions
 		>;
+		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
 		>;
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
+		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -103,11 +105,13 @@ export class Compilation {
 			/** @deprecated */
 			additionalAssets: processAssetsHooks.stageAdditional,
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
+			optimizeModules: new tapable.SyncBailHook(["modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
 			]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"])
+			finishModules: new tapable.AsyncSeriesHook(["modules"]),
+			chunkAsset: new tapable.SyncHook(["chunk", "filename"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -240,6 +244,7 @@ export class Compilation {
 			options.builtAt,
 			!context.forToString
 		);
+		options.moduleAssets = optionOrLocalFallback(options.moduleAssets, true);
 
 		return options;
 	}
@@ -667,6 +672,7 @@ export class Compilation {
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
 	static PROCESS_ASSETS_STAGE_PRE_PROCESS = -1000;
+	static PROCESS_ASSETS_STAGE_ADDITIONS = -100;
 	static PROCESS_ASSETS_STAGE_NONE = 0;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
@@ -678,6 +684,8 @@ export class Compilation {
 				return this.hooks.processAssets.stageAdditional;
 			case Compilation.PROCESS_ASSETS_STAGE_PRE_PROCESS:
 				return this.hooks.processAssets.stagePreProcess;
+			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONS:
+				return this.hooks.processAssets.stageAdditions;
 			case Compilation.PROCESS_ASSETS_STAGE_NONE:
 				return this.hooks.processAssets.stageNone;
 			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE:

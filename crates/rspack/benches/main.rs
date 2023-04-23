@@ -28,12 +28,14 @@ fn criterion_benchmark(c: &mut Criterion) {
   let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
-  cmd!(sh, "cargo xtask copy_three").run().expect("TODO:");
+  cmd!(sh, "node ./scripts/bench/make-threejs10x.js")
+    .run()
+    .expect("TODO:");
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
     .expect("TODO:");
-  generate_bench!(ten_copy_of_threejs, "three", group, rt);
+  generate_bench!(ten_copy_of_threejs, "threejs10x", group, rt);
   group.finish();
 
   // High cost benchmark
@@ -43,14 +45,17 @@ fn criterion_benchmark(c: &mut Criterion) {
   let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
-  cmd!(sh, "cargo xtask three_production_config")
-    .run()
-    .expect("TODO:");
+  cmd!(
+    sh,
+    "node ./scripts/bench/make-threejs10x-production-config.js"
+  )
+  .run()
+  .expect("TODO:");
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
     .expect("TODO:");
-  generate_bench!(ten_copy_of_threejs_production, "three", group, rt);
+  generate_bench!(ten_copy_of_threejs_production, "threejs10x", group, rt);
   group.finish()
 }
 

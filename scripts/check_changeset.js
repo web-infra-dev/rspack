@@ -1,12 +1,23 @@
-// @ts-nocheck
-const { spawnSync } = require("child_process");
-const path = require("path");
-const util = require("util");
-const readChangesets = require("@changesets/read").default;
+import "zx/globals";
+
+import changesetsRead from "@changesets/read";
+
+/**
+ * @type {typeof changesetsRead}
+ */
+// @ts-expect-error the package seems not cooperate well with ESM
+const readChangesets = changesetsRead.default;
+
+await import("./meta/check_is_workspace_root.js");
 
 async function checkVersion() {
-	const changesets = await readChangesets(path.join(__dirname, "../"));
+	console.log("start checking version");
+	const changesets = await readChangesets(process.cwd());
+	console.log("validate version");
 
+	/**
+	 * @type {string[]}
+	 */
 	const errors = [];
 	for (const changeset of changesets) {
 		const { releases } = changeset;
@@ -34,22 +45,18 @@ async function checkVersion() {
 }
 
 async function checkBump() {
-	const result = spawnSync("pnpm", ["changeset", "version"], {
-		stdio: "pipe"
-	});
-	if (result.status !== 0) {
-		console.error("Check changeset bump failed", result.stderr.toString());
-		process.exit(1);
-	} else {
+	try {
+		const result = await $`pnpm changeset version`;
+		if (result.exitCode !== 0) {
+			console.error("Check changeset bump failed", result.stderr.toString());
+			process.exit(1);
+		}
 		console.log("Check changeset bump succeed");
+	} catch (err) {
+		console.error("Check changeset bump failed");
+		process.exit(1);
 	}
 }
-async function main() {
-	await checkVersion();
-	await checkBump();
-}
 
-main().catch(err => {
-	console.error("check changeset failed", err);
-	process.exit(1);
-});
+await checkVersion();
+await checkBump();

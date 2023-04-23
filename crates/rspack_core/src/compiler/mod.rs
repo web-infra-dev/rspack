@@ -16,8 +16,8 @@ use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, fast_set, tree_shaking::webpack_ext::ExportInfoExt, CompilerOptions,
-  LoaderRunnerRunner, Plugin, PluginDriver, SharedPluginDriver,
+  cache::Cache, fast_set, tree_shaking::webpack_ext::ExportInfoExt, CompilerOptions, Plugin,
+  PluginDriver, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ where
   pub output_filesystem: T,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
-  pub loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub cache: Arc<Cache>,
 }
 
@@ -51,11 +51,6 @@ where
       plugins,
       resolver_factory.clone(),
     )));
-    let loader_runner_runner = Arc::new(LoaderRunnerRunner::new(
-      options.clone(),
-      resolver_factory,
-      plugin_driver.clone(),
-    ));
     let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
@@ -65,12 +60,12 @@ where
         Default::default(),
         Default::default(),
         plugin_driver.clone(),
-        loader_runner_runner.clone(),
+        resolver_factory.clone(),
         cache.clone(),
       ),
       output_filesystem,
       plugin_driver,
-      loader_runner_runner,
+      resolver_factory,
       cache,
     }
   }
@@ -100,7 +95,7 @@ where
         self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
-        self.loader_runner_runner.clone(),
+        self.resolver_factory.clone(),
         self.cache.clone(),
       ),
     );
