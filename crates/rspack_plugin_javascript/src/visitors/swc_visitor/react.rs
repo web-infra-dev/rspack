@@ -58,6 +58,7 @@ impl Visit for FoundReactRefreshVisitor {
         }
       }
     }
+    call_expr.visit_children_with(self);
   }
 }
 
