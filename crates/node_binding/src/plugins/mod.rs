@@ -1,7 +1,9 @@
+mod loader;
 use std::fmt::Debug;
 use std::path::PathBuf;
 
 use async_trait::async_trait;
+pub use loader::InlineLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_theadsafe_fn;
 use rspack_core::{

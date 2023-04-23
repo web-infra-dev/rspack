@@ -3,6 +3,8 @@ mod js_loader;
 use std::{collections::HashMap, fmt::Debug, sync::Arc};
 
 use derivative::Derivative;
+#[cfg(feature = "node-api")]
+pub use js_loader::JsLoaderAdapter;
 pub use js_loader::*;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
@@ -14,7 +16,6 @@ use rspack_error::internal_error;
 use serde::Deserialize;
 #[cfg(feature = "node-api")]
 use {
-  js_loader::JsLoaderAdapter,
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   rspack_napi_shared::{NapiResultExt, NAPI_ENV},
 };
