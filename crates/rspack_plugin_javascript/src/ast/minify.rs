@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource, SourceExt},
+  rspack_sources::{ConcatSource, RawSource, Source, SourceExt},
   ModuleType,
 };
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
@@ -187,10 +187,8 @@ pub fn minify(
           .into_inner()
           .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
 
-        minify_file_comments(&comments, preserve_comments);
         if let Some(extract_comments) = extract_comments {
           let comments_file_name = filename.to_string() + ".License.txt";
-          println!("extract_comments: {}", extract_comments);
           let reg = if extract_comments.eq("true") {
             Regex::new(r"@preserve|@lic|@cc_on|^\**!")
           } else {
@@ -222,15 +220,18 @@ pub fn minify(
               });
             });
           }
-
-          all_extract_comments.lock().unwrap().insert(
-            filename.to_string(),
-            ExtractedCommentsInfo {
-              source: source.boxed(),
-              comments_file_name,
-            },
-          );
+          if source.size() > 0 {
+            all_extract_comments.lock().unwrap().insert(
+              filename.to_string(),
+              ExtractedCommentsInfo {
+                source: source.boxed(),
+                comments_file_name,
+              },
+            );
+          }
           comments = SingleThreadedComments::default();
+        } else {
+          minify_file_comments(&comments, preserve_comments);
         }
 
         print(
