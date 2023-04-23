@@ -12,9 +12,7 @@ use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
-use crate::js_values::{
-  JsChunk, JsChunkAssetArgs, JsResourceData, JsStatsChunk, SchemeAndJsResourceData,
-};
+use crate::js_values::{JsChunkAssetArgs, JsResourceData, SchemeAndJsResourceData};
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
