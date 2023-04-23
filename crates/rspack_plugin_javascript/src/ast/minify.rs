@@ -116,7 +116,7 @@ pub fn minify(
           }
         }
 
-        let comments = SingleThreadedComments::default();
+        let mut comments = SingleThreadedComments::default();
 
         let module = parse_js(
           fm.clone(),
@@ -197,25 +197,28 @@ pub fn minify(
             Regex::new(&extract_comments[1..extract_comments.len() - 2])
           }
           .expect("Invalid extractComments");
-          let (l, t) = comments.borrow_all();
-
           let mut source = ConcatSource::default();
-          l.iter().for_each(|(_, vc)| {
-            vc.iter().for_each(|c| {
-              if reg.is_match(&c.text) {
-                source.add(RawSource::from(&*c.text));
-                source.add(RawSource::from("\n"));
-              }
+          {
+            let (l, t) = comments.borrow_all();
+
+            l.iter().for_each(|(_, vc)| {
+              vc.iter().for_each(|c| {
+                if reg.is_match(&c.text) {
+                  source.add(RawSource::from(&*c.text));
+                  source.add(RawSource::from("\n"));
+                }
+              });
             });
-          });
-          t.iter().for_each(|(_, vc)| {
-            vc.iter().for_each(|c| {
-              if reg.is_match(&c.text) {
-                source.add(RawSource::from(&*c.text));
-                source.add(RawSource::from("\n"));
-              }
+            t.iter().for_each(|(_, vc)| {
+              vc.iter().for_each(|c| {
+                if reg.is_match(&c.text) {
+                  source.add(RawSource::from(&*c.text));
+                  source.add(RawSource::from("\n"));
+                }
+              });
             });
-          });
+          }
+
           all_extract_comments.lock().unwrap().insert(
             filename.to_string(),
             ExtractedCommentsInfo {
@@ -223,6 +226,7 @@ pub fn minify(
               comments_file_name,
             },
           );
+          comments = SingleThreadedComments::default();
         }
 
         print(
