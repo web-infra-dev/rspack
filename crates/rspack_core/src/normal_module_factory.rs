@@ -261,6 +261,17 @@ impl NormalModuleFactory {
       .calculate_module_rules(&resource_data, data.dependency.category())
       .await?;
 
+    let user_request = if !inline_loaders.is_empty() {
+      let s = inline_loaders
+        .iter()
+        .map(|i| i.identifier().as_str())
+        .collect::<Vec<_>>()
+        .join("!");
+      format!("{s}!{}", resource_data.resource)
+    } else {
+      resource_data.resource.clone()
+    };
+
     // TODO: move loader resolver to rust
     let loaders: Vec<BoxLoader> = {
       let mut pre_loaders: Vec<BoxLoader> = vec![];
@@ -309,7 +320,6 @@ impl NormalModuleFactory {
     } else {
       resource_data.resource.clone()
     };
-    let user_request = resource_data.resource.clone();
     tracing::trace!("resolved uri {:?}", request);
 
     let file_dependency = resource_data.resource_path.clone();
