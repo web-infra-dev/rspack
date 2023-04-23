@@ -158,7 +158,7 @@ impl NormalModuleFactory {
               unreachable!()
             }
           };
-          s.split("!").filter(|item| !item.is_empty()).collect::<Vec<_>>()
+          s.split('!').filter(|item| !item.is_empty()).collect::<Vec<_>>()
         };
         resolve_args.specifier = raw_elements.pop().ok_or_else(|| {
           let s = resolve_args.specifier;

@@ -1,17 +1,18 @@
 use std::{fmt::Debug, path::Path};
 
-use rspack_error::{internal_error_bail, Result};
+use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkAssetArgs, ChunkHashArgs, ChunkUkey,
-  Compilation, CompilationArgs, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module,
-  ModuleArgs, ModuleFactoryResult, ModuleType, NormalModuleFactoryContext,
-  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, SourceType, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs,
+  ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
+  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  NormalModule, NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs,
+  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
+  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
+  SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};

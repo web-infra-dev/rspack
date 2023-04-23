@@ -21,8 +21,8 @@ use crate::{
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolveArgs, Resolver,
-  ResolverFactory, SharedPluginDriver, SourceType, Stats, ThisCompilationArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
+  SourceType, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {

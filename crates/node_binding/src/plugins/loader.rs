@@ -1,10 +1,7 @@
 use std::{fmt::Debug, path::Path, sync::Arc};
 
 use rspack_binding_options::{JsLoaderAdapter, JsLoaderRunner};
-use rspack_core::{
-  resolve, BoxLoader, CompilerOptions, DependencyCategory, DependencyType, NormalModule, Plugin,
-  ResolveArgs, ResolveResult, Resolver, ResolverFactory,
-};
+use rspack_core::{BoxLoader, CompilerOptions, Plugin, ResolveResult, Resolver};
 use rspack_error::{internal_error, Result};
 
 pub struct InlineLoaderResolver {
@@ -23,7 +20,7 @@ impl Debug for InlineLoaderResolver {
 impl Plugin for InlineLoaderResolver {
   async fn resolve_loader(
     &self,
-    compiler_options: &CompilerOptions,
+    _compiler_options: &CompilerOptions,
     context: &Path,
     resolver: &Resolver,
     loader_request: &str,
