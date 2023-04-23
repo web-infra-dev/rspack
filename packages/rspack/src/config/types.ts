@@ -75,6 +75,8 @@ export interface RspackOptionsNormalized {
 	builtins: Builtins;
 }
 
+export type HashFunction = string | typeof import("../util/hash");
+
 ///// Name /////
 export type Name = string;
 
@@ -241,6 +243,10 @@ export interface OutputNormalized {
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: TrustedTypes;
+	/**
+	 * Algorithm used for generation the hash (see node.js crypto package).
+	 */
+	hashFunction?: HashFunction;
 }
 
 ///// Resolve /////

@@ -41,6 +41,7 @@ import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
 import { normalizeStatsPreset, Stats } from "./stats";
 import { NormalModuleFactory } from "./normalModuleFactory";
+import CacheFacade from "./lib/CacheFacade";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -189,6 +190,10 @@ export class Compilation {
 				new ChunkGroup(e)
 			])
 		);
+	}
+
+	getCache(name: string) {
+		return this.compiler.getCache(name);
 	}
 
 	createStatsOptions(
