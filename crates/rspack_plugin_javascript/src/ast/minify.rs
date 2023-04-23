@@ -3,6 +3,7 @@ use std::{
   sync::{mpsc, Arc, Mutex},
 };
 
+use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
   ModuleType,
@@ -55,7 +56,6 @@ pub fn minify(
       DiagnosticKind::JavaScript,
       cm.clone(),
       |handler| {
-        println!("input: {}", input);
         let fm = cm.new_source_file(FileName::Custom(filename.to_string()), input);
         let target = opts.ecma.clone().into();
 
@@ -188,20 +188,32 @@ pub fn minify(
           .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
 
         minify_file_comments(&comments, preserve_comments);
-        if let Some(_) = extract_comments {
+        if let Some(extract_comments) = extract_comments {
           let comments_file_name = filename.to_string() + ".License.txt";
+          println!("extract_comments: {}", extract_comments);
+          let reg = if extract_comments.eq("true") {
+            Regex::new(r"@preserve|@lic|@cc_on|^\**!")
+          } else {
+            Regex::new(&extract_comments[1..extract_comments.len() - 2])
+          }
+          .expect("Invalid extractComments");
           let (l, t) = comments.borrow_all();
 
           let mut source = ConcatSource::default();
-          source.add(RawSource::from("license"));
           l.iter().for_each(|(_, vc)| {
             vc.iter().for_each(|c| {
-              source.add(RawSource::from(&*c.text));
+              if reg.is_match(&c.text) {
+                source.add(RawSource::from(&*c.text));
+                source.add(RawSource::from("\n"));
+              }
             });
           });
           t.iter().for_each(|(_, vc)| {
             vc.iter().for_each(|c| {
-              source.add(RawSource::from(&*c.text));
+              if reg.is_match(&c.text) {
+                source.add(RawSource::from(&*c.text));
+                source.add(RawSource::from("\n"));
+              }
             });
           });
           all_extract_comments.lock().unwrap().insert(
@@ -260,7 +272,6 @@ fn minify_file_comments(
       };
       let (mut l, mut t) = comments.borrow_all_mut();
 
-      println!("l: {:?}", l);
       l.retain(preserve_excl);
       t.retain(preserve_excl);
     }
