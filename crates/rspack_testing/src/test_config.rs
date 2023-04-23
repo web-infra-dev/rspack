@@ -124,6 +124,8 @@ pub struct Minification {
   pub drop_console: bool,
   #[serde(default)]
   pub pure_funcs: Vec<String>,
+  #[serde(default)]
+  pub extract_comments: Option<String>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default, Clone)]
@@ -413,6 +415,7 @@ impl TestConfig {
           passes: op.passes,
           drop_console: op.drop_console,
           pure_funcs: op.pure_funcs,
+          extract_comments: op.extract_comments,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),
         ..Default::default()

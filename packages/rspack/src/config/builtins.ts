@@ -375,7 +375,7 @@ export function resolveMinifyOptions(
 
 	let extractComments = builtins.minifyOptions?.extractComments
 		? String(builtins.minifyOptions.extractComments)
-		: undefined;
+		: "true";
 
 	return {
 		passes: 1,
