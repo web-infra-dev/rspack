@@ -1239,9 +1239,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.80"
+version = "0.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b9ac3f58b4740a0b609d3cb08491be75560893eb0b2116ae1fdc94b4d46d53c"
+checksum = "6123a34b53527098bf3c30efd6762285d6648eb98dfb8fdcff30f86e9cf256e3"
 dependencies = [
  "daachorse",
  "dashmap",
