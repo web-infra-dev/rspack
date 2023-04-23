@@ -19,4 +19,4 @@ jobs:
         uses: ./.github/actions/pnpm-cache
 
       - name: Check Changeset
-        run: node ./scripts/check_changeset.cjs
+        run: node ./scripts/check_changeset.js
