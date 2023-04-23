@@ -691,7 +691,7 @@ impl Plugin for JsPlugin {
         .unwrap()
         .clone()
         .into_iter()
-        .for_each(|(filename, comments)| {
+        .for_each(|(_, comments)| {
           compilation.emit_asset(
             comments.comments_file_name,
             CompilationAsset {

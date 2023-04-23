@@ -204,7 +204,9 @@ pub fn minify(
             l.iter().for_each(|(_, vc)| {
               vc.iter().for_each(|c| {
                 if reg.is_match(&c.text) {
+                  source.add(RawSource::from("/*"));
                   source.add(RawSource::from(&*c.text));
+                  source.add(RawSource::from("*/"));
                   source.add(RawSource::from("\n"));
                 }
               });
@@ -212,7 +214,9 @@ pub fn minify(
             t.iter().for_each(|(_, vc)| {
               vc.iter().for_each(|c| {
                 if reg.is_match(&c.text) {
+                  source.add(RawSource::from("/*"));
                   source.add(RawSource::from(&*c.text));
+                  source.add(RawSource::from("*/"));
                   source.add(RawSource::from("\n"));
                 }
               });
