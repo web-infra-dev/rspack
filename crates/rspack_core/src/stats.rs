@@ -120,13 +120,7 @@ impl Stats<'_> {
       .module_graph
       .modules()
       .values()
-      .map(|module| {
-        self.get_module(
-          module,
-          reasons,
-          module_assets,
-        )
-      })
+      .map(|module| self.get_module(module, reasons, module_assets))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
