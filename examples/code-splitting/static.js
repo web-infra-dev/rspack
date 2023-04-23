@@ -1,1 +1,1 @@
-export const something = 'static'
+export const something = "static";

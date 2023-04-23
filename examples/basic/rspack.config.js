@@ -4,13 +4,13 @@
 module.exports = {
 	context: __dirname,
 	entry: {
-		main: './src/index.js'
+		main: "./src/index.js"
 	},
 	builtins: {
 		html: [
 			{
-				template: './index.html'
+				template: "./index.html"
 			}
 		]
 	}
-}
+};
