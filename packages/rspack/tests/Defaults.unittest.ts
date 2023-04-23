@@ -307,7 +307,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
@@ -329,7 +328,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
@@ -351,7 +349,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
@@ -376,7 +373,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
