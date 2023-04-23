@@ -46,7 +46,11 @@ async function checkVersion() {
 
 async function checkBump() {
 	try {
-		await $`pnpm changeset version`;
+		const result = await $`pnpm changeset version`;
+		if (result.exitCode !== 0) {
+			console.error("Check changeset bump failed", result.stderr.toString());
+			process.exit(1);
+		}
 		console.log("Check changeset bump succeed");
 	} catch (err) {
 		console.error("Check changeset bump failed");
