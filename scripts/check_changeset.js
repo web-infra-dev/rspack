@@ -12,7 +12,6 @@ await import("./meta/check_is_workspace_root.js");
 
 async function checkVersion() {
 	console.log("start checking version");
-	console.log(readChangesets);
 	const changesets = await readChangesets(process.cwd());
 	console.log("validate version");
 
