@@ -583,15 +583,7 @@ const getResolveDefaults = ({
 		if (targetProperties.nwjs) conditions.push("nwjs");
 	}
 
-	const jsExtensions = [
-		".tsx",
-		".ts",
-		".jsx",
-		".js",
-		".json",
-		".wasm",
-		".d.ts"
-	];
+	const jsExtensions = [".tsx", ".ts", ".jsx", ".js", ".json", ".wasm"];
 
 	const tp = targetProperties;
 	const browserField =
