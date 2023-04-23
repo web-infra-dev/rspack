@@ -1,0 +1,108 @@
+use rspack_error::Result;
+use swc_core::{
+  common::DUMMY_SP,
+  ecma::{
+    ast::{CallExpr, Expr, Lit, Null, Str},
+    utils::{quote_ident, ExprFactory},
+  },
+};
+
+use crate::{
+  create_javascript_visitor, CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency,
+  DependencyId, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier, RuntimeGlobals,
+};
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RequireResolveDependency {
+  pub id: Option<DependencyId>,
+  pub parent_module_identifier: Option<ModuleIdentifier>,
+  pub request: String,
+  pub weak: bool,
+  span: ErrorSpan,
+  #[allow(unused)]
+  pub ast_path: JsAstPath,
+}
+
+impl RequireResolveDependency {
+  pub fn new(request: String, weak: bool, span: ErrorSpan, ast_path: JsAstPath) -> Self {
+    Self {
+      parent_module_identifier: None,
+      request,
+      weak,
+      span,
+      ast_path,
+      id: None,
+    }
+  }
+}
+
+impl Dependency for RequireResolveDependency {
+  fn id(&self) -> Option<DependencyId> {
+    self.id
+  }
+  fn set_id(&mut self, id: Option<DependencyId>) {
+    self.id = id;
+  }
+  fn category(&self) -> &crate::DependencyCategory {
+    &crate::DependencyCategory::CommonJS
+  }
+
+  fn dependency_type(&self) -> &crate::DependencyType {
+    &crate::DependencyType::RequireResolve
+  }
+
+  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
+    self.parent_module_identifier.as_ref()
+  }
+
+  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
+    self.parent_module_identifier = module_identifier;
+  }
+}
+
+impl ModuleDependency for RequireResolveDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn span(&self) -> Option<&crate::ErrorSpan> {
+    Some(&self.span)
+  }
+
+  fn weak(&self) -> bool {
+    self.weak
+  }
+
+  fn options(&self) -> Option<&ContextOptions> {
+    None
+  }
+}
+
+impl CodeGeneratable for RequireResolveDependency {
+  fn generate(&self, context: &mut crate::CodeGeneratableContext) -> Result<CodeGeneratableResult> {
+    let compilation = context.compilation;
+    let mut code_gen = CodeGeneratableResult::default();
+    if let Some(id) = self.id() {
+      if let Some(module_identifier) = compilation.module_graph.module_identifier_by_dependency_id(&id)
+        && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
+        let module_id = module_id.to_string();
+        code_gen.visitors.push(
+          create_javascript_visitor!(exact &self.ast_path, visit_mut_expr(n: &mut Expr) {
+            *n = Expr::Lit(Lit::Str(Str { span: DUMMY_SP, value: module_id.clone().into(), raw: None }))
+          }),
+        );
+      } else if self.weak() {
+        code_gen.visitors.push(
+          create_javascript_visitor!(exact &self.ast_path, visit_mut_expr(n: &mut Expr) {
+            *n = Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))
+          }),
+        );
+      }
+    }
+    Ok(code_gen)
+  }
+}

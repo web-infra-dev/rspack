@@ -868,6 +868,12 @@ impl Compilation {
         .modules()
         .par_iter()
         .filter(filter_op)
+        .filter(|(module_identifier, module)| {
+          let runtimes = compilation
+            .chunk_graph
+            .get_module_runtimes(**module_identifier, &compilation.chunk_by_ukey);
+          runtimes.len() > 0
+        })
         .map(|(module_identifier, module)| {
           compilation
             .cache
@@ -883,7 +889,7 @@ impl Compilation {
         let runtimes = compilation
           .chunk_graph
           .get_module_runtimes(module_identifier, &compilation.chunk_by_ukey);
-
+        dbg!(&runtimes);
         compilation
           .code_generation_results
           .module_generation_result_map

@@ -331,7 +331,7 @@ impl SplitChunksPlugin {
           .expect("TODO:");
         let combs = vec![compilation
           .chunk_graph
-          .get_modules_chunks(module.identifier())];
+          .get_module_chunks(module.identifier())];
 
         for combinations in combs {
           if combinations.len() < cache_group.min_chunks as usize {

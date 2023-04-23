@@ -217,6 +217,10 @@ impl<'me> CodeSplitter<'me> {
       self.remove_parent_modules();
     }
 
+    for (module_identifier, module) in self.compilation.module_graph.modules() {
+      self.compilation.chunk_graph.add_module(*module_identifier)
+    }
+
     Ok(())
   }
 

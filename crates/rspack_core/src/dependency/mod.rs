@@ -14,6 +14,7 @@ pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
 mod dynamic_import;
 mod require_context_dependency;
+mod require_resolve_dependency;
 use std::{
   any::Any,
   fmt::{Debug, Display},
@@ -23,6 +24,7 @@ use std::{
 use dyn_clone::{clone_trait_object, DynClone};
 pub use dynamic_import::*;
 pub use require_context_dependency::RequireContextDependency;
+pub use require_resolve_dependency::RequireResolveDependency;
 mod static_exports_dependency;
 pub use static_exports_dependency::*;
 
@@ -69,6 +71,8 @@ pub enum DependencyType {
   CommonJSRequireContext,
   // require.context
   RequireContext,
+  // require.resolve
+  RequireResolve,
   /// wasm import
   WasmImport,
   /// wasm export import
@@ -98,6 +102,7 @@ impl Display for DependencyType {
       DependencyType::ImportContext => write!(f, "import context"),
       DependencyType::CommonJSRequireContext => write!(f, "commonjs require context"),
       DependencyType::RequireContext => write!(f, "require.context"),
+      DependencyType::RequireResolve => write!(f, "require.resolve"),
       DependencyType::WasmImport => write!(f, "wasm import"),
       DependencyType::WasmExportImported => write!(f, "wasm export imported"),
       DependencyType::StaticExports => write!(f, "static exports"),
@@ -271,6 +276,9 @@ pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
+  fn weak(&self) -> bool {
+    false
+  }
   // TODO should split to `ModuleDependency` and `ContextDependency`
   fn options(&self) -> Option<&ContextOptions> {
     None
@@ -288,6 +296,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 
   fn span(&self) -> Option<&ErrorSpan> {
     (**self).span()
+  }
+
+  fn weak(&self) -> bool {
+    (**self).weak()
   }
 
   fn options(&self) -> Option<&ContextOptions> {
