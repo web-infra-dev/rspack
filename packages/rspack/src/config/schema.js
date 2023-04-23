@@ -363,8 +363,8 @@ module.exports = {
 					description:
 						"The function is called on each dependency (`function(context, request, callback(err, result))`).",
 					instanceof: "Function",
-					tsType:
-						"(((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>))"
+					// tsType:
+					// 	"(((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>))"
 				}
 			]
 		},
