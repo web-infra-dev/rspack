@@ -116,8 +116,8 @@ pub fn is_import_meta_hot_decline_call(node: &CallExpr) -> bool {
 pub fn is_member_expr_starts_with_import_meta(mut expr: &Expr) -> bool {
   loop {
     match expr {
-      _ if expr_matcher::is_import_meta(obj) => return true,
-      Expr::Member(MemberExpr { obj, .. }) if obj.is_member() => expr = obj.as_ref(),
+      _ if expr_matcher::is_import_meta(expr) => return true,
+      Expr::Member(MemberExpr { obj, .. }) => expr = obj.as_ref(),
       _ => return false,
     }
   }
@@ -135,7 +135,7 @@ pub fn is_member_expr_starts_with_import_meta_webpack_hot(expr: &Expr) -> bool {
         return true
       }
       // The expr is sub-part of `import.meta.webpackHot.xxx`. Recursively look up.
-      ast::Expr::Member(ast::MemberExpr { obj, .. }) => {
+      ast::Expr::Member(ast::MemberExpr { obj, .. }) if obj.is_member() => {
         match_target = obj.as_ref();
       }
       // The expr could never be `import.meta.webpackHot`
