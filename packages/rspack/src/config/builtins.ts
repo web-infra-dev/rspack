@@ -43,6 +43,12 @@ export type CssPluginConfig = {
 	modules?: Partial<RawCssModulesConfig>;
 };
 
+export type MinificationConfig =
+	| Partial<RawMinification>
+	| {
+			extractComments?: boolean | RegExp;
+	  };
+
 export interface Builtins {
 	css?: CssPluginConfig;
 	postcss?: RawPostCssConfig;
@@ -54,7 +60,7 @@ export interface Builtins {
 	provide?: Record<string, string | string[]>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minifyOptions?: Partial<RawMinification>;
+	minifyOptions?: MinificationConfig;
 	emotion?: EmotionConfig;
 	presetEnv?: Partial<RawBuiltins["presetEnv"]>;
 	polyfill?: boolean;
@@ -367,10 +373,15 @@ export function resolveMinifyOptions(
 		return undefined;
 	}
 
+	let extractComments = builtins.minifyOptions?.extractComments
+		? String(builtins.minifyOptions.extractComments)
+		: undefined;
+
 	return {
 		passes: 1,
 		dropConsole: false,
 		pureFuncs: [],
-		...builtins.minifyOptions
+		...builtins.minifyOptions,
+		extractComments
 	};
 }

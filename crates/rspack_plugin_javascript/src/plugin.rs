@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
-use std::sync::mpsc;
+use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
 use linked_hash_set::LinkedHashSet;
@@ -10,12 +11,12 @@ use rspack_core::rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, AstOrSource, ChunkHashArgs, ChunkKind, ChunkUkey, Compilation,
-  DependencyType, GenerateContext, GenerationResult, JsChunkHashArgs, Module, ModuleAst,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
-  PluginChunkHashHookOutput, PluginContext, PluginJsChunkHashHookOutput, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestEntry, RenderStartupArgs, RuntimeGlobals, SourceType,
+  get_js_chunk_filename_template, AssetInfo, AstOrSource, ChunkHashArgs, ChunkKind, ChunkUkey,
+  Compilation, CompilationAsset, DependencyType, GenerateContext, GenerationResult,
+  JsChunkHashArgs, Module, ModuleAst, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  PathData, Plugin, PluginChunkHashHookOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs,
+  RenderChunkArgs, RenderManifestEntry, RenderStartupArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -394,7 +395,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .try_into_ast()?
         .try_into_javascript()?;
       run_after_pass(&mut ast, module, generate_context)?;
-      let output = crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)?;
+      let retain_comments = generate_context
+        .compilation
+        .options
+        .builtins
+        .minify_options
+        .is_none();
+      let output = crate::ast::stringify(
+        &ast,
+        &generate_context.compilation.options.devtool,
+        retain_comments,
+      )?;
       if let Some(map) = output.map {
         Ok(GenerationResult {
           ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
@@ -619,7 +630,7 @@ impl Plugin for JsPlugin {
 
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
-
+      let all_extracted_comments = Mutex::new(HashMap::new());
       compilation
         .assets
         .par_iter_mut()
@@ -646,7 +657,7 @@ impl Plugin for JsPlugin {
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
               emit_source_map_columns: !compilation.options.devtool.cheap(),
               ..Default::default()
-            }, input, filename) {
+            }, input, filename, &all_extracted_comments, minify_options.extract_comments.clone()) {
               Ok(r) => r,
               Err(e) => {
                 tx.send(e.into()).map_err(|e| internal_error!(e.to_string()))?;
@@ -674,6 +685,24 @@ impl Plugin for JsPlugin {
         })?;
 
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
+
+      all_extracted_comments
+        .lock()
+        .unwrap()
+        .clone()
+        .into_iter()
+        .for_each(|(filename, comments)| {
+          compilation.emit_asset(
+            comments.comments_file_name,
+            CompilationAsset {
+              source: Some(comments.source),
+              info: AssetInfo {
+                minimized: true,
+                ..Default::default()
+              },
+            },
+          )
+        });
     }
 
     Ok(())
@@ -735,4 +764,10 @@ impl Plugin for InferAsyncModulesPlugin {
     }
     Ok(())
   }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtractedCommentsInfo {
+  pub source: BoxSource,
+  pub comments_file_name: String,
 }

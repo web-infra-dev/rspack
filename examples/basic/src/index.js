@@ -1,7 +1,27 @@
-import { answer } from './answer';
-function render() {
-  document.getElementById(
-    'root'
-  ).innerHTML = `the answer to the universe is ${answer}`;
-}
-render();
+/*! Legal Comment */
+
+/**
+ * @preserve Copyright 2009 SomeThirdParty.
+ * Here is the full license text and copyright
+ * notice for this file. Note that the notice can span several
+ * lines and is only terminated by the closing star and slash:
+ */
+
+/**
+ * Utility functions for the foo package.
+ * @license Apache-2.0
+ */
+
+/*! Legal Foo */
+
+// Foo
+
+/*
+ Foo Bar
+ */
+
+/*
+* Foo
+*/
+// @lic
+module.exports = Math.random();

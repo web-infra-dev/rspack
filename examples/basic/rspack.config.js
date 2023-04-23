@@ -11,6 +11,12 @@ module.exports = {
 			{
 				template: './index.html'
 			}
-		]
+		],
+		minifyOptions:{
+			extractComments: /^@license/,
+		}
+	},
+	optimization: {
+		minimize: true 
 	}
 }

@@ -183,7 +183,6 @@ pub fn run_after_pass(
   generate_context: &mut GenerateContext,
 ) -> Result<()> {
   let cm = ast.get_context().source_map.clone();
-
   ast
     .transform_with_handler(cm.clone(), |_, program, context| {
       let unresolved_mark = context.unresolved_mark;
@@ -286,7 +285,6 @@ pub fn run_after_pass(
       );
 
       program.fold_with(&mut pass);
-
       Ok(())
     })
     .map_err(Error::from)

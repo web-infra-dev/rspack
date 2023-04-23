@@ -1,6 +1,12 @@
-use std::sync::{mpsc, Arc};
+use std::{
+  collections::HashMap,
+  sync::{mpsc, Arc, Mutex},
+};
 
-use rspack_core::ModuleType;
+use rspack_core::{
+  rspack_sources::{ConcatSource, RawSource, SourceExt},
+  ModuleType,
+};
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
 use swc_core::{
   base::{
@@ -31,11 +37,17 @@ use swc_core::{
   },
 };
 
-use super::stringify::print;
-use super::{parse::parse_js, stringify::SourceMapConfig};
-use crate::utils::ecma_parse_error_to_rspack_error;
+use super::parse::parse_js;
+use super::stringify::{print, SourceMapConfig};
+use crate::{utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo};
 
-pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<TransformOutput> {
+pub fn minify(
+  opts: &JsMinifyOptions,
+  input: String,
+  filename: &str,
+  all_extract_comments: &Mutex<HashMap<String, ExtractedCommentsInfo>>,
+  extract_comments: Option<String>,
+) -> Result<TransformOutput> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(&Default::default(), || -> Result<TransformOutput> {
     with_rspack_error_handler(
@@ -43,6 +55,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
       DiagnosticKind::JavaScript,
       cm.clone(),
       |handler| {
+        println!("input: {}", input);
         let fm = cm.new_source_file(FileName::Custom(filename.to_string()), input);
         let target = opts.ecma.clone().into();
 
@@ -173,7 +186,32 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
           .clone()
           .into_inner()
           .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
+
         minify_file_comments(&comments, preserve_comments);
+        if let Some(_) = extract_comments {
+          let comments_file_name = filename.to_string() + ".License.txt";
+          let (l, t) = comments.borrow_all();
+
+          let mut source = ConcatSource::default();
+          source.add(RawSource::from("license"));
+          l.iter().for_each(|(_, vc)| {
+            vc.iter().for_each(|c| {
+              source.add(RawSource::from(&*c.text));
+            });
+          });
+          t.iter().for_each(|(_, vc)| {
+            vc.iter().for_each(|c| {
+              source.add(RawSource::from(&*c.text));
+            });
+          });
+          all_extract_comments.lock().unwrap().insert(
+            filename.to_string(),
+            ExtractedCommentsInfo {
+              source: source.boxed(),
+              comments_file_name,
+            },
+          );
+        }
 
         print(
           &module,
@@ -216,11 +254,13 @@ fn minify_file_comments(
     BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
       let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
         // Preserve license comments.
+
         vc.retain(|c: &Comment| c.text.contains("@license") || c.text.starts_with('!'));
         !vc.is_empty()
       };
       let (mut l, mut t) = comments.borrow_all_mut();
 
+      println!("l: {:?}", l);
       l.retain(preserve_excl);
       t.retain(preserve_excl);
     }
