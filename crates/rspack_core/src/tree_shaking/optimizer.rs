@@ -32,8 +32,9 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -97,6 +98,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
     }
 
+    // dbg!(&side_effect_map);
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
     let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut analyze_result_map);
@@ -154,6 +156,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();
+    dbg!(&used_export_module_identifiers);
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
       side_effects_options,
@@ -360,7 +363,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               .unwrap_or_else(|| {
                 panic!("Failed to get mgm by module identifier {module_identifier}")
               });
-            include_module_ids.insert(mgm.module_identifier);
+            // include_module_ids.insert(mgm.module_identifier);
             continue;
           }
         };
@@ -378,6 +381,17 @@ impl<'a> CodeSizeOptimizer<'a> {
         {
           continue;
         } else {
+          if module_identifier.as_str().ends_with(".svg") {
+            dbg!(&module_identifier);
+            dbg!(&self
+              .bailout_modules
+              .contains_key(&analyze_result.module_identifier));
+            dbg!(&self.side_effects_free_modules.contains(&module_identifier));
+            dbg!(&!self
+              .compilation
+              .entry_module_identifiers
+              .contains(&module_identifier));
+          }
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -1214,19 +1228,16 @@ async fn par_analyze_module(
           AssetModule::new(*module_identifier).analyze(&compilation)
         };
 
-        // Keep this debug info until we stabilize the tree-shaking
-        // if debug_care_module_id(&uri_key.as_str()) {
-        //   dbg!(
-        //     &uri_key,
-        //     // &analyzer.export_all_list,
-        //     &analyzer.export_map,
-        //     &analyzer.import_map,
-        //     &analyzer.maybe_lazy_reference_map,
-        //     &analyzer.immediate_evaluate_reference_map,
-        //     &analyzer.reachable_import_and_export,
-        //     &analyzer.used_symbol_ref
-        //   );
-        // }
+        // dbg_matches!(
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.maybe_lazy_reference_map,
+        //   &analyzer.immediate_evaluate_reference_map,
+        //   &analyzer.reachable_import_and_export,
+        //   &analyzer.used_symbol_ref
+        // );
 
         Some((*module_identifier, optimize_analyze_result))
       })

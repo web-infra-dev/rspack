@@ -173,7 +173,6 @@ where
       if self.options.optimization.side_effects.is_enable() {
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
-      dbg!(&self.compilation.include_module_ids);
       for entry in &self.compilation.entry_module_identifiers {
         if let Some(analyze_results) = analyze_result.analyze_results.get(entry) {
           self
@@ -188,6 +187,7 @@ where
         self.compilation.tree_shaking_result = analyze_result.analyze_results;
       }
     }
+    // dbg!(&self.compilation.include_module_ids);
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic

@@ -51,6 +51,7 @@ impl OptimizeAnalyzer for AssetModule {
     result.side_effects = self
       .get_side_effects_from_config(compilation)
       .unwrap_or_else(|| SideEffectType::Configuration(true));
+    result.module_identifier = self.module_identifier;
     result
   }
 }

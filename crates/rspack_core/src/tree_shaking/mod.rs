@@ -8,6 +8,7 @@ use self::visitor::{OptimizeAnalyzeResult, SymbolRef};
 
 pub(crate) mod analyzer;
 pub mod asset_module;
+pub mod debug_helper;
 pub mod js_module;
 pub mod optimizer;
 pub mod symbol_graph;

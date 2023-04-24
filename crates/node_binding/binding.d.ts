@@ -512,9 +512,11 @@ export interface JsHooks {
   emit: (...args: any[]) => any
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
+  optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
+  chunkAsset: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource
@@ -577,6 +579,7 @@ export interface JsStatsModule {
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
+  assets?: Array<string>
 }
 export interface JsStatsModuleIssuer {
   identifier: string

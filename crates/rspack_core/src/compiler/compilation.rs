@@ -954,6 +954,7 @@ impl Compilation {
     for (chunk_ukey, manifest) in chunk_ukey_and_manifest.into_iter() {
       for file_manifest in manifest.expect("We should return this error rathen expect") {
         let filename = file_manifest.filename().to_string();
+        dbg!(&filename);
 
         let current_chunk = self
           .chunk_by_ukey
