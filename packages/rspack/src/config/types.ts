@@ -15,7 +15,11 @@ import * as oldBuiltins from "./builtins";
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
-export type { LoaderContext } from "./adapter-rule-use";
+export type {
+	LoaderContext,
+	LoaderDefinitionFunction,
+	LoaderDefinition
+} from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
 

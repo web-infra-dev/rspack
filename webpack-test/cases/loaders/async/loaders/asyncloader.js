@@ -1,4 +1,4 @@
-/** @type {import("../../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function (content) {
 	var cb = this.async();
 	if (!cb) throw new Error("Loader should allow async mode");

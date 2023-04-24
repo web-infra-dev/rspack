@@ -1,4 +1,4 @@
-/** @type {import("../../").LoaderDefinition<{}, { updateIndex: number }>} */
+/** @type {import("@rspack/core").LoaderDefinition<{}, { updateIndex: number }>} */
 module.exports = function (source) {
 	var idx = this.updateIndex;
 	var items = source.split(/---+\r?\n/g);

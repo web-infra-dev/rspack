@@ -3,7 +3,7 @@
 const acorn = require("acorn");
 const acornParser = acorn.Parser;
 
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function (source) {
 	const comments = [];
 
@@ -23,7 +23,7 @@ module.exports = function (source) {
 
 	//@ts-ignore
 	ast.comments = comments;
-	this.callback(null, source, null, {
+	this.callback(null, source, undefined, {
 		webpackAST: ast
 	});
 };

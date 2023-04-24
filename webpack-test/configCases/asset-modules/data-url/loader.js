@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition<{ f(): any }>} */
+/** @type {import("@rspack/core").LoaderDefinition<{ f(): any }>} */
 module.exports = function (source) {
 	return `${source}, World!`;
 };

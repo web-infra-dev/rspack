@@ -1,2 +1,2 @@
-/** @type {import("../../../../").LoaderDefinition} */
-module.exports = function () {};
+/** @type {import("@rspack/core").LoaderDefinition} */
+module.exports = function () { };

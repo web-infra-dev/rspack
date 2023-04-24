@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function (source) {
 	const empty = null;
 	const emptyError = new Error();

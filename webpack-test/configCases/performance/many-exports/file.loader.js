@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	var str = "";
 	for (var i = 0; i < 1000; i++) {

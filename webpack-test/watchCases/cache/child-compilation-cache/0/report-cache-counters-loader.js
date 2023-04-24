@@ -16,7 +16,7 @@ const getCache = (associate, path) => {
 	return c;
 };
 
-/** @type {import("../../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function (source) {
 	if (map.has(currentWatchStepModule.step))
 		return map.get(currentWatchStepModule.step);

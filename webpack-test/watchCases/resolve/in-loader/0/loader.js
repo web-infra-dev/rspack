@@ -1,4 +1,4 @@
-/** @type {import("../../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	const callback = this.async();
 	this.resolve(this.context, "./file", (err, file) => {

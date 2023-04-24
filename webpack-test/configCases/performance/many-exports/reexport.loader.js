@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	var str = 'import * as i from "./file.loader.js!";\n';
 	str += "var sum = 0;\n";
