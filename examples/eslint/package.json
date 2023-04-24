@@ -1,0 +1,20 @@
+{
+  "name": "example-eslint",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "eslint-rspack-plugin": "4.0.0-alpha",
+    "eslint": "8.39.0"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
