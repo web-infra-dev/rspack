@@ -184,6 +184,7 @@ pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
 pub struct RenderChunkArgs<'a> {
   pub compilation: &'a Compilation,
   pub chunk_ukey: &'a ChunkUkey,
+  pub module_source: BoxSource,
 }
 
 #[derive(Debug)]

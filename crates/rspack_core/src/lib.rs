@@ -29,7 +29,8 @@ mod context_module;
 pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
-
+mod init_fragment;
+pub use init_fragment::*;
 mod module_factory;
 pub use module_factory::*;
 mod normal_module_factory;

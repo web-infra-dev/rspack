@@ -9,9 +9,7 @@ use rspack_core::{
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_plugin_javascript::runtime::{
-  generate_chunk_entry_code, render_chunk_modules, render_chunk_runtime_modules,
-};
+use rspack_plugin_javascript::runtime::{generate_chunk_entry_code, render_chunk_runtime_modules};
 
 use super::update_hash_for_entry_startup;
 use crate::get_runtime_chunk_path;
@@ -99,7 +97,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
       &chunk.expect_id().to_string()
     )));
     sources.add(RawSource::from("exports.modules = "));
-    sources.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+    sources.add(args.module_source.clone());
     sources.add(RawSource::from(";\n"));
     if !args
       .compilation
