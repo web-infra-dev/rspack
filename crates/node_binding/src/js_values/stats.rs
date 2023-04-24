@@ -282,7 +282,7 @@ impl JsStats {
     chunk_modules: bool,
     chunks_relations: bool,
     reasons: bool,
-    module_assets: bool
+    module_assets: bool,
   ) -> Vec<JsStatsChunk> {
     self
       .inner

@@ -4,23 +4,23 @@ use rspack_binding_options::{JsLoaderAdapter, JsLoaderRunner};
 use rspack_core::{BoxLoader, CompilerOptions, NormalModule, Plugin, ResolveResult, Resolver};
 use rspack_error::{internal_error, Result};
 
-pub struct InlineLoaderResolver {
+pub struct JsLoaderResolver {
   pub js_loader_runner: JsLoaderRunner,
 }
 
-impl Debug for InlineLoaderResolver {
+impl Debug for JsLoaderResolver {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("InlineLoaderResolver")
+    f.debug_struct("JsLoaderResolver")
       .field("js_loader_runner", &"..")
       .finish()
   }
 }
 
 #[async_trait::async_trait]
-impl Plugin for InlineLoaderResolver {
+impl Plugin for JsLoaderResolver {
   async fn before_loaders(&self, module: &mut NormalModule) -> Result<()> {
     let old_loaders = module.loaders_mut_vec();
-    if old_loaders.is_empty() {
+    if old_loaders.is_empty() || old_loaders.len() == 1 {
       return Ok(());
     }
 
