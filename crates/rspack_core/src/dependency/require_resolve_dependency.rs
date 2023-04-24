@@ -1,15 +1,12 @@
 use rspack_error::Result;
 use swc_core::{
   common::DUMMY_SP,
-  ecma::{
-    ast::{CallExpr, Expr, Lit, Null, Str},
-    utils::{quote_ident, ExprFactory},
-  },
+  ecma::ast::{Expr, Lit, Null, Str},
 };
 
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency,
-  DependencyId, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier, RuntimeGlobals,
+  DependencyId, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

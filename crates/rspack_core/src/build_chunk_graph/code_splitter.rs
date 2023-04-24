@@ -6,10 +6,7 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
-use crate::{
-  ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, DependencyId,
-  ModuleIdentifier,
-};
+use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
@@ -221,7 +218,7 @@ impl<'me> CodeSplitter<'me> {
     }
 
     // make sure all module (weak dependency particularly) has a mgm
-    for (module_identifier, _) in self.compilation.module_graph.modules() {
+    for module_identifier in self.compilation.module_graph.modules().keys() {
       self.compilation.chunk_graph.add_module(*module_identifier)
     }
 

@@ -872,7 +872,7 @@ impl Compilation {
           let runtimes = compilation
             .chunk_graph
             .get_module_runtimes(**module_identifier, &compilation.chunk_by_ukey);
-          runtimes.len() > 0
+          !runtimes.is_empty()
         })
         .map(|(module_identifier, module)| {
           compilation
