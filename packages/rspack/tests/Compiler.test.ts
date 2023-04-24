@@ -1280,5 +1280,25 @@ describe("Compiler", () => {
 				done(err);
 			});
 		});
+
+		it("should call getCache function correctly", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						let cache = compilation.getCache("MyPlugin");
+						expect(cache).not.toBeNull();
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(err => {
+				done(err);
+			});
+		});
 	});
 });

@@ -458,7 +458,6 @@ export async function runLoader(
 		},
 		createHash: type => {
 			return createHash(
-				// @ts-expect-error hashFunction should also available in rust side, then we can make the type right
 				type || compiler.compilation.outputOptions.hashFunction
 			);
 		}
