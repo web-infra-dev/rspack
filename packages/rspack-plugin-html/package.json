@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "scripts": {
-    "build": "rimraf lib/ && tsc",
+    "build": "tsc --build --force",
     "dev": "tsc -w",
     "test": "jest --runInBand --verbose"
   },
