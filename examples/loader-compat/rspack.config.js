@@ -2,13 +2,22 @@
  * @type {import('@rspack/cli').Configuration}
  */
 module.exports = {
-	target: "node",
+	target: "web",
 	mode: "development",
 	entry: {
 		main: "./src/index.js"
 	},
+	devtool: "source-map",
+	experiments: {
+		css: true
+	},
 	builtins: {
-		minify: false
+		minify: false,
+		html: [
+			{
+				template: "./index.html"
+			}
+		]
 	},
 	module: {
 		rules: [
@@ -42,13 +51,19 @@ module.exports = {
 			},
 			{
 				test: /\.less$/,
-				use: [{ loader: "less-loader" }],
-				type: "css"
+				use: [
+					{ loader: "style-loader" },
+					{ loader: "css-loader" },
+					{ loader: "less-loader" }
+				]
 			},
 			{
 				test: /\.scss$/,
-				use: [{ loader: "sass-loader" }],
-				type: "css"
+				use: [
+					{ loader: "style-loader" },
+					{ loader: "css-loader" },
+					{ loader: "sass-loader" }
+				]
 			},
 			{
 				test: /\.yaml$/,
