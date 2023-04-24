@@ -260,16 +260,6 @@ function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {
 	};
 }
 
-export const toBuffer = (bufLike: string | Buffer): Buffer => {
-	if (Buffer.isBuffer(bufLike)) {
-		return bufLike;
-	} else if (typeof bufLike === "string") {
-		return Buffer.from(bufLike);
-	}
-
-	throw new Error("Buffer or string expected");
-};
-
 export function isUseSourceMap(devtool: RawOptions["devtool"]): boolean {
 	return (
 		devtool.includes("source-map") &&
