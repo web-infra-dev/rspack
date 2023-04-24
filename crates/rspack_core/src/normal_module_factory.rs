@@ -155,7 +155,8 @@ impl NormalModuleFactory {
               &specifier[pos..]
             },
             None=> {
-              unreachable!()
+              let dependency = data.dependency;
+              unreachable!("Invalid dependency: {dependency:?}")
             }
           };
           s.split('!').filter(|item| !item.is_empty()).collect::<Vec<_>>()

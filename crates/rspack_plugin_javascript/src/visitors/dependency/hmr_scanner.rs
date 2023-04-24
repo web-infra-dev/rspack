@@ -2,6 +2,7 @@ use bitflags::bitflags;
 use rspack_core::ModuleDependency;
 use swc_core::common::pass::AstNodePath;
 use swc_core::ecma::ast::{CallExpr, Expr, Lit, Str};
+use swc_core::ecma::visit::fields::{CallExprField, ExprField, ExprOrSpreadField};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 
 use super::{as_parent_path, is_module_hot_accept_call, is_module_hot_decline_call};
@@ -99,15 +100,38 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
     macro_rules! visit_node_children {
       () => {
         if let Some(first_arg) = node.args.get(0) {
-          match first_arg.expr.as_ref() {
-            Expr::Lit(Lit::Str(_)) => {
-              node.visit_children_with_path(self, ast_path);
-            }
-            Expr::Array(_) => {
-              node.visit_children_with_path(self, ast_path);
-            }
-            _ => {}
-          }
+          ast_path.with(
+            AstParentNodeRef::CallExpr(node, CallExprField::Args(0)),
+            |ast_path| match first_arg.expr.as_ref() {
+              Expr::Lit(Lit::Str(s)) => {
+                ast_path.with(
+                  AstParentNodeRef::ExprOrSpread(&first_arg, ExprOrSpreadField::Expr),
+                  |ast_path| {
+                    ast_path.with(
+                      AstParentNodeRef::Expr(first_arg.expr.as_ref(), ExprField::Lit),
+                      |ast_path| {
+                        s.visit_with_path(self, ast_path);
+                      },
+                    )
+                  },
+                );
+              }
+              Expr::Array(arr) => {
+                ast_path.with(
+                  AstParentNodeRef::ExprOrSpread(&first_arg, ExprOrSpreadField::Expr),
+                  |ast_path| {
+                    ast_path.with(
+                      AstParentNodeRef::Expr(first_arg.expr.as_ref(), ExprField::Array),
+                      |ast_path| {
+                        arr.visit_with_path(self, ast_path);
+                      },
+                    )
+                  },
+                );
+              }
+              _ => {}
+            },
+          );
         }
       };
     }
