@@ -7,7 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  AstOrSource, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
+  AstOrSource, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
+  SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -26,6 +27,7 @@ pub struct CodeGenerationResult {
   inner: HashMap<SourceType, GenerationResult>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: HashMap<String, String>,
+  pub chunk_init_fragments: ChunkInitFragments,
   pub runtime_requirements: RuntimeGlobals,
   pub hash: u64,
 }
@@ -70,6 +72,10 @@ impl CodeGenerationResult {
       if let Some(source) = generation_result.ast_or_source.as_source() {
         source.hash(&mut state);
       }
+    }
+    for (k, v) in &self.chunk_init_fragments {
+      k.hash(&mut state);
+      v.hash(&mut state);
     }
     self.hash = state.finish();
   }

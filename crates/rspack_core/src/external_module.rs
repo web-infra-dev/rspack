@@ -6,12 +6,12 @@ use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation,
-  Context, ExternalType, GenerationResult, LibIdentOptions, Module, ModuleType, SourceType,
+  to_identifier, AstOrSource, BuildContext, BuildResult, ChunkInitFragments, CodeGenerationResult,
+  Compilation, Context, ExternalType, GenerationResult, InitFragment, InitFragmentStage,
+  LibIdentOptions, Module, ModuleType, RuntimeGlobals, SourceType,
 };
 
 static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
-
 #[derive(Debug)]
 pub struct ExternalModule {
   id: Identifier,
@@ -31,7 +31,23 @@ impl ExternalModule {
     }
   }
 
-  pub fn get_source(&self, compilation: &Compilation) -> BoxSource {
+  fn get_source_for_commonjs(&self) -> String {
+    format!("module.exports = require('{}')", self.request)
+  }
+
+  fn get_source_for_import(&self, compilation: &Compilation) -> String {
+    format!(
+      "module.exports = {}('{}')",
+      compilation.options.output.import_function_name, self.request
+    )
+  }
+
+  pub fn get_source(
+    &self,
+    compilation: &Compilation,
+  ) -> (BoxSource, ChunkInitFragments, RuntimeGlobals) {
+    let mut chunk_init_fragments: ChunkInitFragments = Default::default();
+    let mut runtime_requirements: RuntimeGlobals = Default::default();
     let source = match self.external_type.as_str() {
       "this" => format!(
         "module.exports = (function() {{ return this['{}']; }}())",
@@ -46,7 +62,25 @@ impl ExternalModule {
         compilation.options.output.global_object, self.request
       ),
       "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
-        format!("module.exports = require('{}')", self.request)
+        self.get_source_for_commonjs()
+      }
+      "node-commonjs" => {
+        if compilation.options.output.module {
+          chunk_init_fragments
+            .entry("external module node-commonjs".to_string())
+            .or_insert(InitFragment::new(
+              "import { createRequire as __WEBPACK_EXTERNAL_createRequire } from 'module';\n"
+                .to_string(),
+              InitFragmentStage::STAGE_HARMONY_IMPORTS,
+              None,
+            ));
+          format!(
+            "__WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
+            self.request
+          )
+        } else {
+          self.get_source_for_commonjs()
+        }
       }
       "amd" | "amd-require" | "umd" | "umd2" | "system" | "jsonp" => {
         let id = compilation
@@ -59,19 +93,47 @@ impl ExternalModule {
           to_identifier(id)
         )
       }
-      "import" => {
-        format!(
-          "module.exports = {}('{}')",
-          compilation.options.output.import_function_name, self.request
-        )
-      }
+      "import" => self.get_source_for_import(compilation),
       "var" | "promise" | "const" | "let" | "assign" => {
         format!("module.exports = {}", self.request)
       }
-      // TODO "script" "module"
+      "module" => {
+        if compilation.options.output.module {
+          let id = compilation
+            .module_graph
+            .module_graph_module_by_identifier(&self.identifier())
+            .map(|m| m.id(&compilation.chunk_graph))
+            .unwrap_or_default();
+          let identifier = to_identifier(id);
+          chunk_init_fragments
+            .entry(format!("external module import {identifier}"))
+            .or_insert(InitFragment::new(
+              format!(
+                "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
+                self.request
+              ),
+              InitFragmentStage::STAGE_HARMONY_IMPORTS,
+              None,
+            ));
+          runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+          format!(
+            r#"var x = y => {{ var x = {{}}; {}(x, y); return x; }}
+            var y = x => () => x
+            module.exports = __WEBPACK_EXTERNAL_MODULE_{identifier}__"#,
+            RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+          )
+        } else {
+          self.get_source_for_import(compilation)
+        }
+      }
+      // TODO "script"
       _ => "".to_string(),
     };
-    RawSource::from(source).boxed()
+    (
+      RawSource::from(source).boxed(),
+      chunk_init_fragments,
+      runtime_requirements,
+    )
   }
 }
 
@@ -114,11 +176,13 @@ impl Module for ExternalModule {
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
-
+    let (source, chunk_init_fragments, runtime_requirements) = self.get_source(compilation);
     cgr.add(
       SourceType::JavaScript,
-      GenerationResult::from(AstOrSource::from(self.get_source(compilation))),
+      GenerationResult::from(AstOrSource::from(source)),
     );
+    cgr.chunk_init_fragments = chunk_init_fragments;
+    cgr.runtime_requirements.add(runtime_requirements);
     cgr.set_hash();
 
     Ok(cgr)
