@@ -48,7 +48,9 @@ describe("build command", () => {
 	it("entry option should have higher priority than config", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [
 			"--entry",
-			"./src/other.js"
+			"./src/other.js",
+			"--config",
+			"./entry.config.js"
 		]);
 		const mainJs = await readFile(resolve(__dirname, "dist/main.js"), "utf-8");
 
@@ -56,5 +58,6 @@ describe("build command", () => {
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
 		expect(mainJs).toContain("other");
+		expect(mainJs).not.toContain("CONFIG");
 	});
 });
