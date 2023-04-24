@@ -71,7 +71,7 @@ importers:
 
   crates/node_binding:
     specifiers:
-      '@napi-rs/cli': 2.14.2
+      '@napi-rs/cli': 2.15.2
       '@rspack/binding-darwin-arm64': workspace:*
       '@rspack/binding-darwin-x64': workspace:*
       '@rspack/binding-linux-x64-gnu': workspace:*
@@ -85,7 +85,7 @@ importers:
       '@rspack/binding-linux-x64-gnu': link:../../npm/linux-x64-gnu
       '@rspack/binding-win32-x64-msvc': link:../../npm/win32-x64-msvc
     devDependencies:
-      '@napi-rs/cli': 2.14.2
+      '@napi-rs/cli': 2.15.2
       cross-env: 7.0.3
       npm-run-all: 4.1.5
       why-is-node-running: 2.2.1
@@ -4391,6 +4391,12 @@ packages:
 
   /@napi-rs/cli/2.14.2:
     resolution: {integrity: sha512-g2bGIhu+p/+wZJlNYGYbb2feQs7vF0dKIMJY8jOBdhU4r14TqxBPEr7P/xoFzHiJ7vCNdJ0rldcC+nOSnJwCTw==}
+    engines: {node: '>= 10'}
+    hasBin: true
+    dev: true
+
+  /@napi-rs/cli/2.15.2:
+    resolution: {integrity: sha512-80tBCtCnEhAmFtB9oPM0FL74uW7fAmtpeqjvERH7Q1z/aZzCAs/iNfE7U3ehpwg9Q07Ob2Eh/+1guyCdX/p24w==}
     engines: {node: '>= 10'}
     hasBin: true
     dev: true
