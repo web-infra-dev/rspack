@@ -461,6 +461,10 @@ impl NormalModule {
   pub fn ast_or_source_mut(&mut self) -> &mut NormalModuleAstOrSource {
     &mut self.ast_or_source
   }
+
+  pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
+    &mut self.loaders
+  }
 }
 
 impl Identifiable for NormalModule {

@@ -1,26 +1,10 @@
-import {
-	JsAssetInfo,
-	JsLoaderContext,
-	JsLoaderResult,
-	RawModuleRuleUse,
-	RawOptions
-} from "@rspack/binding";
+import { JsAssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
-import path from "path";
-import {
-	OriginalSource,
-	RawSource,
-	Source,
-	SourceMapSource
-} from "webpack-sources";
+
 import { Compiler } from "../compiler";
 import { Logger } from "../logging/Logger";
-import { concatErrorMsgAndStack, isPromiseLike } from "../util";
-import { createHash } from "../util/createHash";
 import Hash from "../util/hash";
-import { absolutify, contextify, makePathsRelative } from "../util/identifier";
-import { memoize } from "../util/memoize";
 import {
 	Mode,
 	Resolve,
@@ -198,41 +182,20 @@ function createRawModuleRuleUsesImpl(
 	if (!uses.length) {
 		return [];
 	}
-	const index = uses.findIndex(
-		use =>
+
+	return uses.map(use => {
+		if (
 			typeof use.loader === "string" &&
 			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
-	);
-	if (index < 0) {
-		// cast to non-null since we know `uses` is not empty
-		return [composeJsUse(uses, options, allUses)!];
-	}
-
-	const before = uses.slice(0, index);
-	const after = uses.slice(index + 1);
-	return [
-		composeJsUse(before, options, allUses),
-		createBuiltinUse(uses[index]),
-		...createRawModuleRuleUsesImpl(after, options, allUses)
-	].filter((item): item is RawModuleRuleUse => Boolean(item));
-}
-
-function composeJsUse(
-	uses: RuleSetLoaderWithOptions[],
-	options: ComposeJsUseOptions,
-	allUses: RuleSetLoaderWithOptions[]
-): RawModuleRuleUse | null {
-	if (!uses.length) {
-		return null;
-	}
-
-	return {
-		jsLoader: {
-			identifier: uses
-				.map(use => resolveStringifyLoaders(use, options.compiler))
-				.join("$")
+		) {
+			return createBuiltinUse(use);
 		}
-	};
+		return {
+			jsLoader: {
+				identifier: resolveStringifyLoaders(use, options.compiler)
+			}
+		};
+	});
 }
 
 function resolveStringifyLoaders(
