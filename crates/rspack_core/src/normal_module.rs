@@ -205,7 +205,7 @@ impl ModuleGraphModule {
       .iter()
       .filter_map(|id| {
         let dep = module_graph.dependency_by_id(id).expect("should have id");
-        if dep.weak() || !is_async_dependency(dep) {
+        if !is_async_dependency(dep) {
           return None;
         }
         let module = module_graph

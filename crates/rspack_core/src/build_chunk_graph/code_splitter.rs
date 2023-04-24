@@ -6,7 +6,10 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
-use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
+use crate::{
+  ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, DependencyId,
+  ModuleIdentifier,
+};
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
@@ -217,7 +220,7 @@ impl<'me> CodeSplitter<'me> {
       self.remove_parent_modules();
     }
 
-    for (module_identifier, module) in self.compilation.module_graph.modules() {
+    for (module_identifier, _) in self.compilation.module_graph.modules() {
       self.compilation.chunk_graph.add_module(*module_identifier)
     }
 

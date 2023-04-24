@@ -381,10 +381,7 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
   }
   if matches!(dep.dependency_type(), DependencyType::ContextElement) {
     if let Some(options) = dep.options() {
-      return matches!(
-        options.mode,
-        ContextMode::Lazy | ContextMode::LazyOnce | ContextMode::AsyncWeak
-      );
+      return matches!(options.mode, ContextMode::Lazy | ContextMode::LazyOnce);
     }
   }
   false

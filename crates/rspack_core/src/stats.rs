@@ -431,12 +431,6 @@ fn get_stats_module_name_and_id(
   compilation: &Compilation,
 ) -> (String, Option<String>) {
   let identifier = module.identifier();
-  let mgm = compilation
-    .module_graph
-    .module_graph_module_by_identifier(&identifier)
-    .unwrap_or_else(|| {
-      panic!("module_graph.module_graph_module_by_identifier({identifier:?}) failed")
-    });
   let name = module.readable_identifier(&compilation.options.context);
   let id = compilation.chunk_graph.get_module_id(identifier).to_owned();
   (name.to_string(), id)
