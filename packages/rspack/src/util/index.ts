@@ -11,6 +11,31 @@ export function isNil(value: unknown): value is null | undefined {
 	return value === null || value === undefined;
 }
 
+export const toBuffer = (bufLike: string | Buffer): Buffer => {
+	if (Buffer.isBuffer(bufLike)) {
+		return bufLike;
+	} else if (typeof bufLike === "string") {
+		return Buffer.from(bufLike);
+	}
+
+	throw new Error("Buffer or string expected");
+};
+
+export const toObject = (input: string | Buffer | object): object => {
+	let s: string;
+	if (Buffer.isBuffer(input)) {
+		s = input.toString("utf8");
+	} else if (input && typeof input === "object") {
+		return input;
+	} else if (typeof input === "string") {
+		s = input;
+	} else {
+		throw new Error("Buffer or string or object expected");
+	}
+
+	return JSON.parse(s);
+};
+
 export function isPromiseLike(value: unknown): value is Promise<any> {
 	return (
 		typeof value === "object" &&
