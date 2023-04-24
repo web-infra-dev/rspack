@@ -233,6 +233,13 @@ module.exports = {
 		compilerOptionsDefinition: {
 			properties: {
 				compilerOptions: {
+					required: [
+						"isolatedModules",
+						"importsNotUsedAsValues",
+						"esModuleInterop",
+						"verbatimModuleSyntax"
+					],
+
 					type: "object",
 					description:
 						"Instructs the TypeScript compiler how to compile .ts files.",
@@ -639,9 +646,10 @@ module.exports = {
 						},
 						isolatedModules: {
 							description:
-								"Ensure that each file can be safely transpiled without relying on other imports.",
-							type: "boolean",
-							default: false,
+								"SWC warning more info see: https://swc.rs/docs/migrating-from-tsc#esmoduleinterop-true \nEnsure that each file can be safely transpiled without relying on other imports.",
+							// type: "boolean",
+							enum: [true],
+							// default: false,
 							markdownDescription:
 								"Ensure that each file can be safely transpiled without relying on other imports.\n\nSee more: https://www.typescriptlang.org/tsconfig#isolatedModules"
 						},
@@ -1122,9 +1130,9 @@ module.exports = {
 						},
 						importsNotUsedAsValues: {
 							description:
-								"Specify emit/checking behavior for imports that are only used for types.",
+								"SWC warning more info see: https://swc.rs/docs/migrating-from-tsc#importsnotusedasvalues-error \nSpecify emit/checking behavior for imports that are only used for types. ",
 							default: "remove",
-							enum: ["remove", "preserve", "error"]
+							enum: ["error"]
 						},
 						alwaysStrict: {
 							description: "Ensure 'use strict' is always emitted.",
@@ -1181,9 +1189,8 @@ module.exports = {
 						},
 						esModuleInterop: {
 							description:
-								"Emit additional JavaScript to ease support for importing CommonJS modules. This enables `allowSyntheticDefaultImports` for type compatibility.",
-							type: "boolean",
-							default: false,
+								"SWC warning more info see: https://swc.rs/docs/migrating-from-tsc#esmoduleinterop-true \nEmit additional JavaScript to ease support for importing CommonJS modules. This enables `allowSyntheticDefaultImports` for type compatibility. ",
+							enum: [true],
 							markdownDescription:
 								"Emit additional JavaScript to ease support for importing CommonJS modules. This enables `allowSyntheticDefaultImports` for type compatibility.\n\nSee more: https://www.typescriptlang.org/tsconfig#esModuleInterop"
 						},
@@ -1273,10 +1280,10 @@ module.exports = {
 						},
 						verbatimModuleSyntax: {
 							description:
-								"Do not transform or elide any imports or exports not marked as type-only, ensuring they are written in the output file's format based on the 'module' setting.",
-							type: "boolean",
+								"SWC warning more info see: https://swc.rs/docs/migrating-from-tsc#esmoduleinterop-true \nDo not transform or elide any imports or exports not marked as type-only, ensuring they are written in the output file's format based on the 'module' setting. ",
+							enum: [true],
 							markdownDescription:
-								"Do not transform or elide any imports or exports not marked as type-only, ensuring they are written in the output file's format based on the 'module' setting.\n\nSee more: https://www.typescriptlang.org/tsconfig#verbatimModuleSyntax"
+								"Do not transform or elide any imports or exports not marked as type-only, ensuring they are written in the output file's format based on the 'module' setting.\n\nSee more: https://swc.rs/docs/migrating-from-tsc#verbatimmodulesyntax-true"
 						}
 					}
 				}

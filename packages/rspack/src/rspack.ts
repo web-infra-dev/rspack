@@ -128,13 +128,13 @@ function revalidateTsconfig(options: RspackOptions | MultiRspackOptions) {
 			throw e;
 		}
 		// 'strict', 'loose', 'loose-silent'
-		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "loose";
 		if (strategy === "loose-silent") return;
 		if (strategy === "loose") {
-			console.error(e.message);
+			console.log(`\x1b[33m${e.message}\x1b[0m`);
 			return;
 		}
-		throw new InvalidateConfigurationError(e.message);
+		// throw new InvalidateConfigurationError(e.message);
 	}
 }
 

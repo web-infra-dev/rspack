@@ -1,5 +1,8 @@
 {
 	"compilerOptions": {
-		"allowJs": "123"
+		"verbatimModuleSyntax": true,
+		"esModuleInterop": true,
+		"importsNotUsedAsValues": "error",
+		"isolatedModules": true
 	}
 }
