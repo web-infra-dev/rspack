@@ -162,9 +162,14 @@ impl ContextModule {
             .module_graph
             .dependency_by_id(dependency)
             .expect("should have dependency");
-          if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-            map.insert(dependency.user_request().to_string(), id.to_string());
-          }
+          map.insert(
+            dependency.user_request().to_string(),
+            if let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier) {
+              format!("\"{module_id}\"")
+            } else {
+              "null".to_string()
+            },
+          );
         }
       }
     }
@@ -180,27 +185,7 @@ impl ContextModule {
   }
 
   pub fn get_lazy_source(&self, compilation: &Compilation) -> BoxSource {
-    let mut map = HashMap::default();
-    if let Some(dependencies) = compilation
-      .module_graph
-      .dependencies_by_module_identifier(&self.identifier)
-    {
-      for dependency in dependencies {
-        if let Some(module_identifier) = compilation
-          .module_graph
-          .module_identifier_by_dependency_id(dependency)
-        {
-          if let Some(id) = compilation.chunk_graph.get_module_id(*module_identifier) {
-            let dependency = compilation
-              .module_graph
-              .dependency_by_id(dependency)
-              .expect("should have dependency");
-            map.insert(dependency.user_request().to_string(), id.to_string());
-          }
-        }
-      }
-    }
-
+    let map = self.get_user_request_map(compilation);
     RawSource::from(
       include_str!("runtime/lazy_context_module.js")
         .replace("$ID$", self.id(&compilation.chunk_graph))

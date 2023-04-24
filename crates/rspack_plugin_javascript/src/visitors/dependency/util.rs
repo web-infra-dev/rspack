@@ -58,6 +58,8 @@ pub(crate) mod expr_matcher {
   // - Matching would ignore Span and SyntaxContext
   define_expr_matchers!({
     is_require_context: "require.context",
+    is_require_resolve: "require.resolve",
+    is_require_resolve_weak: "require.resolveWeak",
     is_module_hot_accept: "module.hot.accept",
     is_module_hot_decline: "module.hot.decline",
     is_module_id: "module.id",
@@ -77,6 +79,22 @@ pub fn is_require_context_call(node: &CallExpr) -> bool {
     .callee
     .as_expr()
     .map(|expr| expr_matcher::is_require_context(expr))
+    .unwrap_or_default()
+}
+
+pub fn is_require_resolve_call(node: &CallExpr) -> bool {
+  node
+    .callee
+    .as_expr()
+    .map(|expr| expr_matcher::is_require_resolve(expr))
+    .unwrap_or_default()
+}
+
+pub fn is_require_resolve_weak_call(node: &CallExpr) -> bool {
+  node
+    .callee
+    .as_expr()
+    .map(|expr| expr_matcher::is_require_resolve_weak(expr))
     .unwrap_or_default()
 }
 

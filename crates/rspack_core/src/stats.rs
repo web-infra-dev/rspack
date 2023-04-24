@@ -341,7 +341,7 @@ impl Stats<'_> {
             StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,
-              module_id,
+              module_id: module_id.and_then(|i| i),
               r#type,
               user_request,
             }
@@ -387,12 +387,16 @@ impl Stats<'_> {
       name: module
         .readable_identifier(&self.compilation.options.context)
         .into(),
-      id: mgm.id(&self.compilation.chunk_graph).to_string(),
+      id: self
+        .compilation
+        .chunk_graph
+        .get_module_id(identifier)
+        .clone(),
       chunks,
       size: module.size(&SourceType::JavaScript),
       issuer: issuer.map(|i| i.identifier().to_string()),
       issuer_name,
-      issuer_id,
+      issuer_id: issuer_id.and_then(|i| i),
       issuer_path,
       reasons,
       assets,
@@ -444,17 +448,14 @@ impl Stats<'_> {
   }
 }
 
-fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -> (String, String) {
+fn get_stats_module_name_and_id(
+  module: &BoxModule,
+  compilation: &Compilation,
+) -> (String, Option<String>) {
   let identifier = module.identifier();
-  let mgm = compilation
-    .module_graph
-    .module_graph_module_by_identifier(&identifier)
-    .unwrap_or_else(|| {
-      panic!("module_graph.module_graph_module_by_identifier({identifier:?}) failed")
-    });
   let name = module.readable_identifier(&compilation.options.context);
-  let id = mgm.id(&compilation.chunk_graph);
-  (name.to_string(), id.to_string())
+  let id = compilation.chunk_graph.get_module_id(identifier).to_owned();
+  (name.to_string(), id)
 }
 
 #[derive(Debug)]
@@ -498,7 +499,7 @@ pub struct StatsModule {
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
   pub chunks: Vec<String>,
   pub size: f64,
   pub issuer: Option<String>,
@@ -542,7 +543,7 @@ pub struct StatsChunkGroup {
 pub struct StatsModuleIssuer {
   pub identifier: String,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
 }
 
 #[derive(Debug)]

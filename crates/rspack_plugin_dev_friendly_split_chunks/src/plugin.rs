@@ -46,7 +46,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
       .par_bridge()
       .map(|m| m.identifier())
       .filter_map(|module| {
-        let chunks = compilation.chunk_graph.get_modules_chunks(module);
+        let chunks = compilation.chunk_graph.get_module_chunks(module);
 
         let is_initial_loaded = chunks.iter().any(|c| {
           c.as_ref(&compilation.chunk_by_ukey)

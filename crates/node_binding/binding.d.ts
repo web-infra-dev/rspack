@@ -566,7 +566,7 @@ export interface JsStatsModule {
   moduleType: string
   identifier: string
   name: string
-  id: string
+  id?: string
   chunks: Array<string>
   size: number
   issuer?: string
@@ -579,7 +579,7 @@ export interface JsStatsModule {
 export interface JsStatsModuleIssuer {
   identifier: string
   name: string
-  id: string
+  id?: string
 }
 export interface JsStatsModuleReason {
   moduleIdentifier?: string
