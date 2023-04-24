@@ -250,7 +250,7 @@ impl CopyPlugin {
     ));
 
     let abs_from = if normalized_orig_from.is_absolute() {
-      normalized_orig_from.clone()
+      normalized_orig_from
     } else {
       context.join(&normalized_orig_from)
     };
@@ -421,7 +421,7 @@ impl CopyPlugin {
         if pattern.no_error_on_missing {
           LOGGER.log(&format!(
             "finished to process a pattern from '{}' using '{}' context to '{:?}'",
-            normalized_orig_from.display(),
+            PathBuf::from(orig_from).display(),
             context.display(),
             pattern.to
           ));
