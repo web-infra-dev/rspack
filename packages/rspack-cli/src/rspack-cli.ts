@@ -124,22 +124,18 @@ export class RspackCLI {
 		let isBuild = command === "build";
 		let isServe = command === "serve";
 		const internalBuildConfig = async (item: RspackOptions) => {
-			let entry = {};
-			if (!item.entry) {
-				if (options.entry) {
-					entry = {
-						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
-					};
-				} else {
-					const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
-					const defaultEntryPath =
-						findFileWithSupportedExtensions(defaultEntryBase) ||
-						defaultEntryBase + ".js"; // default entry is js
-					entry = {
-						main: defaultEntryPath
-					};
-				}
-				item.entry = entry;
+			if (options.entry) {
+				item.entry = {
+					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
+				};
+			} else if (!item.entry) {
+				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
+				const defaultEntryPath =
+					findFileWithSupportedExtensions(defaultEntryBase) ||
+					defaultEntryBase + ".js"; // default entry is js
+				item.entry = {
+					main: defaultEntryPath
+				};
 			}
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
