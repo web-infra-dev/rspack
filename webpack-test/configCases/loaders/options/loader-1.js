@@ -1,6 +1,6 @@
 const schema = require("./loader-1.options.json");
 
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	const options = this.getOptions(schema);
 

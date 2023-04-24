@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition<string>} */
+/** @type {import("@rspack/core").LoaderDefinition<string>} */
 module.exports = function () {
 	const { name, expect, usedExports } = JSON.parse(this.query.slice(1));
 	return [

@@ -51,21 +51,21 @@ export interface LoaderObject {
 	normalExecuted: boolean;
 }
 
-export interface LoaderContext {
+export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
 	resourcePath: string;
 	resourceQuery: string;
 	resourceFragment: string;
 	async(): (
-		err: Error | null,
-		content: string | Buffer,
+		err?: Error | null,
+		content?: string | Buffer,
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	) => void;
 	callback(
-		err: Error | null,
-		content: string | Buffer,
+		err?: Error | null,
+		content?: string | Buffer,
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	): void;
@@ -99,7 +99,7 @@ export interface LoaderContext {
 	loaders: LoaderObject[];
 	mode?: Mode;
 	hot?: boolean;
-	getOptions(schema?: any): unknown;
+	getOptions(schema?: any): OptionsType;
 	resolve(
 		context: string,
 		request: string,
@@ -136,7 +136,7 @@ export interface LoaderContext {
 		contextify: (context: string, request: string) => string;
 		createHash: (algorithm?: string) => Hash;
 	};
-	query: unknown;
+	query: string | OptionsType;
 	data: unknown;
 	_compiler: Compiler;
 	_compilation: Compiler["compilation"];
@@ -147,6 +147,7 @@ export interface LoaderContext {
 	 * @internal
 	 */
 	__internal__isPitching: boolean;
+	// TODO: LoaderPluginLoaderContext
 }
 
 export interface LoaderResult {
@@ -159,6 +160,38 @@ export interface LoaderResult {
 	missingDependencies: string[];
 	buildDependencies: string[];
 }
+
+export interface LoaderDefinitionFunction<
+	OptionsType = {},
+	ContextAdditions = {}
+> {
+	(
+		this: LoaderContext<OptionsType> & ContextAdditions,
+		content: string,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	): string | void | Buffer | Promise<string | Buffer>;
+}
+
+export interface PitchLoaderDefinitionFunction<
+	OptionsType = {},
+	ContextAdditions = {}
+> {
+	(
+		this: LoaderContext<OptionsType> & ContextAdditions,
+		remainingRequest: string,
+		previousRequest: string,
+		data: object
+	): string | void | Buffer | Promise<string | Buffer>;
+}
+
+export type LoaderDefinition<
+	OptionsType = {},
+	ContextAdditions = {}
+> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
+	raw?: false;
+	pitch?: PitchLoaderDefinitionFunction;
+};
 
 export function createRawModuleRuleUses(
 	uses: RuleSetUse,

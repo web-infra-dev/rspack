@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	var str = "export default Promise.all([\n";
 	for (var i = 0; i < 6; i++) {

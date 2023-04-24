@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function (source) {
 	this.addDependency("loader.js");
 	this.addDependency("../**/dir/*.js");
