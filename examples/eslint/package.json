@@ -5,13 +5,15 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack serve",
+    "dev": "rspack serve -c",
+    "dev:loader": "rspack serve -c rspack.config.loader.js",
     "build": "rspack build"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "eslint-rspack-plugin": "4.0.0-alpha",
-    "eslint": "8.39.0"
+    "eslint": "7",
+    "eslint-loader": "4.0.2"
   },
   "sideEffects": false,
   "keywords": [],
