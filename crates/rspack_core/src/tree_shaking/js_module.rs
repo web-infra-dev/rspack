@@ -19,14 +19,13 @@ impl<'a> JsModule<'a> {
 }
 
 impl<'a> OptimizeAnalyzer for JsModule<'a> {
-  fn analyze(&self, compilation: &crate::Compilation) -> super::visitor::OptimizeAnalyzeResult {
+  fn analyze(&self, compilation: &crate::Compilation) -> OptimizeAnalyzeResult {
     self.ast.visit(|program, context| {
       let top_level_mark = context.top_level_mark;
       let unresolved_mark = context.unresolved_mark;
-      let helper_mark = context.helpers.mark();
 
       let mut analyzer = ModuleRefAnalyze::new(
-        MarkInfo::new(top_level_mark, unresolved_mark, helper_mark),
+        MarkInfo::new(top_level_mark, unresolved_mark),
         self.module_identifier,
         &compilation.module_graph,
         &compilation.options,

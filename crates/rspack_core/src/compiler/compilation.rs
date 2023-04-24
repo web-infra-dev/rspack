@@ -42,10 +42,10 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
   CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
   DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier,
-  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals,
-  RuntimeModule, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  FactorizeTask, FactorizeTaskResult, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
+  ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals,
+  RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -1098,7 +1098,7 @@ impl Compilation {
           .get_number_of_module_chunks(module.identifier())
           > 0
         {
-          let mut module_runtime_requirements: Vec<(HashSet<String>, RuntimeGlobals)> = vec![];
+          let mut module_runtime_requirements: Vec<(RuntimeSpec, RuntimeGlobals)> = vec![];
           for runtime in self
             .chunk_graph
             .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)

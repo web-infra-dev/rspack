@@ -28,12 +28,12 @@ use super::{
   asset_module::AssetModule,
   js_module::JsModule,
   symbol_graph::SymbolGraph,
-  visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult, SymbolRef},
+  visitor::{OptimizeAnalyzeResult, SymbolRef},
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
   contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
