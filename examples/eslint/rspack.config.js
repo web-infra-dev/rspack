@@ -5,7 +5,6 @@ const EslintPlugin = require("eslint-rspack-plugin");
 module.exports = {
 	mode: "development",
 	context: __dirname,
-	stats: { all: true },
 	entry: {
 		main: "./src/index.js"
 	},
