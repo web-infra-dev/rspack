@@ -72,18 +72,16 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 _ => unreachable!(),
               };
               let hash = Some(chunk.get_render_hash());
-              chunks_map.insert(
-                chunk.expect_id().to_string(),
-                filename_template.render(FilenameRenderOptions {
-                  name: chunk.name_for_filename_template(),
-                  extension: Some(format!(".{}", self.content_type)),
-                  id: chunk.id.clone(),
-                  contenthash: chunk.content_hash.get(&self.source_type).cloned(),
-                  chunkhash: hash.clone(),
-                  hash,
-                  ..Default::default()
-                }),
-              );
+              let filename = filename_template.render(FilenameRenderOptions {
+                name: chunk.name_for_filename_template(),
+                extension: Some(format!(".{}", self.content_type)),
+                id: chunk.id.clone(),
+                contenthash: chunk.content_hash.get(&self.source_type).cloned(),
+                chunkhash: hash.clone(),
+                hash,
+                ..Default::default()
+              });
+              chunks_map.insert(chunk.expect_id().to_string(), format!("\"{filename}\""));
             }
           }
           match chunks_map.is_empty() {
