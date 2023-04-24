@@ -2,7 +2,9 @@ use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
-use rspack_core::{ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals, SourceType};
+use rspack_core::{
+  ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals, SourceType,
+};
 use rspack_error::Result;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
@@ -10,7 +12,7 @@ static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(Dash
 pub fn render_chunk_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-) -> Result<BoxSource> {
+) -> Result<(BoxSource, ChunkInitFragments)> {
   let module_graph = &compilation.module_graph;
   let ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
     chunk_ukey,
@@ -31,10 +33,11 @@ pub fn render_chunk_modules(
     .par_iter()
     .filter(|mgm| mgm.used)
     .map(|mgm| {
-      let result = compilation
+      let code_gen_result = compilation
         .code_generation_results
         .get(&mgm.module_identifier, Some(&chunk.runtime))
-        .expect("should have code generation result")
+        .expect("should have code generation result");
+      let result = code_gen_result
         .get(&SourceType::JavaScript)
         .expect("should have js code generation result");
 
@@ -64,15 +67,26 @@ pub fn render_chunk_modules(
       (
         mgm.module_identifier,
         render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
+        &code_gen_result.chunk_init_fragments,
       )
     })
     .collect::<Vec<_>>();
 
-  module_code_array.sort_unstable_by_key(|(module_identifier, _)| *module_identifier);
+  module_code_array.sort_unstable_by_key(|(module_identifier, _, _)| *module_identifier);
+
+  let chunk_init_fragments = module_code_array.iter().fold(
+    ChunkInitFragments::default(),
+    |mut chunk_init_fragments, (_, _, fragments)| {
+      for (k, v) in fragments.iter() {
+        chunk_init_fragments.insert(k.to_string(), v.clone());
+      }
+      chunk_init_fragments
+    },
+  );
 
   let module_sources = module_code_array
     .into_par_iter()
-    .fold(ConcatSource::default, |mut output, (_, source)| {
+    .fold(ConcatSource::default, |mut output, (_, source, _)| {
       output.add(source);
       output
     })
@@ -83,7 +97,7 @@ pub fn render_chunk_modules(
   sources.add(ConcatSource::new(module_sources));
   sources.add(RawSource::from("\n}"));
 
-  Ok(sources.boxed())
+  Ok((sources.boxed(), chunk_init_fragments))
 }
 
 fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource {
@@ -183,4 +197,28 @@ pub fn render_runtime_modules(
     sources.add(RawSource::from("\n})();\n"));
   });
   Ok(sources.boxed())
+}
+
+pub fn render_chunk_init_fragments(
+  source: BoxSource,
+  chunk_init_fragments: &mut ChunkInitFragments,
+) -> BoxSource {
+  let mut fragments = chunk_init_fragments.values().collect::<Vec<_>>();
+  fragments.sort_unstable_by_key(|m| m.stage);
+
+  let mut sources = ConcatSource::default();
+
+  fragments.iter().for_each(|f| {
+    sources.add(RawSource::from(f.content.clone()));
+  });
+
+  sources.add(source);
+
+  fragments.iter().rev().for_each(|f| {
+    if let Some(end_content) = f.end_content.clone() {
+      sources.add(RawSource::from(end_content));
+    }
+  });
+
+  sources.boxed()
 }
