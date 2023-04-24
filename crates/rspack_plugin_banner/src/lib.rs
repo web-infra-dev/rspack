@@ -1,6 +1,5 @@
 #![feature(let_chains)]
 
-use std::collections::HashMap;
 use std::fmt::{self, Debug};
 
 use async_recursion::async_recursion;
@@ -133,15 +132,9 @@ fn wrap_comment(str: &str) -> String {
 }
 
 #[derive(Debug)]
-pub struct CachedStruct {
-  comment: String,
-}
-
-#[derive(Debug)]
 pub struct BannerPlugin {
   config: BannerConfig,
   comment: String,
-  cache: HashMap<String, CachedStruct>,
 }
 
 impl BannerPlugin {
@@ -152,34 +145,25 @@ impl BannerPlugin {
       wrap_comment(&config.banner)
     };
 
-    Self {
-      config,
-      comment,
-      cache: HashMap::new(),
-    }
+    Self { config, comment }
   }
 
-  fn update_cache_source(&mut self, comment: String, old: &mut BoxSource, footer: Option<bool>) {
-    let old_source = old.source().to_string();
-    let source;
+  fn update_source(&mut self, comment: String, old: BoxSource, footer: Option<bool>) -> BoxSource {
+    let old_source = old.to_owned();
 
     if let Some(footer) = footer && footer {
-      source = ConcatSource::new([
-        RawSource::from(old_source.clone()),
-        RawSource::from("\n"),
-        RawSource::from(comment.to_string()),
-      ]);
+      ConcatSource::new([
+        old_source,
+        RawSource::from("\n").boxed(),
+        RawSource::from(comment).boxed(),
+      ]).boxed()
     } else {
-      source = ConcatSource::new([
-        RawSource::from(comment.to_string()),
-        RawSource::from("\n"),
-        RawSource::from(old_source.clone()),
-      ]);
+      ConcatSource::new([
+        RawSource::from(comment).boxed(),
+        RawSource::from("\n").boxed(),
+        old_source
+      ]).boxed()
     }
-
-    *old = source.boxed();
-
-    self.cache.insert(old_source, CachedStruct { comment });
   }
 }
 
@@ -219,18 +203,9 @@ impl Plugin for BannerPlugin {
     for file in chunk_files {
       // todo: support placeholder, such as [fullhash]、[chunkhash]
       let comment = self.comment.to_owned();
-      let _res = compilation.update_asset(file.as_str(), |old, _info| {
-        let old_source = old.source().to_string();
-        let cached = self.cache.get(&old_source);
-        // check cache
-        if let Some(cache_info) = cached {
-          if cache_info.comment != comment {
-            self.update_cache_source(comment, old, self.config.footer);
-          }
-        } else {
-          self.update_cache_source(comment, old, self.config.footer);
-        }
-        Ok(())
+      let _res = compilation.update_asset(file.as_str(), |old, info| {
+        let new = self.update_source(comment, old, self.config.footer);
+        Ok((new, info))
       });
     }
 

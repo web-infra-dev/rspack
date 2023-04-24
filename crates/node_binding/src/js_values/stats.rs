@@ -88,6 +88,7 @@ pub struct JsStatsModule {
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<JsStatsModuleIssuer>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
+  pub assets: Option<Vec<String>>,
 }
 
 impl From<rspack_core::StatsModule> for JsStatsModule {
@@ -107,6 +108,7 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
       reasons: stats
         .reasons
         .map(|i| i.into_iter().map(Into::into).collect()),
+      assets: stats.assets,
     }
   }
 }
@@ -264,10 +266,10 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_modules(&self) -> Vec<JsStatsModule> {
+  pub fn get_modules(&self, reasons: bool, module_assets: bool) -> Vec<JsStatsModule> {
     self
       .inner
-      .get_modules()
+      .get_modules(reasons, module_assets)
       .expect("Failed to get modules")
       .into_iter()
       .map(Into::into)
@@ -275,10 +277,16 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_chunks(&self, chunk_modules: bool, chunks_relations: bool) -> Vec<JsStatsChunk> {
+  pub fn get_chunks(
+    &self,
+    chunk_modules: bool,
+    chunks_relations: bool,
+    reasons: bool,
+    module_assets: bool,
+  ) -> Vec<JsStatsChunk> {
     self
       .inner
-      .get_chunks(chunk_modules, chunks_relations)
+      .get_chunks(chunk_modules, chunks_relations, reasons, module_assets)
       .expect("Failed to get chunks")
       .into_iter()
       .map(Into::into)

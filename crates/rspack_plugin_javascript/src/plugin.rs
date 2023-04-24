@@ -619,9 +619,16 @@ impl Plugin for JsPlugin {
 
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
+      let emit_source_map_columns = !compilation.options.devtool.cheap();
+      let compress = TerserCompressorOptions {
+        passes: minify_options.passes,
+        drop_console: minify_options.drop_console,
+        pure_funcs: minify_options.pure_funcs.clone(),
+        ..Default::default()
+      };
 
       compilation
-        .assets
+        .assets_mut()
         .par_iter_mut()
         .filter(|(filename, _)| {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
@@ -636,15 +643,10 @@ impl Plugin for JsPlugin {
             let input = original_source.source().to_string();
             let input_source_map = original_source.map(&MapOptions::default());
             let output = match crate::ast::minify(&JsMinifyOptions {
-              compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
-                passes: minify_options.passes,
-                drop_console: minify_options.drop_console,
-                pure_funcs: minify_options.pure_funcs.clone(),
-                ..Default::default()
-              }),
+              compress: BoolOrDataConfig::from_obj(compress.clone()),
               source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
-              emit_source_map_columns: !compilation.options.devtool.cheap(),
+              emit_source_map_columns,
               ..Default::default()
             }, input, filename) {
               Ok(r) => r,

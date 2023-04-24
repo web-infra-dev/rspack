@@ -41,6 +41,7 @@ import * as ErrorHelpers from "./ErrorHelpers";
 import { concatErrorMsgAndStack } from "./util";
 import { normalizeStatsPreset, Stats } from "./stats";
 import { NormalModuleFactory } from "./normalModuleFactory";
+import CacheFacade from "./lib/CacheFacade";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -75,11 +76,13 @@ export class Compilation {
 			Assets,
 			tapable.UnsetAdditionalOptions
 		>;
+		optimizeModules: tapable.SyncBailHook<Iterable<JsModule>, undefined>;
 		optimizeChunkModules: tapable.AsyncSeriesBailHook<
 			[Iterable<JsChunk>, Iterable<JsModule>],
 			undefined
 		>;
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
+		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -103,11 +106,13 @@ export class Compilation {
 			/** @deprecated */
 			additionalAssets: processAssetsHooks.stageAdditional,
 			log: new tapable.SyncBailHook(["origin", "logEntry"]),
+			optimizeModules: new tapable.SyncBailHook(["modules"]),
 			optimizeChunkModules: new tapable.AsyncSeriesBailHook([
 				"chunks",
 				"modules"
 			]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"])
+			finishModules: new tapable.AsyncSeriesHook(["modules"]),
+			chunkAsset: new tapable.SyncHook(["chunk", "filename"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -187,6 +192,10 @@ export class Compilation {
 		);
 	}
 
+	getCache(name: string) {
+		return this.compiler.getCache(name);
+	}
+
 	createStatsOptions(
 		optionsOrPreset: StatsValue | undefined,
 		context: CreateStatsOptionsContext = {}
@@ -240,6 +249,7 @@ export class Compilation {
 			options.builtAt,
 			!context.forToString
 		);
+		options.moduleAssets = optionOrLocalFallback(options.moduleAssets, true);
 
 		return options;
 	}

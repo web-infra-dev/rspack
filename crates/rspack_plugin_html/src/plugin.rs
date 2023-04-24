@@ -122,7 +122,7 @@ impl Plugin for HtmlPlugin {
       .map(|asset_name| {
         (
           asset_name.clone(),
-          compilation.assets.get(&asset_name).expect("TODO:"),
+          compilation.assets().get(&asset_name).expect("TODO:"),
         )
       })
       .collect::<Vec<_>>();

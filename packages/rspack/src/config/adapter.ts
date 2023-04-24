@@ -187,7 +187,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
 		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
 		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
-		webassemblyModuleFilename: output.webassemblyModuleFilename!
+		webassemblyModuleFilename: output.webassemblyModuleFilename!,
+		trustedTypes: output.trustedTypes!
 	};
 }
 
@@ -295,7 +296,8 @@ const getRawModuleRule = (
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map(i => getRawModuleRule(i, options))
-			: undefined
+			: undefined,
+		enforce: rule.enforce
 	};
 };
 
@@ -388,6 +390,31 @@ function getRawExternals(externals: Externals): RawOptions["externals"] {
 			return { type: "string", stringPayload: item };
 		} else if (item instanceof RegExp) {
 			return { type: "regexp", regexpPayload: item.source };
+		} else if (typeof item === "function") {
+			return {
+				type: "function",
+				fnPayload: async ctx => {
+					return await new Promise((resolve, reject) => {
+						const promise = item(ctx, (err, result, type) => {
+							if (err) reject(err);
+							resolve({
+								result: getRawExternalItemValueFormFnResult(result),
+								external_type: type
+							});
+						});
+						if (promise && promise.then) {
+							promise.then(
+								result =>
+									resolve({
+										result: getRawExternalItemValueFormFnResult(result),
+										external_type: undefined
+									}),
+								e => reject(e)
+							);
+						}
+					});
+				}
+			};
 		}
 		return {
 			type: "object",
@@ -395,6 +422,9 @@ function getRawExternals(externals: Externals): RawOptions["externals"] {
 				Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
 			)
 		};
+	}
+	function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
+		return result === undefined ? result : getRawExternalItemValue(result);
 	}
 	function getRawExternalItemValue(
 		value: ExternalItemValue
@@ -525,7 +555,6 @@ function getRawNode(node: Node): RawOptions["node"] {
 function getRawStats(stats: StatsValue): RawOptions["stats"] {
 	const statsOptions = normalizeStatsPreset(stats);
 	return {
-		colors: statsOptions.colors ?? false,
-		reasons: statsOptions.reasons ?? false
+		colors: statsOptions.colors ?? false
 	};
 }

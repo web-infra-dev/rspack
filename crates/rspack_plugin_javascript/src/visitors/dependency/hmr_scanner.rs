@@ -4,14 +4,12 @@ use swc_core::common::pass::AstNodePath;
 use swc_core::ecma::ast::{CallExpr, Expr, Lit, Str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 
-use super::{
-  as_parent_path, is_import_meta_hot_accept_call, is_import_meta_hot_decline_call,
-  is_module_hot_accept_call, is_module_hot_decline_call,
-};
+use super::{as_parent_path, is_module_hot_accept_call, is_module_hot_decline_call};
 use crate::dependency::{
   ImportMetaModuleHotAcceptDependency, ImportMetaModuleHotDeclineDependency,
   ModuleHotAcceptDependency, ModuleHotDeclineDependency,
 };
+use crate::visitors::{is_import_meta_hot_accept_call, is_import_meta_hot_decline_call};
 
 bitflags! {
   #[derive(Default)]

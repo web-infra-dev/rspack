@@ -3,10 +3,10 @@ use std::sync::Arc;
 use once_cell::sync::Lazy;
 use rspack_core::{ModuleType, ReactOptions};
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Module, Program};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, Module, ModuleItem, Program};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
-use swc_core::ecma::visit::{Fold, Visit, VisitWith};
+use swc_core::ecma::visit::{noop_visit_type, Fold, Visit, VisitWith};
 
 use crate::ast::parse_js_code;
 
@@ -45,19 +45,34 @@ pub fn fold_react_refresh() -> impl Fold {
   ReactHmrFolder {}
 }
 
-pub struct FoundReactRefreshVisitor {
-  pub is_refresh_boundary: bool,
+#[derive(Default)]
+struct ReactRefreshUsageFinder {
+  pub is_founded: bool,
 }
 
-impl Visit for FoundReactRefreshVisitor {
-  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
-    if let Callee::Expr(expr) = &call_expr.callee {
-      if let Expr::Ident(ident) = &**expr {
-        if "$RefreshReg$".eq(&ident.sym) || "$RefreshSig$".eq(&ident.sym) {
-          self.is_refresh_boundary = true;
-        }
+impl Visit for ReactRefreshUsageFinder {
+  noop_visit_type!();
+
+  fn visit_module_items(&mut self, items: &[ModuleItem]) {
+    for item in items {
+      item.visit_children_with(self);
+      if self.is_founded {
+        return;
       }
     }
+  }
+
+  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    self.is_founded = matches!(call_expr, CallExpr {
+      callee: Callee::Expr(box Expr::Ident(Ident { sym, .. })),
+      ..
+    } if sym == "$RefreshReg$" || sym == "$RefreshSig$");
+
+    if self.is_founded {
+      return;
+    }
+
+    call_expr.visit_children_with(self);
   }
 }
 
@@ -83,12 +98,10 @@ pub struct ReactHmrFolder {}
 
 impl Fold for ReactHmrFolder {
   fn fold_module(&mut self, mut module: Module) -> Module {
-    let mut f = FoundReactRefreshVisitor {
-      is_refresh_boundary: false,
-    };
+    let mut f = ReactRefreshUsageFinder::default();
 
     module.visit_with(&mut f);
-    if !f.is_refresh_boundary {
+    if !f.is_founded {
       return module;
     }
 

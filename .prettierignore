@@ -5,7 +5,6 @@ dist/
 packages/rspack/src/config/schema.check.js
 
 # Ignore example fixtures
-examples/**/*
 
 # Ignore test related
 packages/rspack/tests/fixtures/**/*

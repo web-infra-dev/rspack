@@ -228,9 +228,6 @@ impl TryFrom<&str> for ModuleType {
   }
 }
 
-// TODO: use module identifier only later, (ModuleIdentifier, DependencyCategory, Specifier)
-// pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, DependencyCategory, String)>;
-
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
 pub(crate) type SharedPluginDriver = Arc<RwLock<PluginDriver>>;

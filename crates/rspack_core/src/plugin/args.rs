@@ -186,6 +186,12 @@ pub struct RenderChunkArgs<'a> {
   pub chunk_ukey: &'a ChunkUkey,
 }
 
+#[derive(Debug)]
+pub struct ChunkAssetArgs<'a> {
+  pub chunk: &'a Chunk,
+  pub filename: &'a str,
+}
+
 impl<'me> RenderChunkArgs<'me> {
   pub fn chunk(&self) -> &Chunk {
     self

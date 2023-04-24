@@ -1,1 +1,1 @@
-export const inline = 'inline'
+export const inline = "inline";

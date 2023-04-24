@@ -4,7 +4,7 @@ module.exports = {
 	builtins: {
 		html: [{}],
 		define: {
-			"process.env.NODE_ENV": "'development'",
-		},
-	},
+			"process.env.NODE_ENV": "'development'"
+		}
+	}
 };

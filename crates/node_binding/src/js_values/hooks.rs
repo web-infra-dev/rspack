@@ -14,7 +14,9 @@ pub struct JsHooks {
   pub emit: JsFunction,
   pub after_emit: JsFunction,
   pub make: JsFunction,
+  pub optimize_modules: JsFunction,
   pub optimize_chunk_module: JsFunction,
   pub finish_modules: JsFunction,
   pub normal_module_factory_resolve_for_scheme: JsFunction,
+  pub chunk_asset: JsFunction,
 }

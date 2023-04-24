@@ -72,7 +72,7 @@ class FakeElement {
 		this._document._onElementAttached(node);
 		this._children.push(node);
 		node.parentNode = this;
-		if (node._type === "link") {
+		if (node._type === "link" || node._type === "script") {
 			setTimeout(() => {
 				if (node.onload) node.onload({ type: "load", target: node });
 			}, 100);

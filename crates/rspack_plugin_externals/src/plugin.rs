@@ -1,19 +1,29 @@
+use std::{fmt::Debug, path::PathBuf};
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, ExternalItem, ExternalItemValue, ExternalModule, ExternalType, FactorizeArgs,
-  ModuleDependency, ModuleExt, ModuleFactoryResult, NormalModuleFactoryContext, Plugin,
-  PluginContext, PluginFactorizeHookOutput,
+  ApplyContext, ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalType,
+  FactorizeArgs, ModuleDependency, ModuleExt, ModuleFactoryResult, NormalModuleFactoryContext,
+  Plugin, PluginContext, PluginFactorizeHookOutput,
 };
 use rspack_error::Result;
 
 static UNSPECIFIED_EXTERNAL_TYPE_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"^[a-z0-9-]+ ").expect("Invalid regex"));
 
-#[derive(Debug)]
 pub struct ExternalPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,
+}
+
+impl Debug for ExternalPlugin {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ExternalPlugin")
+      .field("externals", &"Function")
+      .field("r#type", &self.r#type)
+      .finish()
+  }
 }
 
 impl ExternalPlugin {
@@ -98,6 +108,24 @@ impl Plugin for ExternalPlugin {
               None,
               args.dependency,
             );
+            return Ok(maybe_module.map(|i| ModuleFactoryResult::new(i.boxed())));
+          }
+        }
+        ExternalItem::Fn(f) => {
+          let request = args.dependency.request();
+
+          let result = f(ExternalItemFnCtx {
+            context: PathBuf::from(request.to_string())
+              .parent()
+              .expect("should have context")
+              .to_string_lossy()
+              .to_string(),
+            request: request.to_string(),
+            dependency_type: args.dependency.dependency_type().to_string(),
+          })
+          .await?;
+          if let Some(r) = result.result {
+            let maybe_module = self.handle_external(&r, result.external_type, args.dependency);
             return Ok(maybe_module.map(|i| ModuleFactoryResult::new(i.boxed())));
           }
         }

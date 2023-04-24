@@ -1,8 +1,10 @@
 use std::{
-  cell::Cell,
   fmt::{Debug, Display},
   ops::Deref,
-  sync::Arc,
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
 };
 
 use async_trait::async_trait;
@@ -39,8 +41,8 @@ enum LoaderItemData {
 pub struct LoaderItem<C> {
   pub(crate) loader: Arc<dyn Loader<C>>,
   data: LoaderItemData,
-  pitch_executed: Cell<bool>,
-  normal_executed: Cell<bool>,
+  pitch_executed: AtomicBool,
+  normal_executed: AtomicBool,
 }
 
 impl<C> Debug for LoaderItem<C> {
@@ -58,19 +60,23 @@ impl<C> LoaderItem<C> {
   }
 
   pub(crate) fn pitch_executed(&self) -> bool {
-    self.pitch_executed.get()
+    self.pitch_executed.load(Ordering::Relaxed)
   }
 
   pub(crate) fn normal_executed(&self) -> bool {
-    self.normal_executed.get()
+    self.normal_executed.load(Ordering::Relaxed)
   }
 
   pub(crate) fn set_pitch_executed(&self) {
-    self.pitch_executed.set(true)
+    self.pitch_executed.store(true, Ordering::Relaxed)
   }
 
   pub(crate) fn set_normal_executed(&self) {
-    self.normal_executed.set(true)
+    self.normal_executed.store(true, Ordering::Relaxed)
+  }
+
+  pub fn __do_not_use_or_you_will_be_fired_set_normal_executed(&self) {
+    self.set_normal_executed()
   }
 }
 
@@ -78,12 +84,37 @@ bitflags::bitflags! {
   struct LoaderItemDataMeta: u8 {
     /// Builtin loader
     const BUILTIN = 1 << 0;
+    /// JS loader
+    const JS = 1 << 1;
   }
 }
 
 impl LoaderItemDataMeta {
-  pub(crate) fn builtin(&mut self) {
+  fn insert_builtin(&mut self) {
     self.insert(Self::BUILTIN);
+  }
+  fn insert_js(&mut self) {
+    self.insert(Self::JS)
+  }
+  fn has_builtin(&self) -> bool {
+    self.contains(Self::BUILTIN)
+  }
+  fn has_js(&self) -> bool {
+    self.contains(Self::JS)
+  }
+}
+
+impl Display for LoaderItemDataMeta {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let proto = if self.has_js() {
+      "js:"
+    } else if self.has_builtin() {
+      "builtin:"
+    } else {
+      ""
+    };
+
+    write!(f, "{proto}")
   }
 }
 
@@ -92,7 +123,11 @@ impl From<&str> for LoaderItemDataMeta {
     let mut meta = Self::empty();
 
     if value.starts_with("builtin:") {
-      meta.builtin();
+      meta.insert_builtin();
+    }
+
+    if value.starts_with("js:") {
+      meta.insert_js();
     }
 
     meta
@@ -193,7 +228,7 @@ impl<C> Identifiable for LoaderItem<C> {
   }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 pub trait Loader<C>: Identifiable + Send + Sync {
   async fn run(&self, _loader_context: &mut LoaderContext<'_, C>) -> Result<()> {
     // noop
@@ -224,8 +259,8 @@ impl<C> From<Arc<dyn Loader<C>>> for LoaderItem<C> {
     Self {
       data,
       loader,
-      pitch_executed: Cell::new(false),
-      normal_executed: Cell::new(false),
+      pitch_executed: AtomicBool::new(false),
+      normal_executed: AtomicBool::new(false),
     }
   }
 }
@@ -284,7 +319,7 @@ pub(crate) mod test {
 
   pub(crate) struct Custom {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Custom {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())
@@ -302,7 +337,7 @@ pub(crate) mod test {
 
   pub(crate) struct Custom2 {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Custom2 {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())
@@ -320,7 +355,7 @@ pub(crate) mod test {
 
   pub(crate) struct Composed {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Composed {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())
@@ -338,7 +373,7 @@ pub(crate) mod test {
 
   pub(crate) struct Builtin {}
 
-  #[async_trait::async_trait(?Send)]
+  #[async_trait::async_trait]
   impl Loader<()> for Builtin {
     async fn run(&self, _loader_context: &mut LoaderContext<'_, ()>) -> Result<()> {
       Ok(())

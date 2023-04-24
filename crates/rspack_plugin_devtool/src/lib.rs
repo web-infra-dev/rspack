@@ -102,9 +102,10 @@ impl Plugin for DevtoolPlugin {
     if !args.compilation.options.devtool.source_map() || args.compilation.options.devtool.eval() {
       return Ok(());
     }
+    let context = args.compilation.options.context.clone();
     let maps: HashMap<String, Vec<u8>> = args
       .compilation
-      .assets
+      .assets_mut()
       .par_iter()
       .filter_map(|(filename, asset)| asset.get_source().map(|s| (filename, s)))
       .filter_map(|(filename, source)| {
@@ -112,12 +113,11 @@ impl Plugin for DevtoolPlugin {
           map.set_file(Some(filename.clone()));
           for source in map.sources_mut() {
             let uri = normalize_custom_filename(source);
-            let resource_path =
-              if let Some(relative_path) = diff_paths(uri, &*args.compilation.options.context) {
-                relative_path.to_string_lossy().to_string()
-              } else {
-                uri.to_owned()
-              };
+            let resource_path = if let Some(relative_path) = diff_paths(uri, &context) {
+              relative_path.to_string_lossy().to_string()
+            } else {
+              uri.to_owned()
+            };
             *source = self
               .module_filename_template
               .replace("[namespace]", &self.namespace)
@@ -149,7 +149,11 @@ impl Plugin for DevtoolPlugin {
         let current_source_mapping_url_comment = current_source_mapping_url_comment
           .expect("DevToolPlugin: append can't be false when inline is true.");
         let base64 = rspack_base64::encode_to_string(&map_buffer);
-        let mut asset = args.compilation.assets.remove(&filename).expect("TODO:");
+        let mut asset = args
+          .compilation
+          .assets_mut()
+          .remove(&filename)
+          .expect("TODO:");
         asset.source = Some(
           ConcatSource::new([
             asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
@@ -172,7 +176,11 @@ impl Plugin for DevtoolPlugin {
           } else {
             source_map_filename.clone()
           };
-          let mut asset = args.compilation.assets.remove(&filename).expect("TODO:");
+          let mut asset = args
+            .compilation
+            .assets_mut()
+            .remove(&filename)
+            .expect("TODO:");
           asset.source = Some(ConcatSource::new([
             asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
             RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url))

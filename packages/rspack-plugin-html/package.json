@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "scripts": {
-    "build": "rimraf lib/ && tsc",
+    "build": "tsc --build --force",
     "dev": "tsc -w",
     "test": "jest --runInBand --verbose"
   },
@@ -22,14 +22,22 @@
     "directory": "packages/rspack-plugin-html"
   },
   "dependencies": {
-    "@rspack/core": "workspace:*",
     "@types/html-minifier-terser": "7.0.0",
     "html-minifier-terser": "7.0.0",
     "lodash.template": "^4.5.0",
     "parse5": "7.1.1",
     "tapable": "2.2.1"
   },
+  "peerDependencies": {
+    "@rspack/core": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@rspack/core": "workspace:*",
     "@types/lodash.template": "^4.5.1",
     "@types/pug": "^2.0.6",
     "html-loader": "^4.2.0",
