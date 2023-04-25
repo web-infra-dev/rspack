@@ -1,8 +1,7 @@
 use rspack_core::{
   CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
   Dependency, DependencyCategory, EsmDynamicImportDependency, ImportContextDependency,
-  ModuleDependency, RequireContextDependency, RequireResolveDependency, ResourceData,
-  RuntimeGlobals,
+  ModuleDependency, RequireContextDependency, ResourceData, RuntimeGlobals,
 };
 use rspack_regex::RspackRegex;
 use swc_core::common::comments::Comments;
@@ -17,10 +16,7 @@ use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
-use super::{
-  as_parent_path, expr_matcher, is_require_context_call, is_require_resolve_call,
-  is_require_resolve_weak_call,
-};
+use super::{as_parent_path, expr_matcher, is_require_context_call};
 use crate::dependency::{
   CommonJSRequireDependency, EsmExportDependency, EsmImportDependency, URLDependency,
 };
@@ -318,34 +314,6 @@ impl DependencyScanner<'_> {
       }
     }
   }
-
-  fn scan_require_resolve(
-    &mut self,
-    node: &CallExpr,
-    ast_path: &AstNodePath<AstParentNodeRef<'_>>,
-  ) {
-    if !node.args.is_empty() {
-      if is_require_resolve_call(node) {
-        if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
-          self.add_dependency(Box::new(RequireResolveDependency::new(
-            str.value.to_string(),
-            false,
-            node.span.into(),
-            as_parent_path(ast_path),
-          )));
-        }
-      } else if is_require_resolve_weak_call(node) {
-        if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
-          self.add_dependency(Box::new(RequireResolveDependency::new(
-            str.value.to_string(),
-            true,
-            node.span.into(),
-            as_parent_path(ast_path),
-          )));
-        }
-      }
-    }
-  }
 }
 
 impl VisitAstPath for DependencyScanner<'_> {
@@ -387,10 +355,6 @@ impl VisitAstPath for DependencyScanner<'_> {
     expr: &'ast Expr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    if let Expr::Call(call) = expr {
-      self.scan_require_resolve(call, ast_path);
-    }
-
     if let Expr::Assign(AssignExpr {
       op: AssignOp::Assign,
       left: PatOrExpr::Pat(box Pat::Ident(ident)),

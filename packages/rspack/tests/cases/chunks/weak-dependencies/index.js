@@ -6,8 +6,14 @@ it("should not include a module with a weak dependency", function () {
 	import("./c");
 	require("./d");
 
-	expect(a).toBe(false);
-	expect(b).toBe(true);
-	expect(c).toBe(false);
-	expect(d).toBe(true);
+	if (require.resolveWeak && require.resolve) {
+		expect(a).toBe(false);
+		expect(b).toBe(true);
+		expect(c).toBe(false);
+		expect(d).toBe(true);
+	} else {
+		throw new Error(
+			`'require.resolveWeak && require.resolve' should evalute to truthy in IfStmt::Test`
+		);
+	}
 });
