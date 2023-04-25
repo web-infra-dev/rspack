@@ -74,7 +74,8 @@ export const applyRspackOptionsDefaults = (
 
 	applyModuleDefaults(options.module, {
 		// syncWebAssembly: options.experiments.syncWebAssembly,
-		asyncWebAssembly: options.experiments.asyncWebAssembly!
+		asyncWebAssembly: options.experiments.asyncWebAssembly!,
+		css: options.experiments.css!
 	});
 
 	applyOutputDefaults(options.output, {
@@ -145,6 +146,7 @@ const applyExperimentsDefaults = (experiments: Experiments) => {
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", false);
+	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 };
 
 const applySnapshotDefaults = (
@@ -165,7 +167,7 @@ const applySnapshotDefaults = (
 
 const applyModuleDefaults = (
 	module: ModuleOptions,
-	{ asyncWebAssembly }: { asyncWebAssembly: boolean }
+	{ asyncWebAssembly, css }: { asyncWebAssembly: boolean; css: boolean }
 ) => {
 	F(module.parser!, "asset", () => ({}));
 	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
@@ -227,31 +229,34 @@ const applyModuleDefaults = (
 				type: "tsx"
 			}
 		];
-		const cssRule = {
-			type: "css",
-			resolve: {
-				fullySpecified: true,
-				preferRelative: true
-			}
-		};
-		const cssModulesRule = {
-			type: "css/module",
-			resolve: {
-				fullySpecified: true
-			}
-		};
-		rules.push({
-			test: /\.css$/i,
-			oneOf: [
-				{
-					test: /\.module\.css$/i,
-					...cssModulesRule
-				},
-				{
-					...cssRule
+		if (css) {
+			const cssRule = {
+				type: "css",
+				resolve: {
+					fullySpecified: true,
+					preferRelative: true
 				}
-			]
-		});
+			};
+			const cssModulesRule = {
+				type: "css/module",
+				resolve: {
+					fullySpecified: true
+				}
+			};
+			rules.push({
+				test: /\.css$/i,
+				oneOf: [
+					{
+						test: /\.module\.css$/i,
+						...cssModulesRule
+					},
+					{
+						...cssRule
+					}
+				]
+			});
+		}
+
 		if (asyncWebAssembly) {
 			const wasm = {
 				type: "webassembly/async",

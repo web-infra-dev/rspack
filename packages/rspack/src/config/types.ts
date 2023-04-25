@@ -608,6 +608,7 @@ export interface Experiments {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
+	css?: boolean;
 }
 
 ///// Watch /////

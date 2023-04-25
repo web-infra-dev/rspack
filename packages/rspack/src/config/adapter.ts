@@ -522,19 +522,22 @@ function getRawExperiments(
 		lazyCompilation,
 		incrementalRebuild,
 		asyncWebAssembly,
-		newSplitChunks
+		newSplitChunks,
+		css
 	} = experiments;
 	assert(
 		!isNil(lazyCompilation) &&
 			!isNil(incrementalRebuild) &&
 			!isNil(asyncWebAssembly) &&
-			!isNil(newSplitChunks)
+			!isNil(newSplitChunks) &&
+			!isNil(css)
 	);
 	return {
 		lazyCompilation,
 		incrementalRebuild,
 		asyncWebAssembly,
-		newSplitChunks
+		newSplitChunks,
+		css
 	};
 }
 
