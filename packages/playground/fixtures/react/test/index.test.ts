@@ -27,3 +27,7 @@ test("context+component should work", async () => {
 		"context-value-update"
 	);
 });
+
+test("ReactRefreshFinder should work", async () => {
+	expect(await page.textContent("#nest-function")).toBe("nest-function");
+});
