@@ -335,6 +335,10 @@ module.exports = {
 				outputModule: {
 					description: "Allow output javascript files as module source type.",
 					type: "boolean"
+				},
+				newSplitChunks: {
+					description: "Enable new SplitChunksPlugin",
+					type: "boolean"
 				}
 			}
 		},
@@ -362,7 +366,7 @@ module.exports = {
 				{
 					description:
 						"The function is called on each dependency (`function(context, request, callback(err, result))`).",
-					instanceof: "Function",
+					instanceof: "Function"
 					// tsType:
 					// 	"(((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>))"
 				}
