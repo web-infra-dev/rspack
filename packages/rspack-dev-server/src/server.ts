@@ -64,10 +64,6 @@ export class RspackDevServer extends WebpackDevServer {
 								0,
 								...memoryAssetsMiddlewares
 							);
-							console.log(
-								"memoryAssetsMiddlewares",
-								middlewares.map(m => m.name)
-							);
 						}
 					}
 
