@@ -1,5 +1,36 @@
 # @rspack/core
 
+## 0.1.9
+
+### Patch Changes
+
+- 7c26a2d: feat: compiler.getCache
+- 820c029: perf: compose loaders on the native side
+- bc65893: feat: add moduleAssets for stats
+- 6cc3076: feat: external module render with node-commonjs & module
+- 7342a47: feat: support externals function
+- c1720f9: add optimizeModules hook
+- 0f1d3be: fix: use webworker instead of web-worker in AvailableTarget type
+- e2647bb: feat: require.resolve and require.resolveWeak for string literal
+- 057829b: fix: source map lost when enable builtins.banner
+- ef7d3c5: feat: add ImportScriptsChunkLoadingPlugin
+- c162cb6: feat: support banner plugin
+- b77b706: fix: undefined reasons with stats.toJson({ reasons: true })
+- Updated dependencies [820c029]
+- Updated dependencies [0fd6d7a]
+- Updated dependencies [bc65893]
+- Updated dependencies [61d6e5d]
+- Updated dependencies [aee4fdc]
+- Updated dependencies [c1720f9]
+- Updated dependencies [c951f35]
+- Updated dependencies [e2647bb]
+- Updated dependencies [057829b]
+- Updated dependencies [c162cb6]
+- Updated dependencies [b77b706]
+- Updated dependencies [7f2cf5e]
+  - @rspack/binding@0.1.9
+  - @rspack/dev-client@0.1.9
+
 ## 0.1.8
 
 ### Patch Changes
