@@ -9,7 +9,7 @@ importers:
       '@taplo/cli': ^0.5.2
       '@types/react': 17.0.52
       '@types/react-dom': 17.0.19
-      commander: 9.4.0
+      commander: 10.0.1
       esbuild: ^0.15.9
       husky: ^7.0.4
       is-ci: 3.0.1
@@ -43,7 +43,7 @@ importers:
       '@taplo/cli': 0.5.2
       '@types/react': 17.0.52
       '@types/react-dom': 17.0.19
-      commander: 9.4.0
+      commander: 10.0.1
       esbuild: 0.15.9
       husky: 7.0.4
       is-ci: 3.0.1
@@ -945,13 +945,11 @@ importers:
     specifiers:
       '@changesets/read': 0.5.9
       '@iarna/toml': 2.2.5
-      commander: 9.4.0
       node-fetch: 2.6.7
       zx: ^7.2.1
     dependencies:
       '@changesets/read': 0.5.9
       '@iarna/toml': 2.2.5
-      commander: 9.4.0
       node-fetch: 2.6.7
       zx: 7.2.1
 
@@ -8392,6 +8390,11 @@ packages:
 
   /comma-separated-tokens/2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
+    dev: true
+
+  /commander/10.0.1:
+    resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
+    engines: {node: '>=14'}
     dev: true
 
   /commander/2.20.3:
