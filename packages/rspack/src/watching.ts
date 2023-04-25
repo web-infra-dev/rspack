@@ -206,8 +206,6 @@ class Watching {
 		}
 
 		this.#go(changedFiles, removedFiles);
-
-		this.#initial = false;
 	}
 
 	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
@@ -252,6 +250,7 @@ class Watching {
 				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
 			} else {
 				this.compiler.build(onBuild);
+				this.#initial = false;
 			}
 		});
 	}
