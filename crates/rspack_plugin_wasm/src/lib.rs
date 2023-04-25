@@ -1,4 +1,3 @@
-#![feature(box_syntax)]
 #![feature(let_chains)]
 
 mod ast;

@@ -47,35 +47,35 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
     if self.flag.contains(HmrScannerFlag::MODULE_HOT_ACCEPT) {
-      self.add_dependency(box ModuleHotAcceptDependency::new(
+      self.add_dependency(Box::new(ModuleHotAcceptDependency::new(
         node.value.clone(),
         Some(node.span.into()),
         as_parent_path(ast_path),
-      ));
+      )));
     } else if self.flag.contains(HmrScannerFlag::MODULE_HOT_DECLINE) {
-      self.add_dependency(box ModuleHotDeclineDependency::new(
+      self.add_dependency(Box::new(ModuleHotDeclineDependency::new(
         node.value.clone(),
         Some(node.span.into()),
         as_parent_path(ast_path),
-      ));
+      )));
     } else if self
       .flag
       .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT)
     {
-      self.add_dependency(box ImportMetaModuleHotAcceptDependency::new(
+      self.add_dependency(Box::new(ImportMetaModuleHotAcceptDependency::new(
         node.value.clone(),
         Some(node.span.into()),
         as_parent_path(ast_path),
-      ));
+      )));
     } else if self
       .flag
       .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE)
     {
-      self.add_dependency(box ImportMetaModuleHotDeclineDependency::new(
+      self.add_dependency(Box::new(ImportMetaModuleHotDeclineDependency::new(
         node.value.clone(),
         Some(node.span.into()),
         as_parent_path(ast_path),
-      ));
+      )));
     }
   }
 

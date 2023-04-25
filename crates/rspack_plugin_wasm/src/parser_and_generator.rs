@@ -62,7 +62,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for import in s {
               match import {
                 Ok(Import { module, name, ty }) => {
-                  let dep = box WasmImportDependency::new(module.into(), name.into(), ty)
+                  let dep = Box::new(WasmImportDependency::new(module.into(), name.into(), ty))
                     as Box<dyn ModuleDependency>;
 
                   dependencies.push(dep);

@@ -70,11 +70,11 @@ impl VisitAstPath for NodeStuffScanner<'_> {
               _ => None,
             };
             if let Some(dirname) = dirname {
-              self.add_presentational_dependency(box ConstDependency::new(
+              self.add_presentational_dependency(Box::new(ConstDependency::new(
                 Expr::Lit(Lit::Str(quote_str!(dirname))),
                 None,
                 as_parent_path(ast_path),
-              ));
+              )));
             }
           }
           FILE_NAME => {
@@ -92,20 +92,20 @@ impl VisitAstPath for NodeStuffScanner<'_> {
               _ => None,
             };
             if let Some(filename) = filename {
-              self.add_presentational_dependency(box ConstDependency::new(
+              self.add_presentational_dependency(Box::new(ConstDependency::new(
                 Expr::Lit(Lit::Str(quote_str!(filename))),
                 None,
                 as_parent_path(ast_path),
-              ));
+              )));
             }
           }
           GLOBAL => {
             if matches!(self.node_option.global.as_str(), "true" | "warn") {
-              self.add_presentational_dependency(box ConstDependency::new(
+              self.add_presentational_dependency(Box::new(ConstDependency::new(
                 Expr::Ident(quote_ident!(RuntimeGlobals::GLOBAL)),
                 Some(RuntimeGlobals::GLOBAL),
                 as_parent_path(ast_path),
-              ));
+              )));
             }
           }
           _ => {}

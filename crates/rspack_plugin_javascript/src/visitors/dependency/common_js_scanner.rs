@@ -25,14 +25,14 @@ impl Visit for CommonJsScanner<'_> {
 
   fn visit_expr(&mut self, expr: &Expr) {
     if expr_matcher::is_module_id(expr) {
-      self.add_presentational_dependency(box RuntimeRequirementsDependency::new(
+      self.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         RuntimeGlobals::MODULE_ID,
-      ));
+      )));
     }
     if expr_matcher::is_module_loaded(expr) {
-      self.add_presentational_dependency(box RuntimeRequirementsDependency::new(
+      self.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         RuntimeGlobals::MODULE_LOADED,
-      ));
+      )));
     }
     expr.visit_children_with(self);
   }
