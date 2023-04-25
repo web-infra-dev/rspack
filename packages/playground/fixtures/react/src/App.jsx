@@ -1,6 +1,7 @@
 import React from "react";
 import "./index.css";
 import { ContextComponent  } from "./CountProvider";
+import './ReactRefreshFinder';
 
 const Button = () => {
 	const [count, setCount] = React.useState(10);
