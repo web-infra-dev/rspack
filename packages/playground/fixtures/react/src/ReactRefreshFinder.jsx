@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-export function ReactRefreshFinder() {
+function CreateReactRefreshFinder() {
     return function Component() {
-        inner();
+        useState(1);
         return <div id="nest-function">nest-function</div>;
     };
 }
 
-function inner() {}
+export const ReactRefreshFinder = CreateReactRefreshFinder()
