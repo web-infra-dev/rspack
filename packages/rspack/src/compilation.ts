@@ -598,6 +598,10 @@ export class Compilation {
 		);
 	}
 
+	get modules() {
+		return this.getModules();
+	}
+
 	getModules(): JsModule[] {
 		return this.#inner.getModules();
 	}
