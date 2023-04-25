@@ -13,7 +13,7 @@ it("should not include a module with a weak dependency", function () {
 		expect(d).toBe(true);
 	} else {
 		throw new Error(
-			`'require.resolveWeak && require.resolve' should evalute to truthy in IfStmt::Test`
+			`'require.resolveWeak && require.resolve' should evaluate to truthy in IfStmt::Test`
 		);
 	}
 });

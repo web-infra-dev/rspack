@@ -45,12 +45,12 @@ impl<'a> CommonJsScanner<'a> {
     ast_path.pop();
     if !node.args.is_empty() {
       if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
-        self.add_dependency(box RequireResolveDependency::new(
+        self.add_dependency(Box::new(RequireResolveDependency::new(
           str.value.to_string(),
           weak,
           node.span.into(),
           ast_path,
-        ));
+        )));
       }
     }
   }
@@ -72,19 +72,18 @@ impl VisitAstPath for CommonJsScanner<'_> {
         RuntimeGlobals::MODULE_LOADED,
       )));
     }
-    // only evalute require.resolveWeak and require.resolve to true in IfStmt::Test
+    // only evaluate require.resolveWeak and require.resolve to true in IfStmt::Test
     if (expr_matcher::is_require_resolve_weak(expr) || expr_matcher::is_require_resolve(expr))
       && ast_path
         .iter()
         .rev()
-        .find(|i| i.kind() == AstParentKind::IfStmt(IfStmtField::Test))
-        .is_some()
+        .any(|i| i.kind() == AstParentKind::IfStmt(IfStmtField::Test))
     {
-      self.add_presentational_dependency(box ConstDependency::new(
+      self.add_presentational_dependency(Box::new(ConstDependency::new(
         quote!("true" as Expr),
         None,
         as_parent_path(ast_path),
-      ));
+      )));
     }
     expr.visit_children_with_path(self, ast_path);
   }
