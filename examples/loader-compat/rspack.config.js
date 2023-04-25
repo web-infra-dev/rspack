@@ -2,17 +2,10 @@
  * @type {import('@rspack/cli').Configuration}
  */
 module.exports = {
-	target: "web",
-	mode: "development",
 	entry: {
 		main: "./src/index.js"
 	},
-	devtool: "source-map",
-	experiments: {
-		css: true
-	},
 	builtins: {
-		minify: false,
 		html: [
 			{
 				template: "./index.html"
@@ -52,26 +45,31 @@ module.exports = {
 			{
 				test: /\.less$/,
 				use: [
-					{ loader: "style-loader" },
-					{ loader: "css-loader" },
-					{ loader: "less-loader" }
+					{
+						loader: "style-loader",
+						options: {
+							esModule: false
+						}
+					},
+					"css-loader",
+					"less-loader"
 				]
 			},
 			{
 				test: /\.scss$/,
 				use: [
-					{ loader: "style-loader" },
-					{ loader: "css-loader" },
-					{ loader: "sass-loader" }
+					{ loader: "style-loader", options: { esModule: false } },
+					"css-loader",
+					"sass-loader"
 				]
 			},
 			{
 				test: /\.yaml$/,
-				use: [{ loader: "yaml-loader" }]
+				use: ["yaml-loader"]
 			},
 			{
 				test: /\.styl$/,
-				use: [{ loader: "stylus-loader" }],
+				use: ["stylus-loader"],
 				type: "css"
 			},
 			{
@@ -85,32 +83,17 @@ module.exports = {
 			},
 			{
 				test: /\.svg$/,
-				use: [
-					{
-						loader: "@svgr/webpack"
-					},
-					{
-						loader: "file-loader"
-					}
-				],
+				use: ["@svgr/webpack", "file-loader"],
 				type: "javascript/auto"
 			},
 			{
 				test: /\.txt/,
-				use: [
-					{
-						loader: "raw-loader"
-					}
-				],
+				use: ["raw-loader"],
 				type: "javascript/auto"
 			},
 			{
 				test: /\.png$/,
-				use: [
-					{
-						loader: "file-loader"
-					}
-				]
+				use: ["file-loader"]
 			}
 		]
 	}
