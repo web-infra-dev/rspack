@@ -84,19 +84,6 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
     node: &'ast CallExpr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    // avoid nested function call if already enter module.hot.x call
-    if self
-      .flag
-      .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT)
-      || self
-        .flag
-        .contains(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE)
-      || self.flag.contains(HmrScannerFlag::MODULE_HOT_ACCEPT)
-      || self.flag.contains(HmrScannerFlag::MODULE_HOT_DECLINE)
-    {
-      return;
-    }
-
     macro_rules! visit_node_children {
       () => {
         if let Some(first_arg) = node.args.get(0) {
@@ -139,27 +126,19 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
     if is_module_hot_accept_call(node) {
       self.flag.insert(HmrScannerFlag::MODULE_HOT_ACCEPT);
       visit_node_children!();
-      self.flag.remove(HmrScannerFlag::MODULE_HOT_ACCEPT);
     } else if is_module_hot_decline_call(node) {
       self.flag.insert(HmrScannerFlag::MODULE_HOT_DECLINE);
       visit_node_children!();
-      self.flag.insert(HmrScannerFlag::MODULE_HOT_DECLINE);
     } else if is_import_meta_hot_accept_call(node) {
       self
         .flag
         .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT);
       visit_node_children!();
-      self
-        .flag
-        .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_ACCEPT);
     } else if is_import_meta_hot_decline_call(node) {
       self
         .flag
         .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE);
       visit_node_children!();
-      self
-        .flag
-        .insert(HmrScannerFlag::IMPORT_META_MODULE_HOT_DECLINE);
     } else {
       node.visit_children_with_path(self, ast_path);
     }
