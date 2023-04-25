@@ -1,6 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./data.txt": function (module, exports, __webpack_require__) {
-"use strict";
 module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";},
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

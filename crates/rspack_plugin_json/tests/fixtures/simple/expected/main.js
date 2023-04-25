@@ -8,7 +8,6 @@ var _jsonjson = __webpack_require__.ir(__webpack_require__("./json.json"));
 console.log(_jsonjson.default);
 },
 "./json.json": function (module, exports, __webpack_require__) {
-"use strict";
 module.exports = {
   "hello": "world"
 }

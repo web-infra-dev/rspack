@@ -3,9 +3,7 @@ use std::sync::Arc;
 use once_cell::sync::Lazy;
 use rspack_core::{ModuleType, ReactOptions};
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_core::ecma::ast::{
-  CallExpr, Callee, Expr, Ident, Module, ModuleItem, Program, Script, Stmt,
-};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, ModuleItem, Program, Script, Stmt};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
 use swc_core::ecma::visit::{noop_visit_type, Fold, Visit, VisitWith};

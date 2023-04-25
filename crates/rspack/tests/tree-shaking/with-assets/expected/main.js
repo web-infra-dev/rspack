@@ -1,6 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.svg": function (module, exports, __webpack_require__) {
-"use strict";
 module.exports = "data:image/svg+xml;base64,";},
 "./a.js": function (module, exports, __webpack_require__) {
 "use strict";
