@@ -13,6 +13,7 @@ module.exports = {
 			{
 				test: /src/,
 				exclude: /node_modules/,
+				enforce: "pre",
 				use: [
 					{
 						loader: "eslint-loader"
