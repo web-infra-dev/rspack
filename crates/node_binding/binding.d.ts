@@ -186,6 +186,7 @@ export interface RawExperiments {
   incrementalRebuild: boolean
   asyncWebAssembly: boolean
   newSplitChunks: boolean
+  css: boolean
 }
 export interface RawExternalItem {
   type: "string" | "regexp" | "object" | "function"

@@ -119,6 +119,7 @@ describe("snapshots", () => {
 		  },
 		  "experiments": {
 		    "asyncWebAssembly": false,
+		    "css": true,
 		    "incrementalRebuild": true,
 		    "lazyCompilation": false,
 		    "newSplitChunks": false,
@@ -1364,8 +1365,29 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "css": true,
 			+     "css": false,
 			+     "futureDefaults": true,
+			@@ ... @@
+			-       },
+			-       Object {
+			-         "oneOf": Array [
+			-           Object {
+			-             "resolve": Object {
+			-               "fullySpecified": true,
+			-             },
+			-             "test": /\\.module\\.css$/i,
+			-             "type": "css/module",
+			-           },
+			-           Object {
+			-             "resolve": Object {
+			-               "fullySpecified": true,
+			-               "preferRelative": true,
+			-             },
+			-             "type": "css",
+			-           },
+			-         ],
+			-         "test": /\\.css$/i,
 		`)
 	);
 });
