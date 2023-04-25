@@ -599,7 +599,12 @@ export class Compilation {
 	}
 
 	get modules() {
-		return this.getModules();
+		return this.getModules().map(item => {
+			return {
+				identifier: () => item.moduleIdentifier,
+				...item
+			};
+		});
 	}
 
 	getModules(): JsModule[] {

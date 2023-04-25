@@ -1,0 +1,24 @@
+{
+  "entry": {
+    "main": {
+      "import": ["./src/index.js"]
+    }
+  },
+  "builtins": {
+    "treeShaking": true
+  },
+  "optimization": {
+    "sideEffects": "true"
+  },
+  "module": {
+    "rules": [
+      {
+        "test": {
+          "matcher": ".svg$",
+          "type": "regexp"
+        },
+        "type": "asset/resource"
+      }
+    ]
+  }
+}
