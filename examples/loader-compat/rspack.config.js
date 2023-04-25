@@ -32,6 +32,9 @@ module.exports = {
 				test: /\.js$/,
 				use: [
 					{
+						loader: "thread-loader"
+					},
+					{
 						loader: "babel-loader",
 						options: {
 							presets: [["@babel/preset-env", { targets: "defaults" }]]
@@ -92,8 +95,25 @@ module.exports = {
 				type: "javascript/auto"
 			},
 			{
-				test: /\.png$/,
+				test: /\h.png$/,
 				use: ["file-loader"]
+			},
+			{
+				test: /\.png$/,
+				exclude: /\h.png$/,
+				use: [
+					{
+						loader: "file-loader"
+					},
+					{
+						loader: "image-webpack-loader",
+						options: {
+							optipng: {
+								enabled: true
+							}
+						}
+					}
+				]
 			}
 		]
 	}
