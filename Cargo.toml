@@ -56,12 +56,12 @@ serde              = { version = "1.0.152" }
 serde_json         = { version = "1.0.91" }
 similar            = { version = "2.2.0" }
 sugar_path         = { version = "0.0.12" }
-swc_core           = { version = "0.74.6", default-features = false }
-swc_css            = { version = "0.151.3" }
-swc_emotion        = { version = "0.30.4" }
-swc_html           = { version = "0.121.1" }
-swc_html_minifier  = { version = "0.118.1" }
-swc_plugin_import  = { version = "0.1.4" }
+swc_core           = { version = "0.75.34", default-features = false }
+swc_css            = { version = "0.153.7" }
+swc_emotion        = { version = "0.30.5" }
+swc_html           = { version = "0.123.26" }
+swc_html_minifier  = { version = "0.120.26" }
+swc_plugin_import  = { version = "0.1.5" }
 testing_macros     = { version = "0.2.5" }
 tokio              = { version = "1.21.2" }
 tracing            = { version = "0.1.34" }
