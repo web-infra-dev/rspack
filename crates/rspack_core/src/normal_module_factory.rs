@@ -12,8 +12,8 @@ use crate::{
   CompilerOptions, Dependency, DependencyCategory, FactorizeArgs, FactoryMeta, MissingModule,
   ModuleArgs, ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
   ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleType, NormalModule,
-  NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveResult, ResourceData, SharedPluginDriver,
+  NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve,
+  ResolveArgs, ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -84,6 +84,19 @@ impl NormalModuleFactory {
       .map(|url| url.scheme().to_string())
       .ok();
     let plugin_driver = &self.plugin_driver;
+
+    if let Ok(Some(false)) = plugin_driver
+      .read()
+      .await
+      .before_resolve(NormalModuleBeforeResolveArgs {
+        require: data.dependency.request().to_owned(),
+        context: resolve_args.context.clone(),
+      })
+      .await
+    {
+      return Ok(None);
+    }
+    return Ok(None);
 
     // with scheme, windows absolute path is considered scheme by `url`
     let resource_data = if let Some(scheme) = scheme && !Path::is_absolute(Path::new(specifier)) {
