@@ -63,6 +63,10 @@ impl Visit for ReactRefreshUsageFinder {
   }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    if self.is_founded {
+      return;
+    }
+
     self.is_founded = matches!(call_expr, CallExpr {
       callee: Callee::Expr(box Expr::Ident(Ident { sym, .. })),
       ..
