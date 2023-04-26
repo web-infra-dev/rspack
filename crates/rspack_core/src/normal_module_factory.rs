@@ -5,20 +5,23 @@ use std::{
 
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifiable;
+use sugar_path::AsPath;
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions,
-  CompilerOptions, Dependency, DependencyCategory, FactorizeArgs, FactoryMeta, MissingModule,
-  ModuleArgs, ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleType, NormalModule,
+  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions, BoxLoader,
+  CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta,
+  MissingModule, ModuleArgs, ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
   NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve,
-  ResolveArgs, ResolveError, ResolveResult, ResourceData, SharedPluginDriver,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory,
+  ResourceData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   context: NormalModuleFactoryContext,
+  resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
   cache: Arc<Cache>,
 }
@@ -36,11 +39,13 @@ impl ModuleFactory for NormalModuleFactory {
 impl NormalModuleFactory {
   pub fn new(
     context: NormalModuleFactoryContext,
+    resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       context,
+      resolver_factory,
       plugin_driver,
       cache,
     }
@@ -67,7 +72,7 @@ impl NormalModuleFactory {
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
 
-    let resolve_args = ResolveArgs {
+    let mut resolve_args = ResolveArgs {
       importer,
       context: data.context,
       specifier,
@@ -84,6 +89,10 @@ impl NormalModuleFactory {
       .map(|url| url.scheme().to_string())
       .ok();
     let plugin_driver = &self.plugin_driver;
+    let mut inline_loaders: Vec<BoxLoader> = vec![];
+    let mut no_pre_auto_loaders = false;
+    let mut no_auto_loaders = false;
+    let mut no_pre_post_auto_loaders = false;
     if let Ok(Some(false)) = plugin_driver
       .read()
       .await
@@ -117,7 +126,9 @@ impl NormalModuleFactory {
           resource: ResourceData {
             resource: specifier.to_string(),
             resource_description: None,
-            ..Default::default()
+            resource_fragment: None,
+            resource_query: None,
+            resource_path: "".into(),
           },
           scheme,
         })
@@ -144,6 +155,80 @@ impl NormalModuleFactory {
         }
       }
     } else {
+      {
+        let mut request = specifier.chars();
+        let first_char = request.next();
+        let second_char = request.next();
+        // See: https://webpack.js.org/concepts/loaders/#inline
+        no_pre_auto_loaders = matches!(first_char, Some('-')) && matches!(second_char, Some('!'));
+        no_auto_loaders = no_pre_auto_loaders || matches!(first_char, Some('!'));
+        no_pre_post_auto_loaders = matches!(first_char, Some('!')) && matches!(second_char, Some('!'));
+
+        let mut raw_elements = {
+          let s = match specifier.char_indices().nth({
+            if no_pre_auto_loaders || no_pre_post_auto_loaders {
+              2
+            } else if no_auto_loaders {
+              1
+            } else {
+              0
+            }
+          }) {
+            Some((pos, _)) => {
+              &specifier[pos..]
+            },
+            None=> {
+              let dependency = data.dependency;
+              unreachable!("Invalid dependency: {dependency:?}")
+            }
+          };
+          s.split('!').filter(|item| !item.is_empty()).collect::<Vec<_>>()
+        };
+        resolve_args.specifier = raw_elements.pop().ok_or_else(|| {
+          let s = resolve_args.specifier;
+          internal_error!("Invalid request: {s}")
+        })?;
+
+        let loader_resolver = self.resolver_factory.get(ResolveOptionsWithDependencyType {
+          resolve_options: resolve_args.resolve_options.clone(),
+          resolve_to_context: false,
+          dependency_type: DependencyType::CjsRequire,
+          dependency_category: DependencyCategory::CommonJS,
+        });
+
+        let plugin_driver = self.plugin_driver.read().await;
+        for element in raw_elements {
+          let importer = resolve_args.importer.map(|i| i.display().to_string());
+          let res = plugin_driver.resolve_loader(
+            &self.context.options,
+            {
+              if let Some(context) = &resolve_args.context {
+                context.as_path()
+              } else if let Some(i) = importer.as_ref() {
+                {
+                  // TODO: delete this fn after use `normalModule.context` rather than `importer`
+                  if let Some(index) = i.find('?') {
+                    Path::new(&i[0..index])
+                  } else {
+                    Path::new(i)
+                  }
+                }
+                .parent()
+                .ok_or_else(|| internal_error!("parent() failed for {:?}", importer))?
+              } else {
+                &plugin_driver.options.context
+              }
+            },
+            &loader_resolver,
+            element
+            )
+            .await?.ok_or_else(|| {
+              internal_error!("Loader expected")
+            })?;
+          inline_loaders.push(res);
+        }
+      }
+
       // default resolve
       let resource_data = self
         .cache
@@ -200,22 +285,65 @@ impl NormalModuleFactory {
       .calculate_module_rules(&resource_data, data.dependency.category())
       .await?;
 
-    let loaders = resolved_module_rules
-      .iter()
-      .flat_map(|module_rule| module_rule.r#use.iter().cloned().rev())
-      .collect::<Vec<_>>();
-
-    let request = if !loaders.is_empty() {
-      let s = loaders
+    let user_request = if !inline_loaders.is_empty() {
+      let s = inline_loaders
         .iter()
-        .map(|i| i.name())
+        .map(|i| i.identifier().as_str())
         .collect::<Vec<_>>()
         .join("!");
       format!("{s}!{}", resource_data.resource)
     } else {
       resource_data.resource.clone()
     };
-    let user_request = resource_data.resource.clone();
+
+    // TODO: move loader resolver to rust
+    let loaders: Vec<BoxLoader> = {
+      let mut pre_loaders: Vec<BoxLoader> = vec![];
+      let mut post_loaders: Vec<BoxLoader> = vec![];
+      let mut normal_loaders: Vec<BoxLoader> = vec![];
+
+      for rule in &resolved_module_rules {
+        match rule.enforce {
+          ModuleRuleEnforce::Pre => {
+            if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
+              pre_loaders.extend_from_slice(&rule.r#use);
+            }
+          }
+          ModuleRuleEnforce::Normal => {
+            if !no_auto_loaders && !no_pre_auto_loaders {
+              normal_loaders.extend_from_slice(&rule.r#use);
+            }
+          }
+          ModuleRuleEnforce::Post => {
+            if !no_pre_post_auto_loaders {
+              post_loaders.extend_from_slice(&rule.r#use);
+            }
+          }
+        }
+      }
+
+      let mut all_loaders = Vec::with_capacity(
+        pre_loaders.len() + post_loaders.len() + normal_loaders.len() + inline_loaders.len(),
+      );
+
+      all_loaders.extend(post_loaders);
+      all_loaders.extend(inline_loaders);
+      all_loaders.extend(normal_loaders);
+      all_loaders.extend(pre_loaders);
+
+      all_loaders
+    };
+
+    let request = if !loaders.is_empty() {
+      let s = loaders
+        .iter()
+        .map(|i| i.identifier().as_str())
+        .collect::<Vec<_>>()
+        .join("!");
+      format!("{s}!{}", resource_data.resource)
+    } else {
+      resource_data.resource.clone()
+    };
     tracing::trace!("resolved uri {:?}", request);
 
     let file_dependency = resource_data.resource_path.clone();

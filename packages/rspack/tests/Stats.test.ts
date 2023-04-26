@@ -54,6 +54,7 @@ describe("Stats", () => {
 		      "initial": true,
 		      "modules": [
 		        {
+		          "assets": [],
 		          "chunks": [
 		            "main",
 		          ],
@@ -62,6 +63,12 @@ describe("Stats", () => {
 		          "issuerPath": [],
 		          "moduleType": "javascript/auto",
 		          "name": "./fixtures/a.js",
+		          "reasons": [
+		            {
+		              "type": "entry",
+		              "userRequest": "./fixtures/a",
+		            },
+		          ],
 		          "size": 55,
 		          "type": "module",
 		        },
@@ -95,6 +102,7 @@ describe("Stats", () => {
 		  "hash": "a8535b55b7de03c8",
 		  "modules": [
 		    {
+		      "assets": [],
 		      "chunks": [
 		        "main",
 		      ],
@@ -103,6 +111,12 @@ describe("Stats", () => {
 		      "issuerPath": [],
 		      "moduleType": "javascript/auto",
 		      "name": "./fixtures/a.js",
+		      "reasons": [
+		        {
+		          "type": "entry",
+		          "userRequest": "./fixtures/a",
+		        },
+		      ],
 		      "size": 55,
 		      "type": "module",
 		    },
@@ -136,7 +150,9 @@ describe("Stats", () => {
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
 		 [777] ./fixtures/a.js 55 bytes {main}
-		[777] ./fixtures/a.js 55 bytes {main}"
+		     entry ./fixtures/a 
+		[777] ./fixtures/a.js 55 bytes {main}
+		    entry ./fixtures/a "
 	`);
 	});
 

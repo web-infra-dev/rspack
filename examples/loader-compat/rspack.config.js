@@ -2,104 +2,119 @@
  * @type {import('@rspack/cli').Configuration}
  */
 module.exports = {
-  target: 'node',
-  mode: 'development',
-  entry: {
-    main: './src/index.js'
-  },
-  builtins: {
-    minify: false
-  },
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        use: [
-          {
-            loader: 'postcss-loader',
-            options: {
-              postcssOptions: {
-                plugins: [
-                  "autoprefixer"
-                ]
-              }
-            }
-          }
-        ],
-        type: 'css'
-      },
-      {
-        test: /\.js$/,
-        use: [
-          {
-            loader: 'babel-loader', options: {
-              presets: [
-                ['@babel/preset-env', { targets: 'defaults' }]
-              ]
-            }
-          },
-          {
-            loader: 'source-map-loader'
-          }
-        ]
-      },
-      {
-        test: /\.less$/,
-        use: [{ loader: 'less-loader' }],
-        type: 'css'
-      },
-      {
-        test: /\.scss$/,
-        use: [{ loader: 'sass-loader' }],
-        type: 'css'
-      },
-      {
-        test: /\.yaml$/,
-        use: [{ loader: 'yaml-loader' }]
-      },
-      {
-        test: /\.styl$/,
-        use: [{ loader: 'stylus-loader' }],
-        type: 'css'
-      },
-      {
-        test: /\.mdx?$/,
-        use: [
-          {
-            loader: '@mdx-js/loader',
-            options: {}
-          }
-        ]
-      },
-      {
-        test: /\.svg$/,
-        use: [
-          {
-            loader: '@svgr/webpack'
-          },
-          {
-            loader: 'file-loader'
-          }
-        ],
-        type: 'javascript/auto'
-      },
-      {
-        test: /\.txt/,
-        use: [
-          {
-            loader: 'raw-loader'
-          }
-        ],
-        type:'javascript/auto'
-      },
-      {
-        test: /\.png$/,
-        use: [
-          {
-            loader: 'file-loader'
-          }
-        ]
-      }
-    ]
-  }
-}
+	entry: {
+		main: "./src/index.js"
+	},
+	builtins: {
+		html: [
+			{
+				template: "./index.html"
+			}
+		]
+	},
+	module: {
+		rules: [
+			{
+				test: /\.css$/,
+				use: [
+					{
+						loader: "postcss-loader",
+						options: {
+							postcssOptions: {
+								plugins: ["autoprefixer"]
+							}
+						}
+					}
+				],
+				type: "css"
+			},
+			{
+				test: /\.js$/,
+				use: [
+					{
+						loader: "thread-loader"
+					},
+					{
+						loader: "babel-loader",
+						options: {
+							presets: [["@babel/preset-env", { targets: "defaults" }]]
+						}
+					},
+					{
+						loader: "source-map-loader"
+					}
+				]
+			},
+			{
+				test: /\.less$/,
+				use: [
+					{
+						loader: "style-loader",
+						options: {
+							esModule: false
+						}
+					},
+					"css-loader",
+					"less-loader"
+				]
+			},
+			{
+				test: /\.scss$/,
+				use: [
+					{ loader: "style-loader", options: { esModule: false } },
+					"css-loader",
+					"sass-loader"
+				]
+			},
+			{
+				test: /\.yaml$/,
+				use: ["yaml-loader"]
+			},
+			{
+				test: /\.styl$/,
+				use: ["stylus-loader"],
+				type: "css"
+			},
+			{
+				test: /\.mdx?$/,
+				use: [
+					{
+						loader: "@mdx-js/loader",
+						options: {}
+					}
+				]
+			},
+			{
+				test: /\.svg$/,
+				use: ["@svgr/webpack", "file-loader"],
+				type: "javascript/auto"
+			},
+			{
+				test: /\.txt/,
+				use: ["raw-loader"],
+				type: "javascript/auto"
+			},
+			{
+				test: /\h.png$/,
+				use: ["file-loader"]
+			},
+			{
+				test: /\.png$/,
+				exclude: /\h.png$/,
+				use: [
+					{
+						loader: "file-loader"
+					},
+					{
+						loader: "image-webpack-loader",
+						options: {
+							optipng: {
+								enabled: true
+							}
+						}
+					}
+				]
+			}
+		]
+	}
+};

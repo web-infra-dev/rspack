@@ -49,7 +49,10 @@ pub fn scan_dependencies(
   );
 
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
-    program.visit_with(&mut CommonJsScanner::new(&mut presentational_dependencies));
+    program.visit_with_path(
+      &mut CommonJsScanner::new(&mut dependencies, &mut presentational_dependencies),
+      &mut Default::default(),
+    );
 
     if let Some(node_option) = &compiler_options.node {
       program.visit_with_path(

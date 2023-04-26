@@ -7,7 +7,7 @@ use swc_core::ecma::ast::ModuleItem;
 
 use self::visitor::{SymbolRef, TreeShakingResult};
 use crate::ModuleGraph;
-
+pub mod debug_helper;
 pub mod optimizer;
 pub mod symbol_graph;
 pub mod utils;
@@ -58,7 +58,6 @@ pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
 
 bitflags::bitflags! {
   pub struct BailoutFlag: u8 {
-      const HELPER = 1 << 0;
       const COMMONJS_REQUIRE = 1 << 1;
       const COMMONJS_EXPORTS = 1 << 2;
       const DYNAMIC_IMPORT = 1 << 3;

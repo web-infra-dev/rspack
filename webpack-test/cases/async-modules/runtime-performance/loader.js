@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition<{ i: string }>} */
+/** @type {import("@rspack/core").LoaderDefinition<{ i: string }>} */
 module.exports = function () {
 	const options = this.getOptions();
 	const i = +options.i;

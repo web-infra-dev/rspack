@@ -81,6 +81,10 @@ impl<'a> VisitMut for InjectRuntimeHelper<'a> {
         return;
       }
 
+      // the reason of adding this block you could refer to https://github.com/web-infra-dev/rspack/pull/2871#discussion_r1174505820
+      if word == "_instanceof" {
+        return;
+      };
       // have some unhandled helper
       debug_assert!(false, "have unhandled helper: word = {word}");
     }

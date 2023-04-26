@@ -151,7 +151,7 @@ impl ChunkGraph {
     }
   }
 
-  pub fn get_modules_chunks(&self, module_identifier: ModuleIdentifier) -> &HashSet<ChunkUkey> {
+  pub fn get_module_chunks(&self, module_identifier: ModuleIdentifier) -> &HashSet<ChunkUkey> {
     let chunk_graph_module = self
       .chunk_graph_module_by_module_identifier
       .get(&module_identifier)

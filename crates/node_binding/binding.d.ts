@@ -186,20 +186,66 @@ export interface RawExperiments {
   incrementalRebuild: boolean
   asyncWebAssembly: boolean
   newSplitChunks: boolean
+  css: boolean
 }
 export interface RawExternalItem {
-  type: "string" | "regexp" | "object"
+  type: "string" | "regexp" | "object" | "function"
   stringPayload?: string
   regexpPayload?: string
   objectPayload?: Record<string, RawExternalItemValue>
+  fnPayload?: (value: any) => any
 }
 export interface RawExternalItemValue {
   type: "string" | "bool"
   stringPayload?: string
   boolPayload?: boolean
 }
+export interface RawExternalItemFnResult {
+  externalType?: string
+  result?: RawExternalItemValue
+}
+export interface RawExternalItemFnCtx {
+  request: string
+  context: string
+  dependencyType: string
+}
 export interface RawExternalsPresets {
   node: boolean
+}
+export interface JsLoader {
+  /** composed loader name, xx-loader$yy-loader$zz-loader */
+  identifier: string
+}
+export interface JsLoaderContext {
+  /** Content maybe empty in pitching stage */
+  content?: Buffer
+  additionalData?: Buffer
+  sourceMap?: Buffer
+  resource: string
+  resourcePath: string
+  resourceQuery?: string
+  resourceFragment?: string
+  cacheable: boolean
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  assetFilenames: Array<string>
+  currentLoader: string
+  isPitching: boolean
+}
+export interface JsLoaderResult {
+  /** Content in pitching stage can be empty */
+  content?: Buffer
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+  buildDependencies: Array<string>
+  sourceMap?: Buffer
+  additionalData?: Buffer
+  cacheable: boolean
+  /** Used to instruct how rust loaders should execute */
+  isPitching: boolean
 }
 /**
  * `loader` is for js side loader, `builtin_loader` is for rust side loader,
@@ -216,11 +262,6 @@ export interface RawModuleRuleUse {
   jsLoader?: JsLoader
   builtinLoader?: string
   options?: string
-}
-export interface JsLoader {
-  /** composed loader name, xx-loader!yy-loader!zz-loader */
-  name: string
-  func: (...args: any[]) => any
 }
 export interface RawRuleSetCondition {
   type: "string" | "regexp" | "logical" | "array" | "function"
@@ -254,6 +295,8 @@ export interface RawModuleRule {
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
+  /** Specifies the category of the loader. No value means normal loader. */
+  enforce?: 'pre' | 'post'
 }
 export interface RawModuleRuleGenerator {
   filename?: string
@@ -274,30 +317,6 @@ export interface RawModuleOptions {
   rules: Array<RawModuleRule>
   parser?: RawParserOptions
 }
-export interface JsLoaderContext {
-  content: Buffer
-  additionalData?: Buffer
-  sourceMap?: Buffer
-  resource: string
-  resourcePath: string
-  resourceQuery?: string
-  resourceFragment?: string
-  cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-}
-export interface JsLoaderResult {
-  content: Buffer
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  sourceMap?: Buffer
-  additionalData?: Buffer
-  cacheable: boolean
-}
 export interface RawNodeOption {
   dirname: string
   filename: string
@@ -308,6 +327,9 @@ export interface RawOptimizationOptions {
   moduleIds: string
   removeAvailableModules: boolean
   sideEffects: string
+}
+export interface RawTrustedTypes {
+  policyName?: string
 }
 export interface RawLibraryName {
   amd?: string
@@ -357,6 +379,7 @@ export interface RawOutputOptions {
   chunkFormat?: string
   chunkLoading?: string
   enabledChunkLoadingTypes?: Array<string>
+  trustedTypes?: RawTrustedTypes
 }
 export interface RawResolveOptions {
   preferRelative?: boolean
@@ -402,7 +425,6 @@ export interface RawCacheGroupOptions {
 }
 export interface RawStatsOptions {
   colors: boolean
-  reasons: boolean
 }
 export interface RawOptions {
   entry: Record<string, RawEntryItem>
@@ -466,6 +488,10 @@ export interface JsAsset {
 export interface JsChunk {
   files: Array<string>
 }
+export interface JsChunkAssetArgs {
+  chunk: JsChunk
+  filename: string
+}
 export interface JsChunkGroup {
   chunks: Array<JsChunk>
 }
@@ -482,11 +508,13 @@ export interface JsHooks {
   emit: (...args: any[]) => any
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
+  optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
+  chunkAsset: (...args: any[]) => any
 }
 export interface JsModule {
   originalSource?: JsCompatSource
@@ -545,7 +573,7 @@ export interface JsStatsModule {
   moduleType: string
   identifier: string
   name: string
-  id: string
+  id?: string
   chunks: Array<string>
   size: number
   issuer?: string
@@ -553,11 +581,12 @@ export interface JsStatsModule {
   issuerId?: string
   issuerPath: Array<JsStatsModuleIssuer>
   reasons?: Array<JsStatsModuleReason>
+  assets?: Array<string>
 }
 export interface JsStatsModuleIssuer {
   identifier: string
   name: string
-  id: string
+  id?: string
 }
 export interface JsStatsModuleReason {
   moduleIdentifier?: string
@@ -638,8 +667,8 @@ export class JsCompilation {
 }
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean, moduleAssets: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
@@ -647,7 +676,7 @@ export class JsStats {
   getHash(): string
 }
 export class Rspack {
-  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS)
+  constructor(options: RawOptions, jsHooks: JsHooks | undefined | null, outputFilesystem: ThreadsafeNodeFS, jsLoaderRunner: (...args: any[]) => any)
   unsafe_set_disabled_hooks(hooks: Array<string>): void
   /**
    * Build with the given option passed to the constructor

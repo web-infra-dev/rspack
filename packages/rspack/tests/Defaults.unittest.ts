@@ -119,6 +119,7 @@ describe("snapshots", () => {
 		  },
 		  "experiments": {
 		    "asyncWebAssembly": false,
+		    "css": true,
 		    "incrementalRebuild": true,
 		    "lazyCompilation": false,
 		    "newSplitChunks": false,
@@ -284,6 +285,7 @@ describe("snapshots", () => {
 		    "path": "<cwd>/dist",
 		    "publicPath": "auto",
 		    "strictModuleErrorHandling": false,
+		    "trustedTypes": undefined,
 		    "uniqueName": "@rspack/core",
 		    "wasmLoading": "fetch",
 		    "webassemblyModuleFilename": "[hash].module.wasm",
@@ -306,7 +308,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
@@ -328,7 +329,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
@@ -350,7 +350,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
@@ -375,7 +374,6 @@ describe("snapshots", () => {
 		          ".js",
 		          ".json",
 		          ".wasm",
-		          ".d.ts",
 		        ],
 		        "mainFields": [
 		          "browser",
@@ -1211,7 +1209,11 @@ describe("snapshots", () => {
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunk@@@Hello World!",
 			@@ ... @@
+			-     "trustedTypes": undefined,
 			-     "uniqueName": "@rspack/core",
+			+     "trustedTypes": Object {
+			+       "policyName": "@@@Hello_World_",
+			+     },
 			+     "uniqueName": "@@@Hello World!",
 		`)
 	);
@@ -1363,8 +1365,29 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "css": true,
 			+     "css": false,
 			+     "futureDefaults": true,
+			@@ ... @@
+			-       },
+			-       Object {
+			-         "oneOf": Array [
+			-           Object {
+			-             "resolve": Object {
+			-               "fullySpecified": true,
+			-             },
+			-             "test": /\\.module\\.css$/i,
+			-             "type": "css/module",
+			-           },
+			-           Object {
+			-             "resolve": Object {
+			-               "fullySpecified": true,
+			-               "preferRelative": true,
+			-             },
+			-             "type": "css",
+			-           },
+			-         ],
+			-         "test": /\\.css$/i,
 		`)
 	);
 });

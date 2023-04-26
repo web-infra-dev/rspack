@@ -195,6 +195,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
+name = "bitflags"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c70beb79cbb5ce9c4f8e20849978f34225931f665bb49efa6982875a4d5facb3"
+
+[[package]]
 name = "block-buffer"
 version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -374,12 +380,12 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.1.26"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d2301688392eb071b0bf1a37be05c469d3cc4dbbd95df672fe28ab021e6a096"
+checksum = "dd4056f63fce3b82d852c3da92b08ea59959890813a7f4ce9c0ff85b10cf301b"
 dependencies = [
  "quote",
- "syn 1.0.107",
+ "syn 2.0.12",
 ]
 
 [[package]]
@@ -1174,18 +1180,18 @@ checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 
 [[package]]
 name = "napi"
-version = "2.11.1"
+version = "2.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2412d19892730f62fd592f8af41606ca6717ea1eca026103cd44b447829f00c1"
+checksum = "69b29acdc6cc5c918c3eabd51d241b1c6dfa8914f3552fcfd76e1d7536934581"
 dependencies = [
  "anyhow",
- "bitflags",
+ "bitflags 2.1.0",
  "ctor",
+ "napi-derive",
  "napi-sys",
  "once_cell",
  "serde",
  "serde_json",
- "thread_local",
  "tokio",
 ]
 
@@ -1197,9 +1203,9 @@ checksum = "882a73d9ef23e8dc2ebbffb6a6ae2ef467c0f18ac10711e4cc59c5485d41df0e"
 
 [[package]]
 name = "napi-derive"
-version = "2.11.0"
+version = "2.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03f15c1ac0eac01eca2a24c27905ab47f7411acefd829d0d01fb131dc39befd7"
+checksum = "af2ac63101a19228b0881694cac07468d642fd10e4f943a9c9feebeebf1a4787"
 dependencies = [
  "convert_case",
  "napi-derive-backend",
@@ -1210,15 +1216,16 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "1.0.44"
+version = "1.0.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4930d5fa70f5663b9e7d6b4f0816b70d095574ee7f3c865fdb8c43b0f7e6406d"
+checksum = "0e32b5bc4d803e40b783b0aa3fe488eac8711cfaa4c5c9915293dfd3d0b99925"
 dependencies = [
  "convert_case",
  "once_cell",
  "proc-macro2",
  "quote",
  "regex",
+ "semver 1.0.16",
  "syn 1.0.107",
 ]
 
@@ -1239,9 +1246,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.79"
+version = "0.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2515135ebd9620daaa7491a79bf4a562acd1a5b27bca4308168724ddbc3f1f1"
+checksum = "6123a34b53527098bf3c30efd6762285d6648eb98dfb8fdcff30f86e9cf256e3"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -1819,7 +1826,7 @@ version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
 ]
 
 [[package]]
@@ -1902,6 +1909,7 @@ dependencies = [
  "better_scoped_tls",
  "cfg-if",
  "dashmap",
+ "derivative",
  "glob",
  "indexmap",
  "napi",
@@ -1911,7 +1919,9 @@ dependencies = [
  "rspack_binding_macros",
  "rspack_core",
  "rspack_error",
+ "rspack_identifier",
  "rspack_ids",
+ "rspack_loader_runner",
  "rspack_loader_sass",
  "rspack_napi_shared",
  "rspack_plugin_asset",
@@ -1949,8 +1959,9 @@ dependencies = [
  "async-recursion",
  "async-scoped",
  "async-trait",
- "bitflags",
+ "bitflags 1.3.2",
  "dashmap",
+ "derivative",
  "dyn-clone",
  "futures",
  "glob",
@@ -2067,10 +2078,15 @@ dependencies = [
 name = "rspack_loader_runner"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "async-recursion",
  "async-trait",
+ "bitflags 1.3.2",
+ "derivative",
  "nodejs-resolver",
+ "once_cell",
+ "regex",
  "rspack_error",
+ "rspack_identifier",
  "rspack_sources",
  "rustc-hash",
  "tokio",
@@ -2199,7 +2215,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "better_scoped_tls",
- "bitflags",
+ "bitflags 1.3.2",
  "dashmap",
  "data-encoding",
  "heck",
@@ -2300,7 +2316,7 @@ dependencies = [
  "async-trait",
  "base64",
  "better_scoped_tls",
- "bitflags",
+ "bitflags 1.3.2",
  "dashmap",
  "either",
  "linked_hash_set",
@@ -2463,7 +2479,7 @@ dependencies = [
 name = "rspack_symbol"
 version = "0.1.0"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "rspack_identifier",
  "serde",
  "serde_json",
@@ -3042,7 +3058,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f717f3ff4c3352e8291785692668f44f1cb5455078da8ab55e648d5c7b24f325"
 dependencies = [
  "auto_impl",
- "bitflags",
+ "bitflags 1.3.2",
  "rustc-hash",
  "serde",
  "swc_atoms",
@@ -3071,7 +3087,7 @@ version = "0.22.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af7e2ab24d5ce9a2d41085f498ef82d58e128d6b3a9be9f85ed4f1ac87257293"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "once_cell",
  "serde",
  "serde_json",
@@ -3118,7 +3134,7 @@ version = "0.145.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94b26c2eece61ff5be8f2ca0600d2cf48a42ccfa83c10b5ea4c5e0e6700f9b20"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "lexical",
  "serde",
  "swc_atoms",
@@ -3177,7 +3193,7 @@ version = "0.102.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bc96ac4740ddd7e09baaa153b6cf74e62ed7436d674606c060ea01fd7c20cd0"
 dependencies = [
- "bitflags",
+ "bitflags 1.3.2",
  "is-macro",
  "num-bigint",
  "scoped-tls",
@@ -3438,7 +3454,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0020e7cccbe4f1a9cae29d8b3bc54fcdc2cff1396cd6a4006977c1008c7b4fe3"
 dependencies = [
  "better_scoped_tls",
- "bitflags",
+ "bitflags 1.3.2",
  "indexmap",
  "once_cell",
  "phf",
@@ -3461,7 +3477,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b87668640fe6d63ecabaae1805534d1445ff63382ab8961cd623ccdeb1bfbc"
 dependencies = [
  "better_scoped_tls",
- "bitflags",
+ "bitflags 1.3.2",
  "indexmap",
  "once_cell",
  "phf",
@@ -3540,7 +3556,7 @@ dependencies = [
  "Inflector",
  "ahash",
  "anyhow",
- "bitflags",
+ "bitflags 1.3.2",
  "indexmap",
  "is-macro",
  "path-clean",
@@ -3809,7 +3825,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21020157564ad5b02728a2874687b14cf192b4af46f544fbf87adab5626fbb67"
 dependencies = [
  "auto_impl",
- "bitflags",
+ "bitflags 1.3.2",
  "rustc-hash",
  "swc_atoms",
  "swc_common",

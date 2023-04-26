@@ -2,9 +2,11 @@ import "zx/globals";
 
 await import("../meta/check_is_workspace_root.js");
 
-fs.ensureDir("./benchcases/threejs10x/src");
+await fs.ensureDir("./benchcases/threejs10x/src");
 
 for (const i in Array(10).fill(null)) {
+	await fs.ensureDir(`./benchcases/threejs10x/src/copy${i}`);
+
 	await $`cp -r ./benchcases/.three/src ./benchcases/threejs10x/src/copy${i}`;
 }
 
@@ -12,7 +14,7 @@ const entryCode = Array(10)
 	.fill(null)
 	.map((_, i) => i)
 	.map(
-		i => `import * as copy${i} from './copy${i}/Three.js'\nexport { copy${i} }`
+		i => `import * as copy${i} from './copy${i}/src/Three.js'\nexport { copy${i} }`
 	)
 	.join("\n");
 

@@ -6,6 +6,8 @@ use rspack_ids::{DeterministicModuleIdsPlugin, NamedModuleIdsPlugin};
 use rspack_plugin_split_chunks::SplitChunksPlugin;
 use serde::Deserialize;
 
+#[cfg(feature = "node-api")]
+use crate::JsLoaderRunner;
 use crate::{RawOptionsApply, RawSplitChunksOptions};
 
 scoped_tls!(pub(crate) static IS_ENABLE_NEW_SPLIT_CHUNKS: bool);
@@ -26,6 +28,7 @@ impl RawOptionsApply for RawOptimizationOptions {
   fn apply(
     self,
     plugins: &mut Vec<Box<dyn rspack_core::Plugin>>,
+    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     if let Some(options) = self.split_chunks {
       let split_chunks_plugin = IS_ENABLE_NEW_SPLIT_CHUNKS.with(|is_enable_new_split_chunks| {

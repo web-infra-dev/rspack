@@ -42,9 +42,9 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
   CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
   DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier,
-  ModuleType, NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeGlobals,
+  FactorizeTask, FactorizeTaskResult, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
+  ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals,
   RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
@@ -75,11 +75,11 @@ pub struct Compilation {
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
-  pub assets: CompilationAssets,
+  assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
   pub plugin_driver: SharedPluginDriver,
-  pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: IdentifierSet,
@@ -115,7 +115,7 @@ impl Compilation {
     entries: BundleEntries,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
-    loader_runner_runner: Arc<LoaderRunnerRunner>,
+    resolver_factory: Arc<ResolverFactory>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
@@ -135,7 +135,7 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       plugin_driver,
-      loader_runner_runner,
+      resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
@@ -170,20 +170,30 @@ impl Compilation {
   pub fn update_asset(
     &mut self,
     filename: &str,
-    updater: impl FnOnce(&mut BoxSource, &mut AssetInfo) -> Result<()>,
+    updater: impl FnOnce(BoxSource, AssetInfo) -> Result<(BoxSource, AssetInfo)>,
   ) -> Result<()> {
     // Safety: we don't move anything from compilation
     let assets = &mut self.assets;
 
-    match assets.get_mut(filename) {
+    let (new_source, new_info) = match assets.remove(filename) {
       Some(CompilationAsset {
         source: Some(source),
         info,
-      }) => updater(source, info),
-      _ => Err(internal_error!(
-        "Called Compilation.updateAsset for not existing filename {filename}"
-      )),
-    }
+      }) => updater(source, info)?,
+      _ => {
+        return Err(internal_error!(
+          "Called Compilation.updateAsset for not existing filename {filename}"
+        ))
+      }
+    };
+    self.emit_asset(
+      filename.to_owned(),
+      CompilationAsset {
+        source: Some(new_source),
+        info: new_info,
+      },
+    );
+    Ok(())
   }
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
@@ -230,6 +240,10 @@ impl Compilation {
 
   pub fn assets(&self) -> &CompilationAssets {
     &self.assets
+  }
+
+  pub fn assets_mut(&mut self) -> &mut CompilationAssets {
+    &mut self.assets
   }
 
   pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
@@ -631,7 +645,7 @@ impl Compilation {
                 build_queue.add_task(BuildTask {
                   module,
                   dependencies,
-                  loader_runner_runner: self.loader_runner_runner.clone(),
+                  resolver_factory: self.resolver_factory.clone(),
                   compiler_options: self.options.clone(),
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
@@ -841,6 +855,7 @@ impl Compilation {
       side_effects,
       resolve_options,
       lazy_visit_modules,
+      resolver_factory: self.resolver_factory.clone(),
       options: self.options.clone(),
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),
@@ -858,6 +873,12 @@ impl Compilation {
         .modules()
         .par_iter()
         .filter(filter_op)
+        .filter(|(module_identifier, _)| {
+          let runtimes = compilation
+            .chunk_graph
+            .get_module_runtimes(**module_identifier, &compilation.chunk_by_ukey);
+          !runtimes.is_empty()
+        })
         .map(|(module_identifier, module)| {
           compilation
             .cache
@@ -928,27 +949,32 @@ impl Compilation {
 
     let chunk_ukey_and_manifest = results.into_inner();
 
-    chunk_ukey_and_manifest
-      .into_iter()
-      .for_each(|(chunk_ukey, manifest)| {
-        manifest
-          .expect("TODO: we should return this error rathen expect")
-          .into_iter()
-          .for_each(|file_manifest| {
-            let current_chunk = self
-              .chunk_by_ukey
-              .get_mut(&chunk_ukey)
-              .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
-            current_chunk
-              .files
-              .insert(file_manifest.filename().to_string());
+    for (chunk_ukey, manifest) in chunk_ukey_and_manifest.into_iter() {
+      for file_manifest in manifest.expect("We should return this error rathen expect") {
+        let filename = file_manifest.filename().to_string();
 
-            self.emit_asset(
-              file_manifest.filename().to_string(),
-              CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
-            );
-          });
-      })
+        let current_chunk = self
+          .chunk_by_ukey
+          .get_mut(&chunk_ukey)
+          .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+        current_chunk.files.insert(filename.clone());
+
+        self.emit_asset(
+          filename.clone(),
+          CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
+        );
+
+        _ = self
+          .chunk_asset(chunk_ukey, filename, plugin_driver.clone())
+          .await;
+      }
+      //
+      // .into_iter()
+      // .for_each(|file_manifest| {
+      // });
+    }
+    // .for_each(|(chunk_ukey, manifest)| {
+    // })
   }
   #[instrument(name = "compilation:process_asssets", skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -957,6 +983,25 @@ impl Compilation {
       .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
+  }
+
+  #[instrument(name = "compilation:chunk_asset", skip_all)]
+  async fn chunk_asset(
+    &mut self,
+    chunk_ukey: ChunkUkey,
+    filename: String,
+    plugin_driver: SharedPluginDriver,
+  ) -> Result<()> {
+    let current_chunk = self
+      .chunk_by_ukey
+      .get(&chunk_ukey)
+      .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+    _ = plugin_driver
+      .write()
+      .await
+      .chunk_asset(current_chunk, filename)
+      .await;
+    Ok(())
   }
 
   pub async fn optimize_dependency(
@@ -993,6 +1038,11 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
+      plugin_driver
+        .write()
+        .await
+        .optimize_modules(compilation)
+        .await?;
       plugin_driver.write().await.optimize_chunks(compilation)?;
       Ok(compilation)
     })

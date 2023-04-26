@@ -217,6 +217,11 @@ impl<'me> CodeSplitter<'me> {
       self.remove_parent_modules();
     }
 
+    // make sure all module (weak dependency particularly) has a mgm
+    for module_identifier in self.compilation.module_graph.modules().keys() {
+      self.compilation.chunk_graph.add_module(*module_identifier)
+    }
+
     Ok(())
   }
 

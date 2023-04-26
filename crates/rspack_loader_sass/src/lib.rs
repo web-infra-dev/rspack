@@ -11,15 +11,14 @@ use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::SourceMap, CompilationContext, CompilerContext, DependencyCategory,
-  DependencyType, Resolve, ResolveOptionsWithDependencyType, ResolveResult, Resolver,
-  ResolverFactory,
+  rspack_sources::SourceMap, DependencyCategory, DependencyType, LoaderRunnerContext, Resolve,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
 };
 use rspack_error::{
   internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result, Severity,
   TraceableError,
 };
-use rspack_loader_runner::{Loader, LoaderContext};
+use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use sass_embedded::{
   legacy::{
     IndentType, LegacyImporter, LegacyImporterResult, LegacyImporterThis, LegacyOptions,
@@ -378,7 +377,7 @@ impl SassLoader {
 
   fn get_sass_options(
     &self,
-    loader_context: &LoaderContext<'_, '_, CompilerContext, CompilationContext>,
+    loader_context: &LoaderContext<'_, LoaderRunnerContext>,
     content: String,
     logger: RspackLogger,
   ) -> LegacyOptions {
@@ -396,7 +395,7 @@ impl SassLoader {
         self
           .options
           .source_map
-          .unwrap_or_else(|| loader_context.compiler_context.options.devtool.enabled()),
+          .unwrap_or_else(|| loader_context.context.options.devtool.enabled()),
       )
       .source_map_contents(true)
       // TODO: use OutputStyle::Compressed when loader_context.mode is production.
@@ -433,7 +432,7 @@ impl SassLoader {
     if self.options.rspack_importer {
       builder = builder.importer(RspackImporter::new(
         include_paths,
-        Arc::clone(&loader_context.compiler_context.resolver_factory),
+        Arc::clone(&loader_context.context.resolver_factory),
       ));
     }
 
@@ -461,16 +460,12 @@ impl SassLoader {
 }
 
 #[async_trait::async_trait]
-impl Loader<CompilerContext, CompilationContext> for SassLoader {
-  fn name(&self) -> &'static str {
-    "builtin:sass-loader"
-  }
-
-  async fn run(
-    &self,
-    loader_context: &mut LoaderContext<'_, '_, CompilerContext, CompilationContext>,
-  ) -> Result<()> {
-    let content = loader_context.content.to_owned();
+impl Loader<LoaderRunnerContext> for SassLoader {
+  async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
+    let content = loader_context
+      .content
+      .to_owned()
+      .expect("content should available");
     let (tx, rx) = mpsc::sync_channel(8);
     let logger = RspackLogger { tx };
     let sass_options = self.get_sass_options(loader_context, content.try_into_string()?, logger);
@@ -507,20 +502,18 @@ impl Loader<CompilerContext, CompilationContext> for SassLoader {
       })
       .transpose()?;
 
-    loader_context.content = result.css.into();
+    loader_context.content = Some(result.css.into());
     loader_context.source_map = source_map;
     loader_context
       .diagnostic
       .append(&mut rx.into_iter().flatten().collect_vec());
     Ok(())
   }
+}
 
-  fn as_any(&self) -> &dyn std::any::Any {
-    self
-  }
-
-  fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-    self
+impl Identifiable for SassLoader {
+  fn identifier(&self) -> Identifier {
+    "builtin:sass-loader".into()
   }
 }
 

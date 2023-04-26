@@ -29,7 +29,50 @@ export class RspackDevServer extends WebpackDevServer {
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
-		super(options, compiler as any);
+		super(
+			{
+				...options,
+				setupMiddlewares: (middlewares, devServer) => {
+					const webpackDevMiddlewareIndex = middlewares.findIndex(
+						mid => mid.name === "webpack-dev-middleware"
+					);
+					// @ts-expect-error
+					if (compiler.options.builtins.noEmitAssets) {
+						if (Array.isArray(this.options.static)) {
+							const compilers =
+								compiler instanceof MultiCompiler
+									? compiler.compilers
+									: [compiler];
+							const memoryAssetsMiddlewares = this.options.static.flatMap(
+								staticOptions => {
+									return staticOptions.publicPath.flatMap(publicPath => {
+										return compilers.map(compiler => {
+											return {
+												name: "rspack-memory-assets",
+												path: publicPath,
+												middleware: getRspackMemoryAssets(
+													compiler,
+													this.middleware
+												)
+											};
+										});
+									});
+								}
+							);
+							middlewares.splice(
+								webpackDevMiddlewareIndex,
+								0,
+								...memoryAssetsMiddlewares
+							);
+						}
+					}
+
+					options.setupMiddlewares?.call(this, middlewares, devServer);
+					return middlewares;
+				}
+			},
+			compiler as any
+		);
 	}
 
 	addAdditionalEntries(compiler: Compiler) {
@@ -381,21 +424,21 @@ export class RspackDevServer extends WebpackDevServer {
 				? this.compiler.compilers
 				: [this.compiler];
 
-		if (Array.isArray(this.options.static)) {
-			this.options.static.forEach(staticOptions => {
-				staticOptions.publicPath.forEach(publicPath => {
-					compilers.forEach(compiler => {
-						if (compiler.options.builtins.noEmitAssets) {
-							middlewares.push({
-								name: "rspack-memory-assets",
-								path: publicPath,
-								middleware: getRspackMemoryAssets(compiler, this.middleware)
-							});
-						}
-					});
-				});
-			});
-		}
+		// if (Array.isArray(this.options.static)) {
+		// 	this.options.static.forEach(staticOptions => {
+		// 		staticOptions.publicPath.forEach(publicPath => {
+		// 			compilers.forEach(compiler => {
+		// 				if (compiler.options.builtins.noEmitAssets) {
+		// 					middlewares.push({
+		// 						name: "rspack-memory-assets",
+		// 						path: publicPath,
+		// 						middleware: getRspackMemoryAssets(compiler, this.middleware)
+		// 					});
+		// 				}
+		// 			});
+		// 		});
+		// 	});
+		// }
 
 		compilers.forEach(compiler => {
 			if (compiler.options.experiments.lazyCompilation) {

@@ -7,6 +7,11 @@ export const commonOptions = (yargs: yargs.Argv<{}>) => {
 			describe: "config file",
 			alias: "c"
 		},
+		entry: {
+			type: "array",
+			string: true,
+			describe: "entry file"
+		},
 		mode: { type: "string", describe: "mode" },
 		watch: {
 			type: "boolean",

@@ -3,7 +3,7 @@ use rspack_regex::RspackRegex;
 
 pub fn node_target_plugin() -> BoxPlugin {
   crate::ExternalPlugin::new(
-    "commonjs".to_string(), // TODO: should be "node-commonjs"
+    "node-commonjs".to_string(),
     vec![
       ExternalItem::from("assert".to_string()),
       ExternalItem::from("assert/strict".to_string()),

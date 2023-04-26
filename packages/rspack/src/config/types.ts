@@ -15,7 +15,11 @@ import * as oldBuiltins from "./builtins";
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
-export type { LoaderContext } from "./adapter-rule-use";
+export type {
+	LoaderContext,
+	LoaderDefinitionFunction,
+	LoaderDefinition
+} from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
 
@@ -74,6 +78,8 @@ export interface RspackOptionsNormalized {
 	devServer?: DevServer;
 	builtins: Builtins;
 }
+
+export type HashFunction = string | typeof import("../util/hash");
 
 ///// Name /////
 export type Name = string;
@@ -140,6 +146,7 @@ export interface Output {
 	chunkFormat?: string | false;
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
+	trustedTypes?: true | string | TrustedTypes;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -211,6 +218,9 @@ export type WasmLoadingType =
 	| ("fetch-streaming" | "fetch" | "async-node")
 	| string;
 export type EnabledWasmLoadingTypes = WasmLoadingType[];
+export interface TrustedTypes {
+	policyName?: string;
+}
 export interface OutputNormalized {
 	path?: Path;
 	clean?: Clean;
@@ -236,6 +246,11 @@ export interface OutputNormalized {
 	chunkFormat?: string | false;
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
+	trustedTypes?: TrustedTypes;
+	/**
+	 * Algorithm used for generation the hash (see node.js crypto package).
+	 */
+	hashFunction?: HashFunction;
 }
 
 ///// Resolve /////
@@ -294,6 +309,10 @@ export interface RuleSetRule {
 	};
 	resolve?: ResolveOptions;
 	sideEffects?: boolean;
+	/**
+	 * Specifies the category of the loader. No value means normal loader.
+	 */
+	enforce?: "pre" | "post";
 }
 export type RuleSetCondition =
 	| RegExp
@@ -311,7 +330,7 @@ export type RuleSetUse = RuleSetUseItem[] | RuleSetUseItem;
 export type RuleSetUseItem = RuleSetLoaderWithOptions | RuleSetLoader;
 export type RuleSetLoader = string;
 export type RuleSetLoaderWithOptions = {
-	// ident?: string;
+	ident?: string;
 	loader: RuleSetLoader;
 	options?: RuleSetLoaderOptions;
 };
@@ -358,7 +377,52 @@ export type Target = false | AvailableTarget[] | AvailableTarget;
 
 ///// Externals /////
 export type Externals = ExternalItem[] | ExternalItem;
-export type ExternalItem = string | RegExp | ExternalItemObjectUnknown;
+export type ExternalItem =
+	| string
+	| RegExp
+	| ExternalItemObjectUnknown
+	| (
+			| ((
+					data: ExternalItemFunctionData,
+					callback: (
+						err?: Error,
+						result?: ExternalItemValue,
+						type?: ExternalsType
+					) => void
+			  ) => void)
+			| ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>)
+	  );
+
+export interface ExternalItemFunctionData {
+	/**
+	 * The directory in which the request is placed.
+	 */
+	context?: string;
+	/**
+	 * Contextual information.
+	 */
+	// contextInfo?: import("../lib/ModuleFactory").ModuleFactoryCreateDataContextInfo;
+	/**
+	 * The category of the referencing dependencies.
+	 */
+	dependencyType?: string;
+	/**
+	 * Get a resolve function with the current resolver options.
+	 */
+	// getResolve?: (
+	// 	options?: ResolveOptions
+	// ) =>
+	// 	| ((
+	// 		context: string,
+	// 		request: string,
+	// 		callback: (err?: Error, result?: string) => void
+	// 	) => void)
+	// 	| ((context: string, request: string) => Promise<string>);
+	/**
+	 * The request as written by the user in the require/import expression/statement.
+	 */
+	request?: string;
+}
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }
@@ -483,6 +547,7 @@ export interface StatsOptions {
 	chunkRelations?: boolean;
 	timings?: boolean;
 	builtAt?: boolean;
+	moduleAssets?: boolean;
 }
 
 ///// Optimization /////
@@ -543,6 +608,7 @@ export interface Experiments {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
+	css?: boolean;
 }
 
 ///// Watch /////

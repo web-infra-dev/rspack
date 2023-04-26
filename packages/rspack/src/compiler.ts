@@ -14,11 +14,15 @@ import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
+import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Compilation, CompilationParams } from "./compilation";
 import { RspackOptionsNormalized } from "./config";
 import { getRawOptions } from "./config/adapter";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
+import Cache from "./lib/Cache";
+import CacheFacade from "./lib/CacheFacade";
+import { runLoader } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats } from "./stats";
@@ -47,6 +51,7 @@ class Compiler {
 	name?: string;
 	inputFileSystem: any;
 	outputFileSystem: typeof import("fs");
+	ruleSet: RuleSetCompiler;
 	// @ts-expect-error
 	watchFileSystem: WatchFileSystem;
 	intermediateFileSystem: any;
@@ -54,6 +59,8 @@ class Compiler {
 	watchMode: boolean;
 	context: string;
 	modifiedFiles?: ReadonlySet<string>;
+	cache: Cache;
+	compilerPath: string;
 	removedFiles?: ReadonlySet<string>;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
@@ -87,6 +94,8 @@ class Compiler {
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
 		this.options = options;
+		this.cache = new Cache();
+		this.compilerPath = "";
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
 			EntryPlugin, // modernjs/server use this to inject dev-client
@@ -123,6 +132,7 @@ class Compiler {
 			}
 		};
 		this.root = this;
+		this.ruleSet = new RuleSetCompiler();
 		this.running = false;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
@@ -162,6 +172,18 @@ class Compiler {
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
 		this.#disabledHooks = [];
+	}
+
+	/**
+	 * @param {string} name cache name
+	 * @returns {CacheFacade} the cache facade instance
+	 */
+	getCache(name: string): CacheFacade {
+		return new CacheFacade(
+			this.cache,
+			`${this.compilerPath}${name}`,
+			this.options.output.hashFunction
+		);
 	}
 
 	/**
@@ -213,15 +235,18 @@ class Compiler {
 					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
+					optimizeModules: this.#optimize_modules.bind(this),
 					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
 					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this),
+					chunkAsset: this.#chunkAsset.bind(this),
 					beforeResolve: this.#beforeResolve.bind(this),
 					contextModuleBeforeResolve:
 						this.#contextModuleBeforeResolve.bind(this)
 				},
-				createThreadsafeNodeFSFromRaw(this.outputFileSystem)
+				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
+				loaderContext => runLoader(loaderContext, this)
 			);
 
 		return this.#_instance;
@@ -341,8 +366,8 @@ class Compiler {
 				),
 			compilation: this.hooks.compilation,
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
-			finishModules: this.compilation.hooks.finishModules
-			// normalModuleFactoryResolveForScheme: this.#
+			finishModules: this.compilation.hooks.finishModules,
+			optimizeModules: this.compilation.hooks.optimizeModules
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook.taps.length === 0) {
@@ -389,6 +414,17 @@ class Compiler {
 			this.compilation.getChunks(),
 			this.compilation.getModules()
 		);
+		this.#updateDisabledHooks();
+	}
+	async #optimize_modules() {
+		await this.compilation.hooks.optimizeModules.promise(
+			this.compilation.getModules()
+		);
+		this.#updateDisabledHooks();
+	}
+
+	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
+		this.compilation.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
 		this.#updateDisabledHooks();
 	}
 

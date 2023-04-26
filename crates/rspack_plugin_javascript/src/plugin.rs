@@ -27,7 +27,10 @@ use swc_core::ecma::ast;
 use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::runtime::{generate_chunk_entry_code, render_chunk_modules, render_runtime_modules};
+use crate::runtime::{
+  generate_chunk_entry_code, render_chunk_init_fragments, render_chunk_modules,
+  render_runtime_modules,
+};
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
 
@@ -174,9 +177,11 @@ impl JsPlugin {
     let runtime_requirements = compilation
       .chunk_graph
       .get_tree_runtime_requirements(&args.chunk_ukey);
+    let (module_source, mut chunk_init_fragments) =
+      render_chunk_modules(compilation, &args.chunk_ukey)?;
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("var __webpack_modules__ = "));
-    sources.add(render_chunk_modules(compilation, &args.chunk_ukey)?);
+    sources.add(module_source);
     sources.add(RawSource::from("\n"));
     sources.add(self.render_bootstrap(&args.chunk_ukey, args.compilation));
     sources.add(render_runtime_modules(compilation, &args.chunk_ukey)?);
@@ -206,11 +211,12 @@ impl JsPlugin {
         sources.add(source);
       }
     }
-    let final_source = if compilation.options.output.iife {
+    let mut final_source = if compilation.options.output.iife {
       self.render_iife(sources.boxed())
     } else {
       sources.boxed()
     };
+    final_source = render_chunk_init_fragments(final_source, &mut chunk_init_fragments);
     if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
@@ -226,6 +232,8 @@ impl JsPlugin {
     &self,
     args: &rspack_core::RenderManifestArgs<'_>,
   ) -> Result<BoxSource> {
+    let (module_source, mut chunk_init_fragments) =
+      render_chunk_modules(args.compilation, &args.chunk_ukey)?;
     let source = args
       .compilation
       .plugin_driver
@@ -235,10 +243,14 @@ impl JsPlugin {
       .render_chunk(RenderChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,
+        module_source,
       })
       .await?
       .expect("should run render_chunk hook");
-    Ok(source)
+    Ok(render_chunk_init_fragments(
+      source,
+      &mut chunk_init_fragments,
+    ))
   }
 
   #[inline]
@@ -619,9 +631,16 @@ impl Plugin for JsPlugin {
 
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
+      let emit_source_map_columns = !compilation.options.devtool.cheap();
+      let compress = TerserCompressorOptions {
+        passes: minify_options.passes,
+        drop_console: minify_options.drop_console,
+        pure_funcs: minify_options.pure_funcs.clone(),
+        ..Default::default()
+      };
 
       compilation
-        .assets
+        .assets_mut()
         .par_iter_mut()
         .filter(|(filename, _)| {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
@@ -636,15 +655,10 @@ impl Plugin for JsPlugin {
             let input = original_source.source().to_string();
             let input_source_map = original_source.map(&MapOptions::default());
             let output = match crate::ast::minify(&JsMinifyOptions {
-              compress: BoolOrDataConfig::from_obj(TerserCompressorOptions {
-                passes: minify_options.passes,
-                drop_console: minify_options.drop_console,
-                pure_funcs: minify_options.pure_funcs.clone(),
-                ..Default::default()
-              }),
+              compress: BoolOrDataConfig::from_obj(compress.clone()),
               source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
-              emit_source_map_columns: !compilation.options.devtool.cheap(),
+              emit_source_map_columns,
               ..Default::default()
             }, input, filename) {
               Ok(r) => r,

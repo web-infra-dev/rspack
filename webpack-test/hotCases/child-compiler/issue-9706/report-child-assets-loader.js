@@ -5,7 +5,7 @@ const {
 
 const compilerCache = new WeakMap();
 
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function (source) {
 	let childCompiler = compilerCache.get(this._compiler);
 	if (childCompiler === undefined) {

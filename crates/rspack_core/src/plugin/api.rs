@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, path::Path};
 
 use rspack_error::Result;
 use rspack_loader_runner::{Content, ResourceData};
@@ -6,12 +6,13 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkHashArgs, ChunkUkey, Compilation,
-  CompilationArgs, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs,
-  ModuleFactoryResult, ModuleType, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
+  AdditionalChunkRuntimeRequirementsArgs, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs,
+  ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
+  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
   NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, SourceType, ThisCompilationArgs,
+  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -147,6 +148,11 @@ pub trait Plugin: Debug + Send + Sync {
     _args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
     Ok(None)
+  }
+
+  /// webpack `compilation.hooks.chunkAsset`
+  async fn chunk_asset(&mut self, _args: &ChunkAssetArgs) -> Result<()> {
+    Ok(())
   }
 
   // JavascriptModulesPlugin hook
@@ -285,11 +291,32 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn optimize_modules(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
   async fn optimize_chunk_modules(&mut self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
     Ok(())
   }
 
   async fn finish_modules(&mut self, _modules: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  /// Webpack resolves loaders in `NormalModuleFactory`,
+  /// Rspack resolves it when normalizing configuration.
+  /// So this hook is used to resolve inline loader (inline loader requests).
+  async fn resolve_loader(
+    &self,
+    _compiler_options: &CompilerOptions,
+    _context: &Path,
+    _resolver: &Resolver,
+    _loader_request: &str,
+  ) -> Result<Option<BoxLoader>> {
+    Ok(None)
+  }
+
+  async fn before_loaders(&self, _module: &mut NormalModule) -> Result<()> {
     Ok(())
   }
 

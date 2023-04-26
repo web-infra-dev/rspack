@@ -10,6 +10,7 @@ pub struct RawExperiments {
   pub incremental_rebuild: bool,
   pub async_web_assembly: bool,
   pub new_split_chunks: bool,
+  pub css: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -19,6 +20,7 @@ impl From<RawExperiments> for Experiments {
       incremental_rebuild: value.incremental_rebuild,
       async_web_assembly: value.async_web_assembly,
       new_split_chunks: value.new_split_chunks,
+      css: value.css,
     }
   }
 }

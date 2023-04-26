@@ -1,11 +1,10 @@
 use rspack_core::{
-  get_js_chunk_filename_template,
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, SourceType, RUNTIME_MODULE_STAGE_ATTACH,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
 
-use super::utils::{chunk_has_js, get_undo_path};
+use super::utils::{chunk_has_js, get_output_dir};
 use crate::impl_runtime_module;
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
@@ -43,17 +42,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       .runtime_requirements
       .contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
-    let filename = get_js_chunk_filename_template(
-      chunk,
-      &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
-    );
-    let output_dir = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
-    let root_output_dir = get_undo_path(
-      output_dir.as_str(),
-      compilation.options.output.path.display().to_string(),
-      true,
-    );
+    let root_output_dir = get_output_dir(chunk, compilation, true);
     let mut source = ConcatSource::default();
 
     if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
@@ -69,11 +58,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
 
     if with_hmr {
+      let state_expression = format!("{}_require", RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX);
       source.add(RawSource::from(format!(
         "var installedChunks = {} = {} || {};\n",
-        RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX,
-        RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX,
-        &stringify_chunks(&initial_chunks, 0)
+        state_expression,
+        state_expression,
+        &stringify_chunks(&initial_chunks, 1)
       )));
     } else {
       source.add(RawSource::from(format!(

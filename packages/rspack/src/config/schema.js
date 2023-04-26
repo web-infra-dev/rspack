@@ -335,6 +335,10 @@ module.exports = {
 				outputModule: {
 					description: "Allow output javascript files as module source type.",
 					type: "boolean"
+				},
+				newSplitChunks: {
+					description: "Enable new SplitChunksPlugin",
+					type: "boolean"
 				}
 			}
 		},
@@ -358,6 +362,13 @@ module.exports = {
 					additionalProperties: {
 						$ref: "#/definitions/ExternalItemValue"
 					}
+				},
+				{
+					description:
+						"The function is called on each dependency (`function(context, request, callback(err, result))`).",
+					instanceof: "Function"
+					// tsType:
+					// 	"(((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>))"
 				}
 			]
 		},
@@ -1126,6 +1137,24 @@ module.exports = {
 				},
 				chunkLoadingGlobal: {
 					$ref: "#/definitions/ChunkLoadingGlobal"
+				},
+				trustedTypes: {
+					description:
+						"Use a Trusted Types policy to create urls for chunks. 'output.uniqueName' is used a default policy name. Passing a string sets a custom policy name.",
+					anyOf: [
+						{
+							enum: [true]
+						},
+						{
+							description:
+								"The name of the Trusted Types policy created by webpack to serve bundle chunks.",
+							type: "string",
+							minLength: 1
+						},
+						{
+							$ref: "#/definitions/TrustedTypes"
+						}
+					]
 				}
 			}
 		},
@@ -1434,6 +1463,10 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				enforce: {
+					description: "Enforce this rule as pre or post step.",
+					enum: ["pre", "post"]
+				},
 				exclude: {
 					description: "Shortcut for resource.exclude.",
 					oneOf: [
@@ -1822,6 +1855,19 @@ module.exports = {
 					minLength: 1
 				}
 			]
+		},
+		TrustedTypes: {
+			description: "Use a Trusted Types policy to create urls for chunks.",
+			type: "object",
+			additionalProperties: false,
+			properties: {
+				policyName: {
+					description:
+						"The name of the Trusted Types policy created by webpack to serve bundle chunks.",
+					type: "string",
+					minLength: 1
+				}
+			}
 		},
 		UmdNamedDefine: {
 			description:

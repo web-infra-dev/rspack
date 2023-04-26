@@ -29,8 +29,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, ModuleGraph,
-  ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, DependencyType,
+  ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -38,6 +38,11 @@ pub struct CodeSizeOptimizer<'a> {
   bailout_modules: IdentifierMap<BailoutFlag>,
   side_effects_free_modules: IdentifierSet,
   symbol_graph: SymbolGraph,
+}
+
+enum EntryLikeType {
+  Entry,
+  Bailout,
 }
 
 impl<'a> CodeSizeOptimizer<'a> {
@@ -250,27 +255,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
-    let bailout_entry_modules = self
-      .bailout_modules
-      .iter()
-      .filter_map(|(module_id, reason)| {
-        if reason
-          .intersection(
-            BailoutFlag::DYNAMIC_IMPORT
-              | BailoutFlag::HELPER
-              | BailoutFlag::COMMONJS_REQUIRE
-              | BailoutFlag::CONTEXT_MODULE,
-          )
-          .bits()
-          .count_ones()
-          >= 1
-        {
-          Some(*module_id)
-        } else {
-          None
-        }
-      })
-      .collect::<Vec<_>>();
+    let bailout_entry_modules = self.bailout_modules.keys().copied().collect::<Vec<_>>();
     for module_id in bailout_entry_modules {
       self.collect_from_entry_like(
         analyze_result_map,
@@ -279,7 +264,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         used_export_module_identifiers,
         &inherit_export_ref_graph,
         &mut traced_tuple,
-        false,
+        EntryLikeType::Bailout,
         visited_symbol_ref,
         errors,
       );
@@ -305,7 +290,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         used_export_module_identifiers,
         inherit_export_ref_graph,
         traced_tuple,
-        true,
+        EntryLikeType::Entry,
         visited_symbol_ref,
         errors,
       );
@@ -349,10 +334,9 @@ impl<'a> CodeSizeOptimizer<'a> {
         self
           .compilation
           .entry_modules()
-          .chain(context_entry_modules)
-          .map(|module_id| (module_id, true)),
+          .chain(context_entry_modules),
       );
-      while let Some((module_identifier, _is_entry)) = q.pop_front() {
+      while let Some(module_identifier) = q.pop_front() {
         if visited.contains(&module_identifier) {
           continue;
         } else {
@@ -426,11 +410,11 @@ impl<'a> CodeSizeOptimizer<'a> {
             panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
           });
         // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
-        for dep in mgm.dependencies.iter() {
+        for dependency_id in mgm.dependencies.iter() {
           let module_ident = match self
             .compilation
             .module_graph
-            .module_identifier_by_dependency_id(dep)
+            .module_identifier_by_dependency_id(dependency_id)
           {
             Some(module_identifier) => module_identifier,
             None => {
@@ -441,13 +425,12 @@ impl<'a> CodeSizeOptimizer<'a> {
                 .and_then(|module| module.as_normal_module())
                 .map(|normal_module| normal_module.ast_or_source())
               {
-                Some(ast_or_source) => {
-                  if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
-                    // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-                    continue;
-                  } else {
-                    panic!("Failed to resolve {dep:?}")
-                  }
+                Some(NormalModuleAstOrSource::BuiltFailed(_)) => {
+                  // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+                  continue;
+                }
+                Some(_) => {
+                  panic!("Failed to ast of {dependency_id:?}")
                 }
                 None => {
                   panic!("Failed to get normal module of {module_identifier}");
@@ -455,13 +438,33 @@ impl<'a> CodeSizeOptimizer<'a> {
               };
             }
           };
+          let dependency = match self
+            .compilation
+            .module_graph
+            .dependency_by_id(dependency_id)
+          {
+            Some(dep) => dep,
+            None => {
+              // It means this dependency has been removed before
+              continue;
+            }
+          };
+
+          let need_bailout = matches!(
+            dependency.dependency_type(),
+            DependencyType::CommonJSRequireContext
+              | DependencyType::RequireContext
+              | DependencyType::DynamicImport
+              | DependencyType::CjsRequire
+              | DependencyType::ImportContext
+          );
           if self.side_effects_free_modules.contains(module_ident)
             && !reachable_dependency_identifier.contains(module_ident)
-            && !self.bailout_modules.contains_key(module_ident)
+            && !need_bailout
           {
             continue;
           }
-          q.push_back((*module_ident, false));
+          q.push_back(*module_ident);
         }
         // dbg!(&module_identifier);
         // dbg!(&reachable_dependency_identifier);
@@ -1045,7 +1048,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
-    is_entry: bool,
+    entry_type: EntryLikeType,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
@@ -1060,10 +1063,11 @@ impl<'a> CodeSizeOptimizer<'a> {
     };
 
     // by default webpack will not mark the `export *` as used in entry module
-    if !is_entry {
+    if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
 
       q.extend(inherit_export_symbols);
+      q.extend(entry_module_result.used_symbol_refs.iter().cloned());
     }
 
     for item in entry_module_result.export_map.values() {
@@ -1080,9 +1084,9 @@ impl<'a> CodeSizeOptimizer<'a> {
       );
     }
 
-    while let Some(sym_ref) = q.pop_front() {
+    while let Some(symbol_ref) = q.pop_front() {
       self.mark_symbol(
-        sym_ref,
+        symbol_ref,
         analyze_map,
         &mut q,
         evaluated_module_identifiers,
@@ -1209,10 +1213,9 @@ async fn par_analyze_module(
         let analyzer: TreeShakingResult = ast.visit(|program, context| {
           let top_level_mark = context.top_level_mark;
           let unresolved_mark = context.unresolved_mark;
-          let helper_mark = context.helpers.mark();
 
           let mut analyzer = ModuleRefAnalyze::new(
-            MarkInfo::new(top_level_mark, unresolved_mark, helper_mark),
+            MarkInfo::new(top_level_mark, unresolved_mark),
             uri_key,
             &compilation.module_graph,
             &compilation.options,
@@ -1223,19 +1226,18 @@ async fn par_analyze_module(
         });
 
         // Keep this debug info until we stabilize the tree-shaking
-        // if debug_care_module_id(&uri_key.as_str()) {
-        //   dbg!(
-        //     &uri_key,
-        //     // &analyzer.export_all_list,
-        //     &analyzer.export_map,
-        //     &analyzer.import_map,
-        //     &analyzer.maybe_lazy_reference_map,
-        //     &analyzer.immediate_evaluate_reference_map,
-        //     &analyzer.reachable_import_and_export,
-        //     &analyzer.used_symbol_ref
-        //   );
-        // }
-
+        // dbg_matches!(
+        //   *uri_key,
+        //   &uri_key,
+        //   // &analyzer.export_all_list,
+        //   &analyzer.export_map,
+        //   &analyzer.import_map,
+        //   &analyzer.reachable_import_of_export,
+        //   &analyzer.used_symbol_refs,
+        //   analyzer.top_level_mark,
+        //   analyzer.unresolved_mark,
+        // );
+        //
         Some((uri_key, analyzer))
       })
       .collect::<IdentifierMap<TreeShakingResult>>()

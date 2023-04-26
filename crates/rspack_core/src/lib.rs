@@ -1,7 +1,6 @@
 #![feature(let_chains)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
-#![feature(box_syntax)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 use std::{fmt, sync::Arc};
@@ -29,7 +28,8 @@ mod context_module;
 pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
-
+mod init_fragment;
+pub use init_fragment::*;
 mod module_factory;
 pub use module_factory::*;
 mod normal_module_factory;
@@ -227,9 +227,6 @@ impl TryFrom<&str> for ModuleType {
     }
   }
 }
-
-// TODO: use module identifier only later, (ModuleIdentifier, DependencyCategory, Specifier)
-// pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, DependencyCategory, String)>;
 
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;

@@ -10,7 +10,7 @@ version    = "0.1.0"
 [dependencies]
 dashmap           = { workspace = true }
 derivative        = { workspace = true }
-rayon             = { worksapce = true }
+rayon             = { workspace = true }
 regex             = { workspace = true }
 rspack_core       = { path = "../rspack_core" }
 rspack_identifier = { path = "../rspack_identifier" }

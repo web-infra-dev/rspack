@@ -1,4 +1,6 @@
-import { run } from "../../utils/test-utils";
+import { readFile, run } from "../../utils/test-utils";
+import { resolve } from "path";
+
 describe("build command", () => {
 	it("it should work ", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, []);
@@ -42,5 +44,20 @@ describe("build command", () => {
 		expect(exitCode).toBe(0);
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
+	});
+	it("entry option should have higher priority than config", async () => {
+		const { exitCode, stderr, stdout } = await run(__dirname, [
+			"--entry",
+			"./src/other.js",
+			"--config",
+			"./entry.config.js"
+		]);
+		const mainJs = await readFile(resolve(__dirname, "dist/main.js"), "utf-8");
+
+		expect(exitCode).toBe(0);
+		expect(stderr).toBeFalsy();
+		expect(stdout).toBeTruthy();
+		expect(mainJs).toContain("other");
+		expect(mainJs).not.toContain("CONFIG");
 	});
 });
