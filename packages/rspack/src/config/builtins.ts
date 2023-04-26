@@ -14,7 +14,8 @@ import type {
 	RawPresetEnv,
 	RawPluginImportConfig,
 	RawCssModulesConfig,
-	RawRelayConfig
+	RawRelayConfig,
+	RawCodeGeneration
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { getBannerConditions } from "./adapter";
@@ -65,6 +66,7 @@ export interface Builtins {
 	banner?: BannerConfigs;
 	pluginImport?: PluginImportConfig[];
 	relay?: RelayConfig;
+	codeGeneration?: Partial<RawCodeGeneration>;
 }
 
 export type PluginImportConfig = {
@@ -373,7 +375,8 @@ export function resolveBuiltinsOptions(
 		pluginImport: resolvePluginImport(builtins.pluginImport),
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
-			: undefined
+			: undefined,
+		codeGeneration: resolveCodeGeneration(builtins.codeGeneration)
 	};
 }
 
@@ -423,5 +426,17 @@ export function resolveMinifyOptions(
 		dropConsole: false,
 		pureFuncs: [],
 		...builtins.minifyOptions
+	};
+}
+
+export function resolveCodeGeneration(
+	codeGeneration: Builtins["codeGeneration"]
+): RawCodeGeneration {
+	if (!codeGeneration) {
+		return { keepComments: false };
+	}
+	return {
+		keepComments: false,
+		...codeGeneration
 	};
 }
