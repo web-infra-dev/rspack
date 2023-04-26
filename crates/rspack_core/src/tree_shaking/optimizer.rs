@@ -98,7 +98,6 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
     }
 
-    // dbg!(&side_effect_map);
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
     let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut analyze_result_map);
@@ -363,7 +362,6 @@ impl<'a> CodeSizeOptimizer<'a> {
                 panic!("Failed to get mgm by module identifier {module_identifier}")
               });
             include_module_ids.insert(module_identifier);
-            // include_module_ids.insert(mgm.module_identifier);
             continue;
           }
         };

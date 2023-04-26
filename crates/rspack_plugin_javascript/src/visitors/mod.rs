@@ -202,7 +202,6 @@ pub fn run_after_pass(
       let need_tree_shaking = compilation
         .include_module_ids
         .contains(&mgm.module_identifier);
-      // let need_tree_shaking = true;
       let build_meta = mgm.build_meta.as_ref().expect("should have build meta");
       let build_info = mgm.build_info.as_ref().expect("should have build info");
 

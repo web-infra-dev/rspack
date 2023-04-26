@@ -541,7 +541,6 @@ impl Plugin for AssetPlugin {
       .flatten()
       .collect::<Vec<RenderManifestEntry>>();
 
-    // dbg!(&assets.iter().map(|a| a.filename()));
     Ok(assets)
   }
 }

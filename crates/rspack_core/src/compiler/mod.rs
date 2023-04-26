@@ -187,7 +187,6 @@ where
         self.compilation.tree_shaking_result = analyze_result.analyze_results;
       }
     }
-    // dbg!(&self.compilation.include_module_ids);
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
     // Consume plugin driver diagnostic

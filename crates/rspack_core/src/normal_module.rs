@@ -150,15 +150,6 @@ impl ModuleGraphModule {
     Ok(result)
   }
 
-  /// used for side_effects free module elimination
-  pub fn included_in_chunk(
-    &self,
-    include_module_ids: &IdentifierSet,
-    side_effects_options: SideEffectOption,
-  ) -> bool {
-    !side_effects_options.is_enable() || include_module_ids.contains(&self.module_identifier)
-  }
-
   pub fn outgoing_connections_unordered<'m>(
     &self,
     module_graph: &'m ModuleGraph,
