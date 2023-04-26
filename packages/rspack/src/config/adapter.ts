@@ -15,6 +15,7 @@ import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
 	ComposeJsUseOptions,
+	LoaderContext,
 	createRawModuleRuleUses
 } from "./adapter-rule-use";
 import {

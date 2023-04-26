@@ -28,7 +28,7 @@ import { runLoader } from "./loader-runner";
 import CacheFacade from "./lib/CacheFacade";
 import Cache from "./lib/Cache";
 import { getScheme } from "./util/scheme";
-import { LoaderResult } from "./config/adapter-rule-use";
+import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
 
 class EntryPlugin {
 	apply() {}
