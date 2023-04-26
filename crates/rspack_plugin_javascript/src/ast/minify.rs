@@ -197,6 +197,7 @@ pub fn minify(
           }
           .expect("Invalid extractComments");
           let mut source = ConcatSource::default();
+          // add all matched comments to source
           {
             let (l, t) = comments.borrow_all();
 
