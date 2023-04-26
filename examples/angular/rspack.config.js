@@ -12,7 +12,7 @@ const path = require("path");
  *  @type {() => import('@rspack/cli').Configuration}
  */
 module.exports = {
-	mode: "development",
+	mode: "production",
 	devtool: false,
 	target: ["web", "es2015"],
 	entry: {
@@ -25,16 +25,13 @@ module.exports = {
 	output: {
 		uniqueName: "zackAngularCli",
 		// 'hashFunction': 'xxhash64', // throws error
-		// 'clean': true, // throws error
-		// 'path': '/Users/zackarychapple/code/zackAngularCli/dist/zack-angular-cli',
+		'clean': true,
+		'path': './dist',
 		publicPath: "",
-		// TODO: use this later. No hash is easier to compare
-		// filename: "[name].[contenthash:20].js",
-		// chunkFilename: "[name].[contenthash:20].js"
-		filename: "[name].js",
-		chunkFilename: "[name].js"
-		// 'crossOriginLoading': false, // throws error
-		// 'trustedTypes': 'angular#bundler', // throws error
+		filename: "[name].[contenthash:20].js",
+		chunkFilename: "[name].[contenthash:20].js",
+		'crossOriginLoading': false,
+		'trustedTypes': 'angular#bundler',
 		// 'scriptType': 'module' // throws error
 	},
 	watch: false,
@@ -61,7 +58,7 @@ module.exports = {
 					minChunks: 2,
 					// 'enforce': true, // throws error
 					priority: 5
-				}
+				},
 				// 'vendors': false, // throws error
 				// 'defaultVendors': false // throws error
 			}
