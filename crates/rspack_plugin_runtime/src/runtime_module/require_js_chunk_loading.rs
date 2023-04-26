@@ -75,11 +75,20 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let with_loading = self
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    let with_on_chunk_load = self
+      .runtime_requirements
+      .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
 
     if with_loading || with_external_install_chunk {
-      source.add(RawSource::from(include_str!(
-        "runtime/require_chunk_loading.js"
-      )));
+      source.add(RawSource::from(
+        include_str!("runtime/require_chunk_loading.js").replace(
+          "$withOnChunkLoad$",
+          match with_on_chunk_load {
+            true => "__webpack_require__.O();",
+            false => "",
+          },
+        ),
+      ));
     }
 
     if with_loading {
@@ -109,10 +118,7 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
       )));
     }
 
-    if self
-      .runtime_requirements
-      .contains(RuntimeGlobals::ON_CHUNKS_LOADED)
-    {
+    if with_on_chunk_load {
       source.add(RawSource::from(include_str!(
         "runtime/require_chunk_loading_with_on_chunk_load.js"
       )));

@@ -1,3 +1,3 @@
 __webpack_require__.O.j = function (chunkId) {
-	installedChunks[chunkId] === 0;
+	return installedChunks[chunkId] === 0;
 };

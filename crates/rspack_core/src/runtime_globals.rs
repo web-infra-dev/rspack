@@ -196,6 +196,8 @@ bitflags! {
     const GET_TRUSTED_TYPES_POLICY = 1 << 37;
 
     const DEFINE_PROPERTY_GETTERS = 1 << 38;
+
+    const ENTRY_MODULE_ID = 1 << 39;
   }
 }
 
@@ -261,6 +263,7 @@ impl RuntimeGlobals {
       R::CREATE_SCRIPT => "__webpack_require__.ts",
       R::GET_TRUSTED_TYPES_POLICY => "__webpack_require__.tt",
       R::DEFINE_PROPERTY_GETTERS => "__webpack_require__.d",
+      R::ENTRY_MODULE_ID => "__webpack_require__.s",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

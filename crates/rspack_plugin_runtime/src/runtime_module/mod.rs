@@ -41,6 +41,7 @@ pub use module_chunk_loading::ModuleChunkLoadingRuntimeModule;
 pub use on_chunk_loaded::OnChunkLoadedRuntimeModule;
 pub use public_path::PublicPathRuntimeModule;
 pub use require_js_chunk_loading::RequireChunkLoadingRuntimeModule;
+pub use utils::*;
 mod create_script_url;
 mod get_trusted_types_policy;
 mod module_macro;

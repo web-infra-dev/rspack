@@ -63,27 +63,6 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
   )
 }
 
-pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
-  let mut v = Vec::from_iter(chunks.iter());
-  v.sort_unstable();
-
-  format!(
-    r#"[{}]"#,
-    v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
-  )
-}
-
-pub fn stringify_array(vec: &[String]) -> String {
-  format!(
-    r#"[{}]"#,
-    vec.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
-  )
-}
-
 pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   if compilation
     .chunk_graph
