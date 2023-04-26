@@ -642,6 +642,7 @@ impl Plugin for JsPlugin {
 
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
+      // collect all extracted comments info
       let all_extracted_comments = Mutex::new(HashMap::new());
       let extract_comments = &minify_options.extract_comments.clone();
       let emit_source_map_columns = !compilation.options.devtool.cheap();
@@ -702,6 +703,7 @@ impl Plugin for JsPlugin {
 
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
 
+      // write all extracted comments to assets
       all_extracted_comments
         .lock()
         .expect("all_extracted_comments lock failed")
