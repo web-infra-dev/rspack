@@ -41,7 +41,7 @@ try {
 }
 try {
     var ok2 = false;
-    eval("");
+    eval(""); // TODO terser has a bug and incorrectly remove this code, eval opts out
 } catch (e) {
     var ok2 = true;
 }

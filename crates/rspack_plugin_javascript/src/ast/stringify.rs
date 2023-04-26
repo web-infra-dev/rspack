@@ -32,7 +32,7 @@ pub fn stringify(ast: &Ast, devtool: &Devtool) -> Result<TransformOutput> {
         names: Default::default(),
       },
       false,
-      None,
+      program.comments.as_ref().map(|c| c as &dyn Comments),
       false,
     )
   })

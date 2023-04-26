@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 var _app = __webpack_require__("./app.js");
-(0, _app.something)();
+(0, _app.something)(); // a;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
