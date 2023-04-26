@@ -177,20 +177,20 @@ class Compiler {
 			get rspackVersion() {
 				return require("../package.json").version;
 			},
+			WebpackError: Error,
+			node: {
+				NodeTargetPlugin,
+				NodeTemplatePlugin
+			},
+			library: {
+				EnableLibraryPlugin
+			},
 			util: {
 				get createHash() {
 					return require("./util/createHash").createHash;
 				},
 				get cleverMerge() {
 					return require("./util/cleverMerge").cachedCleverMerge;
-				},
-				WebpackError: Error,
-				node: {
-					NodeTargetPlugin,
-					NodeTemplatePlugin
-				},
-				library: {
-					EnableLibraryPlugin
 				}
 				// get comparators() {
 				// 	return require("./util/comparators");
