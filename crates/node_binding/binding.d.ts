@@ -144,6 +144,9 @@ export interface RawPresetEnv {
   mode?: 'usage' | 'entry'
   coreJs?: string
 }
+export interface RawCodeGeneration {
+  keepComments: boolean
+}
 export interface RawBuiltins {
   html?: Array<RawHtmlPluginConfig>
   css?: RawCssPluginConfig
@@ -163,6 +166,7 @@ export interface RawBuiltins {
   banner?: Array<RawBannerConfig>
   pluginImport?: Array<RawPluginImportConfig>
   relay?: RawRelayConfig
+  codeGeneration?: RawCodeGeneration
 }
 export interface RawCacheOptions {
   type: string
@@ -187,6 +191,7 @@ export interface RawExperiments {
   incrementalRebuild: boolean
   asyncWebAssembly: boolean
   newSplitChunks: boolean
+  css: boolean
 }
 export interface RawExternalItem {
   type: "string" | "regexp" | "object" | "function"
@@ -567,7 +572,7 @@ export interface JsStatsModule {
   moduleType: string
   identifier: string
   name: string
-  id: string
+  id?: string
   chunks: Array<string>
   size: number
   issuer?: string
@@ -580,7 +585,7 @@ export interface JsStatsModule {
 export interface JsStatsModuleIssuer {
   identifier: string
   name: string
-  id: string
+  id?: string
 }
 export interface JsStatsModuleReason {
   moduleIdentifier?: string

@@ -354,10 +354,10 @@ impl<'a> HmrApiRewrite<'a> {
               auto_import_stmts.push(
                 std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
               );
-              *body = box BlockStmtOrExpr::BlockStmt(BlockStmt {
+              *body = Box::new(BlockStmtOrExpr::BlockStmt(BlockStmt {
                 span: DUMMY_SP,
                 stmts: auto_import_stmts,
-              });
+              }));
             }
           }
         }

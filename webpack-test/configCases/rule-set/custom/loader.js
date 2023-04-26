@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition<{ get(): string }>} */
+/** @type {import("@rspack/core").LoaderDefinition<{ get(): string }>} */
 module.exports = function (source) {
 	var query = this.query;
 	if (typeof query === "object" && typeof query.get === "function") {

@@ -188,7 +188,10 @@ impl ModuleGraphModule {
     self
       .dependencies
       .iter()
-      .filter(|id| !is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
+      .filter(|id| {
+        let dep = module_graph.dependency_by_id(id).expect("should have id");
+        !is_async_dependency(dep) && !dep.weak()
+      })
       .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
   }
@@ -202,21 +205,19 @@ impl ModuleGraphModule {
       .iter()
       .filter_map(|id| {
         let dep = module_graph.dependency_by_id(id).expect("should have id");
-        let is_async = is_async_dependency(dep);
+        if !is_async_dependency(dep) {
+          return None;
+        }
         let module = module_graph
           .module_identifier_by_dependency_id(id)
           .expect("should have a module here");
 
-        if is_async {
-          let chunk_name = dep
-            .as_ref()
-            .as_any()
-            .downcast_ref::<EsmDynamicImportDependency>()
-            .and_then(|f| f.name.as_deref());
-          Some((module, chunk_name))
-        } else {
-          None
-        }
+        let chunk_name = dep
+          .as_ref()
+          .as_any()
+          .downcast_ref::<EsmDynamicImportDependency>()
+          .and_then(|f| f.name.as_deref());
+        Some((module, chunk_name))
       })
       .collect()
   }
@@ -460,6 +461,10 @@ impl NormalModule {
 
   pub fn ast_or_source_mut(&mut self) -> &mut NormalModuleAstOrSource {
     &mut self.ast_or_source
+  }
+
+  pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
+    &mut self.loaders
   }
 }
 

@@ -1,7 +1,6 @@
 {
   "name": "example-loader-compat",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "private": true,
   "scripts": {
@@ -22,11 +21,16 @@
     "json-loader": "0.5.7",
     "raw-loader": "4.0.2",
     "stylus-loader": "7.1.0",
+    "css-loader": "6.7.3",
+    "style-loader": "3.3.2",
     "@mdx-js/loader": "2.2.1",
     "@svgr/webpack": "6.5.1",
     "url-loader": "4.1.1",
     "stylus": "0.59.0",
     "autoprefixer": "10.4.13",
-    "source-map-loader": "4.0.1"
+    "source-map-loader": "4.0.1",
+    "thread-loader": "4.0.1",
+    "ts-loader": "9.4.2",
+    "image-webpack-loader": "8.1.0"
   }
 }

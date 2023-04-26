@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = async function () {
 	const defaultResolve = this.getResolve({});
 	const overrideResolve = this.getResolve({

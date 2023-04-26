@@ -44,6 +44,7 @@ pub struct Builtins {
   pub dev_friendly_split_chunks: bool,
   pub plugin_import: Option<Vec<PluginImportConfig>>,
   pub relay: Option<RelayConfig>,
+  pub code_generation: Option<CodeGeneration>,
 }
 
 #[derive(Debug, Clone, Default, Hash)]
@@ -52,6 +53,11 @@ pub struct Minification {
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
   pub extract_comments: Option<String>,
+}
+
+#[derive(Debug, Copy, Clone, Default)]
+pub struct CodeGeneration {
+  pub keep_comments: bool,
 }
 
 #[derive(Debug, Clone)]

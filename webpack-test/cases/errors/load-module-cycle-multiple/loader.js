@@ -1,6 +1,6 @@
 const { promisify } = require("util");
 
-/** @type {import("../../../../").LoaderDefinitionFunction} */
+/** @type {import("@rspack/core").LoaderDefinitionFunction} */
 exports.default = function (source) {
 	const content = JSON.parse(source);
 	// content is one reference or an array of references
@@ -13,11 +13,11 @@ exports.default = function (source) {
 		// bug from https://github.com/webpack/webpack/issues/14379 doesn't occur if
 		// they are loaded in parallel.
 		const loadedRefs = []
-		for(const ref of refs) {
+		for (const ref of refs) {
 			try {
 				const source = await loadModulePromise("../loader!" + ref);
 				loadedRefs.push([ref, JSON.parse(source)]);
-			} catch(err) {
+			} catch (err) {
 				loadedRefs.push([ref, `err: ${err && err.message}`]);
 			}
 		}

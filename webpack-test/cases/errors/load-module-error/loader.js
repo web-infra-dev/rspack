@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinitionFunction} */
+/** @type {import("@rspack/core").LoaderDefinitionFunction} */
 exports.default = function (source) {
 	const callback = this.async();
 	const ref = JSON.parse(source);

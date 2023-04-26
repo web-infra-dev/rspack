@@ -335,6 +335,10 @@ module.exports = {
 				outputModule: {
 					description: "Allow output javascript files as module source type.",
 					type: "boolean"
+				},
+				newSplitChunks: {
+					description: "Enable new SplitChunksPlugin",
+					type: "boolean"
 				}
 			}
 		},

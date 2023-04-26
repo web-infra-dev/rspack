@@ -1,26 +1,10 @@
-import {
-	JsAssetInfo,
-	JsLoaderContext,
-	JsLoaderResult,
-	RawModuleRuleUse,
-	RawOptions
-} from "@rspack/binding";
+import { JsAssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
-import path from "path";
-import {
-	OriginalSource,
-	RawSource,
-	Source,
-	SourceMapSource
-} from "webpack-sources";
+
 import { Compiler } from "../compiler";
 import { Logger } from "../logging/Logger";
-import { concatErrorMsgAndStack, isPromiseLike } from "../util";
-import { createHash } from "../util/createHash";
 import Hash from "../util/hash";
-import { absolutify, contextify, makePathsRelative } from "../util/identifier";
-import { memoize } from "../util/memoize";
 import {
 	Mode,
 	Resolve,
@@ -67,21 +51,21 @@ export interface LoaderObject {
 	normalExecuted: boolean;
 }
 
-export interface LoaderContext {
+export interface LoaderContext<OptionsType = {}> {
 	version: 2;
 	resource: string;
 	resourcePath: string;
 	resourceQuery: string;
 	resourceFragment: string;
 	async(): (
-		err: Error | null,
-		content: string | Buffer,
+		err?: Error | null,
+		content?: string | Buffer,
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	) => void;
 	callback(
-		err: Error | null,
-		content: string | Buffer,
+		err?: Error | null,
+		content?: string | Buffer,
 		sourceMap?: string | SourceMap,
 		additionalData?: AdditionalData
 	): void;
@@ -115,7 +99,7 @@ export interface LoaderContext {
 	loaders: LoaderObject[];
 	mode?: Mode;
 	hot?: boolean;
-	getOptions(schema?: any): unknown;
+	getOptions(schema?: any): OptionsType;
 	resolve(
 		context: string,
 		request: string,
@@ -152,7 +136,7 @@ export interface LoaderContext {
 		contextify: (context: string, request: string) => string;
 		createHash: (algorithm?: string) => Hash;
 	};
-	query: unknown;
+	query: string | OptionsType;
 	data: unknown;
 	_compiler: Compiler;
 	_compilation: Compiler["compilation"];
@@ -163,6 +147,7 @@ export interface LoaderContext {
 	 * @internal
 	 */
 	__internal__isPitching: boolean;
+	// TODO: LoaderPluginLoaderContext
 }
 
 export interface LoaderResult {
@@ -175,6 +160,38 @@ export interface LoaderResult {
 	missingDependencies: string[];
 	buildDependencies: string[];
 }
+
+export interface LoaderDefinitionFunction<
+	OptionsType = {},
+	ContextAdditions = {}
+> {
+	(
+		this: LoaderContext<OptionsType> & ContextAdditions,
+		content: string,
+		sourceMap?: string | SourceMap,
+		additionalData?: AdditionalData
+	): string | void | Buffer | Promise<string | Buffer>;
+}
+
+export interface PitchLoaderDefinitionFunction<
+	OptionsType = {},
+	ContextAdditions = {}
+> {
+	(
+		this: LoaderContext<OptionsType> & ContextAdditions,
+		remainingRequest: string,
+		previousRequest: string,
+		data: object
+	): string | void | Buffer | Promise<string | Buffer>;
+}
+
+export type LoaderDefinition<
+	OptionsType = {},
+	ContextAdditions = {}
+> = LoaderDefinitionFunction<OptionsType, ContextAdditions> & {
+	raw?: false;
+	pitch?: PitchLoaderDefinitionFunction;
+};
 
 export function createRawModuleRuleUses(
 	uses: RuleSetUse,
@@ -198,41 +215,20 @@ function createRawModuleRuleUsesImpl(
 	if (!uses.length) {
 		return [];
 	}
-	const index = uses.findIndex(
-		use =>
+
+	return uses.map(use => {
+		if (
 			typeof use.loader === "string" &&
 			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
-	);
-	if (index < 0) {
-		// cast to non-null since we know `uses` is not empty
-		return [composeJsUse(uses, options, allUses)!];
-	}
-
-	const before = uses.slice(0, index);
-	const after = uses.slice(index + 1);
-	return [
-		composeJsUse(before, options, allUses),
-		createBuiltinUse(uses[index]),
-		...createRawModuleRuleUsesImpl(after, options, allUses)
-	].filter((item): item is RawModuleRuleUse => Boolean(item));
-}
-
-function composeJsUse(
-	uses: RuleSetLoaderWithOptions[],
-	options: ComposeJsUseOptions,
-	allUses: RuleSetLoaderWithOptions[]
-): RawModuleRuleUse | null {
-	if (!uses.length) {
-		return null;
-	}
-
-	return {
-		jsLoader: {
-			identifier: uses
-				.map(use => resolveStringifyLoaders(use, options.compiler))
-				.join("$")
+		) {
+			return createBuiltinUse(use);
 		}
-	};
+		return {
+			jsLoader: {
+				identifier: resolveStringifyLoaders(use, options.compiler)
+			}
+		};
+	});
 }
 
 function resolveStringifyLoaders(
@@ -296,16 +292,6 @@ function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {
 		options: JSON.stringify(use.options)
 	};
 }
-
-export const toBuffer = (bufLike: string | Buffer): Buffer => {
-	if (Buffer.isBuffer(bufLike)) {
-		return bufLike;
-	} else if (typeof bufLike === "string") {
-		return Buffer.from(bufLike);
-	}
-
-	throw new Error("Buffer or string expected");
-};
 
 export function isUseSourceMap(devtool: RawOptions["devtool"]): boolean {
 	return (

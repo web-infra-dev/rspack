@@ -196,7 +196,7 @@ impl SplitChunksPlugin {
       .flat_map(|module| {
         let belong_to_chunks = compilation
           .chunk_graph
-          .get_modules_chunks((*module).identifier());
+          .get_module_chunks((*module).identifier());
 
         // A module may match multiple CacheGroups
         self.cache_groups.par_iter().enumerate().filter_map(

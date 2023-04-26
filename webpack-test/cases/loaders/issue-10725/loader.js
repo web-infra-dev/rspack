@@ -2,7 +2,7 @@ const { getRemainingRequest, stringifyRequest } = require("loader-utils");
 
 const loaderPath = require.resolve("./loader");
 
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	if (this.query === "?load") {
 		return `

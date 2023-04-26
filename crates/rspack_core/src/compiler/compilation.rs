@@ -873,6 +873,12 @@ impl Compilation {
         .modules()
         .par_iter()
         .filter(filter_op)
+        .filter(|(module_identifier, _)| {
+          let runtimes = compilation
+            .chunk_graph
+            .get_module_runtimes(**module_identifier, &compilation.chunk_by_ukey);
+          !runtimes.is_empty()
+        })
         .map(|(module_identifier, module)| {
           compilation
             .cache

@@ -36,7 +36,6 @@ export class BuildCommand implements RspackCommand {
 						process.exit(2);
 					}
 					if (stats && stats.hasErrors()) {
-						logger.error(stats.toString({ errors: true }));
 						process.exitCode = 1;
 					}
 					if (!compiler || !stats) {

@@ -25,6 +25,8 @@ import { getRawOptions } from "./config/adapter";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { runLoader } from "./loader-runner";
+import CacheFacade from "./lib/CacheFacade";
+import Cache from "./lib/Cache";
 
 class EntryPlugin {
 	apply() {}
@@ -56,6 +58,8 @@ class Compiler {
 	watchMode: boolean;
 	context: string;
 	modifiedFiles?: ReadonlySet<string>;
+	cache: Cache;
+	compilerPath: string;
 	removedFiles?: ReadonlySet<string>;
 	hooks: {
 		done: tapable.AsyncSeriesHook<Stats>;
@@ -87,6 +91,8 @@ class Compiler {
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
 		this.options = options;
+		this.cache = new Cache();
+		this.compilerPath = "";
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
 			EntryPlugin, // modernjs/server use this to inject dev-client
@@ -157,6 +163,18 @@ class Compiler {
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
 		this.#disabledHooks = [];
+	}
+
+	/**
+	 * @param {string} name cache name
+	 * @returns {CacheFacade} the cache facade instance
+	 */
+	getCache(name: string): CacheFacade {
+		return new CacheFacade(
+			this.cache,
+			`${this.compilerPath}${name}`,
+			this.options.output.hashFunction
+		);
 	}
 
 	/**

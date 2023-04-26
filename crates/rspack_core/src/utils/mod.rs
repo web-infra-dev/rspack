@@ -131,13 +131,7 @@ pub fn stringify_map(map: &HashMap<String, String>) -> String {
   format!(
     r#"{{{}}}"#,
     map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#""{}": "{}","#,
-          cur,
-          map.get(cur).expect("get key from map")
-        )
-        .as_str()
+      prev + format!(r#""{}": {},"#, cur, map.get(cur).expect("get key from map")).as_str()
     })
   )
 }

@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function (source) {
 	const callback = this.async();
 	const error = new Error("this is a callback error");

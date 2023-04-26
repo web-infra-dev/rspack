@@ -46,11 +46,11 @@ impl DependencyScanner<'_> {
   fn add_import(&mut self, module_decl: &ModuleDecl, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
     if let ModuleDecl::Import(import_decl) = module_decl {
       let source = import_decl.src.value.clone();
-      self.add_dependency(box EsmImportDependency::new(
+      self.add_dependency(Box::new(EsmImportDependency::new(
         source,
         Some(import_decl.span.into()),
         as_parent_path(ast_path),
-      ));
+      )));
     }
   }
   fn add_require(&mut self, call_expr: &CallExpr, ast_path: &AstNodePath<AstParentNodeRef<'_>>) {
@@ -64,15 +64,15 @@ impl DependencyScanner<'_> {
             if let Some(expr) = call_expr.args.get(0) {
               if expr.spread.is_none() {
                 if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
-                  self.add_dependency(box CommonJSRequireDependency::new(
+                  self.add_dependency(Box::new(CommonJSRequireDependency::new(
                     s.value.clone(),
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
-                  ));
+                  )));
                 }
 
                 if let Some((context, reg)) = scanner_context_module(expr.expr.as_ref()) {
-                  self.add_dependency(box CommonJsRequireContextDependency::new(
+                  self.add_dependency(Box::new(CommonJsRequireContextDependency::new(
                     ContextOptions {
                       mode: ContextMode::Sync,
                       recursive: true,
@@ -85,7 +85,7 @@ impl DependencyScanner<'_> {
                     },
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
-                  ));
+                  )));
                 }
               }
             }
@@ -134,12 +134,12 @@ impl DependencyScanner<'_> {
           match dyn_imported.expr.as_ref() {
             Expr::Lit(Lit::Str(imported)) => {
               let chunk_name = self.try_extract_webpack_chunk_name(&imported.span);
-              self.add_dependency(box EsmDynamicImportDependency::new(
+              self.add_dependency(Box::new(EsmDynamicImportDependency::new(
                 imported.value.clone(),
                 Some(node.span.into()),
                 as_parent_path(ast_path),
                 chunk_name,
-              ));
+              )));
             }
             Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
               let chunk_name = self.try_extract_webpack_chunk_name(&tpl.span);
@@ -151,16 +151,16 @@ impl DependencyScanner<'_> {
                   .raw
                   .to_string(),
               );
-              self.add_dependency(box EsmDynamicImportDependency::new(
+              self.add_dependency(Box::new(EsmDynamicImportDependency::new(
                 request,
                 Some(node.span.into()),
                 as_parent_path(ast_path),
                 chunk_name,
-              ));
+              )));
             }
             _ => {
               if let Some((context, reg)) = scanner_context_module(dyn_imported.expr.as_ref()) {
-                self.add_dependency(box ImportContextDependency::new(
+                self.add_dependency(Box::new(ImportContextDependency::new(
                   ContextOptions {
                     mode: ContextMode::Lazy,
                     recursive: true,
@@ -173,7 +173,7 @@ impl DependencyScanner<'_> {
                   },
                   Some(node.span.into()),
                   as_parent_path(ast_path),
-                ));
+                )));
               }
             }
           }
@@ -216,11 +216,11 @@ impl DependencyScanner<'_> {
             },
           ) = (first, second)
           {
-            self.add_dependency(box URLDependency::new(
+            self.add_dependency(Box::new(URLDependency::new(
               path.value.clone(),
               Some(new_expr.span.into()),
               as_parent_path(ast_path),
-            ))
+            )))
           }
         }
       }
@@ -236,21 +236,21 @@ impl DependencyScanner<'_> {
       ModuleDecl::ExportNamed(node) => {
         if let Some(src) = &node.src {
           // TODO: this should ignore from code generation or use a new dependency instead
-          self.add_dependency(box EsmExportDependency::new(
+          self.add_dependency(Box::new(EsmExportDependency::new(
             src.value.clone(),
             Some(node.span.into()),
             as_parent_path(ast_path),
-          ));
+          )));
         }
       }
       ModuleDecl::ExportAll(node) => {
         // export * from './other'
         // TODO: this should ignore from code generation or use a new dependency instead
-        self.add_dependency(box EsmExportDependency::new(
+        self.add_dependency(Box::new(EsmExportDependency::new(
           node.src.value.clone(),
           Some(node.span.into()),
           as_parent_path(ast_path),
-        ));
+        )));
       }
       _ => {}
     }
@@ -297,7 +297,7 @@ impl DependencyScanner<'_> {
         } else {
           ContextMode::Sync
         };
-        self.add_dependency(box RequireContextDependency::new(
+        self.add_dependency(Box::new(RequireContextDependency::new(
           ContextOptions {
             mode,
             recursive,
@@ -310,7 +310,7 @@ impl DependencyScanner<'_> {
           },
           Some(node.span.into()),
           as_parent_path(ast_path),
-        ));
+        )));
       }
     }
   }
@@ -365,15 +365,15 @@ impl VisitAstPath for DependencyScanner<'_> {
       if ident.span.ctxt == *self.unresolved_ctxt && ident.sym.as_ref() == WEBPACK_PUBLIC_PATH {
         let mut new_expr = expr.clone();
         if let Some(e) = new_expr.as_mut_assign() {
-          e.left = PatOrExpr::Pat(box Pat::Ident(
+          e.left = PatOrExpr::Pat(Box::new(Pat::Ident(
             quote_ident!(RuntimeGlobals::PUBLIC_PATH).into(),
-          ))
+          )))
         };
-        self.add_presentational_dependency(box ConstDependency::new(
+        self.add_presentational_dependency(Box::new(ConstDependency::new(
           new_expr,
           Some(RuntimeGlobals::PUBLIC_PATH),
           as_parent_path(ast_path),
-        ));
+        )));
       }
     }
 
@@ -382,53 +382,53 @@ impl VisitAstPath for DependencyScanner<'_> {
       if ident.span.ctxt == *self.unresolved_ctxt || ident.span.ctxt == SyntaxContext::empty() {
         match ident.sym.as_ref() as &str {
           WEBPACK_HASH => {
-            self.add_presentational_dependency(box ConstDependency::new(
+            self.add_presentational_dependency(Box::new(ConstDependency::new(
               quote!(
                 "$name()" as Expr,
                 name = quote_ident!(RuntimeGlobals::GET_FULL_HASH)
               ),
               Some(RuntimeGlobals::GET_FULL_HASH),
               as_parent_path(ast_path),
-            ));
+            )));
           }
           WEBPACK_PUBLIC_PATH => {
-            self.add_presentational_dependency(box ConstDependency::new(
+            self.add_presentational_dependency(Box::new(ConstDependency::new(
               Expr::Ident(quote_ident!(RuntimeGlobals::PUBLIC_PATH)),
               Some(RuntimeGlobals::PUBLIC_PATH),
               as_parent_path(ast_path),
-            ));
+            )));
           }
           WEBPACK_MODULES => {
-            self.add_presentational_dependency(box ConstDependency::new(
+            self.add_presentational_dependency(Box::new(ConstDependency::new(
               Expr::Ident(quote_ident!(RuntimeGlobals::MODULE_FACTORIES)),
               Some(RuntimeGlobals::MODULE_FACTORIES),
               as_parent_path(ast_path),
-            ));
+            )));
           }
           WEBPACK_RESOURCE_QUERY => {
             if let Some(resource_query) = &self.resource_data.resource_query {
-              self.add_presentational_dependency(box ConstDependency::new(
+              self.add_presentational_dependency(Box::new(ConstDependency::new(
                 Expr::Lit(Lit::Str(quote_str!(resource_query.to_owned()))),
                 None,
                 as_parent_path(ast_path),
-              ));
+              )));
             }
           }
           _ => {}
         }
       }
     } else if expr_matcher::is_require_cache(expr) {
-      self.add_presentational_dependency(box ConstDependency::new(
+      self.add_presentational_dependency(Box::new(ConstDependency::new(
         *member_expr!(DUMMY_SP, __webpack_require__.c),
         Some(RuntimeGlobals::MODULE_CACHE),
         as_parent_path(ast_path),
-      ));
+      )));
     } else if expr_matcher::is_webpack_module_id(expr) {
-      self.add_presentational_dependency(box ConstDependency::new(
+      self.add_presentational_dependency(Box::new(ConstDependency::new(
         *member_expr!(DUMMY_SP, module.id),
         Some(RuntimeGlobals::MODULE_CACHE),
         as_parent_path(ast_path),
-      ));
+      )));
     }
     expr.visit_children_with_path(self, ast_path);
   }

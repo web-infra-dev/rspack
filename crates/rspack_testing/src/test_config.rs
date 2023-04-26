@@ -128,6 +128,12 @@ pub struct Minification {
   pub extract_comments: Option<String>,
 }
 
+#[derive(Debug, Default, JsonSchema, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CodeGeneration {
+  pub keep_comments: bool,
+}
+
 #[derive(Debug, JsonSchema, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PresetEnv {
@@ -157,6 +163,8 @@ pub struct Builtins {
   pub css: Css,
   #[serde(default)]
   pub dev_friendly_split_chunks: bool,
+  #[serde(default)]
+  pub code_generation: Option<CodeGeneration>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default)]
@@ -419,6 +427,9 @@ impl TestConfig {
           extract_comments: op.extract_comments,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),
+        code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {
+          keep_comments: op.keep_comments,
+        }),
         ..Default::default()
       },
       module: c::ModuleOptions {

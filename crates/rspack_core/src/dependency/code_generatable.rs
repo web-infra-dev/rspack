@@ -205,9 +205,9 @@ macro_rules! create_javascript_visitor {
         (
             $crate::CodeGeneratableAstPath::from($ast_path),
             $crate::CodeGeneratableVisitorBuilder::JavaScript(
-              box box Visitor {
+              Box::new(Box::new(Visitor {
                 $name: move |$arg: &mut swc_core::ecma::ast::$ty| $b,
-              } as Box<dyn $crate::JavaScriptVisitorBuilder>
+              })) as Box<dyn $crate::JavaScriptVisitorBuilder>
             ),
         )
     }};
@@ -289,9 +289,9 @@ macro_rules! create_css_visitor {
       (
           $crate::CodeGeneratableAstPath::from($ast_path),
           $crate::CodeGeneratableVisitorBuilder::Css(
-              box box Visitor {
+              Box::new(Box::new(Visitor {
                   $name: move |$arg: &mut swc_core::css::ast::$ty| $b,
-              } as Box<dyn $crate::CssVisitorBuilder>
+              })) as Box<dyn $crate::CssVisitorBuilder>
           ),
       )
   }};
@@ -319,9 +319,9 @@ macro_rules! create_css_visitor {
       (
           $crate::CodeGeneratableAstPath::Css(Vec::new()),
           $crate::CodeGeneratableVisitorBuilder::Css(
-              box box Visitor {
+              Box::new(Box::new(Visitor {
                   visit_mut_stylesheet: move |$arg: &mut swc_core::css::ast::Stylesheet| $b,
-              } as Box<dyn $crate::CssVisitorBuilder>
+              })) as Box<dyn $crate::CssVisitorBuilder>
           ),
       )
   }};

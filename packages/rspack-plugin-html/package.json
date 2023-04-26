@@ -1,12 +1,12 @@
 {
   "name": "@rspack/plugin-html",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "license": "MIT",
   "description": "HTML plugin for rspack",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "scripts": {
-    "build": "rimraf lib/ && tsc",
+    "build": "tsc --build --force",
     "dev": "tsc -w",
     "test": "jest --runInBand --verbose"
   },

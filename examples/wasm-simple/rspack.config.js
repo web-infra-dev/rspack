@@ -3,11 +3,11 @@
  */
 module.exports = {
 	entry: {
-		main: './example.js'
+		main: "./example.js"
 	},
 	mode: "development",
 	output: {
-		webassemblyModuleFilename: "[hash].wasm",
+		webassemblyModuleFilename: "[hash].wasm"
 	},
 	experiments: {
 		asyncWebAssembly: true

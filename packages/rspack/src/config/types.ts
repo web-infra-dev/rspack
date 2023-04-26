@@ -15,7 +15,11 @@ import * as oldBuiltins from "./builtins";
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
-export type { LoaderContext } from "./adapter-rule-use";
+export type {
+	LoaderContext,
+	LoaderDefinitionFunction,
+	LoaderDefinition
+} from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
 
@@ -74,6 +78,8 @@ export interface RspackOptionsNormalized {
 	devServer?: DevServer;
 	builtins: Builtins;
 }
+
+export type HashFunction = string | typeof import("../util/hash");
 
 ///// Name /////
 export type Name = string;
@@ -241,6 +247,10 @@ export interface OutputNormalized {
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: TrustedTypes;
+	/**
+	 * Algorithm used for generation the hash (see node.js crypto package).
+	 */
+	hashFunction?: HashFunction;
 }
 
 ///// Resolve /////
@@ -598,6 +608,7 @@ export interface Experiments {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
+	css?: boolean;
 }
 
 ///// Watch /////

@@ -1,5 +1,6 @@
 mod async_module;
 mod css_loading;
+mod define_property_getters;
 mod ensure_chunk;
 mod export_webpack_require;
 mod get_chunk_filename;
@@ -21,6 +22,7 @@ mod utils;
 pub use async_module::AsyncRuntimeModule;
 pub use create_script_url::CreateScriptUrlRuntimeModule;
 pub use css_loading::CssLoadingRuntimeModule;
+pub use define_property_getters::DefinePropertyGettersRuntimeModule;
 pub use ensure_chunk::EnsureChunkRuntimeModule;
 pub use export_webpack_require::ExportWebpackRequireRuntimeModule;
 pub use get_chunk_filename::GetChunkFilenameRuntimeModule;

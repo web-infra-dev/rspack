@@ -609,9 +609,9 @@ mod test {
     let a_id = a.identifier();
     let b_id = b.identifier();
     let a_to_b = edge!(Some(a_id), b_id.as_str());
-    add_module_to_graph(&mut mg, box a);
-    add_module_to_graph(&mut mg, box b);
-    let a_to_b_id = link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, box (a_to_b));
+    add_module_to_graph(&mut mg, Box::new(a));
+    add_module_to_graph(&mut mg, Box::new(b));
+    let a_to_b_id = link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, Box::new(a_to_b));
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
@@ -622,8 +622,8 @@ mod test {
     let c = node!("c");
     let c_id = c.identifier();
     let b_to_c = edge!(Some(b_id), c_id.as_str());
-    add_module_to_graph(&mut mg, box c);
-    let b_to_c_id = link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, box (b_to_c));
+    add_module_to_graph(&mut mg, Box::new(c));
+    let b_to_c_id = link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, Box::new(b_to_c));
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);

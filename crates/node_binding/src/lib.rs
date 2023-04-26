@@ -149,7 +149,7 @@ impl Rspack {
 
     let js_loader_runner: JsLoaderRunner = JsLoaderRunner::try_from(js_loader_runner)?;
     plugins.push(
-      InlineLoaderResolver {
+      JsLoaderResolver {
         js_loader_runner: js_loader_runner.clone(),
       }
       .boxed(),

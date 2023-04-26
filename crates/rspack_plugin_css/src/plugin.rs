@@ -433,7 +433,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mut dependencies = if let Some(locals) = &locals && !locals.is_empty() {
       let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|name| if let CssClassName::Import { from, .. } = name {
-        Some(box CssComposeDependency::new(from.to_string(), None) as Box<dyn ModuleDependency>)
+        Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as Box<dyn ModuleDependency>)
       } else {
         None
       });

@@ -21,10 +21,9 @@ import {
 	LoaderContext,
 	LoaderObject,
 	isUseSimpleSourceMap,
-	isUseSourceMap,
-	toBuffer
+	isUseSourceMap
 } from "../config/adapter-rule-use";
-import { concatErrorMsgAndStack, isNil } from "../util";
+import { concatErrorMsgAndStack, isNil, toBuffer, toObject } from "../util";
 import { absolutify, contextify, makePathsRelative } from "../util/identifier";
 import { memoize } from "../util/memoize";
 import { createHash } from "../util/createHash";
@@ -458,7 +457,6 @@ export async function runLoader(
 		},
 		createHash: type => {
 			return createHash(
-				// @ts-expect-error hashFunction should also available in rust side, then we can make the type right
 				type || compiler.compilation.outputOptions.hashFunction
 			);
 		}
@@ -551,7 +549,15 @@ export async function runLoader(
 			loaderContext.loaderIndex = loaderContext.loaders.length - 1;
 			iterateNormalLoaders(
 				loaderContext,
-				[rawContext.content, rawContext.sourceMap, rawContext.additionalData],
+				[
+					rawContext.content,
+					isNil(rawContext.sourceMap)
+						? undefined
+						: toObject(rawContext.sourceMap),
+					isNil(rawContext.additionalData)
+						? undefined
+						: toObject(rawContext.additionalData)
+				],
 				(err: Error, result: any[]) => {
 					if (err) {
 						return reject(err);

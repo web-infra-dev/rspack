@@ -10,8 +10,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::runtime::{
-  generate_chunk_entry_code, render_chunk_modules, render_chunk_runtime_modules,
-  render_runtime_modules,
+  generate_chunk_entry_code, render_chunk_runtime_modules, render_runtime_modules,
 };
 
 use super::update_hash_for_entry_startup;
@@ -75,13 +74,9 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     }
 
     self.name().hash(&mut args.hasher);
-
-    args
-      .compilation
-      .options
-      .output
-      .global_object
-      .hash(&mut args.hasher);
+    let output = &args.compilation.options.output;
+    output.global_object.hash(&mut args.hasher);
+    output.chunk_loading_global.hash(&mut args.hasher);
 
     update_hash_for_entry_startup(
       args.hasher,
@@ -115,7 +110,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
         global_object,
         chunk.expect_id()
       )));
-      source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+      source.add(args.module_source.clone());
       if !runtime_modules.is_empty() {
         source.add(RawSource::Source(",".to_string()));
         source.add(render_chunk_runtime_modules(
@@ -135,7 +130,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
         chunk_loading_global,
         chunk.expect_id(),
       )));
-      source.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+      source.add(args.module_source.clone());
       let has_entry = chunk.has_entry_module(&args.compilation.chunk_graph);
       if has_entry || !runtime_modules.is_empty() {
         source.add(RawSource::from(","));
