@@ -16,7 +16,8 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compiler } from "../compiler";
+import { Compiler, NormalModule } from "../compiler";
+import { Compilation } from "../compilation";
 import {
 	LoaderContext,
 	LoaderObject,
@@ -515,6 +516,12 @@ export async function runLoader(
 		}
 		return options;
 	};
+
+	let compilation: Compilation | undefined = compiler.compilation;
+	while (compilation) {
+		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);
+		compilation = compilation.compiler.parentCompilation;
+	}
 
 	return new Promise((resolve, reject) => {
 		if (isPitching) {
