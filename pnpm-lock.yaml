@@ -340,12 +340,14 @@ importers:
       '@rspack/cli': workspace:*
       '@rspack/plugin-html': workspace:*
       copy-webpack-plugin: 5.1.2
+      generate-package-json-webpack-plugin: ^2.6.0
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-html': link:../../packages/rspack-plugin-html
       copy-webpack-plugin: 5.1.2
+      generate-package-json-webpack-plugin: 2.6.0
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
 
@@ -10832,6 +10834,10 @@ packages:
     dependencies:
       readable-stream: 1.0.34
     dev: false
+
+  /generate-package-json-webpack-plugin/2.6.0:
+    resolution: {integrity: sha512-JJS6CTkCIJeiqJay/mqrO005vbyLeozcyQvJf5AbToN7zsBewlu1Zk4dLiTV1+S/jJUUFjjn/ng9rjdbsJYyXw==}
+    dev: true
 
   /generic-names/4.0.0:
     resolution: {integrity: sha512-ySFolZQfw9FoDb3ed9d80Cm9f0+r7qj+HJkWjeD9RBfpxEVTlVhol+gvaQB/78WbwYfbnNh8nWHHBSlg072y6A==}
