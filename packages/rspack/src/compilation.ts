@@ -709,6 +709,12 @@ export class Compilation {
 			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
 				return this.hooks.processAssets.stageReport;
 			default:
+				if (stage < Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL) {
+					return this.hooks.processAssets.stageAdditional;
+				}
+				if (stage > Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL) {
+					return this.hooks.processAssets.stageReport;
+				}
 				throw new Error(
 					"processAssets hook uses custom stage number is not supported."
 				);
