@@ -41,7 +41,6 @@ var _somemodule = __webpack_require__("./some-module.js");
 function getType(obj) {
     return obj.type;
 }
-// Local functions
 function doSomethingWithBlock(obj) {
     return _somemodule.Block.doSomething(obj);
 }
@@ -51,7 +50,6 @@ function doSomethingWithInline(obj) {
 function doSomethingWithDocument(obj) {
     return _somemodule.Document.doSomething(obj);
 }
-// Exported functions
 function doSomething(obj) {
     const type = getType(obj);
     switch(type){

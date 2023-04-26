@@ -143,6 +143,9 @@ export interface RawPresetEnv {
   mode?: 'usage' | 'entry'
   coreJs?: string
 }
+export interface RawCodeGeneration {
+  keepComments: boolean
+}
 export interface RawBuiltins {
   html?: Array<RawHtmlPluginConfig>
   css?: RawCssPluginConfig
@@ -162,6 +165,7 @@ export interface RawBuiltins {
   banner?: Array<RawBannerConfig>
   pluginImport?: Array<RawPluginImportConfig>
   relay?: RawRelayConfig
+  codeGeneration?: RawCodeGeneration
 }
 export interface RawCacheOptions {
   type: string

@@ -406,7 +406,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .try_into_ast()?
         .try_into_javascript()?;
       run_after_pass(&mut ast, module, generate_context)?;
-      let output = crate::ast::stringify(&ast, &generate_context.compilation.options.devtool)?;
+      let keep_comments = generate_context
+        .compilation
+        .options
+        .builtins
+        .code_generation
+        .as_ref()
+        .map(|cg| cg.keep_comments);
+      let output = crate::ast::stringify(
+        &ast,
+        &generate_context.compilation.options.devtool,
+        keep_comments,
+      )?;
       if let Some(map) = output.map {
         Ok(GenerationResult {
           ast_or_source: SourceMapSource::new(SourceMapSourceOptions {
