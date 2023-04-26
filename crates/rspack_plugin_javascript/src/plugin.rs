@@ -704,7 +704,7 @@ impl Plugin for JsPlugin {
 
       all_extracted_comments
         .lock()
-        .unwrap()
+        .expect("all_extracted_comments lock failed")
         .clone()
         .into_iter()
         .for_each(|(_, comments)| {

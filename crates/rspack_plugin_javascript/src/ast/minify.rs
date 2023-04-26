@@ -190,6 +190,7 @@ pub fn minify(
         if let Some(extract_comments) = extract_comments {
           let comments_file_name = filename.to_string() + ".License.txt";
           let reg = if extract_comments.eq("true") {
+            // copied from terser-webpack-plugin
             Regex::new(r"@preserve|@lic|@cc_on|^\**!")
           } else {
             Regex::new(&extract_comments[1..extract_comments.len() - 2])
@@ -221,13 +222,16 @@ pub fn minify(
             });
           }
           if source.size() > 0 {
-            all_extract_comments.lock().unwrap().insert(
-              filename.to_string(),
-              ExtractedCommentsInfo {
-                source: source.boxed(),
-                comments_file_name,
-              },
-            );
+            all_extract_comments
+              .lock()
+              .expect("all_extract_comments lock failed")
+              .insert(
+                filename.to_string(),
+                ExtractedCommentsInfo {
+                  source: source.boxed(),
+                  comments_file_name,
+                },
+              );
           }
           comments = SingleThreadedComments::default();
         } else {
