@@ -132,7 +132,7 @@ class Compiler {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
 		// TODO: CompilationParams
-		compilation: tapable.SyncHook<Compilation>;
+		compilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
@@ -225,7 +225,10 @@ class Compiler {
 				"compilation",
 				"params"
 			]),
-			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
+			compilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+				"compilation",
+				"params"
+			]),
 			invalid: new SyncHook(["filename", "changeTime"]),
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
@@ -660,7 +663,9 @@ class Compiler {
 
 	#compilation(native: binding.JsCompilation) {
 		// TODO: implement this based on the child compiler impl.
-		this.hooks.compilation.call(this.compilation);
+		this.hooks.compilation.call(this.compilation, {
+			normalModuleFactory: this.compilation.normalModuleFactory!
+		});
 
 		this.#updateDisabledHooks();
 	}
