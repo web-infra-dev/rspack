@@ -445,99 +445,101 @@ describe("snapshots", () => {
 	);
 	test("no mode provided", { mode: undefined }, e =>
 		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
+- Expected
++ Received
 
-		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "dropConsole": false,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+     },
-		@@ ... @@
-		-     "treeShaking": false,
-		+     "treeShaking": true,
-		@@ ... @@
-		-   "mode": "none",
-		+   "mode": undefined,
-		@@ ... @@
-		-     "minimize": false,
-		+     "minimize": true,
-		@@ ... @@
-		-     "moduleIds": "named",
-		+     "moduleIds": "deterministic",
-		@@ ... @@
-		-     "sideEffects": "flag",
-		+     "sideEffects": true,
-		@@ ... @@
-		-       "enforceSizeThreshold": 30000,
-		-       "maxAsyncRequests": Infinity,
-		-       "maxInitialRequests": Infinity,
-		+       "enforceSizeThreshold": 50000,
-		+       "maxAsyncRequests": 30,
-		+       "maxInitialRequests": 30,
-		@@ ... @@
-		-       "minSize": 10000,
-		+       "minSize": 20000,
-		@@ ... @@
-		-       "hash": false,
-		+       "hash": true,
-		@@ ... @@
-		-       "hash": false,
-		+       "hash": true,
-	`)
+@@ ... @@
+-         "localIdentName": "[path][name][ext]__[local]",
++         "localIdentName": "[hash]",
+@@ ... @@
+-     "minifyOptions": undefined,
++     "minifyOptions": Object {
++       "dropConsole": false,
++       "extractComments": "true",
++       "passes": 1,
++       "pureFuncs": Array [],
++     },
+@@ ... @@
+-     "treeShaking": false,
++     "treeShaking": true,
+@@ ... @@
+-   "mode": "none",
++   "mode": undefined,
+@@ ... @@
+-     "minimize": false,
++     "minimize": true,
+@@ ... @@
+-     "moduleIds": "named",
++     "moduleIds": "deterministic",
+@@ ... @@
+-     "sideEffects": "flag",
++     "sideEffects": true,
+@@ ... @@
+-       "enforceSizeThreshold": 30000,
+-       "maxAsyncRequests": Infinity,
+-       "maxInitialRequests": Infinity,
++       "enforceSizeThreshold": 50000,
++       "maxAsyncRequests": 30,
++       "maxInitialRequests": 30,
+@@ ... @@
+-       "minSize": 10000,
++       "minSize": 20000,
+@@ ... @@
+-       "hash": false,
++       "hash": true,
+@@ ... @@
+-       "hash": false,
++       "hash": true,
+`)
 	);
 	test("production", { mode: "production" }, e =>
 		e.toMatchInlineSnapshot(`
-		- Expected
-		+ Received
+- Expected
++ Received
 
-		@@ ... @@
-		-         "localIdentName": "[path][name][ext]__[local]",
-		+         "localIdentName": "[hash]",
-		@@ ... @@
-		-     "minifyOptions": undefined,
-		+     "minifyOptions": Object {
-		+       "dropConsole": false,
-		+       "passes": 1,
-		+       "pureFuncs": Array [],
-		+     },
-		@@ ... @@
-		-     "treeShaking": false,
-		+     "treeShaking": true,
-		@@ ... @@
-		-   "mode": "none",
-		+   "mode": "production",
-		@@ ... @@
-		-     "minimize": false,
-		+     "minimize": true,
-		@@ ... @@
-		-     "moduleIds": "named",
-		+     "moduleIds": "deterministic",
-		@@ ... @@
-		-     "sideEffects": "flag",
-		+     "sideEffects": true,
-		@@ ... @@
-		-       "enforceSizeThreshold": 30000,
-		-       "maxAsyncRequests": Infinity,
-		-       "maxInitialRequests": Infinity,
-		+       "enforceSizeThreshold": 50000,
-		+       "maxAsyncRequests": 30,
-		+       "maxInitialRequests": 30,
-		@@ ... @@
-		-       "minSize": 10000,
-		+       "minSize": 20000,
-		@@ ... @@
-		-       "hash": false,
-		+       "hash": true,
-		@@ ... @@
-		-       "hash": false,
-		+       "hash": true,
-	`)
+@@ ... @@
+-         "localIdentName": "[path][name][ext]__[local]",
++         "localIdentName": "[hash]",
+@@ ... @@
+-     "minifyOptions": undefined,
++     "minifyOptions": Object {
++       "dropConsole": false,
++       "extractComments": "true",
++       "passes": 1,
++       "pureFuncs": Array [],
++     },
+@@ ... @@
+-     "treeShaking": false,
++     "treeShaking": true,
+@@ ... @@
+-   "mode": "none",
++   "mode": "production",
+@@ ... @@
+-     "minimize": false,
++     "minimize": true,
+@@ ... @@
+-     "moduleIds": "named",
++     "moduleIds": "deterministic",
+@@ ... @@
+-     "sideEffects": "flag",
++     "sideEffects": true,
+@@ ... @@
+-       "enforceSizeThreshold": 30000,
+-       "maxAsyncRequests": Infinity,
+-       "maxInitialRequests": Infinity,
++       "enforceSizeThreshold": 50000,
++       "maxAsyncRequests": 30,
++       "maxInitialRequests": 30,
+@@ ... @@
+-       "minSize": 10000,
++       "minSize": 20000,
+@@ ... @@
+-       "hash": false,
++       "hash": true,
+@@ ... @@
+-       "hash": false,
++       "hash": true,
+`)
 	);
 	test("development", { mode: "development" }, e =>
 		e.toMatchInlineSnapshot(`
