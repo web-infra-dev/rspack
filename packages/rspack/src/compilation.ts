@@ -598,6 +598,15 @@ export class Compilation {
 		);
 	}
 
+	get modules() {
+		return this.getModules().map(item => {
+			return {
+				identifier: () => item.moduleIdentifier,
+				...item
+			};
+		});
+	}
+
 	getModules(): JsModule[] {
 		return this.#inner.getModules();
 	}

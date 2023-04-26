@@ -3,6 +3,7 @@ const BundleAnalyzerPlugin =
 const CopyPlugin = require("copy-webpack-plugin");
 const HtmlPlugin = require("@rspack/plugin-html").default;
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
+const GeneratePackageJsonPlugin = require('generate-package-json-webpack-plugin')
 /**
  * @type {import('@rspack/cli').Configuration}
  */
@@ -33,6 +34,18 @@ module.exports = {
 		new StatsWriterPlugin({
 			stats: { all: true },
 			filename: "stats.json"
-		})
+		}),
+		new GeneratePackageJsonPlugin(basePackage, {})
 	]
 };
+
+
+
+var basePackage = {
+  "name": "my-nodejs-module",
+  "version": "1.0.0",
+  "main": "./bundle.js",
+  "engines": {
+    "node": ">= 14"
+  }
+}
