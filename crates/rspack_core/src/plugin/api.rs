@@ -96,6 +96,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn context_module_before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    Ok(None)
+  }
+
   async fn module(&self, _ctx: PluginContext, _args: &ModuleArgs) -> PluginModuleHookOutput {
     Ok(None)
   }

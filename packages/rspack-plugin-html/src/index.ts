@@ -7,19 +7,19 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/jantimon/html-webpack-plugin/blob/d5ce5a8f2d12a2450a65ec51c285dd54e36cd921/LICENSE
  */
-import type { Compiler, Compilation, RspackPluginInstance } from "@rspack/core";
-import type { Options as MinifyOptions } from "html-minifier-terser";
+import type { Compilation, Compiler, RspackPluginInstance } from "@rspack/core";
 import assert from "assert";
-import path from "path";
 import fs from "fs";
+import type { Options as MinifyOptions } from "html-minifier-terser";
+import path from "path";
 import chunkSorter from "./chunkSorter";
-import * as template from "./template";
 import { getHtmlRspackPluginHooks } from "./hooks";
 import {
 	HtmlTagArray,
-	htmlTagObjectToString,
-	createHtmlTagObject
+	createHtmlTagObject,
+	htmlTagObjectToString
 } from "./html-tags";
+import * as template from "./template";
 
 export type { HtmlRspackPluginHooks } from "./hooks";
 export { defaultTemplateCompiler } from "./template";

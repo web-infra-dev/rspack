@@ -96,7 +96,7 @@ pub struct NormalModuleFactoryResolveForSchemeArgs {
 
 #[derive(Debug, Clone)]
 pub struct NormalModuleBeforeResolveArgs {
-  pub require: String,
+  pub request: String,
   pub context: Option<String>,
 }
 

@@ -484,6 +484,8 @@ export interface JsHooks {
   make: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   finishModules: (...args: any[]) => any
+  beforeResolve: (...args: any[]) => any
+  contextModuleBeforeResolve: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
 }
 export interface JsModule {
@@ -494,6 +496,10 @@ export interface JsModule {
 export interface SchemeAndJsResourceData {
   resourceData: JsResourceData
   scheme: string
+}
+export interface BeforeResolveData {
+  request: string
+  context?: string
 }
 export interface JsResourceData {
   /** Resource with absolute path, query and fragment */

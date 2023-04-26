@@ -20,8 +20,8 @@ use crate::{
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolveArgs, ResolverFactory,
-  SourceType, Stats, ThisCompilationArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, ResolverFactory, SourceType,
+  Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -288,6 +288,22 @@ impl PluginDriver {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
       if let Some(data) = plugin.before_resolve(PluginContext::new(), &args).await? {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
+
+  pub async fn context_module_before_resolve(
+    &self,
+    args: NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin
+        .context_module_before_resolve(PluginContext::new(), &args)
+        .await?
+      {
         return Ok(Some(data));
       }
     }

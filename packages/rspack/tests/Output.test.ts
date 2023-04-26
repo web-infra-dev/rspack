@@ -3,6 +3,17 @@ import { readdirSync } from "fs";
 import { Compiler, getNormalizedRspackOptions, rspack } from "../src";
 const path = require("path");
 
+class Plugin implements RspackPluginInstance {
+	name = "a";
+
+	apply(compiler: Compiler) {
+		// Wait for configuration preset plugions to apply all configure webpack defaults
+		compiler.hooks.compilation.tap("a", com => {
+			com.normalModuleFactory.hooks.beforeResolve.tap("a", () => {});
+		});
+	}
+}
+
 describe("Output", () => {
 	jest.setTimeout(20000);
 	function compile(entry: string, options, callback) {
@@ -17,6 +28,7 @@ describe("Output", () => {
 		options.optimization = {
 			minimize: false
 		};
+		options.plugins = [new Plugin()];
 		options.cache = true;
 		const logs = {
 			mkdir: [],
