@@ -113,6 +113,7 @@ class Compiler {
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
+		beforeCompile: tapable.AsyncSeriesHook<[CompilationParams]>;
 		compile: tapable.SyncHook<[any]>;
 		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
@@ -209,6 +210,7 @@ class Compiler {
 				"params"
 			]),
 			invalid: new SyncHook(["filename", "changeTime"]),
+			beforeCompile: new tapable.AsyncSeriesHook<CompilationParams>(["params"]),
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
@@ -730,7 +732,7 @@ class Compiler {
 						return finalCallback(err);
 					}
 
-					this.build(err => {
+					this.compile(err => {
 						if (err) {
 							return finalCallback(err);
 						}
@@ -750,8 +752,36 @@ class Compiler {
 		};
 		doRun();
 	}
+	/**
+	 * @Todo add normalModuleFactory & contextModuleFactory later
+	 * @returns
+	 */
+	newCompilationParams(): CompilationParams {
+		const params = {};
+		return params as CompilationParams;
+	}
+	compile(
+		callback: (error?: Error) => void,
+		rebuildData?: {
+			modifiedFiles?: ReadonlySet<string>;
+			removedFiles?: ReadonlySet<string>;
+		}
+	) {
+		const params = this.newCompilationParams();
+		this.hooks.beforeCompile.callAsync(params, err => {
+			if (err) {
+				return callback(err);
+			}
+			this.hooks.compile.call(params);
+			if (!rebuildData) {
+				this.build(callback);
+			} else {
+				this.rebuild(callback, rebuildData);
+			}
+		});
+	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
-	build(cb: (error?: Error) => void) {
+	private build(cb: (error?: Error) => void) {
 		const unsafe_build = this.#instance.unsafe_build;
 		const build_cb = unsafe_build.bind(this.#instance) as typeof unsafe_build;
 		build_cb(err => {
@@ -763,20 +793,23 @@ class Compiler {
 		});
 	}
 	// Safety: This method is only valid to call if the previous rebuild task is finished, or there will be data races.
-	rebuild(
-		modifiedFiles?: ReadonlySet<string>,
-		removedFiles?: ReadonlySet<string>,
-		cb?: (error?: Error) => void
+	private rebuild(
+		cb: (error?: Error) => void,
+		meta: {
+			modifiedFiles?: ReadonlySet<string>;
+			removedFiles?: ReadonlySet<string>;
+		}
 	) {
+		const { modifiedFiles, removedFiles } = meta;
 		const unsafe_rebuild = this.#instance.unsafe_rebuild;
 		const rebuild_cb = unsafe_rebuild.bind(
 			this.#instance
 		) as typeof unsafe_rebuild;
 		rebuild_cb([...(modifiedFiles ?? [])], [...(removedFiles ?? [])], err => {
 			if (err) {
-				cb && cb(err);
+				cb(err);
 			} else {
-				cb && cb(undefined);
+				cb(undefined);
 			}
 		});
 	}

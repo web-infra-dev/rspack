@@ -247,9 +247,12 @@ class Watching {
 			};
 
 			if (isRebuild) {
-				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
+				this.compiler.compile(onBuild as any, {
+					modifiedFiles,
+					removedFiles: deleteFiles
+				});
 			} else {
-				this.compiler.build(onBuild);
+				this.compiler.compile(onBuild);
 				this.#initial = false;
 			}
 		});
