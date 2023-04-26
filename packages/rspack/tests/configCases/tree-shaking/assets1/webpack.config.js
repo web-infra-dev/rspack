@@ -1,4 +1,4 @@
-/**@type {import('@rspack/cli')}*/
+/**@type {import('@rspack/cli').Configuration}*/
 module.exports = {
 	context: __dirname,
 	module: {
@@ -10,9 +10,12 @@ module.exports = {
 		]
 	},
 	builtins: {
-		treeShaking: false
+		treeShaking: true
 	},
 	optimization: {
-		sideEffects: false
+		sideEffects: true
+	},
+	externalsPresets: {
+		node: true
 	}
 };

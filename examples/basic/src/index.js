@@ -1,3 +1,4 @@
+const fs = require('fs')
 import { answer } from './answer';
 import {a} from '../a'
 function render() {
@@ -7,3 +8,6 @@ function render() {
 }
 render();
 a;
+
+
+fs;

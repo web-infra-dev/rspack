@@ -156,7 +156,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.check_symbol_query();
 
     let dead_nodes_index = HashSet::default();
-    dbg!(&used_export_module_identifiers);
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
       side_effects_options,
@@ -363,6 +362,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               .unwrap_or_else(|| {
                 panic!("Failed to get mgm by module identifier {module_identifier}")
               });
+            include_module_ids.insert(module_identifier);
             // include_module_ids.insert(mgm.module_identifier);
             continue;
           }
@@ -381,17 +381,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         {
           continue;
         } else {
-          if module_identifier.as_str().ends_with(".svg") {
-            dbg!(&module_identifier);
-            dbg!(&self
-              .bailout_modules
-              .contains_key(&analyze_result.module_identifier));
-            dbg!(&self.side_effects_free_modules.contains(&module_identifier));
-            dbg!(&!self
-              .compilation
-              .entry_module_identifiers
-              .contains(&module_identifier));
-          }
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -477,6 +466,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::CjsRequire
               | DependencyType::ImportContext
           );
+
           if self.side_effects_free_modules.contains(module_ident)
             && !reachable_dependency_identifier.contains(module_ident)
             && !need_bailout

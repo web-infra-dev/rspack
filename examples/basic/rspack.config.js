@@ -25,5 +25,8 @@ module.exports = {
 				template: "./index.html"
 			}
 		]
+	},
+	externalsPresets: {
+		node: true
 	}
 };
