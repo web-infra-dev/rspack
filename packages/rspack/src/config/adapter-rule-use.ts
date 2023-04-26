@@ -1,7 +1,7 @@
 import { JsAssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
-
+// TODO: Not sure where to put the code that was in here for the angular branch now that loader was refactored
 import { Compiler } from "../compiler";
 import { Logger } from "../logging/Logger";
 import Hash from "../util/hash";

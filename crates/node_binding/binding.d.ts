@@ -514,6 +514,7 @@ export interface JsHooks {
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  beforeCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any

@@ -282,6 +282,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn before_compile(&mut self) -> Result<()> {
+    Ok(())
+  }
+
   async fn finish_modules(&mut self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }

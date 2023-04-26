@@ -26,7 +26,8 @@ import {
 	RspackOptionsNormalized,
 	StatsOptions,
 	OutputNormalized,
-	StatsValue
+	StatsValue,
+	RspackPluginInstance
 } from "./config";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import { ChunkGroup } from "./chunk_group";
@@ -92,9 +93,11 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	childrenCounters: Record<string, number> = {};
 	startTime?: number;
 	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
+	children: Compilation[] = [];
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
@@ -624,6 +627,21 @@ export class Compilation {
 		return new Stats(this);
 	}
 
+	createChildCompiler(
+		name: string,
+		outputOptions: OutputNormalized,
+		plugins: RspackPluginInstance[]
+	) {
+		const idx = this.childrenCounters[name] || 0;
+		this.childrenCounters[name] = idx + 1;
+		return this.compiler.createChildCompiler(
+			this,
+			name,
+			idx,
+			outputOptions,
+			plugins
+		);
+	}
 	/**
 	 * Get the `Source` of an given asset filename.
 	 *

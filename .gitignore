@@ -169,7 +169,7 @@ packages/playground/temp
 # Ignore local integrate debug file
 packages/rspack/tests/*.debug.[tj]s
 
-# Benchmark 
+# Benchmark
 /github/
 /benchcases/three
 
@@ -197,7 +197,8 @@ npm/**/*.node
 packages/rspack/src/config/schema.check.js
 justfile
 
-
+## Angular Incremental Build Cache
+**/.angular/
 # align to webpack
 /webpack-test/js
 /webpack-test/browsertest/js
