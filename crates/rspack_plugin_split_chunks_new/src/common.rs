@@ -57,5 +57,3 @@ pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
 }
 
 pub(crate) type SplitChunkSizes = FxHashMap<SourceType, f64>;
-
-// pub type CacheGroupNameGetter = Arc<dyn Fn(&dyn Module) -> String + Send + Sync>;
