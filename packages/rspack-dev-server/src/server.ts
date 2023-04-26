@@ -36,13 +36,10 @@ export class RspackDevServer extends WebpackDevServer {
 					const webpackDevMiddlewareIndex = middlewares.findIndex(
 						mid => mid.name === "webpack-dev-middleware"
 					);
-					// @ts-expect-error
-					if (compiler.options.builtins.noEmitAssets) {
+					const compilers =
+						compiler instanceof MultiCompiler ? compiler.compilers : [compiler];
+					if (compilers[0].options.builtins.noEmitAssets) {
 						if (Array.isArray(this.options.static)) {
-							const compilers =
-								compiler instanceof MultiCompiler
-									? compiler.compilers
-									: [compiler];
 							const memoryAssetsMiddlewares = this.options.static.flatMap(
 								staticOptions => {
 									return staticOptions.publicPath.flatMap(publicPath => {

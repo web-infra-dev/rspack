@@ -1,4 +1,4 @@
-import type { RspackOptions } from "@rspack/core";
+import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import serializer from "jest-serializer-path";
@@ -9,6 +9,7 @@ expect.addSnapshotSerializer(serializer);
 // default is to avoid stack overflow trigged
 // by `webpack/schemas/WebpackOption.check.js` in debug mode
 const ENTRY = "./placeholder.js";
+const ENTRY1 = "./placeholder1.js";
 
 describe("normalize options snapshot", () => {
 	it("no options", async () => {
@@ -72,6 +73,22 @@ describe("normalize options snapshot", () => {
 		await server.start();
 		expect(compiler.options.devServer?.hot).toBe(true);
 		expect(server.options.hot).toBe(true);
+		await server.stop();
+	});
+
+	it("should support multi-compiler", async () => {
+		const compiler = rspack([
+			{
+				entry: ENTRY,
+				stats: "none"
+			},
+			{
+				entry: ENTRY1,
+				stats: "none"
+			}
+		]);
+		const server = new RspackDevServer({}, compiler);
+		await server.start();
 		await server.stop();
 	});
 });
