@@ -17,7 +17,6 @@ describe("Output", () => {
 		options.optimization = {
 			minimize: false
 		};
-		options.plugins = [new Plugin()];
 		options.cache = true;
 		const logs = {
 			mkdir: [],
