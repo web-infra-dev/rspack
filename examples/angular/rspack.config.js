@@ -19,14 +19,20 @@ module.exports = {
 		polyfills: ["zone.js"],
 		main: ["./src/main.ts"]
 	},
+	resolve: {
+		extensions: [".ts", ".js"]
+	},
 	output: {
 		uniqueName: "zackAngularCli",
 		// 'hashFunction': 'xxhash64', // throws error
 		// 'clean': true, // throws error
 		// 'path': '/Users/zackarychapple/code/zackAngularCli/dist/zack-angular-cli',
 		publicPath: "",
-		filename: "[name].[contenthash:20].js",
-		chunkFilename: "[name].[contenthash:20].js"
+		// TODO: use this later. No hash is easier to compare
+		// filename: "[name].[contenthash:20].js",
+		// chunkFilename: "[name].[contenthash:20].js"
+		filename: "[name].js",
+		chunkFilename: "[name].js"
 		// 'crossOriginLoading': false, // throws error
 		// 'trustedTypes': 'angular#bundler', // throws error
 		// 'scriptType': 'module' // throws error
