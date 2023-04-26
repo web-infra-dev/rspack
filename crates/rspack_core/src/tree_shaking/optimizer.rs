@@ -32,9 +32,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
-  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
-  NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -352,15 +351,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         let analyze_result = match result {
           Some(result) => result,
           None => {
-            // These are none js like module, we need to keep it.
-            // TODO: remove none js module that has no side_effects
-            let mgm = self
-              .compilation
-              .module_graph
-              .module_graph_module_by_identifier_mut(&module_identifier)
-              .unwrap_or_else(|| {
-                panic!("Failed to get mgm by module identifier {module_identifier}")
-              });
+            // These are js module without analyze result, like external module
             include_module_ids.insert(module_identifier);
             continue;
           }
@@ -1206,14 +1197,14 @@ async fn par_analyze_module(
             // A module can missing its AST if the module is failed to build
             .and_then(|ast| ast.as_javascript())
           {
-            Some(ast) => JsModule::new(ast, *module_identifier).analyze(&compilation),
+            Some(ast) => JsModule::new(ast, *module_identifier).analyze(compilation),
             None => {
               // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
               return None;
             }
           }
         } else {
-          AssetModule::new(*module_identifier).analyze(&compilation)
+          AssetModule::new(*module_identifier).analyze(compilation)
         };
 
         // dbg_matches!(

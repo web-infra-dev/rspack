@@ -50,7 +50,7 @@ impl OptimizeAnalyzer for AssetModule {
     let mut result = OptimizeAnalyzeResult::default();
     result.side_effects = self
       .get_side_effects_from_config(compilation)
-      .unwrap_or_else(|| SideEffectType::Configuration(true));
+      .unwrap_or(SideEffectType::Configuration(true));
     result.module_identifier = self.module_identifier;
     result
   }

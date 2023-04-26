@@ -141,8 +141,8 @@ where
       .compilation
       .module_graph
       .modules()
-      .iter()
-      .map(|module| module.0.clone())
+      .keys()
+      .cloned()
       .collect::<IdentifierSet>();
     if option.builtins.tree_shaking
       || option

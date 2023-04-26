@@ -15,7 +15,7 @@ use derivative::Derivative;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
-use rspack_identifier::{Identifiable, IdentifierSet};
+use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
@@ -32,7 +32,7 @@ use crate::{
   CompilerOptions, Context, Dependency, DependencyId, FactoryMeta, GenerateContext,
   LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, RuntimeGlobals, SideEffectOption, SourceType,
+  ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
 };
 
 bitflags! {
