@@ -36,12 +36,8 @@ pub fn stringify(
         names: Default::default(),
       },
       false,
-      if let Some(keep) = keep_comments {
-        if keep {
-          program.comments.as_ref().map(|c| c as &dyn Comments)
-        } else {
-          None
-        }
+      if let Some(true) = keep_comments {
+        program.comments.as_ref().map(|c| c as &dyn Comments)
       } else {
         None
       },

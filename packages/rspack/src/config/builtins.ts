@@ -376,9 +376,7 @@ export function resolveBuiltinsOptions(
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
 			: undefined,
-		codeGeneration: builtins.codeGeneration
-			? resolveCodeGeneration(builtins.codeGeneration)
-			: { keepComments: false }
+		codeGeneration: resolveCodeGeneration(builtins.codeGeneration)
 	};
 }
 

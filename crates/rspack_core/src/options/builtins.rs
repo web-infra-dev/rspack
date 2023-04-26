@@ -54,7 +54,7 @@ pub struct Minification {
   pub pure_funcs: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct CodeGeneration {
   pub keep_comments: bool,
 }
