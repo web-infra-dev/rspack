@@ -221,6 +221,7 @@ pub fn minify(
               });
             });
           }
+          // if not matched comments, we don't need to emit .License.txt file
           if source.size() > 0 {
             all_extract_comments
               .lock()
@@ -233,8 +234,10 @@ pub fn minify(
                 },
               );
           }
+          // if comments are extracted, we don't need to preserve them
           comments = SingleThreadedComments::default();
         } else {
+          // if comments are not extracted, then we minify them
           minify_file_comments(&comments, preserve_comments);
         }
 
