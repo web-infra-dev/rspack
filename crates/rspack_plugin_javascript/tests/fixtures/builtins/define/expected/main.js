@@ -8,12 +8,9 @@ var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
 const lib = __webpack_require__("./lib.js");
 const { DO_NOT_CONVERTED9  } = __webpack_require__("./lib.js");
 equal(true, true);
-// require("assert").deepStrictEqual(FALSE, false);
 assert.deepStrictEqual(5, 5);
 assert.deepStrictEqual(null, null);
 assert.deepStrictEqual(undefined, undefined);
-// assert.equal(FUNCTION(5), 6);
-// assert.equal(typeof FUNCTION, "function");
 assert.deepStrictEqual(100.05, 100.05);
 assert.deepStrictEqual(0, 0);
 let ZERO_OBJ = {
@@ -155,7 +152,7 @@ assert.deepStrictEqual(301, 301);
 assert.deepStrictEqual("302", "302");
 assert.deepStrictEqual(303, 303);
 assert.deepStrictEqual(304, 304);
-assert.deepStrictEqual(303..P4, undefined); // "303.P4"
+assert.deepStrictEqual(303..P4, undefined);
 try {
     error_count += 1;
     P4.P1;
@@ -216,20 +213,6 @@ try {
     error_count += 1;
 } catch (err5) {}
 assert.deepStrictEqual(error_count, 6);
-// try {
-//   error_count += 1;
-//   SHOULD_CONVERTED = 205; // syntax error
-//   error_count += 1;
-// } catch (err) {
-// }
-// deepStrictEqual(error_count, 6);
-// try {
-//   error_count += 1;
-//   SHOULD_CONVERTED = SHOULD_CONVERTED = 205; // syntax error
-//   error_count += 1;
-// } catch (err) {
-// }
-// deepStrictEqual(error_count, 7);
 try {
     error_count += 1;
     aa = 205;
@@ -244,10 +227,7 @@ try {
     error_count += 1;
 } catch (err7) {}
 assert.deepStrictEqual(error_count, 8);
-// just make sure `MemberExpr` fold success.
-console.log(console.log(console.log)); // TODO: recursive
- // assert.equal(wurst, unde);
- // assert.equal(suppe, wurst);
+console.log(console.log(console.log));
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -262,8 +242,7 @@ function _export(target, all) {
 }
 _export(exports, {
     default: function() {
-        return _default // DO_NOT_CONVERTED8
-        ;
+        return _default;
     },
     DO_NOT_CONVERTED7: function() {
         return DO_NOT_CONVERTED7;

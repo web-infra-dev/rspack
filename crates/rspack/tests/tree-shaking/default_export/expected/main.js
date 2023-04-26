@@ -10,7 +10,7 @@ Object.defineProperty(exports, "answer", {
         return answer;
     }
 });
-const answer = 103330; // export default answer;
+const answer = 103330;
 },
 "./app.js": function (module, exports, __webpack_require__) {
 "use strict";
