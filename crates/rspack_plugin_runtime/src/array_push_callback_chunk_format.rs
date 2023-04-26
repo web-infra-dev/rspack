@@ -74,13 +74,9 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     }
 
     self.name().hash(&mut args.hasher);
-
-    args
-      .compilation
-      .options
-      .output
-      .global_object
-      .hash(&mut args.hasher);
+    let output = &args.compilation.options.output;
+    output.global_object.hash(&mut args.hasher);
+    output.chunk_loading_global.hash(&mut args.hasher);
 
     update_hash_for_entry_startup(
       args.hasher,
