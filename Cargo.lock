@@ -2643,6 +2643,7 @@ dependencies = [
 name = "rspack_plugin_dev_friendly_split_chunks"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "dashmap",
  "rayon",
  "rspack_core",
@@ -2784,6 +2785,7 @@ dependencies = [
 name = "rspack_plugin_remove_empty_chunks"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "rspack_core",
  "tracing",
 ]
@@ -2808,6 +2810,7 @@ dependencies = [
 name = "rspack_plugin_split_chunks"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "derivative",
  "rspack_core",
  "rspack_identifier",
@@ -2820,6 +2823,7 @@ dependencies = [
 name = "rspack_plugin_split_chunks_new"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "dashmap",
  "derivative",
  "rayon",
