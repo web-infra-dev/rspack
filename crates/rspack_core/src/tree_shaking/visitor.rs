@@ -19,7 +19,7 @@ use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use super::SideEffect;
+use super::SideEffectType;
 // use swc_atoms::JsWord;
 // use swc_common::{util::take::Take, Mark, GLOBALS};
 // use swc_ecma_ast::*;
@@ -137,7 +137,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// 2. `export ` -> ESM
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub(crate) side_effects: SideEffect,
+  pub(crate) side_effects: SideEffectType,
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
@@ -227,7 +227,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
-      side_effects: SideEffect::Analyze(true),
+      side_effects: SideEffectType::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
@@ -494,10 +494,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if side_effects_option.is_enable() {
       self.side_effects = self.get_side_effects_from_config().unwrap_or_else(|| {
         if side_effects_option.is_true() {
-          SideEffect::Analyze(self.has_side_effects_stmt)
+          SideEffectType::Analyze(self.has_side_effects_stmt)
         } else {
           // side_effects_option must be `flag` here
-          SideEffect::Configuration(true)
+          SideEffectType::Configuration(true)
         }
       });
     }
@@ -1136,7 +1136,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
     }
   }
-  fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
+  fn get_side_effects_from_config(&mut self) -> Option<SideEffectType> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
     if let Some(mgm) = self
@@ -1144,7 +1144,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_graph_module_by_identifier(&self.module_identifier)
       && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
     {
-      return Some(SideEffect::Analyze(*side_effects))
+      return Some(SideEffectType::Analyze(*side_effects))
     }
 
     let resource_data = self
@@ -1163,7 +1163,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       relative_path,
     ));
 
-    side_effects.map(SideEffect::Configuration)
+    side_effects.map(SideEffectType::Configuration)
   }
 }
 
@@ -1467,11 +1467,11 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 /// The `allow(unused)` will be removed after the Tree shaking is finished
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[allow(unused)]
-pub struct TreeShakingResult {
-  pub top_level_mark: Mark,
-  pub unresolved_mark: Mark,
+pub struct OptimizeAnalyzeResult {
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
@@ -1482,11 +1482,11 @@ pub struct TreeShakingResult {
   state: AnalyzeState,
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub(crate) side_effects: SideEffect,
+  pub(crate) side_effects: SideEffectType,
   pub(crate) module_syntax: ModuleSyntax,
 }
 
-impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
+impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
   fn from(analyze: ModuleRefAnalyze<'_>) -> Self {
     Self {
       top_level_mark: analyze.top_level_mark,
@@ -1643,7 +1643,7 @@ pub enum SideEffects {
 }
 
 impl SideEffects {
-  fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
+  pub fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
     description
       .data()
       .raw()

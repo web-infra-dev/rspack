@@ -467,6 +467,9 @@ impl Plugin for AssetPlugin {
           // FIXME: use result
           .expect("Failed to get module");
         module.source_types().contains(&SourceType::Asset)
+          && compilation
+            .include_module_ids
+            .contains(&module.identifier())
       })
       .map(|m| {
         let code_gen_result = compilation

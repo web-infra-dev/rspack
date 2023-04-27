@@ -40,6 +40,7 @@ mod async_module;
 use crate::visitors::async_module::{build_async_module, build_await_dependencies};
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
+use crate::visitors::tree_shaking::MarkInfo;
 
 macro_rules! either {
   ($config: expr, $f: expr) => {
@@ -198,7 +199,9 @@ pub fn run_after_pass(
         .module_graph
         .module_graph_module_by_identifier(&module.identifier())
         .expect("should have module graph module");
-      let need_tree_shaking = mgm.used;
+      let need_tree_shaking = compilation
+        .include_module_ids
+        .contains(&mgm.module_identifier);
       let build_meta = mgm.build_meta.as_ref().expect("should have build meta");
       let build_info = mgm.build_info.as_ref().expect("should have build info");
 
@@ -243,10 +246,14 @@ pub fn run_after_pass(
             &compilation.module_graph,
             module.identifier(),
             &compilation.used_symbol_ref,
-            top_level_mark,
             &compilation.side_effects_free_modules,
             &compilation.module_item_map,
-            context.helpers.mark()
+            MarkInfo {
+              top_level_mark,
+              helper_mark: context.helpers.mark()
+            },
+            &compilation.include_module_ids,
+            compilation.options.clone()
           ),
           builtin_tree_shaking && need_tree_shaking
         ),
