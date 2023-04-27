@@ -1,6 +1,5 @@
 const path = require("path");
-/** @type {import('@rspack/cli').Configuration} */
-const config = (env, argv) => {
+module.exports = (env, argv) => {
 	console.log("env:", env, argv);
 	return {
 		context: __dirname,
@@ -20,4 +19,3 @@ const config = (env, argv) => {
 		}
 	};
 };
-module.exports = config;
