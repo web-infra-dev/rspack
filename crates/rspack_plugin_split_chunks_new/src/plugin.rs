@@ -2,20 +2,13 @@ use std::fmt::Debug;
 
 use dashmap::DashMap;
 use rayon::prelude::*;
-use rspack_core::{ChunkUkey, Compilation, Module, Plugin};
+use rspack_core::{Chunk, ChunkUkey, Compilation, Module, Plugin};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   cache_group::CacheGroup,
   module_group::{compare_entries, ModuleGroup},
 };
-
-struct _OverallOptions {
-  pub cache_groups: Vec<CacheGroup>,
-  pub min_chunks: u32,
-  pub max_size: f64,
-  pub min_size: f64,
-}
 
 type ModuleGroupMap = FxHashMap<String, ModuleGroup>;
 
@@ -24,7 +17,6 @@ pub struct PluginOptions {
 }
 
 pub struct SplitChunksPlugin {
-  // overall: OverallOptions,
   cache_groups: Vec<CacheGroup>,
 }
 
@@ -36,46 +28,54 @@ impl SplitChunksPlugin {
   }
 
   fn inner_impl(&self, compilation: &mut Compilation) {
-    let mut module_group_map = self.prepare_module_and_chunks_info_map(compilation);
+    let mut module_group_map = self.prepare_module_group_map(compilation);
 
     while !module_group_map.is_empty() {
       let (_module_group_key, module_group) = self.find_best_module_group(&mut module_group_map);
 
-      let new_chunk = if let Some(chunk) = compilation.named_chunks.get(&module_group.name) {
-        *chunk
-      } else {
-        let chunk = Compilation::add_named_chunk(
-          module_group.name.clone(),
-          &mut compilation.chunk_by_ukey,
-          &mut compilation.named_chunks,
-        );
+      let new_chunk = self.get_corresponding_chunk(compilation, &module_group);
 
-        chunk
-          .chunk_reasons
-          .push("Create by split chunks".to_string());
-        chunk.ukey
-      };
-      compilation.chunk_graph.add_chunk(new_chunk);
+      let original_chunks = &module_group.chunks;
 
-      let used_chunks = &module_group.chunks;
       self.move_modules_to_new_chunk_and_remove_from_old_chunks(
         &module_group,
         new_chunk,
-        used_chunks,
+        original_chunks,
         compilation,
       );
-      self.split_from_original_chunks(&module_group, used_chunks, new_chunk, compilation);
+
+      self.split_from_original_chunks(&module_group, original_chunks, new_chunk, compilation);
 
       self.remove_all_modules_from_other_module_groups(
         &module_group,
         &mut module_group_map,
-        used_chunks,
+        original_chunks,
         compilation,
       )
     }
   }
 
-  fn _ensure_max_size_fit(&self, _compilation: &mut Compilation) {}
+  fn get_corresponding_chunk(
+    &self,
+    compilation: &mut Compilation,
+    module_group: &ModuleGroup,
+  ) -> ChunkUkey {
+    if let Some(chunk) = compilation.named_chunks.get(&module_group.chunk_name) {
+      *chunk
+    } else {
+      let chunk = Compilation::add_named_chunk(
+        module_group.chunk_name.clone(),
+        &mut compilation.chunk_by_ukey,
+        &mut compilation.named_chunks,
+      );
+
+      chunk
+        .chunk_reasons
+        .push("Create by split chunks".to_string());
+      compilation.chunk_graph.add_chunk(chunk.ukey);
+      chunk.ukey
+    }
+  }
 
   fn remove_all_modules_from_other_module_groups(
     &self,
@@ -122,14 +122,14 @@ impl SplitChunksPlugin {
     &self,
     item: &ModuleGroup,
     new_chunk: ChunkUkey,
-    used_chunks: &FxHashSet<ChunkUkey>,
+    original_chunks: &FxHashSet<ChunkUkey>,
     compilation: &mut Compilation,
   ) {
     for module_identifier in &item.modules {
       // First, we remove modules from old chunks
 
       // Remove module from old chunks
-      for used_chunk in used_chunks {
+      for used_chunk in original_chunks {
         compilation
           .chunk_graph
           .disconnect_chunk_and_module(used_chunk, *module_identifier);
@@ -155,11 +155,12 @@ impl SplitChunksPlugin {
   ) {
     let new_chunk_ukey = new_chunk;
     for original_chunk in original_chunks {
+      debug_assert!(&new_chunk_ukey != original_chunk);
       let [new_chunk, original_chunk] = compilation
         .chunk_by_ukey
         ._todo_should_remove_this_method_inner_mut()
         .get_many_mut([&new_chunk_ukey, original_chunk])
-        .expect("TODO:");
+        .expect("split_from_original_chunks failed");
       original_chunk.split(new_chunk, &mut compilation.chunk_group_by_ukey);
     }
   }
@@ -167,7 +168,7 @@ impl SplitChunksPlugin {
   fn find_best_module_group(&self, module_group_map: &mut ModuleGroupMap) -> (String, ModuleGroup) {
     // perf(hyf): I wonder if we could use BinaryHeap to avoid sorting for find_best_module_group call
     debug_assert!(!module_group_map.is_empty());
-    let mut iter = module_group_map.iter();
+    let mut iter: std::collections::hash_map::Iter<String, ModuleGroup> = module_group_map.iter();
     let (key, mut best_module_group) = iter.next().expect("at least have one item");
 
     let mut best_entry_key = key.clone();
@@ -184,11 +185,20 @@ impl SplitChunksPlugin {
     (best_entry_key, best_module_group)
   }
 
-  fn prepare_module_and_chunks_info_map(&self, compilation: &mut Compilation) -> ModuleGroupMap {
+  fn prepare_module_group_map(&self, compilation: &mut Compilation) -> ModuleGroupMap {
     let chunk_db = &compilation.chunk_by_ukey;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
 
-    let module_and_corresponding_cache_group = compilation
+    /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
+    /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
+    struct MatchedItem<'a> {
+      module: &'a dyn Module,
+      cache_group_index: usize,
+      cache_group: &'a CacheGroup,
+      selected_chunks: Box<[&'a Chunk]>,
+    }
+
+    let matched_items = compilation
       .module_graph
       .modules()
       .values()
@@ -201,7 +211,8 @@ impl SplitChunksPlugin {
         // A module may match multiple CacheGroups
         self.cache_groups.par_iter().enumerate().filter_map(
           move |(cache_group_index, cache_group)| {
-            let is_match_the_test = (cache_group.test)(module);
+            // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
+            let is_match_the_test: bool = (cache_group.test)(module);
 
             if !is_match_the_test {
               return None;
@@ -210,63 +221,54 @@ impl SplitChunksPlugin {
             let selected_chunks = belong_to_chunks
               .iter()
               .map(|c| chunk_db.get(c).expect("Should have a chunk here"))
+              // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
               .filter(|c| (cache_group.chunk_filter)(c, chunk_group_db))
-              .collect::<Vec<_>>();
+              .collect::<Box<[_]>>();
 
+            // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
             if selected_chunks.len() < cache_group.min_chunks as usize {
               return None;
             }
 
-            Some((module, cache_group_index, cache_group, selected_chunks))
+            Some(MatchedItem {
+              module: &**module,
+              cache_group,
+              cache_group_index,
+              selected_chunks,
+            })
           },
         )
       });
 
-    let chunks_info_map: DashMap<String, ModuleGroup> = DashMap::default();
+    let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
 
-    module_and_corresponding_cache_group.for_each(
-      |(module, cache_group_index, cache_group, selected_chunks)| {
-        let key = ["name: ", &cache_group.name].join("");
+    matched_items.for_each(|matched_item| {
+      let MatchedItem {
+        module,
+        cache_group_index,
+        cache_group,
+        selected_chunks,
+      } = matched_item;
 
-        let mut chunks_info_item = chunks_info_map.entry(key).or_insert_with(|| ModuleGroup {
-          // The ChunkInfoItem is not existed. Initialize it.
-          modules: Default::default(),
-          cache_group_index,
-          cache_group_priority: cache_group.priority,
-          sizes: Default::default(),
-          chunks: Default::default(),
-          name: cache_group.name.clone(),
-        });
+      // Merge the `Module` of `MatchedItem` into the `ModuleGroup` which has the same `key`/`cache_group.name`
+      let key = ["name: ", &cache_group.name].join("");
 
-        chunks_info_item.add_module(module);
-        chunks_info_item
-          .chunks
-          .extend(selected_chunks.iter().map(|c| c.ukey))
-      },
-    );
+      let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup {
+        modules: Default::default(),
+        cache_group_index,
+        cache_group_priority: cache_group.priority,
+        sizes: Default::default(),
+        chunks: Default::default(),
+        chunk_name: cache_group.name.clone(),
+      });
 
-    chunks_info_map.into_iter().collect()
-  }
-}
+      module_group.add_module(module);
+      module_group
+        .chunks
+        .extend(selected_chunks.iter().map(|c| c.ukey))
+    });
 
-trait EstimatedSize {
-  fn estimated_size(&self, source_type: &rspack_core::SourceType) -> f64;
-}
-
-impl<T: Module> EstimatedSize for T {
-  fn estimated_size(&self, source_type: &rspack_core::SourceType) -> f64 {
-    use rspack_core::ModuleType;
-    let coefficient: f64 = match self.module_type() {
-      // 5.0 is a number in practice
-      rspack_core::ModuleType::Jsx
-      | ModuleType::JsxDynamic
-      | ModuleType::JsxEsm
-      | ModuleType::Tsx => 7.5,
-      ModuleType::Js | ModuleType::JsDynamic => 1.5,
-      _ => 1.0,
-    };
-
-    self.size(source_type) * coefficient
+    module_group_map.into_iter().collect()
   }
 }
 
