@@ -383,7 +383,7 @@ export function resolveBuiltinsOptions(
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
 			: undefined,
-		codeGeneration: resolveCodeGeneration(builtins.codeGeneration)
+		codeGeneration: resolveCodeGeneration(builtins)
 	};
 }
 
@@ -430,7 +430,7 @@ export function resolveMinifyOptions(
 
 	let extractComments = builtins.minifyOptions?.extractComments
 		? String(builtins.minifyOptions.extractComments)
-		: "true";
+		: undefined;
 
 	return {
 		passes: 1,
@@ -441,14 +441,12 @@ export function resolveMinifyOptions(
 	};
 }
 
-export function resolveCodeGeneration(
-	codeGeneration: Builtins["codeGeneration"]
-): RawCodeGeneration {
-	if (!codeGeneration) {
-		return { keepComments: false };
+export function resolveCodeGeneration(builtins: Builtins): RawCodeGeneration {
+	if (!builtins.codeGeneration) {
+		return { keepComments: Boolean(builtins.minifyOptions?.extractComments) };
 	}
 	return {
 		keepComments: false,
-		...codeGeneration
+		...builtins.codeGeneration
 	};
 }

@@ -455,7 +455,7 @@ describe("snapshots", () => {
 -     "minifyOptions": undefined,
 +     "minifyOptions": Object {
 +       "dropConsole": false,
-+       "extractComments": "true",
++       "extractComments": undefined,
 +       "passes": 1,
 +       "pureFuncs": Array [],
 +     },
@@ -504,7 +504,7 @@ describe("snapshots", () => {
 -     "minifyOptions": undefined,
 +     "minifyOptions": Object {
 +       "dropConsole": false,
-+       "extractComments": "true",
++       "extractComments": undefined,
 +       "passes": 1,
 +       "pureFuncs": Array [],
 +     },
