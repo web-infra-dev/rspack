@@ -30,8 +30,7 @@ pub use update::update;
 //   /// Whether output file diff details.
 //   #[argh(short, default_value = "default_false()")]
 //   detail: bool,
-//
-//   /// If fail, no output, default to false.
+// /// If fail, no output, default to false.
 //   #[argh(short, long, action, default_value_t = "default_false()")]
 //   mute: bool,
 //
