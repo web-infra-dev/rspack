@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use dashmap::DashMap;
 use rayon::prelude::*;
-use rspack_core::{Chunk, ChunkUkey, Compilation, Module, Plugin};
+use rspack_core::{Chunk, ChunkUkey, Compilation, Module, Plugin, SourceType};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -17,18 +17,20 @@ pub struct PluginOptions {
 }
 
 pub struct SplitChunksPlugin {
-  cache_groups: Vec<CacheGroup>,
+  cache_groups: Box<[CacheGroup]>,
 }
 
 impl SplitChunksPlugin {
   pub fn new(options: PluginOptions) -> Self {
     Self {
-      cache_groups: options.cache_groups,
+      cache_groups: options.cache_groups.into(),
     }
   }
 
   fn inner_impl(&self, compilation: &mut Compilation) {
     let mut module_group_map = self.prepare_module_group_map(compilation);
+
+    self.ensure_min_size_fit(compilation, &mut module_group_map);
 
     while !module_group_map.is_empty() {
       let (_module_group_key, module_group) = self.find_best_module_group(&mut module_group_map);
@@ -53,6 +55,71 @@ impl SplitChunksPlugin {
         compilation,
       )
     }
+  }
+
+  /// Affected by `splitChunks.minSize`/`splitChunks.cacheGroups.{cacheGroup}.minSize`
+  fn ensure_min_size_fit(&self, compilation: &Compilation, module_group_map: &mut ModuleGroupMap) {
+    let invalidated_module_groups = module_group_map
+      .par_iter_mut()
+      .filter_map(|(module_group_key, module_group)| {
+        let cache_group = &self.cache_groups[module_group.cache_group_index];
+
+        // Find out what `SourceType`'s size is not fit the min_size
+        let violating_source_types: Box<[SourceType]> = module_group
+          .sizes
+          .iter()
+          .filter_map(|(module_group_ty, module_group_ty_size)| {
+            let cache_group_ty_min_size = cache_group
+              .min_size
+              .get(module_group_ty)
+              .copied()
+              .unwrap_or_default();
+
+            if *module_group_ty_size < cache_group_ty_min_size {
+              Some(*module_group_ty)
+            } else {
+              None
+            }
+          })
+          .collect::<Box<[_]>>();
+
+        // Remove modules having violating SourceType
+        let violating_modules = module_group
+          .modules
+          .par_iter()
+          .filter_map(|module_id| {
+            let module = &**compilation
+              .module_graph
+              .module_by_identifier(module_id)
+              .expect("Should have a module");
+            let having_violating_source_type = violating_source_types
+              .iter()
+              .any(|ty: &SourceType| module.source_types().contains(ty));
+            if having_violating_source_type {
+              Some(module)
+            } else {
+              None
+            }
+          })
+          .collect::<Vec<_>>();
+
+        // question: After removing violating modules, the size of other `SourceType`s of this `ModuleGroup`
+        // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
+        violating_modules
+          .into_iter()
+          .for_each(|violating_module| module_group.remove_module(violating_module));
+
+        if module_group.modules.is_empty() {
+          Some(module_group_key.clone())
+        } else {
+          None
+        }
+      })
+      .collect::<Vec<_>>();
+
+    invalidated_module_groups.into_iter().for_each(|key| {
+      module_group_map.remove(&key);
+    });
   }
 
   fn get_corresponding_chunk(

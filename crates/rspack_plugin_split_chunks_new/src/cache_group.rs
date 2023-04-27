@@ -1,6 +1,6 @@
 use derivative::Derivative;
 
-use crate::common::{ChunkFilter, ModuleFilter};
+use crate::common::{ChunkFilter, ModuleFilter, SplitChunkSizes};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -12,6 +12,7 @@ pub struct CacheGroup {
   /// `name` is used to create chunk
   pub name: String,
   pub priority: f64,
+  pub min_size: SplitChunkSizes,
   /// number of referenced chunks
   pub min_chunks: u32,
 }
