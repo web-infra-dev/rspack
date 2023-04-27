@@ -21,7 +21,7 @@ pub fn tree_shaking_visitor<'a>(
   used_symbol_set: &'a HashSet<SymbolRef>,
   side_effects_free_modules: &'a IdentifierSet,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
-  extra_mark: ExtraMark,
+  extra_mark: MarkInfo,
   include_module_ids: &'a IdentifierSet,
   options: Arc<CompilerOptions>,
 ) -> impl Fold + 'a {
@@ -41,7 +41,7 @@ pub fn tree_shaking_visitor<'a>(
   }
 }
 
-pub struct ExtraMark {
+pub struct MarkInfo {
   pub top_level_mark: Mark,
   pub helper_mark: Mark,
 }
@@ -68,7 +68,7 @@ struct TreeShaker<'a> {
   side_effects_free_modules: &'a IdentifierSet,
   last_module_item_index: usize,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
-  extra_mark: ExtraMark,
+  extra_mark: MarkInfo,
   include_module_ids: &'a IdentifierSet,
   options: Arc<CompilerOptions>,
 }

@@ -40,7 +40,7 @@ mod async_module;
 use crate::visitors::async_module::{build_async_module, build_await_dependencies};
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
-use crate::visitors::tree_shaking::ExtraMark;
+use crate::visitors::tree_shaking::MarkInfo;
 
 macro_rules! either {
   ($config: expr, $f: expr) => {
@@ -248,7 +248,7 @@ pub fn run_after_pass(
             &compilation.used_symbol_ref,
             &compilation.side_effects_free_modules,
             &compilation.module_item_map,
-            ExtraMark {
+            MarkInfo {
               top_level_mark,
               helper_mark: context.helpers.mark()
             },
