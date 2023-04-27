@@ -42,7 +42,6 @@ serde_json = { workspace = true }
 string_cache = "0.8.7"
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
-  "__base",
   "__ecma",
   "__visit",
   "__utils",
@@ -68,6 +67,8 @@ swc_core = { workspace = true, features = [
   "css_modules",
 ] }
 swc_emotion = { workspace = true }
+swc_error_reporters = { workspace = true }
+swc_node_comments = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = [
   "rt",

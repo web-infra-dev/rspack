@@ -45,7 +45,6 @@ pub use chunk::*;
 mod dependency;
 pub use dependency::*;
 mod utils;
-use swc_core::base::config::IsModule;
 use tokio::sync::RwLock;
 pub use utils::*;
 mod chunk_graph;
@@ -153,17 +152,6 @@ impl ModuleType {
       self,
       ModuleType::JsDynamic | ModuleType::JsxDynamic | ModuleType::Ts | ModuleType::Tsx
     )
-  }
-}
-
-impl From<&ModuleType> for IsModule {
-  fn from(value: &ModuleType) -> Self {
-    /* parser options align with webpack */
-    match value {
-      ModuleType::JsEsm | ModuleType::JsxEsm => IsModule::Bool(true),
-      ModuleType::JsDynamic | ModuleType::JsxDynamic => IsModule::Bool(false),
-      _ => IsModule::Unknown,
-    }
   }
 }
 
