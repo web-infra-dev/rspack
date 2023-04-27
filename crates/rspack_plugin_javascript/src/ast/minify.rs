@@ -188,7 +188,7 @@ pub fn minify(
           .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
 
         if let Some(extract_comments) = extract_comments {
-          let comments_file_name = filename.to_string() + ".License.txt";
+          let comments_file_name = filename.to_string() + ".LICENSE.txt";
           let reg = if extract_comments.eq("true") {
             // copied from terser-webpack-plugin
             Regex::new(r"@preserve|@lic|@cc_on|^\**!")
