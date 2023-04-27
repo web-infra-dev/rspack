@@ -66,7 +66,7 @@ impl SplitChunkSizes {
   pub fn with_initial_value(default_size_types: &[SourceType], initial_bytes: f64) -> Self {
     Self(
       default_size_types
-        .into_iter()
+        .iter()
         .map(|ty| (*ty, initial_bytes))
         .collect(),
     )
