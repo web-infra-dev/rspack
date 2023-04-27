@@ -26,3 +26,10 @@ rspack_tracing = { path = "../rspack_tracing" }
 [features]
 hmr     = []
 tracing = []
+
+[dev-dependencies]
+criterion = { version = "0.4.0", features = ["async_tokio"] }
+
+[[bench]]
+harness = false
+name    = "my_bench"
