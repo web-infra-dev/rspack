@@ -118,7 +118,7 @@ pub fn minify(
 
         let mut comments = SingleThreadedComments::default();
 
-        let module = parse_js(
+        let program = parse_js(
           fm.clone(),
           target,
           Syntax::Es(EsConfig {
@@ -128,7 +128,7 @@ pub fn minify(
             import_assertions: true,
             ..Default::default()
           }),
-          IsModule::Bool(true),
+          IsModule::Bool(false),
           Some(&comments),
         )
         .map_err(|errs| {
@@ -145,7 +145,7 @@ pub fn minify(
             names: Default::default(),
           };
 
-          module.visit_with(&mut v);
+          program.visit_with(&mut v);
 
           v.names
         } else {
@@ -157,12 +157,12 @@ pub fn minify(
 
         let is_mangler_enabled = min_opts.mangle.is_some();
 
-        let module = helpers::HELPERS.set(&Helpers::new(false), || {
+        let program = helpers::HELPERS.set(&Helpers::new(false), || {
           HANDLER.set(handler, || {
-            let module = module.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
+            let program = program.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
 
-            let mut module = minifier::optimize(
-              module,
+            let mut program = minifier::optimize(
+              program,
               cm.clone(),
               Some(&comments),
               None,
@@ -174,9 +174,9 @@ pub fn minify(
             );
 
             if !is_mangler_enabled {
-              module.visit_mut_with(&mut hygiene())
+              program.visit_mut_with(&mut hygiene())
             }
-            module.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
+            program.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
           })
         });
 
@@ -243,7 +243,7 @@ pub fn minify(
         }
 
         print(
-          &module,
+          &program,
           cm.clone(),
           target,
           SourceMapConfig {

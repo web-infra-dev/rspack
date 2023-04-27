@@ -9,12 +9,6 @@ error[javascript]: JavaScript parsing error
   │          ^ Expected a semicolon
 
 error[javascript]: JavaScript parsing error
-  ┌─ tests/out_of_order/multiple_file_syntax_error/a.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
-
-error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/a.js:6:1
   │
 6 │ }
@@ -25,12 +19,6 @@ error[javascript]: JavaScript parsing error
   │
 2 │ const  D {
   │          ^ Expected a semicolon
-
-error[javascript]: JavaScript parsing error
-  ┌─ tests/out_of_order/multiple_file_syntax_error/b.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/b.js:6:1
@@ -45,12 +33,6 @@ error[javascript]: JavaScript parsing error
   │          ^ Expected a semicolon
 
 error[javascript]: JavaScript parsing error
-  ┌─ tests/out_of_order/multiple_file_syntax_error/c.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
-
-error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/c.js:6:1
   │
 6 │ }
@@ -61,12 +43,6 @@ error[javascript]: JavaScript parsing error
   │
 2 │ const  D {
   │          ^ Expected a semicolon
-
-error[javascript]: JavaScript parsing error
-  ┌─ tests/out_of_order/multiple_file_syntax_error/d.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/d.js:6:1
@@ -81,12 +57,6 @@ error[javascript]: JavaScript parsing error
   │          ^ Expected a semicolon
 
 error[javascript]: JavaScript parsing error
-  ┌─ tests/out_of_order/multiple_file_syntax_error/e.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
-
-error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/e.js:6:1
   │
 6 │ }
@@ -99,12 +69,6 @@ error[javascript]: JavaScript parsing error
   │          ^ Expected a semicolon
 
 error[javascript]: JavaScript parsing error
-  ┌─ tests/out_of_order/multiple_file_syntax_error/f.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
-
-error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/f.js:6:1
   │
 6 │ }
@@ -115,12 +79,6 @@ error[javascript]: JavaScript parsing error
   │
 2 │ const  D {
   │          ^ Expected a semicolon
-
-error[javascript]: JavaScript parsing error
-  ┌─ tests/out_of_order/multiple_file_syntax_error/g.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
 
 error[javascript]: JavaScript parsing error
   ┌─ tests/out_of_order/multiple_file_syntax_error/g.js:6:1

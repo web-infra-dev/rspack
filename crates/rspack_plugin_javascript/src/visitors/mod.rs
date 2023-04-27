@@ -200,6 +200,8 @@ pub fn run_after_pass(
         .expect("should have module graph module");
       let need_tree_shaking = mgm.used;
       let build_meta = mgm.build_meta.as_ref().expect("should have build meta");
+      let build_info = mgm.build_info.as_ref().expect("should have build info");
+
       let DependencyCodeGenerationVisitors {
         visitors,
         root_visitors,
@@ -261,8 +263,7 @@ pub fn run_after_pass(
           unresolved_mark,
           Some(ModuleConfig::CommonJs(CommonjsConfig {
             ignore_dynamic: true,
-            // here will remove `use strict`
-            strict_mode: false,
+            strict_mode: build_info.strict,
             import_interop: // if build_meta.strict_harmony_module {
             //  Some(ImportInterop::Node)
             // } else
@@ -271,7 +272,7 @@ pub fn run_after_pass(
             } else {
               Some(ImportInterop::None)
             },
-            allow_top_level_this: true,
+            allow_top_level_this: !build_info.strict,
             ..Default::default()
           })),
           comments,

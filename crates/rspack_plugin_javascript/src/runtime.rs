@@ -100,7 +100,8 @@ pub fn render_chunk_modules(
   Ok((sources.boxed(), chunk_init_fragments))
 }
 
-fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource {
+/* remove `strict` parameter for now, let SWC manage `use strict` annotation directly */
+fn render_module(source: BoxSource, _strict: bool, module_id: &str) -> BoxSource {
   let mut sources = ConcatSource::new([
     RawSource::from("\""),
     RawSource::from(module_id.to_string()),
@@ -110,9 +111,9 @@ fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource 
       RuntimeGlobals::REQUIRE
     )),
   ]);
-  if strict {
-    sources.add(RawSource::from("\"use strict\";\n"));
-  }
+  // if strict {
+  //   sources.add(RawSource::from("\"use strict\";\n"));
+  // }
   sources.add(source);
   sources.add(RawSource::from("},\n"));
 

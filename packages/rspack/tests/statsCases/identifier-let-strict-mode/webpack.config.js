@@ -1,3 +1,11 @@
 module.exports = {
-	stats: "errors-warnings"
+	stats: "errors-warnings",
+	module: {
+		rules: [
+			{
+				test: /.js/,
+				type: "javascript/esm"
+			}
+		]
+	}
 };
