@@ -29,9 +29,11 @@ pub fn render_chunk_modules(
       .block_on(async move { compilation.plugin_driver.read().await })
   });
 
+  let include_module_ids = &compilation.include_module_ids;
+
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|mgm| mgm.used)
+    .filter(|mgm| include_module_ids.contains(&mgm.module_identifier))
     .map(|mgm| {
       let code_gen_result = compilation
         .code_generation_results

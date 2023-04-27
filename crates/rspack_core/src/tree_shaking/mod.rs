@@ -1,13 +1,15 @@
 use bitflags;
 use once_cell::sync::Lazy;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
-use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::ecma::ast::ModuleItem;
 
-use self::visitor::{SymbolRef, TreeShakingResult};
-use crate::ModuleGraph;
+use self::visitor::{OptimizeAnalyzeResult, SymbolRef};
+
+pub(crate) mod analyzer;
+pub mod asset_module;
 pub mod debug_helper;
+pub mod js_module;
 pub mod optimizer;
 pub mod symbol_graph;
 pub mod utils;
@@ -18,11 +20,13 @@ mod test;
 #[derive(Debug)]
 pub struct OptimizeDependencyResult {
   pub used_symbol_ref: HashSet<SymbolRef>,
-  pub analyze_results: IdentifierMap<TreeShakingResult>,
+  pub analyze_results: IdentifierMap<OptimizeAnalyzeResult>,
   pub bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
   pub side_effects_free_modules: IdentifierSet,
   pub module_item_map: IdentifierMap<Vec<ModuleItem>>,
+  pub include_module_ids: IdentifierSet,
 }
+
 const ANALYZE_LOGGING: bool = true;
 static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
   let cwd = std::env::current_dir().expect("");
@@ -75,80 +79,13 @@ bitflags::bitflags! {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum SideEffect {
+pub enum SideEffectType {
   Configuration(bool),
   Analyze(bool),
 }
 
-pub trait ConvertModulePath {
-  fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self;
-}
-
-impl ConvertModulePath for SymbolRef {
-  fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
-    match self {
-      SymbolRef::Direct(direct) => {
-        SymbolRef::Direct(direct.convert_module_identifier_to_module_path(module_graph))
-      }
-      SymbolRef::Indirect(indirect) => {
-        SymbolRef::Indirect(indirect.convert_module_identifier_to_module_path(module_graph))
-      }
-      SymbolRef::Star(star) => {
-        SymbolRef::Star(star.convert_module_identifier_to_module_path(module_graph))
-      }
-    }
-  }
-}
-
-impl ConvertModulePath for Symbol {
-  fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_uri(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.uri())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self
-  }
-}
-
-impl ConvertModulePath for IndirectTopLevelSymbol {
-  fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_importer(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.importer())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self
-  }
-}
-
-impl ConvertModulePath for StarSymbol {
-  fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_src(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.src())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self.set_module_ident(
-      module_graph
-        .normal_module_source_path_by_identifier(&self.module_ident())
-        .expect("Can't get module source path by identifier")
-        .as_ref()
-        .into(),
-    );
-    self
+impl Default for SideEffectType {
+  fn default() -> Self {
+    SideEffectType::Analyze(true)
   }
 }
