@@ -3,7 +3,7 @@ use std::sync::Arc;
 use once_cell::sync::Lazy;
 use rspack_core::{ModuleType, ReactOptions};
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, Module, ModuleItem, Program};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, ModuleItem, Program, Script, Stmt};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
 use swc_core::ecma::visit::{noop_visit_type, Fold, Visit, VisitWith};
@@ -92,32 +92,40 @@ static HMR_FOOTER: &str = r#"Promise.resolve().then(function(){
   __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
 })"#;
 
-static HMR_HEADER_AST: Lazy<Program> =
-  Lazy::new(|| parse_js_code(HMR_HEADER.to_string(), &ModuleType::Js).expect("TODO:"));
+static HMR_HEADER_AST: Lazy<Script> = Lazy::new(|| {
+  parse_js_code(HMR_HEADER.to_string(), &ModuleType::Js)
+    .expect("TODO:")
+    .expect_script()
+});
 
-static HMR_FOOTER_AST: Lazy<Program> =
-  Lazy::new(|| parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).expect("TODO:"));
+static HMR_FOOTER_AST: Lazy<Script> = Lazy::new(|| {
+  parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js)
+    .expect("TODO:")
+    .expect_script()
+});
 
 pub struct ReactHmrFolder {}
 
 impl Fold for ReactHmrFolder {
-  fn fold_module(&mut self, mut module: Module) -> Module {
+  fn fold_program(&mut self, mut program: Program) -> Program {
     let mut f = ReactRefreshUsageFinder::default();
 
-    module.visit_with(&mut f);
+    program.visit_with(&mut f);
     if !f.is_founded {
-      return module;
+      return program;
     }
 
     let mut body = vec![];
-    if let Some(m) = HMR_HEADER_AST.as_module() {
-      body.append(&mut m.body.clone());
-    }
-    body.append(&mut module.body);
-    if let Some(m) = HMR_FOOTER_AST.as_module() {
-      body.append(&mut m.body.clone());
-    }
+    body.extend(HMR_HEADER_AST.body.clone());
+    match program {
+      Program::Module(ref mut m) => m.body.extend(to_module_body(body)),
+      Program::Script(ref mut s) => s.body.extend(body),
+    };
 
-    Module { body, ..module }
+    program
   }
+}
+
+fn to_module_body(script_body: Vec<Stmt>) -> Vec<ModuleItem> {
+  script_body.into_iter().map(ModuleItem::Stmt).collect()
 }

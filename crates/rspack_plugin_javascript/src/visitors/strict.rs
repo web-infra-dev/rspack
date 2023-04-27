@@ -25,12 +25,11 @@ impl<'a> VisitMut for StrictModeVisitor<'a> {
       self.build_info.strict = true;
       self.build_meta.esm = true;
     }
-    if let ModuleItem::Stmt(Stmt::Expr(ExprStmt { expr, .. })) = module_item {
-      if let Expr::Lit(Lit::Str(Str { ref value, .. })) = **expr {
-        if value == "use strict" {
-          self.build_info.strict = true;
-        }
+  }
+
+  fn visit_mut_stmt(&mut self, stmt: &mut Stmt) {
+    if let Stmt::Expr(ExprStmt { box expr, .. }) = stmt && let Expr::Lit(Lit::Str(Str { ref value, .. })) = expr && value == "use strict" {
+       self.build_info.strict = true;
       }
-    }
   }
 }

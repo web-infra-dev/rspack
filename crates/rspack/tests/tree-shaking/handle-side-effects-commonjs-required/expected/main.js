@@ -6,6 +6,10 @@ console.log('something');
 "./source/index.js": function (module, exports, __webpack_require__) {
 var _class_call_check = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_class_call_check.js");
 var _create_class = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_create_class.js");
+var test = function test() {
+    var res = new Response();
+    return res;
+};
 var Response = function() {
     "use strict";
     function Response(mode) {
@@ -24,10 +28,6 @@ var Response = function() {
     ]);
     return Response;
 }();
-function test() {
-    var res = new Response();
-    return res;
-}
 var result = test();
 module.exports = result;
 },

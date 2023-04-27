@@ -146,7 +146,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "1896652891bba34c",
+  "hash": "7ab36b938110f17f",
   "modules": [
     {
       "assets": [],
@@ -222,7 +222,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: 1896652891bba34c
+"Hash: 7ab36b938110f17f
              Asset       Size      Chunks             Chunk Names
       main.xxxx.js   1.39 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  
@@ -441,26 +441,16 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
   "errors": [
     {
       "formatted": "error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:5
+  ┌─ bundle.js:1:9
   │
-1 │ let let = let;
-  │     ^^^ \`let\` cannot be used as an identifier in strict mode
+1 │ const a {}
+  │         ^ Expected a semicolon
 
 ",
-      "message": "\`let\` cannot be used as an identifier in strict mode",
-    },
-    {
-      "formatted": "error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:11
-  │
-1 │ let let = let;
-  │           ^^^ \`let\` cannot be used as an identifier in strict mode
-
-",
-      "message": "\`let\` cannot be used as an identifier in strict mode",
+      "message": "Expected a semicolon",
     },
   ],
-  "errorsCount": 2,
+  "errorsCount": 1,
   "warnings": [],
   "warningsCount": 0,
 }
@@ -469,18 +459,10 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
 "
 error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:5
+  ┌─ bundle.js:1:9
   │
-1 │ let let = let;
-  │     ^^^ \`let\` cannot be used as an identifier in strict mode
-
-
-
-error[javascript]: JavaScript parsing error
-  ┌─ bundle.js:1:11
-  │
-1 │ let let = let;
-  │           ^^^ \`let\` cannot be used as an identifier in strict mode
+1 │ const a {}
+  │         ^ Expected a semicolon
 
 "
 `;
@@ -1351,7 +1333,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "f56e1f7517aed26d",
+  "hash": "96843041aec37d26",
   "modules": [
     {
       "assets": [],
@@ -1427,7 +1409,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: f56e1f7517aed26d
+"Hash: 96843041aec37d26
 PublicPath: auto
     Asset       Size  Chunks             Chunk Names
 bundle.js  363 bytes    main  [emitted]  main
@@ -1569,7 +1551,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "178bdd60e81ac756",
+  "hash": "35d11ac4c0a84831",
   "modules": [
     {
       "assets": [],
@@ -1645,7 +1627,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: 178bdd60e81ac756
+"Hash: 35d11ac4c0a84831
     Asset       Size  Chunks             Chunk Names
 bundle.js  972 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
@@ -1744,7 +1726,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "340f80f80633a87",
+  "hash": "c1603650c938e434",
   "modules": [
     {
       "assets": [],
@@ -1789,7 +1771,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"Hash: 340f80f80633a87
+"Hash: c1603650c938e434
     Asset       Size  Chunks             Chunk Names
 bundle.js  317 bytes    main  [emitted]  main
 Entrypoint main = bundle.js

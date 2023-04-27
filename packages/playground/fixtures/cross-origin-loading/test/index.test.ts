@@ -8,5 +8,5 @@ test("should set crossOrigin to anonymous for script tag correctly", async () =>
 		scripts.map(script => script.getAttribute("crossorigin"))
 	);
 
-	expect(crossOrigins).toEqual(["anonymous", null]);
+	expect(crossOrigins).toEqual([null, "anonymous"]);
 });
