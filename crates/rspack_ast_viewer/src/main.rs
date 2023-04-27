@@ -1,8 +1,7 @@
-use std::{ascii::AsciiExt, io::Read, str::FromStr, sync::Arc};
+use std::{io::Read, sync::Arc};
 
 use anyhow::{Context, Result};
 use argh::FromArgs;
-use clap::Parser;
 use swc_core::{
   self,
   common::{errors::HANDLER, FileName, Globals, GLOBALS},
@@ -22,7 +21,7 @@ struct Args {
 
   /// whether to keep span (default: false)
   #[argh(switch, short = 'k')]
-  keep_span: Option<bool>,
+  keep_span: bool,
 }
 
 enum ModuleType {
@@ -90,7 +89,7 @@ fn main() -> Result<()> {
     .as_ref()
     .map(|ty| from_str_fn(ty))
     .unwrap_or(ModuleType::JavaScript);
-  let keep_span = args.keep_span.unwrap_or(false);
+  let keep_span = args.keep_span;
 
   let mut input = String::new();
   std::io::stdin()

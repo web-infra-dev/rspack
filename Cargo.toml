@@ -17,27 +17,31 @@ opt-level     = 3
 
 
 [workspace.dependencies]
-anyhow             = { version = "1.0.70" }
-async-recursion    = { version = "1.0.4" }
-async-scoped       = { version = "0.7.1" }
-async-trait        = { version = "0.1.68" }
-better_scoped_tls  = { version = "0.1.0" }
-bitflags           = { version = "1.3.2" }
-clap               = { version = "4" }
-colored            = { version = "2.0.0" }
-dashmap            = { version = "5.4.0" }
-derivative         = { version = "2.2.0" }
-derive_builder     = { version = "0.11.2" }
-futures            = { version = "0.3.28" }
-futures-util       = "0.3.28"
-glob               = { version = "0.3.1" }
-hashlink           = { version = "0.8.1" }
-indexmap           = { version = "1.9.3" }
-insta              = { version = "1.29.0" }
-itertools          = { version = "0.10.5" }
-json               = { version = "0.12.4" }
-linked_hash_set    = { version = "0.1.4" }
-mimalloc-rust      = { version = "0.2" }
+anyhow            = { version = "1.0.69" }
+async-recursion   = { version = "1.0.4" }
+async-scoped      = { version = "0.7.1" }
+async-trait       = { version = "0.1.53" }
+better_scoped_tls = { version = "0.1.0" }
+bitflags          = { version = "1.3.2" }
+clap              = { version = "4" }
+colored           = { version = "2.0.0" }
+dashmap           = { version = "5.4.0" }
+derivative        = { version = "2.2.0" }
+derive_builder    = { version = "0.11.2" }
+futures           = { version = "0.3.21" }
+glob              = { version = "0.3.1" }
+hashlink          = { version = "0.8.1" }
+indexmap          = { version = "1.9.2" }
+insta             = { version = "1.19.0" }
+itertools         = { version = "0.10.1" }
+json              = { version = "0.12.4" }
+linked_hash_set   = { version = "0.1.4" }
+mimalloc-rust     = { version = "0.2" }
+napi              = { version = "=2.12.5" }
+
+napi-build         = { version = "=2.0.1" }
+napi-derive        = { version = "=2.12.3" }
+napi-sys           = { version = "=2.2.3" }
 nodejs-resolver    = { version = "0.0.82" }
 once_cell          = { version = "1.17.1" }
 paste              = { version = "1.0" }
