@@ -889,7 +889,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
-      self.module_syntax.insert(ModuleSyntax::ESM);
+      self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .resolve_module_identifier(&require_lit, &DependencyType::CjsRequire)
         .copied()
