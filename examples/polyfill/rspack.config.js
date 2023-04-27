@@ -1,8 +1,6 @@
 const path = require("path");
-/**
- * @type {import('@rspack/cli').Configuration}
- */
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	context: __dirname,
 	entry: {
 		main: "./src/index.js"
@@ -25,3 +23,4 @@ module.exports = {
 		]
 	}
 };
+module.exports = config;
