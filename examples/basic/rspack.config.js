@@ -11,9 +11,6 @@ module.exports = {
 			{
 				template: "./index.html"
 			}
-		]
-	},
-	optimization: {
-		minimize: true 
+		],
 	}
 };

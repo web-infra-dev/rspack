@@ -46,11 +46,12 @@ export type CssPluginConfig = {
 	modules?: Partial<RawCssModulesConfig>;
 };
 
-export type MinificationConfig =
-	| Partial<RawMinification>
-	| {
-			extractComments?: boolean | RegExp;
-	  };
+export type MinificationConfig = {
+	passes?: number;
+	dropConsole?: boolean;
+	pureFuncs?: Array<string>;
+	extractComments?: boolean | RegExp;
+};
 
 export interface Builtins {
 	css?: CssPluginConfig;
