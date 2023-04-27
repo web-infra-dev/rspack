@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use napi_derive::napi;
+use rspack_core::SourceType;
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
 
@@ -131,6 +132,10 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
       })
       .unwrap_or_else(new_split_chunks_plugin::create_async_chunk_filter);
 
+    let overall_min_size = raw_opts.min_size.unwrap_or(20000.0);
+
+    let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
+
     cache_groups.extend(
       raw_opts
         .cache_groups
@@ -150,6 +155,10 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             })
             .unwrap_or_else(|| overall_chunk_filter.clone()),
           min_chunks: v.min_chunks.unwrap_or(1),
+          min_size: new_split_chunks_plugin::SplitChunkSizes::with_initial_value(
+            &default_size_types,
+            overall_min_size,
+          ),
         }),
     );
 

@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+  ops::{Deref, DerefMut},
+  sync::Arc,
+};
 
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
 use rustc_hash::FxHashMap;
@@ -56,4 +59,30 @@ pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
   .unwrap_or_else(create_default_module_filter)
 }
 
-pub(crate) type SplitChunkSizes = FxHashMap<SourceType, f64>;
+#[derive(Debug, Default)]
+pub struct SplitChunkSizes(FxHashMap<SourceType, f64>);
+
+impl SplitChunkSizes {
+  pub fn with_initial_value(default_size_types: &[SourceType], initial_bytes: f64) -> Self {
+    Self(
+      default_size_types
+        .iter()
+        .map(|ty| (*ty, initial_bytes))
+        .collect(),
+    )
+  }
+}
+
+impl Deref for SplitChunkSizes {
+  type Target = FxHashMap<SourceType, f64>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl DerefMut for SplitChunkSizes {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
