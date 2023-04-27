@@ -3,7 +3,6 @@ use std::sync::Arc;
 use rspack_core::{ast::javascript::Ast, Devtool};
 use rspack_error::{internal_error, Result};
 use swc_core::{
-  base::TransformOutput,
   common::{
     collections::AHashMap, comments::Comments, source_map::SourceMapGenConfig, BytePos, FileName,
     SourceMap,
@@ -18,6 +17,8 @@ use swc_core::{
     },
   },
 };
+
+use crate::TransformOutput;
 
 pub fn stringify(
   ast: &Ast,

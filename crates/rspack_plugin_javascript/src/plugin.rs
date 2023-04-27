@@ -21,10 +21,10 @@ use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::Identifier;
-use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
+use swc_config::config_types::BoolOrDataConfig;
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
-use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
+use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::runtime::{
@@ -33,6 +33,7 @@ use crate::runtime::{
 };
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
+use crate::JsMinifyOptions;
 
 #[derive(Debug)]
 pub struct JsPlugin {}

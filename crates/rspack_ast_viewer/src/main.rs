@@ -4,13 +4,13 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use swc_core::{
   self,
-  base::try_with_handler,
   common::{errors::HANDLER, FileName, Globals, GLOBALS},
   ecma::{
     ast::*,
     parser::{parse_file_as_module, Syntax, TsConfig},
   },
 };
+use swc_error_reporters::handler::try_with_handler;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

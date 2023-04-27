@@ -18,6 +18,6 @@ swc_core = { workspace = true, features = [
   "ecma_parser",
   "css_ast",
   "css_parser",
-  "base",
   "common",
 ] }
+swc_error_reporters = { workspace = true }

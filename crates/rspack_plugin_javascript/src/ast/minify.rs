@@ -9,11 +9,8 @@ use rspack_core::{
   ModuleType,
 };
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
+use swc_config::config_types::BoolOr;
 use swc_core::{
-  base::{
-    config::{IsModule, JsMinifyCommentOption, JsMinifyOptions, SourceMapsConfig},
-    BoolOr, TransformOutput,
-  },
   common::{
     collections::AHashMap,
     comments::{Comment, Comments, SingleThreadedComments},
@@ -23,10 +20,6 @@ use swc_core::{
   ecma::{
     ast::Ident,
     atoms::JsWord,
-    minifier::{
-      self,
-      option::{MinifyOptions, TopLevelOptions},
-    },
     parser::{EsConfig, Syntax},
     transforms::base::{
       fixer::fixer,
@@ -37,10 +30,17 @@ use swc_core::{
     visit::{noop_visit_type, FoldWith, Visit, VisitMutWith, VisitWith},
   },
 };
+use swc_ecma_minifier::{
+  self,
+  option::{MinifyOptions, TopLevelOptions},
+};
 
 use super::parse::parse_js;
 use super::stringify::{print, SourceMapConfig};
-use crate::{utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo};
+use crate::{
+  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyCommentOption,
+  JsMinifyOptions, SourceMapsConfig, TransformOutput,
+};
 
 pub fn minify(
   opts: &JsMinifyOptions,
@@ -161,13 +161,13 @@ pub fn minify(
           HANDLER.set(handler, || {
             let program = program.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
 
-            let mut program = minifier::optimize(
+            let mut program = swc_ecma_minifier::optimize(
               program,
               cm.clone(),
               Some(&comments),
               None,
               &min_opts,
-              &minifier::option::ExtraOptions {
+              &swc_ecma_minifier::option::ExtraOptions {
                 unresolved_mark,
                 top_level_mark,
               },

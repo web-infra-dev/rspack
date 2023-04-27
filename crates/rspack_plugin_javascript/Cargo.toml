@@ -31,20 +31,23 @@ rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 sourcemap = "6.2.0"
 sugar_path = { workspace = true }
+swc_config = { workspace = true }
 swc_core = { workspace = true, features = [
+  "__base",
   "__parser",
   "__utils",
+  "common_sourcemap",
   "ecma_preset_env",
   "ecma_transforms_optimization",
   "ecma_transforms_module",
   "ecma_transforms_compat",
   "ecma_transforms_proposal",
   "ecma_transforms_typescript",
-  "ecma_minifier",
-  "ecma_minifier_concurrent",
   "ecma_quote",
 ] }
+swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
 swc_emotion = { workspace = true }
+swc_node_comments = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
