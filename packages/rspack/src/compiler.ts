@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import fs from "fs";
+import path from "path";
 import * as tapable from "tapable";
 import { SyncHook, SyncBailHook, Callback } from "tapable";
 import type { WatchOptions } from "watchpack";
@@ -36,7 +37,26 @@ import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
 import { makePathsRelative } from "./util/identifier";
 
 class EntryPlugin {
-	apply() {}
+	constructor(
+		public context: string,
+		public entry: string,
+		public options: {
+			name?: string;
+			runtime?: string;
+		} = {}
+	) {}
+	apply(compiler: Compiler) {
+		const entry = this.context
+			? path.resolve(this.context, this.entry)
+			: this.entry;
+
+		compiler.options.entry = {
+			[this.options.name || "main"]: {
+				import: [entry],
+				runtime: this.options.runtime
+			}
+		};
+	}
 }
 
 class NodeTargetPlugin {
