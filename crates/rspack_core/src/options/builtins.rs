@@ -52,6 +52,7 @@ pub struct Minification {
   pub passes: usize,
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
+  pub extract_comments: Option<String>,
 }
 
 #[derive(Debug, Copy, Clone, Default)]

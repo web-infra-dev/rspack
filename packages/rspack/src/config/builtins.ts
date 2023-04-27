@@ -46,6 +46,13 @@ export type CssPluginConfig = {
 	modules?: Partial<RawCssModulesConfig>;
 };
 
+export type MinificationConfig = {
+	passes?: number;
+	dropConsole?: boolean;
+	pureFuncs?: Array<string>;
+	extractComments?: boolean | RegExp;
+};
+
 export interface Builtins {
 	css?: CssPluginConfig;
 	postcss?: RawPostCssConfig;
@@ -57,7 +64,7 @@ export interface Builtins {
 	provide?: Record<string, string | string[]>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minifyOptions?: Partial<RawMinification>;
+	minifyOptions?: MinificationConfig;
 	emotion?: EmotionConfig;
 	presetEnv?: Partial<RawBuiltins["presetEnv"]>;
 	polyfill?: boolean;
@@ -376,7 +383,7 @@ export function resolveBuiltinsOptions(
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
 			: undefined,
-		codeGeneration: resolveCodeGeneration(builtins.codeGeneration)
+		codeGeneration: resolveCodeGeneration(builtins)
 	};
 }
 
@@ -421,22 +428,25 @@ export function resolveMinifyOptions(
 		return undefined;
 	}
 
+	let extractComments = builtins.minifyOptions?.extractComments
+		? String(builtins.minifyOptions.extractComments)
+		: undefined;
+
 	return {
 		passes: 1,
 		dropConsole: false,
 		pureFuncs: [],
-		...builtins.minifyOptions
+		...builtins.minifyOptions,
+		extractComments
 	};
 }
 
-export function resolveCodeGeneration(
-	codeGeneration: Builtins["codeGeneration"]
-): RawCodeGeneration {
-	if (!codeGeneration) {
-		return { keepComments: false };
+export function resolveCodeGeneration(builtins: Builtins): RawCodeGeneration {
+	if (!builtins.codeGeneration) {
+		return { keepComments: Boolean(builtins.minifyOptions?.extractComments) };
 	}
 	return {
 		keepComments: false,
-		...codeGeneration
+		...builtins.codeGeneration
 	};
 }
