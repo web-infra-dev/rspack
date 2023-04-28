@@ -5,7 +5,7 @@
   "description": "A Fast Rust-based web bundler",
   "private": true,
   "scripts": {
-    "x": "./x.mjs",
+    "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
     "build:js": "pnpm --filter \"@rspack/*\" build",
