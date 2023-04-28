@@ -116,7 +116,7 @@ pub fn minify(
           }
         }
 
-        let mut comments = SingleThreadedComments::default();
+        let comments = SingleThreadedComments::default();
 
         let program = parse_js(
           fm.clone(),
@@ -236,10 +236,8 @@ pub fn minify(
                 },
               );
           }
-          // if comments are extracted, we don't need to preserve them
         }
 
-        comments = SingleThreadedComments::default();
         print(
           &program,
           cm.clone(),
@@ -251,7 +249,7 @@ pub fn minify(
             names: source_map_names,
           },
           true,
-          Some(&comments),
+          None,
           opts.format.ascii_only,
         )
       },

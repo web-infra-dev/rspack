@@ -668,13 +668,14 @@ impl Plugin for JsPlugin {
           if let Some(original_source) = original.get_source() {
             let input = original_source.source().to_string();
             let input_source_map = original_source.map(&MapOptions::default());
-            let output = match crate::ast::minify(&JsMinifyOptions {
+            let js_minify_options = JsMinifyOptions {
               compress: BoolOrDataConfig::from_obj(compress.clone()),
               source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
               emit_source_map_columns,
               ..Default::default()
-            }, input, filename, &all_extracted_comments, extract_comments_option) {
+            };
+            let output = match crate::ast::minify(&js_minify_options, input, filename, &all_extracted_comments, extract_comments_option) {
               Ok(r) => r,
               Err(e) => {
                 tx.send(e.into()).map_err(|e| internal_error!(e.to_string()))?;
