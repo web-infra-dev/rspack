@@ -81,11 +81,10 @@ impl Visit for ReactRefreshUsageFinder {
 }
 
 // __webpack_require__.$ReactRefreshRuntime$ is injected by the react-refresh additional entry
-static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_modules__.$ReactRefreshRuntime$;
-var $RefreshReg$ = function (type, id) {
-  RefreshRuntime.register(type, __webpack_module__.id+ "_" + id);
-}
-var $RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
+static HMR_HEADER: &str = r#"
+function $RefreshReg$(type, id) {
+  __webpack_modules__.$ReactRefreshRuntime$.register(type, __webpack_module__.id+ "_" + id);
+}"#;
 
 // See https://github.com/web-infra-dev/rspack/pull/2714 why we have a promise here
 static HMR_FOOTER: &str = r#"Promise.resolve().then(function(){ 
@@ -115,17 +114,15 @@ impl Fold for ReactHmrFolder {
       return program;
     }
 
-    let mut body = vec![];
-    body.extend(HMR_HEADER_AST.body.clone());
+    let mut rumtime_stmts = HMR_HEADER_AST.body.clone();
+
     match program {
-      Program::Module(ref mut m) => m.body.extend(to_module_body(body)),
-      Program::Script(ref mut s) => s.body.extend(body),
+      Program::Module(ref mut m) => m
+        .body
+        .extend(rumtime_stmts.into_iter().map(ModuleItem::Stmt)),
+      Program::Script(ref mut s) => s.body.extend(rumtime_stmts),
     };
 
     program
   }
-}
-
-fn to_module_body(script_body: Vec<Stmt>) -> Vec<ModuleItem> {
-  script_body.into_iter().map(ModuleItem::Stmt).collect()
 }

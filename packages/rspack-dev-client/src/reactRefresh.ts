@@ -18,6 +18,11 @@ function refresh(moduleId, webpackHot) {
 	}
 }
 
+// Injected global react refresh runtime
+
+// @ts-ignored
+globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
+
 // @ts-ignored
 __webpack_modules__.$ReactRefreshRuntime$ = {
 	refresh,
