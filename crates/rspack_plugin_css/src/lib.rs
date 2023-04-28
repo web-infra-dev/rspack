@@ -12,25 +12,18 @@ use std::sync::Arc;
 use once_cell::sync::Lazy;
 pub use plugin::CssPlugin;
 use rspack_core::rspack_sources::{self, SourceExt};
-use rspack_core::ErrorSpan;
-use rspack_error::{
-  internal_error, Diagnostic, DiagnosticKind, IntoTWithDiagnosticArray, Result,
-  TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::{
   input::SourceFileInput, source_map::SourceMapGenConfig, FileName, SourceMap,
 };
-use swc_core::common::{Globals, SourceFile, GLOBALS};
+use swc_core::common::{Globals, GLOBALS};
+use swc_core::css::codegen::{
+  writer::basic::{BasicCssWriter, BasicCssWriterConfig},
+  CodeGenerator, CodegenConfig, Emit,
+};
 use swc_core::css::minifier;
 use swc_core::css::parser::{lexer::Lexer, parser::ParserConfig};
 use swc_core::css::{ast::Stylesheet, parser::parser::Parser};
-use swc_core::css::{
-  codegen::{
-    writer::basic::{BasicCssWriter, BasicCssWriterConfig},
-    CodeGenerator, CodegenConfig, Emit,
-  },
-  parser::error::Error,
-};
 
 static SWC_COMPILER: Lazy<Arc<SwcCssCompiler>> = Lazy::new(|| Arc::new(SwcCssCompiler::new()));
 
@@ -58,14 +51,14 @@ impl SwcCssCompiler {
     let lexer = Lexer::new(SourceFileInput::from(&*fm), config);
     let mut parser = Parser::new(lexer, config);
     let stylesheet = parser.parse_all();
-    let diagnostics = parser
-      .take_errors()
-      .into_iter()
-      .flat_map(|error| css_parse_error_to_diagnostic(error, &fm))
-      .collect();
+    // let mut diagnostics = parser
+    //   .take_errors()
+    //   .into_iter()
+    //   .flat_map(|error| css_parse_error_to_diagnostic(error, &fm))
+    //   .collect();
     stylesheet
-      .map_err(|_| internal_error!("Css parsing failed".to_string()))
-      .map(|stylesheet| stylesheet.with_diagnostic(diagnostics))
+      .map_err(|e| internal_error!("Css parsing failed {}", e.message()))
+      .map(|stylesheet| stylesheet.with_diagnostic(vec![]))
   }
 
   pub fn codegen(
@@ -171,20 +164,20 @@ impl SourceMapGenConfig for SwcCssSourceMapGenConfig {
   }
 }
 
-pub fn css_parse_error_to_diagnostic(error: Error, fm: &SourceFile) -> Vec<Diagnostic> {
-  let message = error.message();
-  let error = error.into_inner();
-  let span: ErrorSpan = error.0.into();
-  let traceable_error = rspack_error::TraceableError::from_source_file(
-    fm,
-    span.start as usize,
-    span.end as usize,
-    "Css parsing error".to_string(),
-    message.to_string(),
-  )
-  .with_kind(DiagnosticKind::Css)
-  // css error tolerate, use `Warning` for recoverable css error
-  .with_severity(rspack_error::Severity::Warn);
-  //Use this `Error` conversion could avoid eagerly clone source file.
-  <Vec<Diagnostic>>::from(rspack_error::Error::TraceableError(traceable_error))
-}
+// pub fn css_parse_error_to_diagnostic(error: Error, fm: &SourceFile) -> Vec<Diagnostic> {
+//   let message = error.message();
+//   let error = error.into_inner();
+//   let span: ErrorSpan = error.0.into();
+//   let traceable_error = rspack_error::TraceableError::from_source_file(
+//     fm,
+//     span.start as usize,
+//     span.end as usize,
+//     "Css parsing error".to_string(),
+//     message.to_string(),
+//   )
+//   .with_kind(DiagnosticKind::Css)
+//   // css error tolerate, use `Warning` for recoverable css error
+//   .with_severity(rspack_error::Severity::Warn);
+//   //Use this `Error` conversion could avoid eagerly clone source file.
+//   <Vec<Diagnostic>>::from(rspack_error::Error::TraceableError(traceable_error))
+// }
