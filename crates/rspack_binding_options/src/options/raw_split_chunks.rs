@@ -142,7 +142,9 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
         .unwrap_or_default()
         .into_iter()
         .map(|(k, v)| new_split_chunks_plugin::CacheGroup {
-          name: v.name.unwrap_or(k),
+          name: new_split_chunks_plugin::create_chunk_name_getter_by_const_name(
+            v.name.unwrap_or(k),
+          ),
           priority: v.priority.unwrap_or(-20) as f64,
           test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
           chunk_filter: v

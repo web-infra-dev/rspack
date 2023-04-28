@@ -2835,9 +2835,11 @@ dependencies = [
 name = "rspack_plugin_split_chunks_new"
 version = "0.1.0"
 dependencies = [
+ "async-scoped",
  "async-trait",
  "dashmap",
  "derivative",
+ "futures-util",
  "rayon",
  "regex",
  "rspack_core",
@@ -2845,6 +2847,7 @@ dependencies = [
  "rspack_regex",
  "rspack_util",
  "rustc-hash",
+ "tokio",
  "tracing",
 ]
 

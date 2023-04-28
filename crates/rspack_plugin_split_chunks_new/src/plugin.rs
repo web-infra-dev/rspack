@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use async_scoped::TokioScope;
 use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::{Chunk, ChunkUkey, Compilation, Module, Plugin, SourceType};
@@ -27,8 +28,8 @@ impl SplitChunksPlugin {
     }
   }
 
-  fn inner_impl(&self, compilation: &mut Compilation) {
-    let mut module_group_map = self.prepare_module_group_map(compilation);
+  async fn inner_impl(&self, compilation: &mut Compilation) {
+    let mut module_group_map = self.prepare_module_group_map(compilation).await;
 
     self.ensure_min_size_fit(compilation, &mut module_group_map);
 
@@ -127,21 +128,29 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
     module_group: &ModuleGroup,
   ) -> ChunkUkey {
-    if let Some(chunk) = compilation.named_chunks.get(&module_group.chunk_name) {
-      *chunk
-    } else {
-      let chunk = Compilation::add_named_chunk(
-        module_group.chunk_name.clone(),
+    if let Some(chunk) = module_group
+      .chunk_name
+      .as_ref()
+      .and_then(|chunk_name| compilation.named_chunks.get(chunk_name))
+    {
+      return *chunk;
+    }
+
+    let chunk = if let Some(chunk_name) = &module_group.chunk_name {
+      Compilation::add_named_chunk(
+        chunk_name.clone(),
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
-      );
+      )
+    } else {
+      Compilation::add_chunk(&mut compilation.chunk_by_ukey)
+    };
 
-      chunk
-        .chunk_reasons
-        .push("Create by split chunks".to_string());
-      compilation.chunk_graph.add_chunk(chunk.ukey);
-      chunk.ukey
-    }
+    chunk
+      .chunk_reasons
+      .push("Create by split chunks".to_string());
+    compilation.chunk_graph.add_chunk(chunk.ukey);
+    chunk.ukey
   }
 
   fn remove_all_modules_from_other_module_groups(
@@ -252,7 +261,7 @@ impl SplitChunksPlugin {
     (best_entry_key, best_module_group)
   }
 
-  fn prepare_module_group_map(&self, compilation: &mut Compilation) -> ModuleGroupMap {
+  async fn prepare_module_group_map(&self, compilation: &mut Compilation) -> ModuleGroupMap {
     let chunk_db = &compilation.chunk_by_ukey;
     let chunk_group_db = &compilation.chunk_group_by_ukey;
 
@@ -265,24 +274,25 @@ impl SplitChunksPlugin {
       selected_chunks: Box<[&'a Chunk]>,
     }
 
-    let matched_items = compilation
-      .module_graph
-      .modules()
-      .values()
-      .par_bridge()
-      .flat_map(|module| {
+    let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
+
+    async_scoped::Scope::scope_and_block(|scope: &mut TokioScope<'_, _>| {
+      for module in compilation.module_graph.modules().values() {
+        let module = &**module;
+
         let belong_to_chunks = compilation
           .chunk_graph
           .get_module_chunks((*module).identifier());
 
-        // A module may match multiple CacheGroups
-        self.cache_groups.par_iter().enumerate().filter_map(
-          move |(cache_group_index, cache_group)| {
+        let module_group_map = &module_group_map;
+
+        for (cache_group_index, cache_group) in self.cache_groups.iter().enumerate() {
+          scope.spawn(async move {
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
             let is_match_the_test: bool = (cache_group.test)(module);
 
             if !is_match_the_test {
-              return None;
+              return;
             }
 
             let selected_chunks = belong_to_chunks
@@ -294,45 +304,57 @@ impl SplitChunksPlugin {
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
             if selected_chunks.len() < cache_group.min_chunks as usize {
-              return None;
+              return;
             }
 
-            Some(MatchedItem {
-              module: &**module,
-              cache_group,
-              cache_group_index,
-              selected_chunks,
-            })
-          },
-        )
-      });
+            merge_matched_item_into_module_group_map(
+              MatchedItem {
+                module,
+                cache_group,
+                cache_group_index,
+                selected_chunks,
+              },
+              module_group_map,
+            )
+            .await;
 
-    let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
+            async fn merge_matched_item_into_module_group_map(
+              matched_item: MatchedItem<'_>,
+              module_group_map: &DashMap<String, ModuleGroup>,
+            ) {
+              let MatchedItem {
+                module,
+                cache_group_index,
+                cache_group,
+                selected_chunks,
+              } = matched_item;
 
-    matched_items.for_each(|matched_item| {
-      let MatchedItem {
-        module,
-        cache_group_index,
-        cache_group,
-        selected_chunks,
-      } = matched_item;
+              // Merge the `Module` of `MatchedItem` into the `ModuleGroup` which has the same `key`/`cache_group.name`
+              let chunk_name: Option<String> = (cache_group.name)(module).await;
 
-      // Merge the `Module` of `MatchedItem` into the `ModuleGroup` which has the same `key`/`cache_group.name`
-      let key = ["name: ", &cache_group.name].join("");
+              let key: String = if let Some(cache_group_name) = &chunk_name {
+                ["name: ", cache_group_name].join("")
+              } else {
+                ["index: ", &cache_group_index.to_string()].join("")
+              };
 
-      let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup {
-        modules: Default::default(),
-        cache_group_index,
-        cache_group_priority: cache_group.priority,
-        sizes: Default::default(),
-        chunks: Default::default(),
-        chunk_name: cache_group.name.clone(),
-      });
+              let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup {
+                modules: Default::default(),
+                cache_group_index,
+                cache_group_priority: cache_group.priority,
+                sizes: Default::default(),
+                chunks: Default::default(),
+                chunk_name,
+              });
 
-      module_group.add_module(module);
-      module_group
-        .chunks
-        .extend(selected_chunks.iter().map(|c| c.ukey))
+              module_group.add_module(module);
+              module_group
+                .chunks
+                .extend(selected_chunks.iter().map(|c| c.ukey))
+            }
+          });
+        }
+      }
     });
 
     module_group_map.into_iter().collect()
@@ -352,7 +374,11 @@ impl Plugin for SplitChunksPlugin {
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
-    self.inner_impl(args.compilation);
+    // use std::time::Instant;
+    // let start = Instant::now();
+    self.inner_impl(args.compilation).await;
+    // let duration = start.elapsed();
+    // println!("SplitChunksPlugin is: {:?}", duration);
     Ok(())
   }
 }

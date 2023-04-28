@@ -137,7 +137,7 @@ export interface RawMinification {
   passes: number
   dropConsole: boolean
   pureFuncs: Array<string>
-  extractComments?: string 
+  extractComments?: string
 }
 export interface RawPresetEnv {
   targets: Array<string>

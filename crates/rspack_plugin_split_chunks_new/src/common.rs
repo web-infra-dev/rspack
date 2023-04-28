@@ -1,8 +1,11 @@
 use std::{
+  future::{self, Future},
   ops::{Deref, DerefMut},
+  pin::Pin,
   sync::Arc,
 };
 
+use futures_util::FutureExt;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
 use rustc_hash::FxHashMap;
 
@@ -85,4 +88,12 @@ impl DerefMut for SplitChunkSizes {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.0
   }
+}
+
+type PinFutureBox<T> = Pin<Box<dyn Future<Output = T> + Send>>;
+
+pub type ChunkNameGetter = Box<dyn Fn(&dyn Module) -> PinFutureBox<Option<String>> + Send + Sync>;
+
+pub fn create_chunk_name_getter_by_const_name(name: String) -> ChunkNameGetter {
+  Box::new(move |_module| future::ready(Some(name.clone())).boxed())
 }
