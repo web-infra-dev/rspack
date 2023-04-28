@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::{ConcatSource, RawSource, Source, SourceExt},
+  rspack_sources::{RawSource, SourceExt},
   ModuleType,
 };
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
@@ -13,7 +13,7 @@ use swc_config::config_types::BoolOr;
 use swc_core::{
   common::{
     collections::AHashMap,
-    comments::{Comment, Comments, SingleThreadedComments},
+    comments::{Comment, CommentKind, Comments, SingleThreadedComments},
     errors::{Emitter, Handler, HANDLER},
     BytePos, FileName, Mark, SourceMap, GLOBALS,
   },
@@ -116,7 +116,7 @@ pub fn minify(
           }
         }
 
-        let mut comments = SingleThreadedComments::default();
+        let comments = SingleThreadedComments::default();
 
         let program = parse_js(
           fm.clone(),
@@ -180,13 +180,6 @@ pub fn minify(
           })
         });
 
-        let preserve_comments = opts
-          .format
-          .comments
-          .clone()
-          .into_inner()
-          .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
-
         if let Some(extract_comments) = extract_comments {
           let comments_file_name = filename.to_string() + ".LICENSE.txt";
           let reg = if extract_comments.eq("true") {
@@ -196,50 +189,53 @@ pub fn minify(
             Regex::new(&extract_comments[1..extract_comments.len() - 2])
           }
           .expect("Invalid extractComments");
-          let mut source = ConcatSource::default();
+          let mut extracted_comments = vec![];
           // add all matched comments to source
-          {
-            let (l, t) = comments.borrow_all();
 
-            l.iter().for_each(|(_, vc)| {
-              vc.iter().for_each(|c| {
-                if reg.is_match(&c.text) {
-                  source.add(RawSource::from("/*"));
-                  source.add(RawSource::from(&*c.text));
-                  source.add(RawSource::from("*/"));
-                  source.add(RawSource::from("\n"));
-                }
-              });
+          let (leading_trivial, trailing_trivial) = comments.borrow_all();
+
+          leading_trivial.iter().for_each(|(_, comments)| {
+            comments.iter().for_each(|c| {
+              if reg.is_match(&c.text) {
+                extracted_comments.push(match c.kind {
+                  CommentKind::Line => {
+                    format!("// {}", c.text)
+                  }
+                  CommentKind::Block => {
+                    format!("/*{}*/", c.text)
+                  }
+                });
+              }
             });
-            t.iter().for_each(|(_, vc)| {
-              vc.iter().for_each(|c| {
-                if reg.is_match(&c.text) {
-                  source.add(RawSource::from("/*"));
-                  source.add(RawSource::from(&*c.text));
-                  source.add(RawSource::from("*/"));
-                  source.add(RawSource::from("\n"));
-                }
-              });
+          });
+          trailing_trivial.iter().for_each(|(_, comments)| {
+            comments.iter().for_each(|c| {
+              if reg.is_match(&c.text) {
+                extracted_comments.push(match c.kind {
+                  CommentKind::Line => {
+                    format!("// {}", c.text)
+                  }
+                  CommentKind::Block => {
+                    format!("/*{}*/", c.text)
+                  }
+                });
+              }
             });
-          }
+          });
+
           // if not matched comments, we don't need to emit .License.txt file
-          if source.size() > 0 {
+          if !extracted_comments.is_empty() {
             all_extract_comments
               .lock()
               .expect("all_extract_comments lock failed")
               .insert(
                 filename.to_string(),
                 ExtractedCommentsInfo {
-                  source: source.boxed(),
+                  source: RawSource::Source(extracted_comments.join("\n\n")).boxed(),
                   comments_file_name,
                 },
               );
           }
-          // if comments are extracted, we don't need to preserve them
-          comments = SingleThreadedComments::default();
-        } else {
-          // if comments are not extracted, then we minify them
-          minify_file_comments(&comments, preserve_comments);
         }
 
         print(
@@ -253,7 +249,7 @@ pub fn minify(
             names: source_map_names,
           },
           true,
-          Some(&comments),
+          None,
           opts.format.ascii_only,
         )
       },

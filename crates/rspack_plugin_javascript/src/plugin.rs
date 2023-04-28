@@ -645,7 +645,7 @@ impl Plugin for JsPlugin {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
       // collect all extracted comments info
       let all_extracted_comments = Mutex::new(HashMap::new());
-      let extract_comments = &minify_options.extract_comments.clone();
+      let extract_comments_option = &minify_options.extract_comments.clone();
       let emit_source_map_columns = !compilation.options.devtool.cheap();
       let compress = TerserCompressorOptions {
         passes: minify_options.passes,
@@ -661,7 +661,6 @@ impl Plugin for JsPlugin {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
         })
         .try_for_each_with(tx, |tx, (filename, original)| -> Result<()> {
-          // In theory, if a js source is minimized it has high possibility has been tree-shaked.
           if original.get_info().minimized {
             return Ok(());
           }
@@ -669,13 +668,14 @@ impl Plugin for JsPlugin {
           if let Some(original_source) = original.get_source() {
             let input = original_source.source().to_string();
             let input_source_map = original_source.map(&MapOptions::default());
-            let output = match crate::ast::minify(&JsMinifyOptions {
+            let js_minify_options = JsMinifyOptions {
               compress: BoolOrDataConfig::from_obj(compress.clone()),
               source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
               emit_source_map_columns,
               ..Default::default()
-            }, input, filename, &all_extracted_comments, extract_comments) {
+            };
+            let output = match crate::ast::minify(&js_minify_options, input, filename, &all_extracted_comments, extract_comments_option) {
               Ok(r) => r,
               Err(e) => {
                 tx.send(e.into()).map_err(|e| internal_error!(e.to_string()))?;

@@ -2,4 +2,5 @@
  * Utility functions for the foo package.
  * @license Apache-2.0
  */
-/* @license */
+
+//  @license What ever
