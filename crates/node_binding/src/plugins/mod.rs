@@ -31,6 +31,7 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
@@ -288,6 +289,23 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
   }
 
+  async fn process_assets_stage_optimize_hash(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeHash) {
+      return Ok(());
+    }
+
+    self
+      .process_assets_stage_optimize_hash_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
+  }
+
   async fn process_assets_stage_report(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -406,6 +424,7 @@ impl JsHooksAdapter {
       process_assets_stage_none,
       process_assets_stage_optimize_inline,
       process_assets_stage_summarize,
+      process_assets_stage_optimize_hash,
       process_assets_stage_report,
       this_compilation,
       compilation,
@@ -432,6 +451,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(process_assets_stage_optimize_inline, env);
     let process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_summarize, env);
+    let process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_theadsafe_fn!(process_assets_stage_optimize_hash, env);
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_report, env);
     let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(emit, env);
@@ -467,6 +488,7 @@ impl JsHooksAdapter {
       process_assets_stage_none_tsfn,
       process_assets_stage_optimize_inline_tsfn,
       process_assets_stage_summarize_tsfn,
+      process_assets_stage_optimize_hash_tsfn,
       process_assets_stage_report_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,

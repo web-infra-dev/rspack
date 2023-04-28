@@ -398,7 +398,7 @@ where
         for entry in render_manifest {
           let asset = CompilationAsset::new(
             Some(entry.source),
-            AssetInfo::default().with_hot_module_replacement(true),
+            entry.info.with_hot_module_replacement(true),
           );
 
           // TODO: should use `get_path_info` to get filename.

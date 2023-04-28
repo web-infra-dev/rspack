@@ -538,6 +538,8 @@ const applyOptimizationDefaults = (
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "runtimeChunk", false);
+	// TODO: change to true in production once realContentHash is stable
+	D(optimization, "realContentHash", false);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => []);
 	const { splitChunks } = optimization;

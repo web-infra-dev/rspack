@@ -24,7 +24,9 @@ use rspack_core::{
   GenerationResult, Module, ModuleGraph, ModuleType, NormalModuleAstOrSource, ParseContext,
   ParseResult, ParserAndGenerator, PathData, Plugin, RenderManifestEntry, SourceType,
 };
-use rspack_core::{AstOrSource, Filename, ModuleAst, ModuleDependency, ModuleIdentifier};
+use rspack_core::{
+  AssetInfo, AstOrSource, Filename, ModuleAst, ModuleDependency, ModuleIdentifier,
+};
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
@@ -734,6 +736,7 @@ impl Plugin for CssPlugin {
       source.boxed(),
       output_path,
       path_data,
+      AssetInfo::default().with_content_hash(chunk.content_hash.get(&SourceType::Css).cloned()),
     )])
   }
 

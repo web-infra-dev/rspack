@@ -12,3 +12,12 @@ pub use loading_plugin::*;
 pub use parser_and_generator::*;
 pub use runtime::*;
 pub use wasm_plugin::*;
+
+// TODO(ahabhgk): remove this
+pub type ModuleIdToFileName = std::sync::Arc<
+  dashmap::DashMap<
+    rspack_core::ModuleIdentifier,
+    String,
+    std::hash::BuildHasherDefault<rspack_identifier::IdentifierHasher>,
+  >,
+>;

@@ -245,6 +245,10 @@ class Compiler {
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
 					),
+					processAssetsStageOptimizeHash: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+					),
 					processAssetsStageReport: this.#processAssets.bind(
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_REPORT

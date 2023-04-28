@@ -2,13 +2,12 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, Module, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
+  ApplyContext, AssetInfo, Module, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;
-use rspack_plugin_asset::ModuleIdToFileName;
 
-use crate::AsyncWasmParserAndGenerator;
+use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
 pub struct EnableWasmLoadingPlugin {}
 
@@ -96,6 +95,8 @@ impl Plugin for AsyncWasmPlugin {
                   .render_with_chunk(chunk, ".wasm", &SourceType::Wasm)
               }),
               path_options,
+              AssetInfo::default()
+                .with_content_hash(chunk.content_hash.get(&SourceType::Wasm).cloned()),
             )
           });
 
