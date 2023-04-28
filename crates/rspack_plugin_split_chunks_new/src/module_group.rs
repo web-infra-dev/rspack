@@ -23,7 +23,7 @@ pub(crate) struct ModuleGroup {
   pub cache_group_priority: f64,
   /// If the `ModuleGroup` is going to create a chunk, which will be named using `chunk_name`
   /// A module
-  pub chunk_name: String,
+  pub chunk_name: Option<String>,
   pub sizes: SplitChunkSizes,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[derivative(Debug = "ignore")]
