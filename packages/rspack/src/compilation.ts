@@ -393,13 +393,13 @@ export class Compilation {
 	get errors() {
 		let inner = this.#inner;
 		return {
-			push: (...errs: Error[]) => {
+			push: (...errs: (Error | JsStatsError)[]) => {
 				// compatible for javascript array
 				for (let i = 0; i < errs.length; i++) {
 					let error = errs[i];
 					this.#inner.pushDiagnostic(
 						"error",
-						error.name || "",
+						error.name,
 						concatErrorMsgAndStack(error)
 					);
 				}
@@ -414,7 +414,7 @@ export class Compilation {
 							return { done: true };
 						}
 						return {
-							value: [errors[index++]],
+							value: errors[index++],
 							done: false
 						};
 					}

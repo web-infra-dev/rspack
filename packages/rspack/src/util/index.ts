@@ -1,3 +1,5 @@
+import { JsStatsError } from "@rspack/binding";
+
 export function mapValues(
 	record: Record<string, string>,
 	fn: (key: string) => string
@@ -44,8 +46,14 @@ export function isPromiseLike(value: unknown): value is Promise<any> {
 	);
 }
 
-export function concatErrorMsgAndStack(err: Error): string {
-	return `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
+export function isJsStatsError(err: any): err is JsStatsError {
+	return !(err instanceof Error) && err.formatted;
+}
+
+export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
+	return isJsStatsError(err)
+		? err.formatted
+		: `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
 }
 
 export function indent(str: string, prefix: string) {

@@ -549,6 +549,7 @@ export interface JsCompatSource {
 export interface JsStatsError {
   message: string
   formatted: string
+  name: string
 }
 export interface JsStatsWarning {
   message: string
