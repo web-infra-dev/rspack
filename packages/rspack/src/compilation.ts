@@ -136,6 +136,10 @@ export class Compilation {
 		return this.#inner.hash;
 	}
 
+	get chunks() {
+		return this.getChunks();
+	}
+
 	get fullHash() {
 		return this.#inner.hash;
 	}
@@ -643,9 +647,9 @@ export class Compilation {
 		);
 	}
 	/**
-	 * Get the `Source` of an given asset filename.
+	 * Get the `Source` of a given asset filename.
 	 *
-	 * Note: This is not a webpack public API, maybe removed in future.
+	 * Note: This is not a webpack public API, maybe removed in the future.
 	 *
 	 * @internal
 	 */
