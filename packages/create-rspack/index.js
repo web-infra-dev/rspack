@@ -5,28 +5,16 @@ const fs = require("fs");
 const path = require("path");
 const prompts = require("prompts");
 const { formatTargetDir } = require("./utils");
+
 yargs(hideBin(process.argv))
 	.command("$0", "init rspack project", async argv => {
 		const { help } = argv.argv;
 		if (help) return;
+
 		const defaultProjectName = "rspack-project";
+		let template = "react";
 		let targetDir = defaultProjectName;
-		await prompts([
-			{
-				type: "text",
-				name: "projectDir",
-				initial: defaultProjectName,
-				message: "Project folder",
-				onState: state => {
-					targetDir = formatTargetDir(state.value) || defaultProjectName;
-				}
-			}
-		]);
-		let root = path.resolve(process.cwd(), targetDir);
-		while (fs.existsSync(root)) {
-			console.log(
-				`${targetDir} is not empty, please choose another project name`
-			);
+		const promptProjectDir = async () =>
 			await prompts([
 				{
 					type: "text",
@@ -38,12 +26,35 @@ yargs(hideBin(process.argv))
 					}
 				}
 			]);
+
+		await promptProjectDir();
+		let root = path.resolve(process.cwd(), targetDir);
+		while (fs.existsSync(root)) {
+			console.log(
+				`${targetDir} is not empty, please choose another project name`
+			);
+			await promptProjectDir();
 			root = path.resolve(process.cwd(), targetDir);
 		}
+
+		// choose template
+		await prompts([
+			{
+				type: "select",
+				name: "template",
+				message: "Project template",
+				choices: [
+					{ title: "react", value: "react" },
+					{ title: "react-ts", value: "react-ts" }
+				],
+				onState: state => {
+					template = state.value;
+				}
+			}
+		]);
+
 		fs.mkdirSync(root, { recursive: true });
-		// TODO support more template in the future
-		const templateDir = "template-react";
-		const srcFolder = path.resolve(__dirname, templateDir);
+		const srcFolder = path.resolve(__dirname, `template-${template}`);
 		copyFolder(srcFolder, targetDir);
 		const pkgManager = getPkgManager();
 		console.log("\nDone. Now run:\n");
@@ -53,11 +64,18 @@ yargs(hideBin(process.argv))
 	})
 	.help()
 	.parse();
+
 function copyFolder(src, dst) {
+	const renameFiles = {
+		_gitignore: ".gitignore"
+	};
+
 	fs.mkdirSync(dst, { recursive: true });
 	for (const file of fs.readdirSync(src)) {
 		const srcFile = path.resolve(src, file);
-		const dstFile = path.resolve(dst, file);
+		const dstFile = renameFiles[file]
+			? path.resolve(dst, renameFiles[file])
+			: path.resolve(dst, file);
 		const stat = fs.statSync(srcFile);
 		if (stat.isDirectory()) {
 			copyFolder(srcFile, dstFile);

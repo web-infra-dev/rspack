@@ -14,7 +14,7 @@
     "directory": "packages/create-rspack"
   },
   "dependencies": {
-    "yargs": "17.6.2",
-    "prompts": "2.4.2"
+    "prompts": "2.4.2",
+    "yargs": "17.6.2"
   }
 }
