@@ -5,6 +5,7 @@ on:
     paths:
       - "crates/**"
       - "packages/**"
+      - "examples/**"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
