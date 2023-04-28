@@ -83,7 +83,7 @@ impl Visit for ReactRefreshUsageFinder {
 // __webpack_require__.$ReactRefreshRuntime$ is injected by the react-refresh additional entry
 static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_modules__.$ReactRefreshRuntime$;
 var $RefreshReg$ = function (type, id) {
-  RefreshRuntime.register(type, __webpack_module__.id + "_" + id);
+  RefreshRuntime.register(type, __webpack_module__.id+ "_" + id);
 }
 var $RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
 
