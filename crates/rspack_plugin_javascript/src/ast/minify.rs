@@ -202,7 +202,7 @@ pub fn minify(
                     format!("// {}", c.text)
                   }
                   CommentKind::Block => {
-                    format!("/**{}*/", c.text)
+                    format!("/*{}*/", c.text)
                   }
                 });
               }
@@ -216,7 +216,7 @@ pub fn minify(
                     format!("// {}", c.text)
                   }
                   CommentKind::Block => {
-                    format!("/**{}*/", c.text)
+                    format!("/*{}*/", c.text)
                   }
                 });
               }
@@ -231,7 +231,7 @@ pub fn minify(
               .insert(
                 filename.to_string(),
                 ExtractedCommentsInfo {
-                  source: RawSource::Source(extracted_comments.join("\n")).boxed(),
+                  source: RawSource::Source(extracted_comments.join("\n\n")).boxed(),
                   comments_file_name,
                 },
               );

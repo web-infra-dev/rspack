@@ -20,7 +20,7 @@
  Foo Bar
  */
 
-// @license 
+// @license What ever
 
 /*
 * Foo
