@@ -8,7 +8,7 @@ use rspack_error::Result;
 use crate::runtime_module::CssLoadingRuntimeModule;
 
 #[derive(Debug)]
-pub struct CssModulesPlugin {}
+pub struct CssModulesPlugin;
 
 #[async_trait]
 impl Plugin for CssModulesPlugin {

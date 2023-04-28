@@ -28,7 +28,7 @@ use swc_core::css::{ast::Stylesheet, parser::parser::Parser};
 static SWC_COMPILER: Lazy<Arc<SwcCssCompiler>> = Lazy::new(|| Arc::new(SwcCssCompiler::new()));
 
 #[derive(Default)]
-pub struct SwcCssCompiler {}
+pub struct SwcCssCompiler;
 
 impl SwcCssCompiler {
   pub fn new() -> Self {

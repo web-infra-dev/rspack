@@ -443,6 +443,7 @@ impl JsHooksAdapter {
     })
   }
 
+  #[allow(clippy::unwrap_used)]
   fn is_hook_disabled(&self, hook: &Hook) -> bool {
     self.disabled_hooks.read().unwrap().contains(hook)
   }
