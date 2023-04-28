@@ -266,10 +266,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: PluginContext,
-    _args: OptimizeChunksArgs,
+    _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     Ok(())
   }

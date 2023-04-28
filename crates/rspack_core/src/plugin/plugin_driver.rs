@@ -395,9 +395,11 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(name = "plugin:optimize_chunks", skip_all)]
-  pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
+  pub async fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
-      plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;
+      plugin
+        .optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })
+        .await?;
     }
     Ok(())
   }

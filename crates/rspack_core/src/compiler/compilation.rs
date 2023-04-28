@@ -1045,7 +1045,11 @@ impl Compilation {
         .await
         .optimize_modules(compilation)
         .await?;
-      plugin_driver.write().await.optimize_chunks(compilation)?;
+      plugin_driver
+        .write()
+        .await
+        .optimize_chunks(compilation)
+        .await?;
       Ok(compilation)
     })
     .await?;

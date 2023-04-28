@@ -345,11 +345,12 @@ impl Debug for SplitChunksPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for SplitChunksPlugin {
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs,
+    args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
     self.inner_impl(args.compilation);
     Ok(())
