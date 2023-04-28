@@ -4,10 +4,8 @@ const CopyPlugin = require("copy-webpack-plugin");
 const HtmlPlugin = require("@rspack/plugin-html").default;
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const GeneratePackageJsonPlugin = require('generate-package-json-webpack-plugin')
-/**
- * @type {import('@rspack/cli').Configuration}
- */
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	target: "node",
 	mode: "development",
 	stats: { all: true },
@@ -38,6 +36,7 @@ module.exports = {
 		new GeneratePackageJsonPlugin(basePackage, {})
 	]
 };
+module.exports = config;
 
 
 
