@@ -399,7 +399,7 @@ export class Compilation {
 					let error = errs[i];
 					this.#inner.pushDiagnostic(
 						"error",
-						error.name,
+						error.name || "",
 						concatErrorMsgAndStack(error)
 					);
 				}
