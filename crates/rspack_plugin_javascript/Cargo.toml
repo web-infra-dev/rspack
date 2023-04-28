@@ -29,7 +29,7 @@ rspack_regex = { path = "../rspack_regex" }
 rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-sourcemap = "6.2.0"
+sourcemap = "6.2.3"
 sugar_path = { workspace = true }
 swc_config = { workspace = true }
 swc_core = { workspace = true, features = [

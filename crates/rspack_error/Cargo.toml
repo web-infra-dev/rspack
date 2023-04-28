@@ -14,7 +14,7 @@ futures            = { workspace = true }
 rspack_util        = { path = "../rspack_util" }
 sugar_path         = { workspace = true }
 swc_core           = { workspace = true, features = ["common"] }
-termcolor          = "1.1"
+termcolor          = "1.2"
 
 [dev-dependencies]
 insta = { workspace = true }
