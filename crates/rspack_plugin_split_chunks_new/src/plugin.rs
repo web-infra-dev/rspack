@@ -374,7 +374,7 @@ impl Plugin for SplitChunksPlugin {
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
-    use std::time::Instant;
+    // use std::time::Instant;
     // let start = Instant::now();
     self.inner_impl(args.compilation).await;
     // let duration = start.elapsed();
