@@ -18,5 +18,5 @@ colored    = { workspace = true }
 serde      = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 
-console = "0.15.2"
+console = "0.15.5"
 similar = { workspace = true, features = ["inline"] }

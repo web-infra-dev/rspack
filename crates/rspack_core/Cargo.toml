@@ -13,7 +13,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
 derivative = { workspace = true }
-dyn-clone = "1.0.10"
+dyn-clone = "1.0.11"
 futures = { workspace = true }
 glob = "0.3.1"
 glob-match = "0.2.1"
@@ -23,7 +23,7 @@ itertools = { workspace = true }
 nodejs-resolver = { workspace = true }
 once_cell = { workspace = true }
 paste = { workspace = true }
-petgraph = "0.6.0"
+petgraph = "0.6.3"
 rayon = { workspace = true }
 regex = { workspace = true }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }

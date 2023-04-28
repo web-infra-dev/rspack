@@ -26,7 +26,7 @@ rustc-hash        = { workspace = true }
 schemars          = { workspace = true, optional = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
-sha2              = "0.10.2"
+sha2              = "0.10.6"
 sugar_path        = { workspace = true }
 swc_core          = { workspace = true }
 swc_html          = { workspace = true }
