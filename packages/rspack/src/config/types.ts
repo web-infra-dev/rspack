@@ -49,6 +49,7 @@ export interface RspackOptions {
 	watchOptions?: WatchOptions;
 	devServer?: DevServer;
 	builtins?: Builtins;
+	ignoreWarnings?: IgnoreWarningPattern;
 }
 
 export interface RspackOptionsNormalized {
@@ -77,6 +78,7 @@ export interface RspackOptionsNormalized {
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
 	builtins: Builtins;
+	ignoreWarnings?: IgnoreWarningPattern;
 }
 
 export type HashFunction = string | typeof import("../util/hash");
@@ -99,6 +101,7 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
+export type IgnoreWarningPattern = string;
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }

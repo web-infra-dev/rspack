@@ -22,6 +22,7 @@ export const getNormalizedRspackOptions = (
 	config: RspackOptions
 ): RspackOptionsNormalized => {
 	return {
+		ignoreWarnings: config.ignoreWarnings,
 		name: config.name,
 		dependencies: config.dependencies,
 		context: config.context,
