@@ -101,6 +101,7 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
+// TODO change to accept regex or function (warn: Warning) => bool
 export type IgnoreWarningPattern = string;
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
