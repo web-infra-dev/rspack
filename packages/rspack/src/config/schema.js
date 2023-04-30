@@ -720,8 +720,20 @@ module.exports = {
 			enum: ["development", "production", "none"]
 		},
 		ignoreWarnings: {
-			description: "ignore warnings",
-			type: "string"
+			description: "ignore warnings based on pattern",
+			type: "array",
+			items: {
+				anyOf: [
+					{
+						instanceof: "RegExp"
+					},
+					{
+						instanceof: "Function"
+						// tsType:
+						// 	"(warning: Error, compilation: Compilation) => boolean"
+					}
+				]
+			}
 		},
 		ModuleOptions: {
 			description:
