@@ -53,15 +53,7 @@ function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 }
 
 function createCompiler(userOptions: RspackOptions): Compiler {
-	console.log(
-		"🪵 before norm[rspack.ts:56] ~ token ~ \x1b[0;32moptions\x1b[0m = ",
-		userOptions.ignoreWarnings
-	);
 	const options = getNormalizedRspackOptions(userOptions);
-	console.log(
-		"🪵 after norm[rspack.ts:56] ~ token ~ \x1b[0;32moptions\x1b[0m = ",
-		options.ignoreWarnings
-	);
 	applyRspackOptionsBaseDefaults(options);
 	assert(!isNil(options.context));
 	const compiler = new Compiler(options.context, options);
