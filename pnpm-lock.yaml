@@ -404,6 +404,7 @@ importers:
       '@rspack/plugin-minify': workspace:*
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: ^2.6.0
+      license-webpack-plugin: ^4.0.2
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
     devDependencies:
@@ -412,6 +413,7 @@ importers:
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: 2.6.0
+      license-webpack-plugin: 4.0.2
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
 

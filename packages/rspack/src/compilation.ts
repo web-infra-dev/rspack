@@ -42,6 +42,25 @@ import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
+import { Logger, LogType } from "./logging/Logger";
+import * as ErrorHelpers from "./ErrorHelpers";
+import { concatErrorMsgAndStack } from "./util";
+import { normalizeStatsPreset, Stats } from "./stats";
+import { NormalModuleFactory } from "./normalModuleFactory";
+import CacheFacade from "./lib/CacheFacade";
+
+const hashDigestLength = 8;
+const EMPTY_ASSET_INFO = {};
+import { Logger, LogType } from "./logging/Logger";
+import * as ErrorHelpers from "./ErrorHelpers";
+import { concatErrorMsgAndStack } from "./util";
+import { normalizeStatsPreset, Stats } from "./stats";
+import { NormalModuleFactory } from "./normalModuleFactory";
+import CacheFacade from "./lib/CacheFacade";
+import { JsStatsChunk } from "@rspack/binding";
+
+const hashDigestLength = 8;
+const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -613,6 +632,70 @@ export class Compilation {
 				...item
 			};
 		});
+	}
+
+	get chunks() {
+		var stats = this.getStats().toJson({
+			all: false,
+			chunks: true,
+			chunkModules: true,
+			reasons: true
+		});
+		const chunks = stats.chunks?.map(chunk => {
+			return {
+				...chunk,
+				name: chunk.names.length > 0 ? chunk.names[0] : "",
+				modules: this.__internal__getAssociatedModules(chunk)
+			};
+		});
+		return chunks;
+	}
+
+	/**
+	 * Get the associated `modules` of an given chunk.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
+		let modules = this.modules;
+		return chunk.modules?.flatMap(chunkModule => {
+			let jsModule = this.__internal__findJsModule(
+				chunkModule.issuer ?? chunkModule.identifier,
+				modules
+			);
+			return {
+				...jsModule,
+				dependencies: chunkModule.reasons?.flatMap(jsReason => {
+					let jsOriginModule = this.__internal__findJsModule(
+						jsReason.moduleIdentifier ?? "",
+						modules
+					);
+					return {
+						...jsReason,
+						originModule: jsOriginModule
+					};
+				})
+			};
+		});
+	}
+
+	/**
+	 * Find a modules in an array.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__findJsModule(
+		identifier: String,
+		modules: JsModule[]
+	): JsModule | undefined {
+		let module = modules.find(module => {
+			return module.moduleIdentifier == identifier;
+		});
+		return module;
 	}
 
 	getModules(): JsModule[] {

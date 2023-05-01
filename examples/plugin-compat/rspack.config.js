@@ -5,6 +5,9 @@ const HtmlPlugin = require("@rspack/plugin-html").default;
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const minifyPlugin = require("@rspack/plugin-minify");
 const GeneratePackageJsonPlugin = require("generate-package-json-webpack-plugin");
+const GeneratePackageJsonPlugin = require('generate-package-json-webpack-plugin')
+const GeneratePackageJsonPlugin = require('generate-package-json-webpack-plugin');
+const licensePlugin = require('license-webpack-plugin');
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	target: "node",
@@ -41,7 +44,15 @@ const config = {
 			stats: { all: true },
 			filename: "stats.json"
 		}),
-		new GeneratePackageJsonPlugin(basePackage, {})
+		new GeneratePackageJsonPlugin(basePackage, {}),
+		new licensePlugin.LicenseWebpackPlugin({
+			stats: {
+				warnings: false,
+				errors: false,
+			  },
+			perChunkOutput: true,
+			outputFilename: `3rdpartylicenses.txt`,
+		})
 	]
 };
 module.exports = config;
