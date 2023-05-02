@@ -10,7 +10,7 @@ const {
 const path = require("path");
 /** @type {import('@rspack/cli').Configuration} */
 module.exports = {
-	mode: "production",
+	mode: "development",
 	devtool: false,
 	target: ["web", "es2015"],
 	entry: {
@@ -79,6 +79,17 @@ module.exports = {
 			}
 		},
 		rules: [
+			{
+				// ! THIS IS FOR TESTING ANGULAR HMR !
+				include: [path.resolve("./src/main.ts")],
+				use: [
+					{
+						loader: require.resolve(
+							"@angular-devkit/build-angular/src/webpack/plugins/hmr/hmr-loader.js"
+						)
+					}
+				]
+			},
 			{
 				test: /\.?(svg|html)$/,
 				resourceQuery: /\?ngResource/,
