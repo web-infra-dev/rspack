@@ -8,9 +8,7 @@ const {
 	OccurrencesPlugin
 } = require("@angular-devkit/build-angular/src/webpack/plugins/occurrences-plugin");
 const path = require("path");
-/*
- *  @type {() => import('@rspack/cli').Configuration}
- */
+/** @type {import('@rspack/cli').Configuration} */
 module.exports = {
 	mode: "production",
 	devtool: false,
@@ -25,13 +23,13 @@ module.exports = {
 	output: {
 		uniqueName: "zackAngularCli",
 		// 'hashFunction': 'xxhash64', // throws error
-		'clean': true,
-		'path': './dist',
+		clean: true,
+		// path: "./dist",
 		publicPath: "",
 		filename: "[name].[contenthash:20].js",
 		chunkFilename: "[name].[contenthash:20].js",
-		'crossOriginLoading': false,
-		'trustedTypes': 'angular#bundler',
+		crossOriginLoading: false,
+		trustedTypes: "angular#bundler"
 		// 'scriptType': 'module' // throws error
 	},
 	watch: false,
@@ -58,7 +56,7 @@ module.exports = {
 					minChunks: 2,
 					// 'enforce': true, // throws error
 					priority: 5
-				},
+				}
 				// 'vendors': false, // throws error
 				// 'defaultVendors': false // throws error
 			}
@@ -85,6 +83,11 @@ module.exports = {
 				test: /\.?(svg|html)$/,
 				resourceQuery: /\?ngResource/,
 				type: "asset/source"
+			},
+			{
+				test: /\.?(scss)$/,
+				resourceQuery: /\?ngResource/,
+				use: [{ loader: "raw-loader" }, { loader: "sass-loader" }]
 			},
 			{ test: /[/\\]rxjs[/\\]add[/\\].+\.js$/, sideEffects: true },
 			{

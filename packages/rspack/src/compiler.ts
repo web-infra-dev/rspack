@@ -68,7 +68,10 @@ class NodeTemplatePlugin {
 }
 
 class EnableLibraryPlugin {
-	apply() {}
+	constructor(private libraryType: string) {}
+	apply(compiler: Compiler) {
+		compiler.options.output.enabledLibraryTypes = [this.libraryType];
+	}
 }
 class HotModuleReplacementPlugin {
 	apply() {}
@@ -376,6 +379,11 @@ class Compiler {
 			output: {
 				...this.options.output,
 				...outputOptions
+			},
+			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
+			builtins: {
+				...this.options.builtins,
+				html: undefined
 			}
 		});
 		childCompiler.name = compilerName;
@@ -388,8 +396,8 @@ class Compiler {
 		// childCompiler.fileTimestamps = this.fileTimestamps;
 		// childCompiler.contextTimestamps = this.contextTimestamps;
 		// childCompiler.fsStartTime = this.fsStartTime;
-		// childCompiler.cache = this.cache;
-		// childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
+		childCompiler.cache = this.cache;
+		childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
 		// childCompiler._backCompat = this._backCompat;
 
 		const relativeCompilerName = makePathsRelative(
