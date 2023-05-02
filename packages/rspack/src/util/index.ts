@@ -51,9 +51,15 @@ export function isJsStatsError(err: any): err is JsStatsError {
 }
 
 export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
+	// deduplicate the error if message is already shown in the stack
+	const stackStartPrefix = err.name ? `${err.name}: ` : "Error: ";
 	return isJsStatsError(err)
 		? err.formatted
-		: `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
+		: err.stack
+		? err.stack.startsWith(`${stackStartPrefix}${err.message}`)
+			? `${err.stack}`
+			: `${err.message}\n${err.stack}`
+		: `${err.message}`;
 }
 
 export function indent(str: string, prefix: string) {
