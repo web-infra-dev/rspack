@@ -327,6 +327,12 @@ importers:
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
+  examples/node-globals-shim:
+    specifiers:
+      '@rspack/cli': workspace:*
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+
   examples/perfsee:
     specifiers:
       '@perfsee/webpack': 1.6.0
