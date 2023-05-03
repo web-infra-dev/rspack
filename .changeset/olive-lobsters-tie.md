@@ -1,5 +1,5 @@
 ---
-"@rspack/core": minor
+"@rspack/core": patch
 ---
 
 db9a03e7: add compilation processWarnings hook
