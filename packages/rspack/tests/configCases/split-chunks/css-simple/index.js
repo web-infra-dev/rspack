@@ -6,7 +6,7 @@ export default "index.js";
 
 () => import("./foo");
 
-it("should extract css to single chunk", () => {
+it("css-simple", () => {
 	expect(fs.existsSync(path.resolve(__dirname, "./foo_js.css"))).toBe(true);
 	expect(fs.existsSync(path.resolve(__dirname, "./main.css"))).toBe(true);
 });
