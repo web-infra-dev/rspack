@@ -2,7 +2,7 @@
 module.exports = {
 	entry: {
 		main: {
-			import: ["./shims.js", "./index"]
+			import: ["./index"]
 		}
 	},
 	experiments: {

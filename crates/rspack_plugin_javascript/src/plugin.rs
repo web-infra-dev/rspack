@@ -10,12 +10,14 @@ use rspack_core::rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, AssetInfo, AstOrSource, ChunkHashArgs, ChunkKind, ChunkUkey,
-  Compilation, CompilationAsset, DependencyType, GenerateContext, GenerationResult,
-  JsChunkHashArgs, Module, ModuleAst, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  PathData, Plugin, PluginChunkHashHookOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginProcessAssetsOutput, PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestEntry, RenderStartupArgs, RuntimeGlobals, SourceType,
+  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, AssetInfo, AstOrSource,
+  ChunkHashArgs, ChunkKind, ChunkUkey, Compilation, CompilationAsset, DependencyType,
+  GenerateContext, GenerationResult, JsChunkHashArgs, Module, ModuleAst, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput, PluginContext,
+  PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestEntry, RenderStartupArgs,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -181,70 +183,109 @@ impl JsPlugin {
 
     let mut startup = vec![];
 
-    if chunk.has_entry_module(&compilation.chunk_graph) {
-      let entries = compilation
-        .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
-      for (i, (module, entry)) in entries.iter().enumerate() {
-        let chunk_group = compilation
-          .chunk_group_by_ukey
-          .get(entry)
-          .expect("should have chunk group");
-        let chunk_ids = chunk_group
-          .chunks
-          .iter()
-          .filter(|c| *c != chunk_ukey)
-          .map(|chunk_ukey| {
-            let chunk = compilation
-              .chunk_by_ukey
-              .get(chunk_ukey)
-              .expect("Chunk not found");
-            chunk.expect_id().to_string()
-          })
-          .collect::<Vec<_>>();
-        let module_id = compilation
-          .module_graph
-          .module_graph_module_by_identifier(module)
-          .map(|module| module.id(&compilation.chunk_graph))
-          .expect("should have module id");
-        let mut module_id_expr = format!("'{module_id}'");
-        if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
-          module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
-        }
+    if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
+      if chunk.has_entry_module(&compilation.chunk_graph) {
+        let entries = compilation
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        for (i, (module, entry)) in entries.iter().enumerate() {
+          let chunk_group = compilation
+            .chunk_group_by_ukey
+            .get(entry)
+            .expect("should have chunk group");
+          let chunk_ids = chunk_group
+            .chunks
+            .iter()
+            .filter(|c| *c != chunk_ukey)
+            .map(|chunk_ukey| {
+              let chunk = compilation
+                .chunk_by_ukey
+                .get(chunk_ukey)
+                .expect("Chunk not found");
+              chunk.expect_id().to_string()
+            })
+            .collect::<Vec<_>>();
+          let module_id = compilation
+            .module_graph
+            .module_graph_module_by_identifier(module)
+            .map(|module| module.id(&compilation.chunk_graph))
+            .expect("should have module id");
+          let mut module_id_expr = format!("'{module_id}'");
+          if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
+            module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
+          }
 
-        if !chunk_ids.is_empty() {
+          if !chunk_ids.is_empty() {
+            startup.push(format!(
+              "{}{}(undefined, {} , function() {{ return __webpack_require__({module_id_expr}) }});",
+              if i + 1 == entries.len() {
+                "var __webpack_exports__ = "
+              } else {
+                ""
+              },
+              RuntimeGlobals::ON_CHUNKS_LOADED,
+              stringify_array(&chunk_ids)
+            ));
+          }
+          /* if use_require */
+          else {
+            startup.push(format!(
+              "{}__webpack_require__({module_id_expr});",
+              if i + 1 == entries.len() {
+                "var __webpack_exports__ = "
+              } else {
+                ""
+              },
+            ))
+          }
+          // else {
+          //   startup.push(format!("__webpack_modules__[{module_id_expr}]();"))
+          // }
+        }
+        if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
           startup.push(format!(
-            "{}{}(undefined, {} , function() {{ return __webpack_require__({module_id_expr}) }});",
-            if i + 1 == entries.len() {
-              "var __webpack_exports__ = "
-            } else {
-              ""
-            },
-            RuntimeGlobals::ON_CHUNKS_LOADED,
-            stringify_array(&chunk_ids)
+            "__webpack_exports__ = {}(__webpack_exports__);",
+            RuntimeGlobals::ON_CHUNKS_LOADED
           ));
         }
-        /* if use_require */
-        else {
+        if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+          header.add(RawSource::from(format!(
+            r#"//  the startup function
+            {} = function(){{
+              {}
+              return __webpack_exports__;
+            }};
+          "#,
+            RuntimeGlobals::STARTUP,
+            std::mem::take(&mut startup).join("\n")
+          )));
+          startup.push("// run startup".to_string());
           startup.push(format!(
-            "{}__webpack_require__({module_id_expr});",
-            if i + 1 == entries.len() {
-              "var __webpack_exports__ = "
-            } else {
-              ""
-            },
-          ))
+            "var __webpack_exports__ = {}();",
+            RuntimeGlobals::STARTUP
+          ));
         }
-        // else {
-        //   startup.push(format!("__webpack_modules__[{module_id_expr}]();"))
-        // }
+      } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+        header.add(RawSource::from(format!(
+          r#"// the startup function 
+          // It's empty as no entry modules are in this chunk
+            {} = function(){{}};
+          "#,
+          RuntimeGlobals::STARTUP
+        )));
       }
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
+    } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+      header.add(RawSource::from(format!(
+        r#"// the startup function 
+        // It's empty as some runtime module handles the default behavior
+          {} = function(){{}};
+        "#,
+        RuntimeGlobals::STARTUP
+      )));
+      startup.push("// run startup".to_string());
       startup.push(format!(
-        "__webpack_exports__ = {}(__webpack_exports__);",
-        RuntimeGlobals::ON_CHUNKS_LOADED
+        "var __webpack_exports__ = {}();",
+        RuntimeGlobals::STARTUP
       ));
     }
 
@@ -711,6 +752,24 @@ impl Plugin for JsPlugin {
       .builtins
       .minify_options
       .hash(&mut args.hasher);
+    Ok(())
+  }
+
+  fn additional_tree_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    let compilation = &mut args.compilation;
+    let runtime_requirements = &mut args.runtime_requirements;
+    if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
+      && compilation
+        .chunk_graph
+        .has_chunk_entry_dependent_chunks(args.chunk, &compilation.chunk_group_by_ukey)
+    {
+      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    }
     Ok(())
   }
 
