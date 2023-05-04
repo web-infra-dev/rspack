@@ -6,7 +6,7 @@ use mimalloc_rust::GlobalMiMalloc;
 use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::apply_from_fixture;
-// #[cfg(feature = "tracing")]
+#[cfg(feature = "tracing")]
 use rspack_tracing::{enable_tracing_by_env, enable_tracing_by_env_with_chrome_layer};
 use termcolorful::println_string_with_fg_color;
 
@@ -35,6 +35,7 @@ impl FromStr for Layer {
 
 #[tokio::main]
 async fn main() {
+  #[cfg(feature = "tracing")]
   let layer = std::env::var("layer")
     .ok()
     .and_then(|var| Layer::from_str(&var).ok())
@@ -51,11 +52,16 @@ async fn main() {
   ];
   for p in path_list {
     println_string_with_fg_color(p, termcolorful::Color::Red);
-    run(p, layer).await;
+    run(
+      p,
+      #[cfg(feature = "tracing")]
+      layer,
+    )
+    .await;
   }
 }
 
-async fn run(relative_path: &str, layer: Layer) {
+async fn run(relative_path: &str, #[cfg(feature = "tracing")] layer: Layer) {
   #[cfg(feature = "tracing")]
   let guard = match layer {
     Layer::Logger => enable_tracing_by_env(),
