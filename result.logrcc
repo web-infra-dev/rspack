@@ -1,0 +1,9 @@
+   Compiling rspack_tracing v0.1.0 (/home/victor/Documents/rspack/rspack/crates/rspack_tracing)
+error[E0425]: cannot find value `access_log` in this scope
+  --> crates/rspack_tracing/src/lib.rs:51:24
+   |
+51 |           .with_filter(access_log.with_filter(filter_fn(|metadata| true))),
+   |                        ^^^^^^^^^^ not found in this scope
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `rspack_tracing` (lib) due to previous error

@@ -3,8 +3,8 @@ use std::sync::atomic::AtomicBool;
 
 use tracing::Level;
 use tracing_chrome::FlushGuard;
-use tracing_subscriber::filter;
 use tracing_subscriber::{fmt::format::FmtSpan, layer::Filter};
+use tracing_subscriber::{EnvFilter, Layer};
 // use tracing_chrome::FlushGuard;
 
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
@@ -24,28 +24,13 @@ pub fn enable_tracing_by_env() -> Option<FlushGuard> {
   let is_enable_tracing = trace_var.is_ok();
   // Sometimes developer may want to trace the upstream lib events,
   // by default, we only trace the event emitted by rspack
-  let full_tracing = std::env::var("FULL_TRACING").is_ok();
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
-    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-    let default_layer = trace_var
-      .ok()
-      .as_ref()
-      .and_then(|var| Level::from_str(var).ok())
-      .unwrap_or(Level::TRACE);
+    use tracing_subscriber::{fmt, prelude::*};
+    let layers = generate_common_layers(trace_var);
+
     tracing_subscriber::registry()
-      .with(
-        tracing_subscriber::filter::Targets::new()
-          .with_targets(vec![
-            ("rspack_core", default_layer),
-            ("rspack", default_layer),
-            ("rspack_node", default_layer),
-            ("rspack_plugin_javascript", default_layer),
-            ("rspack_plugin_split_chunks", default_layer),
-            ("rspack_binding_options", default_layer),
-          ])
-          .with_filter(filter::filter_fn(move |_| full_tracing)),
-      )
-      .with(EnvFilter::from_env("TRACE"))
+      // .with(EnvFilter::from_env("TRACE").and_then(rspack_only_layer))
+      .with(layers)
       .with(
         fmt::layer()
           .pretty()
@@ -59,38 +44,49 @@ pub fn enable_tracing_by_env() -> Option<FlushGuard> {
   None
 }
 
+fn generate_common_layers(
+  trace_var: Result<String, std::env::VarError>,
+) -> Vec<Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>> {
+  let default_level = trace_var
+    .ok()
+    .as_ref()
+    .and_then(|var| Level::from_str(var).ok());
+
+  let mut layers = vec![];
+  if let Some(default_level) = default_level {
+    layers.push(
+      tracing_subscriber::filter::Targets::new()
+        .with_targets(vec![
+          ("rspack_core", default_level),
+          ("rspack", default_level),
+          ("rspack_node", default_level),
+          ("rspack_plugin_javascript", default_level),
+          ("rspack_plugin_split_chunks", default_level),
+          ("rspack_binding_options", default_level),
+        ])
+        .boxed(),
+    );
+  } else {
+    layers.push(EnvFilter::from_env("TRACE").boxed());
+  }
+  layers
+}
+
 pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
   let trace_var = std::env::var("TRACE");
   let is_enable_tracing = trace_var.is_ok();
   // Sometimes developer may want to trace the upstream lib events,
   // by default, we only trace the event emitted by rspack
-  let full_tracing = std::env::var("FULL_TRACING").is_ok();
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_chrome::ChromeLayerBuilder;
-    use tracing_subscriber::{prelude::*, EnvFilter};
+    use tracing_subscriber::prelude::*;
 
     let (chrome_layer, guard) = ChromeLayerBuilder::new().include_args(true).build();
+    let layers = generate_common_layers(trace_var);
     // If we don't do this. chrome_layer will collect nothing.
     // std::mem::forget(guard);
-    let default_layer = trace_var
-      .ok()
-      .as_ref()
-      .and_then(|var| Level::from_str(var).ok())
-      .unwrap_or(Level::TRACE);
     tracing_subscriber::registry()
-      .with(
-        tracing_subscriber::filter::Targets::new()
-          .with_targets(vec![
-            ("rspack_core", default_layer),
-            ("rspack", default_layer),
-            ("rspack_node", default_layer),
-            ("rspack_plugin_javascript", default_layer),
-            ("rspack_plugin_split_chunks", default_layer),
-            ("rspack_binding_options", default_layer),
-          ])
-          .with_filter(filter::filter_fn(move |_| full_tracing)),
-      )
-      .with(EnvFilter::from_env("TRACE"))
+      .with(layers)
       .with(chrome_layer.with_filter(FilterEvent {}))
       .init();
     Some(guard)
