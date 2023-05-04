@@ -85,6 +85,7 @@ export class Compilation {
 		>;
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
+		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -116,7 +117,8 @@ export class Compilation {
 				"modules"
 			]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"]),
-			chunkAsset: new tapable.SyncHook(["chunk", "filename"])
+			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
+			processWarnings: new tapable.SyncWaterfallHook(["warnings"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -428,6 +430,7 @@ export class Compilation {
 		return {
 			// compatible for javascript array
 			push: (...warns: Error[]) => {
+				warns = this.hooks.processWarnings.call(warns);
 				for (let i = 0; i < warns.length; i++) {
 					let warn = warns[i];
 					this.#inner.pushDiagnostic(

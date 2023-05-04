@@ -105,7 +105,6 @@ jobs:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
           pre: sudo apt-get -y install protobuf-compiler
-          post: strip crates/node_binding/*.node
 
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
@@ -114,7 +113,6 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           pre: sudo apt-get -y install protobuf-compiler
-          post: aarch64-unknown-linux-gnu-strip crates/node_binding/*.node
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
@@ -123,7 +121,6 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           pre: apk add --no-cache protoc
-          post: strip crates/node_binding/*.node
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -134,7 +131,6 @@ jobs:
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
             apk add --no-cache protoc
-          post: /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip crates/node_binding/*.node
 
       # Windows
 
@@ -160,7 +156,6 @@ jobs:
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: |
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
-          strip -x crates/node_binding/*.node
 
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' }}
@@ -171,7 +166,6 @@ jobs:
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
-          strip -x crates/node_binding/*.node
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3

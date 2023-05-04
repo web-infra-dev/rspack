@@ -1,8 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
 __webpack_require__.a(module, async function(__webpack_handle_async_dependencies__, __webpack_async_result__) {
     try {
+        "use strict";
         Object.defineProperty(exports, "__esModule", {
             value: true
         });
@@ -19,11 +19,11 @@ __webpack_require__.a(module, async function(__webpack_handle_async_dependencies
 });
 },
 "./v128.wasm": function (module, exports, __webpack_require__) {
-"use strict";
  module.exports = __webpack_require__.v(exports, module.id, "c61e7cc882ba31f8.module.wasm" );},
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

@@ -43,6 +43,7 @@ pub struct RawMinification {
   pub passes: u32,
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
+  pub extract_comments: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -68,6 +69,7 @@ impl From<RawMinification> for Minification {
       passes: value.passes as usize,
       drop_console: value.drop_console,
       pure_funcs: value.pure_funcs,
+      extract_comments: value.extract_comments,
     }
   }
 }

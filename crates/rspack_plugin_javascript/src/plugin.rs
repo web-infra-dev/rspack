@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
-use std::sync::mpsc;
+use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
 use linked_hash_set::LinkedHashSet;
@@ -10,29 +10,31 @@ use rspack_core::rspack_sources::{
   SourceMapSourceOptions,
 };
 use rspack_core::{
-  get_js_chunk_filename_template, AstOrSource, ChunkHashArgs, ChunkKind, ChunkUkey, Compilation,
-  DependencyType, GenerateContext, GenerationResult, JsChunkHashArgs, Module, ModuleAst,
-  ModuleType, ParseContext, ParseResult, ParserAndGenerator, PathData, Plugin,
-  PluginChunkHashHookOutput, PluginContext, PluginJsChunkHashHookOutput, PluginProcessAssetsOutput,
-  PluginRenderManifestHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestEntry, RenderStartupArgs, RuntimeGlobals, SourceType,
+  get_js_chunk_filename_template, AdditionalChunkRuntimeRequirementsArgs, AssetInfo, AstOrSource,
+  ChunkHashArgs, ChunkKind, ChunkUkey, Compilation, CompilationAsset, DependencyType,
+  GenerateContext, GenerationResult, JsChunkHashArgs, Module, ModuleAst, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginChunkHashHookOutput, PluginContext,
+  PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderManifestHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestEntry, RenderStartupArgs,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::Identifier;
-use swc_core::base::{config::JsMinifyOptions, BoolOrDataConfig};
+use swc_config::config_types::BoolOrDataConfig;
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
-use swc_core::ecma::minifier::option::terser::TerserCompressorOptions;
+use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::runtime::{
-  generate_chunk_entry_code, render_chunk_init_fragments, render_chunk_modules,
-  render_runtime_modules,
+  render_chunk_init_fragments, render_chunk_modules, render_runtime_modules, stringify_array,
 };
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
+use crate::JsMinifyOptions;
 
 #[derive(Debug)]
 pub struct JsPlugin {}
@@ -131,44 +133,163 @@ impl JsPlugin {
     sources.boxed()
   }
 
-  pub fn render_bootstrap(&self, chunk_ukey: &ChunkUkey, compilation: &Compilation) -> BoxSource {
+  pub fn render_bootstrap(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    compilation: &Compilation,
+  ) -> (BoxSource, BoxSource) {
     let runtime_requirements = compilation
       .chunk_graph
       .get_chunk_runtime_requirements(chunk_ukey);
-
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(chunk_ukey)
+      .expect("chunk should exist in chunk_by_ukey");
     let module_factories = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
+    // let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
+    let intercept_module_execution =
+      runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+    // let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
+    // let use_require = require_function || intercept_module_execution || module_used;
+    let mut header = ConcatSource::default();
 
-    let mut sources = ConcatSource::default();
-
-    sources.add(RawSource::from(
+    header.add(RawSource::from(
       "// The module cache\n var __webpack_module_cache__ = {};\n",
     ));
-    sources.add(RawSource::from(
+    header.add(RawSource::from(
       "function __webpack_require__(moduleId) {\n",
     ));
-    sources.add(self.render_require(chunk_ukey, compilation));
-    sources.add(RawSource::from("\n}\n"));
+    header.add(self.render_require(chunk_ukey, compilation));
+    header.add(RawSource::from("\n}\n"));
 
     if module_factories || runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
     {
-      sources.add(RawSource::from(
+      header.add(RawSource::from(
         "// expose the modules object (__webpack_modules__)\n __webpack_require__.m = __webpack_modules__;\n",
       ));
     }
 
     if runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE) {
-      sources.add(RawSource::from(
+      header.add(RawSource::from(
         "// expose the module cache\n __webpack_require__.c = __webpack_module_cache__;\n",
       ));
     }
 
-    if runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
-      sources.add(RawSource::from(
+    if intercept_module_execution {
+      header.add(RawSource::from(
         "// expose the module execution interceptor\n __webpack_require__.i = [];\n",
       ));
     }
 
-    sources.boxed()
+    let mut startup = vec![];
+
+    if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT) {
+      if chunk.has_entry_module(&compilation.chunk_graph) {
+        let entries = compilation
+          .chunk_graph
+          .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
+        for (i, (module, entry)) in entries.iter().enumerate() {
+          let chunk_group = compilation
+            .chunk_group_by_ukey
+            .get(entry)
+            .expect("should have chunk group");
+          let chunk_ids = chunk_group
+            .chunks
+            .iter()
+            .filter(|c| *c != chunk_ukey)
+            .map(|chunk_ukey| {
+              let chunk = compilation
+                .chunk_by_ukey
+                .get(chunk_ukey)
+                .expect("Chunk not found");
+              chunk.expect_id().to_string()
+            })
+            .collect::<Vec<_>>();
+          let module_id = compilation
+            .module_graph
+            .module_graph_module_by_identifier(module)
+            .map(|module| module.id(&compilation.chunk_graph))
+            .expect("should have module id");
+          let mut module_id_expr = format!("'{module_id}'");
+          if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
+            module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
+          }
+
+          if !chunk_ids.is_empty() {
+            startup.push(format!(
+              "{}{}(undefined, {} , function() {{ return __webpack_require__({module_id_expr}) }});",
+              if i + 1 == entries.len() {
+                "var __webpack_exports__ = "
+              } else {
+                ""
+              },
+              RuntimeGlobals::ON_CHUNKS_LOADED,
+              stringify_array(&chunk_ids)
+            ));
+          }
+          /* if use_require */
+          else {
+            startup.push(format!(
+              "{}__webpack_require__({module_id_expr});",
+              if i + 1 == entries.len() {
+                "var __webpack_exports__ = "
+              } else {
+                ""
+              },
+            ))
+          }
+          // else {
+          //   startup.push(format!("__webpack_modules__[{module_id_expr}]();"))
+          // }
+        }
+        if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
+          startup.push(format!(
+            "__webpack_exports__ = {}(__webpack_exports__);",
+            RuntimeGlobals::ON_CHUNKS_LOADED
+          ));
+        }
+        if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+          header.add(RawSource::from(format!(
+            r#"//  the startup function
+            {} = function(){{
+              {}
+              return __webpack_exports__;
+            }};
+          "#,
+            RuntimeGlobals::STARTUP,
+            std::mem::take(&mut startup).join("\n")
+          )));
+          startup.push("// run startup".to_string());
+          startup.push(format!(
+            "var __webpack_exports__ = {}();",
+            RuntimeGlobals::STARTUP
+          ));
+        }
+      } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+        header.add(RawSource::from(format!(
+          r#"// the startup function 
+          // It's empty as no entry modules are in this chunk
+            {} = function(){{}};
+          "#,
+          RuntimeGlobals::STARTUP
+        )));
+      }
+    } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
+      header.add(RawSource::from(format!(
+        r#"// the startup function 
+        // It's empty as some runtime module handles the default behavior
+          {} = function(){{}};
+        "#,
+        RuntimeGlobals::STARTUP
+      )));
+      startup.push("// run startup".to_string());
+      startup.push(format!(
+        "var __webpack_exports__ = {}();",
+        RuntimeGlobals::STARTUP
+      ));
+    }
+
+    (header.boxed(), RawSource::from(startup.join("\n")).boxed())
   }
 
   pub async fn render_main(&self, args: &rspack_core::RenderManifestArgs<'_>) -> Result<BoxSource> {
@@ -179,18 +300,14 @@ impl JsPlugin {
       .get_tree_runtime_requirements(&args.chunk_ukey);
     let (module_source, mut chunk_init_fragments) =
       render_chunk_modules(compilation, &args.chunk_ukey)?;
+    let (header, startup) = self.render_bootstrap(&args.chunk_ukey, args.compilation);
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("var __webpack_modules__ = "));
     sources.add(module_source);
     sources.add(RawSource::from("\n"));
-    sources.add(self.render_bootstrap(&args.chunk_ukey, args.compilation));
+    sources.add(header);
     sources.add(render_runtime_modules(compilation, &args.chunk_ukey)?);
     if chunk.has_entry_module(&compilation.chunk_graph) {
-      // TODO: how do we handle multiple entry modules?
-      sources.add(generate_chunk_entry_code(compilation, &args.chunk_ukey));
-      if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
-        sources.add(RawSource::from("return __webpack_exports__;\n"));
-      }
       let last_entry_module = compilation
         .chunk_graph
         .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey)
@@ -206,9 +323,13 @@ impl JsPlugin {
             compilation,
             chunk: &chunk.ukey,
             module: *last_entry_module,
+            source: startup,
           })?
       {
         sources.add(source);
+      }
+      if runtime_requirements.contains(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME) {
+        sources.add(RawSource::from("return __webpack_exports__;\n"));
       }
     }
     let mut final_source = if compilation.options.output.iife {
@@ -280,7 +401,9 @@ impl JsPlugin {
     hasher: &mut Xxh3,
   ) {
     // sample hash use content
-    self.render_bootstrap(chunk_ukey, compilation).hash(hasher);
+    let (header, startup) = self.render_bootstrap(chunk_ukey, compilation);
+    header.hash(hasher);
+    startup.hash(hasher);
   }
 
   pub fn render_iife(&self, content: BoxSource) -> BoxSource {
@@ -632,6 +755,24 @@ impl Plugin for JsPlugin {
     Ok(())
   }
 
+  fn additional_tree_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    let compilation = &mut args.compilation;
+    let runtime_requirements = &mut args.runtime_requirements;
+    if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
+      && compilation
+        .chunk_graph
+        .has_chunk_entry_dependent_chunks(args.chunk, &compilation.chunk_group_by_ukey)
+    {
+      runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    }
+    Ok(())
+  }
+
   async fn process_assets_stage_optimize_size(
     &mut self,
     _ctx: PluginContext,
@@ -642,6 +783,9 @@ impl Plugin for JsPlugin {
 
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
+      // collect all extracted comments info
+      let all_extracted_comments = Mutex::new(HashMap::new());
+      let extract_comments_option = &minify_options.extract_comments.clone();
       let emit_source_map_columns = !compilation.options.devtool.cheap();
       let compress = TerserCompressorOptions {
         passes: minify_options.passes,
@@ -657,7 +801,6 @@ impl Plugin for JsPlugin {
           filename.ends_with(".js") || filename.ends_with(".cjs") || filename.ends_with(".mjs")
         })
         .try_for_each_with(tx, |tx, (filename, original)| -> Result<()> {
-          // In theory, if a js source is minimized it has high possibility has been tree-shaked.
           if original.get_info().minimized {
             return Ok(());
           }
@@ -665,13 +808,14 @@ impl Plugin for JsPlugin {
           if let Some(original_source) = original.get_source() {
             let input = original_source.source().to_string();
             let input_source_map = original_source.map(&MapOptions::default());
-            let output = match crate::ast::minify(&JsMinifyOptions {
+            let js_minify_options = JsMinifyOptions {
               compress: BoolOrDataConfig::from_obj(compress.clone()),
               source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
               emit_source_map_columns,
               ..Default::default()
-            }, input, filename) {
+            };
+            let output = match crate::ast::minify(&js_minify_options, input, filename, &all_extracted_comments, extract_comments_option) {
               Ok(r) => r,
               Err(e) => {
                 tx.send(e.into()).map_err(|e| internal_error!(e.to_string()))?;
@@ -699,6 +843,25 @@ impl Plugin for JsPlugin {
         })?;
 
       compilation.push_batch_diagnostic(rx.into_iter().flatten().collect::<Vec<_>>());
+
+      // write all extracted comments to assets
+      all_extracted_comments
+        .lock()
+        .expect("all_extracted_comments lock failed")
+        .clone()
+        .into_iter()
+        .for_each(|(_, comments)| {
+          compilation.emit_asset(
+            comments.comments_file_name,
+            CompilationAsset {
+              source: Some(comments.source),
+              info: AssetInfo {
+                minimized: true,
+                ..Default::default()
+              },
+            },
+          )
+        });
     }
 
     Ok(())
@@ -760,4 +923,10 @@ impl Plugin for InferAsyncModulesPlugin {
     }
     Ok(())
   }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExtractedCommentsInfo {
+  pub source: BoxSource,
+  pub comments_file_name: String,
 }

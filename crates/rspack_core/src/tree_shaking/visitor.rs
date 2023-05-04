@@ -11,15 +11,15 @@ use rspack_symbol::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
-use swc_core::base::SwcComments;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::{js_word, JsWord};
 use swc_core::ecma::utils::{ExprCtx, ExprExt};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
+use swc_node_comments::SwcComments;
 
-use super::SideEffect;
+use super::SideEffectType;
 // use swc_atoms::JsWord;
 // use swc_common::{util::take::Take, Mark, GLOBALS};
 // use swc_ecma_ast::*;
@@ -137,7 +137,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   /// 2. `export ` -> ESM
   module_syntax: ModuleSyntax,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub(crate) side_effects: SideEffect,
+  pub(crate) side_effects: SideEffectType,
   pub(crate) options: &'a Arc<CompilerOptions>,
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
@@ -227,7 +227,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       export_default_name: None,
       module_syntax: ModuleSyntax::empty(),
       bail_out_module_identifiers: IdentifierMap::default(),
-      side_effects: SideEffect::Analyze(true),
+      side_effects: SideEffectType::Analyze(true),
       immediate_evaluate_reference_map: HashMap::default(),
       options,
       has_side_effects_stmt: false,
@@ -494,10 +494,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     if side_effects_option.is_enable() {
       self.side_effects = self.get_side_effects_from_config().unwrap_or_else(|| {
         if side_effects_option.is_true() {
-          SideEffect::Analyze(self.has_side_effects_stmt)
+          SideEffectType::Analyze(self.has_side_effects_stmt)
         } else {
           // side_effects_option must be `flag` here
-          SideEffect::Configuration(true)
+          SideEffectType::Configuration(true)
         }
       });
     }
@@ -512,9 +512,16 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
     for module_item in &node.body {
       if !is_import_decl(module_item) {
-        self.analyze_stmt_side_effects(module_item);
+        self.analyze_module_item_side_effects(module_item);
         module_item.visit_with(self);
       }
+    }
+  }
+
+  fn visit_script(&mut self, node: &Script) {
+    for stmt in &node.body {
+      self.analyze_stmt_side_effects(stmt);
+      stmt.visit_with(self);
     }
   }
 
@@ -882,7 +889,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
   fn visit_call_expr(&mut self, node: &CallExpr) {
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
-      self.module_syntax.insert(ModuleSyntax::ESM);
+      self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
         .resolve_module_identifier(&require_lit, &DependencyType::CjsRequire)
         .copied()
@@ -1129,7 +1136,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
     }
   }
-  fn get_side_effects_from_config(&mut self) -> Option<SideEffect> {
+  fn get_side_effects_from_config(&mut self) -> Option<SideEffectType> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
     if let Some(mgm) = self
@@ -1137,7 +1144,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_graph_module_by_identifier(&self.module_identifier)
       && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
     {
-      return Some(SideEffect::Analyze(*side_effects))
+      return Some(SideEffectType::Analyze(*side_effects))
     }
 
     let resource_data = self
@@ -1156,7 +1163,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       relative_path,
     ));
 
-    side_effects.map(SideEffect::Configuration)
+    side_effects.map(SideEffectType::Configuration)
   }
 }
 
@@ -1185,27 +1192,62 @@ pub fn get_side_effects_from_package_json(
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
+  fn analyze_module_item_side_effects(&mut self, ele: &ModuleItem) {
+    match ele {
+      ModuleItem::ModuleDecl(module_decl) => match module_decl {
+        ModuleDecl::ExportDecl(decl) => {
+          if !is_pure_decl(&decl.decl, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleDecl::ExportDefaultDecl(decl) => {
+          match decl.decl {
+            DefaultDecl::Class(ref class) => {
+              if !is_pure_class(&class.class, self.unresolved_ctxt) {
+                self.has_side_effects_stmt = true;
+              }
+            }
+            DefaultDecl::Fn(_) => {}
+            DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
+          };
+        }
+        ModuleDecl::ExportDefaultExpr(expr) => {
+          if !is_pure_expression(&expr.expr, self.unresolved_ctxt) {
+            self.has_side_effects_stmt = true;
+          }
+        }
+        ModuleDecl::ExportAll(_)
+        | ModuleDecl::Import(_)
+        | ModuleDecl::ExportNamed(_)
+        | ModuleDecl::TsImportEquals(_)
+        | ModuleDecl::TsExportAssignment(_)
+        | ModuleDecl::TsNamespaceExport(_) => {}
+      },
+      ModuleItem::Stmt(stmt) => self.analyze_stmt_side_effects(stmt),
+    }
+  }
+
   /// If we find a stmt that has side effects, we will skip the rest of the stmts.
   /// And mark the module as having side effects.
-  fn analyze_stmt_side_effects(&mut self, ele: &ModuleItem) {
+  fn analyze_stmt_side_effects(&mut self, ele: &Stmt) {
     if !self.has_side_effects_stmt {
       match ele {
-        ModuleItem::Stmt(Stmt::If(stmt)) => {
+        Stmt::If(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
             self.has_side_effects_stmt = true;
           }
         }
-        ModuleItem::Stmt(Stmt::While(stmt)) => {
+        Stmt::While(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
             self.has_side_effects_stmt = true;
           }
         }
-        ModuleItem::Stmt(Stmt::DoWhile(stmt)) => {
+        Stmt::DoWhile(stmt) => {
           if !is_pure_expression(&stmt.test, self.unresolved_ctxt) {
             self.has_side_effects_stmt = true;
           }
         }
-        ModuleItem::Stmt(Stmt::For(stmt)) => {
+        Stmt::For(stmt) => {
           let pure_init = match stmt.init {
             Some(ref init) => match init {
               VarDeclOrExpr::VarDecl(decl) => is_pure_var_decl(decl, self.unresolved_ctxt),
@@ -1238,53 +1280,24 @@ impl<'a> ModuleRefAnalyze<'a> {
             self.has_side_effects_stmt = true;
           }
         }
-        ModuleItem::Stmt(Stmt::Expr(stmt)) => {
+        Stmt::Expr(stmt) => {
           if !is_pure_expression(&stmt.expr, self.unresolved_ctxt) {
             self.has_side_effects_stmt = true;
           }
         }
-        ModuleItem::Stmt(Stmt::Switch(stmt)) => {
+        Stmt::Switch(stmt) => {
           if !is_pure_expression(&stmt.discriminant, self.unresolved_ctxt) {
             self.has_side_effects_stmt = true;
           }
         }
-        ModuleItem::Stmt(Stmt::Decl(stmt)) => {
+        Stmt::Decl(stmt) => {
           if !is_pure_decl(stmt, self.unresolved_ctxt) {
             self.has_side_effects_stmt = true;
           }
         }
-        ModuleItem::ModuleDecl(module_decl) => match module_decl {
-          ModuleDecl::ExportDecl(decl) => {
-            if !is_pure_decl(&decl.decl, self.unresolved_ctxt) {
-              self.has_side_effects_stmt = true;
-            }
-          }
-          ModuleDecl::ExportDefaultDecl(decl) => {
-            match decl.decl {
-              DefaultDecl::Class(ref class) => {
-                if !is_pure_class(&class.class, self.unresolved_ctxt) {
-                  self.has_side_effects_stmt = true;
-                }
-              }
-              DefaultDecl::Fn(_) => {}
-              DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
-            };
-          }
-          ModuleDecl::ExportDefaultExpr(expr) => {
-            if !is_pure_expression(&expr.expr, self.unresolved_ctxt) {
-              self.has_side_effects_stmt = true;
-            }
-          }
-          ModuleDecl::ExportAll(_)
-          | ModuleDecl::Import(_)
-          | ModuleDecl::ExportNamed(_)
-          | ModuleDecl::TsImportEquals(_)
-          | ModuleDecl::TsExportAssignment(_)
-          | ModuleDecl::TsNamespaceExport(_) => {}
-        },
-        ModuleItem::Stmt(Stmt::Empty(_)) => {}
-        ModuleItem::Stmt(Stmt::Labeled(_)) => {}
-        ModuleItem::Stmt(Stmt::Block(_)) => {}
+        Stmt::Empty(_) => {}
+        Stmt::Labeled(_) => {}
+        Stmt::Block(_) => {}
         _ => self.has_side_effects_stmt = true,
       };
     }
@@ -1454,11 +1467,11 @@ impl<'a> ModuleRefAnalyze<'a> {
 }
 
 /// The `allow(unused)` will be removed after the Tree shaking is finished
-#[derive(Debug)]
+#[derive(Debug, Default)]
 #[allow(unused)]
-pub struct TreeShakingResult {
-  pub top_level_mark: Mark,
-  pub unresolved_mark: Mark,
+pub struct OptimizeAnalyzeResult {
+  top_level_mark: Mark,
+  unresolved_mark: Mark,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,
   pub(crate) import_map: HashMap<BetterId, SymbolRef>,
@@ -1469,11 +1482,11 @@ pub struct TreeShakingResult {
   state: AnalyzeState,
   pub(crate) used_symbol_refs: HashSet<SymbolRef>,
   pub(crate) bail_out_module_identifiers: IdentifierMap<BailoutFlag>,
-  pub(crate) side_effects: SideEffect,
+  pub(crate) side_effects: SideEffectType,
   pub(crate) module_syntax: ModuleSyntax,
 }
 
-impl From<ModuleRefAnalyze<'_>> for TreeShakingResult {
+impl From<ModuleRefAnalyze<'_>> for OptimizeAnalyzeResult {
   fn from(analyze: ModuleRefAnalyze<'_>) -> Self {
     Self {
       top_level_mark: analyze.top_level_mark,
@@ -1630,7 +1643,7 @@ pub enum SideEffects {
 }
 
 impl SideEffects {
-  fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
+  pub fn from_description(description: &nodejs_resolver::DescriptionData) -> Option<Self> {
     description
       .data()
       .raw()

@@ -12,6 +12,7 @@ import watchpack from "watchpack";
 import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
+import { Compilation } from "..";
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
@@ -49,6 +50,7 @@ export interface RspackOptions {
 	watchOptions?: WatchOptions;
 	devServer?: DevServer;
 	builtins?: Builtins;
+	ignoreWarnings?: IgnoreWarningsPattern;
 }
 
 export interface RspackOptionsNormalized {
@@ -77,6 +79,7 @@ export interface RspackOptionsNormalized {
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
 	builtins: Builtins;
+	ignoreWarnings?: IgnoreWarningsNormalized;
 }
 
 export type HashFunction = string | typeof import("../util/hash");
@@ -99,6 +102,14 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
+export type IgnoreWarningsPattern = (
+	| RegExp
+	| ((warning: Error, compilation: Compilation) => boolean)
+)[];
+export type IgnoreWarningsNormalized = ((
+	warning: Error,
+	compilation: Compilation
+) => boolean)[];
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }

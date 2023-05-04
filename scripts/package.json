@@ -13,7 +13,6 @@
   "dependencies": {
     "@changesets/read": "0.5.9",
     "@iarna/toml": "2.2.5",
-    "commander": "9.4.0",
     "node-fetch": "2.6.7",
     "zx": "^7.2.1"
   }

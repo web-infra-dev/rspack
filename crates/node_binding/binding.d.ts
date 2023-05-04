@@ -137,6 +137,7 @@ export interface RawMinification {
   passes: number
   dropConsole: boolean
   pureFuncs: Array<string>
+  extractComments?: string
 }
 export interface RawPresetEnv {
   targets: Array<string>
@@ -426,6 +427,7 @@ export interface RawCacheGroupOptions {
   chunks?: string
   minChunks?: number
   name?: string
+  reuseExistingChunk?: boolean
 }
 export interface RawStatsOptions {
   colors: boolean

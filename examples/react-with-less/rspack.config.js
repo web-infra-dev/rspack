@@ -1,5 +1,6 @@
 const path = require("path");
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	context: __dirname,
 	mode: "development",
 	entry: {
@@ -24,3 +25,4 @@ module.exports = {
 		path: path.resolve(__dirname, "dist")
 	}
 };
+module.exports = config;

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use once_cell::sync::Lazy;
 use rspack_core::{ModuleType, ReactOptions};
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, Module, ModuleItem, Program};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, ModuleItem, Program, Script};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
 use swc_core::ecma::visit::{noop_visit_type, Fold, Visit, VisitWith};
@@ -81,43 +81,42 @@ impl Visit for ReactRefreshUsageFinder {
 }
 
 // __webpack_require__.$ReactRefreshRuntime$ is injected by the react-refresh additional entry
-static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_modules__.$ReactRefreshRuntime$;
-var $RefreshReg$ = function (type, id) {
-  RefreshRuntime.register(type, __webpack_module__.id + "_" + id);
-}
-var $RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
-
 // See https://github.com/web-infra-dev/rspack/pull/2714 why we have a promise here
-static HMR_FOOTER: &str = r#"Promise.resolve().then(function(){ 
+static RUNTIME_CODE: &str = r#"
+function $RefreshReg$(type, id) {
+  __webpack_modules__.$ReactRefreshRuntime$.register(type, __webpack_module__.id+ "_" + id);
+}
+Promise.resolve().then(function(){ 
   __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
-})"#;
+})
+"#;
 
-static HMR_HEADER_AST: Lazy<Program> =
-  Lazy::new(|| parse_js_code(HMR_HEADER.to_string(), &ModuleType::Js).expect("TODO:"));
-
-static HMR_FOOTER_AST: Lazy<Program> =
-  Lazy::new(|| parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).expect("TODO:"));
+static RUNTIME_CODE_AST: Lazy<Script> = Lazy::new(|| {
+  parse_js_code(RUNTIME_CODE.to_string(), &ModuleType::Js)
+    .expect("TODO:")
+    .expect_script()
+});
 
 pub struct ReactHmrFolder {}
 
 impl Fold for ReactHmrFolder {
-  fn fold_module(&mut self, mut module: Module) -> Module {
+  fn fold_program(&mut self, mut program: Program) -> Program {
     let mut f = ReactRefreshUsageFinder::default();
 
-    module.visit_with(&mut f);
+    program.visit_with(&mut f);
     if !f.is_founded {
-      return module;
+      return program;
     }
 
-    let mut body = vec![];
-    if let Some(m) = HMR_HEADER_AST.as_module() {
-      body.append(&mut m.body.clone());
-    }
-    body.append(&mut module.body);
-    if let Some(m) = HMR_FOOTER_AST.as_module() {
-      body.append(&mut m.body.clone());
-    }
+    let rumtime_stmts = RUNTIME_CODE_AST.body.clone();
 
-    Module { body, ..module }
+    match program {
+      Program::Module(ref mut m) => m
+        .body
+        .extend(rumtime_stmts.into_iter().map(ModuleItem::Stmt)),
+      Program::Script(ref mut s) => s.body.extend(rumtime_stmts),
+    };
+
+    program
   }
 }

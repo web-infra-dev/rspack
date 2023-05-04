@@ -1,7 +1,7 @@
 var uniqueName = "webpack";
 // loadCssChunkData is unnecessary
 var loadingAttribute = "data-webpack-loading";
-var loadStylesheet = (chunkId, url, done, hmr) => {
+var loadStylesheet = function(chunkId, url, done, hmr) {
 	var link,
 		needAttach,
 		key = "chunk-" + chunkId;
@@ -37,7 +37,7 @@ var loadStylesheet = (chunkId, url, done, hmr) => {
 			link.crossOrigin = __CROSS_ORIGIN_LOADING_PLACEHOLDER__;
 		}
 	}
-	var onLinkComplete = (prev, event) => {
+	var onLinkComplete = function (prev, event) {
 		link.onerror = link.onload = null;
 		link.removeAttribute(loadingAttribute);
 		clearTimeout(timeout);

@@ -1,7 +1,7 @@
 /**
  * @type {import('@rspack/cli').Configuration}
  */
-module.exports = {
+const config = {
 	mode: "development",
 	entry: { main: "./src/index.tsx" },
 	builtins: {
@@ -11,3 +11,4 @@ module.exports = {
 		}
 	}
 };
+module.exports = config;

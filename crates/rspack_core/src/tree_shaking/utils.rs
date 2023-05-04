@@ -1,6 +1,10 @@
+use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use swc_core::common::Mark;
 use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use swc_core::ecma::atoms::{js_word, JsWord};
+
+use super::visitor::SymbolRef;
+use crate::ModuleGraph;
 
 pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
   // we check the length at the begin of [is_require_literal_expr]
@@ -52,4 +56,77 @@ pub fn get_path_of_module_identifier<T: AsRef<str>>(path: T) -> String {
   let t = path.as_ref();
   let (_, path) = t.split_once('|').expect("Expect have `|` delimiter ");
   path.to_string()
+}
+
+pub trait ConvertModulePath {
+  fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self;
+}
+
+impl ConvertModulePath for SymbolRef {
+  fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
+    match self {
+      SymbolRef::Direct(direct) => {
+        SymbolRef::Direct(direct.convert_module_identifier_to_module_path(module_graph))
+      }
+      SymbolRef::Indirect(indirect) => {
+        SymbolRef::Indirect(indirect.convert_module_identifier_to_module_path(module_graph))
+      }
+      SymbolRef::Star(star) => {
+        SymbolRef::Star(star.convert_module_identifier_to_module_path(module_graph))
+      }
+    }
+  }
+}
+
+impl ConvertModulePath for Symbol {
+  fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
+    self.set_uri(
+      module_graph
+        .normal_module_source_path_by_identifier(&self.uri())
+        .expect("Can't get module source path by identifier")
+        .as_ref()
+        .into(),
+    );
+    self
+  }
+}
+
+impl ConvertModulePath for IndirectTopLevelSymbol {
+  fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
+    self.set_importer(
+      module_graph
+        .normal_module_source_path_by_identifier(&self.importer())
+        .expect("Can't get module source path by identifier")
+        .as_ref()
+        .into(),
+    );
+    self.set_src(
+      module_graph
+        .normal_module_source_path_by_identifier(&self.src())
+        .expect("Can't get module source path by identifier")
+        .as_ref()
+        .into(),
+    );
+    self
+  }
+}
+
+impl ConvertModulePath for StarSymbol {
+  fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
+    self.set_src(
+      module_graph
+        .normal_module_source_path_by_identifier(&self.src())
+        .expect("Can't get module source path by identifier")
+        .as_ref()
+        .into(),
+    );
+    self.set_module_ident(
+      module_graph
+        .normal_module_source_path_by_identifier(&self.module_ident())
+        .expect("Can't get module source path by identifier")
+        .as_ref()
+        .into(),
+    );
+    self
+  }
 }

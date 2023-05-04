@@ -25,15 +25,16 @@ struct ChunkInfo<'a> {
   modules: &'a [SharedModule],
 }
 
+#[async_trait::async_trait]
 impl Plugin for DevFriendlySplitChunksPlugin {
   fn name(&self) -> &'static str {
     "DevFriendlySplitChunksPlugin"
   }
 
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs,
+    args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
     use rayon::prelude::*;
     let compilation = args.compilation;

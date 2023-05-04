@@ -1,5 +1,7 @@
 use napi_derive::napi;
 #[cfg(feature = "node-api")]
+use tracing::{span_enabled, Level};
+#[cfg(feature = "node-api")]
 use {
   napi::bindgen_prelude::*,
   napi::NapiRaw,
@@ -53,10 +55,21 @@ impl TryFrom<JsFunction> for JsLoaderRunner {
           let cb = ctx.callback;
           let resource = ctx.value.resource.clone();
 
+          let loader_name = if span_enabled!(Level::TRACE) {
+            let loader_path = ctx.value.current_loader.clone();
+            // try to remove the previous node_modules parts from path for better display
+
+            let parts = loader_path.split("node_modules/");
+            let loader_name: &str = parts.last().unwrap_or(loader_path.as_str());
+            String::from(loader_name)
+          } else {
+            String::from("unknown")
+          };
           let result = tracing::span!(
             tracing::Level::INFO,
             "loader_sync_call",
-            resource = &resource
+            resource = &resource,
+            loader_name = &loader_name
           )
           .in_scope(|| unsafe { call_js_function_with_napi_objects!(env, cb, ctx.value) });
 

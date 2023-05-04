@@ -32,6 +32,9 @@ module.exports = class RspackMinifyPlugin {
 				{
 					sourceMap: sourcemap,
 					ecma: this.options.target,
+					mangle: this.options.mangle,
+					keep_classnames: this.options.keep_classnames,
+					keep_fnames: this.options.keep_fnames,
 					compress: {
 						passes: 2
 					}

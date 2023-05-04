@@ -5,6 +5,7 @@
   "description": "A Fast Rust-based web bundler",
   "private": true,
   "scripts": {
+    "x": "zx x.mjs",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",
     "build:js": "pnpm --filter \"@rspack/*\" build",
@@ -52,7 +53,7 @@
     "@taplo/cli": "^0.5.2",
     "@types/react": "17.0.52",
     "@types/react-dom": "17.0.19",
-    "commander": "9.4.0",
+    "commander": "10.0.1",
     "esbuild": "^0.15.9",
     "husky": "^7.0.4",
     "is-ci": "3.0.1",

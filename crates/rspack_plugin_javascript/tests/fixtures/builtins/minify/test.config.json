@@ -1,0 +1,10 @@
+{
+    "builtins": {
+        "minifyOptions": {
+            "extractComments": "/@license/"
+        },
+        "codeGeneration": {
+            "keepComments": true
+        }
+    }
+}

@@ -27,6 +27,10 @@ impl RuntimeModule for ExportWebpackRequireRuntimeModule {
   fn generate(&self, _compilation: &Compilation) -> BoxSource {
     RawSource::from("export default __webpack_require__;").boxed()
   }
+
+  fn should_isolate(&self) -> bool {
+    true
+  }
 }
 
 impl_runtime_module!(ExportWebpackRequireRuntimeModule);

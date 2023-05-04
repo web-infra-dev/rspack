@@ -719,6 +719,22 @@ module.exports = {
 			description: "Enable production optimizations or development hints.",
 			enum: ["development", "production", "none"]
 		},
+		ignoreWarnings: {
+			description: "ignore warnings based on pattern",
+			type: "array",
+			items: {
+				anyOf: [
+					{
+						instanceof: "RegExp"
+					},
+					{
+						instanceof: "Function"
+						// tsType:
+						// 	"(warning: Error, compilation: Compilation) => boolean"
+					}
+				]
+			}
+		},
 		ModuleOptions: {
 			description:
 				"Options affecting the normal modules (`NormalModuleFactory`).",
@@ -1010,6 +1026,11 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksSizes"
 						}
 					]
+				},
+				reuseExistingChunk: {
+					description:
+						"If the current chunk contains modules already split out from the main bundle, it will be reused instead of a new one being generated. This can affect the resulting file name of the chunk.",
+					type: "boolean"
 				}
 			}
 		},
@@ -2045,6 +2066,9 @@ module.exports = {
 			description: "Builtins features in rspack",
 			type: "object",
 			additionalProperties: true
+		},
+		ignoreWarnings: {
+			$ref: "#/definitions/ignoreWarnings"
 		}
 	}
 };

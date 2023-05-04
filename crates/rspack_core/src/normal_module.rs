@@ -36,6 +36,7 @@ use crate::{
 };
 
 bitflags! {
+  #[derive(Default)]
   pub struct ModuleSyntax: u8 {
     const COMMONJS = 1 << 0;
     const ESM = 1 << 1;
@@ -89,18 +90,13 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
-  pub used: bool,
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
 }
 
 impl ModuleGraphModule {
-  pub fn new(
-    module_identifier: ModuleIdentifier,
-    module_type: ModuleType,
-    default_used: bool,
-  ) -> Self {
+  pub fn new(module_identifier: ModuleIdentifier, module_type: ModuleType) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
@@ -113,7 +109,6 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
-      used: default_used,
       factory_meta: None,
       build_info: None,
       build_meta: None,
