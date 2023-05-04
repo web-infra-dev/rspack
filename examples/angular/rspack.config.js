@@ -10,7 +10,7 @@ const {
 const path = require("path");
 /** @type {import('@rspack/cli').Configuration} */
 module.exports = {
-	mode: "development",
+	mode: "production",
 	devtool: false,
 	target: ["web", "es2015"],
 	entry: {
@@ -42,6 +42,7 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: false,
+		minimize:true,
 		splitChunks: {
 			// 'maxAsyncRequests': null, // throws error
 			cacheGroups: {
