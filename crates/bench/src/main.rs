@@ -1,4 +1,5 @@
 mod termcolorful;
+use std::str::FromStr;
 use std::{path::PathBuf, time::Instant};
 
 use mimalloc_rust::GlobalMiMalloc;
@@ -6,19 +7,43 @@ use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::apply_from_fixture;
 #[cfg(feature = "tracing")]
-use rspack_tracing::enable_tracing_by_env_with_chrome_layer;
+use rspack_tracing::{enable_tracing_by_env, enable_tracing_by_env_with_chrome_layer};
 use termcolorful::println_string_with_fg_color;
 
 #[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
 #[global_allocator]
 static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
 
+#[derive(Default, Clone, Copy)]
+enum Layer {
+  #[default]
+  Logger,
+  Chrome,
+}
+
+impl FromStr for Layer {
+  type Err = ();
+
+  fn from_str(s: &str) -> Result<Self, Self::Err> {
+    Ok(match s {
+      "chrome" => Self::Chrome,
+      "logger" => Self::Logger,
+      _ => unimplemented!("Unknown layer {s}, please use one of `chrome`, `logger` "),
+    })
+  }
+}
+
 #[tokio::main]
 async fn main() {
+  #[cfg(feature = "tracing")]
+  let layer = std::env::var("layer")
+    .ok()
+    .and_then(|var| Layer::from_str(&var).ok())
+    .unwrap_or_default();
   let path_list = vec![
     // "examples/cjs-tree-shaking-basic",
     // "examples/basic",
-    "smoke-examples/basic",
+    "smoke-example/basic",
     // "examples/export-star-chain",
     // "examples/bbb",
     /* "examples/named-export-decl-with-src-eval",
@@ -27,13 +52,21 @@ async fn main() {
   ];
   for p in path_list {
     println_string_with_fg_color(p, termcolorful::Color::Red);
-    run(p).await;
+    run(
+      p,
+      #[cfg(feature = "tracing")]
+      layer,
+    )
+    .await;
   }
 }
 
-async fn run(relative_path: &str) {
+async fn run(relative_path: &str, #[cfg(feature = "tracing")] layer: Layer) {
   #[cfg(feature = "tracing")]
-  let guard = enable_tracing_by_env_with_chrome_layer();
+  let guard = match layer {
+    Layer::Logger => enable_tracing_by_env(),
+    Layer::Chrome => enable_tracing_by_env_with_chrome_layer(),
+  };
   let manifest_dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"));
   // let bundle_dir = manifest_dir.join("tests/fixtures/postcss/pxtorem");
   let bundle_dir: PathBuf = manifest_dir.join(relative_path);
