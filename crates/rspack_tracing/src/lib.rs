@@ -20,8 +20,8 @@ impl<S> Filter<S> for FilterEvent {
   }
 }
 pub fn enable_tracing_by_env() -> Option<FlushGuard> {
-  let trace_var = std::env::var("TRACE");
-  let is_enable_tracing = trace_var.is_ok();
+  let trace_var = std::env::var("TRACE").ok();
+  let is_enable_tracing = trace_var.is_some();
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_subscriber::{fmt, prelude::*};
     let layers = generate_common_layers(trace_var);
@@ -43,12 +43,9 @@ pub fn enable_tracing_by_env() -> Option<FlushGuard> {
 }
 
 fn generate_common_layers(
-  trace_var: Result<String, std::env::VarError>,
+  trace_var: Option<String>,
 ) -> Vec<Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>> {
-  let default_level = trace_var
-    .as_ref()
-    .ok()
-    .and_then(|var| Level::from_str(var).ok());
+  let default_level = trace_var.as_ref().and_then(|var| Level::from_str(var).ok());
 
   let mut layers = vec![];
   if let Some(default_level) = default_level {
@@ -68,19 +65,19 @@ fn generate_common_layers(
     // SAFETY: we know that trace_var is `Ok(StrinG)` now,
     // for the second unwrap, if we can't parse the directive, then the tracing result would be
     // unexpected, then panic is reasonable
-    let res = EnvFilter::builder()
+    let env_layer = EnvFilter::builder()
       .with_regex(true)
-      .parse(trace_var.unwrap())
-      .unwrap();
+      .parse(trace_var.expect("Should not be empty"))
+      .expect("Parse tracing directive syntax failed,for details about the directive syntax you could refer https://docs.rs/tracing-subscriber/latest/tracing_subscriber/filter/struct.EnvFilter.html#directives");
 
-    layers.push(res.boxed());
+    layers.push(env_layer.boxed());
   }
   layers
 }
 
 pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
-  let trace_var = std::env::var("TRACE");
-  let is_enable_tracing = trace_var.is_ok();
+  let trace_var = std::env::var("TRACE").ok();
+  let is_enable_tracing = trace_var.is_some();
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::prelude::*;
