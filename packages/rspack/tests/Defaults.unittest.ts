@@ -132,6 +132,7 @@ describe("snapshots", () => {
     "node": false,
   },
   "externalsType": "var",
+  "ignoreWarnings": undefined,
   "infrastructureLogging": {},
   "mode": "none",
   "module": {

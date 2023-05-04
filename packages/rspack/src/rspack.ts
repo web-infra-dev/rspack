@@ -32,6 +32,7 @@ import { asArray, isNil } from "./util";
 import rspackOptionsCheck from "./config/schema.check.js";
 import InvalidateConfigurationError from "./error/InvalidateConfiguration";
 import { validate, ValidationError } from "schema-utils";
+import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -75,6 +76,10 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 				plugin.apply(compiler);
 			}
 		}
+	}
+
+	if (options.ignoreWarnings !== undefined) {
+		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
 	}
 
 	applyRspackOptionsDefaults(compiler.options);
