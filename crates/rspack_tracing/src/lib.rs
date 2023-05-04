@@ -17,10 +17,8 @@ impl<S> Filter<S> for FilterEvent {
     !meta.is_event()
   }
 }
-pub fn enable_tracing_by_env() {
-  let is_enable_tracing = std::env::var("TRACE").map_or(false, |x| {
-    matches!(x.as_str(), "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR")
-  });
+pub fn enable_tracing_by_env() -> Option<FlushGuard> {
+  let is_enable_tracing = std::env::var("TRACE").is_ok();
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
     tracing_subscriber::registry()
@@ -31,21 +29,11 @@ pub fn enable_tracing_by_env() {
           // To keep track of the closing point of spans
           .with_span_events(FmtSpan::CLOSE),
       )
-      .with(
-        tracing_subscriber::filter::Targets::new().with_targets(vec![
-          ("rspack_core", Level::TRACE),
-          ("rspack", Level::TRACE),
-          ("rspack_node", Level::TRACE),
-          ("rspack_plugin_javascript", Level::TRACE),
-          ("rspack_plugin_split_chunks", Level::TRACE),
-          ("rspack_binding_options", Level::TRACE),
-        ]),
-      )
-      // Using TRACE=[TRACE|DEBUG|INFO|WARN|ERROR] to set max trace level.
       .with(EnvFilter::from_env("TRACE"))
       .init();
     tracing::trace!("enable_tracing_by_env");
   }
+  None
 }
 
 pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
