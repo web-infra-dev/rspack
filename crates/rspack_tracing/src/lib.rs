@@ -22,8 +22,6 @@ impl<S> Filter<S> for FilterEvent {
 pub fn enable_tracing_by_env() -> Option<FlushGuard> {
   let trace_var = std::env::var("TRACE");
   let is_enable_tracing = trace_var.is_ok();
-  // Sometimes developer may want to trace the upstream lib events,
-  // by default, we only trace the event emitted by rspack
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_subscriber::{fmt, prelude::*};
     let layers = generate_common_layers(trace_var);
@@ -48,8 +46,8 @@ fn generate_common_layers(
   trace_var: Result<String, std::env::VarError>,
 ) -> Vec<Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>> {
   let default_level = trace_var
-    .ok()
     .as_ref()
+    .ok()
     .and_then(|var| Level::from_str(var).ok());
 
   let mut layers = vec![];
@@ -67,7 +65,15 @@ fn generate_common_layers(
         .boxed(),
     );
   } else {
-    layers.push(EnvFilter::from_env("TRACE").boxed());
+    // SAFETY: we know that trace_var is `Ok(StrinG)` now,
+    // for the second unwrap, if we can't parse the directive, then the tracing result would be
+    // unexpected, then panic is reasonable
+    let res = EnvFilter::builder()
+      .with_regex(true)
+      .parse(trace_var.unwrap())
+      .unwrap();
+
+    layers.push(res.boxed());
   }
   layers
 }
@@ -75,8 +81,6 @@ fn generate_common_layers(
 pub fn enable_tracing_by_env_with_chrome_layer() -> Option<FlushGuard> {
   let trace_var = std::env::var("TRACE");
   let is_enable_tracing = trace_var.is_ok();
-  // Sometimes developer may want to trace the upstream lib events,
-  // by default, we only trace the event emitted by rspack
   if is_enable_tracing && !IS_TRACING_ENABLED.swap(true, std::sync::atomic::Ordering::SeqCst) {
     use tracing_chrome::ChromeLayerBuilder;
     use tracing_subscriber::prelude::*;
