@@ -427,6 +427,7 @@ export interface RawCacheGroupOptions {
   chunks?: string
   minChunks?: number
   name?: string
+  reuseExistingChunk?: boolean
 }
 export interface RawStatsOptions {
   colors: boolean
