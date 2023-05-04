@@ -22,7 +22,8 @@ __webpack_require__.a(module, async function(__webpack_handle_async_dependencies
  module.exports = __webpack_require__.v(exports, module.id, "c61e7cc882ba31f8.module.wasm" );},
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

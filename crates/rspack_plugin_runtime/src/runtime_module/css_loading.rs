@@ -4,10 +4,11 @@ use rspack_core::{
   RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
+use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::utils::{stringify_chunks, stringify_chunks_to_array};
 use crate::impl_runtime_module;
+use crate::runtime_module::stringify_chunks;
 #[derive(Debug, Default, Eq)]
 pub struct CssLoadingRuntimeModule {
   id: Identifier,

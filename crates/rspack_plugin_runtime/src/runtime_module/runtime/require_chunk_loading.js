@@ -12,4 +12,5 @@ var installChunk = function (chunk) {
 	}
 	if (runtime) runtime(__webpack_require__);
 	for (var i = 0; i < chunkIds.length; i++) installedChunks[chunkIds[i]] = 1;
+	$withOnChunkLoad$
 };
