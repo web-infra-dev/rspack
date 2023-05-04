@@ -2,7 +2,7 @@
 
 exports[`HashTestCases should print correct hash for package-path-change-0 1`] = `
 [
-  "runtime.42fc7bbb9c153e4d.js",
+  "runtime.e595a762c31d5184.js",
   "main.8ba66a6d562c9f41.js",
   "0.a419356ce1e112c6.js",
 ]
@@ -10,7 +10,7 @@ exports[`HashTestCases should print correct hash for package-path-change-0 1`] =
 
 exports[`HashTestCases should print correct hash for package-path-change-1 1`] = `
 [
-  "runtime.bb99b9f3a0c9d960.js",
+  "runtime.a97a74c18931936f.js",
   "main.b11af1dbcee032b1.js",
   "0.b681063969d05f1f.js",
 ]

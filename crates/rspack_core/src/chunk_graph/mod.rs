@@ -470,6 +470,57 @@ impl ChunkGraph {
     }
     chunk.disconnect_from_groups(chunk_group_by_ukey)
   }
+
+  pub fn has_chunk_entry_dependent_chunks(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> bool {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    for (_, chunk_group_ukey) in cgc.entry_modules.iter() {
+      let chunk_group = chunk_group_by_ukey
+        .get(chunk_group_ukey)
+        .expect("should have chunk group");
+      for c in chunk_group.chunks.iter() {
+        if c != chunk_ukey {
+          return true;
+        }
+      }
+    }
+    false
+  }
+
+  pub fn get_chunk_entry_dependent_chunks_iterable(
+    &self,
+    chunk_ukey: &ChunkUkey,
+    chunk_by_ukey: &ChunkByUkey,
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+  ) -> impl Iterator<Item = ChunkUkey> {
+    let chunk = chunk_by_ukey.get(chunk_ukey).expect("should have chunk");
+    let mut set = HashSet::default();
+    for chunk_group_ukey in chunk.groups.iter() {
+      let chunk_group = chunk_group_by_ukey
+        .get(chunk_group_ukey)
+        .expect("should have chunk group");
+      if chunk_group.is_initial() {
+        let entry_point_chunk = chunk_group.get_entry_point_chunk();
+        let cgc = self.get_chunk_graph_chunk(&entry_point_chunk);
+        for (_, chunk_group_ukey) in cgc.entry_modules.iter() {
+          let chunk_group = chunk_group_by_ukey
+            .get(chunk_group_ukey)
+            .expect("should have chunk group");
+          for c in chunk_group.chunks.iter() {
+            let chunk = chunk_by_ukey.get(c).expect("should have chunk");
+            if c != chunk_ukey && c != &entry_point_chunk && !chunk.has_runtime(chunk_group_by_ukey)
+            {
+              set.insert(*c);
+            }
+          }
+        }
+      }
+    }
+    set.into_iter()
+  }
 }
 
 #[derive(Debug, Clone, Default)]

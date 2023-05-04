@@ -34,6 +34,8 @@ pub use module_chunk_loading::ModuleChunkLoadingPlugin;
 mod import_scripts_chunk_loading;
 pub use import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin;
 mod runtime_module;
+mod startup_chunk_dependencies;
+pub use startup_chunk_dependencies::StartupChunkDependenciesPlugin;
 #[derive(Debug)]
 pub struct RuntimePlugin {}
 

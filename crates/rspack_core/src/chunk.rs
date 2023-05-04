@@ -260,6 +260,8 @@ impl Chunk {
     chunks
   }
 
+  // pub fn get_all_referenced_async_entry_points() -> HashSet<ChunkUkey> {}
+
   pub fn get_render_hash(&self) -> String {
     format!("{:x}", self.hash.finish())
   }

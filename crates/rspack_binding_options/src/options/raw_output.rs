@@ -226,12 +226,15 @@ impl RawOutputOptions {
             plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
           }
           "require" => {
+            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
             plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
           }
+          // TODO async-node
           "import" => {
             plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
           }
           "import-scripts" => {
+            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(true).boxed());
             plugins.push(rspack_plugin_runtime::ImportScriptsChunkLoadingPlugin {}.boxed());
           }
           "universal" => {
