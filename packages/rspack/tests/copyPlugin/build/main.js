@@ -23,5 +23,4 @@ function __webpack_require__(moduleId) {
 
 }
 var __webpack_exports__ = __webpack_require__('../helpers/enter.js');
-
 })();

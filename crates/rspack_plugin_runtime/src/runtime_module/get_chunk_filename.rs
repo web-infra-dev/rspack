@@ -52,7 +52,26 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         Some(chunk) => {
           let chunks = match self.all_chunks {
             true => chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey),
-            false => chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey),
+            false => {
+              let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
+              if compilation
+                .chunk_graph
+                .get_tree_runtime_requirements(&chunk.ukey)
+                .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+              {
+                for c in compilation
+                  .chunk_graph
+                  .get_chunk_entry_dependent_chunks_iterable(
+                    &chunk.ukey,
+                    &compilation.chunk_by_ukey,
+                    &compilation.chunk_group_by_ukey,
+                  )
+                {
+                  chunks.insert(c);
+                }
+              }
+              chunks
+            }
           };
 
           let mut chunks_map = HashMap::default();

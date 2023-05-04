@@ -247,12 +247,19 @@ impl PluginDriver {
   }
 
   pub fn render_startup(&self, args: RenderStartupArgs) -> PluginRenderStartupHookOutput {
+    let mut source = args.source;
     for plugin in &self.plugins {
-      if let Some(source) = plugin.render_startup(PluginContext::new(), &args)? {
-        return Ok(Some(source));
+      if let Some(s) = plugin.render_startup(
+        PluginContext::new(),
+        &RenderStartupArgs {
+          source: source.clone(),
+          ..args
+        },
+      )? {
+        source = s;
       }
     }
-    Ok(None)
+    Ok(Some(source))
   }
 
   pub fn js_chunk_hash(&self, mut args: JsChunkHashArgs) -> PluginJsChunkHashHookOutput {

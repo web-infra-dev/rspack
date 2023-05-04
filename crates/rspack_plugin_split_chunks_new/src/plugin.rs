@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 
 use async_scoped::TokioScope;
 use dashmap::DashMap;
@@ -34,25 +34,39 @@ impl SplitChunksPlugin {
     self.ensure_min_size_fit(compilation, &mut module_group_map);
 
     while !module_group_map.is_empty() {
-      let (_module_group_key, module_group) = self.find_best_module_group(&mut module_group_map);
+      let (_module_group_key, mut module_group) =
+        self.find_best_module_group(&mut module_group_map);
 
-      let new_chunk = self.get_corresponding_chunk(compilation, &module_group);
+      let mut is_reuse_existing_chunk = false;
+      let mut is_reuse_existing_chunk_with_all_modules = false;
+      let new_chunk = self.get_corresponding_chunk(
+        compilation,
+        &mut module_group,
+        &mut is_reuse_existing_chunk,
+        &mut is_reuse_existing_chunk_with_all_modules,
+      );
 
-      let original_chunks = &module_group.chunks;
+      if is_reuse_existing_chunk {
+        // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
+        // modules in this `Chunk/ModuleGroup` from other chunks. Other chunks is stored in `ModuleGroup.chunks`.
+        module_group.chunks.remove(&new_chunk);
+      }
+
+      let used_chunks = Cow::Borrowed(&module_group.chunks);
 
       self.move_modules_to_new_chunk_and_remove_from_old_chunks(
         &module_group,
         new_chunk,
-        original_chunks,
+        &used_chunks,
         compilation,
       );
 
-      self.split_from_original_chunks(&module_group, original_chunks, new_chunk, compilation);
+      self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
       self.remove_all_modules_from_other_module_groups(
         &module_group,
         &mut module_group_map,
-        original_chunks,
+        &used_chunks,
         compilation,
       )
     }
@@ -123,34 +137,125 @@ impl SplitChunksPlugin {
     });
   }
 
+  /// Affected by `splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk`
+  ///
+  /// If the current chunk contains modules already split out from the main bundle,
+  /// it will be reused instead of a new one being generated. This can affect the
+  /// resulting file name of the chunk.
+  ///
+  /// the best means the reused chunks contains all modules in this ModuleGroup
+  fn find_the_best_reusable_chunk(
+    &self,
+    compilation: &mut Compilation,
+    module_group: &mut ModuleGroup,
+  ) -> Option<ChunkUkey> {
+    let candidates = module_group.chunks.par_iter().filter_map(|chunk| {
+      let chunk = chunk.as_ref(&compilation.chunk_by_ukey);
+
+      if compilation
+        .chunk_graph
+        .get_number_of_chunk_modules(&chunk.ukey)
+        != module_group.modules.len()
+      {
+        // Fast path for checking is the chunk reuseable for this `ModuleGroup`.
+        return None;
+      }
+
+      if module_group.chunks.len() > 1
+        && compilation
+          .chunk_graph
+          .get_number_of_entry_modules(&chunk.ukey)
+          > 0
+      {
+        // `module_group.chunks.len() > 1`: this ModuleGroup are related multiple chunks generated in code splitting.
+        // `get_number_of_entry_modules(&chunk.ukey) > 0`:  current chunk is an initial chunk.
+
+        // I(hyf0) don't see why breaking for this condition. But ChatGPT3.5 told me:
+
+        // The condition means that if there are multiple chunks in item and the current chunk is an
+        // entry chunk, then it cannot be reused. This is because entry chunks typically contain the core
+        // code of an application, while other chunks contain various parts of the application. If
+        // an entry chunk is used for other purposes, it may cause the application broken.
+        return None;
+      }
+
+      let is_all_module_in_chunk = module_group.modules.par_iter().all(|each_module| {
+        compilation
+          .chunk_graph
+          .is_module_in_chunk(each_module, chunk.ukey)
+      });
+      if !is_all_module_in_chunk {
+        return None;
+      }
+
+      Some(chunk)
+    });
+
+    /// Port https://github.com/webpack/webpack/blob/b471a6bfb71020f6d8f136ef10b7efb239ef5bbf/lib/optimize/SplitChunksPlugin.js#L1360-L1373
+    fn best_reuseable_chunk<'a>(first: &'a Chunk, second: &'a Chunk) -> &'a Chunk {
+      match (&first.name, &second.name) {
+        (None, None) => first,
+        (None, Some(_)) => second,
+        (Some(_), None) => first,
+        (Some(first_name), Some(second_name)) => match first_name.len().cmp(&second_name.len()) {
+          std::cmp::Ordering::Greater => second,
+          std::cmp::Ordering::Less => first,
+          std::cmp::Ordering::Equal => {
+            if matches!(second_name.cmp(first_name), std::cmp::Ordering::Less) {
+              second
+            } else {
+              first
+            }
+          }
+        },
+      }
+    }
+
+    let best_reuseable_chunk =
+      candidates.reduce_with(|best, each| best_reuseable_chunk(best, each));
+
+    best_reuseable_chunk.map(|c| c.ukey)
+  }
+
   fn get_corresponding_chunk(
     &self,
     compilation: &mut Compilation,
-    module_group: &ModuleGroup,
+    module_group: &mut ModuleGroup,
+    is_reuse_existing_chunk: &mut bool,
+    is_reuse_existing_chunk_with_all_modules: &mut bool,
   ) -> ChunkUkey {
     if let Some(chunk) = module_group
       .chunk_name
       .as_ref()
       .and_then(|chunk_name| compilation.named_chunks.get(chunk_name))
     {
+      *is_reuse_existing_chunk = true;
       return *chunk;
     }
 
-    let chunk = if let Some(chunk_name) = &module_group.chunk_name {
-      Compilation::add_named_chunk(
+    if let Some(reusable_chunk) = self.find_the_best_reusable_chunk(compilation, module_group) && module_group.cache_group_reuse_existing_chunk {
+      *is_reuse_existing_chunk = true;
+      *is_reuse_existing_chunk_with_all_modules = true;
+      reusable_chunk
+    } else if let Some(chunk_name) = &module_group.chunk_name {
+      let new_chunk = Compilation::add_named_chunk(
         chunk_name.clone(),
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
-      )
-    } else {
-      Compilation::add_chunk(&mut compilation.chunk_by_ukey)
-    };
-
-    chunk
-      .chunk_reasons
-      .push("Create by split chunks".to_string());
-    compilation.chunk_graph.add_chunk(chunk.ukey);
-    chunk.ukey
+      );
+      new_chunk
+        .chunk_reasons
+        .push("Create by split chunks".to_string());
+        compilation.chunk_graph.add_chunk(new_chunk.ukey);
+      new_chunk.ukey
+    }  else {
+      let new_chunk = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+      new_chunk
+        .chunk_reasons
+        .push("Create by split chunks".to_string());
+      compilation.chunk_graph.add_chunk(new_chunk.ukey);
+      new_chunk.ukey
+    }
   }
 
   fn remove_all_modules_from_other_module_groups(
@@ -342,6 +447,7 @@ impl SplitChunksPlugin {
                 modules: Default::default(),
                 cache_group_index,
                 cache_group_priority: cache_group.priority,
+                cache_group_reuse_existing_chunk: cache_group.reuse_existing_chunk,
                 sizes: Default::default(),
                 chunks: Default::default(),
                 chunk_name,

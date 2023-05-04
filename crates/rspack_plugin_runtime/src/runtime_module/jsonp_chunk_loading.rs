@@ -59,6 +59,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_loading = self
       .runtime_requirements
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    let with_on_chunk_load = self
+      .runtime_requirements
+      .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
 
     if with_loading {
       source.add(RawSource::from(
@@ -90,10 +93,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       )));
     }
 
-    if self
-      .runtime_requirements
-      .contains(RuntimeGlobals::ON_CHUNKS_LOADED)
-    {
+    if with_on_chunk_load {
       source.add(RawSource::from(include_str!(
         "runtime/jsonp_chunk_loading_with_on_chunk_load.js"
       )));
@@ -110,7 +110,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       );
       source.add(RawSource::from(
         include_str!("runtime/jsonp_chunk_loading_with_callback.js")
-          .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr),
+          .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
+          .replace(
+            "$withOnChunkLoad$",
+            match with_on_chunk_load {
+              true => "return __webpack_require__.O(result);",
+              false => "",
+            },
+          ),
       ));
     }
 

@@ -5,10 +5,10 @@ use rspack_core::{
   Compilation, RuntimeModule,
 };
 use rspack_identifier::Identifier;
+use rspack_plugin_javascript::runtime::stringify_array;
 use rustc_hash::FxHashMap as HashMap;
 use rustc_hash::FxHashSet as HashSet;
 
-use super::utils::stringify_array;
 use crate::impl_runtime_module;
 
 #[derive(Debug, Eq)]

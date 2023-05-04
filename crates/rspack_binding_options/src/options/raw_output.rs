@@ -226,12 +226,15 @@ impl RawOutputOptions {
             plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
           }
           "require" => {
+            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
             plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
           }
+          // TODO async-node
           "import" => {
             plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
           }
           "import-scripts" => {
+            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(true).boxed());
             plugins.push(rspack_plugin_runtime::ImportScriptsChunkLoadingPlugin {}.boxed());
           }
           "universal" => {
@@ -367,14 +370,17 @@ impl RawOutputOptions {
             );
           }
           "umd" | "umd2" => {
+            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
             plugins.push(rspack_plugin_library::UmdLibraryPlugin::new("umd2".eq(library)).boxed());
           }
           "amd" | "amd-require" => {
+            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
             plugins.push(
               rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed(),
             );
           }
           "module" => {
+            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
             plugins.push(rspack_plugin_library::ModuleLibraryPlugin::default().boxed());
           }
           _ => {}

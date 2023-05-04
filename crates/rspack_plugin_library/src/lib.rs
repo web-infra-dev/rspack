@@ -6,4 +6,6 @@ mod amd_library_plugin;
 pub use amd_library_plugin::AmdLibraryPlugin;
 mod module_library_plugin;
 pub use module_library_plugin::ModuleLibraryPlugin;
+mod export_property_plugin;
 mod utils;
+pub use export_property_plugin::ExportPropertyLibraryPlugin;

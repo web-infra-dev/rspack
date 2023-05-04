@@ -6,6 +6,7 @@ use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
+use rustc_hash::FxHashSet as HashSet;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
@@ -122,31 +123,6 @@ fn render_module(source: BoxSource, _strict: bool, module_id: &str) -> BoxSource
   sources.boxed()
 }
 
-pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> BoxSource {
-  let entry_modules_id = compilation
-    .chunk_graph
-    .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
-    .into_iter()
-    .filter_map(|(entry_module_identifier, _)| {
-      compilation
-        .module_graph
-        .module_graph_module_by_identifier(entry_module_identifier)
-        .map(|module| module.id(&compilation.chunk_graph))
-    })
-    .collect::<Vec<_>>();
-  let sources = entry_modules_id
-    .iter()
-    .map(|id| {
-      RawSource::from(format!(
-        "var __webpack_exports__ = {}('{}');\n",
-        RuntimeGlobals::REQUIRE,
-        id
-      ))
-    })
-    .collect::<Vec<_>>();
-  ConcatSource::new(sources).boxed()
-}
-
 pub fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -191,13 +167,17 @@ pub fn render_runtime_modules(
   runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
   runtime_modules.iter().for_each(|((_, source), module)| {
     sources.add(RawSource::from(format!("// {}\n", module.identifier())));
-    sources.add(RawSource::from("(function() {\n"));
+    if !module.should_isolate() {
+      sources.add(RawSource::from("(function() {\n"));
+    }
     if module.cacheable() {
       sources.add(source.clone());
     } else {
       sources.add(module.generate(compilation));
     }
-    sources.add(RawSource::from("\n})();\n"));
+    if !module.should_isolate() {
+      sources.add(RawSource::from("\n})();\n"));
+    }
   });
   Ok(sources.boxed())
 }
@@ -224,4 +204,25 @@ pub fn render_chunk_init_fragments(
   });
 
   sources.boxed()
+}
+
+pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
+  let mut v = Vec::from_iter(chunks.iter());
+  v.sort_unstable();
+
+  format!(
+    r#"[{}]"#,
+    v.iter().fold(String::new(), |prev, cur| {
+      prev + format!(r#""{cur}","#).as_str()
+    })
+  )
+}
+
+pub fn stringify_array(vec: &[String]) -> String {
+  format!(
+    r#"[{}]"#,
+    vec.iter().fold(String::new(), |prev, cur| {
+      prev + format!(r#""{cur}","#).as_str()
+    })
+  )
 }
