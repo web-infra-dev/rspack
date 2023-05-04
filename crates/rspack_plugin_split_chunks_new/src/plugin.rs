@@ -142,6 +142,8 @@ impl SplitChunksPlugin {
   /// If the current chunk contains modules already split out from the main bundle,
   /// it will be reused instead of a new one being generated. This can affect the
   /// resulting file name of the chunk.
+  ///
+  /// the best means the reused chunks contains all modules in this ModuleGroup
   fn find_the_best_reusable_chunk(
     &self,
     compilation: &mut Compilation,
@@ -234,7 +236,7 @@ impl SplitChunksPlugin {
     if let Some(reusable_chunk) = self.find_the_best_reusable_chunk(compilation, module_group) && module_group.cache_group_reuse_existing_chunk {
       *is_reuse_existing_chunk = true;
       *is_reuse_existing_chunk_with_all_modules = true;
-      return reusable_chunk;
+      reusable_chunk
     } else if let Some(chunk_name) = &module_group.chunk_name {
       let new_chunk = Compilation::add_named_chunk(
         chunk_name.clone(),
