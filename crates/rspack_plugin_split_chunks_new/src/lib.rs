@@ -1,4 +1,5 @@
 #![feature(map_many_mut)]
+#![feature(let_chains)]
 
 pub(crate) mod cache_group;
 pub(crate) mod common;

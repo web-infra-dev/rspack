@@ -114,6 +114,7 @@ pub struct RawCacheGroupOptions {
   //   pub max_initial_size: usize,
   pub name: Option<String>,
   // used_exports: bool,
+  pub reuse_existing_chunk: Option<bool>,
 }
 
 use rspack_plugin_split_chunks_new as new_split_chunks_plugin;
@@ -161,6 +162,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             &default_size_types,
             overall_min_size,
           ),
+          reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
         }),
     );
 

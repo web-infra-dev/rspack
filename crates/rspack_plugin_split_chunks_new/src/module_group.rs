@@ -21,6 +21,7 @@ pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
   pub cache_group_index: usize,
   pub cache_group_priority: f64,
+  pub cache_group_reuse_existing_chunk: bool,
   /// If the `ModuleGroup` is going to create a chunk, which will be named using `chunk_name`
   /// A module
   pub chunk_name: Option<String>,

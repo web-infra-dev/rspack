@@ -1010,6 +1010,11 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksSizes"
 						}
 					]
+				},
+				reuseExistingChunk: {
+					description:
+						"If the current chunk contains modules already split out from the main bundle, it will be reused instead of a new one being generated. This can affect the resulting file name of the chunk.",
+					type: "boolean"
 				}
 			}
 		},
