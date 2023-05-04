@@ -32,7 +32,6 @@ impl SplitChunksPlugin {
     let mut module_group_map = self.prepare_module_group_map(compilation).await;
 
     self.ensure_min_size_fit(compilation, &mut module_group_map);
-    println!("module groups: {:#?}", module_group_map);
 
     while !module_group_map.is_empty() {
       let (_module_group_key, mut module_group) =
@@ -45,14 +44,6 @@ impl SplitChunksPlugin {
         &mut module_group,
         &mut is_reuse_existing_chunk,
         &mut is_reuse_existing_chunk_with_all_modules,
-      );
-      println!(
-        "{:?} get_corresponding_chunk {:?}",
-        module_group.chunk_name,
-        new_chunk
-          .as_ref(&compilation.chunk_by_ukey)
-          .chunk_reasons
-          .join("~")
       );
 
       if is_reuse_existing_chunk {
