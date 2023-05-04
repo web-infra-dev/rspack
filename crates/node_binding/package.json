@@ -34,7 +34,7 @@
     "why-is-node-running": "2.2.1"
   },
   "napi": {
-    "name": "rspack"
+    "binaryName": "rspack"
   },
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
