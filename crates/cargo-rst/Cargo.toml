@@ -10,7 +10,6 @@ version    = "0.1.0"
 testing_macros = { workspace = true }
 
 [dependencies]
-clap           = { workspace = true, features = ["derive"] }
 derive_builder = { workspace = true }
 glob           = { workspace = true }
 
@@ -18,5 +17,6 @@ colored    = { workspace = true }
 serde      = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 
+argh    = "0.1.10"
 console = "0.15.5"
 similar = { workspace = true, features = ["inline"] }

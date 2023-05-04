@@ -1,7 +1,7 @@
 use std::{io::Read, sync::Arc};
 
 use anyhow::{Context, Result};
-use clap::Parser;
+use argh::FromArgs;
 use swc_core::{
   self,
   common::{errors::HANDLER, FileName, Globals, GLOBALS},
@@ -12,30 +12,27 @@ use swc_core::{
 };
 use swc_error_reporters::handler::try_with_handler;
 
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[derive(FromArgs)]
+/// rspack ast viewer
 struct Args {
-  /// Module type: "js" | "css" (default: "js")
-  #[arg(short, long)]
-  r#type: Option<ModuleType>,
+  /// module type: "js" | "css" (default: "js")
+  #[argh(option, short = 't')]
+  ty: Option<String>,
 
-  /// Whether to keep span (default: false)
-  #[arg(short, long)]
-  keep_span: Option<bool>,
+  /// whether to keep span (default: false)
+  #[argh(switch, short = 'k')]
+  keep_span: bool,
 }
 
-#[derive(Debug, Copy, Clone)]
 enum ModuleType {
   JavaScript,
 }
 
-impl<'s> From<&'s str> for ModuleType {
-  fn from(value: &'s str) -> Self {
-    match &*value.to_ascii_lowercase() {
-      "js" => Self::JavaScript,
-      "css" => todo!("CSS module type is not supported yet"),
-      _ => panic!("Unknown module type: {value}"),
-    }
+fn from_str_fn(ty: &str) -> ModuleType {
+  match ty.to_ascii_lowercase().as_str() {
+    "js" => ModuleType::JavaScript,
+    "css" => todo!("CSS module type is not supported yet"),
+    _ => panic!("Unknown module type: {ty}"),
   }
 }
 
@@ -86,9 +83,13 @@ fn handle_javascript(input: String, keep_span: bool) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-  let args = Args::parse();
-  let module_type = args.r#type.unwrap_or(ModuleType::JavaScript);
-  let keep_span = args.keep_span.unwrap_or(false);
+  let args: Args = argh::from_env();
+  let module_type = args
+    .ty
+    .as_ref()
+    .map(|ty| from_str_fn(ty))
+    .unwrap_or(ModuleType::JavaScript);
+  let keep_span = args.keep_span;
 
   let mut input = String::new();
   std::io::stdin()
