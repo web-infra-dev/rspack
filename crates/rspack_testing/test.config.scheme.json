@@ -405,6 +405,10 @@
           "default": "[name][ext]",
           "type": "string"
         },
+        "source_map_filename": {
+          "default": "[name][ext]",
+          "type": "string"
+        },
         "publicPath": {
           "default": "auto",
           "type": "string"

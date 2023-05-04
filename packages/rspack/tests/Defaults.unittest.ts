@@ -1056,4 +1056,4 @@ describe("snapshots", () => {
 		`)
 	);
 });
-export {};
+export { };

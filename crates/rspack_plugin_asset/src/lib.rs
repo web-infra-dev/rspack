@@ -290,6 +290,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       chunkhash: Some(hash.clone()),
       hash: Some(hash),
       query: Some("".to_string()),
+      ..Default::default()
     });
 
     self
@@ -526,6 +527,7 @@ impl Plugin for AssetPlugin {
                     chunkhash,
                     hash,
                     query: Some("".to_string()),
+                    ..Default::default()
                   })
               }),
               PathData {

@@ -142,6 +142,7 @@ pub struct RawOutputOptions {
   pub chunk_loading: Option<String>,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
+  pub source_map_filename: String,
 }
 
 impl RawOptionsApply for RawOutputOptions {
@@ -186,6 +187,7 @@ impl RawOptionsApply for RawOutputOptions {
       iife: self.iife,
       module: self.module,
       trusted_types: self.trusted_types.map(Into::into),
+      source_map_filename: self.source_map_filename.into(),
     })
   }
 }

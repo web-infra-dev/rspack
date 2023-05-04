@@ -494,6 +494,9 @@ const applyOutputDefaults = (
 				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
 		);
 	}
+	F(output, "sourceMapFilename", () => {
+		return "[file].map";
+	});
 };
 
 const applyExternalsPresetsDefaults = (
