@@ -12,7 +12,7 @@ use swc_core::{
 
 use crate::dependency::{CssImportDependency, CssUrlDependency};
 
-static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[^?]*~").expect("TODO:"));
+static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~").expect("TODO:"));
 
 pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
   ast_path.iter().map(|n| n.kind()).collect()
@@ -72,9 +72,13 @@ impl VisitAstPath for Analyzer<'_> {
       }),
       ImportHref::Str(s) => Some(s.value.to_string()),
     };
-    if let Some(specifier) = specifier && is_url_requestable(&specifier) {
+    if let Some(specifier) = specifier && !is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      self.deps.push(Box::new(CssImportDependency::new(specifier, Some(n.span.into()), as_parent_path(ast_path))));
+      self.deps.push(Box::new(CssImportDependency::new(
+        specifier,
+        Some(n.span.into()),
+        as_parent_path(ast_path),
+      )));
     }
   }
 
@@ -89,15 +93,20 @@ impl VisitAstPath for Analyzer<'_> {
       UrlValue::Str(s) => s.value.to_string(),
       UrlValue::Raw(r) => r.value.to_string(),
     });
-    if let Some(specifier) = specifier && is_url_requestable(&specifier) {
+    if let Some(specifier) = specifier && !is_url_requestable(&specifier) {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      let dep = Box::new(CssUrlDependency::new(specifier, Some(u.span.into()), as_parent_path(ast_path)));
+      let dep = Box::new(CssUrlDependency::new(
+        specifier,
+        Some(u.span.into()),
+        as_parent_path(ast_path),
+      ));
       self.deps.push(dep.clone());
       self.code_generation_dependencies.push(dep);
     }
   }
 }
 
-pub fn is_url_requestable(url: &str) -> bool {
-  !url.starts_with('#') && !rspack_core::should_skip_resolve(url)
+// TODO(ahabhgk): dataurl should be resolved by DataUriPlugin
+fn is_url_requestable(url: &str) -> bool {
+  url.starts_with("data:")
 }

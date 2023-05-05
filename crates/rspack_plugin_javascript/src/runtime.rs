@@ -35,43 +35,43 @@ pub fn render_chunk_modules(
   let mut module_code_array = ordered_modules
     .par_iter()
     .filter(|mgm| include_module_ids.contains(&mgm.module_identifier))
-    .map(|mgm| {
+    .filter_map(|mgm| {
       let code_gen_result = compilation
         .code_generation_results
         .get(&mgm.module_identifier, Some(&chunk.runtime))
         .expect("should have code generation result");
-      let result = code_gen_result
-        .get(&SourceType::JavaScript)
-        .expect("should have js code generation result");
+      if let Some(result) = code_gen_result.get(&SourceType::JavaScript) {
+        let origin_source = result
+          .ast_or_source
+          .clone()
+          .try_into_source()
+          .expect("should be source");
+        let module_source = if let Some(source) = plugin_driver
+          .render_module_content(RenderModuleContentArgs {
+            compilation,
+            module_source: &origin_source,
+          })
+          .expect("render_module_content failed")
+        {
+          source
+        } else {
+          origin_source
+        };
 
-      let origin_source = result
-        .ast_or_source
-        .clone()
-        .try_into_source()
-        .expect("should be source");
-      let module_source = if let Some(source) = plugin_driver
-        .render_module_content(RenderModuleContentArgs {
-          compilation,
-          module_source: &origin_source,
-        })
-        .expect("render_module_content failed")
-      {
-        source
+        // module id isn't cacheable
+        let strict = mgm
+          .build_info
+          .as_ref()
+          .map(|m| m.strict)
+          .unwrap_or_default();
+        Some((
+          mgm.module_identifier,
+          render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
+          &code_gen_result.chunk_init_fragments,
+        ))
       } else {
-        origin_source
-      };
-
-      // module id isn't cacheable
-      let strict = mgm
-        .build_info
-        .as_ref()
-        .map(|m| m.strict)
-        .unwrap_or_default();
-      (
-        mgm.module_identifier,
-        render_module(module_source, strict, mgm.id(&compilation.chunk_graph)),
-        &code_gen_result.chunk_init_fragments,
-      )
+        None
+      }
     })
     .collect::<Vec<_>>();
 

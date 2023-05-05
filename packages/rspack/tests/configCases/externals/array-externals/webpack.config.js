@@ -9,7 +9,7 @@ module.exports = {
 		},
 		function ({ request }, callback) {
 			if (request === "fn") {
-				callback(null, "'fn'");
+				return callback(null, "'fn'");
 			}
 			callback();
 		},
