@@ -104,7 +104,7 @@ pub struct RawCacheGroupOptions {
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
   // hide_path_info: bool,
-  //   pub min_size: usize,
+  pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
   //   pub min_remaining_size: usize,
@@ -160,7 +160,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
           min_chunks: v.min_chunks.unwrap_or(1),
           min_size: new_split_chunks_plugin::SplitChunkSizes::with_initial_value(
             &default_size_types,
-            overall_min_size,
+            v.min_size.unwrap_or(overall_min_size),
           ),
           reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
         }),

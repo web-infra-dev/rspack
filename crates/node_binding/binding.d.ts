@@ -378,6 +378,7 @@ export interface RawCacheGroupOptions {
   /** What kind of chunks should be selected. */
   chunks?: string
   minChunks?: number
+  minSize?: number
   name?: string
   reuseExistingChunk?: boolean
 }
