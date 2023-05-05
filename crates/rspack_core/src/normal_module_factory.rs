@@ -93,17 +93,20 @@ impl NormalModuleFactory {
       .await
       .before_resolve(NormalModuleBeforeResolveArgs {
         request: data.dependency.request().to_owned(),
-        context: resolve_args.context.clone(),
+        context: data.context.clone(),
       })
       .await
     {
-      let ident = format!("{}{specifier}", importer_with_context.display());
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
       let missing_module = MissingModule::new(
         module_identifier,
         format!("{ident} (missing)"),
-        format!("Failed to resolve {specifier}"),
+        format!("Failed to resolve {request_without_match_resource}"),
       )
       .boxed();
       self.context.module_type = Some(*missing_module.module_type());
