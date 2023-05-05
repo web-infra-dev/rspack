@@ -759,6 +759,7 @@ export interface RawSnapshotStrategy {
 }
 
 export interface RawSplitChunksOptions {
+  name?: string
   cacheGroups?: Record<string, RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
   chunks?: string
