@@ -193,7 +193,7 @@ impl NormalModuleFactory {
           }
         };
 
-        dbg!(&match_resource_data);
+        // dbg!(&match_resource_data);
 
         let mut request = request_without_match_resource.chars();
         let first_char = request.next();
@@ -336,7 +336,7 @@ impl NormalModuleFactory {
       }
     };
 
-    dbg!(&user_request);
+    // dbg!(&user_request);
 
     // TODO: move loader resolver to rust
     let loaders: Vec<BoxLoader> = {
