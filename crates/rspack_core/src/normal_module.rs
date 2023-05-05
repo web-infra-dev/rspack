@@ -326,6 +326,8 @@ pub struct NormalModule {
   module_type: ModuleType,
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
+  /// Resource matched with inline match resource, (`!=!` syntax)
+  match_resource: Option<ResourceData>,
   /// Resource data (path, query, fragment etc.)
   resource_data: ResourceData,
   /// Loaders for the module
@@ -389,6 +391,7 @@ impl NormalModule {
     parser_and_generator: Box<dyn ParserAndGenerator>,
     parser_options: Option<AssetParserOptions>,
     generator_options: Option<AssetGeneratorOptions>,
+    match_resource: Option<ResourceData>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
     loaders: Vec<BoxLoader>,
@@ -404,6 +407,7 @@ impl NormalModule {
       parser_and_generator,
       parser_options,
       generator_options,
+      match_resource,
       resource_data,
       resolve_options,
       loaders,
@@ -416,6 +420,10 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
     }
+  }
+
+  pub fn match_resource(&self) -> Option<&ResourceData> {
+    self.match_resource.as_ref()
   }
 
   pub fn resource_resolved_data(&self) -> &ResourceData {
