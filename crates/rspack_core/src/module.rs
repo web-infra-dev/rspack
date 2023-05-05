@@ -148,6 +148,20 @@ impl Identifiable for Box<dyn Module> {
   }
 }
 
+impl PartialEq for dyn Module + '_ {
+  fn eq(&self, other: &Self) -> bool {
+    self.dyn_eq(other.as_any())
+  }
+}
+
+impl Eq for dyn Module + '_ {}
+
+impl Hash for dyn Module + '_ {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    self.dyn_hash(state)
+  }
+}
+
 impl dyn Module + '_ {
   pub fn downcast_ref<T: Module + Any>(&self) -> Option<&T> {
     self.as_any().downcast_ref::<T>()
