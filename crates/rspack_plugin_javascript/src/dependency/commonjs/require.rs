@@ -118,7 +118,16 @@ impl CodeGeneratable for CommonJSRequireDependency {
               {
                 str.value = JsWord::from(&*module_id);
                 str.raw = Some(Atom::from(format!("\"{module_id}\"")));
-              };
+              }else if let Some(ExprOrSpread{
+                spread:None,
+                expr: box Expr::Tpl(tpl)
+              }) = n.args.first_mut() && tpl.exprs.is_empty() {
+
+                let s = tpl.quasis.first_mut().expect("should have one quasis");
+                s.raw = Atom::from(module_id.as_str());
+
+
+              }
             }
           }),
         );
