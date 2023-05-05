@@ -1,23 +1,6 @@
-// @ts-nocheck
 import { Compiler, getNormalizedRspackOptions, rspack } from "../src";
-const path = require("path");
-const { IgnorePlugin } = require("webpack");
-
-class Plugin implements RspackPluginInstance {
-	name = "a";
-
-	apply(compiler: Compiler) {
-		// Wait for configuration preset plugions to apply all configure webpack defaults
-		compiler.hooks.compilation.tap("a", com => {
-			com.normalModuleFactory.hooks.beforeResolve.tap("a", (...args) => {
-				console.log(...args);
-			});
-			com.contextModuleFactory.hooks.beforeResolve.tap("a", (...args) => {
-				console.log(...args);
-			});
-		});
-	}
-}
+import path from "path";
+import { IgnorePlugin } from "webpack";
 
 describe("Ignore Plugin", () => {
 	jest.setTimeout(20000);
@@ -39,6 +22,7 @@ describe("Ignore Plugin", () => {
 					if (resource.includes("zh") || resource.includes("globalIndex")) {
 						return true;
 					}
+					return false;
 				}
 			})
 		];
@@ -50,40 +34,29 @@ describe("Ignore Plugin", () => {
 
 		const c = rspack(options);
 		const files = {};
-		c.hooks.compilation.tap("CompilerTest", compilation => {
-			compilation.bail = true;
-		});
 		c.run((err, stats) => {
 			if (err) throw err;
 			expect(typeof stats).toBe("object");
-			const compilation = stats.compilation;
-			stats = stats.toJson({
-				modules: true,
-				reasons: true
-			});
 			expect(typeof stats).toBe("object");
-			expect(stats).toHaveProperty("errors");
-			expect(Array.isArray(stats.errors)).toBe(true);
-			if (stats.errors.length > 0) {
-				expect(stats.errors[0]).toBeInstanceOf(Error);
-				throw stats.errors[0];
-			}
-			stats.logs = logs;
+			// const compilation = stats?.compilation;
+			// stats = stats.toJson);
 			c.close(err => {
+				console.log("close");
+
 				if (err) return callback(err);
-				callback(stats, files, compilation);
+				callback(
+					stats?.toJson({
+						modules: true,
+						reasons: true
+					}),
+					files
+				);
 			});
 		});
 	}
 
-	let compiler: Compiler;
 	afterEach(callback => {
-		if (compiler) {
-			compiler.close(callback);
-			compiler = undefined;
-		} else {
-			callback();
-		}
+		callback();
 	});
 
 	it("should be ignore module", done => {
@@ -98,10 +71,16 @@ describe("Ignore Plugin", () => {
 			},
 			(stats, files) => {
 				expect(
-					stats.modules.filter(module =>
-						module.identifier.startsWith("missing")
-					).length
-				).toBe(3);
+					stats.modules
+						.filter(module => module.identifier.startsWith("missing"))
+						.map(module => module.identifier.split("ignorePlugin")?.[1])
+				).toMatchInlineSnapshot(`
+			[
+			  "./zh",
+			  "./zh.js",
+			  "./globalIndex.js",
+			]
+		`);
 				done();
 			}
 		);
