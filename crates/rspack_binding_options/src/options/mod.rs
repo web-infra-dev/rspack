@@ -2,12 +2,9 @@ use std::collections::HashMap;
 
 use indexmap::IndexMap;
 use napi_derive::napi;
-use once_cell::sync::Lazy;
-use regex::Regex;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ExternalItem,
-  ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue, ModuleOptions, OutputOptions,
-  PluginExt,
+  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
+  OutputOptions, PluginExt,
 };
 use serde::Deserialize;
 
@@ -48,13 +45,6 @@ pub use raw_snapshot::*;
 pub use raw_split_chunks::*;
 pub use raw_stats::*;
 pub use raw_target::*;
-
-pub static EXTERNAL_HTTP_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(//|https?://|#)").expect("Invalid regex"));
-pub static EXTERNAL_HTTP_STD_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(//|https?://|std:)").expect("Invalid regex"));
-pub static EXTERNAL_CSS_REQUEST: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^\.css(\?|$)").expect("Invalid regex"));
 
 pub trait RawOptionsApply {
   type Options;
@@ -189,13 +179,9 @@ impl RawOptionsApply for RawOptions {
       plugins.push(rspack_plugin_externals::node_target_plugin());
     }
     if self.externals_presets.web || (self.externals_presets.node && experiments.css) {
-      plugins.push(
-        rspack_plugin_externals::ExternalPlugin::new(
-          "module".to_owned(),
-          vec![http_url_external_item(experiments.css)],
-        )
-        .boxed(),
-      );
+      plugins.push(rspack_plugin_externals::http_url_external_plugin(
+        experiments.css,
+      ));
     }
     if experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
@@ -238,42 +224,4 @@ impl RawOptionsApply for RawOptions {
       builtins,
     })
   }
-}
-
-fn http_url_external_item(experiments_css: bool) -> ExternalItem {
-  ExternalItem::Fn(Box::new(move |ctx: ExternalItemFnCtx| {
-    Box::pin(async move {
-      if ctx.dependency_type == "url" {
-        if EXTERNAL_HTTP_REQUEST.is_match(&ctx.request) {
-          return Ok(ExternalItemFnResult {
-            external_type: Some("asset".to_owned()),
-            result: Some(ExternalItemValue::String(ctx.request)),
-          });
-        }
-      } else if experiments_css && ctx.dependency_type == "css-import" {
-        if EXTERNAL_HTTP_REQUEST.is_match(&ctx.request) {
-          return Ok(ExternalItemFnResult {
-            external_type: Some("css-import".to_owned()),
-            result: Some(ExternalItemValue::String(ctx.request)),
-          });
-        }
-      } else if EXTERNAL_HTTP_STD_REQUEST.is_match(&ctx.request) {
-        if experiments_css && EXTERNAL_CSS_REQUEST.is_match(&ctx.request) {
-          return Ok(ExternalItemFnResult {
-            external_type: Some("css-import".to_owned()),
-            result: Some(ExternalItemValue::String(ctx.request)),
-          });
-        } else {
-          return Ok(ExternalItemFnResult {
-            external_type: Some("module".to_owned()),
-            result: Some(ExternalItemValue::String(ctx.request)),
-          });
-        }
-      }
-      Ok(ExternalItemFnResult {
-        external_type: None,
-        result: None,
-      })
-    })
-  }))
 }
