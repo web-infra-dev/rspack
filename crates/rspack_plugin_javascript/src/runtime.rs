@@ -6,6 +6,7 @@ use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals, SourceType,
 };
 use rspack_error::Result;
+use rustc_hash::FxHashSet as HashSet;
 
 static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
@@ -29,9 +30,11 @@ pub fn render_chunk_modules(
       .block_on(async move { compilation.plugin_driver.read().await })
   });
 
+  let include_module_ids = &compilation.include_module_ids;
+
   let mut module_code_array = ordered_modules
     .par_iter()
-    .filter(|mgm| mgm.used)
+    .filter(|mgm| include_module_ids.contains(&mgm.module_identifier))
     .map(|mgm| {
       let code_gen_result = compilation
         .code_generation_results
@@ -100,7 +103,8 @@ pub fn render_chunk_modules(
   Ok((sources.boxed(), chunk_init_fragments))
 }
 
-fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource {
+/* remove `strict` parameter for now, let SWC manage `use strict` annotation directly */
+fn render_module(source: BoxSource, _strict: bool, module_id: &str) -> BoxSource {
   let mut sources = ConcatSource::new([
     RawSource::from("\""),
     RawSource::from(module_id.to_string()),
@@ -110,38 +114,13 @@ fn render_module(source: BoxSource, strict: bool, module_id: &str) -> BoxSource 
       RuntimeGlobals::REQUIRE
     )),
   ]);
-  if strict {
-    sources.add(RawSource::from("\"use strict\";\n"));
-  }
+  // if strict {
+  //   sources.add(RawSource::from("\"use strict\";\n"));
+  // }
   sources.add(source);
   sources.add(RawSource::from("},\n"));
 
   sources.boxed()
-}
-
-pub fn generate_chunk_entry_code(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> BoxSource {
-  let entry_modules_id = compilation
-    .chunk_graph
-    .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey)
-    .into_iter()
-    .filter_map(|(entry_module_identifier, _)| {
-      compilation
-        .module_graph
-        .module_graph_module_by_identifier(entry_module_identifier)
-        .map(|module| module.id(&compilation.chunk_graph))
-    })
-    .collect::<Vec<_>>();
-  let sources = entry_modules_id
-    .iter()
-    .map(|id| {
-      RawSource::from(format!(
-        "var __webpack_exports__ = {}('{}');\n",
-        RuntimeGlobals::REQUIRE,
-        id
-      ))
-    })
-    .collect::<Vec<_>>();
-  ConcatSource::new(sources).boxed()
 }
 
 pub fn render_chunk_runtime_modules(
@@ -188,13 +167,17 @@ pub fn render_runtime_modules(
   runtime_modules.sort_unstable_by_key(|(_, m)| m.stage());
   runtime_modules.iter().for_each(|((_, source), module)| {
     sources.add(RawSource::from(format!("// {}\n", module.identifier())));
-    sources.add(RawSource::from("(function() {\n"));
+    if !module.should_isolate() {
+      sources.add(RawSource::from("(function() {\n"));
+    }
     if module.cacheable() {
       sources.add(source.clone());
     } else {
       sources.add(module.generate(compilation));
     }
-    sources.add(RawSource::from("\n})();\n"));
+    if !module.should_isolate() {
+      sources.add(RawSource::from("\n})();\n"));
+    }
   });
   Ok(sources.boxed())
 }
@@ -221,4 +204,25 @@ pub fn render_chunk_init_fragments(
   });
 
   sources.boxed()
+}
+
+pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
+  let mut v = Vec::from_iter(chunks.iter());
+  v.sort_unstable();
+
+  format!(
+    r#"[{}]"#,
+    v.iter().fold(String::new(), |prev, cur| {
+      prev + format!(r#""{cur}","#).as_str()
+    })
+  )
+}
+
+pub fn stringify_array(vec: &[String]) -> String {
+  format!(
+    r#"[{}]"#,
+    vec.iter().fold(String::new(), |prev, cur| {
+      prev + format!(r#""{cur}","#).as_str()
+    })
+  )
 }

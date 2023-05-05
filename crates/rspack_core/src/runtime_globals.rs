@@ -196,6 +196,14 @@ bitflags! {
     const GET_TRUSTED_TYPES_POLICY = 1 << 37;
 
     const DEFINE_PROPERTY_GETTERS = 1 << 38;
+
+    const ENTRY_MODULE_ID = 1 << 39;
+
+    const STARTUP_NO_DEFAULT = 1 << 40;
+
+    const ENSURE_CHUNK_INCLUDE_ENTRIES = 1 << 41;
+
+    const STARTUP = 1 << 42;
   }
 }
 
@@ -261,6 +269,10 @@ impl RuntimeGlobals {
       R::CREATE_SCRIPT => "__webpack_require__.ts",
       R::GET_TRUSTED_TYPES_POLICY => "__webpack_require__.tt",
       R::DEFINE_PROPERTY_GETTERS => "__webpack_require__.d",
+      R::ENTRY_MODULE_ID => "__webpack_require__.s",
+      R::STARTUP_NO_DEFAULT => "__webpack_require__.x (no default handler)",
+      R::ENSURE_CHUNK_INCLUDE_ENTRIES => "__webpack_require__.f (include entries)",
+      R::STARTUP => "__webpack_require__.x",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

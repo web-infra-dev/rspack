@@ -13,8 +13,7 @@ async function build() {
 			"--platform",
 			"--dts",
 			"binding.d.ts",
-			"--js",
-			"false"
+			"--no-js"
 		];
 		if (release) {
 			args.push("--release");

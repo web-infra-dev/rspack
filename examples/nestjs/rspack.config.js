@@ -1,7 +1,5 @@
-/**
- * @type {import('@rspack/cli').Configuration}
- */
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	context: __dirname,
 	target: "node",
 	entry: {
@@ -46,3 +44,4 @@ module.exports = {
 		}
 	]
 };
+module.exports = config;

@@ -11,13 +11,13 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true }
-clap = { workspace = true, features = ["derive"] }
+argh = "0.1.10"
 regex = { workspace = true }
 swc_core = { workspace = true, features = [
   "ecma_ast",
   "ecma_parser",
   "css_ast",
   "css_parser",
-  "base",
   "common",
 ] }
+swc_error_reporters = { workspace = true }

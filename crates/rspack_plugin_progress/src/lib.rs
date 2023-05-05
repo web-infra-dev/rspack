@@ -89,13 +89,13 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: PluginContext,
-    _args: OptimizeChunksArgs,
+    _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     self.progress_bar.set_position(80);
-    self.progress_bar.set_message("optimizing");
+    self.progress_bar.set_message("optimizing chunks");
     Ok(())
   }
 

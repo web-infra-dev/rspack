@@ -1,7 +1,5 @@
-/**
- * @type {import('@rspack/cli').Configuration}
- */
-module.exports = [
+/** @type {import('@rspack/cli').Configuration} */
+const config = [
 	"var",
 	"module",
 	"assign",
@@ -33,3 +31,4 @@ module.exports = [
 		}
 	}
 }));
+module.exports = config;

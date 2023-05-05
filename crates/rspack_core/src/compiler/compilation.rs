@@ -28,7 +28,7 @@ use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
 #[cfg(debug_assertions)]
-use crate::tree_shaking::visitor::TreeShakingResult;
+use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -89,7 +89,7 @@ pub struct Compilation {
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
   pub exports_info_map: IdentifierMap<Vec<ExportInfo>>,
   #[cfg(debug_assertions)]
-  pub tree_shaking_result: IdentifierMap<TreeShakingResult>,
+  pub tree_shaking_result: IdentifierMap<OptimizeAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
@@ -99,6 +99,7 @@ pub struct Compilation {
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
+  pub include_module_ids: IdentifierSet,
 
   pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
@@ -160,6 +161,7 @@ impl Compilation {
       build_dependencies: Default::default(),
       side_effects_free_modules: IdentifierSet::default(),
       module_item_map: IdentifierMap::default(),
+      include_module_ids: IdentifierSet::default(),
     }
   }
 
@@ -1043,7 +1045,11 @@ impl Compilation {
         .await
         .optimize_modules(compilation)
         .await?;
-      plugin_driver.write().await.optimize_chunks(compilation)?;
+      plugin_driver
+        .write()
+        .await
+        .optimize_chunks(compilation)
+        .await?;
       Ok(compilation)
     })
     .await?;

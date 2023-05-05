@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv, Provide};
+use rspack_core::{Builtins, CodeGeneration, Define, Minification, PluginExt, PresetEnv, Provide};
 use rspack_error::internal_error;
 use rspack_plugin_banner::{BannerConfig, BannerPlugin};
 use rspack_plugin_copy::CopyPlugin;
@@ -43,6 +43,7 @@ pub struct RawMinification {
   pub passes: u32,
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
+  pub extract_comments: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,12 +56,20 @@ pub struct RawPresetEnv {
   pub core_js: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCodeGeneration {
+  pub keep_comments: bool,
+}
+
 impl From<RawMinification> for Minification {
   fn from(value: RawMinification) -> Self {
     Self {
       passes: value.passes as usize,
       drop_console: value.drop_console,
       pure_funcs: value.pure_funcs,
+      extract_comments: value.extract_comments,
     }
   }
 }
@@ -79,6 +88,13 @@ impl From<RawPresetEnv> for PresetEnv {
   }
 }
 
+impl From<RawCodeGeneration> for CodeGeneration {
+  fn from(raw_code_generation: RawCodeGeneration) -> Self {
+    Self {
+      keep_comments: raw_code_generation.keep_comments,
+    }
+  }
+}
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -103,6 +119,7 @@ pub struct RawBuiltins {
   pub banner: Option<Vec<RawBannerConfig>>,
   pub plugin_import: Option<Vec<RawPluginImportConfig>>,
   pub relay: Option<RawRelayConfig>,
+  pub code_generation: Option<RawCodeGeneration>,
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -170,6 +187,7 @@ impl RawOptionsApply for RawBuiltins {
         .plugin_import
         .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
       relay: self.relay.map(Into::into),
+      code_generation: self.code_generation.map(Into::into),
     })
   }
 }

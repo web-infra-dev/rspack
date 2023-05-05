@@ -474,7 +474,8 @@ function getRawSplitChunksOptions(
 							name: group.name,
 							priority: group.priority,
 							minChunks: group.minChunks,
-							chunks: group.chunks
+							chunks: group.chunks,
+							reuseExistingChunk: group.reuseExistingChunk
 						};
 						return [key, normalizedGroup];
 					})

@@ -8,7 +8,7 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
-similar-asserts = "1.2.0"
+similar-asserts = "1.4.2"
 url             = { workspace = true }
 
 [dependencies]

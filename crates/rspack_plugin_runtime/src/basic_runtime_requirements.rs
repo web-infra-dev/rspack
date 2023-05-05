@@ -10,7 +10,7 @@ use crate::runtime_module::{
   GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
   GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
   LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, NormalRuntimeModule,
-  PublicPathRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -130,6 +130,9 @@ impl Plugin for BasicRuntimeRequirementPlugin {
         }
         RuntimeGlobals::CREATE_SCRIPT_URL => {
           compilation.add_runtime_module(chunk, CreateScriptUrlRuntimeModule::default().boxed())
+        }
+        RuntimeGlobals::ON_CHUNKS_LOADED => {
+          compilation.add_runtime_module(chunk, OnChunkLoadedRuntimeModule::default().boxed());
         }
         RuntimeGlobals::DEFINE_PROPERTY_GETTERS => compilation
           .add_runtime_module(chunk, DefinePropertyGettersRuntimeModule::default().boxed()),

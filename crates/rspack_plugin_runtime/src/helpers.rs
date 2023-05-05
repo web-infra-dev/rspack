@@ -2,10 +2,13 @@ use std::hash::Hash;
 
 use anyhow::anyhow;
 use rspack_core::{
-  ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, FilenameRenderOptions, RenderChunkArgs,
+  rspack_sources::{BoxSource, RawSource, SourceExt},
+  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, FilenameRenderOptions,
+  RenderChunkArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierLinkedMap;
+use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rustc_hash::FxHashSet as HashSet;
 use xxhash_rust::xxh3::Xxh3;
 
@@ -32,7 +35,7 @@ pub fn update_hash_for_entry_startup(
       for chunk_ukey in get_all_chunks(
         entry,
         chunk,
-        &runtime_chunk,
+        Some(&runtime_chunk),
         &compilation.chunk_group_by_ukey,
       ) {
         if let Some(chunk) = compilation.chunk_by_ukey.get(&chunk_ukey) {
@@ -46,7 +49,7 @@ pub fn update_hash_for_entry_startup(
 pub fn get_all_chunks(
   entrypoint: &ChunkGroupUkey,
   exclude_chunk1: &ChunkUkey,
-  exclude_chunk2: &ChunkUkey,
+  exclude_chunk2: Option<&ChunkUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> HashSet<ChunkUkey> {
   fn add_chunks(
@@ -54,12 +57,17 @@ pub fn get_all_chunks(
     chunks: &mut HashSet<ChunkUkey>,
     entrypoint_ukey: &ChunkGroupUkey,
     exclude_chunk1: &ChunkUkey,
-    exclude_chunk2: &ChunkUkey,
+    exclude_chunk2: Option<&ChunkUkey>,
   ) {
     if let Some(entrypoint) = chunk_group_by_ukey.get(entrypoint_ukey) {
       for chunk in &entrypoint.chunks {
-        if chunk == exclude_chunk1 || chunk == exclude_chunk2 {
+        if chunk == exclude_chunk1 {
           continue;
+        }
+        if let Some(exclude_chunk2) = exclude_chunk2 {
+          if chunk == exclude_chunk2 {
+            continue;
+          }
         }
         chunks.insert(*chunk);
       }
@@ -93,7 +101,7 @@ pub fn get_all_chunks(
   chunks
 }
 
-pub fn get_runtime_chunk_path(args: &RenderChunkArgs) -> Result<String> {
+pub fn get_runtime_chunk_output_name(args: &RenderChunkArgs) -> Result<String> {
   let entry_point = {
     let entry_points = args
       .compilation
@@ -112,29 +120,132 @@ pub fn get_runtime_chunk_path(args: &RenderChunkArgs) -> Result<String> {
       .ok_or_else(|| anyhow!("should has entry point"))?
   };
 
-  let runtime_chunk_filename = {
-    let runtime_chunk = args
-      .compilation
-      .chunk_by_ukey
-      .get(&entry_point.get_runtime_chunk())
-      .ok_or_else(|| anyhow!("should has runtime chunk"))?;
+  let runtime_chunk = args
+    .compilation
+    .chunk_by_ukey
+    .get(&entry_point.get_runtime_chunk())
+    .ok_or_else(|| anyhow!("should has runtime chunk"))?;
 
-    let hash = Some(runtime_chunk.get_render_hash());
-    args
-      .compilation
-      .options
-      .output
-      .chunk_filename
-      .render(FilenameRenderOptions {
-        name: runtime_chunk.name_for_filename_template(),
-        extension: Some(".js".to_string()),
-        id: runtime_chunk.id.clone(),
-        contenthash: hash.clone(),
-        chunkhash: hash.clone(),
-        hash,
-        ..Default::default()
-      })
+  Ok(get_chunk_output_name(runtime_chunk, args.compilation))
+}
+
+pub fn generate_entry_startup(
+  compilation: &Compilation,
+  chunk: &ChunkUkey,
+  entries: &IdentifierLinkedMap<ChunkGroupUkey>,
+  passive: bool,
+) -> BoxSource {
+  let mut module_ids = vec![];
+  let mut chunks_ids = HashSet::default();
+
+  for (module, entry) in entries {
+    if let Some(module_id) = compilation
+      .module_graph
+      .module_graph_module_by_identifier(module)
+      .map(|module| module.id(&compilation.chunk_graph))
+    {
+      module_ids.push(module_id);
+    }
+
+    if let Some(runtime_chunk) = compilation
+      .chunk_group_by_ukey
+      .get(entry)
+      .map(|e| e.get_runtime_chunk())
+    {
+      let chunks = get_all_chunks(
+        entry,
+        chunk,
+        Some(&runtime_chunk),
+        &compilation.chunk_group_by_ukey,
+      );
+      chunks_ids.extend(
+        chunks
+          .iter()
+          .map(|chunk_ukey| {
+            let chunk = compilation
+              .chunk_by_ukey
+              .get(chunk_ukey)
+              .expect("Chunk not found");
+            chunk.expect_id().to_string()
+          })
+          .collect::<HashSet<_>>(),
+      );
+    }
+  }
+
+  let mut source = String::default();
+  source.push_str(&format!(
+    "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId) }}\n",
+    RuntimeGlobals::ENTRY_MODULE_ID
+  ));
+
+  let module_ids_code = &module_ids
+    .iter()
+    .map(|id| format!("__webpack_exec__('{id}')"))
+    .collect::<Vec<_>>()
+    .join(", ");
+  if chunks_ids.is_empty() {
+    source.push_str("var __webpack_exports__ = (");
+    source.push_str(module_ids_code);
+    source.push_str(");\n");
+  } else {
+    if !passive {
+      source.push_str("var __webpack_exports__ = ");
+    }
+    source.push_str(&format!(
+      "{}(0, {}, function() {{
+        return {};
+      }});\n",
+      if passive {
+        RuntimeGlobals::ON_CHUNKS_LOADED
+      } else {
+        RuntimeGlobals::STARTUP_ENTRYPOINT
+      },
+      stringify_chunks_to_array(&chunks_ids),
+      module_ids_code
+    ));
+    if passive {
+      source.push_str(&format!(
+        "var __webpack_exports__ = {}();\n",
+        RuntimeGlobals::ON_CHUNKS_LOADED
+      ));
+    }
+  }
+
+  RawSource::from(source).boxed()
+}
+
+pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: &str) -> String {
+  let mut base_chunk_output_name_arr = base_chunk_output_name.split('/').collect::<Vec<_>>();
+  base_chunk_output_name_arr.pop();
+  let mut other_chunk_output_name_arr = other_chunk_output_name.split('/').collect::<Vec<_>>();
+  while !base_chunk_output_name_arr.is_empty() && !other_chunk_output_name_arr.is_empty() {
+    if base_chunk_output_name_arr[0] == other_chunk_output_name_arr[0] {
+      base_chunk_output_name_arr.remove(0);
+      other_chunk_output_name_arr.remove(0);
+    }
+  }
+  let path = if base_chunk_output_name_arr.is_empty() {
+    "./".to_string()
+  } else {
+    "../".repeat(base_chunk_output_name_arr.len())
   };
+  format!("{path}{}", other_chunk_output_name_arr.join("/"))
+}
 
-  Ok(format!("./{}", runtime_chunk_filename))
+pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
+  let hash: Option<String> = Some(chunk.get_render_hash());
+  compilation
+    .options
+    .output
+    .chunk_filename
+    .render(FilenameRenderOptions {
+      name: chunk.name_for_filename_template(),
+      extension: Some(".js".to_string()),
+      id: chunk.id.clone(),
+      contenthash: hash.clone(),
+      chunkhash: hash.clone(),
+      hash,
+      ..Default::default()
+    })
 }

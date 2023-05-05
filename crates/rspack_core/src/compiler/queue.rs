@@ -112,13 +112,7 @@ impl WorkerTask for FactorizeTask {
       }
     };
 
-    let mgm = ModuleGraphModule::new(
-      result.module.identifier(),
-      *result.module.module_type(),
-      // 1. if `tree_shaking` is false, then whatever `side_effects` is, all the module should be used by default.
-      // 2. if `tree_shaking` is true, then only `side_effects` is false, `module.used` should be true.
-      !self.options.builtins.tree_shaking || !self.options.optimization.side_effects.is_enable(),
-    );
+    let mgm = ModuleGraphModule::new(result.module.identifier(), *result.module.module_type());
 
     Ok(TaskResult::Factorize(FactorizeTaskResult {
       is_entry: self.is_entry,

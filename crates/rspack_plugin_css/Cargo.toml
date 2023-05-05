@@ -12,7 +12,7 @@ better_scoped_tls = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
 data-encoding = "2.3.3"
-heck = "0.4.0"
+heck = "0.4.1"
 indexmap = { workspace = true }
 itertools = { workspace = true }
 once_cell = { workspace = true }
@@ -51,5 +51,5 @@ xxhash-rust = { workspace = true, features = ["xxh3"] }
 
 [dev-dependencies]
 hrx-parser     = "0.1.1"
-insta          = "1.19.1"
+insta          = "1.29.0"
 rspack_testing = { path = "../rspack_testing" }

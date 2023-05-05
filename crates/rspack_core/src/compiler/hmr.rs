@@ -4,6 +4,7 @@ use std::{
   path::PathBuf,
 };
 
+use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
@@ -55,26 +56,23 @@ where
       compilation: &Compilation,
     ) -> (IdentifierMap<(u64, String)>, IdentifierMap<String>) {
       let modules_map = compilation
-        .module_graph
-        .modules()
-        .values()
-        .map(|module| {
-          let identifier = module.identifier();
-          (
-            identifier,
-            (
-              compilation
-                .module_graph
-                .get_module_hash(&identifier)
-                .expect("Module hash expected"),
-              compilation
-                .chunk_graph
-                .get_module_id(identifier)
-                .as_deref()
-                .expect("should has module id")
-                .to_string(),
-            ),
-          )
+        .chunk_graph
+        .chunk_graph_module_by_module_identifier
+        .par_iter()
+        .filter_map(|(identifier, cgm)| {
+          let module_hash = compilation.module_graph.get_module_hash(identifier);
+          let cid = cgm.id.as_deref();
+          if let Some(module_hash) = module_hash && let Some(cid) = cid {
+              Some((
+                  *identifier,
+                  (
+                      module_hash,
+                      cid.to_string(),
+                  ),
+              ))
+          } else {
+              None
+          }
         })
         .collect::<IdentifierMap<_>>();
 

@@ -9,7 +9,9 @@ use crate::common::SplitChunkSizes;
 ///
 /// `ModuleGroup` captures/contains a bunch of modules due to the `optimization.splitChunks` configuration.
 ///
-/// `ModuleGroup` would be transform into `Chunk` in the end.
+/// `ModuleGroup` would be transform into `Chunk`s in the end.
+///
+///  A `ModuleGroup` would be transform into multiple `Chunk`s if the `name` dynamic computed
 ///
 /// The original name of `ModuleGroup` is `ChunkInfoItem` borrowed from Webpack
 #[derive(Derivative)]
@@ -19,8 +21,12 @@ pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
   pub cache_group_index: usize,
   pub cache_group_priority: f64,
-  pub name: String,
+  pub cache_group_reuse_existing_chunk: bool,
+  /// If the `ModuleGroup` is going to create a chunk, which will be named using `chunk_name`
+  /// A module
+  pub chunk_name: Option<String>,
   pub sizes: SplitChunkSizes,
+  /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[derivative(Debug = "ignore")]
   pub chunks: FxHashSet<ChunkUkey>,
 }

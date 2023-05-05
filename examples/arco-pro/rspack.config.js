@@ -3,10 +3,8 @@ const { default: HtmlPlugin } = require("@rspack/plugin-html");
 
 const prod = process.env.NODE_ENV === "production";
 
-/**
- * @type {import('@rspack/cli').Configuration}
- */
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	context: __dirname,
 	entry: { main: "./src/index.tsx" },
 	devServer: {
@@ -70,3 +68,4 @@ module.exports = {
 		debug: false
 	}
 };
+module.exports = config;

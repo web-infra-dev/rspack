@@ -1,5 +1,11 @@
-use std::sync::Arc;
+use std::{
+  future::{self, Future},
+  ops::{Deref, DerefMut},
+  pin::Pin,
+  sync::Arc,
+};
 
+use futures_util::FutureExt;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
 use rustc_hash::FxHashMap;
 
@@ -56,6 +62,38 @@ pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
   .unwrap_or_else(create_default_module_filter)
 }
 
-pub(crate) type SplitChunkSizes = FxHashMap<SourceType, f64>;
+#[derive(Debug, Default)]
+pub struct SplitChunkSizes(FxHashMap<SourceType, f64>);
 
-// pub type CacheGroupNameGetter = Arc<dyn Fn(&dyn Module) -> String + Send + Sync>;
+impl SplitChunkSizes {
+  pub fn with_initial_value(default_size_types: &[SourceType], initial_bytes: f64) -> Self {
+    Self(
+      default_size_types
+        .iter()
+        .map(|ty| (*ty, initial_bytes))
+        .collect(),
+    )
+  }
+}
+
+impl Deref for SplitChunkSizes {
+  type Target = FxHashMap<SourceType, f64>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl DerefMut for SplitChunkSizes {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
+type PinFutureBox<T> = Pin<Box<dyn Future<Output = T> + Send>>;
+
+pub type ChunkNameGetter = Box<dyn Fn(&dyn Module) -> PinFutureBox<Option<String>> + Send + Sync>;
+
+pub fn create_chunk_name_getter_by_const_name(name: String) -> ChunkNameGetter {
+  Box::new(move |_module| future::ready(Some(name.clone())).boxed())
+}

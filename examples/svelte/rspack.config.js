@@ -4,8 +4,8 @@ const { default: HtmlPlugin } = require("@rspack/plugin-html");
 
 const mode = process.env.NODE_ENV || "development";
 const prod = mode === "production";
-
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	entry: {
 		main: ["./src/main.ts"]
 	},
@@ -56,3 +56,4 @@ module.exports = {
 		historyApiFallback: true
 	}
 };
+module.exports = config;

@@ -4,7 +4,7 @@
 
 [files]
 extend-exclude = [
-  "**/*.{css,map,json,txt,ts,tsx,js,snap,bak,diff}",
+  "**/*.{css,map,json,txt,ts,tsx,js,snap,bak,diff,html}",
   "webpack-examples",
   "webpack-test",
   "./examples",

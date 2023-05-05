@@ -85,6 +85,7 @@ impl Plugin for AssignLibraryPlugin {
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
     let mut source = ConcatSource::default();
+    source.add(args.source.clone());
     // TODO: respect entryOptions.library
     let library = &args.compilation.options.output.library;
     let is_copy = if let Some(library) = library {

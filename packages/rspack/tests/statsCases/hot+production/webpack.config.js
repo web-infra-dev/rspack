@@ -5,5 +5,8 @@ module.exports = {
 	devServer: {
 		hot: true
 	},
+	builtins: {
+
+	},
 	mode: "production"
 };
