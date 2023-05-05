@@ -434,13 +434,14 @@ impl SplitChunksPlugin {
                 selected_chunks,
               } = matched_item;
 
-              // Merge the `Module` of `MatchedItem` into the `ModuleGroup` which has the same `key`/`cache_group.name`
+              // `Module`s with the same chunk_name would be merged togother.
+              // `Module`s could be in different `ModuleGroup`s.
               let chunk_name: Option<String> = (cache_group.name)(module).await;
 
               let key: String = if let Some(cache_group_name) = &chunk_name {
-                ["name: ", cache_group_name].join("")
+                [&cache_group.key, " name:", cache_group_name].join("")
               } else {
-                ["index: ", &cache_group_index.to_string()].join("")
+                [&cache_group.key, " index:", &cache_group_index.to_string()].join("")
               };
 
               let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup {
