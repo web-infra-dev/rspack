@@ -590,6 +590,7 @@ export interface OptimizationSplitChunksCacheGroup {
 	priority?: number;
 	reuseExistingChunk?: boolean;
 	test?: RegExp;
+	minSize?: number;
 }
 export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =

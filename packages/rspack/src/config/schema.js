@@ -953,6 +953,14 @@ module.exports = {
 							instanceof: "RegExp"
 						}
 					]
+				},
+				minSize: {
+					description: "Minimal size for the created chunks.",
+					oneOf: [
+						{
+							$ref: "#/definitions/OptimizationSplitChunksSizes"
+						}
+					]
 				}
 			}
 		},
