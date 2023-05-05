@@ -517,7 +517,7 @@ impl Identifiable for SassLoader {
   }
 }
 
-fn sass_exception_to_error(e: Exception) -> Error {
+fn sass_exception_to_error(e: Box<Exception>) -> Error {
   if let Some(span) = e.span()
     && let Some(message) = e.sass_message()
     && let Some(e) = make_traceable_error("Sass Error", message, span) {
