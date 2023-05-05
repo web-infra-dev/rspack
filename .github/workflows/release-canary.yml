@@ -28,11 +28,6 @@ jobs:
         with:
           version: 0.10.1
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup target
         run: |
           rustup target add aarch64-apple-darwin
