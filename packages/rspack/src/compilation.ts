@@ -39,7 +39,7 @@ import {
 } from "./util/fake";
 import { Logger, LogType } from "./logging/Logger";
 import * as ErrorHelpers from "./ErrorHelpers";
-import { concatErrorMsgAndStack } from "./util";
+import { concatErrorMsgAndStack, isJsStatsError } from "./util";
 import { normalizeStatsPreset, Stats } from "./stats";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import CacheFacade from "./lib/CacheFacade";
@@ -401,7 +401,7 @@ export class Compilation {
 					let error = errs[i];
 					this.#inner.pushDiagnostic(
 						"error",
-						error.name,
+						isJsStatsError(error) ? error.title : error.name,
 						concatErrorMsgAndStack(error)
 					);
 				}
@@ -429,13 +429,14 @@ export class Compilation {
 		let inner = this.#inner;
 		return {
 			// compatible for javascript array
-			push: (...warns: Error[]) => {
-				warns = this.hooks.processWarnings.call(warns);
+			push: (...warns: (Error | JsStatsError)[]) => {
+				// TODO: find a way to make JsStatsError be actual errors
+				warns = this.hooks.processWarnings.call(warns as any);
 				for (let i = 0; i < warns.length; i++) {
 					let warn = warns[i];
 					this.#inner.pushDiagnostic(
 						"warning",
-						warn.name,
+						isJsStatsError(warn) ? warn.title : warn.name,
 						concatErrorMsgAndStack(warn)
 					);
 				}
