@@ -13,6 +13,8 @@ import { StatsValue, StatsOptions } from "./config";
 import { LogType } from "./logging/Logger";
 
 export type StatsCompilation = {
+	version?: string;
+	rspackVersion?: string;
 	name?: string;
 	hash?: string;
 	time?: number;
