@@ -746,7 +746,7 @@ impl Plugin for SplitChunksPlugin {
                 item_cache_group,
                 item.cache_group_index,
                 &chunk_arr,
-                compilation
+                &**compilation
                   .module_graph
                   .module_by_identifier(module)
                   .expect("Module not found"),

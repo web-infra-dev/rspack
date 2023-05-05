@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, AssetInfo, Module, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
+  ApplyContext, AssetInfo, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;

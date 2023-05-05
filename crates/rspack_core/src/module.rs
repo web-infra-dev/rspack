@@ -319,8 +319,8 @@ mod test {
 
   #[test]
   fn hash_should_work() {
-    let e1: Box<&dyn Module> = ExternalModule("e").boxed();
-    let e2: Box<&dyn Module> = ExternalModule("e").boxed();
+    let e1: Box<dyn Module> = ExternalModule("e").boxed();
+    let e2: Box<dyn Module> = ExternalModule("e").boxed();
 
     let mut state1 = xxhash_rust::xxh3::Xxh3::default();
     let mut state2 = xxhash_rust::xxh3::Xxh3::default();
@@ -331,7 +331,7 @@ mod test {
     let hash2 = format!("{:016x}", state2.finish());
     assert_eq!(hash1, hash2);
 
-    let e3: Box<&dyn Module> = ExternalModule("e3").boxed();
+    let e3: Box<dyn Module> = ExternalModule("e3").boxed();
     let mut state3 = xxhash_rust::xxh3::Xxh3::default();
     e3.hash(&mut state3);
 
