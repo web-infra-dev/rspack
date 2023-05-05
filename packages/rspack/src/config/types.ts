@@ -466,6 +466,7 @@ export type ExternalsType =
 ///// ExternalsPresets /////
 export interface ExternalsPresets {
 	node?: boolean;
+	web?: boolean;
 }
 
 ///// InfrastructureLogging /////

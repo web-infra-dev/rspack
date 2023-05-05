@@ -121,7 +121,7 @@ impl Plugin for ExternalPlugin {
               .to_string_lossy()
               .to_string(),
             request: request.to_string(),
-            dependency_type: args.dependency.dependency_type().to_string(),
+            dependency_type: args.dependency.category().to_string(),
           })
           .await?;
           if let Some(r) = result.result {

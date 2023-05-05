@@ -468,6 +468,7 @@ export interface RawExternalItemValue {
 
 export interface RawExternalsPresets {
   node: boolean
+  web: boolean
 }
 
 export interface RawGlobOptions {

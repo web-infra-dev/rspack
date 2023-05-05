@@ -5,10 +5,8 @@ use rspack_core::{
 };
 use swc_core::{
   common::util::take::Take,
-  css::ast::{AtRulePrelude, Rule, UrlValue},
+  css::ast::{AtRulePrelude, Rule},
 };
-
-use crate::visitors::is_url_requestable;
 
 #[derive(Debug, Eq, Clone)]
 pub struct CssImportDependency {
@@ -98,27 +96,8 @@ impl CodeGeneratable for CssImportDependency {
           .take()
           .into_iter()
           .filter(|rule| match rule {
-            Rule::AtRule(at_rule) => {
-              if let Some(box AtRulePrelude::ImportPrelude(prelude)) = &at_rule.prelude {
-                let href_string = match &prelude.href {
-                  box swc_core::css::ast::ImportHref::Url(url) => {
-                    let href_string = url
-                      .value
-                      .as_ref()
-                      .map(|box value| match value {
-                        UrlValue::Str(str) => str.value.clone(),
-                        UrlValue::Raw(raw) => raw.value.clone(),
-                      })
-                      .unwrap_or_default();
-                    href_string
-                  }
-                  box swc_core::css::ast::ImportHref::Str(str) => str.value.clone(),
-                };
-                !is_url_requestable(&href_string)
-              } else {
-                true
-              }
-            }
+            // FIXME(ahabhgk): @import "data:..."
+            Rule::AtRule(at_rule) => !matches!(at_rule.prelude, Some(box AtRulePrelude::ImportPrelude(_))),
             _ => true,
           })
           .collect();

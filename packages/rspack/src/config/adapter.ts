@@ -196,6 +196,7 @@ function getRawExternalsPresets(
 	presets: ExternalsPresets
 ): RawOptions["externalsPresets"] {
 	return {
+		web: presets.web ?? false,
 		node: presets.node ?? false
 	};
 }

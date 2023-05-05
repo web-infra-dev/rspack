@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{
@@ -11,7 +11,9 @@ use crate::{
   LibIdentOptions, Module, ModuleType, RuntimeGlobals, SourceType,
 };
 
-static EXTERNAL_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
+static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
+static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::Css];
+
 #[derive(Debug)]
 pub struct ExternalModule {
   id: Identifier,
@@ -150,7 +152,11 @@ impl Module for ExternalModule {
   }
 
   fn source_types(&self) -> &[SourceType] {
-    EXTERNAL_MODULE_SOURCE_TYPES
+    if self.external_type == "css-import" {
+      EXTERNAL_MODULE_CSS_SOURCE_TYPES
+    } else {
+      EXTERNAL_MODULE_JS_SOURCE_TYPES
+    }
   }
 
   fn original_source(&self) -> Option<&dyn Source> {
@@ -176,15 +182,43 @@ impl Module for ExternalModule {
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
-    let (source, chunk_init_fragments, runtime_requirements) = self.get_source(compilation);
-    cgr.add(
-      SourceType::JavaScript,
-      GenerationResult::from(AstOrSource::from(source)),
-    );
-    cgr.chunk_init_fragments = chunk_init_fragments;
-    cgr.runtime_requirements.add(runtime_requirements);
-    cgr.set_hash();
-
+    match self.external_type.as_str() {
+      "asset" => {
+        cgr.add(
+          SourceType::JavaScript,
+          GenerationResult::from(AstOrSource::from(
+            RawSource::from(format!(
+              "module.exports = {};",
+              serde_json::to_string(&self.request).map_err(|e| internal_error!(e.to_string()))?
+            ))
+            .boxed(),
+          )),
+        );
+        cgr.data.insert("url".to_owned(), self.request.clone());
+      }
+      "css-import" => {
+        cgr.add(
+          SourceType::Css,
+          GenerationResult::from(AstOrSource::from(
+            RawSource::from(format!(
+              "@import url({});",
+              serde_json::to_string(&self.request).map_err(|e| internal_error!(e.to_string()))?
+            ))
+            .boxed(),
+          )),
+        );
+      }
+      _ => {
+        let (source, chunk_init_fragments, runtime_requirements) = self.get_source(compilation);
+        cgr.add(
+          SourceType::JavaScript,
+          GenerationResult::from(AstOrSource::from(source)),
+        );
+        cgr.chunk_init_fragments = chunk_init_fragments;
+        cgr.runtime_requirements.add(runtime_requirements);
+        cgr.set_hash();
+      }
+    };
     Ok(cgr)
   }
 
