@@ -32,8 +32,6 @@ import { NormalModuleFactory } from "./normalModuleFactory";
 import { runLoader } from "./loader-runner";
 import CacheFacade from "./lib/CacheFacade";
 import Cache from "./lib/Cache";
-import { getScheme } from "./util/scheme";
-import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
 import { makePathsRelative } from "./util/identifier";
 
 class EntryPlugin {
@@ -287,31 +285,10 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
-		const processResource = (
-			loaderContext: LoaderContext,
-			resourcePath: string,
-			callback: any
-		) => {
-			const resource = loaderContext.resource;
-			const scheme = getScheme(resource);
-			this.compilation
-				.currentNormalModuleHooks()
-				.readResource.for(scheme)
-				.callAsync(loaderContext, (err: any, result: LoaderResult) => {
-					if (err) return callback(err);
-					if (typeof result !== "string" && !result) {
-						return callback(new Error(`Unhandled ${scheme} resource`));
-					}
-					return callback(null, result);
-				});
-		};
-		const options = getRawOptions(this.options, this, processResource);
-
 		this.#_instance =
 			this.#_instance ??
 			new binding.Rspack(
-				options,
-
+				getRawOptions(this.options, this),
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
 					make: this.#make.bind(this),
