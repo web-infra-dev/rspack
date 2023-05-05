@@ -11,5 +11,3 @@ it("should extract css to single chunk", () => {
 	expect(fs.existsSync(path.resolve(__dirname, "./main.css"))).toBe(false);
 	expect(fs.existsSync(path.resolve(__dirname, "./styles.css"))).toBe(true);
 });
-
-console.log(__dirname);

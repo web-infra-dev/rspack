@@ -969,6 +969,14 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				name: {
+					description: "The name or name for chunks.",
+					anyOf: [
+						{
+							type: "string"
+						}
+					]
+				},
 				cacheGroups: {
 					description:
 						"Assign modules to a cache group (modules from different cache groups are tried to keep in separate chunks, default categories: 'default', 'defaultVendors').",
