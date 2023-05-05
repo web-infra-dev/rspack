@@ -8,7 +8,6 @@ use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
-
 use crate::{
   AsAny, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context,
   ContextModule, Dependency, DynEq, DynHash, ExternalModule, ModuleDependency, ModuleType,
@@ -130,11 +129,11 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
 }
 
 pub trait ModuleExt {
-  fn boxed(self) -> Option<dyn Module>;
+  fn boxed(self) -> Box<dyn Module>;
 }
 
 impl<T: Module + 'static> ModuleExt for T {
-  fn boxed(self) -> Option<dyn Module> {
+  fn boxed(self) -> Box<dyn Module> {
     Box::new(self)
   }
 }
@@ -306,8 +305,8 @@ mod test {
 
   #[test]
   fn hash_should_work() {
-    let e1: Option<&dyn Module> = ExternalModule("e").boxed();
-    let e2: Option<&dyn Module> = ExternalModule("e").boxed();
+    let e1: Box<&dyn Module> = ExternalModule("e").boxed();
+    let e2: Box<&dyn Module> = ExternalModule("e").boxed();
 
     let mut state1 = xxhash_rust::xxh3::Xxh3::default();
     let mut state2 = xxhash_rust::xxh3::Xxh3::default();
@@ -318,7 +317,7 @@ mod test {
     let hash2 = format!("{:016x}", state2.finish());
     assert_eq!(hash1, hash2);
 
-    let e3: Option<&dyn Module> = ExternalModule("e3").boxed();
+    let e3: Box<&dyn Module> = ExternalModule("e3").boxed();
     let mut state3 = xxhash_rust::xxh3::Xxh3::default();
     e3.hash(&mut state3);
 
