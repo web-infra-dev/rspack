@@ -1,14 +1,13 @@
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableDeclMappings,
   CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier,
+  JsAstPath, ModuleDependency, ModuleDependencyExt,
 };
 use swc_core::ecma::atoms::{Atom, JsWord};
 
-#[derive(Debug, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct EsmImportDependency {
   id: Option<DependencyId>,
-  parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
   category: &'static DependencyCategory,
@@ -19,30 +18,9 @@ pub struct EsmImportDependency {
   ast_path: JsAstPath,
 }
 
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for EsmImportDependency {
-  fn eq(&self, other: &Self) -> bool {
-    self.parent_module_identifier == other.parent_module_identifier
-      && self.request == other.request
-      && self.category == other.category
-      && self.dependency_type == other.dependency_type
-  }
-}
-
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for EsmImportDependency {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.parent_module_identifier.hash(state);
-    self.request.hash(state);
-    self.category.hash(state);
-    self.dependency_type.hash(state);
-  }
-}
-
 impl EsmImportDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
-      parent_module_identifier: None,
       request,
       // user_request,
       category: &DependencyCategory::Esm,
@@ -60,13 +38,6 @@ impl Dependency for EsmImportDependency {
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = module_identifier;
   }
 
   fn category(&self) -> &DependencyCategory {

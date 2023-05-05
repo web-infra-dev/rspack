@@ -444,7 +444,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
-      module_identifier,
       module_type,
       resource_data,
       compiler_options,
@@ -498,13 +497,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     Ok(
       ParseResult {
         ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
-        dependencies: dependencies
-          .into_iter()
-          .map(|mut d| {
-            d.set_parent_module_identifier(Some(module_identifier));
-            d
-          })
-          .collect(),
+        dependencies,
         presentational_dependencies,
       }
       .with_diagnostic(diagnostics),

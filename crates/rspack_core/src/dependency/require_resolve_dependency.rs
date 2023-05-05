@@ -6,13 +6,12 @@ use swc_core::{
 
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency,
-  DependencyId, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier,
+  DependencyId, ErrorSpan, JsAstPath, ModuleDependency,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RequireResolveDependency {
   pub id: Option<DependencyId>,
-  pub parent_module_identifier: Option<ModuleIdentifier>,
   pub request: String,
   pub weak: bool,
   span: ErrorSpan,
@@ -23,7 +22,6 @@ pub struct RequireResolveDependency {
 impl RequireResolveDependency {
   pub fn new(request: String, weak: bool, span: ErrorSpan, ast_path: JsAstPath) -> Self {
     Self {
-      parent_module_identifier: None,
       request,
       weak,
       span,
@@ -46,14 +44,6 @@ impl Dependency for RequireResolveDependency {
 
   fn dependency_type(&self) -> &crate::DependencyType {
     &crate::DependencyType::RequireResolve
-  }
-
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = module_identifier;
   }
 }
 

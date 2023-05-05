@@ -122,7 +122,13 @@ where
       .compilation
       .entry_dependencies
       .iter()
-      .flat_map(|(_, deps)| deps.clone())
+      .flat_map(|(_, deps)| {
+        deps
+          .clone()
+          .into_iter()
+          .map(|d| (d, None))
+          .collect::<Vec<_>>()
+      })
       .collect::<HashSet<_>>();
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
     self.cache.begin_idle();

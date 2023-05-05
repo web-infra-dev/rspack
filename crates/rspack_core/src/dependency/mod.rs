@@ -28,9 +28,7 @@ pub use require_resolve_dependency::RequireResolveDependency;
 mod static_exports_dependency;
 pub use static_exports_dependency::*;
 
-use crate::{
-  AsAny, ContextMode, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleIdentifier,
-};
+use crate::{AsAny, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -150,17 +148,11 @@ impl Display for DependencyCategory {
   }
 }
 
-pub trait Dependency:
-  CodeGeneratable + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
-{
+pub trait Dependency: CodeGeneratable + AsAny + DynClone + Send + Sync + Debug {
   fn id(&self) -> Option<DependencyId> {
     None
   }
   fn set_id(&mut self, _id: Option<DependencyId>) {}
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier>;
-  fn set_parent_module_identifier(&mut self, _module_identifier: Option<ModuleIdentifier>) {
-    // noop
-  }
 
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
@@ -176,14 +168,6 @@ pub trait Dependency:
 }
 
 impl Dependency for Box<dyn Dependency> {
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    (**self).parent_module_identifier()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    (**self).set_parent_module_identifier(module_identifier)
-  }
-
   fn category(&self) -> &DependencyCategory {
     (**self).category()
   }
@@ -213,9 +197,9 @@ impl ModuleDependencyExt for dyn ModuleDependency + '_ {
     (ModuleIdentifier, String, DependencyCategory),
     ModuleIdentifier,
   ) {
-    let parent = self.parent_module_identifier().expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
+    let parent = module_graph.parent_module_by_dependency_id(&self.id().expect("should have dependency id")).expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
     (
-      (*parent, module_id, *self.category()),
+      (parent, module_id, *self.category()),
       *module_graph
         .module_identifier_by_dependency_id(&self.id().expect("should have dependency"))
         .expect("Failed to resolve module graph module"),
@@ -243,20 +227,6 @@ impl CodeGeneratable for Box<dyn Dependency> {
     code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
     (**self).generate(code_generatable_context)
-  }
-}
-
-impl PartialEq for dyn Dependency + '_ {
-  fn eq(&self, other: &Self) -> bool {
-    self.dyn_eq(other.as_any())
-  }
-}
-
-impl Eq for dyn Dependency + '_ {}
-
-impl Hash for dyn Dependency + '_ {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
   }
 }
 
@@ -308,14 +278,6 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 }
 
 impl Dependency for Box<dyn ModuleDependency> {
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    (**self).parent_module_identifier()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    (**self).set_parent_module_identifier(module_identifier)
-  }
-
   fn category(&self) -> &DependencyCategory {
     (**self).category()
   }
@@ -342,20 +304,6 @@ impl CodeGeneratable for Box<dyn ModuleDependency> {
     code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
     (**self).generate(code_generatable_context)
-  }
-}
-
-impl PartialEq for dyn ModuleDependency + '_ {
-  fn eq(&self, other: &Self) -> bool {
-    self.dyn_eq(other.as_any())
-  }
-}
-
-impl Eq for dyn ModuleDependency + '_ {}
-
-impl Hash for dyn ModuleDependency + '_ {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
   }
 }
 
