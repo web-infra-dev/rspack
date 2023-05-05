@@ -799,3 +799,7 @@ export interface ThreadsafeNodeFS {
   removeDirAll: (...args: any[]) => any
 }
 
+export interface BeforeResolveData {
+  request: string
+  context?: string
+}
