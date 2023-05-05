@@ -1,6 +1,7 @@
 import { JsAssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
+
 import { Compiler } from "../compiler";
 import { Logger } from "../logging/Logger";
 import Hash from "../util/hash";
