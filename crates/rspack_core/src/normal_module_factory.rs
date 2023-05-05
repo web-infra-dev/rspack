@@ -156,18 +156,16 @@ impl NormalModuleFactory {
             let first_char = chars.next();
             let second_char = chars.next();
 
-            if matches!(first_char, Some('.')) {
-              if matches!(second_char, Some('/')) || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/'))) {
-                // if matchResources startsWith ../ or ./
-                match_resource = context.join(match_resource).absolutize().to_string_lossy().to_string();
-              }
+            if matches!(first_char, Some('.')) && (matches!(second_char, Some('/')) || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/')))) {
+              // if matchResources startsWith ../ or ./
+              match_resource = context.join(match_resource).absolutize().to_string_lossy().to_string();
             }
 
             let ResourceParsedData {
               path,
               query,
               fragment
-            } = parse_resource(&*match_resource).expect("Should parse resource");
+            } = parse_resource(&match_resource).expect("Should parse resource");
             match_resource_data = Some(ResourceData {
               resource: match_resource,
               resource_path: path,
