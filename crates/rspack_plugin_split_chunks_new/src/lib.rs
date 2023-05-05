@@ -11,8 +11,8 @@ pub use crate::{
   common::{
     create_all_chunk_filter, create_async_chunk_filter, create_chunk_filter_from_str,
     create_chunk_name_getter_by_const_name, create_default_module_filter,
-    create_initial_chunk_filter, create_module_filter, create_module_filter_from_regex,
-    create_module_filter_from_rspack_regex, SplitChunkSizes,
+    create_empty_chunk_name_getter, create_initial_chunk_filter, create_module_filter,
+    create_module_filter_from_regex, create_module_filter_from_rspack_regex, SplitChunkSizes,
   },
   plugin::{PluginOptions, SplitChunksPlugin},
 };

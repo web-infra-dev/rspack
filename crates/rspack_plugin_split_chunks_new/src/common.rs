@@ -92,8 +92,12 @@ impl DerefMut for SplitChunkSizes {
 
 type PinFutureBox<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 
-pub type ChunkNameGetter = Box<dyn Fn(&dyn Module) -> PinFutureBox<Option<String>> + Send + Sync>;
+pub type ChunkNameGetter = Arc<dyn Fn(&dyn Module) -> PinFutureBox<Option<String>> + Send + Sync>;
 
 pub fn create_chunk_name_getter_by_const_name(name: String) -> ChunkNameGetter {
-  Box::new(move |_module| future::ready(Some(name.clone())).boxed())
+  Arc::new(move |_module| future::ready(Some(name.clone())).boxed())
+}
+
+pub fn create_empty_chunk_name_getter() -> ChunkNameGetter {
+  Arc::new(move |_module| future::ready(None).boxed())
 }

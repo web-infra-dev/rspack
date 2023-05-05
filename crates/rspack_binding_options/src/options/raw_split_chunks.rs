@@ -9,6 +9,7 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawSplitChunksOptions {
+  pub name: Option<String>,
   pub cache_groups: Option<HashMap<String, RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   pub chunks: Option<String>,
@@ -135,6 +136,11 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
 
     let overall_min_size = raw_opts.min_size.unwrap_or(20000.0);
 
+    let overall_name_getter = raw_opts
+      .name
+      .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
+      .unwrap_or_else(new_split_chunks_plugin::create_empty_chunk_name_getter);
+
     let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
 
     cache_groups.extend(
@@ -142,10 +148,12 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
         .cache_groups
         .unwrap_or_default()
         .into_iter()
-        .map(|(k, v)| new_split_chunks_plugin::CacheGroup {
-          name: new_split_chunks_plugin::create_chunk_name_getter_by_const_name(
-            v.name.unwrap_or(k),
-          ),
+        .map(|(key, v)| new_split_chunks_plugin::CacheGroup {
+          key,
+          name: v
+            .name
+            .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
+            .unwrap_or_else(|| overall_name_getter.clone()),
           priority: v.priority.unwrap_or(-20) as f64,
           test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
           chunk_filter: v

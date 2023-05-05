@@ -5,6 +5,17 @@ use crate::common::{ChunkFilter, ChunkNameGetter, ModuleFilter, SplitChunkSizes}
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct CacheGroup {
+  /// For `splitChunks.cacheGroups` config
+  /// ```js
+  /// splitChunks: {
+  ///   hello: {
+  ///     test: /hello-world\.js/,
+  ///     name: 'hello-world',
+  ///   }
+  /// }
+  /// ```
+  /// `hello` is the `key` here
+  pub key: String,
   #[derivative(Debug = "ignore")]
   pub chunk_filter: ChunkFilter,
   #[derivative(Debug = "ignore")]
