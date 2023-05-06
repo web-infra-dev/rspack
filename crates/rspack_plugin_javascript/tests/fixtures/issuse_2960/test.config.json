@@ -1,0 +1,13 @@
+{
+	"module": {
+		"rules": [
+			{
+				"test": {
+					"matcher": ".(jpe?g|png|gif)$",
+					"type": "regexp"
+				},
+				"type": "asset"
+			}
+		]
+	}
+}

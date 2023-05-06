@@ -423,7 +423,11 @@ impl ContextModule {
             );
 
             requests.iter().for_each(|r| {
-              if options.context_options.reg_exp.test(&r.request) {
+              if options
+                .context_options
+                .reg_exp
+                .test(&r.request.replacen("./", "", 1))
+              {
                 dependencies.push(Box::new(ContextElementDependency {
                   id: None,
                   request: format!(
