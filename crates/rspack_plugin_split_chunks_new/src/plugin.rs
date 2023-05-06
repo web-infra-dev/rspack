@@ -270,7 +270,7 @@ impl SplitChunksPlugin {
       .iter_mut()
       .par_bridge()
       .filter(|(_key, each_module_group)| {
-        // Fast path: check wether has overlap on chunks
+        // Fast path: check whether has overlap on chunks
         each_module_group
           .chunks
           .intersection(used_chunks)
