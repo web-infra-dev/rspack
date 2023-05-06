@@ -149,6 +149,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
         .unwrap_or_default()
         .into_iter()
         .map(|(key, v)| new_split_chunks_plugin::CacheGroup {
+          id_hint: key.clone(),
           key,
           name: v
             .name
