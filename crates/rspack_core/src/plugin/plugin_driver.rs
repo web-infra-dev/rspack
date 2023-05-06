@@ -310,7 +310,7 @@ impl PluginDriver {
 
   pub async fn before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs,
+    args: NormalModuleBeforeResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
@@ -323,7 +323,7 @@ impl PluginDriver {
 
   pub async fn context_module_before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs,
+    args: NormalModuleBeforeResolveArgs<'_>,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());

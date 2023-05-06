@@ -35,6 +35,41 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    if let Ok(Some(false)) = self
+      .plugin_driver
+      .read()
+      .await
+      .before_resolve(NormalModuleBeforeResolveArgs {
+        request: data.dependency.request(),
+        context: &data.context,
+      })
+      .await
+    {
+      let importer = self.context.original_resource_path.as_ref();
+      let importer_with_context = if let Some(importer) = importer {
+        Path::new(importer)
+          .parent()
+          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+          .to_path_buf()
+      } else {
+        PathBuf::from(self.context.options.context.as_path())
+      };
+      let request_without_match_resource = data.dependency.request();
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
+      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+      let missing_module = MissingModule::new(
+        module_identifier,
+        format!("{ident} (missing)"),
+        format!("Failed to resolve {request_without_match_resource}"),
+      )
+      .boxed();
+      self.context.module_type = Some(*missing_module.module_type());
+      return Ok(ModuleFactoryResult::new(missing_module).with_empty_diagnostic());
+    }
     Ok(self.factorize(data).await?)
   }
 }
@@ -85,32 +120,6 @@ impl NormalModuleFactory {
     let mut no_pre_auto_loaders = false;
     let mut no_auto_loaders = false;
     let mut no_pre_post_auto_loaders = false;
-    if let Ok(Some(false)) = plugin_driver
-      .read()
-      .await
-      .before_resolve(NormalModuleBeforeResolveArgs {
-        request: data.dependency.request().to_owned(),
-        context: data.context.clone(),
-      })
-      .await
-    {
-      let ident = format!(
-        "{}{request_without_match_resource}",
-        importer_with_context.display()
-      );
-      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-      let missing_module = MissingModule::new(
-        module_identifier,
-        format!("{ident} (missing)"),
-        format!("Failed to resolve {request_without_match_resource}"),
-      )
-      .boxed();
-      self.context.module_type = Some(*missing_module.module_type());
-      return Ok(Some(
-        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
-      ));
-    }
 
     // with scheme, windows absolute path is considered scheme by `url`
     let resource_data = if let Some(scheme) = scheme && !Path::is_absolute(Path::new(request_without_match_resource)) {
@@ -131,6 +140,7 @@ impl NormalModuleFactory {
       match data {
         Ok(Some(data)) => data,
         Ok(None) => {
+
           let ident = format!("{}{request_without_match_resource}", importer_with_context.display());
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 

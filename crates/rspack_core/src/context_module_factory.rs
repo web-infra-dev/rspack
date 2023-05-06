@@ -60,8 +60,8 @@ impl ContextModuleFactory {
       .read()
       .await
       .context_module_before_resolve(NormalModuleBeforeResolveArgs {
-        request: data.dependency.request().to_owned(),
-        context: data.context.clone(),
+        request: data.dependency.request(),
+        context: &data.context,
       })
       .await
     {

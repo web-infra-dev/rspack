@@ -25,6 +25,7 @@ export class NormalModuleFactory {
 			AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
 		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
+		afterResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
 	};
 	constructor() {
 		this.hooks = {
@@ -41,9 +42,9 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], Module>} */
 			// factorize: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			beforeResolve: new AsyncSeriesBailHook(["resolveData"])
+			beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			// afterResolve: new AsyncSeriesBailHook(["resolveData"]),
+			afterResolve: new AsyncSeriesBailHook(["resolveData"])
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */
 			// createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
 			// /** @type {SyncWaterfallHook<[Module, ResolveData["createData"], ResolveData], Module>} */
