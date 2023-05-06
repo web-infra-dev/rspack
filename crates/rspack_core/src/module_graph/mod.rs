@@ -10,8 +10,8 @@ mod connection;
 pub use connection::{ConnectionId, ModuleGraphConnection};
 
 use crate::{
-  BoxModule, BoxModuleDependency, BuildInfo, BuildMeta, DependencyId, Module, ModuleGraphModule,
-  ModuleIdentifier,
+  BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta, DependencyId, Module,
+  ModuleGraphModule, ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -249,6 +249,15 @@ impl ModuleGraph {
       .and_then(|dependency_id| self.dependency_by_id(dependency_id))
   }
 
+  pub fn parent_module_by_dependency_id(
+    &self,
+    dependency_id: &DependencyId,
+  ) -> Option<ModuleIdentifier> {
+    self
+      .connection_by_dependency(dependency_id)
+      .and_then(|c| c.original_module_identifier)
+  }
+
   pub fn connection_by_connection_id(
     &self,
     connection_id: &ConnectionId,
@@ -341,7 +350,7 @@ impl ModuleGraph {
   }
 
   /// Remove a connection and return connection origin module identifier and dependency
-  fn revoke_connection(&mut self, connection_id: ConnectionId) -> Option<DependencyId> {
+  fn revoke_connection(&mut self, connection_id: ConnectionId) -> Option<BuildDependency> {
     let connection = match self.connections[*connection_id].take() {
       Some(c) => c,
       None => return None,
@@ -380,11 +389,11 @@ impl ModuleGraph {
       mgm.incoming_connections.remove(&connection_id);
     }
 
-    Some(dependency_id)
+    Some((dependency_id, original_module_identifier))
   }
 
   /// Remove module from module graph and return parent module identifier and dependency pair
-  pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<DependencyId> {
+  pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
     self.module_identifier_to_module.remove(module_identifier);
     let mgm = self
       .module_identifier_to_module_graph_module
@@ -518,11 +527,7 @@ mod test {
 
   macro_rules! impl_noop_trait_dep_type {
     ($ident:ident) => {
-      impl Dependency for $ident {
-        fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-          self.0.as_ref()
-        }
-      }
+      impl Dependency for $ident {}
 
       impl ModuleDependency for $ident {
         fn request(&self) -> &str {

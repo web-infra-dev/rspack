@@ -577,15 +577,7 @@ impl Module for NormalModule {
     // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
-    self.code_generation_dependencies = Some(
-      code_generation_dependencies
-        .into_iter()
-        .map(|mut d| {
-          d.set_parent_module_identifier(Some(self.identifier()));
-          d
-        })
-        .collect::<Vec<_>>(),
-    );
+    self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
     let mut hasher = Xxh3::new();

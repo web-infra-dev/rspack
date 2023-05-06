@@ -25,10 +25,6 @@ impl Dependency for ContextElementDependency {
     self.id = id;
   }
 
-  fn parent_module_identifier(&self) -> Option<&crate::ModuleIdentifier> {
-    None
-  }
-
   fn category(&self) -> &DependencyCategory {
     &self.category
   }

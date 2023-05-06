@@ -1,8 +1,7 @@
 use rspack_error::Result;
 
 use crate::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, ModuleIdentifier,
-  RuntimeGlobals,
+  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -10,11 +9,7 @@ pub struct RuntimeRequirementsDependency {
   pub runtime_requirements: RuntimeGlobals,
 }
 
-impl Dependency for RuntimeRequirementsDependency {
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    None
-  }
-}
+impl Dependency for RuntimeRequirementsDependency {}
 
 impl CodeGeneratable for RuntimeRequirementsDependency {
   fn generate(

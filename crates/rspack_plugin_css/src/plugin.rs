@@ -29,6 +29,7 @@ use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rspack_identifier::IdentifierSet;
+use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::css::visit::VisitMutWithPath;
 use swc_core::{
@@ -371,7 +372,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let ParseContext {
       source,
       additional_data,
-      module_identifier,
       module_type,
       resource_data,
       compiler_options,
@@ -431,20 +431,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &mut diagnostic,
     );
 
-    let mut dependencies = if let Some(locals) = &locals && !locals.is_empty() {
+    let  dependencies = if let Some(locals) = &locals && !locals.is_empty() {
+      let mut dep_set = FxHashSet::default();
       let compose_deps = locals.iter().flat_map(|(_, value)| value).filter_map(|name| if let CssClassName::Import { from, .. } = name {
-        Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as Box<dyn ModuleDependency>)
+        if dep_set.contains(from.as_ref()) {
+          None
+        } else {
+          dep_set.insert(from.to_string());
+          Some(Box::new(CssComposeDependency::new(from.to_string(), None)) as Box<dyn ModuleDependency>)
+        }
       } else {
         None
       });
       dependencies.extend(compose_deps);
-      dependencies.into_iter().unique().collect()
+      dependencies
     } else {
       dependencies
     };
-    dependencies.iter_mut().for_each(|dep| {
-      dep.set_parent_module_identifier(Some(module_identifier));
-    });
 
     self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
     self.exports = locals;
