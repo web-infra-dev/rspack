@@ -583,12 +583,12 @@ export interface OptimizationSplitChunksOptions {
 	minSize?: OptimizationSplitChunksSizes;
 	enforceSizeThreshold?: OptimizationSplitChunksSizes;
 	minRemainingSize?: OptimizationSplitChunksSizes;
-	name?: string;
+	name?: string | false;
 }
 export interface OptimizationSplitChunksCacheGroup {
 	chunks?: "initial" | "async" | "all";
 	minChunks?: number;
-	name?: string;
+	name?: string | false;
 	priority?: number;
 	reuseExistingChunk?: boolean;
 	test?: RegExp;

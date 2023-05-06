@@ -473,13 +473,13 @@ function getRawSplitChunksOptions(
 	sc: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] {
 	return {
-		name: sc.name,
+		name: sc.name === false ? undefined : sc.name,
 		cacheGroups: sc.cacheGroups
 			? Object.fromEntries(
 					Object.entries(sc.cacheGroups).map(([key, group]) => {
 						let normalizedGroup: RawCacheGroupOptions = {
 							test: group.test ? group.test.source : undefined,
-							name: group.name,
+							name: group.name === false ? undefined : group.name,
 							priority: group.priority,
 							minChunks: group.minChunks,
 							chunks: group.chunks,
