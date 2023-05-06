@@ -7,14 +7,17 @@ pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_theadsafe_fn;
 use rspack_core::{
-  ChunkAssetArgs, NormalModuleFactoryResolveForSchemeArgs,
-  PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
+  ChunkAssetArgs, NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
+  ResourceData,
 };
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
-use crate::js_values::{JsChunkAssetArgs, JsResourceData, SchemeAndJsResourceData};
+use crate::js_values::{
+  BeforeResolveData, JsChunkAssetArgs, JsResourceData, SchemeAndJsResourceData,
+};
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
@@ -35,6 +38,8 @@ pub struct JsHooksAdapter {
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
+  pub before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
+  pub context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<SchemeAndJsResourceData, JsResourceData>,
 }
@@ -130,6 +135,32 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call make: {err}",))?
   }
 
+  async fn before_resolve(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    let res = self
+      .before_resolve
+      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+    res
+  }
+  async fn context_module_before_resolve(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    let res = self
+      .context_module_before_resolve
+      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+    res
+  }
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: rspack_core::PluginContext,
@@ -382,6 +413,8 @@ impl JsHooksAdapter {
       after_emit,
       optimize_modules,
       optimize_chunk_module,
+      before_resolve,
+      context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
       finish_modules,
       chunk_asset,
@@ -414,6 +447,10 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(optimize_chunk_module, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_modules, env);
+    let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
+      js_fn_into_theadsafe_fn!(context_module_before_resolve, env);
+    let before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
+      js_fn_into_theadsafe_fn!(before_resolve, env);
     let normal_module_factory_resolve_for_scheme: ThreadsafeFunction<
       SchemeAndJsResourceData,
       JsResourceData,
@@ -437,6 +474,8 @@ impl JsHooksAdapter {
       after_emit_tsfn,
       optimize_modules_tsfn,
       optimize_chunk_modules_tsfn,
+      before_resolve,
+      context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
       finish_modules_tsfn,
       chunk_asset_tsfn,

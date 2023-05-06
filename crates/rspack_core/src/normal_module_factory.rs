@@ -16,9 +16,9 @@ use crate::{
   DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
   ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -85,6 +85,32 @@ impl NormalModuleFactory {
     let mut no_pre_auto_loaders = false;
     let mut no_auto_loaders = false;
     let mut no_pre_post_auto_loaders = false;
+    if let Ok(Some(false)) = plugin_driver
+      .read()
+      .await
+      .before_resolve(NormalModuleBeforeResolveArgs {
+        request: data.dependency.request().to_owned(),
+        context: data.context.clone(),
+      })
+      .await
+    {
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
+      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+      let missing_module = MissingModule::new(
+        module_identifier,
+        format!("{ident} (missing)"),
+        format!("Failed to resolve {request_without_match_resource}"),
+      )
+      .boxed();
+      self.context.module_type = Some(*missing_module.module_type());
+      return Ok(Some(
+        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
+      ));
+    }
 
     // with scheme, windows absolute path is considered scheme by `url`
     let resource_data = if let Some(scheme) = scheme && !Path::is_absolute(Path::new(request_without_match_resource)) {

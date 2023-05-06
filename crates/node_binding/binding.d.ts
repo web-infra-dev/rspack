@@ -81,6 +81,11 @@ export class Rspack {
   unsafe_drop(): void
 }
 
+export interface BeforeResolveData {
+  request: string
+  context?: string
+}
+
 /**
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
@@ -163,6 +168,8 @@ export interface JsHooks {
   optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   finishModules: (...args: any[]) => any
+  beforeResolve: (...args: any[]) => any
+  contextModuleBeforeResolve: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
 }

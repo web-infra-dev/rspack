@@ -7,28 +7,29 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+import * as binding from "@rspack/binding";
 import fs from "fs";
 import * as tapable from "tapable";
-import { SyncHook, SyncBailHook, Callback } from "tapable";
+import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
-import Watching from "./watching";
-import * as binding from "@rspack/binding";
-import { Logger } from "./logging/Logger";
-import { RspackOptionsNormalized } from "./config";
-import { RuleSetCompiler } from "./RuleSetCompiler";
-import { Stats } from "./stats";
-import { Compilation, CompilationParams } from "./compilation";
+import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { WatchFileSystem } from "./util/fs";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import { RuleSetCompiler } from "./RuleSetCompiler";
+import { Compilation, CompilationParams } from "./compilation";
+import { RspackOptionsNormalized } from "./config";
 import { getRawOptions } from "./config/adapter";
-import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
-import { NormalModuleFactory } from "./normalModuleFactory";
-import { runLoader } from "./loader-runner";
-import CacheFacade from "./lib/CacheFacade";
-import Cache from "./lib/Cache";
-import { getScheme } from "./util/scheme";
 import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
+import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
+import Cache from "./lib/Cache";
+import CacheFacade from "./lib/CacheFacade";
+import { runLoader } from "./loader-runner";
+import { Logger } from "./logging/Logger";
+import { NormalModuleFactory } from "./normalModuleFactory";
+import { Stats } from "./stats";
+import { WatchFileSystem } from "./util/fs";
+import { getScheme } from "./util/scheme";
+import Watching from "./watching";
 
 class EntryPlugin {
 	apply() {}
@@ -72,6 +73,8 @@ class Compiler {
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
 		compile: tapable.SyncHook<[any]>;
+		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
+		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
@@ -154,6 +157,12 @@ class Compiler {
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
+			normalModuleFactory: new tapable.SyncHook<NormalModuleFactory>([
+				"normalModuleFactory"
+			]),
+			contextModuleFactory: new tapable.SyncHook<ContextModuleFactory>([
+				"contextModuleFactory"
+			]),
 			watchRun: new tapable.AsyncSeriesHook(["compiler"]),
 			watchClose: new tapable.SyncHook([]),
 			environment: new tapable.SyncHook([]),
@@ -254,7 +263,10 @@ class Compiler {
 					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this),
-					chunkAsset: this.#chunkAsset.bind(this)
+					chunkAsset: this.#chunkAsset.bind(this),
+					beforeResolve: this.#beforeResolve.bind(this),
+					contextModuleBeforeResolve:
+						this.#contextModuleBeforeResolve.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 				loaderContext => runLoader(loaderContext, this)
@@ -400,6 +412,17 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
+	async #beforeResolve(resourceData: binding.BeforeResolveData) {
+		return await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
+			resourceData
+		);
+	}
+	async #contextModuleBeforeResolve(resourceData: binding.BeforeResolveData) {
+		return await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
+			resourceData
+		);
+	}
+
 	async #normalModuleFactoryResolveForScheme(
 		resourceData: binding.SchemeAndJsResourceData
 	) {
@@ -462,7 +485,11 @@ class Compiler {
 		this.compilation = compilation;
 		// reset normalModuleFactory when create new compilation
 		let normalModuleFactory = new NormalModuleFactory();
+		let contextModuleFactory = new ContextModuleFactory();
 		this.compilation.normalModuleFactory = normalModuleFactory;
+		this.hooks.normalModuleFactory.call(normalModuleFactory);
+		this.compilation.contextModuleFactory = contextModuleFactory;
+		this.hooks.contextModuleFactory.call(normalModuleFactory);
 		this.hooks.thisCompilation.call(this.compilation, {
 			normalModuleFactory: normalModuleFactory
 		});

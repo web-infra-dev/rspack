@@ -9,10 +9,10 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs,
   ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
   FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  SourceType, ThisCompilationArgs,
+  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
+  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -25,6 +25,7 @@ pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<Option<ResourceData>>;
+pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
 pub type PluginChunkHashHookOutput = Result<Option<u64>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
@@ -85,6 +86,22 @@ pub trait Plugin: Debug + Send + Sync {
     _args: FactorizeArgs<'_>,
     _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
+    Ok(None)
+  }
+
+  async fn before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    Ok(None)
+  }
+
+  async fn context_module_before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
 

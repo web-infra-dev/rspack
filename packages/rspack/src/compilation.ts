@@ -8,41 +8,38 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as tapable from "tapable";
-import { RawSource, Source } from "webpack-sources";
-import { Resolver } from "enhanced-resolve";
+import { Source } from "webpack-sources";
 
 import {
-	JsCompilation,
-	JsAssetInfo,
-	JsCompatSource,
 	JsAsset,
-	JsModule,
+	JsAssetInfo,
 	JsChunk,
-	JsStatsError,
-	JsStatsWarning
+	JsCompatSource,
+	JsCompilation,
+	JsModule
 } from "@rspack/binding";
 
-import {
-	RspackOptionsNormalized,
-	StatsOptions,
-	OutputNormalized,
-	StatsValue
-} from "./config";
-import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
+import { ContextModuleFactory } from "./ContextModuleFactory";
+import * as ErrorHelpers from "./ErrorHelpers";
+import ResolverFactory from "./ResolverFactory";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
-import ResolverFactory from "./ResolverFactory";
+import {
+	OutputNormalized,
+	RspackOptionsNormalized,
+	StatsOptions,
+	StatsValue
+} from "./config";
+import { LogType, Logger } from "./logging/Logger";
+import { NormalModule } from "./normalModule";
+import { NormalModuleFactory } from "./normalModuleFactory";
+import { Stats, normalizeStatsPreset } from "./stats";
+import { concatErrorMsgAndStack } from "./util";
+import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
-import { Logger, LogType } from "./logging/Logger";
-import * as ErrorHelpers from "./ErrorHelpers";
-import { concatErrorMsgAndStack } from "./util";
-import { normalizeStatsPreset, Stats } from "./stats";
-import { NormalModuleFactory } from "./normalModuleFactory";
-import CacheFacade from "./lib/CacheFacade";
-import { NormalModule } from "./normalModule";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -96,6 +93,7 @@ export class Compilation {
 	startTime?: number;
 	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
+	contextModuleFactory?: ContextModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
