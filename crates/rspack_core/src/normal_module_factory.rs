@@ -35,6 +35,35 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    if let Ok(Some(before_resolve_data)) = self.before_resolve(&data).await {
+      return Ok(before_resolve_data);
+    }
+    Ok(self.factorize(data).await?)
+  }
+}
+
+static MATCH_RESOURCE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
+
+impl NormalModuleFactory {
+  pub fn new(
+    context: NormalModuleFactoryContext,
+    resolver_factory: Arc<ResolverFactory>,
+    plugin_driver: SharedPluginDriver,
+    cache: Arc<Cache>,
+  ) -> Self {
+    Self {
+      context,
+      resolver_factory,
+      plugin_driver,
+      cache,
+    }
+  }
+
+  pub async fn before_resolve(
+    &mut self,
+    data: &ModuleFactoryCreateData,
+  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     if let Ok(Some(false)) = self
       .plugin_driver
       .read()
@@ -68,28 +97,11 @@ impl ModuleFactory for NormalModuleFactory {
       )
       .boxed();
       self.context.module_type = Some(*missing_module.module_type());
-      return Ok(ModuleFactoryResult::new(missing_module).with_empty_diagnostic());
+      return Ok(Some(
+        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
+      ));
     }
-    Ok(self.factorize(data).await?)
-  }
-}
-
-static MATCH_RESOURCE_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
-
-impl NormalModuleFactory {
-  pub fn new(
-    context: NormalModuleFactoryContext,
-    resolver_factory: Arc<ResolverFactory>,
-    plugin_driver: SharedPluginDriver,
-    cache: Arc<Cache>,
-  ) -> Self {
-    Self {
-      context,
-      resolver_factory,
-      plugin_driver,
-      cache,
-    }
+    Ok(None)
   }
 
   pub async fn factorize_normal_module(
