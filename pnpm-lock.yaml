@@ -313,6 +313,7 @@ importers:
     specifiers:
       '@babel/preset-env': 7.20.2
       '@mdx-js/loader': 2.2.1
+      '@node-rs/crc32': 1.7.0
       '@rspack/cli': workspace:*
       '@svgr/webpack': 6.5.1
       autoprefixer: 10.4.13
@@ -321,6 +322,7 @@ importers:
       image-webpack-loader: 8.1.0
       json-loader: 0.5.7
       less-loader: 11.1.0
+      node-loader: 2.0.0
       postcss-loader: 7.0.2
       raw-loader: 4.0.2
       sass-loader: 13.2.0
@@ -333,6 +335,8 @@ importers:
       ts-loader: 9.4.2
       url-loader: 4.1.1
       yaml-loader: 0.8.0
+    dependencies:
+      '@node-rs/crc32': 1.7.0
     devDependencies:
       '@babel/preset-env': 7.20.2
       '@mdx-js/loader': 2.2.1
@@ -344,6 +348,7 @@ importers:
       image-webpack-loader: 8.1.0
       json-loader: 0.5.7
       less-loader: 11.1.0
+      node-loader: 2.0.0
       postcss-loader: 7.0.2
       raw-loader: 4.0.2
       sass-loader: 13.2.0
@@ -6405,6 +6410,142 @@ packages:
       '@angular/compiler-cli': 16.0.0_scldldeidleauflck5yigfgo3u
       typescript: 4.9.4
     dev: true
+
+  /@node-rs/crc32-android-arm-eabi/1.7.0:
+    resolution: {integrity: sha512-a0ligyBGOUT3xcVPo9Ozt2KdrmHFu9jYj2dxqxWFndEM+R6576tOAq2xBIotmpRgKK30KObPz83FFyul1rksbQ==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [android]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-android-arm64/1.7.0:
+    resolution: {integrity: sha512-UU0vc7mERSd+SbuKU1uuB3t+t2PS89Z2ehmSwqMfFewIPTLno5OkO7VeNdDSp+qrOv0f/mbB+j2LMhYOIxAU9Q==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [android]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-darwin-arm64/1.7.0:
+    resolution: {integrity: sha512-VJVi5VSihwXz2fwkYaxypR+WaqTtNGJlC3UEN+R41ftvpZ8U/tp48hjLGnWcPApAfnhBEOrEvnpH2Tv4+XVW/Q==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-darwin-x64/1.7.0:
+    resolution: {integrity: sha512-6W6mPsUB5612A3VIOIVOiWsjtV34Efo4DC7+/Hg/l14F0xVh2agJA8wMpq8jByPZNZ+LV3kunCR7HB2hGY68YQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-freebsd-x64/1.7.0:
+    resolution: {integrity: sha512-Roua2jhneDWnKMRoJI7ruHeiimkrbd6U2c0+S42AgL4Io4177B7+DVZoebHvW0ozuAQFqYj9WE8R/uXU88mcpA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [freebsd]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-linux-arm-gnueabihf/1.7.0:
+    resolution: {integrity: sha512-6jB+NWDnlcA3tuo9cLCmj2h53btYBurdkHfbcg6RasP0i1c7azE5+J7NXXZyZhUHmzmbf7P+ce6gG3PRQl8ncA==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-linux-arm64-gnu/1.7.0:
+    resolution: {integrity: sha512-ZrlmD+sEyuDNQ+SibtwCy1dUn0hD7AM2YYovL5qw7sX6moqodloaipAAlDTyah2YGnhPKZMklgR2dxxj5Um1ag==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-linux-arm64-musl/1.7.0:
+    resolution: {integrity: sha512-81s43ZWAB9xxn4lyyjUlLSXKov1iMkS1RBrfgKXGtaVQLHB0c39qYL4rPvSwicEO3DvZsmHKASlGDgTctl5oag==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-linux-x64-gnu/1.7.0:
+    resolution: {integrity: sha512-MpMThABlKf0WDKnJdJ26mUGYTnMOnupNiGKessH93UgyEjq9gZBpbtuXE/9N8PoAl5ItyjjmCsg1g4ZVjuqb6w==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-linux-x64-musl/1.7.0:
+    resolution: {integrity: sha512-9EvPtWTLCsxyuNBz7/uLKDlSowgIHZeQRN/lQhw4ez/r6vKE5VQpS8ZtXlAUcSGoloXNxpZ/6zIcv21J7KWhzQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-win32-arm64-msvc/1.7.0:
+    resolution: {integrity: sha512-i/IC2TrEBJ3tr44leBUejLbfK22EY7s6AWngspLejh81obvC4GUAUPn13HaNBcTtngjWwLX+V+Q97ibmCNEshA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-win32-ia32-msvc/1.7.0:
+    resolution: {integrity: sha512-nI5MiJfPDX0elHE/sDJGNWNlIYLORKRxhPTLvMp3Z+IdiUHu+6BrH21ymCN5ap+k45acUKAUOb7d9ctjN+9jBg==}
+    engines: {node: '>= 10'}
+    cpu: [ia32]
+    os: [win32]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32-win32-x64-msvc/1.7.0:
+    resolution: {integrity: sha512-TdRNLPQ7DCt401nKU0c9ZbG8ITRO9WG7bV3Xgwgd8eK/jvfuqNC0Oy1o8uTzuagUqqAMXuSNbZ2nsDKARTzvHQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+    requiresBuild: true
+    dev: false
+    optional: true
+
+  /@node-rs/crc32/1.7.0:
+    resolution: {integrity: sha512-cEvvgaA+amK2LO54E3eHFlXg9kqXR27qTRaQjJyW0Ra2x+aAdbio7CICy7JughiYv6f/79FrTpYdtmsW9jkHjA==}
+    engines: {node: '>= 10'}
+    optionalDependencies:
+      '@node-rs/crc32-android-arm-eabi': 1.7.0
+      '@node-rs/crc32-android-arm64': 1.7.0
+      '@node-rs/crc32-darwin-arm64': 1.7.0
+      '@node-rs/crc32-darwin-x64': 1.7.0
+      '@node-rs/crc32-freebsd-x64': 1.7.0
+      '@node-rs/crc32-linux-arm-gnueabihf': 1.7.0
+      '@node-rs/crc32-linux-arm64-gnu': 1.7.0
+      '@node-rs/crc32-linux-arm64-musl': 1.7.0
+      '@node-rs/crc32-linux-x64-gnu': 1.7.0
+      '@node-rs/crc32-linux-x64-musl': 1.7.0
+      '@node-rs/crc32-win32-arm64-msvc': 1.7.0
+      '@node-rs/crc32-win32-ia32-msvc': 1.7.0
+      '@node-rs/crc32-win32-x64-msvc': 1.7.0
+    dev: false
 
   /@nodelib/fs.scandir/2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -17348,6 +17489,15 @@ packages:
 
   /node-int64/0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
+    dev: true
+
+  /node-loader/2.0.0:
+    resolution: {integrity: sha512-I5VN34NO4/5UYJaUBtkrODPWxbobrE4hgDqPrjB25yPkonFhCmZ146vTH+Zg417E9Iwoh1l/MbRs1apc5J295Q==}
+    engines: {node: '>= 10.13.0'}
+    peerDependencies:
+      webpack: ^5.0.0
+    dependencies:
+      loader-utils: 2.0.4
     dev: true
 
   /node-releases/2.0.10:

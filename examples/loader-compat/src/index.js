@@ -10,6 +10,7 @@ import k from "./k.ts";
 import l from "./l.png";
 import { ReactComponent as Logo } from "./logo.svg";
 import Icon from "svg-react-loader?name=Icon!./arco.svg";
+import crc32 from "@node-rs/crc32";
 
 console.log({
 	a,
@@ -23,5 +24,6 @@ console.log({
 	j,
 	k,
 	l,
-	Icon
+	Icon,
+	crc32
 });
