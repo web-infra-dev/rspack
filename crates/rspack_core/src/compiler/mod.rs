@@ -179,6 +179,7 @@ where
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
       if self.options.optimization.side_effects.is_enable() {
+        dbg!(analyze_result.include_module_ids.len());
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
       for entry in &self.compilation.entry_module_identifiers {
