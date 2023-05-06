@@ -204,6 +204,7 @@ impl CopyPlugin {
           chunkhash: None,
           hash: Some(content_hash.to_string()),
           query: None,
+          ..Default::default()
         },
       );
 

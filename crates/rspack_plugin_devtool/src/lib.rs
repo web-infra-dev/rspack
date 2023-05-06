@@ -11,7 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
   AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext,
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
-  ProcessAssetsArgs, RenderModuleContentArgs,
+  ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
 use rspack_error::{internal_error, Result};
 use rspack_util::swc::normalize_custom_filename;
@@ -64,7 +64,6 @@ impl Plugin for DevtoolPlugin {
   fn name(&self) -> &'static str {
     "devtool"
   }
-
   fn render_module_content(
     &self,
     _ctx: PluginContext,
@@ -137,9 +136,10 @@ impl Plugin for DevtoolPlugin {
       })
       .collect::<Result<_>>()?;
     for (filename, map_buffer) in maps {
+      let is_css = IS_CSS_FILE.is_match(&filename);
       let current_source_mapping_url_comment =
         self.source_mapping_url_comment.as_ref().map(|comment| {
-          if IS_CSS_FILE.is_match(&filename) {
+          if is_css {
             format!("\n/*{comment}*/")
           } else {
             format!("\n//{comment}")
@@ -153,7 +153,7 @@ impl Plugin for DevtoolPlugin {
           .compilation
           .assets_mut()
           .remove(&filename)
-          .expect("TODO:");
+          .unwrap_or_else(|| panic!("TODO:"));
         asset.source = Some(
           ConcatSource::new([
             asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
@@ -167,7 +167,31 @@ impl Plugin for DevtoolPlugin {
         );
         args.compilation.emit_asset(filename, asset);
       } else {
-        let source_map_filename = filename.clone() + ".map";
+        let mut source_map_filename = filename.to_owned() + ".map";
+        // https://webpack.docschina.org/configuration/output/#outputsourcemapfilename
+        if args.compilation.options.devtool.source_map() {
+          let source_map_filename_config = &args.compilation.options.output.source_map_filename;
+          for chunk in args.compilation.chunk_by_ukey.values() {
+            for file in &chunk.files {
+              if *file.to_string() == filename {
+                let extension = if is_css { ".css" } else { ".js" };
+                let source_type = if is_css {
+                  &SourceType::Css
+                } else {
+                  &SourceType::JavaScript
+                };
+                source_map_filename = source_map_filename_config.render_with_chunk_and_file(
+                  chunk,
+                  &filename,
+                  extension,
+                  source_type,
+                );
+                break;
+              }
+            }
+          }
+        }
+
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
           let source_map_url = if let Some(public_path) = &self.public_path {
             format!("{public_path}{source_map_filename}")

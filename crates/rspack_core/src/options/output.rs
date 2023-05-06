@@ -33,6 +33,7 @@ pub struct OutputOptions {
   pub iife: bool,
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
+  pub source_map_filename: Filename,
 }
 
 #[derive(Debug)]
@@ -79,6 +80,7 @@ impl std::fmt::Display for CrossOriginLoading {
   }
 }
 
+pub const FILE_PLACEHOLDER: &str = "[file]";
 pub const NAME_PLACEHOLDER: &str = "[name]";
 pub const PATH_PLACEHOLDER: &str = "[path]";
 pub const EXT_PLACEHOLDER: &str = "[ext]";
@@ -93,6 +95,7 @@ pub const QUERY_PLACEHOLDER: &str = "[query]";
 
 #[derive(Debug, Default)]
 pub struct FilenameRenderOptions {
+  pub file: Option<String>,
   pub name: Option<String>,
   pub path: Option<String>,
   pub extension: Option<String>,
@@ -142,9 +145,32 @@ impl Filename {
       ..Default::default()
     })
   }
+  pub fn render_with_chunk_and_file(
+    &self,
+    chunk: &Chunk,
+    file: &str,
+    extension: &str,
+    source_type: &SourceType,
+  ) -> String {
+    let hash = Some(chunk.get_render_hash());
+    self.render(FilenameRenderOptions {
+      // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
+      file: Some(file.to_owned()),
+      name: chunk.name_for_filename_template(),
+      extension: Some(extension.to_owned()),
+      id: chunk.id.clone(),
+      contenthash: chunk.content_hash.get(source_type).cloned(),
+      chunkhash: hash.clone(),
+      hash,
+      ..Default::default()
+    })
+  }
 
   pub fn render(&self, options: FilenameRenderOptions) -> String {
     let mut filename = self.template.clone();
+    if let Some(file) = options.file {
+      filename = filename.replace(FILE_PLACEHOLDER, &file);
+    }
     if let Some(name) = options.name {
       filename = filename.replace(NAME_PLACEHOLDER, &name);
     }
