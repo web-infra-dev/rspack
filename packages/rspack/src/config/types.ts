@@ -588,7 +588,7 @@ export interface OptimizationSplitChunksOptions {
 export interface OptimizationSplitChunksCacheGroup {
 	chunks?: "initial" | "async" | "all";
 	minChunks?: number;
-	name?: string;
+	name?: string | false;
 	priority?: number;
 	reuseExistingChunk?: boolean;
 	test?: RegExp;

@@ -479,7 +479,7 @@ function getRawSplitChunksOptions(
 					Object.entries(sc.cacheGroups).map(([key, group]) => {
 						let normalizedGroup: RawCacheGroupOptions = {
 							test: group.test ? group.test.source : undefined,
-							name: group.name,
+							name: group.name === false ? undefined : group.name,
 							priority: group.priority,
 							minChunks: group.minChunks,
 							chunks: group.chunks,
