@@ -152,7 +152,7 @@ where
       .keys()
       .cloned()
       .collect::<IdentifierSet>();
-    if option.builtins.tree_shaking
+    if option.builtins.tree_shaking.enable()
       || option
         .output
         .enabled_library_types

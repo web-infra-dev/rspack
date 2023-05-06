@@ -107,7 +107,7 @@ pub struct RawBuiltins {
   pub define: Define,
   #[napi(ts_type = "Record<string, string[]>")]
   pub provide: Provide,
-  pub tree_shaking: bool,
+  pub tree_shaking: String,
   pub progress: Option<RawProgressPluginConfig>,
   pub react: RawReactOptions,
   pub decorator: Option<RawDecoratorOptions>,
@@ -172,7 +172,7 @@ impl RawOptionsApply for RawBuiltins {
       preset_env: self.preset_env.map(Into::into),
       define: self.define,
       provide: self.provide,
-      tree_shaking: self.tree_shaking,
+      tree_shaking: rspack_core::TreeShaking::False,
       react: self.react.into(),
       decorator: self.decorator.map(|i| i.into()),
       no_emit_assets: self.no_emit_assets,

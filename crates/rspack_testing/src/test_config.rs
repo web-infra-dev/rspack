@@ -158,7 +158,7 @@ pub struct Builtins {
   #[serde(default)]
   pub minify_options: Option<Minification>,
   #[serde(default)]
-  pub tree_shaking: bool,
+  pub tree_shaking: String,
   #[serde(default)]
   pub preset_env: Option<PresetEnv>,
   #[serde(default)]
@@ -425,7 +425,7 @@ impl TestConfig {
       builtins: c::Builtins {
         define: self.builtins.define,
         provide: self.builtins.provide,
-        tree_shaking: self.builtins.tree_shaking,
+        tree_shaking: self.builtins.tree_shaking.into(),
         minify_options: self.builtins.minify_options.map(|op| c::Minification {
           passes: op.passes,
           drop_console: op.drop_console,

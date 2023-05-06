@@ -256,15 +256,15 @@ pub fn run_after_pass(
             &compilation.include_module_ids,
             compilation.options.clone()
           ),
-          builtin_tree_shaking && need_tree_shaking
+          builtin_tree_shaking.enable() && need_tree_shaking
         ),
         Optional::new(
           Repeat::new(dce(Config::default(), unresolved_mark)),
-          need_tree_shaking && builtin_tree_shaking && minify_options.is_none()
+          need_tree_shaking && builtin_tree_shaking.enable() && minify_options.is_none()
         ),
         Optional::new(
           dce(Config::default(), unresolved_mark),
-          need_tree_shaking && builtin_tree_shaking && minify_options.is_some()
+          need_tree_shaking && builtin_tree_shaking.enable() && minify_options.is_some()
         ),
         swc_visitor::build_module(
           &cm,
