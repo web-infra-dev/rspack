@@ -42,6 +42,30 @@ impl TreeShaking {
   pub fn enable(&self) -> bool {
     matches!(self, TreeShaking::Module | TreeShaking::True)
   }
+
+  /// Returns `true` if the tree shaking is [`True`].
+  ///
+  /// [`True`]: TreeShaking::True
+  #[must_use]
+  pub fn is_true(&self) -> bool {
+    matches!(self, Self::True)
+  }
+
+  /// Returns `true` if the tree shaking is [`False`].
+  ///
+  /// [`False`]: TreeShaking::False
+  #[must_use]
+  pub fn is_false(&self) -> bool {
+    matches!(self, Self::False)
+  }
+
+  /// Returns `true` if the tree shaking is [`Module`].
+  ///
+  /// [`Module`]: TreeShaking::Module
+  #[must_use]
+  pub fn is_module(&self) -> bool {
+    matches!(self, Self::Module)
+  }
 }
 
 impl From<String> for TreeShaking {

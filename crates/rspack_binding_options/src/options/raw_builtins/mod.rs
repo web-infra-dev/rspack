@@ -172,7 +172,7 @@ impl RawOptionsApply for RawBuiltins {
       preset_env: self.preset_env.map(Into::into),
       define: self.define,
       provide: self.provide,
-      tree_shaking: rspack_core::TreeShaking::False,
+      tree_shaking: self.tree_shaking.into(),
       react: self.react.into(),
       decorator: self.decorator.map(|i| i.into()),
       no_emit_assets: self.no_emit_assets,

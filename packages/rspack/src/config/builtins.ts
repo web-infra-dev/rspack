@@ -56,7 +56,7 @@ export type MinificationConfig = {
 export interface Builtins {
 	css?: CssPluginConfig;
 	postcss?: RawPostCssConfig;
-	treeShaking?: boolean;
+	treeShaking?: boolean | "module";
 	progress?: boolean | RawProgressPluginConfig;
 	react?: RawReactOptions;
 	noEmitAssets?: boolean;
@@ -174,6 +174,17 @@ function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 		return [key, value];
 	});
 	return Object.fromEntries(entries);
+}
+
+function resolveTreeShaking(
+	treeShaking: Builtins["treeShaking"],
+	production: boolean
+): RawBuiltins["treeShaking"] {
+	return treeShaking !== undefined
+		? treeShaking.toString()
+		: production
+		? "true"
+		: "false";
 }
 
 function resolveProvide(
@@ -365,7 +376,7 @@ export function resolveBuiltinsOptions(
 			}
 		},
 		postcss: { pxtorem: undefined, ...builtins.postcss },
-		treeShaking: builtins.treeShaking ?? !!production,
+		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
 		react: builtins.react ?? {},
 		noEmitAssets: builtins.noEmitAssets ?? false,
 		define: resolveDefine(builtins.define || {}),
