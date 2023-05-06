@@ -75,7 +75,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
           }
 
           chunk.id = Some(name.clone());
-          chunk.ids = vec![name.clone()];
+          chunk.ids = vec![name];
         }
 
         if chunk.id.is_none() {
@@ -103,7 +103,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
 
         let mut code_splitting_chunk_names = code_splitting_chunks
           .map(|c| {
-            c.id.as_ref().map(|id| id.as_str()).unwrap_or_else(|| {
+            c.id.as_deref().unwrap_or_else(|| {
               panic!(
                 "CodeSplitting chunks must have a name {:?}",
                 chunk.chunk_reasons.join("_")
@@ -122,7 +122,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
             .iter()
             .map(|s| s.as_str())
             .chain(["splitting"])
-            .chain(code_splitting_chunk_names.iter().map(|s| *s))
+            .chain(code_splitting_chunk_names.iter().copied())
             .intersperse(&self.delimiter)
             .collect::<String>()
         } else {
@@ -130,7 +130,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
             .id_name_hints
             .iter()
             .map(|s| s.as_str())
-            .chain(code_splitting_chunk_names.iter().map(|s| *s))
+            .chain(code_splitting_chunk_names.iter().copied())
             .intersperse(&self.delimiter)
             .collect::<String>()
         };
