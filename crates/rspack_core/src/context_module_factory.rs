@@ -22,6 +22,29 @@ impl ModuleFactory for ContextModuleFactory {
     mut self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    if let Ok(Some(false)) = self
+      .plugin_driver
+      .read()
+      .await
+      .context_module_before_resolve(NormalModuleBeforeResolveArgs {
+        request: data.dependency.request(),
+        context: &data.context,
+      })
+      .await
+    {
+      let specifier = data.dependency.request();
+      let ident = format!("{}{specifier}", data.context.expect("should have context"));
+
+      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+      let missing_module = MissingModule::new(
+        module_identifier,
+        format!("{ident} (missing)"),
+        format!("Failed to resolve {specifier}"),
+      )
+      .boxed();
+      return Ok(ModuleFactoryResult::new(missing_module).with_empty_diagnostic());
+    }
     Ok(self.resolve(data).await?)
   }
 }
@@ -56,26 +79,6 @@ impl ContextModuleFactory {
       missing_dependencies: &mut missing_dependencies,
     };
     let plugin_driver = &self.plugin_driver;
-    if let Ok(Some(false)) = plugin_driver
-      .read()
-      .await
-      .context_module_before_resolve(NormalModuleBeforeResolveArgs {
-        request: data.dependency.request(),
-        context: &data.context,
-      })
-      .await
-    {
-      let ident = format!("{}{specifier}", data.context.expect("should have context"));
-      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-      let missing_module = MissingModule::new(
-        module_identifier,
-        format!("{ident} (missing)"),
-        format!("Failed to resolve {specifier}"),
-      )
-      .boxed();
-      return Ok(ModuleFactoryResult::new(missing_module).with_empty_diagnostic());
-    }
 
     let resource_data = self
       .cache
