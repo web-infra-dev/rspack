@@ -730,6 +730,8 @@ impl Plugin for JsPlugin {
       source,
       output_path,
       path_options,
+      AssetInfo::default()
+        .with_content_hash(chunk.content_hash.get(&SourceType::JavaScript).cloned()),
     )])
   }
 

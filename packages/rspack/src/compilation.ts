@@ -697,6 +697,7 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_NONE = 0;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_HASH = 2500;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
@@ -713,6 +714,8 @@ export class Compilation {
 				return this.hooks.processAssets.stageOptimizeInline;
 			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
 				return this.hooks.processAssets.stageSummarize;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH:
+				return this.hooks.processAssets.stageOptimizeHash;
 			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
 				return this.hooks.processAssets.stageReport;
 			default:

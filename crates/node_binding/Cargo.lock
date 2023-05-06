@@ -1876,6 +1876,7 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_plugin_library",
  "rspack_plugin_progress",
+ "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_split_chunks",
@@ -2323,6 +2324,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_real_content_hash"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "derivative",
+ "indexmap",
+ "once_cell",
+ "rayon",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rustc-hash",
+ "xxhash-rust",
+]
+
+[[package]]
 name = "rspack_plugin_remove_empty_chunks"
 version = "0.1.0"
 dependencies = [
@@ -2390,7 +2407,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_plugin_asset",
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash",

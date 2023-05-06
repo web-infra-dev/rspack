@@ -410,6 +410,7 @@ impl PluginDriver {
     run_stage!(process_assets_stage_dev_tooling);
     run_stage!(process_assets_stage_optimize_inline);
     run_stage!(process_assets_stage_summarize);
+    run_stage!(process_assets_stage_optimize_hash);
     run_stage!(process_assets_stage_report);
     Ok(())
   }
