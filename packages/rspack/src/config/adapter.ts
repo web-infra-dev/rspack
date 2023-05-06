@@ -473,7 +473,7 @@ function getRawSplitChunksOptions(
 	sc: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] {
 	return {
-		name: sc.name,
+		name: sc.name === false ? undefined : sc.name,
 		cacheGroups: sc.cacheGroups
 			? Object.fromEntries(
 					Object.entries(sc.cacheGroups).map(([key, group]) => {
