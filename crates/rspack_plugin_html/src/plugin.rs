@@ -200,6 +200,7 @@ impl Plugin for HtmlPlugin {
       chunkhash: Some(hash.clone()),
       hash: Some(hash),
       query: Some("".to_string()),
+      ..Default::default()
     });
     compilation.emit_asset(
       html_file_name,
