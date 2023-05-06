@@ -9,13 +9,12 @@ use swc_core::{
 
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency,
-  DependencyId, ErrorSpan, JsAstPath, ModuleDependency, ModuleIdentifier, RuntimeGlobals,
+  DependencyId, ErrorSpan, JsAstPath, ModuleDependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RequireContextDependency {
   pub id: Option<DependencyId>,
-  pub parent_module_identifier: Option<ModuleIdentifier>,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
   #[allow(unused)]
@@ -25,7 +24,6 @@ pub struct RequireContextDependency {
 impl RequireContextDependency {
   pub fn new(options: ContextOptions, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
-      parent_module_identifier: None,
       options,
       span,
       ast_path,
@@ -47,14 +45,6 @@ impl Dependency for RequireContextDependency {
 
   fn dependency_type(&self) -> &crate::DependencyType {
     &crate::DependencyType::CommonJSRequireContext
-  }
-
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = module_identifier;
   }
 }
 

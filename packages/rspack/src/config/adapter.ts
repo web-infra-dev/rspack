@@ -15,6 +15,7 @@ import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
 	ComposeJsUseOptions,
+	LoaderContext,
 	createRawModuleRuleUses
 } from "./adapter-rule-use";
 import {
@@ -45,7 +46,12 @@ import {
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
-	compiler: Compiler
+	compiler: Compiler,
+	processResource: (
+		loaderContext: LoaderContext,
+		resourcePath: string,
+		callback: any
+	) => void
 ): RawOptions => {
 	assert(
 		!isNil(options.context) && !isNil(options.devtool) && !isNil(options.cache),

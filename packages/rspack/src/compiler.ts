@@ -18,6 +18,7 @@ import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Compilation, CompilationParams } from "./compilation";
 import { RspackOptionsNormalized } from "./config";
 import { getRawOptions } from "./config/adapter";
+import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
@@ -27,6 +28,7 @@ import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats } from "./stats";
 import { WatchFileSystem } from "./util/fs";
+import { getScheme } from "./util/scheme";
 import Watching from "./watching";
 
 class EntryPlugin {
@@ -190,10 +192,31 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
+		const processResource = (
+			loaderContext: LoaderContext,
+			resourcePath: string,
+			callback: any
+		) => {
+			const resource = loaderContext.resource;
+			const scheme = getScheme(resource);
+			this.compilation
+				.currentNormalModuleHooks()
+				.readResource.for(scheme)
+				.callAsync(loaderContext, (err: any, result: LoaderResult) => {
+					if (err) return callback(err);
+					if (typeof result !== "string" && !result) {
+						return callback(new Error(`Unhandled ${scheme} resource`));
+					}
+					return callback(null, result);
+				});
+		};
+		const options = getRawOptions(this.options, this, processResource);
+
 		this.#_instance =
 			this.#_instance ??
 			new binding.Rspack(
-				getRawOptions(this.options, this),
+				options,
+
 				{
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),

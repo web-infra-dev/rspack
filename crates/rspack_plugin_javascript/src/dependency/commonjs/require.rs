@@ -1,17 +1,16 @@
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
-  ModuleDependency, ModuleIdentifier,
+  ModuleDependency,
 };
 use swc_core::ecma::{
   ast::*,
   atoms::{Atom, JsWord},
 };
 
-#[derive(Debug, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct CommonJSRequireDependency {
   id: Option<DependencyId>,
-  parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   // user_request: String,
   category: &'static DependencyCategory,
@@ -21,31 +20,10 @@ pub struct CommonJSRequireDependency {
   ast_path: JsAstPath,
 }
 
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for CommonJSRequireDependency {
-  fn eq(&self, other: &Self) -> bool {
-    self.parent_module_identifier == other.parent_module_identifier
-      && self.request == other.request
-      && self.category == other.category
-      && self.dependency_type == other.dependency_type
-  }
-}
-
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for CommonJSRequireDependency {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.parent_module_identifier.hash(state);
-    self.request.hash(state);
-    self.category.hash(state);
-    self.dependency_type.hash(state);
-  }
-}
-
 impl CommonJSRequireDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
       id: None,
-      parent_module_identifier: None,
       request,
       // user_request,
       category: &DependencyCategory::CommonJS,
@@ -62,13 +40,6 @@ impl Dependency for CommonJSRequireDependency {
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = module_identifier;
   }
 
   fn category(&self) -> &DependencyCategory {

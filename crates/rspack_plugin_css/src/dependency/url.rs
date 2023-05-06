@@ -5,35 +5,18 @@ use rspack_core::{
 };
 use swc_core::css::ast::UrlValue;
 
-#[derive(Debug, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct CssUrlDependency {
   id: Option<DependencyId>,
-  parent_module_identifier: Option<ModuleIdentifier>,
   request: String,
   span: Option<ErrorSpan>,
   #[allow(unused)]
   ast_path: CssAstPath,
 }
 
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for CssUrlDependency {
-  fn eq(&self, other: &Self) -> bool {
-    self.parent_module_identifier == other.parent_module_identifier && self.request == other.request
-  }
-}
-
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for CssUrlDependency {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.parent_module_identifier.hash(state);
-    self.request.hash(state);
-  }
-}
-
 impl CssUrlDependency {
   pub fn new(request: String, span: Option<ErrorSpan>, ast_path: CssAstPath) -> Self {
     Self {
-      parent_module_identifier: None,
       request,
       span,
       ast_path,
@@ -75,13 +58,6 @@ impl Dependency for CssUrlDependency {
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = identifier;
   }
 
   fn category(&self) -> &DependencyCategory {

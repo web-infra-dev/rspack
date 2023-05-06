@@ -137,14 +137,8 @@ pub struct AddTask {
 
 #[derive(Debug)]
 pub enum AddTaskResult {
-  ModuleReused {
-    module: Box<dyn Module>,
-    dependencies: Vec<DependencyId>,
-  },
-  ModuleAdded {
-    module: Box<dyn Module>,
-    dependencies: Vec<DependencyId>,
-  },
+  ModuleReused { module: Box<dyn Module> },
+  ModuleAdded { module: Box<dyn Module> },
 }
 
 impl AddTask {
@@ -165,7 +159,6 @@ impl AddTask {
 
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused {
         module: self.module,
-        dependencies: self.dependencies,
       }));
     }
 
@@ -188,7 +181,6 @@ impl AddTask {
 
     Ok(TaskResult::Add(AddTaskResult::ModuleAdded {
       module: self.module,
-      dependencies: self.dependencies,
     }))
   }
 }
@@ -215,7 +207,6 @@ pub type AddQueue = WorkerQueue<AddTask>;
 
 pub struct BuildTask {
   pub module: Box<dyn Module>,
-  pub dependencies: Vec<DependencyId>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
@@ -225,7 +216,6 @@ pub struct BuildTask {
 #[derive(Debug)]
 pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
-  pub dependencies: Vec<DependencyId>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
 }
@@ -270,7 +260,6 @@ impl WorkerTask for BuildTask {
 
       TaskResult::Build(BuildTaskResult {
         module,
-        dependencies: self.dependencies,
         build_result: Box::new(build_result),
         diagnostics,
       })

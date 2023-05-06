@@ -31,6 +31,7 @@ import {
 	StatsValue
 } from "./config";
 import { LogType, Logger } from "./logging/Logger";
+import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
 import { concatErrorMsgAndStack } from "./util";
@@ -121,6 +122,11 @@ export class Compilation {
 		this.outputOptions = compiler.options.output;
 		this.logging = new Map();
 		this.#inner = inner;
+		// Cache the current NormalModuleHooks
+	}
+
+	get currentNormalModuleHooks() {
+		return NormalModule.getCompilationHooks(this);
 	}
 
 	get hash() {

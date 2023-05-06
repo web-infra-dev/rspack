@@ -1,6 +1,6 @@
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -28,9 +28,6 @@ impl Dependency for StaticExportsDependency {
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    None
   }
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
