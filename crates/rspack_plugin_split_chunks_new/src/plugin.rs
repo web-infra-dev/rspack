@@ -37,6 +37,8 @@ impl SplitChunksPlugin {
       let (_module_group_key, mut module_group) =
         self.find_best_module_group(&mut module_group_map);
 
+      let cache_group = &self.cache_groups[module_group.cache_group_index];
+
       let mut is_reuse_existing_chunk = false;
       let mut is_reuse_existing_chunk_with_all_modules = false;
       let new_chunk = self.get_corresponding_chunk(
@@ -45,6 +47,16 @@ impl SplitChunksPlugin {
         &mut is_reuse_existing_chunk,
         &mut is_reuse_existing_chunk_with_all_modules,
       );
+
+      let new_chunk_mut = new_chunk.as_mut(&mut compilation.chunk_by_ukey);
+
+      new_chunk_mut
+        .chunk_reasons
+        .push(["(cache group: ", cache_group.key.as_str(), ")"].join(""));
+
+      new_chunk_mut
+        .id_name_hints
+        .insert(cache_group.id_hint.clone());
 
       if is_reuse_existing_chunk {
         // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
