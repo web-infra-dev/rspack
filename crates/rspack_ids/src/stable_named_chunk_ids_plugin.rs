@@ -39,7 +39,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
 
     let mut used_code_splitting_chunk_name: FxHashSet<String> = FxHashSet::default();
 
-    let chunks_be_named = compilation
+    let chunks_to_be_named = compilation
       .chunk_by_ukey
       .values_mut()
       .filter_map(|chunk| {
@@ -73,19 +73,22 @@ impl Plugin for StableNamedChunkIdsPlugin {
           } else {
             used_code_splitting_chunk_name.insert(name.clone());
           }
+
+          chunk.id = Some(name.clone());
+          chunk.ids = vec![name.clone()];
         }
 
         if chunk.id.is_none() {
-          None
-        } else {
           Some(chunk.ukey)
+        } else {
+          None
         }
       })
       .collect::<Vec<_>>();
 
     let name_to_chunks: DashMap<String, FxHashSet<ChunkUkey>> = Default::default();
 
-    let chunks_has_no_name = chunks_be_named
+    let chunks_has_no_name = chunks_to_be_named
       .into_par_iter()
       .filter_map(|chunk| {
         let chunk = chunk.as_ref(&compilation.chunk_by_ukey);
@@ -100,10 +103,12 @@ impl Plugin for StableNamedChunkIdsPlugin {
 
         let mut code_splitting_chunk_names = code_splitting_chunks
           .map(|c| {
-            c.id
-              .as_ref()
-              .map(|id| id.as_str())
-              .expect("CodeSplitting chunks must have a name")
+            c.id.as_ref().map(|id| id.as_str()).unwrap_or_else(|| {
+              panic!(
+                "CodeSplitting chunks must have a name {:?}",
+                chunk.chunk_reasons.join("_")
+              )
+            })
           })
           .collect::<Box<[&str]>>();
 
