@@ -283,7 +283,6 @@ dependencies = [
  "lazy_static",
  "memchr",
  "regex-automata",
- "serde",
 ]
 
 [[package]]
@@ -514,13 +513,12 @@ dependencies = [
 
 [[package]]
 name = "csv"
-version = "1.1.6"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22813a6dc45b335f9bade10bf7271dc477e81113e89eb251a0bc2a8a81c536e1"
+checksum = "0b015497079b9a9d69c02ad25de6c0a6edef051ea6360a327d0bd05802ef64ad"
 dependencies = [
- "bstr",
  "csv-core",
- "itoa 0.4.8",
+ "itoa",
  "ryu",
  "serde",
 ]
@@ -1138,12 +1136,6 @@ checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
 dependencies = [
  "either",
 ]
-
-[[package]]
-name = "itoa"
-version = "0.4.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b71991ff56294aa922b450139ee08b3bfc70982c6b2c7562771375cf73542dd4"
 
 [[package]]
 name = "itoa"
@@ -2311,7 +2303,6 @@ dependencies = [
  "codespan-reporting",
  "futures",
  "insta",
- "rspack",
  "rspack_binding_options",
  "rspack_core",
  "rspack_fs",
@@ -2425,6 +2416,39 @@ dependencies = [
  "napi",
  "rspack_error",
  "tokio",
+]
+
+[[package]]
+name = "rspack_node"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "backtrace",
+ "dashmap",
+ "futures",
+ "mimalloc-rust",
+ "napi",
+ "napi-build",
+ "napi-derive",
+ "napi-sys",
+ "once_cell",
+ "regex",
+ "rspack_binding_macros",
+ "rspack_binding_options",
+ "rspack_core",
+ "rspack_error",
+ "rspack_fs",
+ "rspack_fs_node",
+ "rspack_identifier",
+ "rspack_napi_shared",
+ "rspack_plugin_html",
+ "rspack_tracing",
+ "serde",
+ "serde_json",
+ "testing_macros",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -3043,7 +3067,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "057d394a50403bcac12672b2b18fb387ab6d289d957dab67dd201875391e52f1"
 dependencies = [
  "indexmap",
- "itoa 1.0.6",
+ "itoa",
  "ryu",
  "serde",
 ]
@@ -4461,7 +4485,7 @@ version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a561bf4617eebd33bca6434b988f39ed798e527f51a1e797d0ee4f61c0a38376"
 dependencies = [
- "itoa 1.0.6",
+ "itoa",
  "serde",
  "time-core",
  "time-macros",
@@ -4761,12 +4785,11 @@ checksum = "5c3082ca00d5a5ef149bb8b555a72ae84c9c59f7250f013ac822ac2e49b19c64"
 
 [[package]]
 name = "walkdir"
-version = "2.3.2"
+version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "808cf2735cd4b6866113f648b791c6adc5714537bc222d9347bb203386ffda56"
+checksum = "36df944cda56c7d8d8b7496af378e6b16de9284591917d307c9b4d313c44e698"
 dependencies = [
  "same-file",
- "winapi",
  "winapi-util",
 ]
 
@@ -4848,9 +4871,9 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.60"
+version = "0.3.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcda906d8be16e728fd5adc5b729afad4e444e106ab28cd1c7256e54fa61510f"
+checksum = "e33b99f4b23ba3eec1a53ac264e35a755f00e966e0065077d6027c0f575b0b97"
 dependencies = [
  "js-sys",
  "wasm-bindgen",

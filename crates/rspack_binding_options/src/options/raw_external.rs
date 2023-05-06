@@ -7,7 +7,6 @@ use rspack_core::ExternalItemFnCtx;
 use rspack_core::{ExternalItem, ExternalItemFnResult, ExternalItemObject, ExternalItemValue};
 use rspack_regex::RspackRegex;
 use serde::Deserialize;
-#[cfg(feature = "node-api")]
 use {
   napi::Env,
   rspack_error::internal_error,
@@ -133,7 +132,6 @@ impl TryFrom<RawExternalItem> for ExternalItem {
           .collect();
         Ok(payload.into())
       }
-      #[cfg(feature = "node-api")]
       "function" => {
         let fn_payload = value
           .fn_payload

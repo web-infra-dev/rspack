@@ -1,8 +1,6 @@
 [workspace]
-exclude = [
-  "crates/node_binding",
-] # Avoid including node binding, since feature unification will cause an linking issue. See: https://doc.rust-lang.org/cargo/reference/features.html#feature-unification
-members = ["crates/*"]
+members  = ["crates/*"]
+resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
   [workspace.dependencies]
   anyhow             = { version = "1.0.70" }
