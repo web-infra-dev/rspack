@@ -13,9 +13,10 @@ module.exports = {
 			minSize: 1,
 			cacheGroups: {
 				splittedFoo: {
+					name: "splittedFoo",
 					test: /(foo|foo-2)\.js/,
 					priority: 0,
-					reuseExistingChunk: false
+					reuseExistingChunk: true
 				}
 			}
 		}
