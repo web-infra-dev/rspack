@@ -398,8 +398,13 @@ impl NormalModule {
     options: Arc<CompilerOptions>,
   ) -> Self {
     let module_type = module_type.into();
+    let identifier = if module_type == ModuleType::Js {
+      request.to_string()
+    } else {
+      format!("{module_type}|{request}")
+    };
     Self {
-      id: ModuleIdentifier::from(format!("{module_type}|{request}")),
+      id: ModuleIdentifier::from(identifier),
       request,
       user_request,
       raw_request,

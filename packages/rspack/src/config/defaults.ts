@@ -500,6 +500,7 @@ const applyExternalsPresetsDefaults = (
 	externalsPresets: ExternalsPresets,
 	{ targetProperties }: { targetProperties: any }
 ) => {
+	D(externalsPresets, "web", targetProperties && targetProperties.web);
 	D(externalsPresets, "node", targetProperties && targetProperties.node);
 };
 

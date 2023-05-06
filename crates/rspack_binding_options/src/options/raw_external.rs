@@ -168,4 +168,5 @@ impl TryFrom<RawExternalItem> for ExternalItem {
 #[napi(object)]
 pub struct RawExternalsPresets {
   pub node: bool,
+  pub web: bool,
 }

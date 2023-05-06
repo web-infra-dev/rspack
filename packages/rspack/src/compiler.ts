@@ -105,7 +105,7 @@ class Compiler {
 			},
 			Compilation,
 			get version() {
-				return "5.75.0"; // this is a hack to be compatible with plugin which detect webpack's version
+				return require("../package.json").webpackVersion; // this is a hack to be compatible with plugin which detect webpack's version
 			},
 			get rspackVersion() {
 				return require("../package.json").version;

@@ -72,7 +72,10 @@ export default class MultiStats {
 	toJson(options?: any) {
 		options = this.#createChildOptions(options, { forToString: false });
 
-		const obj: StatsCompilation = {};
+		const obj: StatsCompilation = {
+			rspackVersion: require("../package.json").version,
+			version: require("../package.json").webpackVersion
+		};
 		obj.children = this.stats.map((stat, idx) => {
 			const obj = stat.toJson(options.children[idx]);
 			const compilationName = stat.compilation.name;

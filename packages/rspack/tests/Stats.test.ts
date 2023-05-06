@@ -58,8 +58,8 @@ describe("Stats", () => {
 		          "chunks": [
 		            "main",
 		          ],
-		          "id": "777",
-		          "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/a.js",
+		          "id": "876",
+		          "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		          "issuerPath": [],
 		          "moduleType": "javascript/auto",
 		          "name": "./fixtures/a.js",
@@ -106,8 +106,8 @@ describe("Stats", () => {
 		      "chunks": [
 		        "main",
 		      ],
-		      "id": "777",
-		      "identifier": "javascript/auto|<PROJECT_ROOT>/tests/fixtures/a.js",
+		      "id": "876",
+		      "identifier": "<PROJECT_ROOT>/tests/fixtures/a.js",
 		      "issuerPath": [],
 		      "moduleType": "javascript/auto",
 		      "name": "./fixtures/a.js",
@@ -149,9 +149,9 @@ describe("Stats", () => {
 		main.js  215 bytes    main  [emitted]  main
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
-		 [777] ./fixtures/a.js 55 bytes {main}
+		 [876] ./fixtures/a.js 55 bytes {main}
 		     entry ./fixtures/a 
-		[777] ./fixtures/a.js 55 bytes {main}
+		[876] ./fixtures/a.js 55 bytes {main}
 		    entry ./fixtures/a "
 	`);
 	});
@@ -174,15 +174,15 @@ describe("Stats", () => {
 			entry: "./fixtures/abc"
 		});
 		expect(stats?.toString({ timings: false })).toMatchInlineSnapshot(`
-		"Hash: ef19f9b69eb0c2d0
+		"Hash: 54a4e1c6f704eccd
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main
 		Entrypoint main = main.js
-		[777] ./fixtures/a.js 55 bytes {main}
-		[510] ./fixtures/b.js 94 bytes {main}
-		[906] ./fixtures/c.js 72 bytes {main}
-		[492] ./fixtures/abc.js 83 bytes {main}
+		[876] ./fixtures/a.js 55 bytes {main}
+		[211] ./fixtures/b.js 94 bytes {main}
+		[537] ./fixtures/c.js 72 bytes {main}
+		[222] ./fixtures/abc.js 83 bytes {main}
 
 		error[javascript]: JavaScript parsing error
 		  ┌─ tests/fixtures/b.js:6:1

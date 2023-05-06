@@ -71,9 +71,6 @@ impl NormalModuleFactory {
       PathBuf::from(self.context.options.context.as_path())
     };
     let mut request_without_match_resource = data.dependency.request();
-    if should_skip_resolve(request_without_match_resource) {
-      return Ok(None);
-    }
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
@@ -588,13 +585,6 @@ impl NormalModuleFactory {
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
   }
-}
-
-pub fn should_skip_resolve(s: &str) -> bool {
-  s.starts_with("data:")
-    || s.starts_with("http://")
-    || s.starts_with("https://")
-    || s.starts_with("//")
 }
 
 #[derive(Debug, Clone)]
