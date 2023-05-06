@@ -84,6 +84,7 @@ const config = {
 			},
 			{
 				test: /\.svg$/,
+				exclude: /arco\.svg/,
 				use: ["@svgr/webpack", "file-loader"],
 				type: "javascript/auto"
 			},

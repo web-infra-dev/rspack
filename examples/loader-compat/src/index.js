@@ -9,6 +9,7 @@ import j from "./j.txt";
 import k from "./k.ts";
 import l from "./l.png";
 import { ReactComponent as Logo } from "./logo.svg";
+import Icon from "svg-react-loader?name=Icon!./arco.svg";
 
 console.log({
 	a,
@@ -21,5 +22,6 @@ console.log({
 	Logo,
 	j,
 	k,
-	l
+	l,
+	Icon
 });
