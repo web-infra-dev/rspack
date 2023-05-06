@@ -2,16 +2,6 @@ name: Test PR
 on:
   merge_group:
   pull_request:
-    paths:
-      - "crates/**"
-      - "packages/**"
-      - "examples/**"
-      - "Cargo.toml"
-      - "Cargo.lock"
-      - "rust-toolchain.toml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
     branches:
       - "**"
       - "!release-**"
