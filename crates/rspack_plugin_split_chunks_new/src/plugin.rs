@@ -269,27 +269,30 @@ impl SplitChunksPlugin {
     let keys_of_empty_group = module_group_map
       .iter_mut()
       .par_bridge()
+      .filter(|(_key, each_module_group)| {
+        // Fast path: check wether has overlap on chunks
+        each_module_group
+          .chunks
+          .intersection(used_chunks)
+          .next()
+          .is_some()
+      })
       .filter_map(|(key, each_module_group)| {
-        let has_overlap = each_module_group.chunks.union(used_chunks).next().is_some();
-        if has_overlap {
-          let mut updated = false;
-          for module in &item.modules {
-            if each_module_group.modules.contains(module) {
-              let module = compilation
-                .module_graph
-                .module_by_identifier(module)
-                .unwrap_or_else(|| panic!("Module({module}) not found"));
-              each_module_group.remove_module(module);
-              updated = true;
-            }
+        item.modules.iter().for_each(|module| {
+          if each_module_group.modules.contains(module) {
+            let module = compilation
+              .module_graph
+              .module_by_identifier(module)
+              .unwrap_or_else(|| panic!("Module({module}) not found"));
+            each_module_group.remove_module(module);
           }
+        });
 
-          if updated && each_module_group.modules.is_empty() {
-            return Some(key.clone());
-          }
+        if each_module_group.modules.is_empty() {
+          Some(key.clone())
+        } else {
+          None
         }
-
-        None
       })
       .collect::<Vec<_>>();
 
