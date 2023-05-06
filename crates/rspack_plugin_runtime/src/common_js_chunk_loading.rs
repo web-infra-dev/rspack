@@ -8,7 +8,7 @@ use rspack_error::Result;
 use crate::runtime_module::RequireChunkLoadingRuntimeModule;
 
 #[derive(Debug)]
-pub struct CommonJsChunkLoadingPlugin {}
+pub struct CommonJsChunkLoadingPlugin;
 
 #[async_trait]
 impl Plugin for CommonJsChunkLoadingPlugin {

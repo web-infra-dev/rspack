@@ -8,7 +8,7 @@ use rspack_error::Result;
 use crate::runtime_module::{ExportWebpackRequireRuntimeModule, ModuleChunkLoadingRuntimeModule};
 
 #[derive(Debug)]
-pub struct ModuleChunkLoadingPlugin {}
+pub struct ModuleChunkLoadingPlugin;
 
 #[async_trait]
 impl Plugin for ModuleChunkLoadingPlugin {

@@ -6,7 +6,7 @@ use rspack_core::{
 use crate::utils::property_access;
 
 #[derive(Debug, Default)]
-pub struct ExportPropertyLibraryPlugin {}
+pub struct ExportPropertyLibraryPlugin;
 
 impl ExportPropertyLibraryPlugin {}
 

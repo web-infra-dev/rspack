@@ -9,7 +9,7 @@ use rspack_error::Result;
 
 use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
-pub struct EnableWasmLoadingPlugin {}
+pub struct EnableWasmLoadingPlugin;
 
 #[derive(Debug, Default)]
 pub struct AsyncWasmPlugin {
