@@ -5,6 +5,7 @@ CARGO_WORKSPACE_DIR = { value = "", relative = true }
 [alias]
 lint = "clippy --workspace --all-targets -- --deny warnings"
 # AKA `test-update`, handy cargo rst update without install `cargo-rst` binary
+t  = "test --no-fail-fast"
 tu = "run -p cargo-rst -- update"
 [target.'cfg(all())']
 rustflags = [
