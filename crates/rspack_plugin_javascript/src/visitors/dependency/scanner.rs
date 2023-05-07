@@ -32,6 +32,7 @@ pub struct DependencyScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
   pub comments: Option<&'a dyn Comments>,
+  pub in_try: bool,
 }
 
 impl DependencyScanner<'_> {
@@ -360,7 +361,15 @@ impl VisitAstPath for DependencyScanner<'_> {
     self.add_new_url(node, &*ast_path);
     node.visit_children_with_path(self, ast_path);
   }
-
+  fn visit_try_stmt<'ast: 'r, 'r>(
+    &mut self,
+    n: &'ast swc_core::ecma::ast::TryStmt,
+    ast_path: &mut swc_core::ecma::visit::AstNodePath<'r>,
+  ) {
+    self.in_try = true;
+    node.visit_children_with_path(self, ast_path);
+    self.in_try = false;
+  }
   fn visit_expr<'ast: 'r, 'r>(
     &mut self,
     expr: &'ast Expr,
