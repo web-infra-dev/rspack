@@ -165,6 +165,10 @@ pub trait Dependency: CodeGeneratable + AsAny + DynClone + Send + Sync + Debug {
   fn get_context(&self) -> Option<&str> {
     None
   }
+
+  fn get_optional(&self) -> bool {
+    false
+  }
 }
 
 impl Dependency for Box<dyn Dependency> {

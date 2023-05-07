@@ -268,6 +268,7 @@ impl NormalModuleFactory {
           inline_loaders.push(res);
         }
       }
+      let optional = data.dependency.get_optional();
 
       let resolve_args = ResolveArgs {
         importer,
@@ -278,6 +279,7 @@ impl NormalModuleFactory {
         span: data.dependency.span().cloned(),
         resolve_options: data.resolve_options,
         resolve_to_context: false,
+        optional,
         file_dependencies: &mut file_dependencies,
         missing_dependencies: &mut missing_dependencies,
       };

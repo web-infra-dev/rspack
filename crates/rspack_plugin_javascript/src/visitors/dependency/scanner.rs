@@ -72,6 +72,7 @@ impl DependencyScanner<'_> {
                     request,
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
+                    self.in_try
                   )));
                   return;
                 }
@@ -80,6 +81,7 @@ impl DependencyScanner<'_> {
                     s.value.clone(),
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
+                    self.in_try,
                   )));
                   return;
                 }
@@ -363,13 +365,14 @@ impl VisitAstPath for DependencyScanner<'_> {
   }
   fn visit_try_stmt<'ast: 'r, 'r>(
     &mut self,
-    n: &'ast swc_core::ecma::ast::TryStmt,
+    node: &'ast swc_core::ecma::ast::TryStmt,
     ast_path: &mut swc_core::ecma::visit::AstNodePath<'r>,
   ) {
     self.in_try = true;
     node.visit_children_with_path(self, ast_path);
     self.in_try = false;
   }
+
   fn visit_expr<'ast: 'r, 'r>(
     &mut self,
     expr: &'ast Expr,
@@ -464,6 +467,7 @@ impl<'a> DependencyScanner<'a> {
     comments: Option<&'a dyn Comments>,
   ) -> Self {
     Self {
+      in_try: false,
       unresolved_ctxt,
       dependencies,
       presentational_dependencies,
