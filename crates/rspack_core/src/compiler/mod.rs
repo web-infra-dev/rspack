@@ -152,7 +152,7 @@ where
       .keys()
       .cloned()
       .collect::<IdentifierSet>();
-    if option.builtins.tree_shaking
+    if true
       || option
         .output
         .enabled_library_types
@@ -181,7 +181,12 @@ where
       if self.options.optimization.side_effects.is_enable() {
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
-      for entry in &self.compilation.entry_module_identifiers {
+      for entry in self
+        .compilation
+        .module_graph
+        .module_identifier_to_module
+        .keys()
+      {
         if let Some(analyze_results) = analyze_result.analyze_results.get(entry) {
           self
             .compilation

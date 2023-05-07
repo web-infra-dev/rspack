@@ -27,6 +27,11 @@ pub trait CodeGeneratable {
 }
 
 pub type JsAstPath = Vec<swc_core::ecma::visit::AstParentKind>;
+pub fn dummy_js_ast_path() -> JsAstPath {
+  vec![swc_core::ecma::visit::AstParentKind::Invalid(
+    swc_core::ecma::visit::fields::InvalidField::Span,
+  )]
+}
 pub type CssAstPath = Vec<swc_core::css::visit::AstParentKind>;
 
 pub enum CodeGeneratableAstPath {

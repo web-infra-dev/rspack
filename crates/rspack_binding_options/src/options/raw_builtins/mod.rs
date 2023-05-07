@@ -94,6 +94,15 @@ impl From<RawCodeGeneration> for CodeGeneration {
     }
   }
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawReactFlight {
+  pub client_references: Vec<String>,
+  pub client_file_name: String,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -119,6 +128,7 @@ pub struct RawBuiltins {
   pub plugin_import: Option<Vec<RawPluginImportConfig>>,
   pub relay: Option<RawRelayConfig>,
   pub code_generation: Option<RawCodeGeneration>,
+  pub react_flight: Option<RawReactFlight>,
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -165,6 +175,16 @@ impl RawOptionsApply for RawBuiltins {
       configs
         .into_iter()
         .for_each(|banner| plugins.push(BannerPlugin::new(banner).boxed()));
+    }
+
+    if let Some(flight) = self.react_flight {
+      plugins.push(
+        rspack_plugin_react_flight::ReactFlightPlugin::new(
+          flight.client_references,
+          flight.client_file_name,
+        )
+        .boxed(),
+      )
     }
 
     Ok(Builtins {

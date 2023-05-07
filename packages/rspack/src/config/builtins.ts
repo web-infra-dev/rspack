@@ -15,7 +15,8 @@ import type {
 	RawPluginImportConfig,
 	RawCssModulesConfig,
 	RawRelayConfig,
-	RawCodeGeneration
+	RawCodeGeneration,
+	RawReactFlight
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { getBannerConditions } from "./adapter";
@@ -74,6 +75,7 @@ export interface Builtins {
 	pluginImport?: PluginImportConfig[];
 	relay?: RelayConfig;
 	codeGeneration?: Partial<RawCodeGeneration>;
+	reactFlight?: RawReactFlight;
 }
 
 export type PluginImportConfig = {
@@ -383,7 +385,8 @@ export function resolveBuiltinsOptions(
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
 			: undefined,
-		codeGeneration: resolveCodeGeneration(builtins)
+		codeGeneration: resolveCodeGeneration(builtins),
+		reactFlight: builtins.reactFlight
 	};
 }
 

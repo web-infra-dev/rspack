@@ -2206,6 +2206,7 @@ dependencies = [
  "rspack_plugin_json",
  "rspack_plugin_library",
  "rspack_plugin_progress",
+ "rspack_plugin_react_flight",
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
@@ -2687,6 +2688,19 @@ dependencies = [
  "indicatif",
  "rspack_core",
  "rspack_error",
+]
+
+[[package]]
+name = "rspack_plugin_react_flight"
+version = "0.0.1"
+dependencies = [
+ "async-trait",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "serde",
+ "serde_json",
+ "url",
 ]
 
 [[package]]

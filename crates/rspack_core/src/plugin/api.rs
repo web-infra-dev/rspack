@@ -6,13 +6,14 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
-  ChunkHashArgs, ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
-  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, BoxModuleDependency,
+  ChunkAssetArgs, ChunkHashArgs, ChunkUkey, Compilation, CompilationArgs, CompilerOptions,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs,
+  ModuleFactoryResult, ModuleType, NormalModule, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs,
+  ParseContext, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType,
+  ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -353,6 +354,14 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn after_emit(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  fn after_parse(
+    &self,
+    _ctx: &ParseContext,
+    _dependencies: &mut Vec<BoxModuleDependency>,
+  ) -> Result<()> {
     Ok(())
   }
 }

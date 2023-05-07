@@ -552,7 +552,7 @@ impl Module for NormalModule {
     let (
       ParseResult {
         ast_or_source,
-        dependencies,
+        mut dependencies,
         presentational_dependencies,
       },
       ds,
@@ -565,13 +565,29 @@ impl Module for NormalModule {
         module_type: &self.module_type,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
-        additional_data: loader_result.additional_data,
+        additional_data: loader_result.additional_data.clone(),
         code_generation_dependencies: &mut code_generation_dependencies,
         build_info: &mut build_info,
         build_meta: &mut build_meta,
       })?
       .split_into_parts();
     diagnostics.extend(ds);
+
+    build_context.plugin_driver.read().await.after_parse(
+      &ParseContext {
+        source: original_source.clone(),
+        module_identifier: self.identifier(),
+        module_parser_options: self.parser_options.as_ref(),
+        module_type: &self.module_type,
+        resource_data: &self.resource_data,
+        compiler_options: build_context.compiler_options,
+        additional_data: loader_result.additional_data,
+        code_generation_dependencies: &mut code_generation_dependencies,
+        build_info: &mut build_info,
+        build_meta: &mut build_meta,
+      },
+      &mut dependencies,
+    )?;
 
     // Only side effects used in code_generate can stay here
     // Other side effects should be set outside use_cache

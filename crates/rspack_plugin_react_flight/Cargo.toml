@@ -1,0 +1,15 @@
+[package]
+edition = "2021"
+name    = "rspack_plugin_react_flight"
+version = "0.0.1"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait  = { workspace = true }
+regex        = { workspace = true }
+rspack_core  = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+serde        = { workspace = true }
+serde_json   = { workspace = true }
+url          = { workspace = true }

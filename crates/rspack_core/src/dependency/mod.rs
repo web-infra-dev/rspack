@@ -79,6 +79,7 @@ pub enum DependencyType {
   /// static exports
   StaticExports,
   Custom(Cow<'static, str>),
+  ReactFlight,
 }
 
 impl Display for DependencyType {
@@ -107,6 +108,7 @@ impl Display for DependencyType {
       DependencyType::WasmExportImported => write!(f, "wasm export imported"),
       DependencyType::StaticExports => write!(f, "static exports"),
       DependencyType::Custom(ty) => write!(f, "custom {ty}"),
+      DependencyType::ReactFlight => write!(f, "react flight"),
     }
   }
 }
@@ -334,7 +336,10 @@ pub type BoxModuleDependency = Box<dyn ModuleDependency>;
 pub type BoxDependency = Box<dyn Dependency>;
 
 pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
-  if matches!(dep.dependency_type(), DependencyType::DynamicImport) {
+  if matches!(
+    dep.dependency_type(),
+    DependencyType::DynamicImport | DependencyType::ReactFlight
+  ) {
     return true;
   }
   if matches!(dep.dependency_type(), DependencyType::ContextElement) {

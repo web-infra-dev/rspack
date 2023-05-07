@@ -383,6 +383,7 @@ export interface RawBuiltins {
   pluginImport?: Array<RawPluginImportConfig>
   relay?: RawRelayConfig
   codeGeneration?: RawCodeGeneration
+  reactFlight?: RawReactFlight
 }
 
 export interface RawCacheGroupOptions {
@@ -715,6 +716,11 @@ export interface RawPxToRemConfig {
   replace?: boolean
   mediaQuery?: boolean
   minPixelValue?: number
+}
+
+export interface RawReactFlight {
+  clientReferences: Array<string>
+  clientFileName: string
 }
 
 export interface RawReactOptions {

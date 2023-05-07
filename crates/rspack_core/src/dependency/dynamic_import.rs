@@ -125,8 +125,8 @@ impl CodeGeneratable for EsmDynamicImportDependency {
         runtime_requirements.insert(RuntimeGlobals::INTEROP_REQUIRE);
         runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
         runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
-
-        code_gen.visitors.push(
+        if self.dependency_type != &DependencyType::ReactFlight {
+          code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
             if let Some(import) = n.args.get_mut(0) {
               if import.spread.is_none() && let Expr::Lit(_) | Expr::Tpl(_) = import.expr.as_mut() {
@@ -185,6 +185,7 @@ impl CodeGeneratable for EsmDynamicImportDependency {
             }
           }),
         );
+        }
       }
     }
 

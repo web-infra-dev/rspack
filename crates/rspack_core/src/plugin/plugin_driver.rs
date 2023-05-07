@@ -10,12 +10,12 @@ use rspack_loader_runner::ResourceData;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
-  Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
-  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType,
-  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
-  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxModuleDependency,
+  BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation,
+  CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModule, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs,
+  ParseContext, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
   PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
   PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
@@ -546,6 +546,17 @@ impl PluginDriver {
   pub async fn after_emit(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
       plugin.after_emit(compilation).await?;
+    }
+    Ok(())
+  }
+
+  pub fn after_parse(
+    &self,
+    ctx: &ParseContext,
+    dependencies: &mut Vec<BoxModuleDependency>,
+  ) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.after_parse(ctx, dependencies)?;
     }
     Ok(())
   }
