@@ -574,6 +574,7 @@ export interface Optimization {
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
 	sideEffects?: "flag" | boolean;
+	realContentHash?: boolean;
 }
 export interface OptimizationSplitChunksOptions {
 	cacheGroups?: {

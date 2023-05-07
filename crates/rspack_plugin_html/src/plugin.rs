@@ -204,7 +204,7 @@ impl Plugin for HtmlPlugin {
     });
     compilation.emit_asset(
       html_file_name,
-      CompilationAsset::with_source(RawSource::from(source).boxed()),
+      CompilationAsset::from(RawSource::from(source).boxed()),
     );
 
     if let Some(favicon) = &self.config.favicon {
@@ -217,7 +217,7 @@ impl Plugin for HtmlPlugin {
       ))?;
       compilation.emit_asset(
         favicon.clone(),
-        CompilationAsset::with_source(RawSource::from(content).boxed()),
+        CompilationAsset::from(RawSource::from(content).boxed()),
       );
     }
 

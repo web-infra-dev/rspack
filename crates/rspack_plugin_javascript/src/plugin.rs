@@ -37,7 +37,7 @@ use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
 use crate::JsMinifyOptions;
 
 #[derive(Debug)]
-pub struct JsPlugin {}
+pub struct JsPlugin;
 
 impl JsPlugin {
   pub fn new() -> Self {
@@ -349,7 +349,7 @@ impl JsPlugin {
   }
 
   #[inline]
-  pub async fn render_chunk(
+  pub async fn render_chunk_impl(
     &self,
     args: &rspack_core::RenderManifestArgs<'_>,
   ) -> Result<BoxSource> {
@@ -375,7 +375,7 @@ impl JsPlugin {
   }
 
   #[inline]
-  pub async fn chunk_hash(
+  pub async fn get_chunk_hash(
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
@@ -422,7 +422,7 @@ impl Default for JsPlugin {
 }
 
 #[derive(Debug)]
-pub struct JavaScriptParserAndGenerator {}
+pub struct JavaScriptParserAndGenerator;
 
 impl JavaScriptParserAndGenerator {
   fn new() -> Self {
@@ -626,7 +626,7 @@ impl Plugin for JsPlugin {
   ) -> PluginChunkHashHookOutput {
     let mut hasher = Xxh3::default();
     self
-      .chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
+      .get_chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
       .await?;
     if args
       .chunk()
@@ -654,7 +654,7 @@ impl Plugin for JsPlugin {
     }
 
     self
-      .chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
+      .get_chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
       .await?;
 
     let mut ordered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
@@ -708,11 +708,11 @@ impl Plugin for JsPlugin {
     let compilation = args.compilation;
     let chunk = args.chunk();
     let source = if matches!(chunk.kind, ChunkKind::HotUpdate) {
-      self.render_chunk(&args).await?
+      self.render_chunk_impl(&args).await?
     } else if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       self.render_main(&args).await?
     } else {
-      self.render_chunk(&args).await?
+      self.render_chunk_impl(&args).await?
     };
 
     let filename_template = get_js_chunk_filename_template(
@@ -730,6 +730,8 @@ impl Plugin for JsPlugin {
       source,
       output_path,
       path_options,
+      AssetInfo::default()
+        .with_content_hash(chunk.content_hash.get(&SourceType::JavaScript).cloned()),
     )])
   }
 

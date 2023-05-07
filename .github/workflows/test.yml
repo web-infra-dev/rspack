@@ -1,0 +1,48 @@
+name: Test
+
+on:
+  merge_group:
+  workflow_dispatch:
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
+    branches-ignore:
+      - "release-**"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**/*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+jobs:
+  build-main:
+    if: github.ref_name == 'main'
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - x86_64-apple-darwin
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: ${{ matrix.target }}
+      docker: true
+      tests: true
+
+  build-pr:
+    if: github.ref_name != 'main'
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: ${{ matrix.target }}
+      docker: true
+      tests: true

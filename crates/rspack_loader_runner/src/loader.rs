@@ -317,7 +317,7 @@ pub(crate) mod test {
     }
   }
 
-  pub(crate) struct Custom {}
+  pub(crate) struct Custom;
 
   #[async_trait::async_trait]
   impl Loader<()> for Custom {
@@ -335,7 +335,7 @@ pub(crate) mod test {
     }
   }
 
-  pub(crate) struct Custom2 {}
+  pub(crate) struct Custom2;
 
   #[async_trait::async_trait]
   impl Loader<()> for Custom2 {
@@ -353,7 +353,7 @@ pub(crate) mod test {
     }
   }
 
-  pub(crate) struct Composed {}
+  pub(crate) struct Composed;
 
   #[async_trait::async_trait]
   impl Loader<()> for Composed {
@@ -371,7 +371,7 @@ pub(crate) mod test {
     }
   }
 
-  pub(crate) struct Builtin {}
+  pub(crate) struct Builtin;
 
   #[async_trait::async_trait]
   impl Loader<()> for Builtin {
@@ -391,8 +391,8 @@ pub(crate) mod test {
 
   #[test]
   fn should_extract_and_compose_loader_info_correctly() {
-    let c1 = Arc::new(Custom {}) as Arc<dyn Loader<()>>;
-    let c2 = Arc::new(Custom2 {}) as Arc<dyn Loader<()>>;
+    let c1 = Arc::new(Custom) as Arc<dyn Loader<()>>;
+    let c2 = Arc::new(Custom2) as Arc<dyn Loader<()>>;
     let l: Vec<LoaderItem<()>> = vec![c1.into(), c2.into()];
     let item = l[0].data.try_as_normal().unwrap();
     assert_eq!(item.path, "/rspack/custom-loader-1/index.js".into());
@@ -407,7 +407,7 @@ pub(crate) mod test {
 
   #[test]
   fn should_extract_composed_loader_correctly() {
-    let c1 = Arc::new(Composed {}) as Arc<dyn Loader<()>>;
+    let c1 = Arc::new(Composed) as Arc<dyn Loader<()>>;
     let ident = c1.identifier();
     let l: LoaderItem<()> = c1.into();
     let items = l.data.try_as_composed().unwrap();
@@ -427,13 +427,13 @@ pub(crate) mod test {
 
   #[test]
   fn should_handle_builtin_loader_correctly() {
-    let c1 = Arc::new(Builtin {}) as Arc<dyn Loader<()>>;
+    let c1 = Arc::new(Builtin) as Arc<dyn Loader<()>>;
     let ident1 = c1.identifier();
     let l: LoaderItem<()> = c1.into();
     let item = l.data.try_as_normal().unwrap();
     assert!(item.meta.contains(LoaderItemDataMeta::BUILTIN));
 
-    let c2 = Arc::new(Composed {}) as Arc<dyn Loader<()>>;
+    let c2 = Arc::new(Composed) as Arc<dyn Loader<()>>;
     let ident2 = c2.identifier();
     let l = vec![l, c2.into()];
     let ll = LoaderItemList(&l[..]);

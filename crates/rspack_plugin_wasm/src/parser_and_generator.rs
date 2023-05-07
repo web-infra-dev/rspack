@@ -14,11 +14,11 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
-use rspack_plugin_asset::ModuleIdToFileName;
 use sugar_path::SugarPath;
 use wasmparser::{Import, Parser, Payload};
 
 use crate::dependency::WasmImportDependency;
+use crate::ModuleIdToFileName;
 
 #[derive(Debug)]
 pub struct AsyncWasmParserAndGenerator {

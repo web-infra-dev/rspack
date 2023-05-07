@@ -165,6 +165,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "minimize": false,
     "minimizer": [],
     "moduleIds": "named",
+    "realContentHash": false,
     "removeAvailableModules": true,
     "runtimeChunk": false,
     "sideEffects": "flag",

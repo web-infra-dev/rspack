@@ -7,7 +7,7 @@ use crate::id_helpers::{
 };
 
 #[derive(Debug, Default)]
-pub struct NamedModuleIdsPlugin {}
+pub struct NamedModuleIdsPlugin;
 
 impl Plugin for NamedModuleIdsPlugin {
   fn name(&self) -> &'static str {

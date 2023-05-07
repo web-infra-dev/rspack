@@ -184,7 +184,7 @@ impl JsCompilation {
     match self.inner.assets_mut().entry(name) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
-        e.insert(rspack_core::CompilationAsset::with_source(source));
+        e.insert(rspack_core::CompilationAsset::from(source));
       }
     };
   }

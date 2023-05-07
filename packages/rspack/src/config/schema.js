@@ -875,6 +875,11 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksOptions"
 						}
 					]
+				},
+				realContentHash: {
+					description:
+						"Use real [contenthash] based on final content of the assets.",
+					type: "boolean"
 				}
 			}
 		},

@@ -34,7 +34,7 @@ pub trait DiagnosticDisplay {
 }
 
 #[derive(Default)]
-pub struct StdioDiagnosticDisplay {}
+pub struct StdioDiagnosticDisplay;
 
 impl DiagnosticDisplay for StdioDiagnosticDisplay {
   type Output = crate::Result<()>;
