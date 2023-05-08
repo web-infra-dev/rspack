@@ -1,0 +1,4 @@
+.class {
+  a: url("./logo.png");
+  b: url("~@/logo.png");
+}

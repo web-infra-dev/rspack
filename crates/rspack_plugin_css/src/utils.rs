@@ -7,6 +7,7 @@ use data_encoding::{Encoding, Specification};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{Compilation, ModuleDependency, RuntimeGlobals};
 use rspack_error::{internal_error, Result};
 use swc_core::css::modules::CssClassName;
@@ -14,6 +15,10 @@ use swc_core::ecma::atoms::JsWord;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::plugin::{LocalIdentName, LocalIdentNameRenderOptions, LocalsConvention};
+
+pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
+pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
 
 static ENCODER: Lazy<Encoding> = Lazy::new(|| {
   let mut spec = Specification::new();

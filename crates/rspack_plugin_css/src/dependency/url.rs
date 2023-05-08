@@ -1,9 +1,11 @@
 use rspack_core::{
   create_css_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Compilation,
   CssAstPath, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier,
+  ModuleDependency, ModuleIdentifier, PublicPath,
 };
 use swc_core::css::ast::UrlValue;
+
+use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
 
 #[derive(Debug, Clone)]
 pub struct CssUrlDependency {
@@ -37,11 +39,10 @@ impl CssUrlDependency {
       if let Some(url) = code_gen_result.data.get("url") {
         Some(url.to_string())
       } else if let Some(filename) = code_gen_result.data.get("filename") {
-        let public_path = compilation
-          .options
-          .output
-          .public_path
-          .render(compilation, filename);
+        let public_path = match &compilation.options.output.public_path {
+          PublicPath::String(p) => p,
+          PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER,
+        };
         Some(format!("{public_path}{filename}"))
       } else {
         None

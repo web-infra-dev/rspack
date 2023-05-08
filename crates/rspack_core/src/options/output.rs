@@ -244,7 +244,7 @@ pub enum PublicPath {
 
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
-    match self {
+    let public_path = match self {
       Self::String(s) => s.clone(),
       Self::Auto => match Path::new(filename).parent() {
         None => "".to_string(),
@@ -256,6 +256,15 @@ impl PublicPath {
           .to_string_lossy()
           .to_string(),
       },
+    };
+    Self::ensure_ends_with_slash(public_path)
+  }
+
+  pub fn ensure_ends_with_slash(public_path: String) -> String {
+    if !public_path.is_empty() && !public_path.ends_with('/') {
+      public_path + "/"
+    } else {
+      public_path
     }
   }
 }
