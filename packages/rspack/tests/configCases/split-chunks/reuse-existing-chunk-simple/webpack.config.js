@@ -1,4 +1,4 @@
-/** @type {import("../../../../").Configuration} */
+/** @type {import("../../../../dist").Configuration} */
 module.exports = {
 	target: "node",
 	entry: "./index.js",
@@ -13,7 +13,6 @@ module.exports = {
 			minSize: 1,
 			cacheGroups: {
 				splittedFoo: {
-					name: "splittedFoo",
 					test: /(foo|foo-2)\.js/,
 					priority: 0,
 					reuseExistingChunk: true
