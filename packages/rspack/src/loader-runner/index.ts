@@ -16,7 +16,8 @@ import {
 	SourceMapSource
 } from "webpack-sources";
 
-import { Compiler, NormalModule } from "../compiler";
+import { Compiler } from "../compiler";
+import { NormalModule } from "../normalModule";
 import { Compilation } from "../compilation";
 import {
 	LoaderContext,
@@ -518,9 +519,16 @@ export async function runLoader(
 	};
 
 	let compilation: Compilation | undefined = compiler.compilation;
+	let step = 0;
 	while (compilation) {
 		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);
 		compilation = compilation.compiler.parentCompilation;
+		step++;
+		if (step > 1000) {
+			throw Error(
+				"Too much nested child compiler, exceeded max limitation 1000"
+			);
+		}
 	}
 
 	return new Promise((resolve, reject) => {

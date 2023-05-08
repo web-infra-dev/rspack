@@ -1,4 +1,4 @@
-import { AsyncSeriesBailHook, Hook, HookMap } from "tapable";
+import { AsyncSeriesBailHook, Hook, HookMap, SyncHook } from "tapable";
 import util from "util";
 import { Compilation, LoaderContext } from ".";
 
@@ -64,7 +64,7 @@ export class NormalModule {
 		let hooks = compilationHooksMap.get(compilation);
 		if (hooks === undefined) {
 			hooks = {
-				// loader: new SyncHook(["loaderContext", "module"]),
+				loader: new SyncHook(["loaderContext"]),
 				// beforeLoaders: new SyncHook(["loaders", "module", "loaderContext"]),
 				// beforeParse: new SyncHook(["module"]),
 				// beforeSnapshot: new SyncHook(["module"]),

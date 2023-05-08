@@ -78,54 +78,6 @@ class HotModuleReplacementPlugin {
 	apply() {}
 }
 
-const compilationHooksMap = new WeakMap();
-export class NormalModule {
-	static getCompilationHooks(compilation: Compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (hooks === undefined) {
-			hooks = {
-				// loader: new SyncHook(["loaderContext", "module"]),
-				loader: new SyncHook(["loaderContext"])
-				// beforeLoaders: new SyncHook(["loaders", "module", "loaderContext"]),
-				// beforeParse: new SyncHook(["module"]),
-				// beforeSnapshot: new SyncHook(["module"]),
-				// TODO webpack 6 deprecate
-				// readResourceForScheme: new tapable.HookMap(scheme => {
-				// 	const hook = hooks.readResource.for(scheme);
-				// 	return createFakeHook(
-				// 		/** @type {AsyncSeriesBailHook<[string, NormalModule], string | Buffer>} */ ({
-				// 			tap: (options, fn) =>
-				// 				hook.tap(options, loaderContext =>
-				// 					fn(loaderContext.resource, loaderContext._module)
-				// 				),
-				// 			tapAsync: (options, fn) =>
-				// 				hook.tapAsync(options, (loaderContext, callback) =>
-				// 					fn(loaderContext.resource, loaderContext._module, callback)
-				// 				),
-				// 			tapPromise: (options, fn) =>
-				// 				hook.tapPromise(options, loaderContext =>
-				// 					fn(loaderContext.resource, loaderContext._module)
-				// 				)
-				// 		})
-				// 	);
-				// }),
-				// readResource: new tapable.HookMap(
-				// 	() => new tapable.AsyncSeriesBailHook(["loaderContext"])
-				// )
-				// needBuild: new tapable.AsyncSeriesBailHook(["module", "context"])
-			};
-			compilationHooksMap.set(compilation, hooks);
-		}
-		return hooks;
-	}
-	apply() {}
-}
-
 class Compiler {
 	#_instance?: binding.Rspack;
 
