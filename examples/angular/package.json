@@ -4,8 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
-    "build:rspack": "rspack",
+    "build:ng": "ng build",
+    "build": "node scripts/build.js",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
