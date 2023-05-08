@@ -17,7 +17,8 @@ use crate::{
   DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
   ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleBeforeResolveArgs, RawModule, Resolve, ResolveArgs, ResolveError,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve, ResolveArgs, ResolveError,
   ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
   ResourceParsedData, SharedPluginDriver,
 };
@@ -107,6 +108,53 @@ impl NormalModuleFactory {
     Ok(None)
   }
 
+  pub async fn after_resolve(
+    &mut self,
+    data: &ModuleFactoryCreateData,
+    factory_result: &ModuleFactoryResult,
+  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    if let Ok(Some(false)) = self
+      .plugin_driver
+      .read()
+      .await
+      .after_resolve(NormalModuleAfterResolveArgs {
+        request: data.dependency.request(),
+        context: &data.context,
+        file_dependencies: &factory_result.file_dependencies,
+        context_dependencies: &factory_result.context_dependencies,
+        missing_dependencies: &factory_result.missing_dependencies,
+      })
+      .await
+    {
+      let importer = self.context.original_resource_path.as_ref();
+      let importer_with_context = if let Some(importer) = importer {
+        Path::new(importer)
+          .parent()
+          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+          .to_path_buf()
+      } else {
+        PathBuf::from(self.context.options.context.as_path())
+      };
+      let request_without_match_resource = data.dependency.request();
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
+      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+      let missing_module = MissingModule::new(
+        module_identifier,
+        format!("{ident} (missing)"),
+        format!("Failed to resolve {request_without_match_resource}"),
+      )
+      .boxed();
+      self.context.module_type = Some(*missing_module.module_type());
+      return Ok(Some(
+        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
+      ));
+    }
+    Ok(None)
+  }
   pub async fn factorize_normal_module(
     &mut self,
     data: &mut ModuleFactoryCreateData,

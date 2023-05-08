@@ -92,6 +92,14 @@ pub struct NormalModuleBeforeResolveArgs<'a> {
   pub request: &'a str,
   pub context: &'a Option<String>,
 }
+#[derive(Debug, Clone)]
+pub struct NormalModuleAfterResolveArgs<'a> {
+  pub request: &'a str,
+  pub context: &'a Option<String>,
+  pub file_dependencies: &'a HashSet<PathBuf>,
+  pub context_dependencies: &'a HashSet<PathBuf>,
+  pub missing_dependencies: &'a HashSet<PathBuf>,
+}
 
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {

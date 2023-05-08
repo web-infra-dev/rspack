@@ -13,11 +13,13 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
   Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
   ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType,
-  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
-  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
   PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginProcessAssetsOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryResolveForSchemeOutput, PluginProcessAssetsOutput,
   PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
   PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
@@ -329,6 +331,18 @@ impl PluginDriver {
     Ok(None)
   }
 
+  pub async fn after_resolve(
+    &self,
+    args: NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin.after_resolve(PluginContext::new(), &args).await? {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
   pub async fn context_module_before_resolve(
     &self,
     args: NormalModuleBeforeResolveArgs<'_>,
