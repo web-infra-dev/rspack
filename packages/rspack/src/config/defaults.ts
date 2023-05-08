@@ -494,12 +494,16 @@ const applyOutputDefaults = (
 				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
 		);
 	}
+	F(output, "sourceMapFilename", () => {
+		return "[file].map";
+	});
 };
 
 const applyExternalsPresetsDefaults = (
 	externalsPresets: ExternalsPresets,
 	{ targetProperties }: { targetProperties: any }
 ) => {
+	D(externalsPresets, "web", targetProperties && targetProperties.web);
 	D(externalsPresets, "node", targetProperties && targetProperties.node);
 };
 
@@ -534,6 +538,8 @@ const applyOptimizationDefaults = (
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "runtimeChunk", false);
+	// TODO: change to true in production once realContentHash is stable
+	D(optimization, "realContentHash", false);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => []);
 	const { splitChunks } = optimization;

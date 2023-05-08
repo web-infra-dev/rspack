@@ -9,6 +9,7 @@ use serde::Deserialize;
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawSplitChunksOptions {
+  pub name: Option<String>,
   pub cache_groups: Option<HashMap<String, RawCacheGroupOptions>>,
   /// What kind of chunks should be selected.
   pub chunks: Option<String>,
@@ -104,7 +105,7 @@ pub struct RawCacheGroupOptions {
   //   pub max_initial_requests: usize,
   pub min_chunks: Option<u32>,
   // hide_path_info: bool,
-  //   pub min_size: usize,
+  pub min_size: Option<f64>,
   //   pub min_size_reduction: usize,
   //   pub enforce_size_threshold: usize,
   //   pub min_remaining_size: usize,
@@ -135,6 +136,11 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
 
     let overall_min_size = raw_opts.min_size.unwrap_or(20000.0);
 
+    let overall_name_getter = raw_opts
+      .name
+      .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
+      .unwrap_or_else(new_split_chunks_plugin::create_empty_chunk_name_getter);
+
     let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
 
     cache_groups.extend(
@@ -142,10 +148,13 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
         .cache_groups
         .unwrap_or_default()
         .into_iter()
-        .map(|(k, v)| new_split_chunks_plugin::CacheGroup {
-          name: new_split_chunks_plugin::create_chunk_name_getter_by_const_name(
-            v.name.unwrap_or(k),
-          ),
+        .map(|(key, v)| new_split_chunks_plugin::CacheGroup {
+          id_hint: key.clone(),
+          key,
+          name: v
+            .name
+            .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
+            .unwrap_or_else(|| overall_name_getter.clone()),
           priority: v.priority.unwrap_or(-20) as f64,
           test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
           chunk_filter: v
@@ -160,7 +169,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
           min_chunks: v.min_chunks.unwrap_or(1),
           min_size: new_split_chunks_plugin::SplitChunkSizes::with_initial_value(
             &default_size_types,
-            overall_min_size,
+            v.min_size.unwrap_or(overall_min_size),
           ),
           reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
         }),

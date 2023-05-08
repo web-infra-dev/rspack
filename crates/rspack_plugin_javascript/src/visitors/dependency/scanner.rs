@@ -63,14 +63,25 @@ impl DependencyScanner<'_> {
             }
             if let Some(expr) = call_expr.args.get(0) {
               if expr.spread.is_none() {
+                // TemplateLiteral String
+                if let Expr::Tpl(tpl) = expr.expr.as_ref()  && tpl.exprs.is_empty(){
+                  let s = tpl.quasis.first().expect("should have one quasis").raw.as_ref();
+                  let request = JsWord::from(s);
+                   self.add_dependency(Box::new(CommonJSRequireDependency::new(
+                    request,
+                    Some(call_expr.span.into()),
+                    as_parent_path(ast_path),
+                  )));
+                  return;
+                }
                 if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
                   self.add_dependency(Box::new(CommonJSRequireDependency::new(
                     s.value.clone(),
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
                   )));
+                  return;
                 }
-
                 if let Some((context, reg)) = scanner_context_module(expr.expr.as_ref()) {
                   self.add_dependency(Box::new(CommonJsRequireContextDependency::new(
                     ContextOptions {
@@ -465,7 +476,7 @@ fn split_context_from_prefix(prefix: &str) -> (&str, &str) {
 
 fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
   match expr {
-    Expr::Tpl(tpl) => Some(scan_context_module_tpl(tpl)),
+    Expr::Tpl(tpl) if !tpl.exprs.is_empty() => Some(scan_context_module_tpl(tpl)),
     Expr::Bin(bin) => scan_context_module_bin(bin),
     Expr::Call(call) => scan_context_module_concat_call(call),
     _ => None,

@@ -178,6 +178,11 @@ impl RawOptionsApply for RawOptions {
     if self.externals_presets.node {
       plugins.push(rspack_plugin_externals::node_target_plugin());
     }
+    if self.externals_presets.web || (self.externals_presets.node && experiments.css) {
+      plugins.push(rspack_plugin_externals::http_url_external_plugin(
+        experiments.css,
+      ));
+    }
     if experiments.async_web_assembly {
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }

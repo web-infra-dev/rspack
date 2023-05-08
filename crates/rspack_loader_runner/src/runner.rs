@@ -304,7 +304,7 @@ mod test {
     DisplayWithSuffix,
   };
 
-  struct TestContentPlugin {}
+  struct TestContentPlugin;
 
   #[async_trait::async_trait]
   impl LoaderRunnerPlugin for TestContentPlugin {
@@ -323,7 +323,7 @@ mod test {
       static IDENTS: RefCell<Vec<String>> = RefCell::default();
     }
 
-    struct Pitching {}
+    struct Pitching;
 
     impl Identifiable for Pitching {
       fn identifier(&self) -> Identifier {
@@ -350,13 +350,13 @@ mod test {
         Ok(())
       }
     }
-    let c1 = Arc::new(Custom {}) as Arc<dyn Loader<()>>;
+    let c1 = Arc::new(Custom) as Arc<dyn Loader<()>>;
     let i1 = c1.identifier();
-    let c2 = Arc::new(Custom2 {}) as Arc<dyn Loader<()>>;
+    let c2 = Arc::new(Custom2) as Arc<dyn Loader<()>>;
     let i2 = c2.identifier();
-    let c3 = Arc::new(Composed {}) as Arc<dyn Loader<()>>;
+    let c3 = Arc::new(Composed) as Arc<dyn Loader<()>>;
     let i3 = c3.identifier();
-    let p1 = Arc::new(Pitching {}) as Arc<dyn Loader<()>>;
+    let p1 = Arc::new(Pitching) as Arc<dyn Loader<()>>;
     let i0 = p1.identifier();
 
     let rs = ResourceData {
@@ -367,14 +367,9 @@ mod test {
       resource_path: Default::default(),
     };
 
-    run_loaders(
-      &[c1, p1, c2, c3],
-      &rs,
-      &[Box::new(TestContentPlugin {})],
-      (),
-    )
-    .await
-    .unwrap();
+    run_loaders(&[c1, p1, c2, c3], &rs, &[Box::new(TestContentPlugin)], ())
+      .await
+      .unwrap();
 
     IDENTS.with(|i| {
       let i = i.borrow();
@@ -398,7 +393,7 @@ mod test {
       static IDENTS: RefCell<Vec<String>> = RefCell::default();
     }
 
-    struct Pitching {}
+    struct Pitching;
 
     impl Identifiable for Pitching {
       fn identifier(&self) -> Identifier {
@@ -414,7 +409,7 @@ mod test {
       }
     }
 
-    struct Pitching2 {}
+    struct Pitching2;
 
     impl Identifiable for Pitching2 {
       fn identifier(&self) -> Identifier {
@@ -430,7 +425,7 @@ mod test {
       }
     }
 
-    struct Normal {}
+    struct Normal;
 
     impl Identifiable for Normal {
       fn identifier(&self) -> Identifier {
@@ -446,7 +441,7 @@ mod test {
       }
     }
 
-    struct Normal2 {}
+    struct Normal2;
 
     impl Identifiable for Normal2 {
       fn identifier(&self) -> Identifier {
@@ -462,7 +457,7 @@ mod test {
       }
     }
 
-    struct PitchNormalBase {}
+    struct PitchNormalBase;
 
     impl Identifiable for PitchNormalBase {
       fn identifier(&self) -> Identifier {
@@ -483,7 +478,7 @@ mod test {
       }
     }
 
-    struct PitchNormal {}
+    struct PitchNormal;
 
     impl Identifiable for PitchNormal {
       fn identifier(&self) -> Identifier {
@@ -505,7 +500,7 @@ mod test {
       }
     }
 
-    struct PitchNormal2 {}
+    struct PitchNormal2;
 
     impl Identifiable for PitchNormal2 {
       fn identifier(&self) -> Identifier {
@@ -527,10 +522,10 @@ mod test {
       }
     }
 
-    let c1 = Arc::new(Normal {}) as Arc<dyn Loader<()>>;
-    let c2 = Arc::new(Normal2 {}) as Arc<dyn Loader<()>>;
-    let p1 = Arc::new(Pitching {}) as Arc<dyn Loader<()>>;
-    let p2 = Arc::new(Pitching2 {}) as Arc<dyn Loader<()>>;
+    let c1 = Arc::new(Normal) as Arc<dyn Loader<()>>;
+    let c2 = Arc::new(Normal2) as Arc<dyn Loader<()>>;
+    let p1 = Arc::new(Pitching) as Arc<dyn Loader<()>>;
+    let p2 = Arc::new(Pitching2) as Arc<dyn Loader<()>>;
 
     let rs = ResourceData {
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
@@ -540,22 +535,17 @@ mod test {
       resource_path: Default::default(),
     };
 
-    run_loaders::<()>(
-      &[p1, p2, c1, c2],
-      &rs,
-      &[Box::new(TestContentPlugin {})],
-      (),
-    )
-    .await
-    .unwrap();
+    run_loaders::<()>(&[p1, p2, c1, c2], &rs, &[Box::new(TestContentPlugin)], ())
+      .await
+      .unwrap();
     IDENTS.with(|i| assert_eq!(*i.borrow(), &["pitch1", "pitch2", "normal2", "normal1"]));
     IDENTS.with(|i| i.borrow_mut().clear());
 
-    let p1 = Arc::new(PitchNormalBase {}) as Arc<dyn Loader<()>>;
-    let p2 = Arc::new(PitchNormal {}) as Arc<dyn Loader<()>>;
-    let p3 = Arc::new(PitchNormal2 {}) as Arc<dyn Loader<()>>;
+    let p1 = Arc::new(PitchNormalBase) as Arc<dyn Loader<()>>;
+    let p2 = Arc::new(PitchNormal) as Arc<dyn Loader<()>>;
+    let p3 = Arc::new(PitchNormal2) as Arc<dyn Loader<()>>;
 
-    run_loaders::<()>(&[p1, p2, p3], &rs, &[Box::new(TestContentPlugin {})], ())
+    run_loaders::<()>(&[p1, p2, p3], &rs, &[Box::new(TestContentPlugin)], ())
       .await
       .unwrap();
     IDENTS.with(|i| {

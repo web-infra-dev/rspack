@@ -35,6 +35,7 @@ export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 		stageNone: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageOptimizeInline: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageSummarize: new tapable.AsyncSeriesHook<Assets>(["assets"]),
+		stageOptimizeHash: new tapable.AsyncSeriesHook<Assets>(["assets"]),
 		stageReport: new tapable.AsyncSeriesHook<Assets>(["assets"])
 	};
 };

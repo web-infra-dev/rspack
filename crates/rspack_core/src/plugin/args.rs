@@ -94,6 +94,12 @@ pub struct NormalModuleFactoryResolveForSchemeArgs {
   pub scheme: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct NormalModuleBeforeResolveArgs<'a> {
+  pub request: &'a str,
+  pub context: &'a Option<String>,
+}
+
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {
   pub importer: Option<&'a PathBuf>,

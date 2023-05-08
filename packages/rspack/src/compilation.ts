@@ -8,18 +8,16 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as tapable from "tapable";
-import { RawSource, Source } from "webpack-sources";
-import { Resolver } from "enhanced-resolve";
+import { Source } from "webpack-sources";
 
 import {
-	JsCompilation,
-	JsAssetInfo,
-	JsCompatSource,
 	JsAsset,
-	JsModule,
+	JsAssetInfo,
 	JsChunk,
-	JsStatsError,
-	JsStatsWarning
+	JsCompatSource,
+	JsCompilation,
+	JsModule,
+	JsStatsError
 } from "@rspack/binding";
 
 import {
@@ -29,24 +27,21 @@ import {
 	StatsValue,
 	RspackPluginInstance
 } from "./config";
-import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
+import { ContextModuleFactory } from "./ContextModuleFactory";
+import * as ErrorHelpers from "./ErrorHelpers";
+import ResolverFactory from "./ResolverFactory";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
-import ResolverFactory from "./ResolverFactory";
+import { LogType, Logger } from "./logging/Logger";
+import { NormalModule } from "./normalModule";
+import { NormalModuleFactory } from "./normalModuleFactory";
+import { Stats, normalizeStatsPreset } from "./stats";
+import { concatErrorMsgAndStack, isJsStatsError } from "./util";
+import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
-import { Logger, LogType } from "./logging/Logger";
-import * as ErrorHelpers from "./ErrorHelpers";
-import { concatErrorMsgAndStack, isJsStatsError } from "./util";
-import { normalizeStatsPreset, Stats } from "./stats";
-import { NormalModuleFactory } from "./normalModuleFactory";
-import CacheFacade from "./lib/CacheFacade";
-import { NormalModule } from "./normalModule";
-
-const hashDigestLength = 8;
-const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -99,6 +94,7 @@ export class Compilation {
 	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
 	children: Compilation[] = [];
+	contextModuleFactory?: ContextModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
@@ -722,6 +718,7 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_NONE = 0;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_HASH = 2500;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
@@ -738,6 +735,8 @@ export class Compilation {
 				return this.hooks.processAssets.stageOptimizeInline;
 			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
 				return this.hooks.processAssets.stageSummarize;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH:
+				return this.hooks.processAssets.stageOptimizeHash;
 			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
 				return this.hooks.processAssets.stageReport;
 			default:

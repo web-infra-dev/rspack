@@ -20,6 +20,7 @@ pub struct RawOptimizationOptions {
   pub module_ids: String,
   pub remove_available_modules: bool,
   pub side_effects: String,
+  pub real_content_hash: bool,
 }
 
 impl RawOptionsApply for RawOptimizationOptions {
@@ -51,6 +52,9 @@ impl RawOptionsApply for RawOptimizationOptions {
       }
     };
     plugins.push(module_ids_plugin);
+    if self.real_content_hash {
+      plugins.push(rspack_plugin_real_content_hash::RealContentHashPlugin.boxed());
+    }
     Ok(Optimization {
       remove_available_modules: self.remove_available_modules,
       side_effects: SideEffectOption::from(self.side_effects.as_str()),

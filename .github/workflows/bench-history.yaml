@@ -19,10 +19,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Install toolchain
         run: rustup show
 
@@ -31,7 +28,7 @@ jobs:
 
       - name: Run benchmark
         run: |
-          set -o pipefail 
+          set -o pipefail
           cargo bench --bench main -- --output-format bencher | tee output.txt
 
       - name: Run Hmr benchmark

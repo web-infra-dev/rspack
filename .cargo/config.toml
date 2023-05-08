@@ -5,10 +5,25 @@ CARGO_WORKSPACE_DIR = { value = "", relative = true }
 [alias]
 lint = "clippy --workspace --all-targets -- --deny warnings"
 # AKA `test-update`, handy cargo rst update without install `cargo-rst` binary
+t  = "test --no-fail-fast"
 tu = "run -p cargo-rst -- update"
+
 [target.'cfg(all())']
 rustflags = [
-  "-Dclippy::unwrap_in_result", # https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_in_result
+  # CLIPPY LINT SETTINGS
+  # This is a workaround to configure lints for the entire workspace, pending the ability to configure this via TOML.
+  # See: `https://github.com/rust-lang/cargo/issues/5034`
+  #      `https://github.com/EmbarkStudios/rust-ecosystem/issues/22#issuecomment-947011395`
+  "-Wclippy::all", # all lints that are on by default (correctness, suspicious, style, complexity, perf)
+
+  # restriction
   "-Wclippy::dbg_macro",
-  "-Wclippy::unwrap_used",      # https://rust-lang.github.io/rust-clippy/master/#unwrap_used
+  "-Wclippy::unwrap_in_result",
+  "-Wclippy::unwrap_used",
+  "-Wclippy::empty_drop",
+  "-Wclippy::exit",
+  "-Wclippy::empty_structs_with_brackets",
+  "-Wclippy::rc_buffer",
+  "-Wclippy::rc_mutex",
+  "-Wclippy::same_name_method",
 ]

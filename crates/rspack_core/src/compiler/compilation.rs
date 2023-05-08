@@ -55,10 +55,15 @@ pub struct EntryData {
   pub options: EntryOptions,
 }
 
+pub type BuildDependency = (
+  DependencyId,
+  Option<ModuleIdentifier>, /* parent module */
+);
+
 #[derive(Debug)]
 pub enum SetupMakeParam {
   ModifiedFiles(HashSet<PathBuf>),
-  ForceBuildDeps(HashSet<DependencyId>),
+  ForceBuildDeps(HashSet<BuildDependency>),
 }
 
 #[derive(Debug)]
@@ -67,7 +72,8 @@ pub struct Compilation {
   entries: BundleEntries,
   pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
   pub module_graph: ModuleGraph,
-  pub make_failed_dependencies: HashSet<DependencyId>,
+  pub make_failed_dependencies: HashSet<BuildDependency>,
+  pub make_failed_module: HashSet<ModuleIdentifier>,
   pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_module_code_generation_results: IdentifierMap<(u64, BoxSource)>,
@@ -123,6 +129,7 @@ impl Compilation {
       options,
       module_graph,
       make_failed_dependencies: HashSet::default(),
+      make_failed_module: HashSet::default(),
       has_module_import_export_change: true,
       runtime_modules: Default::default(),
       runtime_module_code_generation_results: Default::default(),
@@ -236,6 +243,17 @@ impl Compilation {
       }
       self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
         chunk.files.remove(filename);
+      });
+    }
+  }
+
+  pub fn rename_asset(&mut self, filename: &str, new_name: String) {
+    if let Some(asset) = self.assets.remove(filename) {
+      self.assets.insert(new_name.clone(), asset);
+      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
+        if chunk.files.remove(filename) {
+          chunk.files.insert(new_name.clone());
+        }
       });
     }
   }
@@ -381,7 +399,7 @@ impl Compilation {
         .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
     );
 
-    let mut force_build_module = HashSet::default();
+    let mut force_build_module = std::mem::take(&mut self.make_failed_module);
     let mut force_build_deps = std::mem::take(&mut self.make_failed_dependencies);
     let mut origin_module_deps = HashMap::default();
     // handle setup params
@@ -416,7 +434,7 @@ impl Compilation {
     }
 
     // move deps bindings module to force_build_module
-    for dependency_id in &force_build_deps {
+    for (dependency_id, _) in &force_build_deps {
       if let Some(mid) = self
         .module_graph
         .module_identifier_by_dependency_id(dependency_id)
@@ -446,7 +464,8 @@ impl Compilation {
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
-    let mut make_failed_dependencies: HashSet<DependencyId> = HashSet::default();
+    let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
+    let mut make_failed_module = HashSet::default();
     let mut errored = None;
 
     force_build_deps.extend(
@@ -455,38 +474,39 @@ impl Compilation {
         .flat_map(|id| self.module_graph.revoke_module(id)),
     );
 
-    force_build_deps.iter().for_each(|id| {
-      let dependency = self
-        .module_graph
-        .dependency_by_id(id)
-        .expect("dependency not found");
-      let parent_module_identifier = dependency.parent_module_identifier().cloned();
-      let parent_module =
-        parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-      if parent_module_identifier.is_some() && parent_module.is_none() {
-        return;
-      }
+    force_build_deps
+      .into_iter()
+      .for_each(|(id, parent_module_identifier)| {
+        let dependency = self
+          .module_graph
+          .dependency_by_id(&id)
+          .expect("dependency not found");
+        let parent_module =
+          parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
+        if parent_module_identifier.is_some() && parent_module.is_none() {
+          return;
+        }
 
-      self.handle_module_creation(
-        &mut factorize_queue,
-        parent_module_identifier,
-        {
+        self.handle_module_creation(
+          &mut factorize_queue,
+          parent_module_identifier,
+          {
+            parent_module
+              .and_then(|m| m.as_normal_module())
+              .map(|module| module.resource_resolved_data().resource_path.clone())
+          },
+          vec![dependency.clone()],
+          parent_module_identifier.is_none(),
+          None,
+          None,
+          parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
+          self.lazy_visit_modules.clone(),
           parent_module
             .and_then(|m| m.as_normal_module())
-            .map(|module| module.resource_resolved_data().resource_path.clone())
-        },
-        vec![dependency.clone()],
-        parent_module_identifier.is_none(),
-        None,
-        None,
-        parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
-        self.lazy_visit_modules.clone(),
-        parent_module
-          .and_then(|m| m.as_normal_module())
-          .and_then(|module| module.name_for_condition())
-          .map(|issuer| issuer.to_string()),
-      );
-    });
+            .and_then(|module| module.name_for_condition())
+            .map(|issuer| issuer.to_string()),
+        );
+      });
 
     tokio::task::block_in_place(|| loop {
       while let Some(task) = factorize_queue.get_task() {
@@ -613,7 +633,7 @@ impl Compilation {
 
               tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert(dependencies[0]);
+                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
               }
 
               module_graph_module.set_issuer_if_unset(original_module_identifier);
@@ -639,14 +659,10 @@ impl Compilation {
               });
             }
             Ok(TaskResult::Add(task_result)) => match task_result {
-              AddTaskResult::ModuleAdded {
-                module,
-                dependencies,
-              } => {
+              AddTaskResult::ModuleAdded { module } => {
                 tracing::trace!("Module added: {}", module.identifier());
                 build_queue.add_task(BuildTask {
                   module,
-                  dependencies,
                   resolver_factory: self.resolver_factory.clone(),
                   compiler_options: self.options.clone(),
                   plugin_driver: self.plugin_driver.clone(),
@@ -660,13 +676,12 @@ impl Compilation {
             Ok(TaskResult::Build(task_result)) => {
               let BuildTaskResult {
                 module,
-                dependencies,
                 build_result,
                 diagnostics,
               } = task_result;
 
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert(dependencies[0]);
+                make_failed_module.insert(module.identifier());
               }
 
               tracing::trace!("Module built: {}", module.identifier());
@@ -740,6 +755,7 @@ impl Compilation {
     });
 
     self.make_failed_dependencies = make_failed_dependencies;
+    self.make_failed_module = make_failed_module;
     tracing::debug!("All task is finished");
 
     // clean isolated module
@@ -963,7 +979,10 @@ impl Compilation {
 
         self.emit_asset(
           filename.clone(),
-          CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
+          CompilationAsset::new(
+            Some(CachedSource::new(file_manifest.source).boxed()),
+            file_manifest.info,
+          ),
         );
 
         _ = self
@@ -1408,16 +1427,15 @@ pub struct CompilationAsset {
   pub info: AssetInfo,
 }
 
+impl From<BoxSource> for CompilationAsset {
+  fn from(value: BoxSource) -> Self {
+    Self::new(Some(value), Default::default())
+  }
+}
+
 impl CompilationAsset {
   pub fn new(source: Option<BoxSource>, info: AssetInfo) -> Self {
     Self { source, info }
-  }
-
-  pub fn with_source(source: BoxSource) -> Self {
-    Self {
-      source: Some(source),
-      info: Default::default(),
-    }
   }
 
   pub fn get_source(&self) -> Option<&BoxSource> {
@@ -1458,7 +1476,7 @@ pub struct AssetInfo {
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
-  // pub content_hash:
+  pub content_hash: Option<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   // pub source_filename:
   /// size in bytes, only set after asset has been emitted
@@ -1491,6 +1509,11 @@ impl AssetInfo {
 
   pub fn with_related(mut self, v: AssetInfoRelated) -> Self {
     self.related = v;
+    self
+  }
+
+  pub fn with_content_hash(mut self, v: Option<String>) -> Self {
+    self.content_hash = v;
     self
   }
 }

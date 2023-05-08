@@ -15,6 +15,7 @@ import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
 	ComposeJsUseOptions,
+	LoaderContext,
 	createRawModuleRuleUses
 } from "./adapter-rule-use";
 import {
@@ -45,7 +46,12 @@ import {
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
-	compiler: Compiler
+	compiler: Compiler,
+	processResource: (
+		loaderContext: LoaderContext,
+		resourcePath: string,
+		callback: any
+	) => void
 ): RawOptions => {
 	assert(
 		!isNil(options.context) && !isNil(options.devtool) && !isNil(options.cache),
@@ -188,7 +194,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
 		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
 		webassemblyModuleFilename: output.webassemblyModuleFilename!,
-		trustedTypes: output.trustedTypes!
+		trustedTypes: output.trustedTypes!,
+		sourceMapFilename: output.sourceMapFilename!
 	};
 }
 
@@ -196,6 +203,7 @@ function getRawExternalsPresets(
 	presets: ExternalsPresets
 ): RawOptions["externalsPresets"] {
 	return {
+		web: presets.web ?? false,
 		node: presets.node ?? false
 	};
 }
@@ -449,8 +457,9 @@ function getRawOptimization(
 	assert(
 		!isNil(optimization.moduleIds) &&
 			!isNil(optimization.removeAvailableModules) &&
-			!isNil(optimization.sideEffects),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.sideEffects should not be nil after defaults"
+			!isNil(optimization.sideEffects) &&
+			!isNil(optimization.realContentHash),
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
 		splitChunks: optimization.splitChunks
@@ -458,7 +467,8 @@ function getRawOptimization(
 			: undefined,
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
-		sideEffects: String(optimization.sideEffects)
+		sideEffects: String(optimization.sideEffects),
+		realContentHash: optimization.realContentHash
 	};
 }
 
@@ -466,16 +476,18 @@ function getRawSplitChunksOptions(
 	sc: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] {
 	return {
+		name: sc.name === false ? undefined : sc.name,
 		cacheGroups: sc.cacheGroups
 			? Object.fromEntries(
 					Object.entries(sc.cacheGroups).map(([key, group]) => {
 						let normalizedGroup: RawCacheGroupOptions = {
 							test: group.test ? group.test.source : undefined,
-							name: group.name,
+							name: group.name === false ? undefined : group.name,
 							priority: group.priority,
 							minChunks: group.minChunks,
 							chunks: group.chunks,
-							reuseExistingChunk: group.reuseExistingChunk
+							reuseExistingChunk: group.reuseExistingChunk,
+							minSize: group.minSize
 						};
 						return [key, normalizedGroup];
 					})

@@ -326,6 +326,8 @@ pub struct NormalModule {
   module_type: ModuleType,
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
+  /// Resource matched with inline match resource, (`!=!` syntax)
+  match_resource: Option<ResourceData>,
   /// Resource data (path, query, fragment etc.)
   resource_data: ResourceData,
   /// Loaders for the module
@@ -389,14 +391,20 @@ impl NormalModule {
     parser_and_generator: Box<dyn ParserAndGenerator>,
     parser_options: Option<AssetParserOptions>,
     generator_options: Option<AssetGeneratorOptions>,
+    match_resource: Option<ResourceData>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
     loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
   ) -> Self {
     let module_type = module_type.into();
+    let identifier = if module_type == ModuleType::Js {
+      request.to_string()
+    } else {
+      format!("{module_type}|{request}")
+    };
     Self {
-      id: ModuleIdentifier::from(format!("{module_type}|{request}")),
+      id: ModuleIdentifier::from(identifier),
       request,
       user_request,
       raw_request,
@@ -404,6 +412,7 @@ impl NormalModule {
       parser_and_generator,
       parser_options,
       generator_options,
+      match_resource,
       resource_data,
       resolve_options,
       loaders,
@@ -416,6 +425,10 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
     }
+  }
+
+  pub fn match_resource(&self) -> Option<&ResourceData> {
+    self.match_resource.as_ref()
   }
 
   pub fn resource_resolved_data(&self) -> &ResourceData {
@@ -564,15 +577,7 @@ impl Module for NormalModule {
     // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
-    self.code_generation_dependencies = Some(
-      code_generation_dependencies
-        .into_iter()
-        .map(|mut d| {
-          d.set_parent_module_identifier(Some(self.identifier()));
-          d
-        })
-        .collect::<Vec<_>>(),
-    );
+    self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
     let mut hasher = Xxh3::new();

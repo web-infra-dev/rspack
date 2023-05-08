@@ -8,6 +8,7 @@ pub struct JsHooks {
   pub process_assets_stage_none: JsFunction,
   pub process_assets_stage_optimize_inline: JsFunction,
   pub process_assets_stage_summarize: JsFunction,
+  pub process_assets_stage_optimize_hash: JsFunction,
   pub process_assets_stage_report: JsFunction,
   pub compilation: JsFunction,
   pub this_compilation: JsFunction,
@@ -18,6 +19,8 @@ pub struct JsHooks {
   pub optimize_chunk_module: JsFunction,
   pub before_compile: JsFunction,
   pub finish_modules: JsFunction,
+  pub before_resolve: JsFunction,
+  pub context_module_before_resolve: JsFunction,
   pub normal_module_factory_resolve_for_scheme: JsFunction,
   pub chunk_asset: JsFunction,
 }

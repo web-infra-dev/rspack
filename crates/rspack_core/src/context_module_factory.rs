@@ -6,7 +6,8 @@ use tracing::instrument;
 use crate::{
   cache::Cache, resolve, BoxModule, ContextModule, ContextModuleOptions, MissingModule,
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, RawModule, ResolveArgs, ResolveError, ResolveResult, SharedPluginDriver,
+  ModuleIdentifier, NormalModuleBeforeResolveArgs, RawModule, ResolveArgs, ResolveError,
+  ResolveResult, SharedPluginDriver,
 };
 
 pub struct ContextModuleFactory {
@@ -21,6 +22,9 @@ impl ModuleFactory for ContextModuleFactory {
     mut self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    if let Ok(Some(before_resolve_result)) = self.before_resolve(&data).await {
+      return Ok(before_resolve_result);
+    }
     Ok(self.resolve(data).await?)
   }
 }
@@ -31,6 +35,41 @@ impl ContextModuleFactory {
       plugin_driver,
       cache,
     }
+  }
+
+  pub async fn before_resolve(
+    &mut self,
+    data: &ModuleFactoryCreateData,
+  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    if let Ok(Some(false)) = self
+      .plugin_driver
+      .read()
+      .await
+      .context_module_before_resolve(NormalModuleBeforeResolveArgs {
+        request: data.dependency.request(),
+        context: &data.context,
+      })
+      .await
+    {
+      let specifier = data.dependency.request();
+      let ident = format!(
+        "{}{specifier}",
+        data.context.as_ref().expect("should have context")
+      );
+
+      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+      let missing_module = MissingModule::new(
+        module_identifier,
+        format!("{ident} (missing)"),
+        format!("Failed to resolve {specifier}"),
+      )
+      .boxed();
+      return Ok(Some(
+        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
+      ));
+    }
+    Ok(None)
   }
 
   pub async fn resolve(
@@ -55,6 +94,7 @@ impl ContextModuleFactory {
       missing_dependencies: &mut missing_dependencies,
     };
     let plugin_driver = &self.plugin_driver;
+
     let resource_data = self
       .cache
       .resolve_module_occasion

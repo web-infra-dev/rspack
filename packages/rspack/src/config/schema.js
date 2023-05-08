@@ -449,6 +449,15 @@ module.exports = {
 				}
 			]
 		},
+		SourceMapFilename: {
+			description:
+				"Specifies the filename of output files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.",
+			oneOf: [
+				{
+					$ref: "#/definitions/FilenameTemplate"
+				}
+			]
+		},
 		FilenameTemplate: {
 			description:
 				"Specifies the filename template of output files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.",
@@ -866,6 +875,11 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksOptions"
 						}
 					]
+				},
+				realContentHash: {
+					description:
+						"Use real [contenthash] based on final content of the assets.",
+					type: "boolean"
 				}
 			}
 		},
@@ -953,6 +967,14 @@ module.exports = {
 							instanceof: "RegExp"
 						}
 					]
+				},
+				minSize: {
+					description: "Minimal size for the created chunks.",
+					oneOf: [
+						{
+							$ref: "#/definitions/OptimizationSplitChunksSizes"
+						}
+					]
 				}
 			}
 		},
@@ -961,6 +983,14 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				name: {
+					description: "The name or name for chunks.",
+					anyOf: [
+						{
+							type: "string"
+						}
+					]
+				},
 				cacheGroups: {
 					description:
 						"Assign modules to a cache group (modules from different cache groups are tried to keep in separate chunks, default categories: 'default', 'defaultVendors').",
@@ -1176,6 +1206,9 @@ module.exports = {
 							$ref: "#/definitions/TrustedTypes"
 						}
 					]
+				},
+				sourceMapFilename: {
+					$ref: "#/definitions/SourceMapFilename"
 				}
 			}
 		},

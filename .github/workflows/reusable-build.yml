@@ -72,12 +72,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Protoc
-        if: ${{ needs.select.outputs.docker != 'true' }}
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install Rust
         if: ${{ needs.select.outputs.docker != 'true' }}
         run: rustup show
@@ -104,7 +98,6 @@ jobs:
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
-          pre: sudo apt-get -y install protobuf-compiler
 
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
@@ -112,7 +105,6 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-          pre: sudo apt-get -y install protobuf-compiler
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
@@ -120,7 +112,6 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          pre: apk add --no-cache protoc
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -130,7 +121,6 @@ jobs:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-            apk add --no-cache protoc
 
       # Windows
 

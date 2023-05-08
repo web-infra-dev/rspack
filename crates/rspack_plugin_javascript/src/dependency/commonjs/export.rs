@@ -1,2 +1,2 @@
 // TODO
-pub struct CommonJsExportDependency {}
+pub struct CommonJsExportDependency;

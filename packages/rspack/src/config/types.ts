@@ -158,6 +158,7 @@ export interface Output {
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: true | string | TrustedTypes;
+	sourceMapFilename?: SourceMapFilename;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -175,6 +176,7 @@ export type ChunkLoadingGlobal = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
+export type SourceMapFilename = FilenameTemplate;
 export type Iife = boolean;
 export type Clean = boolean;
 export interface LibraryCustomUmdCommentObject {
@@ -258,6 +260,7 @@ export interface OutputNormalized {
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: TrustedTypes;
+	sourceMapFilename?: SourceMapFilename;
 	/**
 	 * Algorithm used for generation the hash (see node.js crypto package).
 	 */
@@ -466,6 +469,7 @@ export type ExternalsType =
 ///// ExternalsPresets /////
 export interface ExternalsPresets {
 	node?: boolean;
+	web?: boolean;
 }
 
 ///// InfrastructureLogging /////
@@ -570,6 +574,7 @@ export interface Optimization {
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
 	sideEffects?: "flag" | boolean;
+	realContentHash?: boolean;
 }
 export interface OptimizationSplitChunksOptions {
 	cacheGroups?: {
@@ -582,14 +587,16 @@ export interface OptimizationSplitChunksOptions {
 	minSize?: OptimizationSplitChunksSizes;
 	enforceSizeThreshold?: OptimizationSplitChunksSizes;
 	minRemainingSize?: OptimizationSplitChunksSizes;
+	name?: string | false;
 }
 export interface OptimizationSplitChunksCacheGroup {
 	chunks?: "initial" | "async" | "all";
 	minChunks?: number;
-	name?: string;
+	name?: string | false;
 	priority?: number;
 	reuseExistingChunk?: boolean;
 	test?: RegExp;
+	minSize?: number;
 }
 export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =

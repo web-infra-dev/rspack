@@ -6,13 +6,13 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs,
-  ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
-  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs,
-  OptimizeChunksArgs, ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs,
-  RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver,
-  SourceType, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
+  ChunkHashArgs, ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
+  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -25,6 +25,7 @@ pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<Option<ResourceData>>;
+pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
 pub type PluginChunkHashHookOutput = Result<Option<u64>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
@@ -85,6 +86,22 @@ pub trait Plugin: Debug + Send + Sync {
     _args: FactorizeArgs<'_>,
     _job_ctx: &mut NormalModuleFactoryContext,
   ) -> PluginFactorizeHookOutput {
+    Ok(None)
+  }
+
+  async fn before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    Ok(None)
+  }
+
+  async fn context_module_before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
 
@@ -258,6 +275,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn process_assets_stage_optimize_hash(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   async fn process_assets_stage_report(
     &mut self,
     _ctx: PluginContext,
@@ -361,18 +386,19 @@ pub struct RenderManifestEntry {
   pub(crate) source: BoxSource,
   filename: String,
   pub(crate) path_options: PathData,
-  // info?: AssetInfo;
+  pub(crate) info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
   // auxiliary?: boolean;
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String, path_options: PathData) -> Self {
+  pub fn new(source: BoxSource, filename: String, path_options: PathData, info: AssetInfo) -> Self {
     Self {
       source,
       filename,
       path_options,
+      info,
     }
   }
 

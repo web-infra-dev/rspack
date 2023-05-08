@@ -9,7 +9,7 @@ use rspack_core::{
 use crate::utils::property_access;
 
 #[derive(Debug, Default)]
-pub struct ModuleLibraryPlugin {}
+pub struct ModuleLibraryPlugin;
 
 impl ModuleLibraryPlugin {}
 

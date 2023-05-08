@@ -37,6 +37,8 @@ impl SplitChunksPlugin {
       let (_module_group_key, mut module_group) =
         self.find_best_module_group(&mut module_group_map);
 
+      let cache_group = &self.cache_groups[module_group.cache_group_index];
+
       let mut is_reuse_existing_chunk = false;
       let mut is_reuse_existing_chunk_with_all_modules = false;
       let new_chunk = self.get_corresponding_chunk(
@@ -45,6 +47,16 @@ impl SplitChunksPlugin {
         &mut is_reuse_existing_chunk,
         &mut is_reuse_existing_chunk_with_all_modules,
       );
+
+      let new_chunk_mut = new_chunk.as_mut(&mut compilation.chunk_by_ukey);
+
+      new_chunk_mut
+        .chunk_reasons
+        .push(["(cache group: ", cache_group.key.as_str(), ")"].join(""));
+
+      new_chunk_mut
+        .id_name_hints
+        .insert(cache_group.id_hint.clone());
 
       if is_reuse_existing_chunk {
         // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
@@ -269,27 +281,30 @@ impl SplitChunksPlugin {
     let keys_of_empty_group = module_group_map
       .iter_mut()
       .par_bridge()
+      .filter(|(_key, each_module_group)| {
+        // Fast path: check whether has overlap on chunks
+        each_module_group
+          .chunks
+          .intersection(used_chunks)
+          .next()
+          .is_some()
+      })
       .filter_map(|(key, each_module_group)| {
-        let has_overlap = each_module_group.chunks.union(used_chunks).next().is_some();
-        if has_overlap {
-          let mut updated = false;
-          for module in &item.modules {
-            if each_module_group.modules.contains(module) {
-              let module = compilation
-                .module_graph
-                .module_by_identifier(module)
-                .unwrap_or_else(|| panic!("Module({module}) not found"));
-              each_module_group.remove_module(module);
-              updated = true;
-            }
+        item.modules.iter().for_each(|module| {
+          if each_module_group.modules.contains(module) {
+            let module = compilation
+              .module_graph
+              .module_by_identifier(module)
+              .unwrap_or_else(|| panic!("Module({module}) not found"));
+            each_module_group.remove_module(module);
           }
+        });
 
-          if updated && each_module_group.modules.is_empty() {
-            return Some(key.clone());
-          }
+        if each_module_group.modules.is_empty() {
+          Some(key.clone())
+        } else {
+          None
         }
-
-        None
       })
       .collect::<Vec<_>>();
 
@@ -434,13 +449,14 @@ impl SplitChunksPlugin {
                 selected_chunks,
               } = matched_item;
 
-              // Merge the `Module` of `MatchedItem` into the `ModuleGroup` which has the same `key`/`cache_group.name`
+              // `Module`s with the same chunk_name would be merged togother.
+              // `Module`s could be in different `ModuleGroup`s.
               let chunk_name: Option<String> = (cache_group.name)(module).await;
 
               let key: String = if let Some(cache_group_name) = &chunk_name {
-                ["name: ", cache_group_name].join("")
+                [&cache_group.key, " name:", cache_group_name].join("")
               } else {
-                ["index: ", &cache_group_index.to_string()].join("")
+                [&cache_group.key, " index:", &cache_group_index.to_string()].join("")
               };
 
               let mut module_group = module_group_map.entry(key).or_insert_with(|| ModuleGroup {

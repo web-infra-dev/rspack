@@ -45,9 +45,11 @@ const config = {
 	},
 	resolve: { alias: { "@": path.resolve(__dirname, "src") } },
 	output: {
-		publicPath: "/"
+		publicPath: "/",
+		filename: "[name].[contenthash].js"
 	},
 	optimization: {
+		realContentHash: true,
 		splitChunks: {
 			cacheGroups: {
 				someVendor: {

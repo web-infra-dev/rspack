@@ -7,14 +7,17 @@ pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_theadsafe_fn;
 use rspack_core::{
-  ChunkAssetArgs, NormalModuleFactoryResolveForSchemeArgs,
-  PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
+  ChunkAssetArgs, NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
+  ResourceData,
 };
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use rspack_napi_shared::NapiResultExt;
 
-use crate::js_values::{JsChunkAssetArgs, JsResourceData, SchemeAndJsResourceData};
+use crate::js_values::{
+  BeforeResolveData, JsChunkAssetArgs, JsResourceData, SchemeAndJsResourceData,
+};
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
 pub struct JsHooksAdapter {
@@ -28,6 +31,7 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
@@ -36,6 +40,8 @@ pub struct JsHooksAdapter {
   pub before_compile_tsfn: ThreadsafeFunction<(), ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
+  pub before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
+  pub context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<SchemeAndJsResourceData, JsResourceData>,
 }
@@ -131,6 +137,32 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call make: {err}",))?
   }
 
+  async fn before_resolve(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    let res = self
+      .before_resolve
+      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+    res
+  }
+  async fn context_module_before_resolve(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    let res = self
+      .context_module_before_resolve
+      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+    res
+  }
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: rspack_core::PluginContext,
@@ -252,6 +284,23 @@ impl rspack_core::Plugin for JsHooksAdapter {
     // Directly calling hook processAssets without converting assets to JsAssets, instead, we use APIs to get `Source` lazily on the Node side.
     self
       .process_assets_stage_summarize_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
+  }
+
+  async fn process_assets_stage_optimize_hash(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeHash) {
+      return Ok(());
+    }
+
+    self
+      .process_assets_stage_optimize_hash_tsfn
       .call((), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
@@ -392,6 +441,7 @@ impl JsHooksAdapter {
       process_assets_stage_none,
       process_assets_stage_optimize_inline,
       process_assets_stage_summarize,
+      process_assets_stage_optimize_hash,
       process_assets_stage_report,
       this_compilation,
       compilation,
@@ -399,6 +449,8 @@ impl JsHooksAdapter {
       after_emit,
       optimize_modules,
       optimize_chunk_module,
+      before_resolve,
+      context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
       before_compile,
       finish_modules,
@@ -417,6 +469,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(process_assets_stage_optimize_inline, env);
     let process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_summarize, env);
+    let process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_theadsafe_fn!(process_assets_stage_optimize_hash, env);
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_report, env);
     let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(emit, env);
@@ -434,6 +488,10 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(before_compile, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_modules, env);
+    let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
+      js_fn_into_theadsafe_fn!(context_module_before_resolve, env);
+    let before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
+      js_fn_into_theadsafe_fn!(before_resolve, env);
     let normal_module_factory_resolve_for_scheme: ThreadsafeFunction<
       SchemeAndJsResourceData,
       JsResourceData,
@@ -450,6 +508,7 @@ impl JsHooksAdapter {
       process_assets_stage_none_tsfn,
       process_assets_stage_optimize_inline_tsfn,
       process_assets_stage_summarize_tsfn,
+      process_assets_stage_optimize_hash_tsfn,
       process_assets_stage_report_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,
@@ -458,12 +517,15 @@ impl JsHooksAdapter {
       optimize_modules_tsfn,
       optimize_chunk_modules_tsfn,
       before_compile_tsfn,
+      before_resolve,
+      context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
       finish_modules_tsfn,
       chunk_asset_tsfn,
     })
   }
 
+  #[allow(clippy::unwrap_used)]
   fn is_hook_disabled(&self, hook: &Hook) -> bool {
     self.disabled_hooks.read().unwrap().contains(hook)
   }

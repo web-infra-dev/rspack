@@ -240,6 +240,8 @@ pub struct Output {
   pub css_filename: String,
   #[serde(default = "default_chunk_filename")]
   pub css_chunk_filename: String,
+  #[serde(default = "default_chunk_filename")]
+  pub source_map_filename: String,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -402,6 +404,8 @@ impl TestConfig {
         iife: true,
         module: false,
         trusted_types: None,
+        source_map_filename: c::Filename::from_str(&self.output.source_map_filename)
+          .expect("Should exist"),
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),
@@ -536,6 +540,7 @@ impl TestConfig {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
+    plugins.push(rspack_plugin_externals::http_url_external_plugin(true));
 
     (options, plugins)
   }

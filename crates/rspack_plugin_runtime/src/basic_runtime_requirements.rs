@@ -14,9 +14,7 @@ use crate::runtime_module::{
 };
 
 #[derive(Debug)]
-pub struct BasicRuntimeRequirementPlugin {}
-
-impl BasicRuntimeRequirementPlugin {}
+pub struct BasicRuntimeRequirementPlugin;
 
 #[async_trait]
 impl Plugin for BasicRuntimeRequirementPlugin {

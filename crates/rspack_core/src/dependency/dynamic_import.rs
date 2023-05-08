@@ -10,13 +10,12 @@ use swc_core::{
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableDeclMappings,
   CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  JsAstPath, ModuleDependency, ModuleDependencyExt, ModuleIdentifier, RuntimeGlobals,
+  JsAstPath, ModuleDependency, ModuleDependencyExt, RuntimeGlobals,
 };
 
 #[derive(Debug, Eq, Clone)]
 pub struct EsmDynamicImportDependency {
   id: Option<DependencyId>,
-  parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   category: &'static DependencyCategory,
   dependency_type: &'static DependencyType,
@@ -32,8 +31,7 @@ pub struct EsmDynamicImportDependency {
 // Do not edit this, as it is used to uniquely identify the dependency.
 impl PartialEq for EsmDynamicImportDependency {
   fn eq(&self, other: &Self) -> bool {
-    self.parent_module_identifier == other.parent_module_identifier
-      && self.request == other.request
+    self.request == other.request
       && self.category == other.category
       && self.dependency_type == other.dependency_type
   }
@@ -42,7 +40,6 @@ impl PartialEq for EsmDynamicImportDependency {
 // Do not edit this, as it is used to uniquely identify the dependency.
 impl std::hash::Hash for EsmDynamicImportDependency {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.parent_module_identifier.hash(state);
     self.request.hash(state);
     self.category.hash(state);
     self.dependency_type.hash(state);
@@ -57,7 +54,6 @@ impl EsmDynamicImportDependency {
     name: Option<String>,
   ) -> Self {
     Self {
-      parent_module_identifier: None,
       request,
       name,
       category: &DependencyCategory::Esm,
@@ -75,13 +71,6 @@ impl Dependency for EsmDynamicImportDependency {
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = module_identifier;
   }
 
   fn category(&self) -> &DependencyCategory {

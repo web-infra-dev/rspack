@@ -1,6 +1,6 @@
 use crate::{
   CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -16,10 +16,6 @@ impl EntryDependency {
 }
 
 impl Dependency for EntryDependency {
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    None
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }

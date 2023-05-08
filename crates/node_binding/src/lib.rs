@@ -174,6 +174,7 @@ impl Rspack {
     Ok(Self { id, disabled_hooks })
   }
 
+  #[allow(clippy::unwrap_in_result, clippy::unwrap_used)]
   #[napi(
     catch_unwind,
     js_name = "unsafe_set_disabled_hooks",

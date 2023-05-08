@@ -8,7 +8,7 @@ use rspack_error::Result;
 use crate::runtime_module::ImportScriptsChunkLoadingRuntimeModule;
 
 #[derive(Debug)]
-pub struct ImportScriptsChunkLoadingPlugin {}
+pub struct ImportScriptsChunkLoadingPlugin;
 
 #[async_trait]
 impl Plugin for ImportScriptsChunkLoadingPlugin {

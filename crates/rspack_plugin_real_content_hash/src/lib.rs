@@ -1,0 +1,310 @@
+#![feature(let_chains)]
+
+use std::{
+  borrow::Cow,
+  hash::{BuildHasherDefault, Hash, Hasher},
+};
+
+use derivative::Derivative;
+use once_cell::sync::{Lazy, OnceCell};
+use rayon::prelude::*;
+use regex::{Captures, Regex};
+use rspack_core::{
+  rspack_sources::{BoxSource, RawSource, SourceExt},
+  AssetInfo, Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
+};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use xxhash_rust::xxh3::Xxh3;
+
+type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
+
+pub static QUOTE_META: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Invalid regex"));
+
+#[derive(Debug)]
+pub struct RealContentHashPlugin;
+
+#[async_trait::async_trait]
+impl Plugin for RealContentHashPlugin {
+  async fn process_assets_stage_optimize_hash(
+    &mut self,
+    ctx: PluginContext,
+    args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    self.inner_impl(ctx, args).await
+  }
+}
+
+impl RealContentHashPlugin {
+  async fn inner_impl(
+    &mut self,
+    _ctx: PluginContext,
+    args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    let compilation = args.compilation;
+    let mut hash_to_asset_names: HashMap<&str, Vec<&str>> = HashMap::default();
+    for (name, asset) in compilation
+      .assets()
+      .iter()
+      .filter(|(_, asset)| asset.get_source().is_some())
+    {
+      // TODO(ahabhgk): info.content_hash should be Option<Vec<String>>
+      // e.g. [contenthash:8]-[contenthash].js
+      if let Some(content_hash) = &asset.info.content_hash {
+        hash_to_asset_names
+          .entry(content_hash)
+          .and_modify(|names| names.push(name))
+          .or_insert(vec![name]);
+      }
+    }
+    if hash_to_asset_names.is_empty() {
+      return Ok(());
+    }
+    let hash_regexp = Regex::new(
+      &hash_to_asset_names
+        .keys()
+        // xx\xx{xx?xx.xx -> xx\\xx\{xx\?xx\.xx escape for Regex::new
+        .map(|hash| QUOTE_META.replace_all(hash, "\\$0"))
+        .collect::<Vec<Cow<str>>>()
+        .join("|"),
+    )
+    .expect("Invalid regex");
+
+    let assets_data: HashMap<&str, AssetData> = compilation
+      .assets()
+      .par_iter()
+      .filter_map(|(name, asset)| {
+        asset.get_source().map(|source| {
+          (
+            name.as_str(),
+            AssetData::new(source.clone(), asset.get_info(), &hash_regexp),
+          )
+        })
+      })
+      .collect();
+
+    let ordered_hashes = OrderedHashesBuilder::new(&hash_to_asset_names, &assets_data).build();
+
+    let mut hash_to_new_hash = HashMap::default();
+
+    for old_hash in &ordered_hashes {
+      if let Some(asset_names) = hash_to_asset_names.get_mut(old_hash.as_str()) {
+        asset_names.sort();
+        let asset_contents: Vec<_> = asset_names
+          .par_iter()
+          .filter_map(|name| assets_data.get(name))
+          .map(|data| {
+            data
+              .compute_new_source(
+                data.own_hashes.contains(old_hash),
+                &hash_to_new_hash,
+                &hash_regexp,
+              )
+              .buffer()
+          })
+          .collect();
+        let mut hasher = Xxh3::new();
+        for asset_content in asset_contents {
+          asset_content.hash(&mut hasher);
+        }
+        let new_hash = format!("{:x}", hasher.finish());
+        hash_to_new_hash.insert(old_hash, new_hash);
+      }
+    }
+
+    let updates: Vec<_> = assets_data
+      .into_par_iter()
+      .filter_map(|(name, data)| {
+        let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_regexp);
+        let new_name = hash_regexp
+          .replace(name, |c: &Captures| {
+            let hash = c
+              .get(0)
+              .expect("RealContentHashPlugin: should have match")
+              .as_str();
+            hash_to_new_hash
+              .get(hash)
+              .expect("RealContentHashPlugin: should have new hash")
+          })
+          .into_owned();
+        let new_name = (name != new_name).then_some(new_name);
+        Some((name.to_owned(), new_source.clone(), new_name))
+      })
+      .collect();
+
+    for (name, new_source, new_name) in updates {
+      compilation.update_asset(&name, |_, old_info| {
+        let new_hash = old_info
+          .content_hash
+          .as_ref()
+          .and_then(|old_hash| hash_to_new_hash.get(old_hash.as_str()));
+        Ok((
+          new_source.clone(),
+          old_info.with_content_hash(new_hash.cloned()),
+        ))
+      })?;
+      if let Some(new_name) = new_name {
+        compilation.rename_asset(&name, new_name);
+      }
+    }
+
+    Ok(())
+  }
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+struct AssetData {
+  own_hashes: HashSet<String>,
+  referenced_hashes: HashSet<String>,
+  #[derivative(Debug = "ignore")]
+  old_source: BoxSource,
+  #[derivative(Debug = "ignore")]
+  content: AssetDataContent,
+  #[derivative(Debug = "ignore")]
+  new_source: OnceCell<BoxSource>,
+  #[derivative(Debug = "ignore")]
+  new_source_without_own: OnceCell<BoxSource>,
+}
+
+#[derive(Debug)]
+enum AssetDataContent {
+  Buffer,
+  String(String),
+}
+
+impl AssetData {
+  pub fn new(source: BoxSource, info: &AssetInfo, hash_regexp: &Regex) -> Self {
+    let mut own_hashes = HashSet::default();
+    let mut referenced_hashes = HashSet::default();
+    // TODO(ahabhgk): source.is_buffer() instead of String::from_utf8().is_ok()
+    let content = if let Ok(content) = String::from_utf8(source.buffer().to_vec()) {
+      for hash in hash_regexp.find_iter(&content) {
+        if let Some(contenthash) = &info.content_hash && contenthash == hash.as_str() {
+          own_hashes.insert(hash.as_str().to_string());
+          continue;
+        }
+        referenced_hashes.insert(hash.as_str().to_string());
+      }
+      AssetDataContent::String(content)
+    } else {
+      AssetDataContent::Buffer
+    };
+
+    Self {
+      own_hashes,
+      referenced_hashes,
+      old_source: source,
+      content,
+      new_source: OnceCell::new(),
+      new_source_without_own: OnceCell::new(),
+    }
+  }
+
+  pub fn compute_new_source(
+    &self,
+    without_own: bool,
+    hash_to_new_hash: &HashMap<&str, String>,
+    hash_regexp: &Regex,
+  ) -> &BoxSource {
+    (if without_own {
+      &self.new_source_without_own
+    } else {
+      &self.new_source
+    })
+    .get_or_init(|| {
+      if let AssetDataContent::String(content) = &self.content
+      && (!self.own_hashes.is_empty() || self
+        .referenced_hashes
+        .iter()
+        .any(|hash| matches!(hash_to_new_hash.get(hash.as_str()), Some(h) if h != hash)))
+      {
+        let new_content = hash_regexp.replace_all(content, |c: &Captures| {
+          let hash = c
+            .get(0)
+            .expect("RealContentHashPlugin: should have matched")
+            .as_str();
+          if without_own && self.own_hashes.contains(hash) {
+            return "";
+          }
+          hash_to_new_hash
+            .get(hash)
+            .expect("RealContentHashPlugin: should have new hash")
+        });
+        return RawSource::from(new_content.into_owned()).boxed();
+      }
+      self.old_source.clone()
+    })
+  }
+}
+
+struct OrderedHashesBuilder<'a> {
+  hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
+  assets_data: &'a HashMap<&'a str, AssetData>,
+}
+
+impl<'a> OrderedHashesBuilder<'a> {
+  pub fn new(
+    hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
+    assets_data: &'a HashMap<&'a str, AssetData>,
+  ) -> Self {
+    Self {
+      hash_to_asset_names,
+      assets_data,
+    }
+  }
+
+  pub fn build(&self) -> IndexSet<String> {
+    let mut ordered_hashes = IndexSet::default();
+    for hash in self.hash_to_asset_names.keys() {
+      self.add_to_ordered_hashes(hash, &mut ordered_hashes, &mut HashSet::default());
+    }
+    ordered_hashes
+  }
+}
+
+impl OrderedHashesBuilder<'_> {
+  fn get_hash_dependencies(&self, hash: &str) -> HashSet<&str> {
+    let asset_names = self
+      .hash_to_asset_names
+      .get(hash)
+      .expect("RealContentHashPlugin: should have asset_names");
+    let mut hashes = HashSet::default();
+    for name in asset_names {
+      if let Some(asset_hash) = self.assets_data.get(name) {
+        if !asset_hash.own_hashes.contains(hash) {
+          for hash in &asset_hash.own_hashes {
+            hashes.insert(hash.as_str());
+          }
+        }
+        for hash in &asset_hash.referenced_hashes {
+          hashes.insert(hash.as_str());
+        }
+      }
+    }
+    hashes
+  }
+
+  fn add_to_ordered_hashes<'b, 'a: 'b>(
+    &'a self,
+    hash: &'b str,
+    ordered_hashes: &mut IndexSet<String>,
+    stack: &mut HashSet<&'b str>,
+  ) {
+    let deps = self.get_hash_dependencies(hash);
+    stack.insert(hash);
+    for dep in deps {
+      if ordered_hashes.contains(dep) {
+        continue;
+      }
+      if stack.contains(dep) {
+        // Safety: all chunk-level hash will be collected in runtime chunk
+        // so there shouldn't have circular hash dependency between chunks
+        panic!("RealContentHashPlugin: circular hash dependency");
+      }
+      self.add_to_ordered_hashes(dep, ordered_hashes, stack);
+    }
+    ordered_hashes.insert(hash.to_string());
+    stack.remove(hash);
+  }
+}

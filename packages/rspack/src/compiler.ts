@@ -7,14 +7,12 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
+import * as binding from "@rspack/binding";
 import fs from "fs";
 import path from "path";
 import * as tapable from "tapable";
-import { SyncHook, SyncBailHook, Callback } from "tapable";
+import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
-import Watching from "./watching";
-import * as binding from "@rspack/binding";
-import { Logger } from "./logging/Logger";
 import {
 	OutputNormalized,
 	RspackOptionsNormalized,
@@ -23,16 +21,21 @@ import {
 import { RuleSetCompiler } from "./RuleSetCompiler";
 import { Stats } from "./stats";
 import { Compilation, CompilationParams } from "./compilation";
+import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { WatchFileSystem } from "./util/fs";
-import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { getRawOptions } from "./config/adapter";
+import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
+import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
-import { NormalModuleFactory } from "./normalModuleFactory";
-import { runLoader } from "./loader-runner";
-import CacheFacade from "./lib/CacheFacade";
 import Cache from "./lib/Cache";
 import { makePathsRelative } from "./util/identifier";
+import CacheFacade from "./lib/CacheFacade";
+import { runLoader } from "./loader-runner";
+import { Logger } from "./logging/Logger";
+import { NormalModuleFactory } from "./normalModuleFactory";
+import { WatchFileSystem } from "./util/fs";
+import { getScheme } from "./util/scheme";
+import Watching from "./watching";
 
 class EntryPlugin {
 	constructor(
@@ -158,6 +161,8 @@ class Compiler {
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
 		compile: tapable.SyncHook<[any]>;
+		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
+		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
@@ -193,7 +198,7 @@ class Compiler {
 			},
 			Compilation,
 			get version() {
-				return "5.75.0"; // this is a hack to be compatible with plugin which detect webpack's version
+				return require("../package.json").webpackVersion; // this is a hack to be compatible with plugin which detect webpack's version
 			},
 			get rspackVersion() {
 				return require("../package.json").version;
@@ -254,6 +259,12 @@ class Compiler {
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
+			normalModuleFactory: new tapable.SyncHook<NormalModuleFactory>([
+				"normalModuleFactory"
+			]),
+			contextModuleFactory: new tapable.SyncHook<ContextModuleFactory>([
+				"contextModuleFactory"
+			]),
 			watchRun: new tapable.AsyncSeriesHook(["compiler"]),
 			watchClose: new tapable.SyncHook([]),
 			environment: new tapable.SyncHook([]),
@@ -285,10 +296,31 @@ class Compiler {
 	 * Lazy initialize instance so it could access the changed options
 	 */
 	get #instance() {
+		const processResource = (
+			loaderContext: LoaderContext,
+			resourcePath: string,
+			callback: any
+		) => {
+			const resource = loaderContext.resource;
+			const scheme = getScheme(resource);
+			this.compilation
+				.currentNormalModuleHooks()
+				.readResource.for(scheme)
+				.callAsync(loaderContext, (err: any, result: LoaderResult) => {
+					if (err) return callback(err);
+					if (typeof result !== "string" && !result) {
+						return callback(new Error(`Unhandled ${scheme} resource`));
+					}
+					return callback(null, result);
+				});
+		};
+		const options = getRawOptions(this.options, this, processResource);
+
 		this.#_instance =
 			this.#_instance ??
 			new binding.Rspack(
-				getRawOptions(this.options, this),
+				options,
+
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
 					make: this.#make.bind(this),
@@ -318,6 +350,10 @@ class Compiler {
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
 					),
+					processAssetsStageOptimizeHash: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+					),
 					processAssetsStageReport: this.#processAssets.bind(
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_REPORT
@@ -336,7 +372,10 @@ class Compiler {
 					finishModules: this.#finish_modules.bind(this),
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this),
-					chunkAsset: this.#chunkAsset.bind(this)
+					chunkAsset: this.#chunkAsset.bind(this),
+					beforeResolve: this.#beforeResolve.bind(this),
+					contextModuleBeforeResolve:
+						this.#contextModuleBeforeResolve.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 				loaderContext => runLoader(loaderContext, this)
@@ -617,6 +656,25 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
+	async #beforeResolve(resourceData: binding.BeforeResolveData) {
+		let res =
+			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
+				resourceData
+			);
+
+		this.#updateDisabledHooks();
+		return res;
+	}
+	async #contextModuleBeforeResolve(resourceData: binding.BeforeResolveData) {
+		let res =
+			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
+				resourceData
+			);
+
+		this.#updateDisabledHooks();
+		return res;
+	}
+
 	async #normalModuleFactoryResolveForScheme(
 		resourceData: binding.SchemeAndJsResourceData
 	) {
@@ -681,7 +739,11 @@ class Compiler {
 		this.compilation = compilation;
 		// reset normalModuleFactory when create new compilation
 		let normalModuleFactory = new NormalModuleFactory();
+		let contextModuleFactory = new ContextModuleFactory();
 		this.compilation.normalModuleFactory = normalModuleFactory;
+		this.hooks.normalModuleFactory.call(normalModuleFactory);
+		this.compilation.contextModuleFactory = contextModuleFactory;
+		this.hooks.contextModuleFactory.call(normalModuleFactory);
 		this.hooks.thisCompilation.call(this.compilation, {
 			normalModuleFactory: normalModuleFactory
 		});

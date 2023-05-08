@@ -47,10 +47,10 @@ impl Record {
 
     p.push(record_path);
 
-    fs::write(p, self.serialize()).expect("TODO:");
+    fs::write(p, self.to_json()).expect("TODO:");
   }
 
-  pub fn serialize(&self) -> String {
+  pub fn to_json(&self) -> String {
     serde_json::to_string_pretty(self).expect("TODO:")
   }
 }

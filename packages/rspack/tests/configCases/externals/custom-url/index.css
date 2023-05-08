@@ -1,0 +1,5 @@
+@import "custom://css";
+
+.class {
+  a: url(custom://css);
+}
