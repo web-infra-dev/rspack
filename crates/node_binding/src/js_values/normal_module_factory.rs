@@ -80,17 +80,20 @@ impl From<NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
         .file_dependencies
         .clone()
         .into_iter()
-        .map(|item| item.to_string_lossy().to_string()),
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
       context_dependencies: value
         .context_dependencies
         .clone()
         .into_iter()
-        .map(|item| item.to_string_lossy().to_string()),
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
       missing_dependencies: value
         .context_dependencies
         .clone()
         .into_iter()
-        .map(|item| item.to_string_lossy().to_string()),
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
     }
   }
 }
