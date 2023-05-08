@@ -40,9 +40,12 @@ impl ModuleFactory for NormalModuleFactory {
     if let Ok(Some(before_resolve_data)) = self.before_resolve(&data).await {
       return Ok(before_resolve_data);
     }
-    let factory_result = self.factorize(&mut data).await?;
-    let context = data.context;
-    Ok(factory_result)
+    let (factory_result, diagnostics) = self.factorize(&mut data).await?.split_into_parts();
+    if let Ok(Some(after_resolve_data)) = self.after_resolve(&data, &factory_result).await {
+      return Ok(after_resolve_data);
+    }
+
+    Ok(factory_result.with_diagnostic(diagnostics))
   }
 }
 
