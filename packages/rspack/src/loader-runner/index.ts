@@ -526,7 +526,7 @@ export async function runLoader(
 		step++;
 		if (step > 1000) {
 			throw Error(
-				"Too much nested child compiler, exceeded max limitation 1000"
+				"Too many nested child compiler, exceeded max limitation 1000"
 			);
 		}
 	}
