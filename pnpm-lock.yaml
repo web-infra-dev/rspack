@@ -116,8 +116,6 @@ importers:
       '@ngtools/webpack': ^16.0.0
       '@rspack/cli': workspace:*
       '@rspack/plugin-minify': 0.1.9
-      '@types/jasmine': ~4.3.0
-      jasmine-core: ~4.5.0
       karma: ~6.4.0
       karma-chrome-launcher: ~3.1.0
       karma-coverage: ~2.2.0
@@ -146,13 +144,11 @@ importers:
       '@ngtools/webpack': 16.0.0_k3kazy7zbtd5flcef3flow3jq4
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
-      '@types/jasmine': 4.3.1
-      jasmine-core: 4.5.0
       karma: 6.4.2
       karma-chrome-launcher: 3.1.1
       karma-coverage: 2.2.0
       karma-jasmine: 5.1.0_karma@6.4.2
-      karma-jasmine-html-reporter: 2.0.0_4c3qqrfuxlafaos3i2iouaj6e4
+      karma-jasmine-html-reporter: 2.0.0_vjwhabvycyeyewnlmqeepdokki
       typescript: 4.9.4
 
   examples/arco-pro:
@@ -8394,10 +8390,6 @@ packages:
     dependencies:
       '@types/istanbul-lib-report': 3.0.0
 
-  /@types/jasmine/4.3.1:
-    resolution: {integrity: sha512-Vu8l+UGcshYmV1VWwULgnV/2RDbBaO6i2Ptx7nd//oJPIZGhoI1YLST4VKagD2Pq/Bc2/7zvtvhM7F3p4SN7kQ==}
-    dev: true
-
   /@types/jest/29.0.2:
     resolution: {integrity: sha512-TaklkwSEtvwJpleiKBHgEBySIQlcZ08gYP/s5wdtdLnjz9uxjnDd7U+Y0JWACebkqBc+jtbol2PEtEW0wQV2zQ==}
     dependencies:
@@ -15712,14 +15704,13 @@ packages:
       - supports-color
     dev: true
 
-  /karma-jasmine-html-reporter/2.0.0_4c3qqrfuxlafaos3i2iouaj6e4:
+  /karma-jasmine-html-reporter/2.0.0_vjwhabvycyeyewnlmqeepdokki:
     resolution: {integrity: sha512-SB8HNNiazAHXM1vGEzf8/tSyEhkfxuDdhYdPBX2Mwgzt0OuF2gicApQ+uvXLID/gXyJQgvrM9+1/2SxZFUUDIA==}
     peerDependencies:
       jasmine-core: ^4.0.0
       karma: ^6.0.0
       karma-jasmine: ^5.0.0
     dependencies:
-      jasmine-core: 4.5.0
       karma: 6.4.2
       karma-jasmine: 5.1.0_karma@6.4.2
     dev: true
