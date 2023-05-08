@@ -23,6 +23,7 @@ pub enum Hook {
   /// webpack `compilation.hooks.chunkAsset`
   ChunkAsset,
   NormalModuleFactoryResolveForScheme,
+  AfterResolve,
 }
 
 impl From<String> for Hook {
@@ -47,6 +48,7 @@ impl From<String> for Hook {
       "optimizeModules" => Hook::OptimizeModules,
       "chunkAsset" => Hook::ChunkAsset,
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
+      "afterResolve" => Hook::AfterResolve,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

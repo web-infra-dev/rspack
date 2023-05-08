@@ -15,7 +15,7 @@ use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunc
 use rspack_napi_shared::NapiResultExt;
 
 use crate::js_values::{
-  BeforeResolveData, JsChunkAssetArgs, JsResolveForSchemeInput, JsResolveForSchemeResult,
+  AfterResolveData, BeforeResolveData, JsChunkAssetArgs, JsResourceData, SchemeAndJsResourceData,
 };
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -40,6 +40,7 @@ pub struct JsHooksAdapter {
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
+  pub before_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
   pub context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<JsResolveForSchemeInput, JsResolveForSchemeResult>,
@@ -147,6 +148,20 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
+  }
+
+  async fn before_resolve(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: &NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    let res = self
+      .before_resolve
+      .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
+    res
   }
   async fn context_module_before_resolve(
     &self,
