@@ -1781,3 +1781,225 @@ chunk {main} bundle.js (main) 26 bytes [entry]
 [10] ./index.js 26 bytes {main}
     entry ./index "
 `;
+
+exports[`StatsTestCases should print correct stats for try_require 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.js",
+      "size": 334,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
+  "chunks": [
+    {
+      "children": [],
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "modules": [
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
+          "size": 47,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "937",
+          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/try_require./abc.js",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+          "issuerId": "10",
+          "issuerName": "./index.js",
+          "issuerPath": [
+            {
+              "id": "10",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+              "name": "./index.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "<PROJECT_ROOT>/tests/statsCases/try_require./abc.js (missing)",
+          "reasons": [
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+              "moduleName": "./index.js",
+              "type": "cjs require",
+              "userRequest": "./abc.js",
+            },
+          ],
+          "size": 160,
+          "type": "module",
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 207,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 334,
+        },
+      ],
+      "assetsSize": 334,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "hash": "44ee83e58bbe4eb9",
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "10",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 47,
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "937",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/try_require./abc.js",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "<PROJECT_ROOT>/tests/statsCases/try_require./abc.js (missing)",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+          "moduleName": "./index.js",
+          "type": "cjs require",
+          "userRequest": "./abc.js",
+        },
+      ],
+      "size": 160,
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 334,
+        },
+      ],
+      "assetsSize": 334,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/try_require/dist",
+  "publicPath": "",
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try_require/index.js:2:5
+  │
+2 │     require('./abc.js');
+  │     ^^^^^^^^^^^^^^^^^^^ Failed to resolve ./abc.js in <PROJECT_ROOT>/tests/statsCases/try_require/index.js
+
+",
+      "message": "Failed to resolve ./abc.js in <PROJECT_ROOT>/tests/statsCases/try_require/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try_require 2`] = `
+"Hash: 44ee83e58bbe4eb9
+    Asset       Size  Chunks             Chunk Names
+bundle.js  334 bytes    main  [emitted]  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 207 bytes [entry]
+ [10] ./index.js 47 bytes {main}
+     entry ./index 
+ [937] <PROJECT_ROOT>/tests/statsCases/try_require./abc.js (missing) 160 bytes {main}
+     cjs require ./abc.js [10]
+[10] ./index.js 47 bytes {main}
+    entry ./index 
+[937] <PROJECT_ROOT>/tests/statsCases/try_require./abc.js (missing) 160 bytes {main}
+    cjs require ./abc.js [10]
+
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try_require/index.js:2:5
+  │
+2 │     require('./abc.js');
+  │     ^^^^^^^^^^^^^^^^^^^ Failed to resolve ./abc.js in <PROJECT_ROOT>/tests/statsCases/try_require/index.js
+
+"
+`;

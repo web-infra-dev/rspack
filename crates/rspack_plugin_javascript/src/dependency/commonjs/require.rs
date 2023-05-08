@@ -70,6 +70,10 @@ impl ModuleDependency for CommonJSRequireDependency {
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
   }
+
+  fn get_optional(&self) -> bool {
+    self.optional
+  }
 }
 
 impl CodeGeneratable for CommonJSRequireDependency {
