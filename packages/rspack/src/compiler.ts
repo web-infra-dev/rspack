@@ -36,6 +36,7 @@ import { NormalModuleFactory } from "./normalModuleFactory";
 import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
 import Watching from "./watching";
+import { NormalModule } from "./normalModule";
 
 class EntryPlugin {
 	constructor(
