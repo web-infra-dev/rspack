@@ -1,0 +1,10 @@
+<timepicker [(ngModel)]="myTime" [showMinutes]="showMin" [showSeconds]="showSec"></timepicker>
+
+<pre class="alert alert-info">Time is: {{myTime}}<br>showMinutes: {{showMin}}<br>showSeconds: {{showSec}}</pre>
+
+<button class="btn btn-default text-center" (click)="toggleMinutes()">
+  {{showMin? 'Hide minutes' : 'Show minutes'}}
+</button>
+<button class="btn btn-default text-center" (click)="toggleSeconds()">
+  {{showSec? 'Hide seconds' : 'Show seconds'}}
+</button>

@@ -1,0 +1,8 @@
+<div class="row">
+  <div class="col-xs-12 col-12">
+    <div class="content-wrapper">
+      <p class="content-item" *ngFor="let content of returnedArray">{{content}}</p>
+    </div>
+    <pagination [totalItems]="contentArray.length" (pageChanged)="pageChanged($event)"></pagination>
+  </div>
+</div>

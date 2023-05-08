@@ -1,0 +1,9 @@
+<pre class="card card-block card-header">{{uncheckableRadioModel || 'null'}}</pre>
+<div class="btn-group" btnRadioGroup [(ngModel)]="uncheckableRadioModel">
+  <label class="btn btn-info" btnRadio="Left"
+         [uncheckable]="true" tabindex="0" role="button">Left</label>
+  <label class="btn btn-info" btnRadio="Middle"
+         [uncheckable]="true" tabindex="0" role="button">Middle</label>
+  <label class="btn btn-info" btnRadio="Right"
+         [uncheckable]="true" tabindex="0" role="button">Right</label>
+</div>

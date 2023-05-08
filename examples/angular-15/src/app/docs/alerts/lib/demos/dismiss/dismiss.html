@@ -1,0 +1,5 @@
+<div *ngFor="let alert of alerts">
+  <alert [type]="alert.type" [dismissible]="dismissible" (onClosed)="onClosed(alert)">{{ alert.msg }}</alert>
+</div>
+<button type="button" class="btn btn-primary" (click)="dismissible = !dismissible">Toggle dismissible</button>
+<button type="button" class="btn btn-primary" (click)="reset()">Reset</button>

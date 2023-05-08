@@ -1,0 +1,218 @@
+.prettyprint {
+  white-space: pre-wrap;
+  background: #F5F6F7;
+  font-family: Monaco,"Lucida Console",monospace;
+  color: #5C707A;
+  width: auto;
+  overflow: auto;
+  position: relative;
+  font-size: 13px;
+  line-height: 24px;
+  margin-bottom: 24px;
+  border-radius: 0 0 4px 4px;
+  padding: 16px 32px;
+  border-top: none;
+}
+
+.prettyprint.linenums,.prettyprint[class^="linenums:"],.prettyprint[class*=" linenums:"] {
+  padding: 0
+}
+
+.prettyprint.is-showcase {
+  border: 4px solid #0273D4
+}
+
+.prettyprint code {
+  background: none;
+  font-size: 13px;
+  padding: 0
+}
+
+.prettyprint ol {
+  background: #FAFAFC;
+  padding: 16px 32px 16px 56px;
+  margin: 0;
+  overflow: auto;
+  font-size: 13px
+}
+
+.prettyprint ol li,.prettyprint .tag {
+  color: #7a8b94;
+  background: none;
+  margin-bottom: 5px;
+  line-height: normal;
+  list-style-type: decimal;
+  font-size: 12px;
+  white-space: pre;
+}
+
+.prettyprint ol li:last-child {
+  margin-bottom: 0
+}
+
+.prettyprint ol li code {
+  background: none;
+  font-size: 13px
+}
+
+.prettyprint .pnk,.prettyprint .blk {
+  border-radius: 4px;
+  padding: 2px 4px
+}
+
+.prettyprint .pnk {
+  background: #CFD8DC;
+  color: #5C707A
+}
+
+.prettyprint .blk {
+  background: #E0E0E0
+}
+
+.prettyprint .otl {
+  outline: 1px solid rgba(169,169,169,0.56)
+}
+
+.prettyprint .kwd {
+  color: #D43669
+}
+
+.prettyprint .typ,.prettyprint .tag {
+  color: #FE5AAB
+}
+
+.prettyprint .str,.prettyprint .atv {
+  color: #538460;
+}
+
+.prettyprint .atn {
+  /*color: #647f11*/
+  color: #506eac;
+}
+
+.prettyprint .com {
+  color: #647f11
+}
+
+.prettyprint .lit {
+  color: #647f11
+}
+
+.prettyprint .pun {
+  color: #7a8b94
+}
+
+.prettyprint .pln {
+  color: #5C707A
+  /*color: #8a6d3b*/
+}
+
+.prettyprint .dec {
+  color: #647f11
+}
+
+@media print {
+  .prettyprint {
+    background: #F5F6F7;
+    border: none;
+    box-shadow: none
+  }
+
+  .prettyprint ol {
+    background: #F5F6F7
+  }
+
+  .prettyprint .kwd {
+    color: #D43669
+  }
+
+  .prettyprint .typ,.prettyprint .tag {
+    color: #D43669
+  }
+
+  .prettyprint .str,.prettyprint .atv {
+    color: #647f11
+  }
+
+  .prettyprint .atn {
+    /*color: #647f11*/
+    color: #31708f
+  }
+
+  .prettyprint .com {
+    color: #647f11
+  }
+
+  .prettyprint .lit {
+    color: #647f11
+  }
+
+  .prettyprint .pun {
+    color: #7a8b94
+  }
+
+  .prettyprint .pln {
+    color: #5C707A
+  }
+
+  .prettyprint .dec {
+    color: #647f11
+  }
+}
+
+h1 .prettyprint,h2 .prettyprint,h3 .prettyprint,h4 .prettyprint {
+  background: none;
+  font-family: Monaco,"Lucida Console",monospace;
+  color: #253238;
+  overflow: hidden;
+  position: relative;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 24px;
+  margin: 0;
+  border: none;
+  box-shadow: none;
+  padding: 0
+}
+
+h1 .prettyprint code,h2 .prettyprint code,h3 .prettyprint code,h4 .prettyprint code {
+  background: none;
+  font-size: 15px;
+  padding: 0
+}
+
+h1 .prettyprint .kwd,h2 .prettyprint .kwd,h3 .prettyprint .kwd,h4 .prettyprint .kwd {
+  color: #253238
+}
+
+h1 .prettyprint .typ,h1 .prettyprint .tag,h2 .prettyprint .typ,h2 .prettyprint .tag,h3 .prettyprint .typ,h3 .prettyprint .tag,h4 .prettyprint .typ,h4 .prettyprint .tag {
+  color: #B52E31
+}
+
+h1 .prettyprint .str,h1 .prettyprint .atv,h2 .prettyprint .str,h2 .prettyprint .atv,h3 .prettyprint .str,h3 .prettyprint .atv,h4 .prettyprint .str,h4 .prettyprint .atv {
+  color: #9d8d00
+}
+
+h1 .prettyprint .atn,h2 .prettyprint .atn,h3 .prettyprint .atn,h4 .prettyprint .atn {
+  color: #71a436
+}
+
+h1 .prettyprint .com,h2 .prettyprint .com,h3 .prettyprint .com,h4 .prettyprint .com {
+  color: #AFBEC5
+}
+
+h1 .prettyprint .lit,h2 .prettyprint .lit,h3 .prettyprint .lit,h4 .prettyprint .lit {
+  color: #9d8d00
+}
+
+h1 .prettyprint .pun,h2 .prettyprint .pun,h3 .prettyprint .pun,h4 .prettyprint .pun {
+  color: #000
+}
+
+h1 .prettyprint .pln,h2 .prettyprint .pln,h3 .prettyprint .pln,h4 .prettyprint .pln {
+  color: #000
+}
+
+h1 .prettyprint .dec,h2 .prettyprint .dec,h3 .prettyprint .dec,h4 .prettyprint .dec {
+  color: #8762c6
+}

@@ -1,0 +1,12 @@
+<p>Illustrates custom validation, you have to select time between 11:00 and 12:59</p>
+
+<div class="form-group mb-3">
+  <timepicker [(ngModel)]="myTime" [formControl]="ctrl" required></timepicker>
+</div>
+
+<pre class="alert"
+     [class.alert-danger]="!ctrl.valid && !ctrl.pristine"
+     [class.alert-success]="(ctrl.valid && !ctrl.pristine) || ctrl.value === null">
+  Time is: {{myTime}}
+</pre>
+<div class="alert alert-danger" *ngIf="ctrl.errors && ctrl.errors['outOfRange']">Invalid time</div>

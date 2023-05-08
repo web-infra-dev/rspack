@@ -1,0 +1,7 @@
+<timepicker [(ngModel)]="myTime"  (isValid)="isValid = $event"></timepicker>
+<hr>
+
+<pre class="alert alert-info">Time is: {{myTime}}</pre>
+<pre *ngIf="!isValid" class="alert alert-danger">Invalid time format</pre>
+
+<button type="button" class="btn btn-danger" (click)="clear()">Clear</button>

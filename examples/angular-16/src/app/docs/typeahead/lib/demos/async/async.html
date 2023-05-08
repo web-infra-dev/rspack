@@ -1,0 +1,9 @@
+<pre class="card card-block card-header">Model: {{ asyncSelected | json }}</pre>
+
+<input [(ngModel)]="asyncSelected"
+       [typeahead]="dataSource"
+       [typeaheadAsync]="true"
+       typeaheadOptionField="name"
+       (typeaheadLoading)="changeTypeaheadLoading($event)"
+       placeholder="Locations loaded via observable"
+       class="form-control">

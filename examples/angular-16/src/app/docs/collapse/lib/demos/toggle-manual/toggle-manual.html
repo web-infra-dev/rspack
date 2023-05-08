@@ -1,0 +1,10 @@
+<button type="button" class="btn btn-primary" (click)="collapse.show()"
+        aria-controls="collapseManual">Show content
+</button>
+<button type="button" class="btn btn-primary" (click)="collapse.hide()"
+        aria-controls="collapseManual">Hide content
+</button>
+<hr>
+<div id="collapseManual" #collapse="bs-collapse" [collapse]="isOpen">
+  <div class="well well-lg card card-block card-header">Some content</div>
+</div>

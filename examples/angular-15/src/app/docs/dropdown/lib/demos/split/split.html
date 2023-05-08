@@ -1,0 +1,19 @@
+<div class="btn-group" dropdown>
+  <button type="button" class="btn btn-danger">Action</button>
+  <button id="button-split" type="button" dropdownToggle class="btn btn-danger dropdown-toggle dropdown-toggle-split"
+          aria-controls="dropdown-split">
+    <span class="caret"></span>
+    <span class="sr-only visually-hidden">Split button!</span>
+  </button>
+  <ul id="dropdown-split" *dropdownMenu class="dropdown-menu"
+      role="menu" aria-labelledby="button-split">
+    <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Another action</a>
+    </li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Something else
+      here</a></li>
+    <li class="divider dropdown-divider"></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Separated link</a>
+    </li>
+  </ul>
+</div>

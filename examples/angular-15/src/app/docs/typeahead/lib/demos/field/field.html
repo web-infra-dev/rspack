@@ -1,0 +1,5 @@
+<pre class="card card-block card-header mb-3">Model: {{customSelected | json}}</pre>
+<input [(ngModel)]="customSelected"
+       [typeahead]="statesComplex"
+       typeaheadOptionField="name"
+       class="form-control">

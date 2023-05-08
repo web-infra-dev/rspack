@@ -1,0 +1,10 @@
+<span dropdown (onShown)="onShown()" (onHidden)="onHidden()" (isOpenChange)="isOpenChange()">
+  <a href id="basic-link" dropdownToggle (click)="false"
+     aria-controls="basic-link-dropdown">Click me for a dropdown, yo!</a>
+  <ul id="basic-link-dropdown" *dropdownMenu class="dropdown-menu"
+      role="menu" aria-labelledby="basic-link">
+    <li *ngFor="let choice of items">
+      <a class="dropdown-item" href="#">{{choice}}</a>
+    </li>
+  </ul>
+</span>

@@ -1,0 +1,12 @@
+<ng-container *ngIf="form">
+  <form [formGroup]="form">
+    <timepicker [formControlName]="'myControl'"></timepicker>
+  </form>
+
+  <br>
+  <button class="btn btn-success" (click)="form.get('myControl')?.enable()">Enable Control</button>
+  <button class="btn btn-warning" (click)="form.get('myControl')?.disable()">Disable Control</button>
+  <br><br>
+
+  <pre class="alert alert-info">Time is: {{ form.get('myControl')?.value }}</pre>
+</ng-container>

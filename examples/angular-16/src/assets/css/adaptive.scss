@@ -1,0 +1,467 @@
+/*** Media Query ***/
+
+/* above 768px */
+@media (min-width: 768px) {
+  .header {
+    position: fixed;
+    top: 0;
+    z-index: 1090;
+  }
+
+  .header-dropdown {
+    z-index: 1090;
+  }
+
+  .modal-backdrop {
+    z-index: 2000;
+  }
+
+  .modal {
+    z-index: 2001;
+  }
+}
+
+/* below 1200 */
+@media (max-width: 1199px) {
+  .landing-logo .logo::after {
+    content: none;
+  }
+
+  header {
+    justify-content: space-between;
+
+    .logo, .social-info, .search-container {
+      min-width: auto;
+      width: auto;
+    }
+  }
+
+  .add-nav {
+    display: none;
+  }
+
+  tabset {
+    max-width: 100%;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+
+    h2[id],
+    h3[id] {
+
+      .anchor-link {
+        display: inline-block;
+      }
+    }
+  }
+
+  .landing-advantages .row {
+    margin-bottom: 0;
+  }
+
+  .landing-additional-inf {
+    padding-top: 220px;
+
+    .bubble-box {
+      width: auto;
+      height: auto;
+      margin-right: 100px;
+
+      .bubble {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        background-color: transparent;
+        box-shadow: none;
+        display: flex;
+        align-items: center;
+
+        img {
+          position: relative;
+          top: 0;
+          left: 0;
+          transform: none;
+        }
+      }
+    }
+
+    .text-holder {
+      max-width: 100%;
+      padding-top: 0;
+    }
+  }
+
+  .main .button-box .btn, .landing-additional-inf .text-holder button,
+  .main .button-box .btn, .landing-additional-inf .text-holder a.btn{
+    font-size: 16px;
+  }
+
+  footer {
+
+    .container-width {
+      flex-wrap: wrap;
+    }
+  }
+
+  .footer {
+
+    &-logo, &-text {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    &-social {
+      width: 100%;
+      max-width: 30%;
+      margin: auto;
+    }
+  }
+}
+
+/* below 992 */
+@media (min-width: 992px) {
+  #mobile-main-menu {
+    display: none;
+  }
+
+  .sidebar-search {
+    min-width: 50%;
+  }
+}
+
+@media (max-width: 991px) {
+  .landing {
+
+    h1 {
+      font-size: 48px;
+      line-height: 52px;
+    }
+
+    h2 {
+      font-size: 34px;
+      line-height: 38px;
+    }
+  }
+
+  .row {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .main {
+    padding-top: 0;
+
+    .content {
+      margin-top: 30px
+    }
+  }
+
+  .display-lg-none {
+    display: none;
+  }
+
+  .header {
+    padding: 15px;
+  }
+
+  .main-container,
+  .sidebar.menuIsOpened, .bg-container {
+    flex: 0 0 100%;
+    max-width: 100%;
+    width: 100%;
+    min-height: calc(100vh - 62px);
+  }
+
+  .bg-container {
+    height: calc(100vh - 62px);
+    margin: 62px 0 0 0;
+  }
+
+  .main-container {
+    margin-left: 0;
+    padding: 25px;
+
+    .content-box {
+      padding-left: 0;
+      padding-right: 0;
+    }
+  }
+
+  app-footer {
+    margin-left: 0;
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: none;
+    position: fixed;
+    top: 63px;
+    width: 100vw;
+    z-index: 2;
+    max-height: fit-content;
+    min-height: fit-content;
+
+    .sidebar-search {
+      display: flex;
+      flex-flow: row nowrap;
+      justify-content: space-between;
+      background-color: $main-bg-color;
+      padding: 15px;
+    }
+
+    &.menuIsOpened {
+
+      .mobile-menu {
+        width: 100%;
+        height: auto;
+      }
+    }
+  }
+
+  .sidebar.menuIsOpened .sidebar-list, .sidebar.menuIsOpened .bootstrap-version {
+    padding: 10px 15px;
+  }
+
+  .sidebar.menuIsOpened .sidebar-list:first-child {
+    padding-bottom: 10px;
+  }
+
+  .sidebar-list li {
+    margin-top: 16px;
+  }
+
+  .sidebar-list-box.secondary-items::before {
+    left: -15px;
+  }
+
+  #mobile-main-menu {
+    cursor: pointer;
+    border-color: transparent;
+    background: none;
+    padding: 0;
+  }
+
+  .isOpenMenu {
+
+    .mobile-menu {
+      top: 100%;
+      left: 0;
+    }
+  }
+
+  .isOpenMenu {
+    overflow: hidden;
+  }
+
+  .main {
+    overflow: hidden;
+  }
+
+  .content {
+    padding: 20px 15px 90px;
+
+    h2[id] {
+      margin-top: 43px;
+    }
+  }
+
+  .api-doc-component {
+
+    h3 {
+      word-break: break-all;
+    }
+  }
+
+  .app-footer {
+    padding: 30px 15px;
+  }
+
+  .landing-counting {
+    padding-bottom: 30px;
+
+    .container-width {
+      text-align: center;
+    }
+
+    .text-handler {
+      position: relative !important;
+      top: 0;
+      left: 0;
+      transform: none;
+      color: white;
+    }
+
+    .counting-box {
+      position: relative !important;
+      bottom: 0;
+      transform: none;
+      left: 0;
+      margin-top: 60px;
+    }
+  }
+
+  .landing-logo .logo img {
+    height: 240px;
+  }
+
+  .landing-additional-inf {
+    padding-top: 30px;
+
+    .container-width-lg {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .bubble-box {
+      margin-right: 0;
+      margin-bottom: 45px;
+    }
+  }
+
+  .landing-supporting {
+    padding-top: 20px;
+
+    .text-holder {
+      flex: 0 0 100%;
+      max-width: 100%;
+
+      .button-box {
+        justify-content: flex-start !important;
+
+        a {
+
+          &:first-child {
+            margin-right: 20px;
+          }
+        }
+      }
+    }
+  }
+
+  .sidebar {
+
+    &-search {
+
+      .hideInput {
+
+        display: block;
+      }
+    }
+  }
+
+  .mobile-menu {
+    width: 0;
+    overflow: hidden;
+    height: 0;
+    transition: all ease .3s;
+  }
+
+  .double-arrow {
+    display: none;
+  }
+
+  .common-header {
+    margin-top: 75px;
+    flex-direction: column-reverse;
+
+    .links-box {
+      justify-content: flex-end;
+    }
+  }
+
+  .components-item {
+    display: flex;
+    justify-content: center;
+    padding: 0 10px;
+  }
+}
+
+/* below 768 */
+@media (max-width: 767px) {
+  .landing-logo .logo img {
+    height: 180px;
+  }
+
+  h4, .landing-advantages .txt-holder h4 {
+    font-size: 20px;
+  }
+
+  p, .landing-advantages .txt-holder p {
+    font-size: 14px;
+  }
+
+  header, top-menu {
+    position: fixed;
+    z-index: 10;
+  }
+
+  .prettyprint {
+    z-index: -1;
+  }
+
+}
+
+/* below 576 */
+@media (max-width: 575px) {
+  .container-width, .container-width-lg {
+    width: fit-content;
+  }
+
+  .main-container {
+    padding: 10px;
+  }
+
+  .counting-item {
+    width: 50%;
+
+    .img-handler {
+      margin: auto;
+    }
+  }
+
+  .main .button-box {
+    width: auto;
+
+    .btn:first-child {
+      margin-right: 15px;
+    }
+
+    .btn {
+      padding: 10px;
+    }
+  }
+
+  .common-header {
+    margin-top: 85px;
+
+    .links-box {
+      justify-content: center;
+    }
+  }
+}
+
+/* below 480 */
+@media (max-width: 479px) {
+  .header {
+
+    .prev-docs {
+      display: none;
+    }
+  }
+
+  .landing-additional-inf .text-holder button,
+  .landing-additional-inf .text-holder a.btn {
+    padding: 10px 20px;
+  }
+}

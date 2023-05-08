@@ -1,0 +1,30 @@
+.company-card {
+  height: 150px;
+  padding: 8px 0;
+
+  .logo-name {
+    padding: 16px;
+  }
+
+  img {
+    width: 125px;
+
+    &.img-scale {
+      transform: scale(1.5);
+    }
+  }
+
+  .company-info-wrapper {
+    height: 100%;
+    border: 1px solid lightgray;
+    border-radius: 4px;
+    margin: 8px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-right: 8px;
+
+    text-transform: none;
+    color: inherit;
+  }
+}

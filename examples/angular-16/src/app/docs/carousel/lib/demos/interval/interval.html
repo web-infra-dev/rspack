@@ -1,0 +1,15 @@
+<carousel [interval]="myInterval" [(activeSlide)]="activeSlideIndex" >
+  <slide *ngFor="let slide of slides; let index=index">
+    <img [src]="slide.image" alt="image slide" style="display: block; width: 100%;">
+
+    <div class="carousel-caption">
+      <h4>Slide {{index}}</h4>
+      <p>{{slide.text}}</p>
+    </div>
+  </slide>
+</carousel>
+<br/>
+<div>
+  <span>Interval, in milliseconds (Enter a negative number or 0 to stop the interval.): </span>
+  <input type="number" class="form-control" [(ngModel)]="myInterval">
+</div>

@@ -1,0 +1,27 @@
+<demo-section>
+  <h1>
+    All Components
+  </h1>
+
+  <div class="pills-box">
+    <div class="pills-item" *ngFor="let item of componentsArray" [routerLink]="'/components/' + item.path">
+      <p *ngIf="item.data">
+        {{item.data[0]}}
+      </p>
+    </div>
+  </div>
+
+  <div class="components-box">
+    <div class="components-item col-xxl-3 col-xl-3 col-lg-4 col-sm-6 col-12" *ngFor="let item of componentsArray">
+      <div class="components-item-container" [routerLink]="'/components/' + item.path">
+        <div class="components-img-box w-100">
+          <img *ngIf="item.data" [src]="'assets/images/components-page/' + item.data[0].toLowerCase()+ '.png'" class="w-100" alt="">
+        </div>
+        <div class="components-text-box d-flex align-items-center w-100">
+          <p *ngIf="item.data">{{item.data[0]}}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</demo-section>

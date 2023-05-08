@@ -1,0 +1,19 @@
+<div>
+  <rating [max]="10" [(ngModel)]="x" [customTemplate]="t" style="color: #0275d8;font-size: 20px;"></rating>
+  <div class="card">
+    <pre class="card-block card-header" style="margin:15px 0;"><b>(<i>Rate:</i> {{x}})</b></pre>
+  </div>
+  <ng-template #t let-index="index" let-value="value">{{index < value ? '&#9745;' : '&#9744;'}}</ng-template>
+</div>
+
+<div>
+  <rating [max]="10" [(ngModel)]="y" [customTemplate]="tt"></rating>
+  <div class="card">
+    <pre class="card-block card-header" style="margin:15px 0;"> <b>(<i>Rate:</i> {{y}})</b> </pre>
+  </div>
+  <ng-template #tt let-i="index" let-v="value">
+    <button class="btn btn-{{i < v ? 'warning' : 'default'}}">
+      {{i < v ? '&#9733;' : '&#9734;'}}
+    </button>
+  </ng-template>
+</div>

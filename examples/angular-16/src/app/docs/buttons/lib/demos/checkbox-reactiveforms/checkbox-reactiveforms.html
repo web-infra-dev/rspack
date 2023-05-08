@@ -1,0 +1,14 @@
+<pre class="card card-block card-header">{{myForm?.value | json}}</pre>
+<form *ngIf="myForm" [formGroup]="myForm">
+  <div class="btn-group">
+    <label class="btn btn-primary" [class.active]="myForm.value.left"
+           btnCheckbox formControlName="left"
+           tabindex="0" role="button">Left</label>
+    <label class="btn btn-primary" [class.active]="myForm.value.middle"
+           btnCheckbox formControlName="middle"
+           tabindex="0" role="button">Middle</label>
+    <label class="btn btn-primary" [class.active]="myForm.value.right"
+           btnCheckbox formControlName="right"
+           tabindex="0" role="button">Right</label>
+  </div>
+</form>

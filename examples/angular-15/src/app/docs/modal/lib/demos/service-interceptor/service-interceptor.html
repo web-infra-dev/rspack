@@ -1,0 +1,10 @@
+<button type="button" class="btn btn-primary" (click)="openModalWithInterceptor(template)">Create modal with close interceptor</button>
+
+<ng-template #template>
+  <div class="modal-body text-center">
+    <p>Do you really want to close?</p>
+    <button type="button" class="btn btn-default" (click)="confirm()" >Yes</button>
+    <button type="button" class="btn btn-primary" (click)="decline()" >No</button>
+  </div>
+</ng-template>
+

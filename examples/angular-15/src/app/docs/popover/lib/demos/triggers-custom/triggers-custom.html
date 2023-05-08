@@ -1,0 +1,23 @@
+<div class="row">
+  <div class="col-md-2">
+    <button type="button" class="btn btn-info"
+            [popover]="'I will hide on blur'"
+            triggers="mouseenter:mouseleave">
+      Hover over me!
+    </button>
+  </div>
+  <div class="col-md-2">
+    <button type="button" class="btn btn-info"
+            [popover]="'Double click one more time'"
+            triggers="dblclick">
+      Double click me!
+    </button>
+  </div>
+  <div class="col-md-3">
+    <input type="text"
+           class="form-control"
+           placeholder="Show popover on input change"
+           [popover]="'I will hide on blur'"
+           triggers="keypress:focusout">
+  </div>
+</div>

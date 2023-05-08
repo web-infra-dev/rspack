@@ -1,0 +1,34 @@
+<div class="btn-group" dropdown [autoClose]="false" container="body">
+  <button id="button-nested" dropdownToggle type="button" class="btn btn-primary dropdown-toggle"
+          aria-controls="dropdown-nested">
+    This dropdown has nested submenu <span class="caret"></span>
+  </button>
+  <ul id="dropdown-nested" *dropdownMenu class="dropdown-menu"
+      role="menu" aria-labelledby="button-nested">
+    <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Action</a></li>
+
+    <li role="menuitem" dropdown triggers="mouseover" placement="right" container="body">
+      <a dropdownToggle class="dropdown-item dropdown-toggle"
+         (click)="false">Hover me for nested dropdown <span class="caret"></span></a>
+      <ul *dropdownMenu class="dropdown-menu" role="menu">
+        <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Action</a></li>
+        <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Action1</a></li>
+        <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Action2</a></li>
+      </ul>
+    </li>
+
+    <li role="menuitem" dropdown triggers="mouseover" placement="right" container="body">
+      <a dropdownToggle class="dropdown-item dropdown-toggle"
+         (click)="false">Hover me for nested dropdown <span class="caret"></span></a>
+      <ul *dropdownMenu class="dropdown-menu" role="menu">
+        <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Action</a></li>
+        <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Action1</a></li>
+        <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Action2</a></li>
+      </ul>
+    </li>
+
+    <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Something else here</a></li>
+    <li class="divider dropdown-divider"></li>
+    <li role="menuitem"><a class="dropdown-item" routerLink="." fragment="nested-dropdowns">Separated link</a></li>
+  </ul>
+</div>

@@ -1,0 +1,13 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-md-4 form-group mb-3">
+    <input
+      placeholder="Datepicker"
+      class="form-control"
+      #dp="bsDatepicker"
+      bsDatepicker>
+  </div>
+  <div class="col-xs-12 col-12 col-md-3 form-group mb-3">
+    <button class="btn btn-success" (click)="dp.toggle()" [attr.aria-expanded]="dp.isOpen" type="button">Date Picker</button>
+  </div>
+</div>
+<br>

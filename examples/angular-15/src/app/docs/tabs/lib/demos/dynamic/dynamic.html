@@ -1,0 +1,24 @@
+<div (click)="$event.preventDefault()">
+    <p>Change quantity of tabs by manipulating tabs array</p>
+    <button type="button" class="btn btn-primary btn-sm" (click)="addNewTab()">
+      Add new tab
+    </button>
+    <button type="button" class="btn btn-primary btn-sm" (click)="tabs = []"  *ngIf="tabs.length">
+      Remove all tabs
+    </button>
+  <hr/>
+  <tabset>
+    <tab heading="Static title">Static content</tab>
+    <tab *ngFor="let tabz of tabs"
+         [heading]="tabz.title"
+         [active]="tabz.active"
+         (selectTab)="tabz.active = true"
+         (deselect)="tabz.active = false"
+         [disabled]="tabz.disabled"
+         [removable]="tabz.removable"
+         (removed)="removeTabHandler(tabz)"
+         [customClass]="tabz.customClass">
+      {{tabz?.content}}
+    </tab>
+  </tabset>
+</div>

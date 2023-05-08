@@ -1,0 +1,39 @@
+<pagination [totalItems]="66"
+            [boundaryLinks]="true"
+            [customFirstTemplate]="firstTemplate"
+            [customLastTemplate]="lastTemplate"
+            [customPreviousTemplate]="prevTemplate"
+            [customNextTemplate]="nextTemplate"
+            [customPageTemplate]="pageTemplate">
+</pagination>
+
+<ng-template #pageTemplate let-page let-disabled="disabled" let-currentPage="currentPage">
+  {{ convertToRoman(page)}}
+  <em *ngIf="page.number === currentPage">(page {{ page.number }})</em>
+</ng-template>
+
+<ng-template #nextTemplate let-disabled="disabled" let-currentPage="currentPage">
+  <ng-container *ngIf="!disabled">
+    ➡️
+  </ng-container>
+  <ng-container *ngIf="disabled">
+    ⛔
+  </ng-container>
+</ng-template>
+
+<ng-template #prevTemplate let-disabled="disabled" let-currentPage="currentPage">
+  <ng-container *ngIf="!disabled">
+    ⬅️
+  </ng-container>
+  <ng-container *ngIf="disabled">
+    ⛔
+  </ng-container>
+</ng-template>
+
+<ng-template #lastTemplate let-disabled="disabled" let-currentPage="currentPage">
+  Finish 🏁
+</ng-template>
+
+<ng-template #firstTemplate let-disabled="disabled" let-currentPage="currentPage">
+  Start 🏁
+</ng-template>

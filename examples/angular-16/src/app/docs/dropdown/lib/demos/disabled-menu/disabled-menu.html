@@ -1,0 +1,20 @@
+<div class="btn-group" dropdown [isDisabled]="disabled">
+  <button id="button-disabled-menu" dropdownToggle type="button" class="btn btn-primary dropdown-toggle"
+          aria-controls="dropdown-disabled-menu">
+    Button dropdown <span class="caret"></span>
+  </button>
+  <ul id="dropdown-disabled-menu" *dropdownMenu class="dropdown-menu"
+      role="menu" aria-labelledby="button-disabled-menu">
+    <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Another action</a>
+    </li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Something else
+      here</a></li>
+    <li class="divider dropdown-divider"></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Separated link</a>
+    </li>
+  </ul>
+</div>
+<button type="button" class="btn btn-warning" (click)="disabled = !disabled">
+  Enable/Disable
+</button>

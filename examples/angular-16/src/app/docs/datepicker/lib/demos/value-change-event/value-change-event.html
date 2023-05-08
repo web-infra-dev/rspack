@@ -1,0 +1,11 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+    <div class="mb-3">
+      <pre class="card card-block card-header" *ngIf="data">Changed date is {{data | date}}</pre>
+    </div>
+    <input class="form-control"
+           placeholder="Datepicker"
+           bsDatepicker
+           (bsValueChange)="onValueChange($event)">
+  </div>
+</div>

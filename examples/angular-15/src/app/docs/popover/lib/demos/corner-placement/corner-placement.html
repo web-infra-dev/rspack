@@ -1,0 +1,14 @@
+<p>
+  <select [(ngModel)]="placement" class="form-control">
+    <option *ngFor="let placement of placements"
+      [value]="placement">
+      {{ placement }}
+    </option>
+  </select>
+</p>
+<button type="button" class="btn btn-default btn-secondary"
+  [popover]="'Vivamus sagittis lacus vel augue laoreet rutrum faucibus.'"
+  [popoverTitle]="'Popover on ' + placement"
+  [placement]="placement">
+  {{ 'Popover on ' + placement }}
+</button>

@@ -1,0 +1,13 @@
+<div class="btn-group" dropdown #dropdown="bs-dropdown" [autoClose]="false">
+  <button dropdownToggle type="button" class="btn btn-primary dropdown-toggle">
+    Button dropdown <span class="caret"></span>
+  </button>
+  <ul *dropdownMenu class="dropdown-menu" role="menu">
+    <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Another action</a>
+    </li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Something else
+      here</a></li>
+  </ul>
+</div>
+<button type="button" class="btn btn-primary" (click)="dropdown.isOpen = !dropdown.isOpen">Toggle</button>

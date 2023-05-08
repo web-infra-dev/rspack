@@ -1,0 +1,24 @@
+<carousel [itemsPerSlide]="itemsPerSlide"
+          [singleSlideOffset]="singleSlideOffset"
+          [noWrap]="!noWrap"
+          [interval]="0"
+          [startFromIndex]="5"
+          (slideRangeChange)="onSlideRangeChange($event)">
+  <slide *ngFor="let slide of slides; let index=index">
+    <img [src]="slide.image" alt="image slide" style="display: block; width: 100%;">
+    <div class="carousel-caption">
+      <h4>Slide {{index}}</h4>
+    </div>
+  </slide>
+</carousel>
+
+<div class="container" [ngStyle]="{'marginTop': '20px'}">
+  <div class="checkbox">
+    <label>
+      <input type="checkbox" [(ngModel)]="noWrap">
+      Infinite
+    </label>
+  </div>
+</div>
+
+<pre class="card card-block card-header">{{slidesChangeMessage}}</pre>

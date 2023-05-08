@@ -1,0 +1,16 @@
+<p>
+  <span [popover]="'Hello there! I was triggered manually'"
+        triggers="" #pop="bs-popover">
+  This text has attached popover
+  </span>
+</p>
+
+<button type="button" class="btn btn-success" (click)="pop.show()">
+  Show
+</button>
+<button type="button" class="btn btn-warning" (click)="pop.hide()">
+  Hide
+</button>
+<button type="button" class="btn btn-info" (click)="pop.toggle()">
+  Toggle
+</button>

@@ -1,0 +1,6 @@
+<timepicker [(ngModel)]="myTime" [mousewheel]="allowMouseWheel"></timepicker>
+<hr>
+
+<button type="button" class="btn btn-info section bd-example" (click)="allowMouseWheel = !allowMouseWheel">Enable / Disable mouse wheel</button>
+
+<pre class="alert alert-info">Time is: {{myTime}}</pre>

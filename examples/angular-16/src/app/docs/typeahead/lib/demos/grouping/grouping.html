@@ -1,0 +1,6 @@
+<pre class="card card-block card-header mb-3">Model: {{groupSelected | json}}</pre>
+<input [(ngModel)]="groupSelected"
+       [typeahead]="statesComplex"
+       typeaheadOptionField="name"
+       typeaheadGroupField="region"
+       class="form-control">

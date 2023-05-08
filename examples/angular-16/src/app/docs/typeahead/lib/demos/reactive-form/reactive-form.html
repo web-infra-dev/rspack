@@ -1,0 +1,10 @@
+<pre class="card card-block card-header">Model: {{myForm.value.state | json}}</pre>
+
+<form [formGroup]="myForm">
+  <input formControlName="state"
+         [typeahead]="states"
+         [typeaheadOptionsLimit]="7"
+         [typeaheadMinLength]="0"
+         placeholder="Typeahead inside a form"
+         class="form-control">
+</form>

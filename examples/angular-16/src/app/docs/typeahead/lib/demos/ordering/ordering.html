@@ -1,0 +1,40 @@
+<div class="mb-3">
+  <h6>Source - <strong>array of string</strong>. Order direction - <strong>descending</strong></h6>
+  <input [(ngModel)]="selected1"
+         [typeahead]="states"
+         [typeaheadOrderBy]="sortConfig1"
+         class="form-control">
+</div>
+  <div class="mb-3">
+  <h6>Source - <strong>array of string</strong>. Order direction - <strong>ascending</strong></h6>
+  <input [(ngModel)]="selected2"
+         [typeahead]="states"
+         [typeaheadOrderBy]="sortConfig2"
+         class="form-control">
+</div>
+<div class="mb-3">
+  <h6>
+    Source - <strong>array of objects</strong>. Order direction - <strong>ascending</strong>,
+    sort by <strong>city</strong>, group by <strong>state</strong>
+  </h6>
+  <input [(ngModel)]="selected3"
+         [typeahead]="cities"
+         typeaheadOptionField="city"
+         typeaheadGroupField="state"
+         [typeaheadItemTemplate]="customItemTemplate"
+         [typeaheadOrderBy]="sortConfig3"
+         class="form-control">
+
+  <ng-template #customItemTemplate let-model="item">
+    <span><strong>{{model.city}}</strong> - {{model.code}}</span>
+  </ng-template>
+</div>
+
+<div class="mb-3">
+  <h6>Source - <strong>Observable of array of string</strong>. Order direction - <strong>descending</strong></h6>
+  <input [(ngModel)]="selected4"
+         [typeahead]="states$"
+         [typeaheadAsync]="true"
+         [typeaheadOrderBy]="sortConfig1"
+         class="form-control">
+</div>

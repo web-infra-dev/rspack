@@ -1,0 +1,25 @@
+<button type="button" class="btn btn-primary" (click)="showModal()">Open a modal</button>
+<br><br>
+<pre class="card card-block card-header" *ngFor="let message of messages">{{message}}</pre>
+
+<div class="modal fade" bsModal #modal="bs-modal"
+     tabindex="-1" role="dialog" aria-labelledby="dialog-events-name"
+     (onShow)="handler('onShow', $event)"
+     (onShown)="handler('onShown', $event)"
+     (onHide)="handler('onHide', $event)"
+     (onHidden)="handler('onHidden', $event)">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 id="dialog-events-name" class="modal-title pull-left">Modal</h4>
+        <button type="button" class="close pull-right btn-close" aria-label="Close" (click)="modal.hide()">
+          <span aria-hidden="true" class="visually-hidden">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        Just another modal <br>
+        Click <b>&times;</b>, press <code>Esc</code> or click on backdrop to close modal.
+      </div>
+    </div>
+  </div>
+</div>

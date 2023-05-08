@@ -1,0 +1,8 @@
+<div class="breadCrumbs-box" *ngIf="routeArray && routeArray.length && routeArray.length > 1">
+  <ul class="p-0 m-0">
+    <li (click)="navigate()">Home</li>
+    <li *ngFor="let path of routeArray;let i = index" (click)="navigate(i)" [class.disabled]="i === routeArray.length - 1">
+      <span>/</span>{{path}}
+    </li>
+  </ul>
+</div>

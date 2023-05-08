@@ -1,0 +1,12 @@
+<div class="add-nav-container" *ngIf="_componentContent" (click)="goToSection($event)">
+    <a routerLink="/{{_componentContent.parentRouteTitle}}">{{ _componentContent.parentRouteTitle }}</a>
+    <ul *ngIf="_componentContent?.content && _componentContent.content?.length">
+      <li *ngFor="let sub_componentContent of _componentContent.content">
+        <a routerLink="." [queryParams]="{tab: _componentContent.name}" [fragment]="sub_componentContent.anchor" [attr.data-anchor]="sub_componentContent.anchor" #scrollElement>{{ sub_componentContent.title }}</a>
+      </li>
+    </ul>
+</div>
+
+
+
+

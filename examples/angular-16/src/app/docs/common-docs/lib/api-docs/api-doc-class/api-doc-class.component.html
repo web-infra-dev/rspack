@@ -1,0 +1,46 @@
+<div class="api-doc-component" (click)="trackSourceClick()">
+  <h3 [attr.id]="headerAnchor">
+    <a href="https://github.com/valor-software/ngx-bootstrap/tree/development/{{apiDocs?.fileName}}"
+       target="_blank" rel="noopener">{{apiDocs?.className}}</a>
+  </h3>
+  <p [innerHTML]="apiDocs?.description"></p>
+
+  <ng-template [ngIf]="apiDocs?.properties && apiDocs?.properties?.length">
+    <section>
+      <h3>Properties</h3>
+      <table class="table table-bordered">
+        <tbody>
+        <tr *ngFor="let prop of apiDocs?.properties">
+          <td class="col-xs-3"><code>{{prop.name}}</code></td>
+          <td class="col-xs-9">
+            <div><i>Type: </i><code>{{ prop.type }}</code></div>
+            <ng-template [ngIf]="prop.defaultValue">
+              <div><i>Default value: </i><code>{{prop.defaultValue || '-'}}</code></div>
+            </ng-template>
+            <div><span [innerHTML]="prop.description"></span></div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </section>
+  </ng-template>
+
+  <ng-template [ngIf]="apiDocs?.methods && apiDocs?.methods?.length">
+    <section>
+      <h3 id="methods">Methods</h3>
+      <table class="table table-bordered">
+        <tbody>
+        <tr *ngFor="let method of apiDocs?.methods">
+          <td class="col-xs-3"><code>{{method.name}}</code></td>
+          <td class="col-xs-9">
+            <div><i>Signature: </i><code>{{ methodSignature(method) }}</code>
+            </div>
+            <div><i>Return type: </i><code>{{ method.returnType }}</code></div>
+            <div><span [innerHTML]="method.description"></span></div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </section>
+  </ng-template>
+</div>

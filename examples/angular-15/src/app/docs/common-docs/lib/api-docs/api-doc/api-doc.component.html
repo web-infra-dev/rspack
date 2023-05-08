@@ -1,0 +1,83 @@
+<div (click)="trackSourceClick()" class="api-doc-component">
+  <h3 [attr.id]="headerAnchor">
+    <a href="https://github.com/valor-software/ngx-bootstrap/tree/development/{{ apiDocs?.fileName }}"
+       target="_blank" rel="noopener">{{ apiDocs?.className }}</a>
+  </h3>
+  <p [innerHTML]="apiDocs?.descriptionSafeHtML"></p>
+
+  <div class="table-responsive">
+    <table class="table table-bordered">
+      <tbody>
+      <tr>
+        <td class="col-xs-3">Selector</td>
+        <td class="col-xs-9"><code>{{ apiDocs?.selector }}</code></td>
+      </tr>
+      <tr *ngIf="apiDocs?.exportAs">
+        <td class="col-xs-3">Exported as</td>
+        <td class="col-xs-9"><code>{{ apiDocs?.exportAs }}</code></td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template [ngIf]="apiDocs?.inputs?.length">
+    <section>
+      <h3>Inputs</h3>
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <tbody>
+          <tr *ngFor="let input of apiDocs?.inputs">
+            <td class="col-xs-3"><code>{{ input.name }}</code></td>
+            <td class="col-xs-9">
+              <div><i>Type: </i><code>{{ input.type }}</code></div>
+              <ng-template [ngIf]="defaultInputValue(input) || hasConfigProperty(input)">
+                <div>
+                  <span><i>Default value: </i><code>{{ defaultInputValue(input) || '-' }}</code></span>
+                  <span *ngIf="hasConfigProperty(input)">&mdash; initialized from {{ configServiceName }} service</span>
+                </div>
+              </ng-template>
+              <div [innerHTML]="input.descriptionSafeHtml"></div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-template>
+
+  <ng-template [ngIf]="apiDocs?.outputs?.length">
+    <section>
+      <h3 id="outputs">Outputs</h3>
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <tbody>
+          <tr *ngFor="let output of apiDocs?.outputs">
+            <td class="col-xs-3"><code>{{ output.name }}</code></td>
+            <td class="col-xs-9"><div [innerHTML]="output.descriptionSafeHtml"></div></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-template>
+
+  <ng-template [ngIf]="apiDocs?.methods?.length && apiDocs?.exportAs">
+    <section>
+      <h3 id="methods">Methods</h3>
+      <div class="table-responsive">
+        <table class="table table-bordered">
+          <tbody>
+          <tr *ngFor="let method of apiDocs?.methods">
+            <td class="col-xs-3"><code>{{ method.name }}</code></td>
+            <td class="col-xs-9">
+              <div><i>Signature: </i><code>{{ methodSignature(method) }}</code></div>
+              <div><i>Return type: </i><code>{{ method.returnType }}</code></div>
+              <div [innerHTML]="method.descriptionSafeHtml"></div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-template>
+</div>

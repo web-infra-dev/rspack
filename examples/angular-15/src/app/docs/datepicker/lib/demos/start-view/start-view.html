@@ -1,0 +1,22 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+    <p>The datepicker's start view is day (default)</p>
+    <input bsDatepicker
+           class="form-control"
+           placeholder="Datepicker">
+  </div>
+  <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+    <p>The datepicker's start view is month</p>
+    <input [bsConfig]="{startView: 'month'}"
+           bsDatepicker
+           class="form-control"
+           placeholder="Datepicker">
+  </div>
+  <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+    <p>The datepicker's start view is year</p>
+    <input [bsConfig]="{startView: 'year'}"
+           bsDatepicker
+           class="form-control"
+           placeholder="Datepicker">
+  </div>
+</div>

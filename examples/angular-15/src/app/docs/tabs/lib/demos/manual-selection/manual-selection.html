@@ -1,0 +1,15 @@
+<div>
+  <p>You can select tabs directly from component</p>
+  <p>
+    <button type="button" class="btn btn-primary btn-sm" (click)="selectTab(1)">Select second tab</button>
+    <button type="button" class="btn btn-primary btn-sm" (click)="selectTab(2)">Select third tab</button>
+  </p>
+  <hr/>
+  <tabset #staticTabs>
+    <tab heading="Static title">Static content</tab>
+    <tab heading="Static Title 1">Static content 1</tab>
+    <tab heading="Static Title 2">Static content 2</tab>
+    <tab heading="Static Title 3">Static content 3</tab>
+  </tabset>
+</div>
+
