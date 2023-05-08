@@ -147,7 +147,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::BeforeResolve) {
       return Ok(None);
     }
-    let res = self
+    self
       .before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
@@ -163,13 +163,12 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::AfterResolve) {
       return Ok(None);
     }
-    let res = self
+    self
       .after_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
-    res
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
   async fn context_module_before_resolve(
     &self,
