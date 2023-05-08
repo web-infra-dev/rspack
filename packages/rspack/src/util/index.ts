@@ -52,6 +52,7 @@ export function isJsStatsError(err: any): err is JsStatsError {
 
 export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
 	// deduplicate the error if message is already shown in the stack
+	//@ts-ignore
 	const stackStartPrefix = err.name ? `${err.name}: ` : "Error: ";
 	return isJsStatsError(err)
 		? err.formatted
