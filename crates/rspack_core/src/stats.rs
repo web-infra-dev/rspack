@@ -257,6 +257,7 @@ impl Stats<'_> {
       .compilation
       .get_errors()
       .map(|d| StatsError {
+        title: d.title.clone(),
         message: d.message.clone(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
@@ -462,6 +463,7 @@ fn get_stats_module_name_and_id(
 pub struct StatsError {
   pub message: String,
   pub formatted: String,
+  pub title: String,
 }
 
 #[derive(Debug)]

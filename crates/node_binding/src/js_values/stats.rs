@@ -8,6 +8,7 @@ use super::JsCompilation;
 pub struct JsStatsError {
   pub message: String,
   pub formatted: String,
+  pub title: String,
 }
 
 impl From<rspack_core::StatsError> for JsStatsError {
@@ -15,6 +16,7 @@ impl From<rspack_core::StatsError> for JsStatsError {
     Self {
       message: stats.message,
       formatted: stats.formatted,
+      title: stats.title,
     }
   }
 }
