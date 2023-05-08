@@ -510,7 +510,7 @@ fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
     .map(|s| s.raw.to_string() + ".*")
     .collect::<Vec<String>>()
     .join("");
-  let reg = format!("^./{prefix}.*{inner_reg}{postfix_raw}$");
+  let reg = format!("^\\.\\/{prefix}.*{inner_reg}{postfix_raw}$");
   (context.to_string(), reg)
 }
 
@@ -535,7 +535,7 @@ fn scan_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
   }
 
   let (context, prefix) = split_context_from_prefix(&prefix_raw);
-  let reg = format!("^./{prefix}.*{postfix_raw}$");
+  let reg = format!("^\\.\\/{prefix}.*{postfix_raw}$");
 
   Some((context.to_string(), reg))
 }
@@ -582,7 +582,7 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> 
   }
 
   let (context, prefix) = split_context_from_prefix(&prefix_raw);
-  let reg = format!("^./{prefix}.*{postfix_raw}$");
+  let reg = format!("^\\.\\/{prefix}.*{postfix_raw}$");
 
   Some((context.to_string(), reg))
 }
