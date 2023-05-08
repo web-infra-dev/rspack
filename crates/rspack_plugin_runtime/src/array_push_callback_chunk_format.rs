@@ -12,8 +12,9 @@ use rspack_error::Result;
 use rspack_plugin_javascript::runtime::{render_chunk_runtime_modules, render_runtime_modules};
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
+
 #[derive(Debug)]
-pub struct ArrayPushCallbackChunkFormatPlugin {}
+pub struct ArrayPushCallbackChunkFormatPlugin;
 
 #[async_trait]
 impl Plugin for ArrayPushCallbackChunkFormatPlugin {

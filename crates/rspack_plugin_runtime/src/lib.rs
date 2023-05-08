@@ -36,10 +36,9 @@ pub use import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin;
 mod runtime_module;
 mod startup_chunk_dependencies;
 pub use startup_chunk_dependencies::StartupChunkDependenciesPlugin;
-#[derive(Debug)]
-pub struct RuntimePlugin {}
 
-impl RuntimePlugin {}
+#[derive(Debug)]
+pub struct RuntimePlugin;
 
 #[async_trait]
 impl Plugin for RuntimePlugin {

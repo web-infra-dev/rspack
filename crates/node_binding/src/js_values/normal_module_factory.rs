@@ -46,11 +46,11 @@ impl From<NormalModuleFactoryResolveForSchemeArgs> for SchemeAndJsResourceData {
   }
 }
 
-impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
+impl From<NormalModuleBeforeResolveArgs<'_>> for BeforeResolveData {
   fn from(value: NormalModuleBeforeResolveArgs) -> Self {
     Self {
-      context: value.context,
-      request: value.request,
+      context: value.context.to_owned(),
+      request: value.request.to_string(),
     }
   }
 }

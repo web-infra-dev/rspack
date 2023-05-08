@@ -194,7 +194,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
 		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
 		webassemblyModuleFilename: output.webassemblyModuleFilename!,
-		trustedTypes: output.trustedTypes!
+		trustedTypes: output.trustedTypes!,
+		sourceMapFilename: output.sourceMapFilename!
 	};
 }
 
@@ -456,8 +457,9 @@ function getRawOptimization(
 	assert(
 		!isNil(optimization.moduleIds) &&
 			!isNil(optimization.removeAvailableModules) &&
-			!isNil(optimization.sideEffects),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.sideEffects should not be nil after defaults"
+			!isNil(optimization.sideEffects) &&
+			!isNil(optimization.realContentHash),
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
 		splitChunks: optimization.splitChunks
@@ -465,7 +467,8 @@ function getRawOptimization(
 			: undefined,
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
-		sideEffects: String(optimization.sideEffects)
+		sideEffects: String(optimization.sideEffects),
+		realContentHash: optimization.realContentHash
 	};
 }
 

@@ -16,8 +16,9 @@ use super::update_hash_for_entry_startup;
 use crate::{
   get_all_chunks, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
 };
+
 #[derive(Debug)]
-pub struct ModuleChunkFormatPlugin {}
+pub struct ModuleChunkFormatPlugin;
 
 #[async_trait]
 impl Plugin for ModuleChunkFormatPlugin {

@@ -1,7 +1,7 @@
 module.exports = {
 	builtins: {
 		minifyOptions: {
-			pureFuncs: ["console.debug", "console.warn"]
+			pureFuncs: ["console.error", "console.warn"]
 		}
 	},
 	optimization: {

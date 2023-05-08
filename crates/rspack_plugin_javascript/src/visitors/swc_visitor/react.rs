@@ -86,7 +86,7 @@ static RUNTIME_CODE: &str = r#"
 function $RefreshReg$(type, id) {
   __webpack_modules__.$ReactRefreshRuntime$.register(type, __webpack_module__.id+ "_" + id);
 }
-Promise.resolve().then(function(){ 
+Promise.resolve().then(function(){
   __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
 })
 "#;
@@ -97,7 +97,7 @@ static RUNTIME_CODE_AST: Lazy<Script> = Lazy::new(|| {
     .expect_script()
 });
 
-pub struct ReactHmrFolder {}
+pub struct ReactHmrFolder;
 
 impl Fold for ReactHmrFolder {
   fn fold_program(&mut self, mut program: Program) -> Program {

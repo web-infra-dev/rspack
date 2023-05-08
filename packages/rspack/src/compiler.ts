@@ -245,6 +245,10 @@ class Compiler {
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
 					),
+					processAssetsStageOptimizeHash: this.#processAssets.bind(
+						this,
+						Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
+					),
 					processAssetsStageReport: this.#processAssets.bind(
 						this,
 						Compilation.PROCESS_ASSETS_STAGE_REPORT
@@ -413,14 +417,22 @@ class Compiler {
 	}
 
 	async #beforeResolve(resourceData: binding.BeforeResolveData) {
-		return await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
-			resourceData
-		);
+		let res =
+			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
+				resourceData
+			);
+
+		this.#updateDisabledHooks();
+		return res;
 	}
 	async #contextModuleBeforeResolve(resourceData: binding.BeforeResolveData) {
-		return await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
-			resourceData
-		);
+		let res =
+			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
+				resourceData
+			);
+
+		this.#updateDisabledHooks();
+		return res;
 	}
 
 	async #normalModuleFactoryResolveForScheme(
