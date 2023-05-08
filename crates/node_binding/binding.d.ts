@@ -171,6 +171,7 @@ export interface JsHooks {
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  beforeCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
@@ -282,6 +283,7 @@ export interface JsStatsChunkGroupAsset {
 export interface JsStatsError {
   message: string
   formatted: string
+  title: string
 }
 
 export interface JsStatsGetAssets {

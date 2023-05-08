@@ -388,6 +388,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 
 ",
       "message": "\`let\` cannot be used as an identifier in strict mode",
+      "title": "JavaScript parsing error",
     },
     {
       "formatted": "error[javascript]: JavaScript parsing error
@@ -398,6 +399,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 
 ",
       "message": "\`let\` cannot be used as an identifier in strict mode",
+      "title": "JavaScript parsing error",
     },
   ],
   "errorsCount": 2,
@@ -448,6 +450,7 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 
 ",
       "message": "Expected a semicolon",
+      "title": "JavaScript parsing error",
     },
   ],
   "errorsCount": 1,
@@ -532,6 +535,7 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 
 ",
       "message": "Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js",
+      "title": "Resolve error",
     },
   ],
   "errorsCount": 1,
@@ -1129,6 +1133,7 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 
 ",
       "message": "Expected ';', '}' or <eof>",
+      "title": "JavaScript parsing error",
     },
   ],
   "errorsCount": 1,
@@ -1330,6 +1335,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 
 ",
       "message": "Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias",
+      "title": "Resolve error",
     },
   ],
   "errorsCount": 1,
@@ -1548,6 +1554,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "formatted": "Export should be relative path and start with "./", but got ../../index.js
 ",
       "message": "Export should be relative path and start with "./", but got ../../index.js",
+      "title": "",
     },
   ],
   "errorsCount": 1,

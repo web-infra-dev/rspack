@@ -17,15 +17,33 @@
         "--inspect",
         "bin/rspack",
         "-c",
-        "../../examples/basic/rspack.config.js"
+        "../../examples/angular/rspack.config.js"
       ],
       "cwd": "${workspaceFolder}/packages/rspack-cli"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["rust"],
+      "name": "debug-rust-2",
+      "program": "node",
+      "args": [
+        "--inspect",
+        "../../packages/rspack-cli/bin/rspack",
+        "-c",
+        "./rspack.config.js"
+      ],
+      "cwd": "${workspaceFolder}/examples/angular"
     }
   ],
   "compounds": [
     {
       "name": "debug-rspack",
       "configurations": ["debug-js", "debug-rust"]
+    },
+    {
+      "name": "debug-rspack-2",
+      "configurations": ["debug-js", "debug-rust-2"]
     }
   ]
 }
