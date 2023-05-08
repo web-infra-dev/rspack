@@ -9,6 +9,8 @@ expect.addSnapshotSerializer(serializer);
 const base = path.resolve(__dirname, "statsCases");
 const outputBase = path.resolve(__dirname, "stats");
 const tests = fs.readdirSync(base).filter(testName => {
+	console.log(testName);
+
 	return (
 		!testName.startsWith(".") &&
 		(fs.existsSync(path.resolve(base, testName, "index.js")) ||
