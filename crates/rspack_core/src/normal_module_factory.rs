@@ -34,12 +34,14 @@ pub struct NormalModuleFactory {
 impl ModuleFactory for NormalModuleFactory {
   async fn create(
     mut self,
-    data: ModuleFactoryCreateData,
+    mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     if let Ok(Some(before_resolve_data)) = self.before_resolve(&data).await {
       return Ok(before_resolve_data);
     }
-    Ok(self.factorize(data).await?)
+    let factory_result = self.factorize(&mut data).await?;
+    let context = data.context;
+    Ok(factory_result)
   }
 }
 
@@ -107,7 +109,7 @@ impl NormalModuleFactory {
 
   pub async fn factorize_normal_module(
     &mut self,
-    data: ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let importer = self.context.original_resource_path.as_ref();
     let importer_with_context = if let Some(importer) = importer {
@@ -210,8 +212,7 @@ impl NormalModuleFactory {
             {
               Some((pos, _)) => &request_without_match_resource[pos..],
               None => {
-                let dependency = data.dependency;
-                unreachable!("Invalid dependency: {dependency:?}")
+                unreachable!("Invalid dependency: {:?}", &data.dependency)
               }
             }
           } else {
@@ -273,12 +274,14 @@ impl NormalModuleFactory {
 
       let resolve_args = ResolveArgs {
         importer,
-        context: data.context,
+        context: data.context.clone(),
         specifier: request_without_match_resource,
         dependency_type: data.dependency.dependency_type(),
         dependency_category: data.dependency.category(),
         span: data.dependency.span().cloned(),
-        resolve_options: data.resolve_options,
+        // take the options is safe here, because it
+        // is not used in after_resolve hooks
+        resolve_options: data.resolve_options.take(),
         resolve_to_context: false,
         optional,
         file_dependencies: &mut file_dependencies,
@@ -564,7 +567,7 @@ impl NormalModuleFactory {
 
   pub async fn factorize(
     &mut self,
-    data: ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let result = self
       .plugin_driver
