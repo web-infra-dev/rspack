@@ -1,15 +1,11 @@
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
+	mode: "none",
 	entry: {
 		main: "./src/index.js"
 	},
-	builtins: {
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	},
+	target: "node",
+	externalsType: "commonjs",
 	module: {
 		rules: [
 			{
@@ -84,6 +80,7 @@ const config = {
 			},
 			{
 				test: /\.svg$/,
+				exclude: /arco\.svg/,
 				use: ["@svgr/webpack", "file-loader"],
 				type: "javascript/auto"
 			},
@@ -95,6 +92,17 @@ const config = {
 			{
 				test: /\h.png$/,
 				use: ["file-loader"]
+			},
+			{
+				test: /\.node$/,
+				use: [
+					{
+						loader: "node-loader",
+						options: {
+							name: "[path][name].[ext]"
+						}
+					}
+				]
 			},
 			{
 				test: /\.png$/,
