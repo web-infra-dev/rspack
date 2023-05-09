@@ -302,9 +302,7 @@ export class Compilation {
 			filename,
 			compatNewSourceOrFunction,
 			typeof assetInfoUpdateOrFunction === "function"
-				? jsAssetInfo => {
-						return assetInfoUpdateOrFunction(jsAssetInfo);
-				  }
+				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
 				: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
