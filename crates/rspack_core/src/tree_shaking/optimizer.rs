@@ -117,6 +117,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         self.merge_bailout_modules_reason(module_identifier, reason);
       }
     }
+    tracing::debug!(side_effect_map = format!("{:#?}", side_effect_map));
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
@@ -1259,7 +1260,7 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
         //   &optimize_analyze_result.reachable_import_of_export,
         //   &optimize_analyze_result.used_symbol_refs
         // );
-        //
+
         Some((*module_identifier, optimize_analyze_result))
       })
       .collect::<IdentifierMap<OptimizeAnalyzeResult>>()
