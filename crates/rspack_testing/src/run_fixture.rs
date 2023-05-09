@@ -46,8 +46,17 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
     .actual(output_name)
     .build()
     .expect("TODO:");
-
+  let warnings = stats.get_warnings();
   let errors = stats.get_errors();
+  if !warnings.is_empty() && errors.is_empty() {
+    println!(
+      "Warning to compile in fixtrue {:?}, warnings: {:?}",
+      fixture_path,
+      stats
+        .emit_diagnostics_string(true)
+        .expect("failed to emit diagnostics to string")
+    )
+  }
   if !errors.is_empty() {
     panic!(
       "Failed to compile in fixtrue {:?}, errors: {:?}",

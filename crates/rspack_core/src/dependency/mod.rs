@@ -253,6 +253,9 @@ pub trait ModuleDependency: Dependency {
   fn options(&self) -> Option<&ContextOptions> {
     None
   }
+  fn get_optional(&self) -> bool {
+    false
+  }
 }
 
 impl ModuleDependency for Box<dyn ModuleDependency> {
@@ -274,6 +277,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 
   fn options(&self) -> Option<&ContextOptions> {
     (**self).options()
+  }
+
+  fn get_optional(&self) -> bool {
+    (**self).get_optional()
   }
 }
 
