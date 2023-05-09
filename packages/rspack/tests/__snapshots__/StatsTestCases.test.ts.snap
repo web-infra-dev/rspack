@@ -620,10 +620,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1~runtime.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2452,
+      "assetsSize": 2451,
       "chunks": [
         "e1",
         "e1~runtime",
@@ -638,10 +638,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2~runtime.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2452,
+      "assetsSize": 2451,
       "chunks": [
         "e2",
         "e2~runtime",
@@ -659,10 +659,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e1~runtime.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2452,
+      "assetsSize": 2451,
       "chunks": [
         "e1",
         "e1~runtime",
@@ -677,10 +677,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "e2~runtime.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2452,
+      "assetsSize": 2451,
       "chunks": [
         "e2",
         "e2~runtime",
@@ -765,10 +765,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e1.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e1",
         "runtime~e1",
@@ -783,10 +783,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e2.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e2",
         "runtime~e2",
@@ -804,10 +804,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e1.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e1",
         "runtime~e1",
@@ -822,10 +822,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e2.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e2",
         "runtime~e2",
@@ -897,10 +897,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime.js",
-          "size": 2057,
+          "size": 2056,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e1",
         "runtime",
@@ -915,10 +915,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime.js",
-          "size": 2057,
+          "size": 2056,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e2",
         "runtime",
@@ -936,10 +936,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime.js",
-          "size": 2057,
+          "size": 2056,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e1",
         "runtime",
@@ -954,10 +954,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime.js",
-          "size": 2057,
+          "size": 2056,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e2",
         "runtime",
@@ -1041,10 +1041,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e1.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e1",
         "runtime~e1",
@@ -1059,10 +1059,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e2.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e2",
         "runtime~e2",
@@ -1080,10 +1080,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e1.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e1",
         "runtime~e1",
@@ -1098,10 +1098,10 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
         },
         {
           "name": "runtime~e2.js",
-          "size": 2060,
+          "size": 2059,
         },
       ],
-      "assetsSize": 2446,
+      "assetsSize": 2445,
       "chunks": [
         "e2",
         "runtime~e2",
