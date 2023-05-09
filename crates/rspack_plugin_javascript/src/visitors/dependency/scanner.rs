@@ -24,6 +24,7 @@ pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
+pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 
 pub struct DependencyScanner<'a> {
   pub unresolved_ctxt: &'a SyntaxContext,
@@ -436,6 +437,13 @@ impl VisitAstPath for DependencyScanner<'_> {
                 as_parent_path(ast_path),
               )));
             }
+          }
+          WEBPACK_CHUNK_LOAD => {
+            self.add_presentational_dependency(Box::new(ConstDependency::new(
+              Expr::Ident(quote_ident!(RuntimeGlobals::ENSURE_CHUNK)),
+              Some(RuntimeGlobals::ENSURE_CHUNK),
+              as_parent_path(ast_path),
+            )));
           }
           _ => {}
         }
