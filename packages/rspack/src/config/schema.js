@@ -964,6 +964,11 @@ module.exports = {
 						"Try to reuse existing chunk (with name) when it has matching modules.",
 					type: "boolean"
 				},
+				enforce: {
+					description:
+						"ignore splitChunks.minSize, splitChunks.minChunks, splitChunks.maxAsyncRequests and splitChunks.maxInitialRequests options and always create chunks for this cache group.",
+					type: "boolean"
+				},
 				test: {
 					description: "Assign modules to a cache group by module name.",
 					anyOf: [

@@ -90,6 +90,10 @@ impl SplitChunksPlugin {
       .par_iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = &self.cache_groups[module_group.cache_group_index];
+        // Fast path
+        if cache_group.min_size.is_empty() {
+          return None;
+        }
 
         // Find out what `SourceType`'s size is not fit the min_size
         let violating_source_types: Box<[SourceType]> = module_group
