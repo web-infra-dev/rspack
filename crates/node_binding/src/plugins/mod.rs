@@ -142,26 +142,24 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     args: &NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    let res = self
+    self
       .before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
-    res
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
   async fn context_module_before_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
     args: &NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    let res = self
+    self
       .context_module_before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
-    res
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
   async fn normal_module_factory_resolve_for_scheme(
     &self,
@@ -527,6 +525,6 @@ impl JsHooksAdapter {
 
   #[allow(clippy::unwrap_used)]
   fn is_hook_disabled(&self, hook: &Hook) -> bool {
-    self.disabled_hooks.read().unwrap().contains(hook)
+    self.disabled_hooks.read().expect("").contains(hook)
   }
 }
