@@ -99,6 +99,7 @@ importers:
   examples/angular:
     specifiers:
       '@angular-devkit/build-angular': ^16.0.0
+      '@angular-devkit/build-webpack': ^0.1600.0
       '@angular/animations': ^16.0.0
       '@angular/cli': ~16.0.0
       '@angular/common': ^16.0.0
@@ -135,6 +136,7 @@ importers:
       zone.js: 0.13.0
     devDependencies:
       '@angular-devkit/build-angular': 16.0.0_e2no3mqkhat2tmbukrx44tw5ky
+      '@angular-devkit/build-webpack': 0.1600.0
       '@angular/cli': 16.0.0
       '@angular/compiler-cli': 16.0.0_scldldeidleauflck5yigfgo3u
       '@ngtools/webpack': 16.0.0_k3kazy7zbtd5flcef3flow3jq4
@@ -1344,6 +1346,19 @@ packages:
       - webpack-cli
     dev: true
 
+  /@angular-devkit/build-webpack/0.1600.0:
+    resolution: {integrity: sha512-ZlNNMtAzgMCsaN5crkqtgeYxWEyZ78/ePfrJTB3+Hb6LS+hsRf4WAYubHWRWReSx87ppluRrgNZLy0K9ooWy1w==}
+    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
+    peerDependencies:
+      webpack: ^5.30.0
+      webpack-dev-server: ^4.0.0
+    dependencies:
+      '@angular-devkit/architect': 0.1600.0
+      rxjs: 7.8.1
+    transitivePeerDependencies:
+      - chokidar
+    dev: true
+
   /@angular-devkit/build-webpack/0.1600.0_5jm5kad6l2vp6nl52ma4d4vqdq:
     resolution: {integrity: sha512-ZlNNMtAzgMCsaN5crkqtgeYxWEyZ78/ePfrJTB3+Hb6LS+hsRf4WAYubHWRWReSx87ppluRrgNZLy0K9ooWy1w==}
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -1369,7 +1384,7 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
-      ajv-formats: 2.1.1_ajv@8.12.0
+      ajv-formats: 2.1.1
       jsonc-parser: 3.2.0
       rxjs: 7.8.1
       source-map: 0.7.4
@@ -1385,7 +1400,7 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
-      ajv-formats: 2.1.1_ajv@8.12.0
+      ajv-formats: 2.1.1
       chokidar: 3.5.3
       jsonc-parser: 3.2.0
       rxjs: 7.8.1
@@ -11813,10 +11828,8 @@ packages:
       ajv: 6.12.6
     dev: true
 
-  /ajv-formats/2.1.1_ajv@8.12.0:
+  /ajv-formats/2.1.1:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
-    peerDependencies:
-      ajv: ^8.0.0
     peerDependenciesMeta:
       ajv:
         optional: true
@@ -15194,6 +15207,7 @@ packages:
 
   /encoding/0.1.13:
     resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
+    requiresBuild: true
     dependencies:
       iconv-lite: 0.6.3
 
@@ -24008,7 +24022,7 @@ packages:
     dependencies:
       '@types/json-schema': 7.0.11
       ajv: 8.12.0
-      ajv-formats: 2.1.1_ajv@8.12.0
+      ajv-formats: 2.1.1
       ajv-keywords: 5.1.0_ajv@8.12.0
 
   /schema-utils/4.0.1:
@@ -24017,7 +24031,7 @@ packages:
     dependencies:
       '@types/json-schema': 7.0.11
       ajv: 8.12.0
-      ajv-formats: 2.1.1_ajv@8.12.0
+      ajv-formats: 2.1.1
       ajv-keywords: 5.1.0_ajv@8.12.0
 
   /scroll-into-view-if-needed/2.2.20:

@@ -1,7 +1,8 @@
-import { answer } from "./answer";
+import { a } from "./answer";
 function render() {
 	document.getElementById(
-		"root"
+		"root",
 	).innerHTML = `the answer to the universe is ${answer}`;
 }
 render();
+a;

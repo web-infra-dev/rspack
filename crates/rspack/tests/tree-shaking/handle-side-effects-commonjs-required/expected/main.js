@@ -94,17 +94,9 @@ function _create_class(Constructor, protoProps, staticProps) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    _instanceof: function() {
-        return _instanceof1;
-    },
-    _: function() {
+Object.defineProperty(exports, "_", {
+    enumerable: true,
+    get: function() {
         return _instanceof1;
     }
 });

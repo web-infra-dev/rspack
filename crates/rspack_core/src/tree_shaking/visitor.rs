@@ -364,7 +364,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // At this time uri of symbol will always equal to `self.module_identifier`
         SymbolRef::Direct(symbol) => {
           let reachable_import_and_export =
-            self.get_all_import_or_export(symbol.id().clone(), false);
+            self.get_all_import_or_export(symbol.id().clone(), true);
           if key != &symbol.id().atom {
             // export {xxx as xxx}
             self.reachable_import_and_export.insert(
@@ -431,7 +431,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                   _ => object,
                 },
               };
-              // dbg!(&id);
               let ret = self.import_map.get(id);
               match ret {
                 Some(ret) => HashSet::from_iter([ret.clone()]),

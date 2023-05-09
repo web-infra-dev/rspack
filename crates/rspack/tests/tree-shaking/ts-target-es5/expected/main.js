@@ -4,17 +4,9 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    _async_to_generator: function() {
-        return _async_to_generator;
-    },
-    _: function() {
+Object.defineProperty(exports, "_", {
+    enumerable: true,
+    get: function() {
         return _async_to_generator;
     }
 });
