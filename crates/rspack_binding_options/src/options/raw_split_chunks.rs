@@ -166,9 +166,9 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             }
           });
 
-          let min_chunks =
-            v.min_chunks
-              .unwrap_or_else(|| if enforce { 1 } else { overall_min_chunks });
+          let min_chunks = v
+            .min_chunks
+            .unwrap_or(if enforce { 1 } else { overall_min_chunks });
 
           new_split_chunks_plugin::CacheGroup {
             id_hint: key.clone(),
