@@ -1,1 +1,9 @@
-export const answer = 42;
+import {test} from './c.js'
+
+export function a() {
+	b
+}
+
+export function b() {
+	test
+}

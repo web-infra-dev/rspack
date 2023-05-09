@@ -32,8 +32,9 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -78,6 +79,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       analyze_result_map
     };
+    let mut analyze_result_map = par_analyze_module(self.compilation).await;
+    let mut analyze_result_map = parallelize_analyze_module(self.compilation).await;
 
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
@@ -1249,13 +1252,14 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
         };
 
         // dbg_matches!(
-        //   module_identifier.as_str(),
+        //   &module_identifier.as_str(),
+        //   // &analyzer.export_all_list,
         //   &optimize_analyze_result.export_map,
         //   &optimize_analyze_result.import_map,
         //   &optimize_analyze_result.reachable_import_of_export,
         //   &optimize_analyze_result.used_symbol_refs
         // );
-
+        //
         Some((*module_identifier, optimize_analyze_result))
       })
       .collect::<IdentifierMap<OptimizeAnalyzeResult>>()
