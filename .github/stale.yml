@@ -1,0 +1,12 @@
+# It is considered harmful to close issues or PRs, so our stale bot will never close an issue or PR.
+# To remove the stale label, just leave a new comment.
+# Adapted from https://github.com/NixOS/nixpkgs/blob/master/.github/STALE-BOT.md
+
+# Configuration for probot-stale - https://github.com/probot/stale
+staleLabel: "stale"
+daysUntilStale: 30
+daysUntilClose: false
+markComment: false
+closeComment: false
+# exemptLabels:
+  # - ""
