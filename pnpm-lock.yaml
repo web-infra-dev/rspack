@@ -303,6 +303,12 @@ importers:
       eslint-loader: 4.0.2_eslint@7.32.0
       eslint-rspack-plugin: 4.0.0-alpha_eslint@7.32.0
 
+  examples/extract-license:
+    specifiers:
+      '@rspack/cli': workspace:*
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+
   examples/library:
     specifiers:
       '@rspack/cli': workspace:*
