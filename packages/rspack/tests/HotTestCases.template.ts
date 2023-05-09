@@ -329,7 +329,11 @@ export function describeCases(config: {
 									}
 									let promise = Promise.resolve();
 									const info = stats.toJson({});
-									if (config.target === "web") {
+									// here it is diffrent from webpack, because we add hotCases/chunk/multi-chunk-single-runtime
+									if (
+										config.target === "web" ||
+										config.target === "webworker"
+									) {
 										for (const file of info.entrypoints!.main.assets) {
 											if (file.name.endsWith(".js")) {
 												_require(`./${file.name}`);
@@ -344,7 +348,9 @@ export function describeCases(config: {
 											}
 										}
 									} else {
-										const assets = info.entrypoints!.main.assets;
+										const assets = info.entrypoints!.main.assets.filter(s =>
+											s.name.endsWith(".js")
+										);
 										const result = _require(
 											`./${assets[assets.length - 1].name}`
 										);
