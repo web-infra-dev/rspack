@@ -1476,7 +1476,7 @@ pub struct AssetInfo {
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
-  pub content_hash: Option<String>,
+  pub content_hash: HashSet<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   // pub source_filename:
   /// size in bytes, only set after asset has been emitted
@@ -1512,9 +1512,13 @@ impl AssetInfo {
     self
   }
 
-  pub fn with_content_hash(mut self, v: Option<String>) -> Self {
+  pub fn with_content_hashs(mut self, v: HashSet<String>) -> Self {
     self.content_hash = v;
     self
+  }
+
+  pub fn set_content_hash(&mut self, v: String) {
+    self.content_hash.insert(v);
   }
 }
 

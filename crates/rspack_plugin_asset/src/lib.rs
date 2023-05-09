@@ -9,17 +9,14 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
-  AssetInfo, AssetParserDataUrlOption, AssetParserOptions, AstOrSource, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ParseContext, ParserAndGenerator, PathData, Plugin,
-  PluginContext, PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry,
-  RuntimeGlobals, SourceType,
+  AssetInfo, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
+  CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
+  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestArgs, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
 use sugar_path::SugarPath;
-
-const ASSET_CODEGEN_FILENAME: &str = "filename";
-const ASSET_CODEGEN_URL: &str = "url";
-const ASSET_CODEGEN_CONTENTHASH: &str = "contenthash";
 
 #[derive(Debug)]
 pub struct AssetConfig {
@@ -247,30 +244,34 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       );
     let contenthash = hash_value_to_string(self.hash_for_ast_or_source(ast_or_source));
 
-    let asset_filename = asset_filename_template.render(FilenameRenderOptions {
-      name: module.as_normal_module().and_then(|m| {
-        let p = Path::new(&m.resource_resolved_data().resource_path);
-        p.file_stem().map(|s| s.to_string_lossy().to_string())
-      }),
-      path: module.as_normal_module().map(|m| {
-        Path::new(&m.resource_resolved_data().resource_path)
-          .relative(&generate_context.compilation.options.context)
-          .to_string_lossy()
-          .to_string()
-      }),
-      extension: module.as_normal_module().and_then(|m| {
-        Path::new(&m.resource_resolved_data().resource_path)
-          .extension()
-          .and_then(OsStr::to_str)
-          .map(|str| format!("{}{}", ".", str))
-      }),
-      id: None,
-      contenthash: Some(contenthash.clone()),
-      chunkhash: None,
-      hash: Some(contenthash.clone()),
-      query: Some("".to_string()),
-      ..Default::default()
-    });
+    let mut asset_info = AssetInfo::default();
+    let asset_filename = asset_filename_template.render(
+      FilenameRenderOptions {
+        name: module.as_normal_module().and_then(|m| {
+          let p = Path::new(&m.resource_resolved_data().resource_path);
+          p.file_stem().map(|s| s.to_string_lossy().to_string())
+        }),
+        path: module.as_normal_module().map(|m| {
+          Path::new(&m.resource_resolved_data().resource_path)
+            .relative(&generate_context.compilation.options.context)
+            .to_string_lossy()
+            .to_string()
+        }),
+        extension: module.as_normal_module().and_then(|m| {
+          Path::new(&m.resource_resolved_data().resource_path)
+            .extension()
+            .and_then(OsStr::to_str)
+            .map(|str| format!("{}{}", ".", str))
+        }),
+        id: None,
+        contenthash: Some(contenthash.clone()),
+        chunkhash: None,
+        hash: Some(contenthash),
+        query: Some("".to_string()),
+        ..Default::default()
+      },
+      Some(&mut asset_info),
+    );
 
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
@@ -296,16 +297,16 @@ impl ParserAndGenerator for AssetParserAndGenerator {
 
           generate_context
             .data
-            .insert(ASSET_CODEGEN_URL.to_string(), encoded_source.clone());
+            .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
 
           format!("\"{encoded_source}\"")
         } else {
           generate_context
             .data
-            .insert(ASSET_CODEGEN_FILENAME.to_string(), asset_filename.clone());
+            .insert(CodeGenerationDataFilename::new(asset_filename.clone()));
           generate_context
             .data
-            .insert(ASSET_CODEGEN_CONTENTHASH.to_string(), contenthash);
+            .insert(CodeGenerationDataAssetInfo::new(asset_info));
 
           if parsed_asset_config.is_external() {
             self.generate_external_content(generate_context, asset_filename)?
@@ -436,17 +437,21 @@ impl Plugin for AssetPlugin {
           .map(|source| {
             let asset_filename = code_gen_result
               .data
-              .get("filename")
+              .get::<CodeGenerationDataFilename>()
               .expect("should have filename for asset module")
-              .to_owned();
-            let contenthash = code_gen_result.data.get(ASSET_CODEGEN_CONTENTHASH).cloned();
+              .inner();
+            let asset_info = code_gen_result
+              .data
+              .get::<CodeGenerationDataAssetInfo>()
+              .expect("should have asset_info")
+              .inner();
             RenderManifestEntry::new(
               source,
-              asset_filename,
+              asset_filename.to_owned(),
               PathData {
                 chunk_ukey: args.chunk_ukey,
               },
-              AssetInfo::default().with_content_hash(contenthash),
+              asset_info.to_owned(),
             )
           });
 

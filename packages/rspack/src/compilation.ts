@@ -331,15 +331,14 @@ export class Compilation {
 	 * @returns {void}
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-		const info = Object.assign(
-			{
-				minimized: false,
-				development: false,
-				hotModuleReplacement: false,
-				related: {}
-			},
-			assetInfo
-		);
+		const info = {
+			minimized: false,
+			development: false,
+			hotModuleReplacement: false,
+			related: {},
+			contentHash: [] as string[],
+			...assetInfo
+		};
 		this.#inner.emitAsset(filename, createRawFromSource(source), info);
 	}
 

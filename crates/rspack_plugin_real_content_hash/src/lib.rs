@@ -48,11 +48,10 @@ impl RealContentHashPlugin {
       .iter()
       .filter(|(_, asset)| asset.get_source().is_some())
     {
-      // TODO(ahabhgk): info.content_hash should be Option<Vec<String>>
-      // e.g. [contenthash:8]-[contenthash].js
-      if let Some(content_hash) = &asset.info.content_hash {
+      // e.g. filename: '[contenthash:8]-[contenthash:6].js'
+      for hash in &asset.info.content_hash {
         hash_to_asset_names
-          .entry(content_hash)
+          .entry(hash)
           .and_modify(|names| names.push(name))
           .or_insert(vec![name]);
       }
@@ -108,6 +107,8 @@ impl RealContentHashPlugin {
           asset_content.hash(&mut hasher);
         }
         let new_hash = format!("{:x}", hasher.finish());
+        let len = old_hash.len().min(new_hash.len());
+        let new_hash = new_hash[..len].to_string();
         hash_to_new_hash.insert(old_hash, new_hash);
       }
     }
@@ -117,7 +118,7 @@ impl RealContentHashPlugin {
       .filter_map(|(name, data)| {
         let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_regexp);
         let new_name = hash_regexp
-          .replace(name, |c: &Captures| {
+          .replace_all(name, |c: &Captures| {
             let hash = c
               .get(0)
               .expect("RealContentHashPlugin: should have match")
@@ -134,14 +135,17 @@ impl RealContentHashPlugin {
 
     for (name, new_source, new_name) in updates {
       compilation.update_asset(&name, |_, old_info| {
-        let new_hash = old_info
+        let new_hashes: HashSet<_> = old_info
           .content_hash
-          .as_ref()
-          .and_then(|old_hash| hash_to_new_hash.get(old_hash.as_str()));
-        Ok((
-          new_source.clone(),
-          old_info.with_content_hash(new_hash.cloned()),
-        ))
+          .iter()
+          .map(|old_hash| {
+            hash_to_new_hash
+              .get(old_hash.as_str())
+              .expect("should have new hash")
+              .to_owned()
+          })
+          .collect();
+        Ok((new_source.clone(), old_info.with_content_hashs(new_hashes)))
       })?;
       if let Some(new_name) = new_name {
         compilation.rename_asset(&name, new_name);
@@ -180,7 +184,7 @@ impl AssetData {
     // TODO(ahabhgk): source.is_buffer() instead of String::from_utf8().is_ok()
     let content = if let Ok(content) = String::from_utf8(source.buffer().to_vec()) {
       for hash in hash_regexp.find_iter(&content) {
-        if let Some(contenthash) = &info.content_hash && contenthash == hash.as_str() {
+        if info.content_hash.contains(hash.as_str()) {
           own_hashes.insert(hash.as_str().to_string());
           continue;
         }

@@ -162,13 +162,18 @@ impl Plugin for JsPlugin {
       self.render_chunk_impl(&args).await?
     };
 
+    let mut asset_info = AssetInfo::default();
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,
     );
-
-    let output_path = filename_template.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
+    let output_path = filename_template.render_with_chunk(
+      chunk,
+      ".js",
+      &SourceType::JavaScript,
+      Some(&mut asset_info),
+    );
 
     let path_options = PathData {
       chunk_ukey: args.chunk_ukey,
@@ -177,8 +182,7 @@ impl Plugin for JsPlugin {
       source,
       output_path,
       path_options,
-      AssetInfo::default()
-        .with_content_hash(chunk.content_hash.get(&SourceType::JavaScript).cloned()),
+      asset_info,
     )])
   }
 
