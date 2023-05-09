@@ -45,7 +45,7 @@ pub async fn resolve(
     .get(ResolveOptionsWithDependencyType {
       resolve_options: args.resolve_options,
       resolve_to_context: args.resolve_to_context,
-      dependency_type: *args.dependency_type,
+      dependency_type: args.dependency_type.clone(),
       dependency_category: *args.dependency_category,
     });
   let result = resolver.resolve(base_dir, args.specifier);
