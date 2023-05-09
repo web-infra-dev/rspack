@@ -483,7 +483,7 @@ impl NormalModuleFactory {
       .read()
       .await
       .module(ModuleArgs {
-        dependency_type: *data.dependency.dependency_type(),
+        dependency_type: data.dependency.dependency_type().clone(),
         indentfiler: normal_module.identifier(),
         lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
