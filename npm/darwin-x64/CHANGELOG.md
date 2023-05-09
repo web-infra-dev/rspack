@@ -1,5 +1,7 @@
 # @rspack/binding-darwin-x64
 
+## 0.1.10
+
 ## 0.1.9
 
 ## 0.1.8
