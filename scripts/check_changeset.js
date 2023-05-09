@@ -59,4 +59,4 @@ async function checkBump() {
 }
 
 await checkVersion();
-await checkBump();
+//await checkBump();
