@@ -47,5 +47,6 @@ impl SideEffectOption {
 #[derive(Debug)]
 pub struct Optimization {
   pub remove_available_modules: bool,
+  pub remove_empty_chunks: bool,
   pub side_effects: SideEffectOption,
 }

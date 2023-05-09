@@ -573,6 +573,10 @@ export interface Optimization {
 	splitChunks?: OptimizationSplitChunksOptions | false;
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
+	/**
+	 * Remove chunks which are empty.
+	 */
+	removeEmptyChunks?: boolean;
 	sideEffects?: "flag" | boolean;
 	realContentHash?: boolean;
 }
