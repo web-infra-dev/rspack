@@ -143,7 +143,7 @@ impl Plugin for JsPlugin {
 
     Ok(Some((
       SourceType::JavaScript,
-      format!("{:x}", hasher.finish()),
+      format!("{:016x}", hasher.finish()),
     )))
   }
 

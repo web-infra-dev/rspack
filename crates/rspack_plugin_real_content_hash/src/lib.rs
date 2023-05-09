@@ -59,15 +59,16 @@ impl RealContentHashPlugin {
     if hash_to_asset_names.is_empty() {
       return Ok(());
     }
-    let hash_regexp = Regex::new(
-      &hash_to_asset_names
-        .keys()
-        // xx\xx{xx?xx.xx -> xx\\xx\{xx\?xx\.xx escape for Regex::new
-        .map(|hash| QUOTE_META.replace_all(hash, "\\$0"))
-        .collect::<Vec<Cow<str>>>()
-        .join("|"),
-    )
-    .expect("Invalid regex");
+    let mut hash_list = hash_to_asset_names
+      .keys()
+      // xx\xx{xx?xx.xx -> xx\\xx\{xx\?xx\.xx escape for Regex::new
+      .map(|hash| QUOTE_META.replace_all(hash, "\\$0"))
+      .collect::<Vec<Cow<str>>>();
+    // long hash should sort before short hash to make sure match long hash first in hash_regexp matching
+    // e.g. 4afc|4afcbe match xxx.4afcbe-4afc.js -> xxx.[4afc]be-[4afc].js
+    //      4afcbe|4afc match xxx.4afcbe-4afc.js -> xxx.[4afcbe]-[4afc].js
+    hash_list.par_sort_by(|a, b| b.len().cmp(&a.len()));
+    let hash_regexp = Regex::new(&hash_list.join("|")).expect("Invalid regex");
 
     let assets_data: HashMap<&str, AssetData> = compilation
       .assets()
@@ -106,7 +107,7 @@ impl RealContentHashPlugin {
         for asset_content in asset_contents {
           asset_content.hash(&mut hasher);
         }
-        let new_hash = format!("{:x}", hasher.finish());
+        let new_hash = format!("{:016x}", hasher.finish());
         let len = old_hash.len().min(new_hash.len());
         let new_hash = new_hash[..len].to_string();
         hash_to_new_hash.insert(old_hash, new_hash);

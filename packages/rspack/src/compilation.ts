@@ -36,7 +36,7 @@ import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
-import { concatErrorMsgAndStack, isJsStatsError } from "./util";
+import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
 	createFakeCompilationDependencies,
@@ -275,14 +275,12 @@ export class Compilation {
 	 *
 	 * @param {string} file file name
 	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {JsAssetInfo | function(JsAssetInfo): JsAssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
+	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
 		newSourceOrFunction: Source | ((source: Source) => Source),
-		assetInfoUpdateOrFunction:
-			| JsAssetInfo
-			| ((assetInfo: JsAssetInfo) => JsAssetInfo)
+		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSource
@@ -303,7 +301,11 @@ export class Compilation {
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			assetInfoUpdateOrFunction
+			typeof assetInfoUpdateOrFunction === "function"
+				? jsAssetInfo => {
+						return assetInfoUpdateOrFunction(jsAssetInfo);
+				  }
+				: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
@@ -331,15 +333,11 @@ export class Compilation {
 	 * @returns {void}
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-		const info = {
-			minimized: false,
-			development: false,
-			hotModuleReplacement: false,
-			related: {},
-			contentHash: [] as string[],
-			...assetInfo
-		};
-		this.#inner.emitAsset(filename, createRawFromSource(source), info);
+		this.#inner.emitAsset(
+			filename,
+			createRawFromSource(source),
+			toJsAssetInfo(assetInfo)
+		);
 	}
 
 	deleteAsset(filename: string) {

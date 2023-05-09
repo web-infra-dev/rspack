@@ -83,7 +83,7 @@ impl Plugin for CssPlugin {
         }
       });
 
-    Ok(Some((SourceType::Css, format!("{:x}", hasher.finish()))))
+    Ok(Some((SourceType::Css, format!("{:016x}", hasher.finish()))))
   }
 
   async fn render_manifest(

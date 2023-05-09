@@ -1318,7 +1318,9 @@ impl Compilation {
     )?;
     tracing::trace!("calculate runtime chunks content hash");
 
-    self.hash = format!("{:x}", compilation_hasher.finish());
+    // TODO(ahabhgk): refactor, upper-level wrapper for format!("{:016x}")
+    // 016 for length = 16
+    self.hash = format!("{:016x}", compilation_hasher.finish());
     tracing::trace!("compilation hash");
     Ok(())
   }

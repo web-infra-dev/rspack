@@ -232,5 +232,5 @@ impl Plugin for HtmlPlugin {
 fn hash_for_ast_or_source(ast_or_source: &str) -> String {
   let mut hasher = DefaultHasher::new();
   ast_or_source.hash(&mut hasher);
-  format!("{:x}", hasher.finish())
+  format!("{:016x}", hasher.finish())
 }

@@ -318,5 +318,5 @@ fn render_import_stmt(import_var: &str, module_id: &str) -> String {
 fn hash_for_ast_or_source(ast_or_source: &AstOrSource) -> String {
   let mut hasher = DefaultHasher::new();
   ast_or_source.hash(&mut hasher);
-  format!("{:x}", hasher.finish())
+  format!("{:016x}", hasher.finish())
 }
