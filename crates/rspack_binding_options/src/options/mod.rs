@@ -203,7 +203,9 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
 
     // Notice the plugin need to be placed after SplitChunksPlugin
-    plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
+    if optimization.remove_empty_chunks {
+      plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
+    }
 
     Ok(Self::Options {
       entry,

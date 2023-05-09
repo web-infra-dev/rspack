@@ -604,6 +604,7 @@ export interface RawOptimizationOptions {
   splitChunks?: RawSplitChunksOptions
   moduleIds: string
   removeAvailableModules: boolean
+  removeEmptyChunks: boolean
   sideEffects: string
   realContentHash: boolean
 }

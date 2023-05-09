@@ -101,6 +101,8 @@ pub struct Optimization {
   // True by default to reduce code in snapshots.
   #[serde(default = "true_by_default")]
   pub remove_available_modules: bool,
+  #[serde(default = "true_by_default")]
+  pub remove_empty_chunks: bool,
   #[serde(default = "default_optimization_module_ids")]
   pub module_ids: String,
   #[serde(default = "default_optimization_side_effects")]
@@ -453,6 +455,7 @@ impl TestConfig {
       }),
       optimization: c::Optimization {
         remove_available_modules: self.optimization.remove_available_modules,
+        remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
       },
     };

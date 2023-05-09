@@ -19,6 +19,7 @@ pub struct RawOptimizationOptions {
   pub split_chunks: Option<RawSplitChunksOptions>,
   pub module_ids: String,
   pub remove_available_modules: bool,
+  pub remove_empty_chunks: bool,
   pub side_effects: String,
   pub real_content_hash: bool,
 }
@@ -57,6 +58,7 @@ impl RawOptionsApply for RawOptimizationOptions {
     }
     Ok(Optimization {
       remove_available_modules: self.remove_available_modules,
+      remove_empty_chunks: self.remove_empty_chunks,
       side_effects: SideEffectOption::from(self.side_effects.as_str()),
     })
   }
