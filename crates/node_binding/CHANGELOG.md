@@ -1,5 +1,23 @@
 # @rspack/binding
 
+## 0.1.10
+
+### Patch Changes
+
+- f609f7a: fix(resolve): relative path resolve bug
+- ada51e2: fix: circular dependencies rebuild panic
+- 2bb2bcd: add extractComments option
+- ff85ce8: feat(new_split_chunks): support `splitChunks.name`
+- e764de6: add comments when module code generation
+- c0e550b: bump napi cli
+- 088220b: feat(new_split_chunks): support splitChunks.minSize
+- abf788a: fix: should parse non-module file correctly
+- e5d33eb: feat(new_split_chunks): support `reuseExistingChunk`
+- 04daf09: feat: add optimization.realContentHash
+- 3abb2fc: feat: support inline match resource
+- 2d9e5c2: feat(new_split_chunks): support `splitChunks.{cacheGroup}.minSize`
+- f4c1f8d: refactor: external module for http request
+
 ## 0.1.9
 
 ### Patch Changes

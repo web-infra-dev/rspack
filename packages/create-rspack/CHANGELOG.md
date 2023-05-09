@@ -1,5 +1,11 @@
 # create-rspack
 
+## 0.1.3
+
+### Patch Changes
+
+- 2fe8c47: add react-ts template for create-rspack
+
 ## 0.1.2
 
 ### Patch Changes
