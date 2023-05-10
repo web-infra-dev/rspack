@@ -27,7 +27,6 @@ use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
-#[cfg(debug_assertions)]
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
