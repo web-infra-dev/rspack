@@ -24,6 +24,7 @@ module.exports = class RspackMinifyPlugin {
 				target: this.options.target,
 				sourcefile,
 				sourcemap,
+				format: "iife",
 				minify: true,
 				minifyIdentifiers: true,
 				minifySyntax: true,
