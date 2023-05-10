@@ -25,7 +25,7 @@ pub struct JsAssetInfo {
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
-  pub content_hash: Option<String>,
+  pub content_hash: Vec<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   // pub source_filename:
   /// size in bytes, only set after asset has been emitted
@@ -47,7 +47,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       development: i.development,
       hot_module_replacement: i.hot_module_replacement,
       related: i.related.into(),
-      content_hash: i.content_hash,
+      content_hash: i.content_hash.into_iter().collect(),
     }
   }
 }
@@ -74,7 +74,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       development: info.development,
       hot_module_replacement: info.hot_module_replacement,
       related: info.related.into(),
-      content_hash: info.content_hash,
+      content_hash: info.content_hash.into_iter().collect(),
     }
   }
 }

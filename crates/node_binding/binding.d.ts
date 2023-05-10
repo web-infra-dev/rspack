@@ -113,7 +113,7 @@ export interface JsAssetInfo {
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
    */
-  contentHash?: string
+  contentHash: Array<string>
   /**
    * when asset was created from a source file (potentially transformed), the original filename relative to compilation context
    * size in bytes, only set after asset has been emitted

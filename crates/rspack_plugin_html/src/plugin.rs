@@ -13,7 +13,7 @@ use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  CompilationAsset, Filename, FilenameRenderOptions, Plugin,
+  AssetInfo, CompilationAsset, Filename, FilenameRenderOptions, Plugin,
 };
 use serde::Deserialize;
 use sugar_path::SugarPath;
@@ -180,31 +180,35 @@ impl Plugin for HtmlPlugin {
 
     let source = parser.codegen(&mut current_ast)?;
     let hash = hash_for_ast_or_source(&source);
+    let mut asset_info = AssetInfo::default();
     let html_file_name = Filename::from(config.filename.clone());
-    let html_file_name = html_file_name.render(FilenameRenderOptions {
-      name: Path::new(&url)
-        .file_stem()
-        .map(|s| s.to_string_lossy().to_string()),
-      path: Some(
-        Path::new(&url)
-          .relative(&compilation.options.context)
-          .to_string_lossy()
-          .to_string(),
-      ),
-      extension: Path::new(&url)
-        .extension()
-        .and_then(OsStr::to_str)
-        .map(|str| format!("{}{}", ".", str)),
-      id: None,
-      contenthash: Some(hash.clone()),
-      chunkhash: Some(hash.clone()),
-      hash: Some(hash),
-      query: Some("".to_string()),
-      ..Default::default()
-    });
+    let html_file_name = html_file_name.render(
+      FilenameRenderOptions {
+        name: Path::new(&url)
+          .file_stem()
+          .map(|s| s.to_string_lossy().to_string()),
+        path: Some(
+          Path::new(&url)
+            .relative(&compilation.options.context)
+            .to_string_lossy()
+            .to_string(),
+        ),
+        extension: Path::new(&url)
+          .extension()
+          .and_then(OsStr::to_str)
+          .map(|str| format!("{}{}", ".", str)),
+        id: None,
+        contenthash: Some(hash.clone()),
+        chunkhash: Some(hash.clone()),
+        hash: Some(hash),
+        query: Some("".to_string()),
+        ..Default::default()
+      },
+      Some(&mut asset_info),
+    );
     compilation.emit_asset(
       html_file_name,
-      CompilationAsset::from(RawSource::from(source).boxed()),
+      CompilationAsset::new(Some(RawSource::from(source).boxed()), asset_info),
     );
 
     if let Some(favicon) = &self.config.favicon {
@@ -228,5 +232,5 @@ impl Plugin for HtmlPlugin {
 fn hash_for_ast_or_source(ast_or_source: &str) -> String {
   let mut hasher = DefaultHasher::new();
   ast_or_source.hash(&mut hasher);
-  format!("{:x}", hasher.finish())
+  format!("{:016x}", hasher.finish())
 }

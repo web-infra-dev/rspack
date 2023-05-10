@@ -83,7 +83,7 @@ impl Plugin for CssPlugin {
         }
       });
 
-    Ok(Some((SourceType::Css, format!("{:x}", hasher.finish()))))
+    Ok(Some((SourceType::Css, format!("{:016x}", hasher.finish()))))
   }
 
   async fn render_manifest(
@@ -160,6 +160,7 @@ impl Plugin for CssPlugin {
       .collect::<Vec<ConcatSource>>();
 
     let source = ConcatSource::new(sources);
+    let mut asset_info = AssetInfo::default();
 
     let filename_template = get_css_chunk_filename_template(
       chunk,
@@ -167,7 +168,8 @@ impl Plugin for CssPlugin {
       &args.compilation.chunk_group_by_ukey,
     );
 
-    let output_path = filename_template.render_with_chunk(chunk, ".css", &SourceType::Css);
+    let output_path =
+      filename_template.render_with_chunk(chunk, ".css", &SourceType::Css, Some(&mut asset_info));
 
     let content = source.source();
     let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
@@ -197,7 +199,7 @@ impl Plugin for CssPlugin {
       source.boxed(),
       output_path,
       path_data,
-      AssetInfo::default().with_content_hash(chunk.content_hash.get(&SourceType::Css).cloned()),
+      asset_info,
     )])
   }
 

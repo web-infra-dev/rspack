@@ -309,7 +309,7 @@ impl Chunk {
   // pub fn get_all_referenced_async_entry_points() -> HashSet<ChunkUkey> {}
 
   pub fn get_render_hash(&self) -> String {
-    format!("{:x}", self.hash.finish())
+    format!("{:016x}", self.hash.finish())
   }
 
   pub fn expect_id(&self) -> &str {

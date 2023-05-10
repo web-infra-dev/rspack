@@ -243,11 +243,8 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 
 pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
   let hash: Option<String> = Some(chunk.get_render_hash());
-  compilation
-    .options
-    .output
-    .chunk_filename
-    .render(FilenameRenderOptions {
+  compilation.options.output.chunk_filename.render(
+    FilenameRenderOptions {
       name: chunk.name_for_filename_template(),
       extension: Some(".js".to_string()),
       id: chunk.id.clone(),
@@ -255,5 +252,7 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String
       chunkhash: hash.clone(),
       hash,
       ..Default::default()
-    })
+    },
+    None,
+  )
 }
