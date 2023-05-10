@@ -61,6 +61,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           iife: true,
           module: false,
           trusted_types: None,
+          source_map_filename: rspack_core::Filename::from_str("").expect("TODO:"),
         },
         target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
         resolve: rspack_core::Resolve::default(),
@@ -73,6 +74,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
         node: Default::default(),
         optimization: rspack_core::Optimization {
           remove_available_modules: false,
+          remove_empty_chunks: true,
           side_effects: SideEffectOption::False,
         },
       }),

@@ -17,6 +17,8 @@ import {
 } from "webpack-sources";
 
 import { Compiler } from "../compiler";
+import { NormalModule } from "../normalModule";
+import { Compilation } from "../compilation";
 import {
 	LoaderContext,
 	LoaderObject,
@@ -515,6 +517,19 @@ export async function runLoader(
 		}
 		return options;
 	};
+
+	let compilation: Compilation | undefined = compiler.compilation;
+	let step = 0;
+	while (compilation) {
+		NormalModule.getCompilationHooks(compilation).loader.call(loaderContext);
+		compilation = compilation.compiler.parentCompilation;
+		step++;
+		if (step > 1000) {
+			throw Error(
+				"Too many nested child compiler, exceeded max limitation 1000"
+			);
+		}
+	}
 
 	return new Promise((resolve, reject) => {
 		if (isPitching) {

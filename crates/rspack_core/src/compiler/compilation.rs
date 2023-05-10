@@ -247,6 +247,17 @@ impl Compilation {
     }
   }
 
+  pub fn rename_asset(&mut self, filename: &str, new_name: String) {
+    if let Some(asset) = self.assets.remove(filename) {
+      self.assets.insert(new_name.clone(), asset);
+      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
+        if chunk.files.remove(filename) {
+          chunk.files.insert(new_name.clone());
+        }
+      });
+    }
+  }
+
   pub fn assets(&self) -> &CompilationAssets {
     &self.assets
   }
@@ -968,7 +979,10 @@ impl Compilation {
 
         self.emit_asset(
           filename.clone(),
-          CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
+          CompilationAsset::new(
+            Some(CachedSource::new(file_manifest.source).boxed()),
+            file_manifest.info,
+          ),
         );
 
         _ = self
@@ -1304,7 +1318,9 @@ impl Compilation {
     )?;
     tracing::trace!("calculate runtime chunks content hash");
 
-    self.hash = format!("{:x}", compilation_hasher.finish());
+    // TODO(ahabhgk): refactor, upper-level wrapper for format!("{:016x}")
+    // 016 for length = 16
+    self.hash = format!("{:016x}", compilation_hasher.finish());
     tracing::trace!("compilation hash");
     Ok(())
   }
@@ -1413,16 +1429,15 @@ pub struct CompilationAsset {
   pub info: AssetInfo,
 }
 
+impl From<BoxSource> for CompilationAsset {
+  fn from(value: BoxSource) -> Self {
+    Self::new(Some(value), Default::default())
+  }
+}
+
 impl CompilationAsset {
   pub fn new(source: Option<BoxSource>, info: AssetInfo) -> Self {
     Self { source, info }
-  }
-
-  pub fn with_source(source: BoxSource) -> Self {
-    Self {
-      source: Some(source),
-      info: Default::default(),
-    }
   }
 
   pub fn get_source(&self) -> Option<&BoxSource> {
@@ -1463,7 +1478,7 @@ pub struct AssetInfo {
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
-  // pub content_hash:
+  pub content_hash: HashSet<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   // pub source_filename:
   /// size in bytes, only set after asset has been emitted
@@ -1497,6 +1512,15 @@ impl AssetInfo {
   pub fn with_related(mut self, v: AssetInfoRelated) -> Self {
     self.related = v;
     self
+  }
+
+  pub fn with_content_hashes(mut self, v: HashSet<String>) -> Self {
+    self.content_hash = v;
+    self
+  }
+
+  pub fn set_content_hash(&mut self, v: String) {
+    self.content_hash.insert(v);
   }
 }
 

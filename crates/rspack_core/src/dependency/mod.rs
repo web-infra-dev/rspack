@@ -17,6 +17,7 @@ mod require_context_dependency;
 mod require_resolve_dependency;
 use std::{
   any::Any,
+  borrow::Cow,
   fmt::{Debug, Display},
   hash::Hash,
 };
@@ -32,7 +33,7 @@ use crate::{AsAny, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleId
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
-#[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyType {
   #[default]
   Unknown,
@@ -77,6 +78,7 @@ pub enum DependencyType {
   WasmExportImported,
   /// static exports
   StaticExports,
+  Custom(Cow<'static, str>),
 }
 
 impl Display for DependencyType {
@@ -104,6 +106,7 @@ impl Display for DependencyType {
       DependencyType::WasmImport => write!(f, "wasm import"),
       DependencyType::WasmExportImported => write!(f, "wasm export imported"),
       DependencyType::StaticExports => write!(f, "static exports"),
+      DependencyType::Custom(ty) => write!(f, "custom {ty}"),
     }
   }
 }
@@ -253,6 +256,9 @@ pub trait ModuleDependency: Dependency {
   fn options(&self) -> Option<&ContextOptions> {
     None
   }
+  fn get_optional(&self) -> bool {
+    false
+  }
 }
 
 impl ModuleDependency for Box<dyn ModuleDependency> {
@@ -274,6 +280,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 
   fn options(&self) -> Option<&ContextOptions> {
     (**self).options()
+  }
+
+  fn get_optional(&self) -> bool {
+    (**self).get_optional()
   }
 }
 

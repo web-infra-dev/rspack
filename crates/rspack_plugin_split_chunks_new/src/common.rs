@@ -34,7 +34,7 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 
 pub type ModuleFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 
-pub fn create_default_module_filter() -> ModuleFilter {
+fn create_default_module_filter() -> ModuleFilter {
   Arc::new(|_| true)
 }
 
@@ -46,18 +46,11 @@ pub fn create_module_filter_from_rspack_regex(re: rspack_regex::RspackRegex) -> 
   })
 }
 
-pub fn create_module_filter_from_regex(re: regex::Regex) -> ModuleFilter {
-  Arc::new(move |module| {
-    module
-      .name_for_condition()
-      .map_or(false, |name| re.is_match(&name))
-  })
-}
-
 pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
   re.map(|test| {
-    let re = regex::Regex::new(&test).unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
-    create_module_filter_from_regex(re)
+    let re =
+      rspack_regex::RspackRegex::new(&test).unwrap_or_else(|_| panic!("Invalid regex: {}", &test));
+    create_module_filter_from_rspack_regex(re)
   })
   .unwrap_or_else(create_default_module_filter)
 }
@@ -66,6 +59,10 @@ pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
 pub struct SplitChunkSizes(FxHashMap<SourceType, f64>);
 
 impl SplitChunkSizes {
+  pub fn empty() -> Self {
+    Self(Default::default())
+  }
+
   pub fn with_initial_value(default_size_types: &[SourceType], initial_bytes: f64) -> Self {
     Self(
       default_size_types

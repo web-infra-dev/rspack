@@ -112,6 +112,9 @@ export interface JsAssetInfo {
    * the value(s) of the chunk hash used for this asset
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
+   */
+  contentHash: Array<string>
+  /**
    * when asset was created from a source file (potentially transformed), the original filename relative to compilation context
    * size in bytes, only set after asset has been emitted
    * when asset is only used for development and doesn't count towards user-facing assets
@@ -159,6 +162,7 @@ export interface JsHooks {
   processAssetsStageNone: (...args: any[]) => any
   processAssetsStageOptimizeInline: (...args: any[]) => any
   processAssetsStageSummarize: (...args: any[]) => any
+  processAssetsStageOptimizeHash: (...args: any[]) => any
   processAssetsStageReport: (...args: any[]) => any
   compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
@@ -167,6 +171,7 @@ export interface JsHooks {
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  beforeCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
@@ -278,6 +283,7 @@ export interface JsStatsChunkGroupAsset {
 export interface JsStatsError {
   message: string
   formatted: string
+  title: string
 }
 
 export interface JsStatsGetAssets {
@@ -388,6 +394,7 @@ export interface RawCacheGroupOptions {
   minSize?: number
   name?: string
   reuseExistingChunk?: boolean
+  enforce?: boolean
 }
 
 export interface RawCacheOptions {
@@ -598,7 +605,9 @@ export interface RawOptimizationOptions {
   splitChunks?: RawSplitChunksOptions
   moduleIds: string
   removeAvailableModules: boolean
+  removeEmptyChunks: boolean
   sideEffects: string
+  realContentHash: boolean
 }
 
 export interface RawOptions {
@@ -655,6 +664,7 @@ export interface RawOutputOptions {
   chunkLoading?: string
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
+  sourceMapFilename: string
 }
 
 export interface RawParserOptions {

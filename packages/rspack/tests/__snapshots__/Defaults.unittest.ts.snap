@@ -165,7 +165,9 @@ exports[`snapshots should have the correct base config 1`] = `
     "minimize": false,
     "minimizer": [],
     "moduleIds": "named",
+    "realContentHash": false,
     "removeAvailableModules": true,
+    "removeEmptyChunks": true,
     "runtimeChunk": false,
     "sideEffects": "flag",
     "splitChunks": {
@@ -217,6 +219,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "module": false,
     "path": "<cwd>/dist",
     "publicPath": "auto",
+    "sourceMapFilename": "[file].map",
     "strictModuleErrorHandling": false,
     "trustedTypes": undefined,
     "uniqueName": "@rspack/core",

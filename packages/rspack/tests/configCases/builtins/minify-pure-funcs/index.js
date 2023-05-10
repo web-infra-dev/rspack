@@ -17,5 +17,5 @@ function getTestLogLevels(content) {
 it("should pure funcs", () => {
 	const content = fs.readFileSync(__filename, "utf-8");
 	const logLevels = getTestLogLevels(content);
-	expect(logLevels).toEqual(["log", "error"]);
+	expect(logLevels).toEqual(["debug", "log"]);
 });

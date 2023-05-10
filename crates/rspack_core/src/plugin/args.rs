@@ -95,9 +95,9 @@ pub struct NormalModuleFactoryResolveForSchemeArgs {
 }
 
 #[derive(Debug, Clone)]
-pub struct NormalModuleBeforeResolveArgs {
-  pub request: String,
-  pub context: Option<String>,
+pub struct NormalModuleBeforeResolveArgs<'a> {
+  pub request: &'a str,
+  pub context: &'a Option<String>,
 }
 
 #[derive(Debug)]
@@ -110,6 +110,7 @@ pub struct ResolveArgs<'a> {
   pub span: Option<ErrorSpan>,
   pub resolve_options: Option<Resolve>,
   pub resolve_to_context: bool,
+  pub optional: bool,
   pub file_dependencies: &'a mut HashSet<PathBuf>,
   pub missing_dependencies: &'a mut HashSet<PathBuf>,
 }

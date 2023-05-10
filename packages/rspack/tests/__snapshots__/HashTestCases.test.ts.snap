@@ -2,16 +2,18 @@
 
 exports[`HashTestCases should print correct hash for package-path-change-0 1`] = `
 [
-  "runtime.e595a762c31d5184.js",
-  "main.8ba66a6d562c9f41.js",
-  "0.a419356ce1e112c6.js",
+  "runtime.c8619618c466366e.js",
+  "main.006edd8022a70bcf.js",
+  "0.acf446aa3893e384.js",
 ]
 `;
 
 exports[`HashTestCases should print correct hash for package-path-change-1 1`] = `
 [
-  "runtime.a97a74c18931936f.js",
-  "main.b11af1dbcee032b1.js",
-  "0.b681063969d05f1f.js",
+  "runtime.9afd7b04ab9cca9c.js",
+  "main.7b25b592d62c77bb.js",
+  "0.659bab60b9361e17.js",
 ]
 `;
+
+exports[`HashTestCases should print correct hash for real-content-hash 1`] = `undefined`;

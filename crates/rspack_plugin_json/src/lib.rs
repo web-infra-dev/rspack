@@ -13,7 +13,7 @@ use rspack_error::{
 mod utils;
 
 #[derive(Debug)]
-struct JsonParserAndGenerator {}
+struct JsonParserAndGenerator;
 
 impl ParserAndGenerator for JsonParserAndGenerator {
   fn source_types(&self) -> &[SourceType] {
@@ -127,7 +127,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
 }
 
 #[derive(Debug)]
-pub struct JsonPlugin {}
+pub struct JsonPlugin;
 
 impl Plugin for JsonPlugin {
   fn name(&self) -> &'static str {

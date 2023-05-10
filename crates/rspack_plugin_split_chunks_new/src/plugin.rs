@@ -37,6 +37,8 @@ impl SplitChunksPlugin {
       let (_module_group_key, mut module_group) =
         self.find_best_module_group(&mut module_group_map);
 
+      let cache_group = &self.cache_groups[module_group.cache_group_index];
+
       let mut is_reuse_existing_chunk = false;
       let mut is_reuse_existing_chunk_with_all_modules = false;
       let new_chunk = self.get_corresponding_chunk(
@@ -45,6 +47,16 @@ impl SplitChunksPlugin {
         &mut is_reuse_existing_chunk,
         &mut is_reuse_existing_chunk_with_all_modules,
       );
+
+      let new_chunk_mut = new_chunk.as_mut(&mut compilation.chunk_by_ukey);
+
+      new_chunk_mut
+        .chunk_reasons
+        .push(["(cache group: ", cache_group.key.as_str(), ")"].join(""));
+
+      new_chunk_mut
+        .id_name_hints
+        .insert(cache_group.id_hint.clone());
 
       if is_reuse_existing_chunk {
         // The chunk is not new but created in code splitting. We need remove `new_chunk` since we would remove
@@ -78,6 +90,10 @@ impl SplitChunksPlugin {
       .par_iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = &self.cache_groups[module_group.cache_group_index];
+        // Fast path
+        if cache_group.min_size.is_empty() {
+          return None;
+        }
 
         // Find out what `SourceType`'s size is not fit the min_size
         let violating_source_types: Box<[SourceType]> = module_group
@@ -224,31 +240,29 @@ impl SplitChunksPlugin {
     is_reuse_existing_chunk: &mut bool,
     is_reuse_existing_chunk_with_all_modules: &mut bool,
   ) -> ChunkUkey {
-    if let Some(chunk) = module_group
-      .chunk_name
-      .as_ref()
-      .and_then(|chunk_name| compilation.named_chunks.get(chunk_name))
+    if let Some(chunk_name) = &module_group.chunk_name {
+      if let Some(chunk) = compilation.named_chunks.get(chunk_name) {
+        *is_reuse_existing_chunk = true;
+        *chunk
+      } else {
+        let new_chunk = Compilation::add_named_chunk(
+          chunk_name.clone(),
+          &mut compilation.chunk_by_ukey,
+          &mut compilation.named_chunks,
+        );
+        new_chunk
+          .chunk_reasons
+          .push("Create by split chunks".to_string());
+        compilation.chunk_graph.add_chunk(new_chunk.ukey);
+        new_chunk.ukey
+      }
+    } else if let Some(reusable_chunk) = self.find_the_best_reusable_chunk(compilation, module_group)
+      && module_group.cache_group_reuse_existing_chunk
     {
-      *is_reuse_existing_chunk = true;
-      return *chunk;
-    }
-
-    if let Some(reusable_chunk) = self.find_the_best_reusable_chunk(compilation, module_group) && module_group.cache_group_reuse_existing_chunk {
       *is_reuse_existing_chunk = true;
       *is_reuse_existing_chunk_with_all_modules = true;
       reusable_chunk
-    } else if let Some(chunk_name) = &module_group.chunk_name {
-      let new_chunk = Compilation::add_named_chunk(
-        chunk_name.clone(),
-        &mut compilation.chunk_by_ukey,
-        &mut compilation.named_chunks,
-      );
-      new_chunk
-        .chunk_reasons
-        .push("Create by split chunks".to_string());
-        compilation.chunk_graph.add_chunk(new_chunk.ukey);
-      new_chunk.ukey
-    }  else {
+    } else {
       let new_chunk = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
       new_chunk
         .chunk_reasons

@@ -2,15 +2,14 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, Module, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
+  ApplyContext, AssetInfo, Module, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;
-use rspack_plugin_asset::ModuleIdToFileName;
 
-use crate::AsyncWasmParserAndGenerator;
+use crate::{AsyncWasmParserAndGenerator, ModuleIdToFileName};
 
-pub struct EnableWasmLoadingPlugin {}
+pub struct EnableWasmLoadingPlugin;
 
 #[derive(Debug, Default)]
 pub struct AsyncWasmPlugin {
@@ -80,6 +79,7 @@ impl Plugin for AsyncWasmPlugin {
           .transpose()?
           .map(|source| {
             let options = &compilation.options;
+            let mut asset_info = AssetInfo::default();
             let wasm_filename = self
               .module_id_to_filename_without_ext
               .get(&m.identifier())
@@ -93,9 +93,10 @@ impl Plugin for AsyncWasmPlugin {
                 options
                   .output
                   .webassembly_module_filename
-                  .render_with_chunk(chunk, ".wasm", &SourceType::Wasm)
+                  .render_with_chunk(chunk, ".wasm", &SourceType::Wasm, Some(&mut asset_info))
               }),
               path_options,
+              asset_info,
             )
           });
 

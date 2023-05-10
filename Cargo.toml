@@ -1,8 +1,6 @@
 [workspace]
-exclude = [
-  "crates/node_binding",
-] # Avoid including node binding, since feature unification will cause an linking issue. See: https://doc.rust-lang.org/cargo/reference/features.html#feature-unification
-members = ["crates/*"]
+members  = ["crates/*"]
+resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
   [workspace.dependencies]
   anyhow             = { version = "1.0.70" }
@@ -25,7 +23,7 @@ members = ["crates/*"]
   json               = { version = "0.12.4" }
   linked_hash_set    = { version = "0.1.4" }
   mimalloc-rust      = { version = "0.2" }
-  nodejs-resolver    = { version = "0.0.82" }
+  nodejs-resolver    = { version = "0.0.83" }
   once_cell          = { version = "1.17.1" }
   paste              = { version = "1.0" }
   pathdiff           = { version = "0.2.1" }

@@ -6,9 +6,9 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxLoader, BoxModule, ChunkAssetArgs, ChunkHashArgs,
-  ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
-  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
+  ChunkHashArgs, ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
   NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
@@ -275,6 +275,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn process_assets_stage_optimize_hash(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   async fn process_assets_stage_report(
     &mut self,
     _ctx: PluginContext,
@@ -296,6 +304,10 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn optimize_chunk_modules(&mut self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
+    Ok(())
+  }
+
+  async fn before_compile(&mut self) -> Result<()> {
     Ok(())
   }
 
@@ -374,18 +386,19 @@ pub struct RenderManifestEntry {
   pub(crate) source: BoxSource,
   filename: String,
   pub(crate) path_options: PathData,
-  // info?: AssetInfo;
+  pub(crate) info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
   // auxiliary?: boolean;
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String, path_options: PathData) -> Self {
+  pub fn new(source: BoxSource, filename: String, path_options: PathData, info: AssetInfo) -> Self {
     Self {
       source,
       filename,
       path_options,
+      info,
     }
   }
 

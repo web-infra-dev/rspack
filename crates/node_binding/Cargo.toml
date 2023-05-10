@@ -12,18 +12,16 @@ version    = "0.1.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-rspack_binding_macros = { path = "../rspack_binding_macros" }
-rspack_binding_options = { path = "../rspack_binding_options", default-features = false, features = [
-  "node-api",
-] }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_fs = { path = "../rspack_fs", features = ["async"] }
-rspack_fs_node = { path = "../rspack_fs_node" }
-rspack_identifier = { path = "../rspack_identifier" }
-rspack_napi_shared = { path = "../rspack_napi_shared" }
-rspack_plugin_html = { path = "../rspack_plugin_html" }
-rspack_tracing = { path = "../rspack_tracing" }
+rspack_binding_macros  = { path = "../rspack_binding_macros" }
+rspack_binding_options = { path = "../rspack_binding_options" }
+rspack_core            = { path = "../rspack_core" }
+rspack_error           = { path = "../rspack_error" }
+rspack_fs              = { path = "../rspack_fs", features = ["async"] }
+rspack_fs_node         = { path = "../rspack_fs_node" }
+rspack_identifier      = { path = "../rspack_identifier" }
+rspack_napi_shared     = { path = "../rspack_napi_shared" }
+rspack_plugin_html     = { path = "../rspack_plugin_html" }
+rspack_tracing         = { path = "../rspack_tracing" }
 
 anyhow      = { version = "1.0.65", features = ["backtrace"] }
 async-trait = "0.1.53"
@@ -53,10 +51,3 @@ napi-build = { version = "=2.0.1" }
 
 [dev-dependencies]
 testing_macros = { version = "0.2.5" }
-
-[profile.release]
-codegen-units = 1
-debug         = false
-lto           = false # disabled by now, because it will significantly increase our compile time.
-opt-level     = 3
-strip         = true

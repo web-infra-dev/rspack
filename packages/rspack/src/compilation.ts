@@ -16,33 +16,32 @@ import {
 	JsChunk,
 	JsCompatSource,
 	JsCompilation,
-	JsModule
+	JsModule,
+	JsStatsError
 } from "@rspack/binding";
 
+import {
+	RspackOptionsNormalized,
+	StatsOptions,
+	OutputNormalized,
+	StatsValue,
+	RspackPluginInstance
+} from "./config";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import * as ErrorHelpers from "./ErrorHelpers";
 import ResolverFactory from "./ResolverFactory";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
-import {
-	OutputNormalized,
-	RspackOptionsNormalized,
-	StatsOptions,
-	StatsValue
-} from "./config";
 import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
-import { concatErrorMsgAndStack } from "./util";
+import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
-
-const hashDigestLength = 8;
-const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -90,9 +89,11 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	childrenCounters: Record<string, number> = {};
 	startTime?: number;
 	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
+	children: Compilation[] = [];
 	contextModuleFactory?: ContextModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
@@ -131,6 +132,10 @@ export class Compilation {
 
 	get hash() {
 		return this.#inner.hash;
+	}
+
+	get chunks() {
+		return this.getChunks();
 	}
 
 	get fullHash() {
@@ -270,14 +275,12 @@ export class Compilation {
 	 *
 	 * @param {string} file file name
 	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {JsAssetInfo | function(JsAssetInfo): JsAssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
+	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
 		newSourceOrFunction: Source | ((source: Source) => Source),
-		assetInfoUpdateOrFunction:
-			| JsAssetInfo
-			| ((assetInfo: JsAssetInfo) => JsAssetInfo)
+		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSource
@@ -298,7 +301,9 @@ export class Compilation {
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			assetInfoUpdateOrFunction
+			typeof assetInfoUpdateOrFunction === "function"
+				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+				: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
@@ -326,16 +331,11 @@ export class Compilation {
 	 * @returns {void}
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-		const info = Object.assign(
-			{
-				minimized: false,
-				development: false,
-				hotModuleReplacement: false,
-				related: {}
-			},
-			assetInfo
+		this.#inner.emitAsset(
+			filename,
+			createRawFromSource(source),
+			toJsAssetInfo(assetInfo)
 		);
-		this.#inner.emitAsset(filename, createRawFromSource(source), info);
 	}
 
 	deleteAsset(filename: string) {
@@ -386,13 +386,13 @@ export class Compilation {
 	get errors() {
 		let inner = this.#inner;
 		return {
-			push: (...errs: Error[]) => {
+			push: (...errs: (Error | JsStatsError)[]) => {
 				// compatible for javascript array
 				for (let i = 0; i < errs.length; i++) {
 					let error = errs[i];
 					this.#inner.pushDiagnostic(
 						"error",
-						error.name,
+						isJsStatsError(error) ? error.title : error.name,
 						concatErrorMsgAndStack(error)
 					);
 				}
@@ -407,7 +407,7 @@ export class Compilation {
 							return { done: true };
 						}
 						return {
-							value: [errors[index++]],
+							value: errors[index++],
 							done: false
 						};
 					}
@@ -420,13 +420,14 @@ export class Compilation {
 		let inner = this.#inner;
 		return {
 			// compatible for javascript array
-			push: (...warns: Error[]) => {
-				warns = this.hooks.processWarnings.call(warns);
+			push: (...warns: (Error | JsStatsError)[]) => {
+				// TODO: find a way to make JsStatsError be actual errors
+				warns = this.hooks.processWarnings.call(warns as any);
 				for (let i = 0; i < warns.length; i++) {
 					let warn = warns[i];
 					this.#inner.pushDiagnostic(
 						"warning",
-						warn.name,
+						isJsStatsError(warn) ? warn.title : warn.name,
 						concatErrorMsgAndStack(warn)
 					);
 				}
@@ -625,10 +626,25 @@ export class Compilation {
 		return new Stats(this);
 	}
 
+	createChildCompiler(
+		name: string,
+		outputOptions: OutputNormalized,
+		plugins: RspackPluginInstance[]
+	) {
+		const idx = this.childrenCounters[name] || 0;
+		this.childrenCounters[name] = idx + 1;
+		return this.compiler.createChildCompiler(
+			this,
+			name,
+			idx,
+			outputOptions,
+			plugins
+		);
+	}
 	/**
-	 * Get the `Source` of an given asset filename.
+	 * Get the `Source` of a given asset filename.
 	 *
-	 * Note: This is not a webpack public API, maybe removed in future.
+	 * Note: This is not a webpack public API, maybe removed in the future.
 	 *
 	 * @internal
 	 */
@@ -697,6 +713,7 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_NONE = 0;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_HASH = 2500;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
@@ -713,6 +730,8 @@ export class Compilation {
 				return this.hooks.processAssets.stageOptimizeInline;
 			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
 				return this.hooks.processAssets.stageSummarize;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH:
+				return this.hooks.processAssets.stageOptimizeHash;
 			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
 				return this.hooks.processAssets.stageReport;
 			default:

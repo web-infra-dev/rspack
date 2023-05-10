@@ -7,7 +7,7 @@ use crate::id_helpers::{
 };
 
 #[derive(Debug, Default)]
-pub struct DeterministicModuleIdsPlugin {}
+pub struct DeterministicModuleIdsPlugin;
 
 impl Plugin for DeterministicModuleIdsPlugin {
   fn module_ids(&mut self, compilation: &mut Compilation) -> Result<()> {

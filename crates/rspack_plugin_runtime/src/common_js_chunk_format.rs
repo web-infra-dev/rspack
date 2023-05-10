@@ -15,8 +15,9 @@ use crate::{
   generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
   update_hash_for_entry_startup,
 };
+
 #[derive(Debug)]
-pub struct CommonJsChunkFormatPlugin {}
+pub struct CommonJsChunkFormatPlugin;
 
 #[async_trait]
 impl Plugin for CommonJsChunkFormatPlugin {

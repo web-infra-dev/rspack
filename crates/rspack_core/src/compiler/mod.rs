@@ -101,6 +101,8 @@ where
       ),
     );
 
+    self.plugin_driver.write().await.before_compile().await?;
+
     // Fake this compilation as *currently* rebuilding does not create a new compilation
     self
       .plugin_driver

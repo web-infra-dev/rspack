@@ -6,7 +6,6 @@ use rspack_core::{
 use rspack_error::internal_error;
 use serde::Deserialize;
 
-#[cfg(feature = "node-api")]
 use crate::JsLoaderRunner;
 use crate::RawOptionsApply;
 
@@ -142,6 +141,7 @@ pub struct RawOutputOptions {
   pub chunk_loading: Option<String>,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
+  pub source_map_filename: String,
 }
 
 impl RawOptionsApply for RawOutputOptions {
@@ -149,7 +149,7 @@ impl RawOptionsApply for RawOutputOptions {
   fn apply(
     self,
     plugins: &mut Vec<BoxPlugin>,
-    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
+    _: &JsLoaderRunner,
   ) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_chunk_format_plugin(plugins)?;
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
@@ -186,6 +186,7 @@ impl RawOptionsApply for RawOutputOptions {
       iife: self.iife,
       module: self.module,
       trusted_types: self.trusted_types.map(Into::into),
+      source_map_filename: self.source_map_filename.into(),
     })
   }
 }

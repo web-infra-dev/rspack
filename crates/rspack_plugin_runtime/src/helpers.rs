@@ -58,6 +58,7 @@ pub fn get_all_chunks(
     entrypoint_ukey: &ChunkGroupUkey,
     exclude_chunk1: &ChunkUkey,
     exclude_chunk2: Option<&ChunkUkey>,
+    visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
   ) {
     if let Some(entrypoint) = chunk_group_by_ukey.get(entrypoint_ukey) {
       for chunk in &entrypoint.chunks {
@@ -72,8 +73,12 @@ pub fn get_all_chunks(
         chunks.insert(*chunk);
       }
 
-      for parent in entrypoint.ancestors(chunk_group_by_ukey) {
-        if let Some(chunk_group) = chunk_group_by_ukey.get(&parent) {
+      for parent in entrypoint.parents_iterable() {
+        if visit_chunk_groups.contains(parent) {
+          continue;
+        }
+        visit_chunk_groups.insert(*parent);
+        if let Some(chunk_group) = chunk_group_by_ukey.get(parent) {
           if chunk_group.is_initial() {
             add_chunks(
               chunk_group_by_ukey,
@@ -81,6 +86,7 @@ pub fn get_all_chunks(
               &chunk_group.ukey,
               exclude_chunk1,
               exclude_chunk2,
+              visit_chunk_groups,
             );
           }
         }
@@ -89,6 +95,7 @@ pub fn get_all_chunks(
   }
 
   let mut chunks: HashSet<ChunkUkey> = HashSet::default();
+  let mut visit_chunk_groups = HashSet::default();
 
   add_chunks(
     chunk_group_by_ukey,
@@ -96,6 +103,7 @@ pub fn get_all_chunks(
     entrypoint,
     exclude_chunk1,
     exclude_chunk2,
+    &mut visit_chunk_groups,
   );
 
   chunks
@@ -235,11 +243,8 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 
 pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
   let hash: Option<String> = Some(chunk.get_render_hash());
-  compilation
-    .options
-    .output
-    .chunk_filename
-    .render(FilenameRenderOptions {
+  compilation.options.output.chunk_filename.render(
+    FilenameRenderOptions {
       name: chunk.name_for_filename_template(),
       extension: Some(".js".to_string()),
       id: chunk.id.clone(),
@@ -247,5 +252,7 @@ pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String
       chunkhash: hash.clone(),
       hash,
       ..Default::default()
-    })
+    },
+    None,
+  )
 }

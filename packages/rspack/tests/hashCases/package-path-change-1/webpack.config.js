@@ -1,5 +1,7 @@
 /** @type {import("../../../dist").Configuration} */
 module.exports = {
+	entry: "./index.js",
+	context: __dirname,
 	output: {
 		filename: "[name].[contenthash].js"
 	},

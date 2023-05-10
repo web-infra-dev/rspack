@@ -101,6 +101,8 @@ pub struct Optimization {
   // True by default to reduce code in snapshots.
   #[serde(default = "true_by_default")]
   pub remove_available_modules: bool,
+  #[serde(default = "true_by_default")]
+  pub remove_empty_chunks: bool,
   #[serde(default = "default_optimization_module_ids")]
   pub module_ids: String,
   #[serde(default = "default_optimization_side_effects")]
@@ -240,6 +242,8 @@ pub struct Output {
   pub css_filename: String,
   #[serde(default = "default_chunk_filename")]
   pub css_chunk_filename: String,
+  #[serde(default = "default_chunk_filename")]
+  pub source_map_filename: String,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -402,6 +406,8 @@ impl TestConfig {
         iife: true,
         module: false,
         trusted_types: None,
+        source_map_filename: c::Filename::from_str(&self.output.source_map_filename)
+          .expect("Should exist"),
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),
@@ -449,6 +455,7 @@ impl TestConfig {
       }),
       optimization: c::Optimization {
         remove_available_modules: self.optimization.remove_available_modules,
+        remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
       },
     };

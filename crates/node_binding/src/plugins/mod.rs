@@ -31,11 +31,13 @@ pub struct JsHooksAdapter {
   pub process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()>,
+  pub process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()>,
   pub process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()>,
   pub emit_tsfn: ThreadsafeFunction<(), ()>,
   pub after_emit_tsfn: ThreadsafeFunction<(), ()>,
   pub optimize_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub before_compile_tsfn: ThreadsafeFunction<(), ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
@@ -140,26 +142,24 @@ impl rspack_core::Plugin for JsHooksAdapter {
     _ctx: rspack_core::PluginContext,
     args: &NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    let res = self
+    self
       .before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
-    res
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
   async fn context_module_before_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
     args: &NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
-    let res = self
+    self
       .context_module_before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
-      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
-    res
+      .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
   async fn normal_module_factory_resolve_for_scheme(
     &self,
@@ -288,6 +288,23 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
   }
 
+  async fn process_assets_stage_optimize_hash(
+    &mut self,
+    _ctx: rspack_core::PluginContext,
+    _args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsHookOutput {
+    if self.is_hook_disabled(&Hook::ProcessAssetsStageOptimizeHash) {
+      return Ok(());
+    }
+
+    self
+      .process_assets_stage_optimize_hash_tsfn
+      .call((), ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call process assets stage summarize: {err}",))?
+  }
+
   async fn process_assets_stage_report(
     &mut self,
     _ctx: rspack_core::PluginContext,
@@ -345,6 +362,22 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to compilation: {err}"))?
+  }
+
+  async fn before_compile(
+    &mut self,
+    // args: &mut rspack_core::CompilationArgs<'_>
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::BeforeCompile) {
+      return Ok(());
+    }
+
+    self
+      .before_compile_tsfn
+      .call({}, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call before compile: {err}",))?
   }
 
   async fn finish_modules(
@@ -406,6 +439,7 @@ impl JsHooksAdapter {
       process_assets_stage_none,
       process_assets_stage_optimize_inline,
       process_assets_stage_summarize,
+      process_assets_stage_optimize_hash,
       process_assets_stage_report,
       this_compilation,
       compilation,
@@ -416,6 +450,7 @@ impl JsHooksAdapter {
       before_resolve,
       context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
+      before_compile,
       finish_modules,
       chunk_asset,
     } = js_hooks;
@@ -432,6 +467,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(process_assets_stage_optimize_inline, env);
     let process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_summarize, env);
+    let process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_theadsafe_fn!(process_assets_stage_optimize_hash, env);
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(process_assets_stage_report, env);
     let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(emit, env);
@@ -445,6 +482,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(optimize_modules, env);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(optimize_chunk_module, env);
+    let before_compile_tsfn: ThreadsafeFunction<(), ()> =
+      js_fn_into_theadsafe_fn!(before_compile, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_modules, env);
     let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
@@ -467,6 +506,7 @@ impl JsHooksAdapter {
       process_assets_stage_none_tsfn,
       process_assets_stage_optimize_inline_tsfn,
       process_assets_stage_summarize_tsfn,
+      process_assets_stage_optimize_hash_tsfn,
       process_assets_stage_report_tsfn,
       compilation_tsfn,
       this_compilation_tsfn,
@@ -474,6 +514,7 @@ impl JsHooksAdapter {
       after_emit_tsfn,
       optimize_modules_tsfn,
       optimize_chunk_modules_tsfn,
+      before_compile_tsfn,
       before_resolve,
       context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
@@ -482,7 +523,8 @@ impl JsHooksAdapter {
     })
   }
 
+  #[allow(clippy::unwrap_used)]
   fn is_hook_disabled(&self, hook: &Hook) -> bool {
-    self.disabled_hooks.read().unwrap().contains(hook)
+    self.disabled_hooks.read().expect("").contains(hook)
   }
 }

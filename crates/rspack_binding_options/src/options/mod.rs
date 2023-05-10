@@ -51,7 +51,7 @@ pub trait RawOptionsApply {
   fn apply(
     self,
     plugins: &mut Vec<BoxPlugin>,
-    #[cfg(feature = "node-api")] loader_runner: &JsLoaderRunner,
+    loader_runner: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error>;
 }
 
@@ -94,7 +94,7 @@ impl RawOptionsApply for RawOptions {
   fn apply(
     mut self,
     plugins: &mut Vec<BoxPlugin>,
-    #[cfg(feature = "node-api")] loader_runner: &JsLoaderRunner,
+    loader_runner: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
     let entry = self
@@ -102,52 +102,22 @@ impl RawOptionsApply for RawOptions {
       .into_iter()
       .filter_map(|key| self.entry.remove_entry(&key).map(|(k, v)| (k, v.into())))
       .collect::<IndexMap<String, EntryItem>>();
-    let output: OutputOptions = self.output.apply(
-      plugins,
-      #[cfg(feature = "node-api")]
-      {
-        loader_runner
-      },
-    )?;
+    let output: OutputOptions = self.output.apply(plugins, loader_runner)?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();
-    let module: ModuleOptions = self.module.apply(
-      plugins,
-      #[cfg(feature = "node-api")]
-      {
-        loader_runner
-      },
-    )?;
-    let target = self.target.apply(
-      plugins,
-      #[cfg(feature = "node-api")]
-      {
-        loader_runner
-      },
-    )?;
+    let module: ModuleOptions = self.module.apply(plugins, loader_runner)?;
+    let target = self.target.apply(plugins, loader_runner)?;
     let experiments: Experiments = self.experiments.into();
     let stats = self.stats.into();
     let cache = self.cache.into();
     let snapshot = self.snapshot.into();
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
-      self.optimization.apply(
-        plugins,
-        #[cfg(feature = "node-api")]
-        {
-          loader_runner
-        },
-      )
+      self.optimization.apply(plugins, loader_runner)
     })?;
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
-    let builtins = self.builtins.apply(
-      plugins,
-      #[cfg(feature = "node-api")]
-      {
-        loader_runner
-      },
-    )?;
+    let builtins = self.builtins.apply(plugins, loader_runner)?;
 
     plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
@@ -203,7 +173,9 @@ impl RawOptionsApply for RawOptions {
     plugins.push(rspack_ids::StableNamedChunkIdsPlugin::new(None, None).boxed());
 
     // Notice the plugin need to be placed after SplitChunksPlugin
-    plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
+    if optimization.remove_empty_chunks {
+      plugins.push(rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin.boxed());
+    }
 
     Ok(Self::Options {
       entry,

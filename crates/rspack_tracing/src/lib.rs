@@ -9,7 +9,8 @@ use tracing_subscriber::{EnvFilter, Layer};
 
 static IS_TRACING_ENABLED: AtomicBool = AtomicBool::new(false);
 // skip event because it's not useful for performance analysis
-struct FilterEvent {}
+struct FilterEvent;
+
 impl<S> Filter<S> for FilterEvent {
   fn enabled(
     &self,

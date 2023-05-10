@@ -28,4 +28,5 @@ pub struct CacheGroup {
   pub reuse_existing_chunk: bool,
   /// number of referenced chunks
   pub min_chunks: u32,
+  pub id_hint: String,
 }

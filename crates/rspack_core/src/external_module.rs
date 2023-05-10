@@ -6,9 +6,9 @@ use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AstOrSource, BuildContext, BuildResult, ChunkInitFragments, CodeGenerationResult,
-  Compilation, Context, ExternalType, GenerationResult, InitFragment, InitFragmentStage,
-  LibIdentOptions, Module, ModuleType, RuntimeGlobals, SourceType,
+  to_identifier, AstOrSource, BuildContext, BuildResult, ChunkInitFragments, CodeGenerationDataUrl,
+  CodeGenerationResult, Compilation, Context, ExternalType, GenerationResult, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleType, RuntimeGlobals, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -194,7 +194,9 @@ impl Module for ExternalModule {
             .boxed(),
           )),
         );
-        cgr.data.insert("url".to_owned(), self.request.clone());
+        cgr
+          .data
+          .insert(CodeGenerationDataUrl::new(self.request.clone()));
       }
       "css-import" => {
         cgr.add(
