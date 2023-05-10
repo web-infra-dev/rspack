@@ -56,7 +56,7 @@ jobs:
           then
             echo "host=macos-latest" >> "$GITHUB_OUTPUT"
           fi
-          if [[ "${{ inputs.target }}" == "x86_64-unknown-linux-gnu" || "${{ inputs.target }}" == "x86_64-pc-windows-msvc" || "${{ inputs.target }}" == "x86_64-apple-darwin" ]]
+          if [[ "${{ inputs.target }}" == "x86_64-unknown-linux-musl" || "${{ inputs.target }}" == "x86_64-pc-windows-msvc" || "${{ inputs.target }}" == "x86_64-apple-darwin" ]]
           then
             echo "docker=false" >> "$GITHUB_OUTPUT"
           else
@@ -90,9 +90,12 @@ jobs:
           rustup show
 
       # Linux
-      - name: Build x86_64-unknown-linux-gnu
+      - name: Build x86_64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+        uses: ./.github/actions/docker-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
 
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
@@ -101,12 +104,9 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
 
-      - name: Build x86_64-unknown-linux-musl in Docker
+      - name: Build x86_64-unknown-linux-musl
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker-build
-        with:
-          target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -193,15 +193,6 @@ jobs:
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        shell: bash
-        run: |
-          set -e
-          pnpm run build:js
-          pnpm run test:unit
-          pnpm run test:example
-
-      - name: Test x86_64-unknown-linux-gnu
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         uses: ./.github/actions/docker-test
         with:
           node: ${{ matrix.node }}
@@ -228,11 +219,13 @@ jobs:
       ### x86_64-unknown-linux-musl
 
       - name: Test x86_64-unknown-linux-musl
-        if: ${{ false && inputs.target == 'x86_64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker-test
-        with:
-          node: ${{ matrix.node }}
-          image: alpine
+        if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
+        shell: bash
+        run: |
+          set -e
+          pnpm run build:js
+          pnpm run test:unit
+          pnpm run test:example
 
       ### aarch64-unknown-linux-musl
 
