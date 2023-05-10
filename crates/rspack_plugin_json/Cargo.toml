@@ -11,9 +11,7 @@ version    = "0.1.0"
 rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
-anyhow       = { workspace = true }
 json         = { workspace = true }
 ropey        = "1.6.0"
 rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
-tracing      = { workspace = true }
