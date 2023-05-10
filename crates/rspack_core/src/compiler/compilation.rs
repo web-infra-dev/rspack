@@ -94,8 +94,7 @@ pub struct Compilation {
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
   pub exports_info_map: IdentifierMap<Vec<ExportInfo>>,
-  #[cfg(debug_assertions)]
-  pub tree_shaking_result: IdentifierMap<OptimizeAnalyzeResult>,
+  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
@@ -149,8 +148,7 @@ impl Compilation {
       entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
       exports_info_map: IdentifierMap::default(),
-      #[cfg(debug_assertions)]
-      tree_shaking_result: IdentifierMap::default(),
+      optimize_analyze_result_map: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),

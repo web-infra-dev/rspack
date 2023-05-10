@@ -172,6 +172,14 @@ where
           std::mem::take(&mut self.compilation.missing_dependencies);
         new_compilation.build_dependencies =
           std::mem::take(&mut self.compilation.build_dependencies);
+        // tree shaking usage start
+        new_compilation.optimize_analyze_result_map =
+          std::mem::take(&mut self.compilation.optimize_analyze_result_map);
+        new_compilation.entry_module_identifiers =
+          std::mem::take(&mut self.compilation.entry_module_identifiers);
+        new_compilation.bailout_module_identifiers =
+          std::mem::take(&mut self.compilation.bailout_module_identifiers);
+        // tree shaking usage end
 
         // seal stage used
         new_compilation.code_splitting_cache =

@@ -192,7 +192,7 @@ pub fn run_after_pass(
       let top_level_mark = context.top_level_mark;
       let compilation = generate_context.compilation;
       let builtin_tree_shaking = compilation.options.builtins.tree_shaking;
-      dbg!(&builtin_tree_shaking);
+      // dbg!(&builtin_tree_shaking);
       let minify_options = &compilation.options.builtins.minify_options;
       let comments = None;
       let dependency_visitors =

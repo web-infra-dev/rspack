@@ -179,7 +179,6 @@ where
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
       if self.options.optimization.side_effects.is_enable() {
-        dbg!(analyze_result.include_module_ids.len());
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
       for entry in &self.compilation.entry_module_identifiers {
@@ -190,11 +189,8 @@ where
             .insert(*entry, analyze_results.ordered_exports());
         }
       }
-      // This is only used when testing
-      #[cfg(debug_assertions)]
-      {
-        self.compilation.tree_shaking_result = analyze_result.analyze_results;
-      }
+      self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
+      dbg!(self.compilation.optimize_analyze_result_map.len());
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
