@@ -238,7 +238,10 @@ class Watching {
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) return this._done(err, null);
 
-			const isRebuild = this.compiler.options.devServer && !this.#initial;
+			const canRebuild =
+				this.compiler.options.devServer &&
+				!this.#initial &&
+				(modifiedFiles?.size || deleteFiles?.size);
 
 			const onBuild = (err?: Error) => {
 				if (err) return this._done(err, null);
@@ -246,7 +249,7 @@ class Watching {
 				this._done(null, this.compiler.compilation);
 			};
 
-			if (isRebuild) {
+			if (canRebuild) {
 				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
 			} else {
 				this.compiler.build(onBuild);
