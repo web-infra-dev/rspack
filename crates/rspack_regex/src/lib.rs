@@ -2,7 +2,7 @@ use regress::{Match, Matches, Regex};
 use rspack_error::{internal_error, Error};
 use swc_core::ecma::ast::Regex as SwcRegex;
 
-/// Using wrapper because I want to implement the `TryFrom` Trait
+/// Using wrapper type required by [TryFrom] trait
 #[derive(Debug, Clone)]
 pub struct RspackRegex(Regex);
 

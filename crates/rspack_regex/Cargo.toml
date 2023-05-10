@@ -8,10 +8,13 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regress      = "0.4.1"
-rspack_error = { path = "../rspack_error" }
-swc_core     = { workspace = true, features = ["ecma_ast"] }
-
+aho-corasick    = "1.0.1"
+daachorse       = "1.0.0"
+regex-syntax    = "0.7.1"
+regex.workspace = true
+regress         = "0.4.1"
+rspack_error    = { path = "../rspack_error" }
+swc_core        = { workspace = true, features = ["ecma_ast"] }
 [dev-dependencies]
 swc_core = { workspace = true, features = [
   "ecma_ast",
