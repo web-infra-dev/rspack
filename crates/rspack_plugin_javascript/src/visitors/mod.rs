@@ -53,6 +53,8 @@ macro_rules! either {
 }
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
+/// too-many-arguments
+#[allow(clippy::too_many_arguments)]
 pub fn run_before_pass(
   resource_data: &ResourceData,
   ast: &mut Ast,

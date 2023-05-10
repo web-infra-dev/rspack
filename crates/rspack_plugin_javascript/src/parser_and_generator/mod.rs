@@ -73,7 +73,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       build_meta,
       module_type,
-      &*source.source(),
+      &source.source(),
     )?;
 
     let (dependencies, presentational_dependencies) = ast.visit(|program, context| {
