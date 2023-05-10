@@ -19,7 +19,6 @@ name: Reusable Release
 #     uses: ./.github/workflows/reusable-build.yml
 #     with:
 #       target: ${{ matrix.target }}
-#       docker: true
 
 on:
   workflow_call:
@@ -27,12 +26,9 @@ on:
       target:
         required: true
         type: string
-      docker:
-        required: true
-        type: boolean
       tests:
         description: "Run tests?"
-        default: false
+        default: true
         required: false
         type: boolean
 
@@ -48,17 +44,23 @@ jobs:
         id: run
         shell: bash
         run: |
-          if [[ "${{ contains(inputs.target, 'linux') }}" == "true" ]]; then
+          if [[ "${{ contains(inputs.target, 'linux') }}" == "true" ]]
+          then
             echo "host=ubuntu-latest" >> "$GITHUB_OUTPUT"
-            if [[ "${{ inputs.docker }}" == "true" ]]; then
-              echo "docker=true" >> "$GITHUB_OUTPUT"
-            fi
           fi
-          if [[ "${{ contains(inputs.target, 'windows') }}" == "true" ]]; then
+          if [[ "${{ contains(inputs.target, 'windows') }}" == "true" ]]
+          then
             echo "host=windows-latest" >> "$GITHUB_OUTPUT"
           fi
-          if [[ "${{ contains(inputs.target, 'apple') }}" == "true" ]]; then
+          if [[ "${{ contains(inputs.target, 'apple') }}" == "true" ]]
+          then
             echo "host=macos-latest" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "${{ inputs.target }}" == "x86_64-unknown-linux-gnu" || "${{ inputs.target }}" == "x86_64-pc-windows-msvc" || "${{ inputs.target }}" == "x86_64-apple-darwin" ]]
+          then
+            echo "docker=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "docker=true" >> "$GITHUB_OUTPUT"
           fi
 
   build:
@@ -72,14 +74,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        if: ${{ needs.select.outputs.docker != 'true' }}
-        run: rustup show
-
-      - name: Setup Rust Target
-        if: ${{ needs.select.outputs.docker != 'true' }}
-        run: rustup target add ${{ inputs.target }}
-
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
@@ -89,14 +83,16 @@ jobs:
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
-      # Linux
+      - name: Setup Rust Target
+        if: ${{ needs.select.outputs.docker != 'true' }}
+        run: |
+          rustup target add ${{ inputs.target }}
+          rustup show
 
-      - name: Build x86_64-unknown-linux-gnu in Docker
+      # Linux
+      - name: Build x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        uses: ./.github/actions/docker-build
-        with:
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-          target: ${{ inputs.target }}
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
 
       - name: Build aarch64-unknown-linux-gnu in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
@@ -118,8 +114,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          pre: |
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
+          pre: export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
 
       # Windows
 
@@ -174,6 +169,9 @@ jobs:
       matrix:
         node: [14, 16]
     name: Test Node ${{ matrix.node }}
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - uses: actions/checkout@v3
 
@@ -187,7 +185,20 @@ jobs:
         shell: bash
         run: ls -lah crates/node_binding/*.node
 
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: ${{ matrix.node }}
+
       ### x86_64-unknown-linux-gnu
+      - name: Test x86_64-unknown-linux-gnu
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        shell: bash
+        run: |
+          set -e
+          pnpm run build:js
+          pnpm run test:unit
+          pnpm run test:example
 
       - name: Test x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
@@ -245,22 +256,11 @@ jobs:
 
       ### x86_64-apple-darwin
 
-      - name: Setup x86_64-apple-darwin
-        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
-        uses: ./.github/actions/pnpm-cache
-        with:
-          node-version: ${{ matrix.node }}
-
       - name: Test x86_64-apple-darwin
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-          PUPPETEER_SKIP_DOWNLOAD: true
         shell: bash
         run: |
           set -e
-          corepack enable
-          pnpm install
           pnpm run build:js
           pnpm run test:unit
           pnpm run test:example
@@ -268,22 +268,11 @@ jobs:
 
       ### x86_64-pc-windows-msvc
 
-      - name: Setup x86_64-pc-windows-msvc
-        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
-        uses: ./.github/actions/pnpm-cache
-        with:
-          node-version: ${{ matrix.node }}
-
       - name: Test x86_64-pc-windows-msvc
         if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-          PUPPETEER_SKIP_DOWNLOAD: true
         shell: bash
         run: |
           set -e
-          corepack enable
-          pnpm install
           pnpm run build:js
           pnpm run test:unit
           pnpm run test:example
