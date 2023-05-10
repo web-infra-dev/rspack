@@ -8,9 +8,7 @@ version    = "0.1.0"
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-better_scoped_tls = { workspace = true }
 bitflags = { workspace = true }
-dashmap = { workspace = true }
 data-encoding = "2.3.3"
 heck = "0.4.1"
 indexmap = { workspace = true }
@@ -38,13 +36,6 @@ swc_core = { workspace = true, features = [
   "css_modules",
   "css_prefixer",
   "css_minifier",
-] }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
 ] }
 tracing = { workspace = true }
 xxhash-rust = { workspace = true, features = ["xxh3"] }

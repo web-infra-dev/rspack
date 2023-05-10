@@ -33,7 +33,7 @@ module.exports = [
 		devtool: false,
 		output: {
 			path: path.resolve(__dirname, "./dist/a-normal"),
-			filename: "[contenthash].js",
+			filename: "[name].[contenthash]-[contenthash:6].js",
 			assetModuleFilename: "[contenthash][ext]"
 		}
 	},
@@ -44,7 +44,7 @@ module.exports = [
 		devtool: false,
 		output: {
 			path: path.resolve(__dirname, "./dist/b-normal"),
-			filename: "[contenthash].js",
+			filename: "[name].[contenthash]-[contenthash:6].js",
 			assetModuleFilename: "[contenthash][ext]"
 		}
 	},
@@ -55,7 +55,7 @@ module.exports = [
 		devtool: "source-map",
 		output: {
 			path: path.resolve(__dirname, "./dist/a-source-map"),
-			filename: "[contenthash].js",
+			filename: "[name].[contenthash]-[contenthash:6].js",
 			assetModuleFilename: "[contenthash][ext]"
 		}
 	},
@@ -66,7 +66,7 @@ module.exports = [
 		devtool: "source-map",
 		output: {
 			path: path.resolve(__dirname, "./dist/b-source-map"),
-			filename: "[contenthash].js",
+			filename: "[name].[contenthash]-[contenthash:6].js",
 			assetModuleFilename: "[contenthash][ext]"
 		}
 	}

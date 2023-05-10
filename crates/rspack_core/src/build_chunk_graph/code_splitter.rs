@@ -66,7 +66,9 @@ impl<'me> CodeSplitter<'me> {
 
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::Entrypoint,
-        HashSet::from_iter([Arc::from(name.to_string())]),
+        HashSet::from_iter([Arc::from(
+          options.runtime.clone().unwrap_or_else(|| name.to_string()),
+        )]),
         Some(name.to_string()),
       );
       if options.runtime.is_none() {
@@ -74,7 +76,6 @@ impl<'me> CodeSplitter<'me> {
       }
       entrypoint.set_entry_point_chunk(chunk.ukey);
       entrypoint.connect_chunk(chunk);
-      // compilation.chunk_graph.con
 
       compilation
         .named_chunk_groups

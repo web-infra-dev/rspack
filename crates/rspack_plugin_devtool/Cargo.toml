@@ -20,4 +20,3 @@ rspack_error  = { path = "../rspack_error" }
 rspack_util   = { path = "../rspack_util" }
 rustc-hash    = { workspace = true }
 serde_json    = { workspace = true }
-tracing       = { workspace = true }

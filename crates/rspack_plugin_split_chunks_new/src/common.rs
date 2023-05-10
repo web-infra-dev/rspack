@@ -59,6 +59,10 @@ pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
 pub struct SplitChunkSizes(FxHashMap<SourceType, f64>);
 
 impl SplitChunkSizes {
+  pub fn empty() -> Self {
+    Self(Default::default())
+  }
+
   pub fn with_initial_value(default_size_types: &[SourceType], initial_bytes: f64) -> Self {
     Self(
       default_size_types

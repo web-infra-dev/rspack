@@ -1,5 +1,5 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
-module.exports = {
+const config = {
 	testEnvironment: "node",
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
@@ -21,3 +21,11 @@ module.exports = {
 		"^.+\\.jsx?$": "babel-jest"
 	}
 };
+
+if (process.env.CI) {
+	config.reporters = [["github-actions", { silent: false }], "summary"];
+} else {
+	config.reporters = ["default"];
+}
+
+module.exports = config;

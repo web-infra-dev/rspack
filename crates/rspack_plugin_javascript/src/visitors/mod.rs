@@ -53,6 +53,7 @@ macro_rules! either {
 }
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
+#[allow(clippy::too_many_arguments)]
 pub fn run_before_pass(
   resource_data: &ResourceData,
   ast: &mut Ast,
@@ -61,12 +62,12 @@ pub fn run_before_pass(
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
   module_type: &ModuleType,
+  source: &str,
 ) -> Result<()> {
   let es_version = match options.target.es_version {
     rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
     _ => None,
   };
-  let hash = build_info.hash;
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
@@ -120,7 +121,7 @@ pub fn run_before_pass(
           swc_emotion::emotion(
             emotion_options.clone(),
             &resource_data.resource_path,
-            xxh32(&hash.to_be_bytes(), 0),
+            xxh32(source.as_bytes(), 0),
             cm.clone(),
             comments,
           )

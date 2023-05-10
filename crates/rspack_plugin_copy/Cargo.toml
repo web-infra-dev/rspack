@@ -12,18 +12,15 @@ rspack_testing = { path = "../rspack_testing" }
 testing_macros = { workspace = true }
 
 [dependencies]
-anyhow         = { workspace = true }
 async-trait    = { workspace = true }
 dashmap        = { workspace = true }
 glob           = { workspace = true }
 lazy_static    = "1.4.0"
 pathdiff       = { workspace = true }
-rayon          = { workspace = true }
 regex          = { workspace = true }
 rspack_core    = { path = "../rspack_core" }
 rspack_error   = { path = "../rspack_error" }
 rspack_futures = { path = "../rspack_futures" }
-serde_json     = { workspace = true }
 sugar_path     = { workspace = true }
 tokio          = { workspace = true, features = ["fs"] }
 tracing        = { workspace = true }

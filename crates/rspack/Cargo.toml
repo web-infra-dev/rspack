@@ -9,18 +9,10 @@ version    = "0.1.0"
 
 
 [dependencies]
-dashmap       = { workspace = true }
-rspack_core   = { path = "../rspack_core" }
-rspack_error  = { path = "../rspack_error" }
-rspack_fs     = { path = "../rspack_fs", features = ["async", "rspack-error"] }
-rspack_symbol = { path = "../rspack_symbol" }
+rspack_core = { path = "../rspack_core" }
+rspack_fs   = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 
-anyhow             = { workspace = true }
-async-trait        = { workspace = true }
-once_cell          = { workspace = true }
-tokio              = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
-tracing            = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 
 [dev-dependencies]
 rspack_binding_options = { path = "../rspack_binding_options" }

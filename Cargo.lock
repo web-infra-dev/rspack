@@ -67,6 +67,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anymap"
+version = "1.0.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f1f8f5a6f3d50d89e3797d7593a50f96bb2aaa20ca0cc7be1fb673232c91d72"
+
+[[package]]
 name = "argh"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -213,7 +219,6 @@ version = "0.1.0"
 dependencies = [
  "mimalloc-rust",
  "rspack_core",
- "rspack_error",
  "rspack_fs",
  "rspack_testing",
  "rspack_tracing",
@@ -2124,26 +2129,18 @@ dependencies = [
 name = "rspack"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-trait",
  "criterion",
- "dashmap",
  "insta",
  "mimalloc-rust",
- "once_cell",
  "rspack_binding_options",
  "rspack_core",
- "rspack_error",
  "rspack_fs",
- "rspack_symbol",
  "rspack_testing",
  "rspack_tracing",
  "serde",
  "serde_json",
  "testing_macros",
  "tokio",
- "tracing",
- "tracing-subscriber",
  "ustr",
  "xshell",
 ]
@@ -2177,21 +2174,16 @@ dependencies = [
  "anyhow",
  "async-trait",
  "better_scoped_tls",
- "cfg-if",
- "dashmap",
  "derivative",
  "glob",
  "indexmap",
  "napi",
  "napi-derive",
- "once_cell",
- "regex",
  "rspack_binding_macros",
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
  "rspack_ids",
- "rspack_loader_runner",
  "rspack_loader_sass",
  "rspack_napi_shared",
  "rspack_plugin_asset",
@@ -2216,7 +2208,6 @@ dependencies = [
  "serde",
  "serde_json",
  "swc_core",
- "swc_emotion",
  "swc_plugin_import",
  "tokio",
  "tracing",
@@ -2239,8 +2230,8 @@ name = "rspack_core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "anymap",
  "async-recursion",
- "async-scoped",
  "async-trait",
  "bitflags 1.3.2",
  "dashmap",
@@ -2269,7 +2260,6 @@ dependencies = [
  "rspack_symbol",
  "rspack_util",
  "rustc-hash",
- "serde",
  "serde_json",
  "string_cache",
  "sugar_path",
@@ -2332,7 +2322,6 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
- "rspack_error",
  "rspack_fs",
  "rspack_napi_shared",
 ]
@@ -2342,7 +2331,6 @@ name = "rspack_futures"
 version = "0.1.0"
 dependencies = [
  "async-scoped",
- "tokio",
 ]
 
 [[package]]
@@ -2384,8 +2372,6 @@ dependencies = [
  "rustc-hash",
  "similar-asserts",
  "tokio",
- "tracing",
- "tracing-subscriber",
  "url",
 ]
 
@@ -2406,8 +2392,6 @@ dependencies = [
  "serde",
  "str_indices",
  "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -2434,19 +2418,14 @@ dependencies = [
  "napi-derive",
  "napi-sys",
  "once_cell",
- "regex",
  "rspack_binding_macros",
  "rspack_binding_options",
  "rspack_core",
  "rspack_error",
- "rspack_fs",
  "rspack_fs_node",
  "rspack_identifier",
  "rspack_napi_shared",
- "rspack_plugin_html",
  "rspack_tracing",
- "serde",
- "serde_json",
  "testing_macros",
  "tokio",
  "tracing",
@@ -2458,19 +2437,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "dashmap",
  "mime_guess",
- "once_cell",
  "rayon",
  "rspack_base64",
  "rspack_core",
  "rspack_error",
- "rspack_identifier",
  "rspack_testing",
- "serde_json",
  "sugar_path",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -2490,19 +2463,16 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "dashmap",
  "glob",
  "lazy_static",
  "pathdiff",
- "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
  "rspack_futures",
  "rspack_testing",
- "serde_json",
  "sugar_path",
  "testing_macros",
  "tokio",
@@ -2516,9 +2486,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "better_scoped_tls",
  "bitflags 1.3.2",
- "dashmap",
  "data-encoding",
  "heck",
  "hrx-parser",
@@ -2539,7 +2507,6 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "swc_core",
- "tokio",
  "tracing",
  "xxhash-rust",
 ]
@@ -2573,7 +2540,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "tracing",
 ]
 
 [[package]]
@@ -2585,10 +2551,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
- "rspack_identifier",
  "rspack_regex",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -2599,13 +2562,11 @@ dependencies = [
  "async-trait",
  "dojang",
  "itertools",
- "once_cell",
  "rayon",
  "rspack_base64",
  "rspack_core",
  "rspack_error",
  "rspack_testing",
- "rustc-hash",
  "schemars",
  "serde",
  "serde_json",
@@ -2622,8 +2583,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64",
- "better_scoped_tls",
  "bitflags 1.3.2",
  "dashmap",
  "either",
@@ -2640,7 +2599,6 @@ dependencies = [
  "rspack_symbol",
  "rspack_testing",
  "rustc-hash",
- "serde",
  "sourcemap",
  "sugar_path",
  "swc_config",
@@ -2650,7 +2608,6 @@ dependencies = [
  "swc_node_comments",
  "swc_plugin_import",
  "tokio",
- "tracing",
  "url",
  "xxhash-rust",
 ]
@@ -2659,13 +2616,11 @@ dependencies = [
 name = "rspack_plugin_json"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "json",
  "ropey",
  "rspack_core",
  "rspack_error",
  "rspack_testing",
- "tracing",
 ]
 
 [[package]]
@@ -2675,8 +2630,6 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
- "rspack_util",
- "rustc-hash",
 ]
 
 [[package]]
@@ -2700,7 +2653,6 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_core",
- "rspack_error",
  "rustc-hash",
  "xxhash-rust",
 ]
@@ -2711,7 +2663,6 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
- "tracing",
 ]
 
 [[package]]
@@ -2753,14 +2704,10 @@ dependencies = [
  "derivative",
  "futures-util",
  "rayon",
- "regex",
  "rspack_core",
  "rspack_identifier",
  "rspack_regex",
- "rspack_util",
  "rustc-hash",
- "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -2775,11 +2722,8 @@ dependencies = [
  "rspack_identifier",
  "rspack_plugin_runtime",
  "rspack_testing",
- "rspack_util",
- "rustc-hash",
  "serde_json",
  "sugar_path",
- "tracing",
  "wasmparser",
 ]
 
@@ -2794,9 +2738,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eef26ea42c91ec2b5ece56a192adc265f5b1036f4093af8dcd75ff7f0f95b24f"
+checksum = "c8fea297998882fd0a451a5dd9b23b7369a69f1e9c54fbaa02e15a37ed578e03"
 dependencies = [
  "dashmap",
  "dyn-clone",
@@ -2807,6 +2751,7 @@ dependencies = [
  "serde",
  "serde_json",
  "smallvec",
+ "str_indices",
  "substring",
 ]
 
@@ -2826,10 +2771,6 @@ name = "rspack_testing"
 version = "0.1.0"
 dependencies = [
  "cargo-rst",
- "colored",
- "derive_builder",
- "glob",
- "rayon",
  "rspack_binding_options",
  "rspack_core",
  "rspack_fs",
@@ -2843,7 +2784,6 @@ dependencies = [
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
- "rspack_plugin_progress",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
  "rspack_plugin_wasm",
@@ -2852,7 +2792,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "similar",
  "swc_core",
  "testing_macros",
  "tokio",

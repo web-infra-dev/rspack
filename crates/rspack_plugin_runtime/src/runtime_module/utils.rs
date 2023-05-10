@@ -126,7 +126,7 @@ pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative
     &compilation.options.output,
     &compilation.chunk_group_by_ukey,
   );
-  let output_dir = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
+  let output_dir = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript, None);
   get_undo_path(
     output_dir.as_str(),
     compilation.options.output.path.display().to_string(),

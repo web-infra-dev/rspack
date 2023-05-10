@@ -206,6 +206,7 @@ impl CopyPlugin {
           query: None,
           ..Default::default()
         },
+        None,
       );
 
       LOGGER.log(&format!(

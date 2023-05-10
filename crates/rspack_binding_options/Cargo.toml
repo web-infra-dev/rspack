@@ -9,8 +9,6 @@ version    = "0.1.0"
 anyhow = { workspace = true, features = ["backtrace"] }
 async-trait = { workspace = true }
 better_scoped_tls = { workspace = true }
-cfg-if = "1.0.0"
-dashmap = { workspace = true }
 derivative = { workspace = true }
 glob = "0.3.1"
 indexmap = { workspace = true }
@@ -21,14 +19,11 @@ napi = { workspace = true, features = [
   "anyhow",
 ] }
 napi-derive = { workspace = true }
-once_cell = { workspace = true }
-regex = { workspace = true }
 rspack_binding_macros = { path = "../rspack_binding_macros" }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_ids = { path = "../rspack_ids" }
-rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_loader_sass = { path = "../rspack_loader_sass" }
 rspack_napi_shared = { path = "../rspack_napi_shared" }
 rspack_plugin_asset = { path = "../rspack_plugin_asset" }
@@ -55,7 +50,6 @@ serde_json = { workspace = true }
 swc_core = { workspace = true, default-features = false, features = [
   "ecma_transforms_react",
 ] }
-swc_emotion = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = [
   "rt",

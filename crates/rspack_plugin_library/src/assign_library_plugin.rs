@@ -51,7 +51,12 @@ impl AssignLibraryPlugin {
             root
               .iter()
               .map(|v| {
-                Filename::from(v.clone()).render_with_chunk(chunk, ".js", &SourceType::JavaScript)
+                Filename::from(v.clone()).render_with_chunk(
+                  chunk,
+                  ".js",
+                  &SourceType::JavaScript,
+                  None,
+                )
               })
               .collect::<Vec<_>>(),
           );
