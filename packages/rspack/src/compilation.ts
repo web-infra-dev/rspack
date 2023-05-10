@@ -43,10 +43,6 @@ import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
-import CacheFacade from "./lib/CacheFacade";
-
-const hashDigestLength = 8;
-const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
