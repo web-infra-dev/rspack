@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
@@ -505,11 +506,13 @@ fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
   }
 }
 
+static META_REG: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
+});
+
 #[inline]
 fn quote_meta(str: String) -> String {
-  let re =
-    Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `metacharacters REGEXP`");
-  re.replace_all(&str, "\\$0").to_string()
+  META_REG.replace_all(&str, "\\$0").to_string()
 }
 
 // require(`./${a}.js`)
