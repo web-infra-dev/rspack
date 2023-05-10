@@ -659,24 +659,28 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
-		let modules = this.modules;
+		let modules = this.getModules();
+		let moduleMap: Map<string, JsModule> = new Map();
+		for (let module of modules) {
+			moduleMap.set(module.moduleIdentifier, module);
+		}
 		return chunk.modules?.flatMap(chunkModule => {
 			let jsModule = this.__internal__findJsModule(
 				chunkModule.issuer ?? chunkModule.identifier,
-				modules
+				moduleMap
 			);
 			return {
-				...jsModule,
-				dependencies: chunkModule.reasons?.flatMap(jsReason => {
-					let jsOriginModule = this.__internal__findJsModule(
-						jsReason.moduleIdentifier ?? "",
-						modules
-					);
-					return {
-						...jsReason,
-						originModule: jsOriginModule
-					};
-				})
+				...jsModule
+				// dependencies: chunkModule.reasons?.flatMap(jsReason => {
+				// 	let jsOriginModule = this.__internal__findJsModule(
+				// 		jsReason.moduleIdentifier ?? "",
+				// 		moduleMap
+				// 	);
+				// 	return {
+				// 		...jsReason,
+				// 		originModule: jsOriginModule
+				// 	};
+				// })
 			};
 		});
 	}
@@ -689,13 +693,10 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__findJsModule(
-		identifier: String,
-		modules: JsModule[]
+		identifier: string,
+		modules: Map<string, JsModule>
 	): JsModule | undefined {
-		let module = modules.find(module => {
-			return module.moduleIdentifier == identifier;
-		});
-		return module;
+		return modules.get(identifier);
 	}
 
 	getModules(): JsModule[] {
