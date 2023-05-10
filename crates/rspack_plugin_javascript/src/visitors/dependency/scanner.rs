@@ -514,7 +514,7 @@ fn quote_meta(str: String) -> String {
   META_REG.replace_all(&str, "\\$0").to_string()
 }
 
-// require(`./${a}.js`)
+// require(`./${a}.js`)a
 fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
   let prefix_raw = tpl
     .quasis
