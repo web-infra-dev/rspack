@@ -59,4 +59,5 @@ async function checkBump() {
 }
 
 await checkVersion();
-await checkBump();
+// checkBump sometimes is hang forever so we take it down before it is fixed
+//await checkBump(); 

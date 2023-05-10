@@ -38,10 +38,6 @@ cleanCommand
   .description("clean target/ directory")
   .action(async function () {
     await $`cargo clean`;
-    within(async () => {
-      cd("crates/node_binding");
-      await $`cargo clean`;
-    });
   });
 
 // x build

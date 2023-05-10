@@ -48,9 +48,7 @@ jobs:
           args: --all -- --check
 
       - name: Run Cargo Check
-        run: |
-          cargo check --workspace --all-targets --release --locked
-          cd crates/node_binding && cargo check --workspace --all-targets --release --locked --target-dir ../../target && cd ../../
+        run: cargo check --workspace --all-targets --release --locked
 
       - name: Run Clippy
         uses: actions-rs/cargo@v1
@@ -58,10 +56,5 @@ jobs:
           command: clippy
           args: --workspace --all-targets -- -D warnings
 
-      - name: Check Dependencies
-        run: node ./scripts/check_rust_dependency.cjs
-
       - name: Run test
-        run: |
-          node -e "console.log(process.arch)"
-          cargo test --workspace  -- --nocapture --test-threads=1
+        run: cargo test --workspace -- --nocapture

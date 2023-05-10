@@ -1,6 +1,5 @@
 use rspack_core::Target;
 
-#[cfg(feature = "node-api")]
 use crate::JsLoaderRunner;
 use crate::RawOptionsApply;
 
@@ -12,7 +11,7 @@ impl RawOptionsApply for RawTarget {
   fn apply(
     self,
     _: &mut Vec<rspack_core::BoxPlugin>,
-    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
+    _: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     Ok(Target::new(&self)?)
   }

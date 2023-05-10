@@ -532,6 +532,7 @@ const applyOptimizationDefaults = (
 	{ production, development }: { production: boolean; development: boolean }
 ) => {
 	D(optimization, "removeAvailableModules", true);
+	D(optimization, "removeEmptyChunks", true);
 	F(optimization, "moduleIds", () => {
 		if (production) return "deterministic";
 		return "named";

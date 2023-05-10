@@ -90,6 +90,7 @@ impl ContextModuleFactory {
       span: data.dependency.span().cloned(),
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
+      optional: false,
       file_dependencies: &mut file_dependencies,
       missing_dependencies: &mut missing_dependencies,
     };

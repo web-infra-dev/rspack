@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rspack_error::{internal_error, Error, TraceableError};
+use rspack_error::{internal_error, Error, Severity, TraceableError};
 use sugar_path::{AsPath, SugarPath};
 
 use crate::{ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, SharedPluginDriver};
@@ -45,7 +45,7 @@ pub async fn resolve(
     .get(ResolveOptionsWithDependencyType {
       resolve_options: args.resolve_options,
       resolve_to_context: args.resolve_to_context,
-      dependency_type: *args.dependency_type,
+      dependency_type: args.dependency_type.clone(),
       dependency_category: *args.dependency_category,
     });
   let result = resolver.resolve(base_dir, args.specifier);
@@ -79,7 +79,6 @@ pub async fn resolve(
     _ => {
       if let Some(importer) = args.importer {
         let span = args.span.unwrap_or_default();
-
         // Use relative path in runtime for stable hashing
         let (runtime_message, internal_message) = if let nodejs_resolver::Error::Overflow = error {
           (
@@ -117,7 +116,13 @@ pub async fn resolve(
             "Resolve error".to_string(),
             internal_message.clone(),
           )
-          .map(Error::TraceableError)
+          .map(|e| {
+            if args.optional {
+              Error::TraceableError(e.with_severity(Severity::Warn))
+            } else {
+              Error::TraceableError(e)
+            }
+          })
           .unwrap_or_else(|_| internal_error!(internal_message)),
         )
       } else {
