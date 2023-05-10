@@ -1,1 +1,2 @@
-console.log('123d')
+require('./a')
+require('./d')

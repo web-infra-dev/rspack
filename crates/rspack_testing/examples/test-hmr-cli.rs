@@ -2,17 +2,21 @@
 
 use std::{env, path::PathBuf};
 
-use rspack_testing::test_hmr_fixture;
+use rspack_testing::test_rebuild_fixture;
+use swc_core::css::compat::compiler;
 
 fn main() {
   let fixture = PathBuf::from("crates/rspack_testing/examples/simple");
-  dbg!(&fixture);
   let fixture = if fixture.is_absolute() {
     fixture
   } else {
     let cwd = env::current_dir().expect("current_dir");
-    dbg!(&cwd);
     cwd.join(fixture).canonicalize().expect("canonicalize")
   };
-  test_hmr_fixture(&fixture);
+  test_rebuild_fixture(
+    &fixture,
+    Some(Box::new(|compiler| {
+      dbg!(compiler.compilation.include_module_ids);
+    })),
+  );
 }

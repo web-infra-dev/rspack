@@ -1,2 +1,3 @@
-console.log('hello, world')
-console.log(require.cache)
+console.log('123')
+require('./c')
+require('./d')

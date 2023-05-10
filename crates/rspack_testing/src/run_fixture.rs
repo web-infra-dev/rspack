@@ -79,8 +79,17 @@ fn read_dir_reverse(path: &PathBuf) -> Vec<String> {
   result
 }
 
+enum FsOptionEnum {
+  CHANGE(Vec<u8>),
+  CREATE,
+  REMOVE(Vec<u8>),
+}
+
 #[tokio::main]
-pub async fn test_hmr_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+pub async fn test_rebuild_fixture(
+  fixture_path: &Path,
+  cb: Option<Box<dyn FnOnce(Compiler<AsyncNativeFileSystem>)>>,
+) {
   enable_tracing_by_env();
 
   let (mut options, plugins) = apply_from_fixture(fixture_path);
@@ -97,33 +106,75 @@ pub async fn test_hmr_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSy
     .await
     .unwrap_or_else(|e| panic!("failed to compile in fixtrue {fixture_path:?}, {e:#?}"));
 
-  // let removed_files = Default::default();
-  // let changed_files = Default::default();
-  // test hot change
-  let mut oldFiles: HashMap<String, Vec<u8>> = HashMap::new();
+  let mut files_map: HashMap<String, FsOptionEnum> = HashMap::new();
   let changed_files: HashSet<String> =
     HashSet::from_iter(read_dir_reverse(&fixture_path.clone().join("changed")).into_iter());
+  let removed_files: HashSet<String> =
+    HashSet::from_iter(read_dir_reverse(&fixture_path.clone().join("removed")).into_iter());
+  let created_files: HashSet<String> =
+    HashSet::from_iter(read_dir_reverse(&fixture_path.clone().join("created")).into_iter());
 
-  changed_files.iter().for_each(|file_path| {
-    let old_path = file_path.replace("changed", "");
-    let old_raw = std::fs::read(old_path.clone());
-    oldFiles.insert(old_path.clone(), old_raw.expect("change file not found"));
-    let new_content = std::fs::read(file_path);
-    std::fs::write(old_path, new_content.expect("changed file do not read"))
+  let mut created_files: HashSet<String> = created_files
+    .iter()
+    .map(|file_path| {
+      let target_path = file_path.replacen("created/", "", 1);
+      files_map.insert(target_path.clone(), FsOptionEnum::CREATE);
+      let created_context = std::fs::read(file_path.clone());
+      std::fs::write(
+        target_path.clone(),
+        created_context.expect("changed file do not read"),
+      )
       .expect("TODO: panic message");
-  });
-  dbg!(&changed_files);
-  // if let Some(remove_dir) = std::fs::read_dir(fixture_path.clone().join("removed")){
-  //   remove_dir.
-  // }
+      return target_path;
+    })
+    .collect();
+  let changed_files: HashSet<String> = changed_files
+    .iter()
+    .map(|file_path| {
+      let target_path = file_path.replacen("changed/", "", 1);
+      let target_context = std::fs::read(target_path.clone());
+      files_map.insert(
+        target_path.clone(),
+        FsOptionEnum::CHANGE(target_context.expect("change file not found")),
+      );
+      let new_content = std::fs::read(file_path);
+      std::fs::write(
+        target_path.clone(),
+        new_content.expect("changed file do not read"),
+      )
+      .expect("TODO: panic message");
+      target_path
+    })
+    .collect();
+  let removed_files: HashSet<String> = removed_files
+    .iter()
+    .map(|file_path| {
+      let target_path = file_path.replacen("removed/", "", 1);
+      let target_context = std::fs::read(target_path.clone());
+      files_map.insert(
+        target_path.clone(),
+        FsOptionEnum::REMOVE(target_context.expect("change file not found")),
+      );
+      target_path
+    })
+    .collect();
+  created_files.extend(changed_files.into_iter());
+  let changed_files = created_files;
   compiler
-    .rebuild(changed_files, Default::default())
+    .rebuild(changed_files, removed_files)
     .await
     .unwrap_or_else(|e| panic!("failed to rebuild in fixture {fixture_path:?}, {e:#?}"));
 
-  oldFiles.iter().for_each(|(old_path, old_content)| {
-    std::fs::write(old_path.clone(), old_content).expect("TODO: panic message");
-  });
+  files_map
+    .iter()
+    .for_each(|(old_path, old_content)| match old_content {
+      FsOptionEnum::CREATE => {
+        std::fs::remove_file(old_path).expect("TODO: panic message");
+      }
+      FsOptionEnum::CHANGE(old_content) | FsOptionEnum::REMOVE(old_content) => {
+        std::fs::write(old_path.clone(), old_content).expect("TODO: panic message");
+      }
+    });
   let stats = compiler.compilation.get_stats();
   let output_name = make_relative_from(&compiler.options.output.path, fixture_path);
   let rst = RstBuilder::default()
@@ -144,5 +195,7 @@ pub async fn test_hmr_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSy
   }
   rst.assert();
 
-  compiler
+  if let Some(cb) = cb {
+    cb(compiler);
+  }
 }

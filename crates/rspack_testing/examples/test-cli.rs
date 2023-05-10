@@ -2,7 +2,7 @@
 
 use std::{env, path::PathBuf};
 
-use rspack_testing::test_hmr_fixture;
+use rspack_testing::test_rebuild_fixture;
 
 fn main() {
   let fixture = PathBuf::from("./simple");
@@ -12,5 +12,5 @@ fn main() {
     let cwd = env::current_dir().expect("current_dir");
     cwd.join(fixture).canonicalize().expect("canonicalize")
   };
-  test_hmr_fixture(&fixture);
+  test_rebuild_fixture(&fixture);
 }
