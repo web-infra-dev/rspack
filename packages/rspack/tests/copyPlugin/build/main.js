@@ -14,7 +14,7 @@ function __webpack_require__(moduleId) {
       }
       // Create a new module (and put it into the cache)
       var module = (__webpack_module_cache__[moduleId] = {
-       exports: {} 
+       exports: {}
       });
       // Execute the module function
       __webpack_modules__[moduleId](module, module.exports, __webpack_require__);

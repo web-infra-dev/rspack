@@ -61,7 +61,7 @@ impl JsPlugin {
     }
 
     sources.add(RawSource::from(
-      r#" exports: {} 
+      r#" exports: {}
       });
       // Execute the module function
       "#,
@@ -246,7 +246,7 @@ impl JsPlugin {
         }
       } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
         header.add(RawSource::from(format!(
-          r#"// the startup function 
+          r#"// the startup function
           // It's empty as no entry modules are in this chunk
             {} = function(){{}};
           "#,
@@ -255,7 +255,7 @@ impl JsPlugin {
       }
     } else if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
       header.add(RawSource::from(format!(
-        r#"// the startup function 
+        r#"// the startup function
         // It's empty as some runtime module handles the default behavior
           {} = function(){{}};
         "#,
