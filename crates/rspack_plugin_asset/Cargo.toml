@@ -11,23 +11,11 @@ version    = "0.1.0"
 rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
-anyhow = { workspace = true }
-async-trait = { workspace = true }
-dashmap = { workspace = true }
-mime_guess = "2.0.4"
-once_cell = { workspace = true }
-rayon = { workspace = true }
+anyhow        = { workspace = true }
+async-trait   = { workspace = true }
+mime_guess    = "2.0.4"
+rayon         = { workspace = true }
 rspack_base64 = { path = "../rspack_base64" }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_identifier = { path = "../rspack_identifier" }
-serde_json = { workspace = true }
-sugar_path = { workspace = true }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }
-tracing = { workspace = true }
+rspack_core   = { path = "../rspack_core" }
+rspack_error  = { path = "../rspack_error" }
+sugar_path    = { workspace = true }

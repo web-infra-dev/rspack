@@ -15,13 +15,9 @@ rspack_core           = { path = "../rspack_core" }
 rspack_error          = { path = "../rspack_error" }
 rspack_identifier     = { path = "../rspack_identifier" }
 rspack_plugin_runtime = { path = "../rspack_plugin_runtime" }
-rspack_util           = { path = "../rspack_util" }
-rustc-hash            = { workspace = true }
 serde_json            = { workspace = true }
 sugar_path            = { workspace = true }
-tracing               = { workspace = true }
 wasmparser            = "0.102.0"
-
 
 [dev-dependencies]
 rspack_testing = { path = "../rspack_testing" }

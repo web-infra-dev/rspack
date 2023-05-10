@@ -10,4 +10,3 @@ version    = "0.1.0"
 [dependencies]
 async-trait = { workspace = true }
 rspack_core = { path = "../rspack_core" }
-tracing     = { workspace = true }

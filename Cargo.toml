@@ -30,7 +30,7 @@ resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver
   preset_env_base    = { version = "0.4.2" }
   rayon              = { version = "1.7.0" }
   regex              = { version = "1.8.1" }
-  rspack_sources     = { version = "0.2.3" }
+  rspack_sources     = { version = "0.2.4" }
   rustc-hash         = { version = "1.1.0" }
   schemars           = { version = "0.8.12" }
   serde              = { version = "1.0.160" }
