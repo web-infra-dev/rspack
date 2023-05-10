@@ -508,7 +508,7 @@ fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
 #[inline]
 fn quote_meta(str: String) -> String {
   let re =
-    Regex::new(r"[-\[\]\/{}()*+?.^$|]").expect("Failed to initialize `metacharacters REGEXP`");
+    Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `metacharacters REGEXP`");
   re.replace_all(&str, "\\$0").to_string()
 }
 
