@@ -17,6 +17,7 @@ import {
 	JsCompatSource,
 	JsCompilation,
 	JsModule,
+	JsStatsChunk,
 	JsStatsError
 } from "@rspack/binding";
 
@@ -28,10 +29,10 @@ import {
 	RspackPluginInstance
 } from "./config";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import * as ErrorHelpers from "./ErrorHelpers";
 import ResolverFactory from "./ResolverFactory";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
+import ErrorHelpers from "./ErrorHelpers";
 import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
@@ -42,22 +43,7 @@ import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
-import { Logger, LogType } from "./logging/Logger";
-import * as ErrorHelpers from "./ErrorHelpers";
-import { concatErrorMsgAndStack } from "./util";
-import { normalizeStatsPreset, Stats } from "./stats";
-import { NormalModuleFactory } from "./normalModuleFactory";
 import CacheFacade from "./lib/CacheFacade";
-
-const hashDigestLength = 8;
-const EMPTY_ASSET_INFO = {};
-import { Logger, LogType } from "./logging/Logger";
-import * as ErrorHelpers from "./ErrorHelpers";
-import { concatErrorMsgAndStack } from "./util";
-import { normalizeStatsPreset, Stats } from "./stats";
-import { NormalModuleFactory } from "./normalModuleFactory";
-import CacheFacade from "./lib/CacheFacade";
-import { JsStatsChunk } from "@rspack/binding";
 
 const hashDigestLength = 8;
 const EMPTY_ASSET_INFO = {};
@@ -151,10 +137,6 @@ export class Compilation {
 
 	get hash() {
 		return this.#inner.hash;
-	}
-
-	get chunks() {
-		return this.getChunks();
 	}
 
 	get fullHash() {
