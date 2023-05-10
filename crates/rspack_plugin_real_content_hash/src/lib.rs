@@ -146,7 +146,7 @@ impl RealContentHashPlugin {
               .to_owned()
           })
           .collect();
-        Ok((new_source.clone(), old_info.with_content_hashs(new_hashes)))
+        Ok((new_source.clone(), old_info.with_content_hashes(new_hashes)))
       })?;
       if let Some(new_name) = new_name {
         compilation.rename_asset(&name, new_name);

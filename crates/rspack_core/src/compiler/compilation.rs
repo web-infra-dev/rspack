@@ -1514,7 +1514,7 @@ impl AssetInfo {
     self
   }
 
-  pub fn with_content_hashs(mut self, v: HashSet<String>) -> Self {
+  pub fn with_content_hashes(mut self, v: HashSet<String>) -> Self {
     self.content_hash = v;
     self
   }
