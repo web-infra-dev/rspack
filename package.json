@@ -51,10 +51,7 @@
     "@changesets/cli": "2.24.4",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
-    "@types/react": "17.0.52",
-    "@types/react-dom": "17.0.19",
     "commander": "10.0.1",
-    "esbuild": "^0.15.9",
     "husky": "^7.0.4",
     "is-ci": "3.0.1",
     "jest": "29.0.3",
@@ -64,8 +61,7 @@
     "ts-jest": "29.0.1",
     "typescript": "5.0.2",
     "webpack": "5.74.0",
-    "webpack-cli": "4.10.0",
-    "why-is-node-running": "2.2.1"
+    "webpack-cli": "4.10.0"
   },
   "optionalDependencies": {
     "sass-embedded-darwin-arm64": "1.58.3",
