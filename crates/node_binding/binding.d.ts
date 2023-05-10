@@ -394,6 +394,7 @@ export interface RawCacheGroupOptions {
   minSize?: number
   name?: string
   reuseExistingChunk?: boolean
+  enforce?: boolean
 }
 
 export interface RawCacheOptions {
