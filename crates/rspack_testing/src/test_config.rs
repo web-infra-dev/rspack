@@ -39,6 +39,10 @@ fn default_public_path() -> String {
   "auto".to_string()
 }
 
+fn default_tree_shaking() -> String {
+  "false".to_string()
+}
+
 fn default_target() -> Vec<String> {
   vec!["web".to_string(), "es2022".to_string()]
 }
@@ -157,7 +161,7 @@ pub struct Builtins {
   pub html: Vec<HtmlPluginConfig>,
   #[serde(default)]
   pub minify_options: Option<Minification>,
-  #[serde(default)]
+  #[serde(default = "default_tree_shaking")]
   pub tree_shaking: String,
   #[serde(default)]
   pub preset_env: Option<PresetEnv>,

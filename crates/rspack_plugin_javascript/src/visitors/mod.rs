@@ -242,31 +242,31 @@ pub fn run_after_pass(
       }
 
       let mut pass = chain!(
-        // Optional::new(
-        //   tree_shaking_visitor(
-        //     &decl_mappings,
-        //     &compilation.module_graph,
-        //     module.identifier(),
-        //     &compilation.used_symbol_ref,
-        //     &compilation.side_effects_free_modules,
-        //     &compilation.module_item_map,
-        //     MarkInfo {
-        //       top_level_mark,
-        //       helper_mark: context.helpers.mark()
-        //     },
-        //     &compilation.include_module_ids,
-        //     compilation.options.clone()
-        //   ),
-        //   builtin_tree_shaking.is_true() && need_tree_shaking
-        // ),
-        // Optional::new(
-        //   Repeat::new(dce(Config::default(), unresolved_mark)),
-        //   need_tree_shaking && builtin_tree_shaking.is_true() && minify_options.is_none()
-        // ),
-        // Optional::new(
-        //   dce(Config::default(), unresolved_mark),
-        //   need_tree_shaking && builtin_tree_shaking.is_true() && minify_options.is_some()
-        // ),
+        Optional::new(
+          tree_shaking_visitor(
+            &decl_mappings,
+            &compilation.module_graph,
+            module.identifier(),
+            &compilation.used_symbol_ref,
+            &compilation.side_effects_free_modules,
+            &compilation.module_item_map,
+            MarkInfo {
+              top_level_mark,
+              helper_mark: context.helpers.mark()
+            },
+            &compilation.include_module_ids,
+            compilation.options.clone()
+          ),
+          builtin_tree_shaking.is_true() && need_tree_shaking
+        ),
+        Optional::new(
+          Repeat::new(dce(Config::default(), unresolved_mark)),
+          need_tree_shaking && builtin_tree_shaking.is_true() && minify_options.is_none()
+        ),
+        Optional::new(
+          dce(Config::default(), unresolved_mark),
+          need_tree_shaking && builtin_tree_shaking.is_true() && minify_options.is_some()
+        ),
         swc_visitor::build_module(
           &cm,
           unresolved_mark,

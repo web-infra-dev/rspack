@@ -1,5 +1,5 @@
 {
   "builtins": {
-    "treeShaking": true
+    "treeShaking": "true"
   }
 }
