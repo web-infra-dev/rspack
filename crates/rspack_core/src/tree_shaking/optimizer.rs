@@ -73,16 +73,11 @@ impl<'a> CodeSizeOptimizer<'a> {
             .insert(ident, result);
         }
         // Merge new analyze result with previous in incremental_rebuild mode
-        std::mem::replace(
-          &mut self.compilation.optimize_analyze_result_map,
-          IdentifierMap::default(),
-        )
+        std::mem::take(&mut self.compilation.optimize_analyze_result_map)
       }
     } else {
       analyze_result_map
     };
-    dbg!(&finalized_result_map.len());
-    dbg!(&self.bailout_modules.len());
 
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
@@ -364,7 +359,6 @@ impl<'a> CodeSizeOptimizer<'a> {
           .entry_modules()
           .chain(context_entry_modules),
       );
-      dbg!(&q.len());
       while let Some(module_identifier) = q.pop_front() {
         if visited.contains(&module_identifier) {
           continue;

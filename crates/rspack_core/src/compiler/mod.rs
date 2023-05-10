@@ -190,7 +190,6 @@ where
         }
       }
       self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
-      dbg!(self.compilation.optimize_analyze_result_map.len());
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
