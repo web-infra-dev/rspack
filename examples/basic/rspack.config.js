@@ -1,6 +1,6 @@
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	mode: "development",
+	mode: "production",
 	context: __dirname,
 	mode: "development",
 	entry: {

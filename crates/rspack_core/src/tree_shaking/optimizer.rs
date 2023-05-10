@@ -1252,14 +1252,14 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           AssetModule::new(*module_identifier).analyze(compilation)
         };
 
-        // dbg_matches!(
-        //   &module_identifier.as_str(),
-        //   // &analyzer.export_all_list,
-        //   &optimize_analyze_result.export_map,
-        //   &optimize_analyze_result.import_map,
-        //   &optimize_analyze_result.reachable_import_of_export,
-        //   &optimize_analyze_result.used_symbol_refs
-        // );
+        dbg_matches!(
+          &module_identifier.as_str(),
+          // &analyzer.export_all_list,
+          &optimize_analyze_result.export_map,
+          &optimize_analyze_result.import_map,
+          &optimize_analyze_result.reachable_import_of_export,
+          &optimize_analyze_result.used_symbol_refs
+        );
 
         Some((*module_identifier, optimize_analyze_result))
       })

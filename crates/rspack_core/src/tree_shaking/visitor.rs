@@ -16,7 +16,7 @@ use swc_core::common::{comments, Spanned, SyntaxContext};
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
 use swc_core::ecma::atoms::{js_word, JsWord};
-use swc_core::ecma::utils::{ExprCtx, ExprExt};
+use swc_core::ecma::utils::{ExprCtx, ExprExt, ExprFactory};
 use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use swc_node_comments::SwcComments;
 
@@ -102,6 +102,7 @@ bitflags! {
     const ASSIGNMENT_LHS = 1 << 2;
     const ASSIGNMENT_RHS = 1 << 3;
     const STATIC_VAR_DECL = 1 << 4;
+    const IN_PURE = 1 << 5;
   }
 }
 pub(crate) struct ModuleRefAnalyze<'a> {
@@ -241,6 +242,10 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// ```
   pub fn add_reference(&mut self, from: SymbolExt, to: IdOrMemExpr, force_insert: bool) {
     if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) && !force_insert {
+      return;
+    }
+    if self.state.contains(AnalyzeState::IN_PURE) {
+      println!("pure");
       return;
     }
     // TODO: refactor this to use intersects
@@ -478,6 +483,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       .collect::<Vec<_>>();
     self.used_symbol_ref.extend(side_effect_symbol_list);
     // all reachable export from used symbol in current module
+    // dbg!(&self.used_id_set);
     for used_id in &self.used_id_set {
       match used_id {
         IdOrMemExpr::Id(id) => {
@@ -906,6 +912,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     }
   }
   fn visit_call_expr(&mut self, node: &CallExpr) {
+    let is_pure = is_pure_call_expr(node, self.unresolved_ctxt, self.comments);
+    dbg!(&is_pure);
+    if is_pure {
+      self.state |= AnalyzeState::IN_PURE;
+    }
     if let Some(require_lit) = get_require_literal(node, self.unresolved_mark) {
       self.module_syntax.insert(ModuleSyntax::COMMONJS);
       match self
@@ -954,6 +965,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     } else {
       node.visit_children_with(self);
     }
+
+    self.state.remove(AnalyzeState::IN_PURE);
   }
 
   fn visit_fn_expr(&mut self, node: &FnExpr) {
@@ -1040,9 +1053,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_var_decl(&mut self, node: &VarDecl) {
+    let is_export = self.state.contains(AnalyzeState::EXPORT_DECL);
     for ele in node.decls.iter() {
-      // TODO: I think it is safe to move is_export out of loop.
-      let is_export = self.state.contains(AnalyzeState::EXPORT_DECL);
       let Some(lhs) = self.visit_var_decl_pattern(&ele.name, is_export) else {
         ele.init.visit_with(self);
         continue;
@@ -1155,6 +1167,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       }
     }
   }
+
   fn get_side_effects_from_config(&mut self) -> Option<SideEffectType> {
     // sideEffects in module.rule has higher priority,
     // we could early return if we match a rule.
@@ -1551,15 +1564,15 @@ impl Visit for FirstIdentVisitor {
   }
 }
 
+static PURE_COMMENTS: Lazy<regex::Regex> = Lazy::new(|| {
+  let reg = regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex");
+  reg
+});
 fn is_pure_expression<'a, 'b>(
   expr: &'a Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'b SwcComments>,
 ) -> bool {
-  static PURE_COMMENTS: Lazy<regex::Regex> = Lazy::new(|| {
-    let reg = regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex");
-    reg
-  });
   // static pure_comments: Regex = Lazy::new()n
   match expr {
     // Mark `module.exports = require('xxx')` as pure
@@ -1573,40 +1586,59 @@ fn is_pure_expression<'a, 'b>(
     {
       true
     }
-    Expr::Call(CallExpr {
-      span, args, callee, ..
-    }) => {
-      let pure_flag = comments
-        .and_then(|comments| {
-          let comment_list = comments.leading.get(&callee.span_lo())?;
-          let last_comment = comment_list.last()?;
-          match last_comment.kind {
-            comments::CommentKind::Line => None,
-            comments::CommentKind::Block => Some(PURE_COMMENTS.is_match(&last_comment.text)),
-          }
-        })
-        .unwrap_or(false);
-      if !pure_flag {
-        !expr.may_have_side_effects(&ExprCtx {
-          unresolved_ctxt,
-          is_unresolved_ref_safe: false,
-        })
-      } else {
-        let res = args.iter().all(|arg| {
-          if arg.spread.is_some() {
-            return false;
-          } else {
-            is_pure_expression(&arg.expr, unresolved_ctxt, comments)
-          }
-        });
-        dbg!(&res);
-        res
-      }
-    }
+    Expr::Call(call_expr) => is_pure_call_expr(call_expr, unresolved_ctxt, comments),
     _ => !expr.may_have_side_effects(&ExprCtx {
       unresolved_ctxt,
       is_unresolved_ref_safe: false,
     }),
+  }
+}
+
+fn is_pure_call_expr<'a, 'b>(
+  call_expr: &'a CallExpr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'b SwcComments>,
+) -> bool {
+  let callee = &call_expr.callee;
+  // dbg!(&call_expr);
+  let unwrap_callee_span = match callee {
+    // super is keyword in rust
+    Callee::Super(su) => su.span,
+    Callee::Import(import) => import.span,
+    Callee::Expr(box expr) => match expr {
+      Expr::Paren(exp) => exp.expr.span(),
+      _ => expr.span(),
+    },
+  };
+  // dbg!(&unwrap_callee_span);
+  // dbg!(&callee.span());
+  let pure_flag = comments
+    .and_then(|comments| {
+      // dbg!(&comments.leading);
+      let comment_list = comments.leading.get(&callee.span_lo())?;
+      let last_comment = comment_list.last()?;
+      match last_comment.kind {
+        comments::CommentKind::Line => None,
+        comments::CommentKind::Block => Some(PURE_COMMENTS.is_match(&last_comment.text)),
+      }
+    })
+    .unwrap_or(false);
+  if !pure_flag {
+    let expr = Expr::Call(call_expr.clone());
+    !expr.may_have_side_effects(&ExprCtx {
+      unresolved_ctxt,
+      is_unresolved_ref_safe: false,
+    })
+  } else {
+    let res = call_expr.args.iter().all(|arg| {
+      if arg.spread.is_some() {
+        return false;
+      } else {
+        is_pure_expression(&arg.expr, unresolved_ctxt, comments)
+      }
+    });
+    dbg!(&res);
+    res
   }
 }
 

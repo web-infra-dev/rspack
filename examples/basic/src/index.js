@@ -1,8 +1,6 @@
-import { a } from "./answer";
-function render() {
-	document.getElementById(
-		"root",
-	).innerHTML = `the answer to the universe is ${answer}`;
-}
-render();
-a;
+import { result, } from "./lib.js";
+
+function test(){}
+let a = /*#__PURE__*/ test(result)
+
+
