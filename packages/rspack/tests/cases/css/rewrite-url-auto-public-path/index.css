@@ -1,4 +1,6 @@
+/* 🤪 */
 .class {
+  font-family: "Yu Gothic UI", "游ゴシック体";
   a: url("./logo.png");
   b: url("~@/logo.png");
 }
