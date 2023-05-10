@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use rspack_core::Compilation;
+use rspack_core::{Compilation, PublicPath};
 #[cfg(feature = "testing")]
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -126,18 +126,13 @@ impl Default for HtmlPluginConfig {
 
 impl HtmlPluginConfig {
   pub fn get_public_path(&self, compilation: &Compilation, filename: &str) -> String {
-    let public_path = match &self.public_path {
-      Some(p) => p.clone(),
+    match &self.public_path {
+      Some(p) => PublicPath::ensure_ends_with_slash(p.clone()),
       None => compilation
         .options
         .output
         .public_path
         .render(compilation, filename),
-    };
-    if !public_path.is_empty() && !public_path.ends_with('/') {
-      public_path + "/"
-    } else {
-      public_path
     }
   }
 }

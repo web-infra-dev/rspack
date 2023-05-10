@@ -84,7 +84,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: build-${{ inputs.target }}
-          workspaces: "./crates/node_binding -> target"
           save-if: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
 
       - name: Pnpm Cache

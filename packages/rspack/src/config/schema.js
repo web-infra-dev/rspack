@@ -849,6 +849,10 @@ module.exports = {
 						"Removes modules from chunks when these modules are already included in all parents.",
 					type: "boolean"
 				},
+				removeEmptyChunks: {
+					description: "Remove chunks which are empty.",
+					type: "boolean"
+				},
 				runtimeChunk: {
 					$ref: "#/definitions/OptimizationRuntimeChunk"
 				},

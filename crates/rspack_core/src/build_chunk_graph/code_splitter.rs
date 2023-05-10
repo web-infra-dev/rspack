@@ -64,15 +64,6 @@ impl<'me> CodeSplitter<'me> {
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
-      for module_identifier in module_identifiers.iter() {
-        // Entry modules are always split point modules
-        self.split_point_modules.insert(**module_identifier);
-        compilation
-          .chunk_graph
-          .split_point_module_identifier_to_chunk_ukey
-          .insert(**module_identifier, chunk.ukey);
-      }
-
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::Entrypoint,
         HashSet::from_iter([Arc::from(name.to_string())]),
@@ -366,15 +357,34 @@ impl<'me> CodeSplitter<'me> {
       let is_already_split_module = self.split_point_modules.contains(module_identifier);
 
       if is_already_split_module {
-        let chunk = self
+        let chunk_ukey = self
           .compilation
           .chunk_graph
           .split_point_module_identifier_to_chunk_ukey
           .get(module_identifier)
           .expect("split point module not found");
+        let chunk = self
+          .compilation
+          .chunk_by_ukey
+          .get(chunk_ukey)
+          .expect("chunk not found");
         self
           .remove_parent_modules_context
-          .add_chunk_relation(item.chunk, *chunk);
+          .add_chunk_relation(item.chunk, *chunk_ukey);
+        let item_chunk_group = self
+          .compilation
+          .chunk_group_by_ukey
+          .get_mut(&item.chunk_group)
+          .expect("chunk group not found");
+        item_chunk_group.children.extend(chunk.groups.clone());
+        for chunk_group_ukey in chunk.groups.iter() {
+          let chunk_group = self
+            .compilation
+            .chunk_group_by_ukey
+            .get_mut(chunk_group_ukey)
+            .expect("chunk group not found");
+          chunk_group.parents.insert(item.chunk_group);
+        }
         continue;
       } else {
         self.split_point_modules.insert(*module_identifier);

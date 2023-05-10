@@ -20,7 +20,7 @@ async function build() {
 		}
 
 		if (process.env.USE_ZIG) {
-			args.push("--zig");
+			args.push("--cross-compile");
 		}
 
 		if (process.env.RUST_TARGET) {

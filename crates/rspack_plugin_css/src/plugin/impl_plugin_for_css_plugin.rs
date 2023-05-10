@@ -3,6 +3,7 @@
 use std::hash::{Hash, Hasher};
 
 use rayon::prelude::*;
+use rspack_core::rspack_sources::ReplaceSource;
 use rspack_core::AssetInfo;
 use rspack_core::{
   get_css_chunk_filename_template,
@@ -15,6 +16,7 @@ use xxhash_rust::xxh3::Xxh3;
 
 use crate::parser_and_generator::CssParserAndGenerator;
 use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
+use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
 use crate::CssPlugin;
 
 #[async_trait::async_trait]
@@ -166,6 +168,27 @@ impl Plugin for CssPlugin {
     );
 
     let output_path = filename_template.render_with_chunk(chunk, ".css", &SourceType::Css);
+
+    let content = source.source();
+    let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
+      .find_iter(&content)
+      .map(|mat| (mat.start(), mat.end()))
+      .collect();
+    let source = if !auto_public_path_matches.is_empty() {
+      let mut replace = ReplaceSource::new(source);
+      for (start, end) in auto_public_path_matches {
+        let relative = args
+          .compilation
+          .options
+          .output
+          .public_path
+          .render(args.compilation, &output_path);
+        replace.replace(start as u32, end as u32, &relative, None);
+      }
+      replace.boxed()
+    } else {
+      source.boxed()
+    };
 
     let path_data = PathData {
       chunk_ukey: args.chunk_ukey,

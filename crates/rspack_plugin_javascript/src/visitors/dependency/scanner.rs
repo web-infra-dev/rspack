@@ -25,6 +25,7 @@ pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
+pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 
 pub struct DependencyScanner<'a> {
   pub unresolved_ctxt: &'a SyntaxContext,
@@ -33,6 +34,7 @@ pub struct DependencyScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
   pub comments: Option<&'a dyn Comments>,
+  pub in_try: bool,
 }
 
 impl DependencyScanner<'_> {
@@ -72,6 +74,7 @@ impl DependencyScanner<'_> {
                     request,
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
+                    self.in_try
                   )));
                   return;
                 }
@@ -80,6 +83,7 @@ impl DependencyScanner<'_> {
                     s.value.clone(),
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
+                    self.in_try,
                   )));
                   return;
                 }
@@ -361,6 +365,15 @@ impl VisitAstPath for DependencyScanner<'_> {
     self.add_new_url(node, &*ast_path);
     node.visit_children_with_path(self, ast_path);
   }
+  fn visit_try_stmt<'ast: 'r, 'r>(
+    &mut self,
+    node: &'ast swc_core::ecma::ast::TryStmt,
+    ast_path: &mut swc_core::ecma::visit::AstNodePath<'r>,
+  ) {
+    self.in_try = true;
+    node.visit_children_with_path(self, ast_path);
+    self.in_try = false;
+  }
 
   fn visit_expr<'ast: 'r, 'r>(
     &mut self,
@@ -426,6 +439,13 @@ impl VisitAstPath for DependencyScanner<'_> {
               )));
             }
           }
+          WEBPACK_CHUNK_LOAD => {
+            self.add_presentational_dependency(Box::new(ConstDependency::new(
+              Expr::Ident(quote_ident!(RuntimeGlobals::ENSURE_CHUNK)),
+              Some(RuntimeGlobals::ENSURE_CHUNK),
+              as_parent_path(ast_path),
+            )));
+          }
           _ => {}
         }
       }
@@ -456,6 +476,7 @@ impl<'a> DependencyScanner<'a> {
     comments: Option<&'a dyn Comments>,
   ) -> Self {
     Self {
+      in_try: false,
       unresolved_ctxt,
       dependencies,
       presentational_dependencies,
