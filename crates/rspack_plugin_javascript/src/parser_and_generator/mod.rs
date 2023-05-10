@@ -48,8 +48,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       module_type,
       compiler_options.builtins.decorator.is_some(),
     );
+    let source = source.source();
     let (mut ast, diagnostics) = match crate::ast::parse(
-      source.source().to_string(),
+      source.to_string(),
       syntax,
       &resource_data.resource_path.to_string_lossy(),
       module_type,
@@ -73,6 +74,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       build_meta,
       module_type,
+      &source,
     )?;
 
     let (dependencies, presentational_dependencies) = ast.visit(|program, context| {

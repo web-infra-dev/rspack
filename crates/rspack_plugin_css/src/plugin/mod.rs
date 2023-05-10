@@ -42,7 +42,7 @@ pub struct LocalIdentName(Filename);
 
 impl LocalIdentName {
   pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
-    let mut s = self.0.render(options.filename_options);
+    let mut s = self.0.render(options.filename_options, None);
     if let Some(local) = options.local {
       s = s.replace("[local]", &local);
     }

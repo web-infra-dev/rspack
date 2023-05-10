@@ -1,4 +1,5 @@
-import { JsStatsError } from "@rspack/binding";
+import { JsAssetInfo, JsStatsError } from "@rspack/binding";
+import { AssetInfo } from "../compilation";
 
 export function mapValues(
 	record: Record<string, string>,
@@ -73,4 +74,15 @@ export function asArray<T>(item: readonly T[]): readonly T[];
 export function asArray<T>(item: T): T[];
 export function asArray<T>(item: T | T[]): T[] {
 	return Array.isArray(item) ? item : [item];
+}
+
+export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
+	return {
+		minimized: false,
+		development: false,
+		hotModuleReplacement: false,
+		related: {},
+		contentHash: [],
+		...info
+	};
 }

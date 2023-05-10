@@ -116,12 +116,15 @@ pub struct RawCacheGroupOptions {
   pub name: Option<String>,
   // used_exports: bool,
   pub reuse_existing_chunk: Option<bool>,
+  pub enforce: Option<bool>,
 }
 
 use rspack_plugin_split_chunks_new as new_split_chunks_plugin;
 
 impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
   fn from(raw_opts: RawSplitChunksOptions) -> Self {
+    use new_split_chunks_plugin::SplitChunkSizes;
+
     let mut cache_groups = vec![];
 
     let overall_chunk_filter = raw_opts
@@ -136,6 +139,8 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
 
     let overall_min_size = raw_opts.min_size.unwrap_or(20000.0);
 
+    let overall_min_chunks = raw_opts.min_chunks.unwrap_or(1);
+
     let overall_name_getter = raw_opts
       .name
       .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
@@ -143,35 +148,50 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
 
     let default_size_types = [SourceType::JavaScript, SourceType::Unknown];
 
+    let create_sizes = |size: f64| SplitChunkSizes::with_initial_value(&default_size_types, size);
+
     cache_groups.extend(
       raw_opts
         .cache_groups
         .unwrap_or_default()
         .into_iter()
-        .map(|(key, v)| new_split_chunks_plugin::CacheGroup {
-          id_hint: key.clone(),
-          key,
-          name: v
-            .name
-            .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
-            .unwrap_or_else(|| overall_name_getter.clone()),
-          priority: v.priority.unwrap_or(-20) as f64,
-          test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
-          chunk_filter: v
-            .chunks
-            .map(|chunks| match chunks.as_str() {
-              "initial" => new_split_chunks_plugin::create_initial_chunk_filter(),
-              "async" => new_split_chunks_plugin::create_async_chunk_filter(),
-              "all" => new_split_chunks_plugin::create_all_chunk_filter(),
-              _ => panic!("Invalid chunk type: {chunks}"),
-            })
-            .unwrap_or_else(|| overall_chunk_filter.clone()),
-          min_chunks: v.min_chunks.unwrap_or(1),
-          min_size: new_split_chunks_plugin::SplitChunkSizes::with_initial_value(
-            &default_size_types,
-            v.min_size.unwrap_or(overall_min_size),
-          ),
-          reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
+        .map(|(key, v)| {
+          let enforce = v.enforce.unwrap_or_default();
+
+          let min_size = v.min_size.map(create_sizes).unwrap_or_else(|| {
+            if enforce {
+              SplitChunkSizes::empty()
+            } else {
+              create_sizes(overall_min_size)
+            }
+          });
+
+          let min_chunks = v
+            .min_chunks
+            .unwrap_or(if enforce { 1 } else { overall_min_chunks });
+
+          new_split_chunks_plugin::CacheGroup {
+            id_hint: key.clone(),
+            key,
+            name: v
+              .name
+              .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
+              .unwrap_or_else(|| overall_name_getter.clone()),
+            priority: v.priority.unwrap_or(-20) as f64,
+            test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
+            chunk_filter: v
+              .chunks
+              .map(|chunks| match chunks.as_str() {
+                "initial" => new_split_chunks_plugin::create_initial_chunk_filter(),
+                "async" => new_split_chunks_plugin::create_async_chunk_filter(),
+                "all" => new_split_chunks_plugin::create_all_chunk_filter(),
+                _ => panic!("Invalid chunk type: {chunks}"),
+              })
+              .unwrap_or_else(|| overall_chunk_filter.clone()),
+            min_chunks,
+            min_size,
+            reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
+          }
         }),
     );
 

@@ -168,12 +168,13 @@ impl Plugin for DevtoolPlugin {
         args.compilation.emit_asset(filename, asset);
       } else {
         let mut source_map_filename = filename.to_owned() + ".map";
+        // TODO(ahabhgk): refactor
         // https://webpack.docschina.org/configuration/output/#outputsourcemapfilename
         if args.compilation.options.devtool.source_map() {
           let source_map_filename_config = &args.compilation.options.output.source_map_filename;
           for chunk in args.compilation.chunk_by_ukey.values() {
             for file in &chunk.files {
-              if *file.to_string() == filename {
+              if file == &filename {
                 let extension = if is_css { ".css" } else { ".js" };
                 let source_type = if is_css {
                   &SourceType::Css
@@ -185,6 +186,7 @@ impl Plugin for DevtoolPlugin {
                   &filename,
                   extension,
                   source_type,
+                  None,
                 );
                 break;
               }

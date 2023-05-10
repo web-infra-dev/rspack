@@ -79,6 +79,7 @@ impl Plugin for AsyncWasmPlugin {
           .transpose()?
           .map(|source| {
             let options = &compilation.options;
+            let mut asset_info = AssetInfo::default();
             let wasm_filename = self
               .module_id_to_filename_without_ext
               .get(&m.identifier())
@@ -92,11 +93,10 @@ impl Plugin for AsyncWasmPlugin {
                 options
                   .output
                   .webassembly_module_filename
-                  .render_with_chunk(chunk, ".wasm", &SourceType::Wasm)
+                  .render_with_chunk(chunk, ".wasm", &SourceType::Wasm, Some(&mut asset_info))
               }),
               path_options,
-              AssetInfo::default()
-                .with_content_hash(chunk.content_hash.get(&SourceType::Wasm).cloned()),
+              asset_info,
             )
           });
 

@@ -159,6 +159,8 @@ where
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
+        new_compilation.make_failed_module =
+          std::mem::take(&mut self.compilation.make_failed_module);
         new_compilation.entry_dependencies =
           std::mem::take(&mut self.compilation.entry_dependencies);
         new_compilation.lazy_visit_modules =
@@ -358,7 +360,7 @@ where
             module.hash(&mut hot_update_chunk.hash);
           }
         }
-        let hash = format!("{:x}", hot_update_chunk.hash.finish());
+        let hash = format!("{:016x}", hot_update_chunk.hash.finish());
         hot_update_chunk
           .content_hash
           .insert(crate::SourceType::JavaScript, hash.clone());

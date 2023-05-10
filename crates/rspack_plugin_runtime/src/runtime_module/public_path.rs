@@ -48,7 +48,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
           &compilation.options.output,
           &compilation.chunk_group_by_ukey,
         );
-        let filename = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
+        let filename = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript, None);
         RawSource::from(auto_public_path_template(
           &filename,
           &compilation.options.output,

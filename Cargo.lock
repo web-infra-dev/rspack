@@ -67,6 +67,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "anymap"
+version = "1.0.0-beta.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f1f8f5a6f3d50d89e3797d7593a50f96bb2aaa20ca0cc7be1fb673232c91d72"
+
+[[package]]
 name = "argh"
 version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2239,6 +2245,7 @@ name = "rspack_core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "anymap",
  "async-recursion",
  "async-scoped",
  "async-trait",

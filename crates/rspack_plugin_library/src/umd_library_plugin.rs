@@ -195,7 +195,7 @@ fn library_name(v: &[String], chunk: &Chunk) -> String {
 }
 
 fn replace_keys(v: String, chunk: &Chunk) -> String {
-  Filename::from(v).render_with_chunk(chunk, ".js", &SourceType::JavaScript)
+  Filename::from(v).render_with_chunk(chunk, ".js", &SourceType::JavaScript, None)
 }
 
 fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {

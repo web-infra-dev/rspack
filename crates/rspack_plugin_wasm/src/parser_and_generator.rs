@@ -283,28 +283,31 @@ fn render_wasm_name(
   wasm_filename_template: &Filename,
   hash: String,
 ) -> String {
-  wasm_filename_template.render(FilenameRenderOptions {
-    name: normal_module.and_then(|m| {
-      let p = Path::new(&m.resource_resolved_data().resource_path);
-      p.file_stem().map(|s| s.to_string_lossy().to_string())
-    }),
-    path: normal_module.map(|m| {
-      Path::new(&m.resource_resolved_data().resource_path)
-        .relative(ctx)
-        .to_string_lossy()
-        .to_string()
-    }),
-    extension: normal_module.and_then(|m| {
-      Path::new(&m.resource_resolved_data().resource_path)
-        .extension()
-        .and_then(OsStr::to_str)
-        .map(|str| format!("{}{}", ".", str))
-    }),
-    contenthash: Some(hash.clone()),
-    chunkhash: Some(hash.clone()),
-    hash: Some(hash),
-    ..Default::default()
-  })
+  wasm_filename_template.render(
+    FilenameRenderOptions {
+      name: normal_module.and_then(|m| {
+        let p = Path::new(&m.resource_resolved_data().resource_path);
+        p.file_stem().map(|s| s.to_string_lossy().to_string())
+      }),
+      path: normal_module.map(|m| {
+        Path::new(&m.resource_resolved_data().resource_path)
+          .relative(ctx)
+          .to_string_lossy()
+          .to_string()
+      }),
+      extension: normal_module.and_then(|m| {
+        Path::new(&m.resource_resolved_data().resource_path)
+          .extension()
+          .and_then(OsStr::to_str)
+          .map(|str| format!("{}{}", ".", str))
+      }),
+      contenthash: Some(hash.clone()),
+      chunkhash: Some(hash.clone()),
+      hash: Some(hash),
+      ..Default::default()
+    },
+    None,
+  )
 }
 
 fn render_import_stmt(import_var: &str, module_id: &str) -> String {
@@ -315,5 +318,5 @@ fn render_import_stmt(import_var: &str, module_id: &str) -> String {
 fn hash_for_ast_or_source(ast_or_source: &AstOrSource) -> String {
   let mut hasher = DefaultHasher::new();
   ast_or_source.hash(&mut hasher);
-  format!("{:x}", hasher.finish())
+  format!("{:016x}", hasher.finish())
 }
