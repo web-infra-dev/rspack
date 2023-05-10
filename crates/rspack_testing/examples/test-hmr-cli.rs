@@ -3,7 +3,6 @@
 use std::{env, path::PathBuf};
 
 use rspack_testing::test_rebuild_fixture;
-use swc_core::css::compat::compiler;
 
 fn main() {
   let fixture = PathBuf::from("crates/rspack_testing/examples/simple");
@@ -15,8 +14,8 @@ fn main() {
   };
   test_rebuild_fixture(
     &fixture,
-    Some(Box::new(|compiler| {
-      dbg!(compiler.compilation.include_module_ids);
+    Some(Box::new(|_compiler| {
+      // dbg!(compiler.compilation.include_module_ids);
     })),
   );
 }

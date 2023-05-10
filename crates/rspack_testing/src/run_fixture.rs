@@ -67,7 +67,7 @@ fn read_dir_reverse(path: &PathBuf) -> Vec<String> {
   let mut result = vec![];
   if let Ok(changed_dir) = std::fs::read_dir(path) {
     changed_dir.for_each(|entry| {
-      let entry = entry.unwrap();
+      let entry = entry.expect("TODO:");
       if entry.path().is_file() {
         result.push(entry.path().as_os_str().to_string_lossy().to_string());
       }
@@ -80,9 +80,9 @@ fn read_dir_reverse(path: &PathBuf) -> Vec<String> {
 }
 
 enum FsOptionEnum {
-  CHANGE(Vec<u8>),
-  CREATE,
-  REMOVE(Vec<u8>),
+  Change(Vec<u8>),
+  Create,
+  Remove(Vec<u8>),
 }
 
 #[tokio::main]
@@ -108,24 +108,24 @@ pub async fn test_rebuild_fixture(
 
   let mut files_map: HashMap<String, FsOptionEnum> = HashMap::new();
   let changed_files: HashSet<String> =
-    HashSet::from_iter(read_dir_reverse(&fixture_path.clone().join("changed")).into_iter());
+    HashSet::from_iter(read_dir_reverse(&fixture_path.join("changed")).into_iter());
   let removed_files: HashSet<String> =
-    HashSet::from_iter(read_dir_reverse(&fixture_path.clone().join("removed")).into_iter());
+    HashSet::from_iter(read_dir_reverse(&fixture_path.join("removed")).into_iter());
   let created_files: HashSet<String> =
-    HashSet::from_iter(read_dir_reverse(&fixture_path.clone().join("created")).into_iter());
+    HashSet::from_iter(read_dir_reverse(&fixture_path.join("created")).into_iter());
 
   let mut created_files: HashSet<String> = created_files
     .iter()
     .map(|file_path| {
       let target_path = file_path.replacen("created/", "", 1);
-      files_map.insert(target_path.clone(), FsOptionEnum::CREATE);
+      files_map.insert(target_path.clone(), FsOptionEnum::Create);
       let created_context = std::fs::read(file_path.clone());
       std::fs::write(
         target_path.clone(),
         created_context.expect("changed file do not read"),
       )
       .expect("TODO: panic message");
-      return target_path;
+      target_path
     })
     .collect();
   let changed_files: HashSet<String> = changed_files
@@ -135,7 +135,7 @@ pub async fn test_rebuild_fixture(
       let target_context = std::fs::read(target_path.clone());
       files_map.insert(
         target_path.clone(),
-        FsOptionEnum::CHANGE(target_context.expect("change file not found")),
+        FsOptionEnum::Change(target_context.expect("change file not found")),
       );
       let new_content = std::fs::read(file_path);
       std::fs::write(
@@ -153,7 +153,7 @@ pub async fn test_rebuild_fixture(
       let target_context = std::fs::read(target_path.clone());
       files_map.insert(
         target_path.clone(),
-        FsOptionEnum::REMOVE(target_context.expect("change file not found")),
+        FsOptionEnum::Remove(target_context.expect("change file not found")),
       );
       target_path
     })
@@ -168,10 +168,10 @@ pub async fn test_rebuild_fixture(
   files_map
     .iter()
     .for_each(|(old_path, old_content)| match old_content {
-      FsOptionEnum::CREATE => {
+      FsOptionEnum::Create => {
         std::fs::remove_file(old_path).expect("TODO: panic message");
       }
-      FsOptionEnum::CHANGE(old_content) | FsOptionEnum::REMOVE(old_content) => {
+      FsOptionEnum::Change(old_content) | FsOptionEnum::Remove(old_content) => {
         std::fs::write(old_path.clone(), old_content).expect("TODO: panic message");
       }
     });
