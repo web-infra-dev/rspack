@@ -189,7 +189,7 @@ impl Stats<'_> {
       .chunk_group_by_ukey
       .get(ukey)
       .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
-    let mut chunks: Vec<String> = cg
+    let chunks: Vec<String> = cg
       .chunks
       .iter()
       .map(|c| {
@@ -201,8 +201,7 @@ impl Stats<'_> {
       })
       .map(|c| c.expect_id().to_string())
       .collect();
-    chunks.sort_unstable();
-    let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
+    let assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
       let chunk = self
         .compilation
         .chunk_by_ukey
@@ -222,7 +221,6 @@ impl Stats<'_> {
       }
       acc
     });
-    assets.sort_by_cached_key(|v| v.name.to_string());
     StatsChunkGroup {
       name: name.to_string(),
       chunks,
