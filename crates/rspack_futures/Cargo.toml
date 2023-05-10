@@ -8,4 +8,3 @@ version    = "0.1.0"
 
 [dependencies]
 async-scoped = { workspace = true, features = ["use-tokio"] }
-tokio        = { workspace = true, features = ["rt"] }
