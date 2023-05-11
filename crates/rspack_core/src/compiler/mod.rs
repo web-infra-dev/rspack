@@ -143,7 +143,6 @@ where
     let option = self.options.clone();
     self.compilation.make(params).await?;
     self.compilation.finish(self.plugin_driver.clone()).await?;
-
     // by default include all module in final chunk
     self.compilation.include_module_ids = self
       .compilation
@@ -157,14 +156,8 @@ where
         .output
         .enabled_library_types
         .as_ref()
-        .and_then(|types| {
-          if types.contains(&"module".to_string()) {
-            Some(())
-          } else {
-            None
-          }
-        })
-        .is_some()
+        .map(|types| types.iter().any(|item| item == "module"))
+        .unwrap_or(false)
     {
       let (analyze_result, diagnostics) = self
         .compilation
@@ -178,7 +171,9 @@ where
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
-      if self.options.optimization.side_effects.is_enable() {
+      if self.options.builtins.tree_shaking.enable()
+        && self.options.optimization.side_effects.is_enable()
+      {
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
       for entry in &self.compilation.entry_module_identifiers {
