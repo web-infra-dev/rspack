@@ -27,7 +27,6 @@ use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 use xxhash_rust::xxh3::Xxh3;
 
-#[cfg(debug_assertions)]
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
@@ -94,8 +93,7 @@ pub struct Compilation {
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
   pub exports_info_map: IdentifierMap<Vec<ExportInfo>>,
-  #[cfg(debug_assertions)]
-  pub tree_shaking_result: IdentifierMap<OptimizeAnalyzeResult>,
+  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
@@ -149,8 +147,7 @@ impl Compilation {
       entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
       exports_info_map: IdentifierMap::default(),
-      #[cfg(debug_assertions)]
-      tree_shaking_result: IdentifierMap::default(),
+      optimize_analyze_result_map: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),
@@ -810,7 +807,7 @@ impl Compilation {
     };
 
     // add context module and context element module to bailout_module_identifiers
-    if self.options.builtins.tree_shaking {
+    if self.options.builtins.tree_shaking.enable() {
       self.bailout_module_identifiers = self
         .module_graph
         .modules()

@@ -371,7 +371,7 @@ export interface RawBuiltins {
   presetEnv?: RawPresetEnv
   define: Record<string, string>
   provide: Record<string, string[]>
-  treeShaking: boolean
+  treeShaking: string
   progress?: RawProgressPluginConfig
   react: RawReactOptions
   decorator?: RawDecoratorOptions

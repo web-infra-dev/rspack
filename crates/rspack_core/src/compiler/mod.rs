@@ -152,7 +152,7 @@ where
       .keys()
       .cloned()
       .collect::<IdentifierSet>();
-    if option.builtins.tree_shaking
+    if option.builtins.tree_shaking.enable()
       || option
         .output
         .enabled_library_types
@@ -189,11 +189,7 @@ where
             .insert(*entry, analyze_results.ordered_exports());
         }
       }
-      // This is only used when testing
-      #[cfg(debug_assertions)]
-      {
-        self.compilation.tree_shaking_result = analyze_result.analyze_results;
-      }
+      self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 

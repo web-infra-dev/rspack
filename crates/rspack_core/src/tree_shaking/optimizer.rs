@@ -59,7 +59,25 @@ impl<'a> CodeSizeOptimizer<'a> {
   }
 
   pub async fn run(&mut self) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let mut analyze_result_map = par_analyze_module(self.compilation).await;
+    let is_incremental_rebuild = self.compilation.options.is_incremental_rebuild();
+    let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
+    let analyze_result_map = par_analyze_module(self.compilation).await;
+    let mut finalized_result_map = if is_incremental_rebuild {
+      if is_first_time_analyze {
+        analyze_result_map
+      } else {
+        for (ident, result) in analyze_result_map.into_iter() {
+          self
+            .compilation
+            .optimize_analyze_result_map
+            .insert(ident, result);
+        }
+        // Merge new analyze result with previous in incremental_rebuild mode
+        std::mem::take(&mut self.compilation.optimize_analyze_result_map)
+      }
+    } else {
+      analyze_result_map
+    };
 
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
@@ -70,7 +88,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       .side_effects
       .is_enable();
     let mut side_effect_map: IdentifierMap<SideEffectType> = IdentifierMap::default();
-    for analyze_result in analyze_result_map.values() {
+    for analyze_result in finalized_result_map.values() {
       side_effect_map.insert(
         analyze_result.module_identifier,
         analyze_result.side_effects,
@@ -99,7 +117,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
-    let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut analyze_result_map);
+    let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
@@ -111,7 +129,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
 
     self.mark_used_symbol_with(
-      &analyze_result_map,
+      &finalized_result_map,
       VecDeque::from_iter(evaluated_used_symbol_ref.into_iter()),
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
@@ -123,7 +141,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     // We considering all export symbol in each entry module as used for now
     self.mark_entry_symbol(
-      &analyze_result_map,
+      &finalized_result_map,
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
@@ -136,7 +154,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     // Its export symbol will be marked as used
     // let mut bailout_entry_module_identifiers = IdentifierSet::default();
     self.mark_bailout_module(
-      &analyze_result_map,
+      &finalized_result_map,
       evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       inherit_export_ref_graph,
@@ -157,7 +175,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
       side_effects_options,
-      &analyze_result_map,
+      &finalized_result_map,
       used_export_module_identifiers,
       &mut used_symbol_ref,
       visited_symbol_ref,
@@ -166,7 +184,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
-        analyze_results: analyze_result_map,
+        analyze_results: finalized_result_map,
         bail_out_module_identifiers: std::mem::take(&mut self.bailout_modules),
         side_effects_free_modules: std::mem::take(&mut self.side_effects_free_modules),
         module_item_map: IdentifierMap::default(),
@@ -1176,13 +1194,7 @@ fn get_inherit_export_ref_graph(
   inherit_export_ref_graph
 }
 
-async fn par_analyze_module(
-  compilation: &mut Compilation,
-) -> std::collections::HashMap<
-  Identifier,
-  OptimizeAnalyzeResult,
-  std::hash::BuildHasherDefault<ustr::IdentityHasher>,
-> {
+async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<OptimizeAnalyzeResult> {
   let analyze_results = {
     compilation
       .module_graph
