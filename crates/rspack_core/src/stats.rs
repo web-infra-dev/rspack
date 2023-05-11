@@ -114,13 +114,18 @@ impl Stats<'_> {
     (assets, assets_by_chunk_name)
   }
 
-  pub fn get_modules(&self, reasons: bool, module_assets: bool) -> Result<Vec<StatsModule>> {
+  pub fn get_modules(
+    &self,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+  ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module, reasons, module_assets))
+      .map(|module| self.get_module(module, reasons, module_assets, nested_modules))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
@@ -132,6 +137,7 @@ impl Stats<'_> {
     chunk_relations: bool,
     reasons: bool,
     module_assets: bool,
+    nested_modules: bool,
   ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
@@ -147,7 +153,7 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m, reasons, module_assets))
+            .map(|m| self.get_module(m, reasons, module_assets, nested_modules))
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -294,6 +300,7 @@ impl Stats<'_> {
     module: &BoxModule,
     reasons: bool,
     module_assets: bool,
+    nested_modules: bool,
   ) -> Result<StatsModule> {
     let identifier = module.identifier();
     let mgm = self
@@ -379,6 +386,9 @@ impl Stats<'_> {
       assets
     });
 
+    // TODO: a placeholder for concatenation modules
+    let modules = nested_modules.then(Vec::new);
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -399,6 +409,7 @@ impl Stats<'_> {
       issuer_path,
       reasons,
       assets,
+      modules,
     })
   }
 
@@ -508,6 +519,7 @@ pub struct StatsModule {
   pub issuer_path: Vec<StatsModuleIssuer>,
   pub reasons: Option<Vec<StatsModuleReason>>,
   pub assets: Option<Vec<String>>,
+  pub modules: Option<Vec<StatsModule>>,
 }
 
 #[derive(Debug)]

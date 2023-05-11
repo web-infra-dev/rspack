@@ -1875,6 +1875,11 @@ module.exports = {
 				builtAt: {
 					description: "Add built at time information.",
 					type: "boolean"
+				},
+				nestedModules: {
+					description:
+						"Add information about modules nested in other modules (like with module concatenation).",
+					type: "boolean"
 				}
 			}
 		},

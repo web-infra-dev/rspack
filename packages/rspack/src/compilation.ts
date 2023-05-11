@@ -261,6 +261,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.moduleAssets = optionOrLocalFallback(options.moduleAssets, true);
+		options.nestedModules = optionOrLocalFallback(
+			options.nestedModules,
+			!context.forToString
+		);
 
 		return options;
 	}

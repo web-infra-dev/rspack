@@ -93,13 +93,15 @@ export class Stats {
 				options.chunkModules!,
 				options.chunkRelations!,
 				options.reasons!,
-				options.moduleAssets!
+				options.moduleAssets!,
+				options.nestedModules!
 			);
 		}
 		if (options.modules) {
 			obj.modules = this.#inner.getModules(
 				options.reasons!,
-				options.moduleAssets!
+				options.moduleAssets!,
+				options.nestedModules!
 			);
 		}
 		if (options.entrypoints) {

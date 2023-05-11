@@ -563,6 +563,7 @@ export interface StatsOptions {
 	timings?: boolean;
 	builtAt?: boolean;
 	moduleAssets?: boolean;
+	nestedModules?: boolean;
 }
 
 ///// Optimization /////
