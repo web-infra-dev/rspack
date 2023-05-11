@@ -33,16 +33,10 @@ rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_regex                            = { path = "../rspack_regex" }
 rspack_tracing                          = { path = "../rspack_tracing" }
 
-cargo-rst = { path = "../cargo-rst" }
-schemars = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-swc_core = { workspace = true }
+cargo-rst      = { path = "../cargo-rst" }
+schemars       = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+swc_core       = { workspace = true }
 testing_macros = { workspace = true, features = [] }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }
+tokio          = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
