@@ -150,6 +150,33 @@ jobs:
           path: crates/node_binding/*.node
           if-no-files-found: error
 
+  e2e:
+    name: E2E Testing
+    needs: [select, build]
+    if: inputs.tests && inputs.target == 'x86_64-unknown-linux-gnu'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.33.0-jammy
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download bindings
+        uses: actions/download-artifact@v3
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: 16
+
+      - name: Run e2e
+        shell: bash
+        run: |
+          pnpm run build:js
+          pnpm run test:e2e
+
   test:
     needs: [select, build]
     if: inputs.tests
