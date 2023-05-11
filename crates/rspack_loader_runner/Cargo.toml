@@ -13,18 +13,11 @@ url             = { workspace = true }
 
 [dependencies]
 async-recursion = { workspace = true }
-async-trait = { workspace = true }
-bitflags = { workspace = true }
-derivative = { workspace = true }
-rustc-hash = { workspace = true }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-  "fs",
-] }
+async-trait     = { workspace = true }
+bitflags        = { workspace = true }
+derivative      = { workspace = true }
+rustc-hash      = { workspace = true }
+tokio           = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot", "fs"] }
 
 nodejs-resolver   = { workspace = true }
 once_cell         = { workspace = true }

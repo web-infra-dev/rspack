@@ -2,64 +2,64 @@
 members  = ["crates/*"]
 resolver = "2"          # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
-  [workspace.dependencies]
-  anyhow             = { version = "1.0.70" }
-  async-recursion    = { version = "1.0.4" }
-  async-scoped       = { version = "0.7.1" }
-  async-trait        = { version = "0.1.68" }
-  better_scoped_tls  = { version = "0.1.0" }
-  bitflags           = { version = "1.3.2" }
-  colored            = { version = "2.0.0" }
-  dashmap            = { version = "5.4.0" }
-  derivative         = { version = "2.2.0" }
-  derive_builder     = { version = "0.11.2" }
-  futures            = { version = "0.3.28" }
-  futures-util       = "0.3.28"
-  glob               = { version = "0.3.1" }
-  hashlink           = { version = "0.8.1" }
-  indexmap           = { version = "1.9.3" }
-  insta              = { version = "1.29.0" }
-  itertools          = { version = "0.10.5" }
-  json               = { version = "0.12.4" }
-  linked_hash_set    = { version = "0.1.4" }
-  mimalloc-rust      = { version = "0.2" }
-  nodejs-resolver    = { version = "0.0.83" }
-  once_cell          = { version = "1.17.1" }
-  paste              = { version = "1.0" }
-  pathdiff           = { version = "0.2.1" }
-  preset_env_base    = { version = "0.4.2" }
-  rayon              = { version = "1.7.0" }
-  regex              = { version = "1.8.1" }
-  rspack_sources     = { version = "0.2.4" }
-  rustc-hash         = { version = "1.1.0" }
-  schemars           = { version = "0.8.12" }
-  serde              = { version = "1.0.160" }
-  serde_json         = { version = "1.0.96" }
-  similar            = { version = "2.2.1" }
-  sugar_path         = { version = "0.0.12" }
-  testing_macros     = { version = "0.2.9" }
-  tokio              = { version = "1.28.0" }
-  tracing            = { version = "0.1.37" }
-  tracing-subscriber = { version = "0.3.17" }
-  url                = { version = "2.3.1" }
-  ustr               = { version = "0.9.0" }
-  xxhash-rust        = { version = "0.8.6" }
+[workspace.dependencies]
+anyhow             = { version = "1.0.70" }
+async-recursion    = { version = "1.0.4" }
+async-scoped       = { version = "0.7.1" }
+async-trait        = { version = "0.1.68" }
+better_scoped_tls  = { version = "0.1.0" }
+bitflags           = { version = "1.3.2" }
+colored            = { version = "2.0.0" }
+dashmap            = { version = "5.4.0" }
+derivative         = { version = "2.2.0" }
+derive_builder     = { version = "0.11.2" }
+futures            = { version = "0.3.28" }
+futures-util       = "0.3.28"
+glob               = { version = "0.3.1" }
+hashlink           = { version = "0.8.1" }
+indexmap           = { version = "1.9.3" }
+insta              = { version = "1.29.0" }
+itertools          = { version = "0.10.5" }
+json               = { version = "0.12.4" }
+linked_hash_set    = { version = "0.1.4" }
+mimalloc-rust      = { version = "0.2" }
+nodejs-resolver    = { version = "0.0.83" }
+once_cell          = { version = "1.17.1" }
+paste              = { version = "1.0" }
+pathdiff           = { version = "0.2.1" }
+preset_env_base    = { version = "0.4.2" }
+rayon              = { version = "1.7.0" }
+regex              = { version = "1.8.1" }
+rspack_sources     = { version = "0.2.4" }
+rustc-hash         = { version = "1.1.0" }
+schemars           = { version = "0.8.12" }
+serde              = { version = "1.0.160" }
+serde_json         = { version = "1.0.96" }
+similar            = { version = "2.2.1" }
+sugar_path         = { version = "0.0.12" }
+testing_macros     = { version = "0.2.9" }
+tokio              = { version = "1.28.0" }
+tracing            = { version = "0.1.37" }
+tracing-subscriber = { version = "0.3.17" }
+url                = { version = "2.3.1" }
+ustr               = { version = "0.9.0" }
+xxhash-rust        = { version = "0.8.6" }
 
-  # Pinned
-  napi                = { version = "=2.12.5" }
-  napi-build          = { version = "=2.0.1" }
-  napi-derive         = { version = "=2.12.3" }
-  napi-sys            = { version = "=2.2.3" }
-  swc_config          = { version = "=0.1.5" }
-  swc_core            = { version = "=0.75.35", default-features = false }
-  swc_css             = { version = "=0.153.7" }
-  swc_ecma_minifier   = { version = "=0.180.28", default-features = false }
-  swc_emotion         = { version = "=0.30.5" }
-  swc_error_reporters = { version = "=0.15.5" }
-  swc_html            = { version = "=0.123.26" }
-  swc_html_minifier   = { version = "=0.120.26" }
-  swc_node_comments   = { version = "=0.18.5" }
-  swc_plugin_import   = { version = "=0.1.5" }
+# Pinned
+napi                = { version = "=2.12.5" }
+napi-build          = { version = "=2.0.1" }
+napi-derive         = { version = "=2.12.3" }
+napi-sys            = { version = "=2.2.3" }
+swc_config          = { version = "=0.1.5" }
+swc_core            = { version = "=0.75.35", default-features = false }
+swc_css             = { version = "=0.153.7" }
+swc_ecma_minifier   = { version = "=0.180.28", default-features = false }
+swc_emotion         = { version = "=0.30.5" }
+swc_error_reporters = { version = "=0.15.5" }
+swc_html            = { version = "=0.123.26" }
+swc_html_minifier   = { version = "=0.120.26" }
+swc_node_comments   = { version = "=0.18.5" }
+swc_plugin_import   = { version = "=0.1.5" }
 
 [profile.dev]
 debug       = 2
