@@ -162,7 +162,7 @@ impl SplitChunksPlugin {
         item.modules.iter().for_each(|module| {
           if each_module_group.modules.contains(module) {
             tracing::trace!("remove module({module}) from {key}");
-            let module: &Box<dyn Module> = compilation
+            let module = compilation
               .module_graph
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
