@@ -28,9 +28,10 @@
     "changeset": "changeset",
     "prepare": "is-ci || husky install",
     "pnpm:devPreinstall": "is-ci || node ./scripts/doctor.js",
-    "test:example": "NODE_OPTIONS=--max_old_space_size=8192 pnpm --filter \"example-*\" build",
-    "test:unit": "NODE_OPTIONS=--max_old_space_size=8192 pnpm --filter \"@rspack/*\" test",
-    "test:e2e": "NODE_OPTIONS=--max_old_space_size=8192 pnpm --filter \"@rspack-e2e/*\" test"
+    "test:example": "pnpm --filter \"example-*\" build",
+    "test:unit": "pnpm --filter \"@rspack/*\" test",
+    "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
+    "test:ci": "NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit"
   },
   "lint-staged": {
     "*.rs": "rustfmt --edition 2021",

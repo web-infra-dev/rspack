@@ -31,7 +31,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.target }}
-      docker: true
       tests: true
 
   release:
