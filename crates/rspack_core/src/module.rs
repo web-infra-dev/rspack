@@ -148,56 +148,6 @@ impl Identifiable for Box<dyn Module> {
   }
 }
 
-#[async_trait::async_trait]
-impl Module for Box<dyn Module> {
-  fn module_type(&self) -> &ModuleType {
-    (**self).module_type()
-  }
-
-  fn source_types(&self) -> &[SourceType] {
-    (**self).source_types()
-  }
-
-  fn original_source(&self) -> Option<&dyn Source> {
-    (**self).original_source()
-  }
-
-  fn readable_identifier(&self, context: &Context) -> Cow<str> {
-    (**self).readable_identifier(context)
-  }
-
-  fn size(&self, source_type: &SourceType) -> f64 {
-    (**self).size(source_type)
-  }
-
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    (**self).build(build_context).await
-  }
-
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    (**self).code_generation(compilation)
-  }
-
-  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    (**self).lib_ident(options)
-  }
-
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
-    (**self).get_code_generation_dependencies()
-  }
-
-  fn get_resolve_options(&self) -> Option<&Resolve> {
-    (**self).get_resolve_options()
-  }
-
-  fn name_for_condition(&self) -> Option<Cow<str>> {
-    (**self).name_for_condition()
-  }
-}
-
 impl PartialEq for dyn Module + '_ {
   fn eq(&self, other: &Self) -> bool {
     self.dyn_eq(other.as_any())

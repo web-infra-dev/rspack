@@ -165,7 +165,7 @@ impl SplitChunksPlugin {
               .module_graph
               .module_by_identifier(module)
               .unwrap_or_else(|| panic!("Module({module}) not found"));
-            each_module_group.remove_module(module);
+            each_module_group.remove_module(&**module);
           }
         });
 

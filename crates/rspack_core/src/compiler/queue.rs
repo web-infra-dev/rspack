@@ -249,7 +249,7 @@ impl WorkerTask for BuildTask {
           })
           .await;
 
-        plugin_driver.read().await.succeed_module(module).await?;
+        plugin_driver.read().await.succeed_module(&**module).await?;
 
         result
       })
