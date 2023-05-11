@@ -7,29 +7,84 @@ use regex_syntax::hir::{Hir, HirKind, Look};
 use rspack_error::Result;
 
 fn main() {
-  let str = "\\.(jsx?|tsx?)$";
-  let test_str = "fejaifjeioajifjeawifjioeawjiofjawijiojjfieoajfiowaejoijfoiewajijfwea.svg";
-  let count = 10000;
+  let string = include_str!("../result.log");
+  let string_list = string.split("\n").collect::<Vec<_>>();
+  let count = 6;
+  let mut reg_list = vec![
+    "\\.json$",
+    "\\.mjs$",
+    "\\.js$",
+    "\\.cjs$",
+    "\\.js$",
+    "\\.jsx$",
+    "\\.ts$",
+    "\\.tsx$",
+    "\\.module\\.css$",
+    "\\.css$",
+    "\\.less$",
+    "\\.module\\.less$",
+    "\\.svg$",
+    "\\.png$",
+  ];
 
+  let test_str = "";
+  let total_count = count * string_list.len();
   let start = Instant::now();
-  let re = Regex2::new(str).unwrap();
-  for i in 0..count {
-    re.test(test_str);
+  let re_list = reg_list
+    .iter()
+    .map(|item| Regex2::new(item).unwrap())
+    .collect::<Vec<_>>();
+  for re in re_list.iter() {
+    for i in 0..count {
+      for test_str in string_list.iter() {
+        re.test(test_str);
+      }
+    }
   }
-  dbg!(*&start.elapsed());
+  println!(
+    "{}  {} module:\n{:?}",
+    "custom search",
+    total_count,
+    start.elapsed()
+  );
+  let start = Instant::now();
+  let re_list = reg_list
+    .iter()
+    .map(|item| Regex1::new(item).unwrap())
+    .collect::<Vec<_>>();
+  for re in re_list.iter() {
+    for i in 0..count {
+      for test_str in string_list.iter() {
+        re.test(test_str);
+      }
+    }
+  }
+  println!(
+    "{}  {} module:\n{:?}",
+    "regex",
+    total_count,
+    start.elapsed()
+  );
+  let start = Instant::now();
 
-  let start = Instant::now();
-  let re = Regex1::new(str).unwrap();
-  for i in 0..count {
-    re.test(test_str);
+  let re_list = reg_list
+    .iter()
+    .map(|item| regress::Regex::new(item).unwrap())
+    .collect::<Vec<_>>();
+  for re in re_list.iter() {
+    for i in 0..count {
+      for test_str in string_list.iter() {
+        _ = re.find(test_str).is_some();
+      }
+    }
   }
-  dbg!(*&start.elapsed());
-  let start = Instant::now();
-  let reg = regress::Regex::new(str).unwrap();
-  for i in 0..count {
-    reg.find(test_str).is_some();
-  }
-  dbg!(&start.elapsed());
+
+  println!(
+    "{}  {} module:\n{:?}",
+    "regress",
+    total_count,
+    start.elapsed()
+  );
 }
 
 enum Regex1 {
@@ -99,27 +154,8 @@ impl Regex2 {
 
   pub fn test(&self, str: &str) -> bool {
     match self {
-      Regex2::FastCustom(fast) => (fast)(str),
+      Regex2::FastCustom(fast) => fast(str),
       Regex2::SlowReg(reg) => reg.find(str).is_some(),
     }
-  }
-}
-
-pub fn convert_hir_to_pattern<'a>(hir: &'a HirKind, str_list: &mut Vec<&'a str>) {
-  match hir {
-    HirKind::Empty => {}
-    HirKind::Literal(lit) => match std::str::from_utf8(lit.0.as_ref()) {
-      Ok(str) => {
-        str_list.push(str);
-      }
-      Err(_) => {}
-    },
-    HirKind::Class(_) => {}
-
-    HirKind::Concat(hirs) if hirs.len() == 2 => match (hirs[0].kind(), hirs[1].kind()) {
-      (HirKind::Literal(lit), HirKind::Look(Look::End)) => {}
-      _ => {}
-    },
-    _ => {}
   }
 }
