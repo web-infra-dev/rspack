@@ -17,6 +17,7 @@ import {
 	JsCompatSource,
 	JsCompilation,
 	JsModule,
+	JsStatsChunk,
 	JsStatsError
 } from "@rspack/binding";
 
@@ -28,10 +29,10 @@ import {
 	RspackPluginInstance
 } from "./config";
 import { ContextModuleFactory } from "./ContextModuleFactory";
-import * as ErrorHelpers from "./ErrorHelpers";
 import ResolverFactory from "./ResolverFactory";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
+import ErrorHelpers from "./ErrorHelpers";
 import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
@@ -132,10 +133,6 @@ export class Compilation {
 
 	get hash() {
 		return this.#inner.hash;
-	}
-
-	get chunks() {
-		return this.getChunks();
 	}
 
 	get fullHash() {
@@ -613,6 +610,71 @@ export class Compilation {
 				...item
 			};
 		});
+	}
+
+	get chunks() {
+		var stats = this.getStats().toJson({
+			all: false,
+			chunks: true,
+			chunkModules: true,
+			reasons: true
+		});
+		const chunks = stats.chunks?.map(chunk => {
+			return {
+				...chunk,
+				name: chunk.names.length > 0 ? chunk.names[0] : "",
+				modules: this.__internal__getAssociatedModules(chunk)
+			};
+		});
+		return chunks;
+	}
+
+	/**
+	 * Get the associated `modules` of an given chunk.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
+		let modules = this.getModules();
+		let moduleMap: Map<string, JsModule> = new Map();
+		for (let module of modules) {
+			moduleMap.set(module.moduleIdentifier, module);
+		}
+		return chunk.modules?.flatMap(chunkModule => {
+			let jsModule = this.__internal__findJsModule(
+				chunkModule.issuer ?? chunkModule.identifier,
+				moduleMap
+			);
+			return {
+				...jsModule
+				// dependencies: chunkModule.reasons?.flatMap(jsReason => {
+				// 	let jsOriginModule = this.__internal__findJsModule(
+				// 		jsReason.moduleIdentifier ?? "",
+				// 		moduleMap
+				// 	);
+				// 	return {
+				// 		...jsReason,
+				// 		originModule: jsOriginModule
+				// 	};
+				// })
+			};
+		});
+	}
+
+	/**
+	 * Find a modules in an array.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__findJsModule(
+		identifier: string,
+		modules: Map<string, JsModule>
+	): JsModule | undefined {
+		return modules.get(identifier);
 	}
 
 	getModules(): JsModule[] {

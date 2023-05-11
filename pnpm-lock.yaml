@@ -404,6 +404,7 @@ importers:
       '@rspack/plugin-minify': workspace:*
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: ^2.6.0
+      license-webpack-plugin: ^4.0.2
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
     devDependencies:
@@ -412,6 +413,7 @@ importers:
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: 2.6.0
+      license-webpack-plugin: 4.0.2
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
 
@@ -15907,6 +15909,19 @@ packages:
     dependencies:
       prelude-ls: 1.2.1
       type-check: 0.4.0
+    dev: true
+
+  /license-webpack-plugin/4.0.2:
+    resolution: {integrity: sha512-771TFWFD70G1wLTC4oU2Cw4qvtmNrIw+wRvBtn+okgHl7slJVi7zfNcdmqDL72BojM30VNJ2UHylr1o77U37Jw==}
+    peerDependencies:
+      webpack: '*'
+    peerDependenciesMeta:
+      webpack:
+        optional: true
+      webpack-sources:
+        optional: true
+    dependencies:
+      webpack-sources: 3.2.3
     dev: true
 
   /license-webpack-plugin/4.0.2_webpack@5.80.0:
