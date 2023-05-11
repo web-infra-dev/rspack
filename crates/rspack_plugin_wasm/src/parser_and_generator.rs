@@ -8,9 +8,9 @@ use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 // use rspack_core::StaticExportsDependency;
 use rspack_core::{
-  AstOrSource, Context, Dependency, Filename, FilenameRenderOptions, GenerateContext,
-  GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
+  AstOrSource, BuildMetaExportsType, Context, Dependency, Filename, FilenameRenderOptions,
+  GenerateContext, GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
@@ -35,6 +35,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
     parse_context.build_meta.is_async = true;
+    parse_context.build_meta.exports_type = BuildMetaExportsType::Namespace;
 
     let source = parse_context.source;
 

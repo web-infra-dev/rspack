@@ -9,11 +9,12 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
-  AssetInfo, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
-  CodeGenerationDataAssetInfo, CodeGenerationDataFilename, CodeGenerationDataUrl,
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ParseContext,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestArgs, RenderManifestEntry, RuntimeGlobals, SourceType,
+  AssetInfo, AssetParserDataUrlOption, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
+  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationDataUrl, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
+  ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, RuntimeGlobals,
+  SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
 use sugar_path::SugarPath;
@@ -190,9 +191,14 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     parse_context: rspack_core::ParseContext,
   ) -> Result<rspack_error::TWithDiagnosticArray<rspack_core::ParseResult>> {
     let ParseContext {
-      source, build_info, ..
+      source,
+      build_meta,
+      build_info,
+      ..
     } = parse_context;
     build_info.strict = true;
+    build_meta.exports_type = BuildMetaExportsType::Default;
+    build_meta.default_object = BuildMetaDefaultObject::False;
     let size = source.size();
 
     self.parsed_asset_config = match &self.data_url {

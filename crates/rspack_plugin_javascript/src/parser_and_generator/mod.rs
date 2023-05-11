@@ -72,7 +72,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       compiler_options,
       syntax,
       build_info,
-      build_meta,
       module_type,
       &source,
     )?;
@@ -84,6 +83,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         resource_data,
         compiler_options,
         module_type,
+        build_info,
+        build_meta,
       )
     });
 

@@ -3,7 +3,8 @@ use json::Error::{
 };
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  GenerateContext, Module, ParserAndGenerator, Plugin, SourceType,
+  BuildMetaDefaultObject, BuildMetaExportsType, GenerateContext, Module, ParserAndGenerator,
+  Plugin, SourceType,
 };
 use rspack_error::{
   internal_error, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -32,9 +33,13 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       source: box_source,
       resource_data,
       build_info,
+      build_meta,
       ..
     } = parse_context;
     build_info.strict = true;
+    build_meta.exports_type = BuildMetaExportsType::Default;
+    // TODO default_object is not align with webpack
+    build_meta.default_object = BuildMetaDefaultObject::RedirectWarn;
     let source = box_source.source();
 
     let parse_result = json::parse(&source).map_err(|e| {

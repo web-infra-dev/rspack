@@ -1,5 +1,6 @@
 mod code_generation;
 mod common_js_scanner;
+mod harmony_detection;
 mod hmr_scanner;
 mod import_meta_scanner;
 mod node_stuff_scanner;
@@ -7,15 +8,16 @@ mod scanner;
 mod util;
 pub use code_generation::*;
 use rspack_core::{
-  ast::javascript::Program, CompilerOptions, Dependency, ModuleDependency, ModuleType, ResourceData,
+  ast::javascript::Program, BuildInfo, BuildMeta, CompilerOptions, Dependency, ModuleDependency,
+  ModuleType, ResourceData,
 };
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
 use self::{
-  common_js_scanner::CommonJsScanner, hmr_scanner::HmrDependencyScanner,
-  import_meta_scanner::ImportMetaScanner, node_stuff_scanner::NodeStuffScanner,
-  scanner::DependencyScanner,
+  common_js_scanner::CommonJsScanner, harmony_detection::HarmonyDetectionScanner,
+  hmr_scanner::HmrDependencyScanner, import_meta_scanner::ImportMetaScanner,
+  node_stuff_scanner::NodeStuffScanner, scanner::DependencyScanner,
 };
 
 pub type ScanDependenciesResult = (Vec<Box<dyn ModuleDependency>>, Vec<Box<dyn Dependency>>);
@@ -26,6 +28,8 @@ pub fn scan_dependencies(
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
+  build_info: &mut BuildInfo,
+  build_meta: &mut BuildMeta,
 ) -> ScanDependenciesResult {
   let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
   let mut presentational_dependencies: Vec<Box<dyn Dependency>> = vec![];
@@ -77,6 +81,12 @@ pub fn scan_dependencies(
       ),
       &mut Default::default(),
     );
+    program.visit_with(&mut HarmonyDetectionScanner::new(
+      build_info,
+      build_meta,
+      module_type,
+      &mut presentational_dependencies,
+    ));
   }
 
   (dependencies, presentational_dependencies)

@@ -34,11 +34,32 @@ pub struct BuildInfo {
 }
 
 #[derive(Debug, Default, Clone)]
+pub enum BuildMetaExportsType {
+  #[default]
+  Default,
+  Namespace,
+  Flagged,
+  Dynamic,
+}
+
+#[derive(Debug, Default, Clone)]
+pub enum BuildMetaDefaultObject {
+  #[default]
+  False,
+  Redirect,
+  RedirectWarn,
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct BuildMeta {
+  pub strict: bool,
   pub strict_harmony_module: bool,
   pub is_async: bool,
-  // TODO webpack exportsType
   pub esm: bool,
+  pub exports_type: BuildMetaExportsType,
+  pub default_object: BuildMetaDefaultObject,
+  pub module_argument: &'static str,
+  pub exports_argument: &'static str,
 }
 
 // webpack build info

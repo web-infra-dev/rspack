@@ -10,8 +10,8 @@ use rspack_core::{
   rspack_sources::{
     MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
   },
-  GenerateContext, GenerationResult, Module, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, SourceType,
+  BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, SourceType,
 };
 use rspack_core::{AstOrSource, ModuleAst, ModuleDependency};
 use rspack_error::{
@@ -102,9 +102,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
       module_type,
       resource_data,
       compiler_options,
+      build_info,
+      build_meta,
       code_generation_dependencies,
       ..
     } = parse_context;
+    build_info.strict = true;
+    build_meta.exports_type = BuildMetaExportsType::Namespace;
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let content = source.source().to_string();
     let css_modules = matches!(module_type, ModuleType::CssModule);
