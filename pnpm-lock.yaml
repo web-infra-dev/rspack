@@ -670,7 +670,7 @@ importers:
       '@types/fs-extra': 11.0.1
       fs-extra: 11.1.1
       jest-environment-node: 29.5.0
-      playwright-chromium: 1.32.1
+      playwright-chromium: 1.33.0
       ws: 8.8.1
     devDependencies:
       '@rspack/core': link:../rspack
@@ -678,7 +678,7 @@ importers:
       '@types/fs-extra': 11.0.1
       fs-extra: 11.1.1
       jest-environment-node: 29.5.0
-      playwright-chromium: 1.32.1
+      playwright-chromium: 1.33.0
       ws: 8.8.1
 
   packages/playground/fixtures/cross-origin-loading:
@@ -18144,17 +18144,17 @@ packages:
     dependencies:
       find-up: 4.1.0
 
-  /playwright-chromium/1.32.1:
-    resolution: {integrity: sha512-TADlQ5xJ4iHIHLKQw361PrleUMHJIRlrw+yDadd3IWS0TCHL+CpMjGhSV9OZbKdsi0oZxjDudwd8B2d6lzjfmw==}
+  /playwright-chromium/1.33.0:
+    resolution: {integrity: sha512-aG2IqRp7Q6vRltZFT+N2stWwDUH2fEUTOTv8RxSKMK5QmIQQoNL9nJvNMIJ3yLuin8+coaa3mhJXjjUheo0+/A==}
     engines: {node: '>=14'}
     hasBin: true
     requiresBuild: true
     dependencies:
-      playwright-core: 1.32.1
+      playwright-core: 1.33.0
     dev: true
 
-  /playwright-core/1.32.1:
-    resolution: {integrity: sha512-KZYUQC10mXD2Am1rGlidaalNGYk3LU1vZqqNk0gT4XPty1jOqgup8KDP8l2CUlqoNKhXM5IfGjWgW37xvGllBA==}
+  /playwright-core/1.33.0:
+    resolution: {integrity: sha512-aizyPE1Cj62vAECdph1iaMILpT0WUDCq3E6rW6I+dleSbBoGbktvJtzS6VHkZ4DKNEOG9qJpiom/ZxO+S15LAw==}
     engines: {node: '>=14'}
     hasBin: true
     dev: true
