@@ -1,4 +1,5 @@
 mod chunk;
+mod max_request;
 mod min_size;
 mod module_group;
 
@@ -29,12 +30,17 @@ impl SplitChunksPlugin {
   async fn inner_impl(&self, compilation: &mut Compilation) {
     let mut module_group_map = self.prepare_module_group_map(compilation).await;
 
+    tracing::trace!("module_group_map: {module_group_map:#?}");
+    tracing::trace!("cache_groups: {:#?}", self.cache_groups);
+
     self.ensure_min_size_fit(compilation, &mut module_group_map);
 
     while !module_group_map.is_empty() {
-      let (_module_group_key, mut module_group) =
-        self.find_best_module_group(&mut module_group_map);
-
+      let (module_group_key, mut module_group) = self.find_best_module_group(&mut module_group_map);
+      tracing::trace!(
+        "process {module_group_key}, {} `ModuleGroup` remains",
+        module_group_map.len()
+      );
       let cache_group = &self.cache_groups[module_group.cache_group_index];
 
       let mut is_reuse_existing_chunk = false;
@@ -47,6 +53,7 @@ impl SplitChunksPlugin {
       );
 
       let new_chunk_mut = new_chunk.as_mut(&mut compilation.chunk_by_ukey);
+      tracing::trace!("{module_group_key}, get Chunk {} with is_reuse_existing_chunk: {is_reuse_existing_chunk:?} and {is_reuse_existing_chunk_with_all_modules:?}", new_chunk_mut.chunk_reasons.join("~"));
 
       new_chunk_mut
         .chunk_reasons
@@ -62,7 +69,24 @@ impl SplitChunksPlugin {
         module_group.chunks.remove(&new_chunk);
       }
 
-      let used_chunks = Cow::Borrowed(&module_group.chunks);
+      let mut used_chunks = Cow::Borrowed(&module_group.chunks);
+
+      self.ensure_max_request_fit(compilation, cache_group, &mut used_chunks);
+
+      if used_chunks.len() != module_group.chunks.len() {
+        // There are some chunks removed by `ensure_max_request_fit`
+        let used_chunks_len = if is_reuse_existing_chunk {
+          used_chunks.len() + 1
+        } else {
+          used_chunks.len()
+        };
+
+        if used_chunks_len < cache_group.min_chunks as usize {
+          // `min_size` is not satisfied, ignore this invalid `ModuleGroup`
+          tracing::trace!("{module_group_key} bailout for used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})", cache_group.min_chunks);
+          continue;
+        }
+      }
 
       self.move_modules_to_new_chunk_and_remove_from_old_chunks(
         &module_group,
@@ -78,7 +102,7 @@ impl SplitChunksPlugin {
         &mut module_group_map,
         &used_chunks,
         compilation,
-      )
+      );
     }
   }
 }
@@ -99,8 +123,9 @@ impl Plugin for SplitChunksPlugin {
     // use std::time::Instant;
     // let start = Instant::now();
     self.inner_impl(args.compilation).await;
+
     // let duration = start.elapsed();
-    // println!("SplitChunksPlugin is: {:?}", duration);
+    // tracing::trace!("SplitChunksPlugin is: {:?}", duration);
     Ok(())
   }
 }

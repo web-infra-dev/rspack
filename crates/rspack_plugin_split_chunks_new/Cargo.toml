@@ -19,3 +19,4 @@ derivative   = { workspace = true }
 futures-util = { workspace = true }
 rayon        = { workspace = true }
 rustc-hash   = { workspace = true }
+tracing      = { workspace = true }

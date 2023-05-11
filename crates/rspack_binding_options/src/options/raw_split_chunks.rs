@@ -191,6 +191,10 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             min_chunks,
             min_size,
             reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(true),
+            // TODO(hyf0): the non-enforced default value should be 30
+            // I would set align default value with Webpack when the options is exposed to users
+            max_async_requests: u32::MAX,
+            max_initial_requests: u32::MAX,
           }
         }),
     );
