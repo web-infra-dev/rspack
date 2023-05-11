@@ -591,8 +591,6 @@ impl Module for NormalModule {
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
 
-    // TODO: match package.json type files
-    build_meta.strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm);
     Ok(
       BuildResult {
         build_info,

@@ -24,9 +24,7 @@ use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 pub mod relay;
 mod swc_visitor;
 mod tree_shaking;
-use rspack_core::{
-  ast::javascript::Ast, BuildMeta, CompilerOptions, GenerateContext, ResourceData,
-};
+use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::{Error, Result};
 use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
@@ -60,7 +58,6 @@ pub fn run_before_pass(
   options: &CompilerOptions,
   syntax: Syntax,
   build_info: &mut BuildInfo,
-  build_meta: &mut BuildMeta,
   module_type: &ModuleType,
   source: &str,
 ) -> Result<()> {
@@ -83,7 +80,7 @@ pub fn run_before_pass(
     }
 
     let mut pass = chain!(
-      strict_mode(build_info, build_meta),
+      strict_mode(build_info),
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
       //        &ast,
