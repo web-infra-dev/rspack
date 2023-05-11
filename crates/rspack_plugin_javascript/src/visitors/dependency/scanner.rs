@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{
   CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
   Dependency, DependencyCategory, EsmDynamicImportDependency, ImportContextDependency,
@@ -111,7 +113,6 @@ impl DependencyScanner<'_> {
   }
 
   fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
-    use once_cell::sync::Lazy;
     use swc_core::common::comments::CommentKind;
     static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
       regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)`)"#)
@@ -487,11 +488,11 @@ impl<'a> DependencyScanner<'a> {
 }
 
 #[inline]
-fn split_context_from_prefix(prefix: &str) -> (&str, &str) {
+fn split_context_from_prefix(prefix: String) -> (String, String) {
   if let Some(idx) = prefix.rfind('/') {
-    (&prefix[..idx], &prefix[idx + 1..])
+    (prefix[..idx].to_string(), format!(".{}", &prefix[idx..]))
   } else {
-    (".", prefix)
+    (".".to_string(), prefix)
   }
 }
 
@@ -502,6 +503,15 @@ fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
     Expr::Call(call) => scan_context_module_concat_call(call),
     _ => None,
   }
+}
+
+static META_REG: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
+});
+
+#[inline]
+fn quote_meta(str: String) -> String {
+  META_REG.replace_all(&str, "\\$0").to_string()
 }
 
 // require(`./${a}.js`)
@@ -522,7 +532,7 @@ fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
   } else {
     String::new()
   };
-  let (context, prefix) = split_context_from_prefix(&prefix_raw);
+  let (context, prefix) = split_context_from_prefix(prefix_raw);
   let inner_reg = tpl
     .quasis
     .iter()
@@ -531,8 +541,12 @@ fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
     .map(|s| s.raw.to_string() + ".*")
     .collect::<Vec<String>>()
     .join("");
-  let reg = format!("^{prefix}.*{inner_reg}{postfix_raw}$");
-  (context.to_string(), reg)
+  let reg = format!(
+    "^{prefix}.*{inner_reg}{postfix_raw}$",
+    prefix = quote_meta(prefix),
+    postfix_raw = quote_meta(postfix_raw)
+  );
+  (context, reg)
 }
 
 // require("./" + a + ".js")
@@ -555,10 +569,14 @@ fn scan_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
     return None;
   }
 
-  let (context, prefix) = split_context_from_prefix(&prefix_raw);
-  let reg = format!("^{prefix}.*{postfix_raw}$");
+  let (context, prefix) = split_context_from_prefix(prefix_raw);
+  let reg = format!(
+    "^{prefix}.*{postfix_raw}$",
+    prefix = quote_meta(prefix),
+    postfix_raw = quote_meta(postfix_raw)
+  );
 
-  Some((context.to_string(), reg))
+  Some((context, reg))
 }
 
 fn find_expr_prefix_string(expr: &Expr) -> Option<String> {
@@ -602,10 +620,14 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> 
     return None;
   }
 
-  let (context, prefix) = split_context_from_prefix(&prefix_raw);
-  let reg = format!("^{prefix}.*{postfix_raw}$");
+  let (context, prefix) = split_context_from_prefix(prefix_raw);
+  let reg = format!(
+    "^{prefix}.*{postfix_raw}$",
+    prefix = quote_meta(prefix),
+    postfix_raw = quote_meta(postfix_raw)
+  );
 
-  Some((context.to_string(), reg))
+  Some((context, reg))
 }
 
 fn is_concat_call(expr: &CallExpr) -> bool {
