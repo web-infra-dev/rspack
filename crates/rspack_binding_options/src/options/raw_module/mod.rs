@@ -65,7 +65,7 @@ impl Debug for RawModuleRuleUse {
 #[napi(object)]
 pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
-  pub ty: String,
+  pub r#type: String,
   pub string_matcher: Option<String>,
   pub regexp_matcher: Option<String>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
@@ -78,7 +78,7 @@ pub struct RawRuleSetCondition {
 impl Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawRuleSetCondition")
-      .field("r#type", &self.ty)
+      .field("r#type", &self.r#type)
       .field("string_matcher", &self.string_matcher)
       .field("regexp_matcher", &self.regexp_matcher)
       .field("logical_matcher", &self.logical_matcher)
@@ -127,7 +127,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   type Error = rspack_error::Error;
 
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
-    let result = match x.ty.as_str() {
+    let result = match x.r#type.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
         internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
@@ -202,7 +202,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       }
       _ => panic!(
         "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
-        x.ty
+        x.r#type
       ),
     };
 
