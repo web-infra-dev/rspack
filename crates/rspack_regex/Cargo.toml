@@ -15,6 +15,7 @@ regex.workspace = true
 regress         = "0.4.1"
 rspack_error    = { path = "../rspack_error" }
 swc_core        = { workspace = true, features = ["ecma_ast"] }
+
 [dev-dependencies]
 swc_core = { workspace = true, features = [
   "ecma_ast",
@@ -23,4 +24,5 @@ swc_core = { workspace = true, features = [
   "__parser",
   "__utils",
   "ecma_preset_env",
+  "base",
 ] }

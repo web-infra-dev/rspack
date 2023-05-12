@@ -1,70 +1,15 @@
-use std::sync::Arc;
-
-use regex_syntax::hir::literal::ExtractKind;
-use regex_syntax::hir::{Hir, HirKind, Look};
 use regress::{Match, Matches, Regex};
 use rspack_error::{internal_error, Error};
 use swc_core::ecma::ast::Regex as SwcRegex;
+
+use self::algo::Algo;
+
+mod algo;
 
 /// Using wrapper type required by [TryFrom] trait
 #[derive(Debug, Clone)]
 pub struct RspackRegex {
   algo: Algo,
-}
-
-#[derive(Clone)]
-pub(crate) enum Algo {
-  FastCustom(Arc<dyn Fn(&str) -> bool + Send + Sync>),
-  // FastCustom(bool),
-  Regress(regress::Regex),
-}
-
-impl std::fmt::Debug for Algo {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      Self::FastCustom(_) => write!(f, "FastCustom(...)"),
-      Self::Regress(arg0) => f.debug_tuple("Regress").field(arg0).finish(),
-    }
-  }
-}
-
-impl Algo {
-  pub fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
-    match regex_syntax::parse(expr) {
-      Ok(hir) => {
-        let seq = regex_syntax::hir::literal::Extractor::new()
-          .kind(ExtractKind::Suffix)
-          .extract(&hir);
-        if seq.is_exact() {
-          let string_list = seq
-            .literals()
-            .unwrap()
-            .iter()
-            .map(|item| String::from_utf8_lossy(item.as_bytes()).to_string())
-            .collect::<Vec<_>>();
-
-          // Ok(Algo::FastCustom(false))
-          Ok(Algo::FastCustom(Arc::new(move |str: &str| {
-            string_list.iter().any(|item| str.ends_with(item))
-          })))
-        } else {
-          regress::Regex::with_flags(expr, flags)
-            .map(Algo::Regress)
-            .map_err(|err| {
-              internal_error!(
-                "Can't construct regex `/{expr}/{flags}`, original error message: {err}"
-              )
-            })
-        }
-      }
-      // fallback to regress:regex
-      Err(_) => regress::Regex::with_flags(expr, flags)
-        .map(Algo::Regress)
-        .map_err(|err| {
-          internal_error!("Can't construct regex `/{expr}/{flags}`, original error message: {err}")
-        }),
-    }
-  }
 }
 
 impl RspackRegex {
@@ -79,10 +24,7 @@ impl RspackRegex {
   }
 
   pub fn test(&self, text: &str) -> bool {
-    match &self.algo {
-      Algo::FastCustom(fast) => fast(text),
-      Algo::Regress(regex) => regex.find(text).is_some(),
-    }
+    self.algo.test(text)
   }
 
   /// # Panic
