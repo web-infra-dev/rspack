@@ -1,33 +1,143 @@
+use std::sync::Arc;
+
+use regex_syntax::ast::Concat;
+use regex_syntax::hir::literal::ExtractKind;
+use regex_syntax::hir::{Hir, HirKind, Look};
 use regress::{Match, Matches, Regex};
 use rspack_error::{internal_error, Error};
 use swc_core::ecma::ast::Regex as SwcRegex;
+use swc_core::ecma::visit::visit_mut_ts_interface_body;
 
 /// Using wrapper type required by [TryFrom] trait
 #[derive(Debug, Clone)]
-pub struct RspackRegex(Regex);
+pub struct RspackRegex {
+  algo: Algo,
+}
+
+#[derive(Clone)]
+pub(crate) enum Algo {
+  // FastCustom(Arc<dyn Fn(&str) -> bool>),
+  FastCustom(bool),
+  Regress(regress::Regex),
+}
+
+impl std::fmt::Debug for Algo {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::FastCustom(arg0) => write!(f, "FastCustom(...)"),
+      Self::Regress(arg0) => f.debug_tuple("Regress").field(arg0).finish(),
+    }
+  }
+}
+
+impl Algo {
+  /// Returns `true` if the regex2 is [`FastCustom`].
+  ///
+  /// [`FastCustom`]: Regex2::FastCustom
+  #[must_use]
+  pub(crate) fn is_fast_custom(&self) -> bool {
+    matches!(self, Self::FastCustom(..))
+  }
+
+  /// Returns `true` if the regex2 is [`Regress`].
+  ///
+  /// [`Regress`]: Regex2::Regress
+  #[must_use]
+  pub(crate) fn is_regress(&self) -> bool {
+    matches!(self, Self::Regress(..))
+  }
+
+  pub fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
+    match regex_syntax::parse(expr) {
+      Ok(hir) => {
+        let seq = regex_syntax::hir::literal::Extractor::new()
+          .kind(ExtractKind::Suffix)
+          .extract(&hir);
+        if seq.is_exact() {
+          let string_list = seq
+            .literals()
+            .unwrap()
+            .iter()
+            .map(|item| String::from_utf8_lossy(item.as_bytes()).to_string())
+            .collect::<Vec<_>>();
+
+          Ok(Algo::FastCustom(false))
+          // Ok(Algo::FastCustom(Arc::new(move |str: &str| {
+          //   string_list.iter().any(|item| str.ends_with(item))
+          // })))
+        } else {
+          regress::Regex::with_flags(expr, flags)
+            .map(Algo::Regress)
+            .map_err(|err| {
+              internal_error!(
+                "Can't construct regex `/{expr}/{flags}`, original error message: {err}"
+              )
+            })
+        }
+      }
+      // fallback to regress:regex
+      Err(_) => regress::Regex::with_flags(expr, flags)
+        .map(Algo::Regress)
+        .map_err(|err| {
+          internal_error!("Can't construct regex `/{expr}/{flags}`, original error message: {err}")
+        }),
+    }
+  }
+}
 
 impl RspackRegex {
-  pub fn find(&self, str: &str) -> Option<Match> {
-    self.0.find(str)
-  }
-  pub fn test(&self, str: &str) -> bool {
-    self.find(str).is_some()
+  /// # Panic
+  /// [Algo::FastCustom] does not implement `find`, this method may panic if original
+  /// regex could be optimized by fast path
+  pub fn find(&self, text: &str) -> Option<Match> {
+    match &self.algo {
+      Algo::FastCustom(_) => panic!("Algo::FastCustom does not implement `find`"),
+      Algo::Regress(regex) => regex.find(text),
+    }
   }
 
+  pub fn test(&self, text: &str) -> bool {
+    match &self.algo {
+      // Algo::FastCustom(fast) => fast(text),
+      Algo::FastCustom(fast) => panic!(),
+      Algo::Regress(regex) => regex.find(text).is_some(),
+    }
+  }
+
+  /// # Panic
+  /// [Algo::FastCustom] does not implement `find_iter`, this method may panic if original
+  /// regex could be optimized by fast path
   pub fn find_iter<'r, 't>(&'r self, text: &'t str) -> Matches<'r, 't> {
-    self.0.find_iter(text)
+    match &self.algo {
+      Algo::FastCustom(_) => panic!("Algo::FastCustom does not implement `find_iter`"),
+      Algo::Regress(regex) => regex.find_iter(text),
+    }
   }
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
     Regex::with_flags(expr, flags)
-      .map(RspackRegex)
+      .map(|regex| RspackRegex {
+        algo: Algo::Regress(regex),
+      })
       .map_err(|_| internal_error!("Can't construct regex `/{expr}/{flags}`"))
   }
 
   pub fn new(expr: &str) -> Result<Self, Error> {
     Regex::with_flags(expr, "")
-      .map(RspackRegex)
+      .map(|regex| RspackRegex {
+        algo: Algo::Regress(regex),
+      })
       .map_err(|_| internal_error!("Can't construct regex `/{}/{}`", expr, ""))
+  }
+
+  pub fn new_with_optimized(expr: &str) -> Result<Self, Error> {
+    todo!()
+    // Regex::with_flags(expr, "")
+    //   .map(|regex| RspackRegex {
+    //     algo: regex,
+    //     allow_optimize: true,
+    //   })
+    //   .map_err(|_| internal_error!("Can't construct regex `/{}/{}`", expr, ""))
   }
 }
 

@@ -122,15 +122,6 @@ impl Regex2 {
           .kind(ExtractKind::Suffix)
           .extract(&hir);
         if res.is_exact() {
-          // let set = RegexSet::new(
-          //   res
-          //     .literals()
-          //     .unwrap()
-          //     .iter()
-          //     .map(|item| std::str::from_utf8(item.as_bytes()).unwrap().to_string() + "$"),
-          // )
-          // .unwrap();
-          //
           let string_list = res
             .literals()
             .unwrap()
