@@ -6,14 +6,6 @@ repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
 [dependencies]
-anyhow                                  = { workspace = true, features = ["backtrace"] }
-async-trait                             = { workspace = true }
-better_scoped_tls                       = { workspace = true }
-derivative                              = { workspace = true }
-glob                                    = "0.3.1"
-indexmap                                = { workspace = true }
-napi                                    = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
-napi-derive                             = { workspace = true }
 rspack_binding_macros                   = { path = "../rspack_binding_macros" }
 rspack_core                             = { path = "../rspack_core" }
 rspack_error                            = { path = "../rspack_error" }
@@ -40,9 +32,18 @@ rspack_plugin_split_chunks              = { path = "../rspack_plugin_split_chunk
 rspack_plugin_split_chunks_new          = { path = "../rspack_plugin_split_chunks_new" }
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
 rspack_regex                            = { path = "../rspack_regex" }
-serde                                   = { workspace = true, features = ["derive"] }
-serde_json                              = { workspace = true }
-swc_core                                = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-swc_plugin_import                       = { workspace = true }
-tokio                                   = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
-tracing                                 = { workspace = true }
+
+anyhow            = { workspace = true, features = ["backtrace"] }
+async-trait       = { workspace = true }
+better_scoped_tls = { workspace = true }
+derivative        = { workspace = true }
+glob              = { workspace = true }
+indexmap          = { workspace = true }
+napi              = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
+napi-derive       = { workspace = true }
+serde             = { workspace = true, features = ["derive"] }
+serde_json        = { workspace = true }
+swc_core          = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
+swc_plugin_import = { workspace = true }
+tokio             = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+tracing           = { workspace = true }
