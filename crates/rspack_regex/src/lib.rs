@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use regex_syntax::ast::Concat;
 use regex_syntax::hir::literal::ExtractKind;
 use regex_syntax::hir::{Hir, HirKind, Look};
 use regress::{Match, Matches, Regex};
 use rspack_error::{internal_error, Error};
 use swc_core::ecma::ast::Regex as SwcRegex;
-use swc_core::ecma::visit::visit_mut_ts_interface_body;
 
 /// Using wrapper type required by [TryFrom] trait
 #[derive(Debug, Clone)]
@@ -24,7 +22,7 @@ pub(crate) enum Algo {
 impl std::fmt::Debug for Algo {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      Self::FastCustom(arg0) => write!(f, "FastCustom(...)"),
+      Self::FastCustom(_) => write!(f, "FastCustom(...)"),
       Self::Regress(arg0) => f.debug_tuple("Regress").field(arg0).finish(),
     }
   }
@@ -82,8 +80,7 @@ impl RspackRegex {
 
   pub fn test(&self, text: &str) -> bool {
     match &self.algo {
-      // Algo::FastCustom(fast) => fast(text),
-      Algo::FastCustom(_) => panic!(),
+      Algo::FastCustom(fast) => fast(text),
       Algo::Regress(regex) => regex.find(text).is_some(),
     }
   }
@@ -114,8 +111,8 @@ impl RspackRegex {
       .map_err(|_| internal_error!("Can't construct regex `/{}/{}`", expr, ""))
   }
 
-  pub fn new_with_optimized(expr: &str, flags: &str) -> Result<Self, Error> {
-    Algo::new(expr, flags).map(|algo| RspackRegex { algo })
+  pub fn new_with_optimized(expr: &str) -> Result<Self, Error> {
+    Algo::new(expr, "").map(|algo| RspackRegex { algo })
   }
 }
 
