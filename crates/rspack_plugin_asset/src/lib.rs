@@ -8,11 +8,11 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
-  AssetParserDataUrlOption, AssetParserOptions, AstOrSource, CodeGenerationDataAssetInfo,
-  CodeGenerationDataFilename, CodeGenerationDataUrl, GenerateContext, GenerationResult, Module,
-  ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, RuntimeGlobals,
-  SourceType,
+  AssetParserDataUrlOption, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
+  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationDataUrl, GenerateContext, GenerationResult, Module, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestArgs, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
 use sugar_path::SugarPath;

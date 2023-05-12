@@ -72,6 +72,7 @@ impl CopyPlugin {
     hasher.digest()
   }
 
+  #[allow(clippy::too_many_arguments)]
   async fn analyze_every_entry(
     entry: PathBuf,
     pattern: &Pattern,

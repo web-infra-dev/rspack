@@ -42,7 +42,7 @@ impl LocalIdentName {
   pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
     let mut s = self.0.render(options.path_data, None);
     if let Some(local) = options.local {
-      s = s.replace("[local]", &local);
+      s = s.replace("[local]", local);
     }
     s = ESCAPE_LOCAL_IDENT_REGEX.replace_all(&s, "-").into_owned();
     s

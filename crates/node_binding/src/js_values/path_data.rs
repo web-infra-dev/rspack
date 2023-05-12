@@ -16,7 +16,7 @@ pub struct PathData {
 impl PathData {
   pub fn as_core_path_data(&self) -> rspack_core::PathData {
     rspack_core::PathData {
-      filename: self.filename.as_deref().map(|i| Path::new(i)),
+      filename: self.filename.as_deref().map(Path::new),
       query: self.query.as_deref(),
       fragment: self.fragment.as_deref(),
       chunk: None,

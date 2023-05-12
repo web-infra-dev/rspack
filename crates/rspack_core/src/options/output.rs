@@ -160,7 +160,7 @@ impl<'a> PathData<'a> {
   }
 
   pub fn content_hash(mut self, v: &'a str) -> Self {
-    self.content_hash = Some(v.into());
+    self.content_hash = Some(v);
     self
   }
 
