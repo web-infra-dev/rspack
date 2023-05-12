@@ -215,7 +215,10 @@ fn external_root_array(modules: &[&ExternalModule]) -> String {
     .iter()
     .map(|m| {
       let request = &m.request;
-      format!("root{}", accessor_to_object_access(&[request.to_owned()]))
+      format!(
+        "root{}",
+        accessor_to_object_access(&[request.as_str().to_owned()])
+      )
     })
     .collect::<Vec<_>>()
     .join(", ")

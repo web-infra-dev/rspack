@@ -475,9 +475,10 @@ export interface RawExternalItemFnResult {
 }
 
 export interface RawExternalItemValue {
-  type: "string" | "bool"
+  type: "string" | "bool" | "array"
   stringPayload?: string
   boolPayload?: boolean
+  arrayPayload?: Array<string>
 }
 
 export interface RawExternalsPresets {

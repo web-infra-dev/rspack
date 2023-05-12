@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use std::hash::Hash;
+use std::{borrow::Cow, fmt};
 
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
@@ -15,26 +15,72 @@ use crate::{
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::Css];
 
+#[derive(Debug, Clone)]
+pub struct ExternalRequest(pub Vec<String>);
+
+impl fmt::Display for ExternalRequest {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{:?}", self.0)
+  }
+}
+
+impl ExternalRequest {
+  pub fn as_str(&self) -> &str {
+    // we're sure array have more than one element,because it is valid in js side
+    self.0.get(0).expect("should have at least element")
+  }
+  pub fn as_array(self) -> Vec<String> {
+    self.0
+  }
+  pub fn as_array_ref(&self) -> &Vec<String> {
+    &self.0
+  }
+}
+pub fn property_access(o: &Vec<String>, mut start: usize) -> String {
+  let mut str = String::default();
+  while start < o.len() {
+    let property = &o[start];
+    str.push_str(format!(r#"["{property}"]"#).as_str());
+    start += 1;
+  }
+  str
+}
+
+fn get_source_for_global_variable_external(
+  request: &ExternalRequest,
+  external_type: &ExternalType,
+) -> String {
+  let object_lookup = property_access(request.as_array_ref(), 0);
+  format!("{external_type}{object_lookup}")
+}
+
+fn get_source_for_default_case(optional: bool, request: &ExternalRequest) -> String {
+  let request = request.as_array_ref();
+  let variable_name = request.get(0).expect("should have at least one element");
+  let object_lookup = property_access(request, 1);
+  format!("{variable_name}{object_lookup}")
+}
+
 #[derive(Debug)]
 pub struct ExternalModule {
   id: Identifier,
-  pub request: String,
+  pub request: ExternalRequest,
   external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
 }
 
 impl ExternalModule {
-  pub fn new(request: String, external_type: ExternalType, user_request: String) -> Self {
+  pub fn new(request: Vec<String>, external_type: ExternalType, user_request: String) -> Self {
     Self {
-      id: Identifier::from(format!("external {external_type} {request}")),
-      request,
+      id: Identifier::from(format!("external {external_type} {request:?}")),
+      request: ExternalRequest(request),
       external_type,
       user_request,
     }
   }
 
-  fn get_source_for_commonjs(&self) -> String {
+  fn get_source_for_commonjs(&self, request: &ExternalRequest) -> String {
     format!("module.exports = require('{}')", self.request)
   }
 
@@ -54,15 +100,15 @@ impl ExternalModule {
     let source = match self.external_type.as_str() {
       "this" => format!(
         "module.exports = (function() {{ return this['{}']; }}())",
-        self.request
+        get_source_for_global_variable_external(&self.request, &self.external_type)
       ),
       "window" | "self" => format!(
-        "module.exports = {}['{}']",
-        self.external_type, self.request
+        "module.exports = {}",
+        get_source_for_global_variable_external(&self.request, &self.external_type)
       ),
       "global" => format!(
-        "module.exports = {}['{}']",
-        compilation.options.output.global_object, self.request
+        "module.exports ={} ",
+        get_source_for_global_variable_external(&self.request, &self.external_type)
       ),
       "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
         self.get_source_for_commonjs()
@@ -79,7 +125,7 @@ impl ExternalModule {
             ));
           format!(
             "__WEBPACK_EXTERNAL_createRequire(import.meta.url)('{}')",
-            self.request
+            self.request.as_str()
           )
         } else {
           self.get_source_for_commonjs()
@@ -98,7 +144,10 @@ impl ExternalModule {
       }
       "import" => self.get_source_for_import(compilation),
       "var" | "promise" | "const" | "let" | "assign" => {
-        format!("module.exports = {}", self.request)
+        format!(
+          "module.exports = {}",
+          get_source_for_default_case(false, &self.request)
+        )
       }
       "module" => {
         if compilation.options.output.module {
@@ -113,7 +162,7 @@ impl ExternalModule {
             .or_insert(InitFragment::new(
               format!(
                 "import * as __WEBPACK_EXTERNAL_MODULE_{identifier}__ from '{}';\n",
-                self.request
+                self.request.as_str()
               ),
               InitFragmentStage::STAGE_HARMONY_IMPORTS,
               None,
@@ -203,14 +252,15 @@ impl Module for ExternalModule {
           GenerationResult::from(AstOrSource::from(
             RawSource::from(format!(
               "module.exports = {};",
-              serde_json::to_string(&self.request).map_err(|e| internal_error!(e.to_string()))?
+              serde_json::to_string(&self.request.as_str())
+                .map_err(|e| internal_error!(e.to_string()))?
             ))
             .boxed(),
           )),
         );
-        cgr
-          .data
-          .insert(CodeGenerationDataUrl::new(self.request.clone()));
+        cgr.data.insert(CodeGenerationDataUrl::new(
+          self.request.as_str().to_string(),
+        ));
       }
       "css-import" => {
         cgr.add(
@@ -218,7 +268,8 @@ impl Module for ExternalModule {
           GenerationResult::from(AstOrSource::from(
             RawSource::from(format!(
               "@import url({});",
-              serde_json::to_string(&self.request).map_err(|e| internal_error!(e.to_string()))?
+              serde_json::to_string(&self.request.as_str())
+                .map_err(|e| internal_error!(e.to_string()))?
             ))
             .boxed(),
           )),
