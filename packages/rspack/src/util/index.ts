@@ -78,6 +78,7 @@ export function asArray<T>(item: T | T[]): T[] {
 
 export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 	return {
+		immutable: false,
 		minimized: false,
 		development: false,
 		hotModuleReplacement: false,

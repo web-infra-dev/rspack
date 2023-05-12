@@ -162,26 +162,26 @@ impl Plugin for JsPlugin {
       self.render_chunk_impl(&args).await?
     };
 
-    let mut asset_info = AssetInfo::default();
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
       &compilation.chunk_group_by_ukey,
     );
-    let output_path = filename_template.render_with_chunk(
-      chunk,
-      ".js",
-      &SourceType::JavaScript,
-      Some(&mut asset_info),
+    let (output_path, asset_info) = compilation.get_path_with_info(
+      filename_template,
+      PathData::default()
+        .chunk(chunk)
+        .content_hash_optional(
+          chunk
+            .content_hash
+            .get(&SourceType::JavaScript)
+            .map(|i| i.as_str()),
+        )
+        .runtime(&chunk.runtime),
     );
-
-    let path_options = PathData {
-      chunk_ukey: args.chunk_ukey,
-    };
     Ok(vec![RenderManifestEntry::new(
       source,
       output_path,
-      path_options,
       asset_info,
     )])
   }

@@ -412,10 +412,7 @@ where
           );
 
           // TODO: should use `get_path_info` to get filename.
-          let chunk = self
-            .compilation
-            .chunk_by_ukey
-            .get(&entry.path_options.chunk_ukey);
+          let chunk = self.compilation.chunk_by_ukey.get(&ukey);
           let id = chunk.map_or(String::new(), |c| c.expect_id().to_string());
           self.compilation.emit_asset(id + ".hot-update.js", asset);
         }

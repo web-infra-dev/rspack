@@ -10,6 +10,7 @@ mod wasm_plugin;
 pub use ast::*;
 pub use loading_plugin::*;
 pub use parser_and_generator::*;
+use rspack_core::AssetInfo;
 pub use runtime::*;
 pub use wasm_plugin::*;
 
@@ -17,7 +18,7 @@ pub use wasm_plugin::*;
 pub type ModuleIdToFileName = std::sync::Arc<
   dashmap::DashMap<
     rspack_core::ModuleIdentifier,
-    String,
+    (String, AssetInfo),
     std::hash::BuildHasherDefault<rspack_identifier::IdentifierHasher>,
   >,
 >;

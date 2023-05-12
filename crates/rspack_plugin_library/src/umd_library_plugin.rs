@@ -2,9 +2,10 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, Chunk, ExternalModule, Filename, JsChunkHashArgs,
-  LibraryAuxiliaryComment, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, Chunk, Compilation, ExternalModule, Filename,
+  JsChunkHashArgs, LibraryAuxiliaryComment, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 
 use super::utils::{external_arguments, external_dep_array};
@@ -99,8 +100,10 @@ impl Plugin for UmdLibraryPlugin {
         get_auxiliary_comment("commonjs", auxiliary_comment),
         &commonjs
           .clone()
-          .map(|commonjs| library_name(&[commonjs], chunk))
-          .or_else(|| root.clone().map(|root| library_name(&root, chunk)))
+          .map(|commonjs| library_name(&[commonjs], chunk, compilation))
+          .or_else(|| root
+            .clone()
+            .map(|root| library_name(&root, chunk, compilation)))
           .unwrap_or_default(),
         externals_require_array("commonjs", &externals),
       );
@@ -116,7 +119,8 @@ impl Plugin for UmdLibraryPlugin {
               .or_else(|| commonjs.clone().map(|commonjs| vec![commonjs]))
               .unwrap_or_default(),
           ),
-          chunk
+          chunk,
+          compilation,
         ),
         external_root_array(&externals)
       );
@@ -189,13 +193,21 @@ impl Plugin for UmdLibraryPlugin {
   }
 }
 
-fn library_name(v: &[String], chunk: &Chunk) -> String {
+fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> String {
   let value = format!("'{}'", v.last().expect("should have last"));
-  replace_keys(value, chunk)
+  replace_keys(value, chunk, compilation)
 }
 
-fn replace_keys(v: String, chunk: &Chunk) -> String {
-  Filename::from(v).render_with_chunk(chunk, ".js", &SourceType::JavaScript, None)
+fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
+  compilation.get_path(
+    &Filename::from(v),
+    PathData::default().chunk(chunk).content_hash_optional(
+      chunk
+        .content_hash
+        .get(&SourceType::JavaScript)
+        .map(|i| i.as_str()),
+    ),
+  )
 }
 
 fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {

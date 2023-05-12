@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ApplyContext, AssetInfo, ModuleType, ParserAndGenerator, PathData, Plugin, PluginContext,
+  ApplyContext, ModuleType, ParserAndGenerator, Plugin, PluginContext,
   PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;
@@ -78,26 +78,12 @@ impl Plugin for AsyncWasmPlugin {
           .map(|result| result.ast_or_source.clone().try_into_source())
           .transpose()?
           .map(|source| {
-            let options = &compilation.options;
-            let mut asset_info = AssetInfo::default();
-            let wasm_filename = self
+            let (output_path, asset_info) = self
               .module_id_to_filename_without_ext
               .get(&m.identifier())
-              .map(|s| s.clone());
-            let path_options = PathData {
-              chunk_ukey: args.chunk_ukey,
-            };
-            RenderManifestEntry::new(
-              source,
-              wasm_filename.unwrap_or_else(|| {
-                options
-                  .output
-                  .webassembly_module_filename
-                  .render_with_chunk(chunk, ".wasm", &SourceType::Wasm, Some(&mut asset_info))
-              }),
-              path_options,
-              asset_info,
-            )
+              .map(|s| s.clone())
+              .expect("should have wasm_filename");
+            RenderManifestEntry::new(source, output_path, asset_info)
           });
 
         Ok(result)

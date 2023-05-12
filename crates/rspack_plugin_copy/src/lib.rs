@@ -10,8 +10,8 @@ use dashmap::DashSet;
 use glob::MatchOptions;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, Filename, FromType, Pattern,
-  Plugin, ToType,
+  rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, Filename, FromType,
+  PathData, Pattern, Plugin, ToType,
 };
 use rspack_error::Diagnostic;
 use sugar_path::{AsPath, SugarPath};
@@ -80,6 +80,7 @@ impl CopyPlugin {
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
     diagnostics: &DashSet<Diagnostic>,
+    compilation: &Compilation,
   ) -> Option<RunPatternResult> {
     // Exclude directories
     if entry.is_dir() {
@@ -185,28 +186,13 @@ impl CopyPlugin {
         source_filename.display()
       ));
 
-      let content_hash = Self::get_content_hash(&source);
-      let ext = source_filename.extension();
-      let base = source_filename.file_name();
-      let name = &base.and_then(|base| {
-        base
-          .to_str()?
-          .strip_suffix(ext.and_then(|ext| ext.to_str())?)
-      });
-
-      let template_str = Filename::from(filename.to_string_lossy().to_string()).render(
-        rspack_core::FilenameRenderOptions {
-          name: name.map(Into::into),
-          path: None,
-          extension: ext.map(|ext| ext.to_string_lossy().to_string()),
-          id: Some(source_filename.to_string_lossy().to_string()),
-          contenthash: Some(content_hash.to_string()),
-          chunkhash: None,
-          hash: Some(content_hash.to_string()),
-          query: None,
-          ..Default::default()
-        },
-        None,
+      let content_hash = format!("{:016x}", Self::get_content_hash(&source));
+      let template_str = compilation.get_asset_path(
+        &Filename::from(filename.to_string_lossy().to_string()),
+        PathData::default()
+          .filename(&source_filename)
+          .content_hash(&content_hash)
+          .hash(&content_hash),
       );
 
       LOGGER.log(&format!(
@@ -397,6 +383,7 @@ impl CopyPlugin {
               from_type,
               file_dependencies,
               diagnostics,
+              compilation,
             )
             .await
           })

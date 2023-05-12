@@ -9,9 +9,7 @@ use bitflags::bitflags;
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{
-  Chunk, ChunkGraph, Compilation, FilenameRenderOptions, Module, ModuleGraph, SourceType,
-};
+use rspack_core::{Chunk, ChunkGraph, Compilation, Module, ModuleGraph, PathData, SourceType};
 use rspack_core::{Filename, ModuleIdentifier};
 use rspack_identifier::IdentifierSet;
 
@@ -42,7 +40,7 @@ pub struct LocalIdentName(Filename);
 
 impl LocalIdentName {
   pub fn render(&self, options: LocalIdentNameRenderOptions) -> String {
-    let mut s = self.0.render(options.filename_options, None);
+    let mut s = self.0.render(options.path_data, None);
     if let Some(local) = options.local {
       s = s.replace("[local]", &local);
     }
@@ -57,9 +55,9 @@ impl From<String> for LocalIdentName {
   }
 }
 
-pub struct LocalIdentNameRenderOptions {
-  pub filename_options: FilenameRenderOptions,
-  pub local: Option<String>,
+pub struct LocalIdentNameRenderOptions<'a> {
+  pub path_data: PathData<'a>,
+  pub local: Option<&'a str>,
 }
 
 bitflags! {

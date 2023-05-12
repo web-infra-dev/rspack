@@ -319,11 +319,11 @@ impl Chunk {
       .expect("Should set id before calling expect_id")
   }
 
-  pub fn name_for_filename_template(&self) -> Option<String> {
+  pub fn name_for_filename_template(&self) -> Option<&str> {
     if self.name.is_some() {
-      self.name.clone()
+      self.name.as_deref()
     } else {
-      self.id.clone()
+      self.id.as_deref()
     }
   }
 

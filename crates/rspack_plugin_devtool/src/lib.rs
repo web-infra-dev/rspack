@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
-  AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, Plugin, PluginContext,
+  AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, PathData, Plugin, PluginContext,
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
   ProcessAssetsArgs, RenderModuleContentArgs, SourceType,
 };
@@ -168,25 +168,24 @@ impl Plugin for DevtoolPlugin {
         args.compilation.emit_asset(filename, asset);
       } else {
         let mut source_map_filename = filename.to_owned() + ".map";
-        // TODO(ahabhgk): refactor
+        // TODO(ahabhgk): refactor remove the for loop
         // https://webpack.docschina.org/configuration/output/#outputsourcemapfilename
         if args.compilation.options.devtool.source_map() {
           let source_map_filename_config = &args.compilation.options.output.source_map_filename;
           for chunk in args.compilation.chunk_by_ukey.values() {
             for file in &chunk.files {
               if file == &filename {
-                let extension = if is_css { ".css" } else { ".js" };
                 let source_type = if is_css {
                   &SourceType::Css
                 } else {
                   &SourceType::JavaScript
                 };
-                source_map_filename = source_map_filename_config.render_with_chunk_and_file(
-                  chunk,
-                  &filename,
-                  extension,
-                  source_type,
-                  None,
+                source_map_filename = args.compilation.get_asset_path(
+                  source_map_filename_config,
+                  PathData::default()
+                    .chunk(chunk)
+                    .filename(&Path::new(&filename))
+                    .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.as_str())),
                 );
                 break;
               }

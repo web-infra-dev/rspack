@@ -1,16 +1,14 @@
 use std::collections::hash_map::DefaultHasher;
-use std::ffi::OsStr;
 use std::hash::{Hash, Hasher};
-use std::path::Path;
 
 use dashmap::DashMap;
 use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 // use rspack_core::StaticExportsDependency;
 use rspack_core::{
-  AstOrSource, BuildMetaExportsType, Context, Dependency, Filename, FilenameRenderOptions,
-  GenerateContext, GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
+  AssetInfo, AstOrSource, BuildMetaExportsType, Compilation, Dependency, Filename, GenerateContext,
+  GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, PathData, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
@@ -127,17 +125,15 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let compilation = generate_context.compilation;
     let wasm_filename_template = &compilation.options.output.webassembly_module_filename;
     let hash = hash_for_ast_or_source(ast_or_source);
-    let normal_module = module.as_normal_module();
-    let wasm_filename = render_wasm_name(
-      &compilation.options.context,
-      normal_module,
-      wasm_filename_template,
-      hash,
-    );
+    let normal_module = module
+      .as_normal_module()
+      .expect("module should be a NormalModule in AsyncWasmParserAndGenerator::generate");
+    let wasm_path_with_info =
+      render_wasm_name(compilation, normal_module, wasm_filename_template, hash);
 
     self
       .module_id_to_filename
-      .insert(module.identifier(), wasm_filename.clone());
+      .insert(module.identifier(), wasm_path_with_info.clone());
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
@@ -234,7 +230,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         let instantiate_call = format!(
           "{}(exports, module.id, {} {})",
           RuntimeGlobals::INSTANTIATE_WASM,
-          serde_json::to_string(&wasm_filename).expect("should be ok"),
+          serde_json::to_string(&wasm_path_with_info.0).expect("should be ok"),
           imports_obj.unwrap_or_default()
         );
 
@@ -279,35 +275,23 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 }
 
 fn render_wasm_name(
-  ctx: &Context,
-  normal_module: Option<&NormalModule>,
+  compilation: &Compilation,
+  normal_module: &NormalModule,
   wasm_filename_template: &Filename,
   hash: String,
-) -> String {
-  wasm_filename_template.render(
-    FilenameRenderOptions {
-      name: normal_module.and_then(|m| {
-        let p = Path::new(&m.resource_resolved_data().resource_path);
-        p.file_stem().map(|s| s.to_string_lossy().to_string())
-      }),
-      path: normal_module.map(|m| {
-        Path::new(&m.resource_resolved_data().resource_path)
-          .relative(ctx)
-          .to_string_lossy()
-          .to_string()
-      }),
-      extension: normal_module.and_then(|m| {
-        Path::new(&m.resource_resolved_data().resource_path)
-          .extension()
-          .and_then(OsStr::to_str)
-          .map(|str| format!("{}{}", ".", str))
-      }),
-      contenthash: Some(hash.clone()),
-      chunkhash: Some(hash.clone()),
-      hash: Some(hash),
-      ..Default::default()
-    },
-    None,
+) -> (String, AssetInfo) {
+  let context = &compilation.options.context;
+  compilation.get_asset_path_with_info(
+    wasm_filename_template,
+    PathData::default()
+      .filename(
+        &normal_module
+          .resource_resolved_data()
+          .resource_path
+          .relative(context),
+      )
+      .content_hash(&hash)
+      .hash(&hash),
   )
 }
 

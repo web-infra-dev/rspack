@@ -7,8 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
-  ChunkHashArgs, ChunkUkey, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
+  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
   NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
@@ -377,15 +377,9 @@ impl<T: Plugin + 'static> PluginExt for T {
 // }
 
 #[derive(Debug, Clone)]
-pub struct PathData {
-  pub chunk_ukey: ChunkUkey,
-}
-
-#[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
   pub(crate) source: BoxSource,
   filename: String,
-  pub(crate) path_options: PathData,
   pub(crate) info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
@@ -393,11 +387,10 @@ pub struct RenderManifestEntry {
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String, path_options: PathData, info: AssetInfo) -> Self {
+  pub fn new(source: BoxSource, filename: String, info: AssetInfo) -> Self {
     Self {
       source,
       filename,
-      path_options,
       info,
     }
   }

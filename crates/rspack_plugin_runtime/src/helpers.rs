@@ -3,8 +3,8 @@ use std::hash::Hash;
 use anyhow::anyhow;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, FilenameRenderOptions,
-  RenderChunkArgs, RuntimeGlobals,
+  Chunk, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData, RenderChunkArgs,
+  RuntimeGlobals,
 };
 use rspack_error::Result;
 use rspack_identifier::IdentifierLinkedMap;
@@ -242,17 +242,12 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 }
 
 pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
-  let hash: Option<String> = Some(chunk.get_render_hash());
-  compilation.options.output.chunk_filename.render(
-    FilenameRenderOptions {
-      name: chunk.name_for_filename_template(),
-      extension: Some(".js".to_string()),
-      id: chunk.id.clone(),
-      contenthash: hash.clone(),
-      chunkhash: hash.clone(),
-      hash,
-      ..Default::default()
-    },
-    None,
+  let hash = chunk.get_render_hash();
+  compilation.get_path(
+    &compilation.options.output.chunk_filename,
+    PathData::default()
+      .chunk(chunk)
+      .content_hash(&hash)
+      .hash(&hash),
   )
 }

@@ -27,6 +27,8 @@ export class JsCompilation {
   getBuildDependencies(): Array<string>
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
   getStats(): JsStats
+  getAssetPath(filename: string, data: PathData): string
+  getPath(filename: string, data: PathData): string
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
@@ -102,10 +104,9 @@ export interface JsAsset {
 }
 
 export interface JsAssetInfo {
-  /**
-   * if the asset can be long term cached forever (contains a hash)
-   * whether the asset is minimized
-   */
+  /** if the asset can be long term cached forever (contains a hash) */
+  immutable: boolean
+  /** whether the asset is minimized */
   minimized: boolean
   /**
    * the value(s) of the full hash used for this asset
@@ -324,6 +325,22 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
+}
+
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
+
+export interface PathData {
+  filename?: string
+  query?: string
+  fragment?: string
+  hash?: string
+  contentHash?: string
+  runtime?: string
+  url?: string
 }
 
 export interface RawAssetParserDataUrlOption {
