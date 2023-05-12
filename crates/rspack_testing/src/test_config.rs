@@ -510,7 +510,11 @@ impl TestConfig {
       })
       .boxed(),
     );
-    plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed());
+    if let Some(library) = &options.output.library {
+      if "system" == library.library_type {
+        plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed());
+      }
+    }
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     match &options.target.platform {
       TargetPlatform::Web => {

@@ -10,6 +10,7 @@ use rspack_core::{
 use rspack_error::Result;
 
 use super::utils::{external_arguments, external_dep_array};
+use crate::utils::{external_module_names, normalize_name};
 
 #[derive(Debug, Default)]
 pub struct SystemLibraryPlugin {}
@@ -22,7 +23,7 @@ impl SystemLibraryPlugin {
 
 impl Plugin for SystemLibraryPlugin {
   fn name(&self) -> &'static str {
-    "SymtemLibraryPlugin"
+    "SystemLibraryPlugin"
   }
 
   fn additional_chunk_runtime_requirements(
@@ -38,7 +39,8 @@ impl Plugin for SystemLibraryPlugin {
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let compilation = &args.compilation;
-    let chunk = args.chunk();
+    let name = normalize_name(&compilation.options.output.library)?.unwrap_or("".to_string());
+
     let modules = compilation
       .chunk_graph
       .get_chunk_module_identifiers(args.chunk)
@@ -58,17 +60,52 @@ impl Plugin for SystemLibraryPlugin {
       })
       .collect::<Vec<&ExternalModule>>();
     let external_deps_array = external_dep_array(&modules);
-    let external_arguments = external_arguments(&modules, compilation);
-    // let mut fn_start: String = format!("function({external_arguments}){{\n");
-    // if compilation.options.output.iife || !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-    //   fn_start.push_str(" return ");
-    // }
-    // let name = self.normalize_name(&compilation.options.output.library)?;
+    let external_arguments = external_module_names(&modules, compilation);
+
+    // The name of the variable provided by System for exporting
+    let dynamic_export = "__WEBPACK_DYNAMIC_EXPORT__";
+    let external_var_declarations = external_arguments
+      .iter()
+      .map(|name| format!("var {name} = {{}};"))
+      .collect::<Vec<_>>()
+      .join("\n");
+    let external_var_initialization = external_arguments
+      .iter()
+      .map(|name| format!("Object.defineProperty( {name} , \"__esModule\", {{ value: true }});"))
+      .collect::<Vec<_>>()
+      .join("\n");
+    let setters = external_arguments
+      .iter()
+      .map(|name| {
+        let mut f = format!("function(module) {{");
+        f.push_str(&format!(
+          "Object.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})"
+        ));
+        f.push_str("}");
+        f
+      })
+      .collect::<Vec<_>>()
+      .join("\n");
+    let is_has_external_modules = modules.is_empty();
     let mut source = ConcatSource::default();
-    source.add(RawSource::from("hello world"));
+    source.add(RawSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{")));
+    if is_has_external_modules {
+      // 	var __WEBPACK_EXTERNAL_MODULE_{}__ = {};
+      source.add(RawSource::from(format!("{external_var_declarations}")));
+      // Object.defineProperty(__WEBPACK_EXTERNAL_MODULE_{}__, "__esModule", { value: true });
+      source.add(RawSource::from(format!("{external_var_initialization}")))
+    }
+    source.add(RawSource::from("return {"));
+    if is_has_external_modules {
+      // setter : { function(module){} }
+      source.add(RawSource::from(setters))
+    }
+    source.add(RawSource::from("execute: function() {"));
+    source.add(RawSource::from(format!("{dynamic_export}")));
     source.add(args.source.clone());
+    source.add(RawSource::from("}"));
+    source.add(RawSource::from("}"));
     source.add(RawSource::from("\n});"));
-    dbg!(&args.source);
     Ok(Some(source.boxed()))
   }
 
