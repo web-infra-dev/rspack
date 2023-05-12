@@ -13,6 +13,7 @@ use rspack_core::{
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
+use tracing;
 use {
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   rspack_napi_shared::{NapiResultExt, NAPI_ENV},
@@ -65,7 +66,7 @@ impl Debug for RawModuleRuleUse {
 #[napi(object)]
 pub struct RawRuleSetCondition {
   #[napi(ts_type = r#""string" | "regexp" | "logical" | "array" | "function""#)]
-  pub r#type: String,
+  pub ty: String,
   pub string_matcher: Option<String>,
   pub regexp_matcher: Option<String>,
   pub logical_matcher: Option<Vec<RawRuleSetLogicalConditions>>,
@@ -78,7 +79,7 @@ pub struct RawRuleSetCondition {
 impl Debug for RawRuleSetCondition {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("RawRuleSetCondition")
-      .field("r#type", &self.r#type)
+      .field("r#type", &self.ty)
       .field("string_matcher", &self.string_matcher)
       .field("regexp_matcher", &self.regexp_matcher)
       .field("logical_matcher", &self.logical_matcher)
@@ -127,20 +128,21 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   type Error = rspack_error::Error;
 
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
-    let result = match x.r#type.as_str() {
+    let result = match x.ty.as_str() {
       "string" => Self::String(x.string_matcher.ok_or_else(|| {
         internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
-        let reg = Self::Regexp(rspack_regex::RspackRegex::new_with_optimized(
-        &x.regexp_matcher.ok_or_else(|| {
-          internal_error!(
-            "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
-          )
-        })?,
-      )?);
-                reg
-            },
+        let reg = rspack_regex::RspackRegex::new_with_optimized(
+            x.regexp_matcher.as_ref().ok_or_else(|| {
+              internal_error!(
+                "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
+              )
+            })?,
+        )?;
+        tracing::debug!(regex_matcher = ?x.regexp_matcher, algo_type = ?reg.algo);
+        Self::Regexp(reg)
+      },
       "logical" => {
         let mut logical_matcher = x.logical_matcher.ok_or_else(|| {
           internal_error!(
@@ -201,7 +203,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
       }
       _ => panic!(
         "Failed to resolve the condition type {}. Expected type is `string`, `regexp`, `array`, `logical` or `function`.",
-        x.r#type
+        x.ty
       ),
     };
 

@@ -9,7 +9,7 @@ mod algo;
 /// Using wrapper type required by [TryFrom] trait
 #[derive(Debug, Clone)]
 pub struct RspackRegex {
-  algo: Algo,
+  pub algo: Algo,
 }
 
 impl RspackRegex {

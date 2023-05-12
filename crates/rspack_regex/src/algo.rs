@@ -63,10 +63,12 @@ impl Algo {
     }
   }
 
+  #[cfg(test)]
   fn is_fast_custom(&self) -> bool {
     matches!(self, Self::FastCustom(..))
   }
 
+  #[cfg(test)]
   fn is_regress(&self) -> bool {
     matches!(self, Self::Regress(..))
   }

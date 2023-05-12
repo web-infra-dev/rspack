@@ -125,8 +125,8 @@ impl TryFrom<RawExternalItem> for ExternalItem {
         let payload = value
           .regexp_payload
           .expect("should have a regexp_payload when RawExternalItem.type is \"regexp\"");
-        let reg = RspackRegex::new_with_optimized(&payload)
-          .expect("regex_payload is not a legal regex in rust side");
+        let reg =
+          RspackRegex::new(&payload).expect("regex_payload is not a legal regex in rust side");
         Ok(Self::from(reg))
       }
       "object" => {
