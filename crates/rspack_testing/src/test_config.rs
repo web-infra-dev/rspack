@@ -242,6 +242,19 @@ pub struct Output {
   pub css_chunk_filename: String,
   #[serde(default = "default_chunk_filename")]
   pub source_map_filename: String,
+  #[serde(default)]
+  pub library: Option<LibraryOptions>,
+}
+
+#[derive(Debug, JsonSchema, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LibraryOptions {
+  // pub name: Option<LibraryName>,
+  pub export: Option<Vec<String>>,
+  // webpack type
+  pub r#type: String,
+  pub umd_named_define: Option<bool>,
+  // pub auxiliary_comment: Option<LibraryAuxiliaryComment>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -396,8 +409,16 @@ impl TestConfig {
         unique_name: "__rspack_test__".to_string(),
         chunk_loading_global: "webpackChunkwebpack".to_string(),
         path: context.join("dist"),
-        library: None,
-        enabled_library_types: None,
+        library: self.output.library.map(|l| {
+          return c::LibraryOptions {
+            name: None,
+            export: None,
+            library_type: l.r#type,
+            umd_named_define: None,
+            auxiliary_comment: None,
+          };
+        }),
+        enabled_library_types: Some(vec!["system".to_string()]),
         strict_module_error_handling: false,
         global_object: "self".to_string(),
         import_function_name: "import".to_string(),
@@ -489,6 +510,7 @@ impl TestConfig {
       })
       .boxed(),
     );
+    plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed());
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     match &options.target.platform {
       TargetPlatform::Web => {

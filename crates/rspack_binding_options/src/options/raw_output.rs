@@ -385,6 +385,7 @@ impl RawOutputOptions {
             plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
             plugins.push(rspack_plugin_library::ModuleLibraryPlugin::default().boxed());
           }
+          "system" => plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed()),
           _ => {}
         }
       }

@@ -2818,6 +2818,7 @@ dependencies = [
  "rspack_plugin_html",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
+ "rspack_plugin_library",
  "rspack_plugin_progress",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
