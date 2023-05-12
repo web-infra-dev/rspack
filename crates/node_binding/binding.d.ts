@@ -28,7 +28,9 @@ export class JsCompilation {
   pushDiagnostic(severity: "error" | "warning", title: string, message: string): void
   getStats(): JsStats
   getAssetPath(filename: string, data: PathData): string
+  getAssetPathWithInfo(filename: string, data: PathData): PathWithInfo
   getPath(filename: string, data: PathData): string
+  getPathWithInfo(filename: string, data: PathData): PathWithInfo
   addFileDependencies(deps: Array<string>): void
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
@@ -341,6 +343,11 @@ export interface PathData {
   contentHash?: string
   runtime?: string
   url?: string
+}
+
+export interface PathWithInfo {
+  path: string
+  info: JsAssetInfo
 }
 
 export interface RawAssetParserDataUrlOption {

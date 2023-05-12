@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use super::JsAssetInfo;
+
 #[napi(object)]
 pub struct PathData {
   pub filename: Option<String>,
@@ -24,6 +26,21 @@ impl PathData {
       chunk_graph: None,
       runtime: self.runtime.as_deref(),
       url: self.url.as_deref(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct PathWithInfo {
+  pub path: String,
+  pub info: JsAssetInfo,
+}
+
+impl From<(String, rspack_core::AssetInfo)> for PathWithInfo {
+  fn from(value: (String, rspack_core::AssetInfo)) -> Self {
+    Self {
+      path: value.0,
+      info: value.1.into(),
     }
   }
 }

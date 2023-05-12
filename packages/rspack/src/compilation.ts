@@ -18,7 +18,8 @@ import {
 	JsCompilation,
 	JsModule,
 	JsStatsChunk,
-	JsStatsError
+	JsStatsError,
+	PathData
 } from "@rspack/binding";
 
 import {
@@ -452,23 +453,22 @@ export class Compilation {
 		};
 	}
 
-	// TODO: full alignment
-	getPath(filename: string, data: Record<string, any> = {}) {
-		if (!data.hash) {
-			data = {
-				hash: this.hash,
-				...data
-			};
-		}
-		return this.getAssetPath(filename, data);
+	getPath(filename: string, data: PathData = {}) {
+		return this.#inner.getPath(filename, data);
 	}
 
-	// TODO: full alignment
-	// @ts-expect-error
-	getAssetPath(filename, data) {
-		return filename;
+	getPathWithInfo(filename: string, data: PathData = {}) {
+		return this.#inner.getPathWithInfo(filename, data);
 	}
-	// @ts-expect-error
+
+	getAssetPath(filename: string, data: PathData = {}) {
+		return this.#inner.getAssetPath(filename, data);
+	}
+
+	getAssetPathWithInfo(filename: string, data: PathData = {}) {
+		return this.#inner.getAssetPathWithInfo(filename, data);
+	}
+
 	getLogger(name: string | (() => string)) {
 		if (!name) {
 			throw new TypeError("Compilation.getLogger(name) called without a name");
@@ -523,7 +523,7 @@ export class Compilation {
 					}
 				}
 			},
-			childName => {
+			(childName): Logger => {
 				if (typeof name === "function") {
 					if (typeof childName === "function") {
 						return this.getLogger(() => {
