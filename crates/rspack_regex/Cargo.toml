@@ -8,7 +8,7 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regex-syntax = "0.7.1"
+regex-syntax = { default-features = false, features = ["std"] }
 regress      = "0.4.1"
 rspack_error = { path = "../rspack_error" }
 swc_core     = { workspace = true, features = ["ecma_ast"] }
@@ -21,5 +21,4 @@ swc_core = { workspace = true, features = [
   "__parser",
   "__utils",
   "ecma_preset_env",
-  "base",
 ] }

@@ -13,7 +13,6 @@ use rspack_core::{
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
-use tracing;
 use {
   rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
   rspack_napi_shared::{NapiResultExt, NAPI_ENV},

@@ -21,38 +21,34 @@ impl std::fmt::Debug for Algo {
 
 impl Algo {
   pub fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
-    match regex_syntax::parse(expr) {
-      Ok(hir) => {
-        let seq = regex_syntax::hir::literal::Extractor::new()
-          .kind(ExtractKind::Suffix)
-          .extract(&hir);
-        if is_ends_with_regex(&hir) && seq.is_exact() {
-          let string_list = seq
-            .literals()
-            .unwrap()
-            .iter()
-            .map(|item| String::from_utf8_lossy(item.as_bytes()).to_string())
-            .collect::<Vec<_>>();
-
-          Ok(Algo::FastCustom(Arc::new(move |str: &str| {
-            string_list.iter().any(|item| str.ends_with(item))
-          })))
-        } else {
-          regress::Regex::with_flags(expr, flags)
-            .map(Algo::Regress)
-            .map_err(|err| {
-              internal_error!(
-                "Can't construct regex `/{expr}/{flags}`, original error message: {err}"
-              )
-            })
-        }
-      }
-      // fallback to regress:regex
-      Err(_) => regress::Regex::with_flags(expr, flags)
+    if let Some(algo) = Self::try_fast_path(expr) {
+      Ok(algo)
+    } else {
+      regress::Regex::with_flags(expr, flags)
         .map(Algo::Regress)
         .map_err(|err| {
           internal_error!("Can't construct regex `/{expr}/{flags}`, original error message: {err}")
-        }),
+        })
+    }
+  }
+
+  pub fn try_fast_path(expr: &str) -> Option<Algo> {
+    let hir = regex_syntax::parse(expr).ok()?;
+    let seq = regex_syntax::hir::literal::Extractor::new()
+      .kind(ExtractKind::Suffix)
+      .extract(&hir);
+    if is_ends_with_regex(&hir) && seq.is_exact() {
+      let string_list = seq
+        .literals()?
+        .iter()
+        .map(|item| String::from_utf8_lossy(item.as_bytes()).to_string())
+        .collect::<Vec<_>>();
+
+      Some(Algo::FastCustom(Arc::new(move |str: &str| {
+        string_list.iter().any(|item| str.ends_with(item))
+      })))
+    } else {
+      None
     }
   }
 

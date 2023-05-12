@@ -747,7 +747,7 @@ export interface RawResolveOptions {
 }
 
 export interface RawRuleSetCondition {
-  type: "string" | "regexp" | "logical" | "array" | "function"
+  ty: "string" | "regexp" | "logical" | "array" | "function"
   stringMatcher?: string
   regexpMatcher?: string
   logicalMatcher?: Array<RawRuleSetLogicalConditions>
