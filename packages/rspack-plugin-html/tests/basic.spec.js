@@ -744,7 +744,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/theme.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin()]
 			},
@@ -761,7 +761,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/theme.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]",
+					filename: "[name].js",
 					publicPath: "//localhost:8080/"
 				},
 				plugins: [new HtmlWebpackPlugin()]
@@ -913,7 +913,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/theme.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin({ inject: true })]
 			},
@@ -1099,7 +1099,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/index.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "assets/[name][ext]",
+					filename: "assets/[name].js",
 					publicPath: "/"
 				},
 				plugins: [new HtmlWebpackPlugin()]
@@ -1117,7 +1117,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/index.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "assets/[name][ext]",
+					filename: "assets/[name].js",
 					publicPath: ""
 				},
 				plugins: [
@@ -1139,7 +1139,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/index.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "assets/[name][ext]",
+					filename: "assets/[name].js",
 					publicPath: "/"
 				},
 				plugins: [
@@ -1162,7 +1162,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/index.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "assets/[name][ext]"
+					filename: "assets/[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin()]
 			},
@@ -1179,7 +1179,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/index.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "assets/[name][ext]"
+					filename: "assets/[name].js"
 				},
 				plugins: [
 					new HtmlWebpackPlugin({
@@ -1200,7 +1200,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/index.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "assets/[name][ext]",
+					filename: "assets/[name].js",
 					publicPath: "http://cdn.example.com/"
 				},
 				plugins: [new HtmlWebpackPlugin()]
@@ -1411,7 +1411,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/index.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "assets/[name][ext]"
+					filename: "assets/[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin({ filename: "assets/demo/test.html" })]
 			},
@@ -1464,7 +1464,7 @@ describe("HtmlWebpackPlugin", () => {
 				entry: path.join(__dirname, "fixtures/theme.js"),
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [
 					new HtmlWebpackPlugin({
@@ -1488,7 +1488,7 @@ describe("HtmlWebpackPlugin", () => {
 				output: {
 					path: OUTPUT_DIR,
 					publicPath: "https://cdn.com",
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [
 					new HtmlWebpackPlugin({
@@ -1531,7 +1531,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1575,7 +1575,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1618,7 +1618,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1659,7 +1659,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1700,7 +1700,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1735,7 +1735,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [
 					new HtmlWebpackPlugin({
@@ -1778,7 +1778,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1819,7 +1819,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1858,7 +1858,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1896,7 +1896,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1934,7 +1934,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -1969,7 +1969,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin]
 			},
@@ -2031,7 +2031,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin]
 			},
@@ -2089,7 +2089,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name][ext]"
+					filename: "[name].js"
 				},
 				plugins: [new HtmlWebpackPlugin(), examplePlugin, secondExamplePlugin]
 			},
@@ -2353,7 +2353,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name]_bundle[ext]"
+					filename: "[name]_bundle.js"
 				},
 				optimization: {
 					splitChunks: {
@@ -2804,7 +2804,7 @@ describe("HtmlWebpackPlugin", () => {
 				},
 				output: {
 					path: OUTPUT_DIR,
-					filename: "[name]_bundle[ext]"
+					filename: "[name]_bundle.js"
 				},
 				plugins: [
 					new HtmlWebpackPlugin({
