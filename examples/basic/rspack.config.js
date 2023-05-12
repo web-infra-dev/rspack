@@ -4,14 +4,6 @@ const config = {
 	entry: {
 		main: "./src/index.js"
 	},
-	module: {
-		rules: [
-			// {
-			// 	test: /\.svg$/,
-			// 	type: 'asset/inline'
-			// }
-		]
-	},
 	builtins: {
 		html: [
 			{

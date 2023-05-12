@@ -2732,9 +2732,6 @@ dependencies = [
 name = "rspack_regex"
 version = "0.1.0"
 dependencies = [
- "aho-corasick",
- "daachorse",
- "regex",
  "regex-syntax 0.7.1",
  "regress",
  "rspack_error",
