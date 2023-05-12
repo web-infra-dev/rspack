@@ -66,6 +66,7 @@ impl SplitChunksPlugin {
           .for_each(|violating_module| module_group.remove_module(violating_module));
 
         if module_group.modules.is_empty() {
+          tracing::trace!("{module_group_key} removed for minSize not fit");
           Some(module_group_key.clone())
         } else {
           None

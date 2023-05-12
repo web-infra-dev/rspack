@@ -147,7 +147,7 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
   ) {
     // remove all modules from other entries and update size
-    let keys_of_empty_group = module_group_map
+    let keys_of_invalid_group = module_group_map
       .iter_mut()
       .par_bridge()
       .filter(|(_key, each_module_group)| {
@@ -161,6 +161,7 @@ impl SplitChunksPlugin {
       .filter_map(|(key, each_module_group)| {
         item.modules.iter().for_each(|module| {
           if each_module_group.modules.contains(module) {
+            tracing::trace!("remove module({module}) from {key}");
             let module = compilation
               .module_graph
               .module_by_identifier(module)
@@ -170,14 +171,42 @@ impl SplitChunksPlugin {
         });
 
         if each_module_group.modules.is_empty() {
-          Some(key.clone())
-        } else {
-          None
+          tracing::trace!(
+            "{key} is deleted for having empty modules",
+          );
+          return Some(key.clone());
         }
+
+        tracing::trace!("each_module_group: {each_module_group:#?}");
+        tracing::trace!("item.modules: {:#?}", item.modules);
+
+        // Since there are modules removed, make sure the rest of chunks are all used.
+        each_module_group.chunks.retain(|c| {
+          let is_used_chunk = each_module_group
+            .modules
+            .iter()
+            .any(|m| compilation.chunk_graph.is_module_in_chunk(m, *c));
+          is_used_chunk
+        });
+
+        let cache_group: &CacheGroup = &self.cache_groups[each_module_group.cache_group_index];
+
+        // There are some unused chunks, which is removed
+        if each_module_group.chunks.len() < cache_group.min_chunks as usize {
+          // `min_size` is not satisfied, remove this invalid `ModuleGroup`
+          tracing::trace!(
+            "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
+            each_module_group.chunks.len(),
+            cache_group.min_chunks
+          );
+          return Some(key.clone());
+        }
+
+        None
       })
       .collect::<Vec<_>>();
 
-    keys_of_empty_group.into_iter().for_each(|key| {
+    keys_of_invalid_group.into_iter().for_each(|key| {
       module_group_map.remove(&key);
     });
   }
