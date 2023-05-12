@@ -4,13 +4,13 @@ const CopyPlugin = require("copy-webpack-plugin");
 const HtmlPlugin = require("@rspack/plugin-html").default;
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const minifyPlugin = require("@rspack/plugin-minify");
-const GeneratePackageJsonPlugin = require('generate-package-json-webpack-plugin');
-const licensePlugin = require('license-webpack-plugin');
+const GeneratePackageJsonPlugin = require("generate-package-json-webpack-plugin");
+const licensePlugin = require("license-webpack-plugin");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	target: "node",
 	mode: "development",
-	stats: { all: true },
+	stats: { errors: true, warnings: true },
 	entry: {
 		main: "./src/index.js"
 	},
@@ -36,7 +36,12 @@ const config = {
 			}
 		]),
 		new HtmlPlugin({
-			template: "./index.html"
+			template: "./index.ejs",
+			templateParameters: (compilation, assets, assetTags, options) => {
+				return {
+					inlineCss: compilation.assets["main.css"].source()
+				};
+			}
 		}),
 		new StatsWriterPlugin({
 			stats: { all: true },
@@ -46,10 +51,10 @@ const config = {
 		new licensePlugin.LicenseWebpackPlugin({
 			stats: {
 				warnings: false,
-				errors: false,
-			  },
+				errors: false
+			},
 			perChunkOutput: true,
-			outputFilename: `3rdpartylicenses.txt`,
+			outputFilename: `3rdpartylicenses.txt`
 		})
 	]
 };
