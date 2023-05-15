@@ -383,7 +383,6 @@ impl<'a> CodeSizeOptimizer<'a> {
             .entry_module_identifiers
             .contains(&module_identifier)
         {
-          dbg!(&module_identifier);
           continue;
         } else {
         }
