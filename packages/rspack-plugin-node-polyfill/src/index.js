@@ -32,9 +32,22 @@ const PolyfilledBuiltinModules = {
 };
 module.exports = class PolyfillBuiltinsPlugin {
 	apply(compiler) {
-		compiler.options.resolve.alias = {
+		const provide = {
+			Buffer: [require.resolve("buffer/"), "Buffer"],
+			console: [require.resolve("console-browserify")],
+			process: [require.resolve("process/browser")]
+		};
+
+		compiler.options.builtins = {
+			...compiler.options.builtins,
+			provide: {
+				...compiler.options.builtins?.provide,
+				...provide
+			}
+		};
+		compiler.options.resolve.fallback = {
 			...PolyfilledBuiltinModules,
-			...compiler.options.resolve.alias
+			...compiler.options.resolve.fallback
 		};
 	}
 };
