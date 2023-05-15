@@ -80,8 +80,14 @@ impl ExternalModule {
     }
   }
 
-  fn get_source_for_commonjs(&self, request: &ExternalRequest) -> String {
-    format!("module.exports = require('{}')", self.request)
+  fn get_source_for_commonjs(&self) -> String {
+    let request = &self.request.as_array_ref();
+    let module_name = request.get(0).expect("should have at least one element");
+    format!(
+      "module.exports = require('{}'){}",
+      module_name,
+      property_access(request, 1)
+    )
   }
 
   fn get_source_for_import(&self, compilation: &Compilation) -> String {

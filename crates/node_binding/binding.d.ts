@@ -326,12 +326,6 @@ export interface JsStatsWarning {
   formatted: string
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface RawAssetParserDataUrlOption {
   maxSize?: number
 }
@@ -808,12 +802,5 @@ export interface RawTrustedTypes {
 export interface SchemeAndJsResourceData {
   resourceData: JsResourceData
   scheme: string
-}
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
 }
 
