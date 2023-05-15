@@ -415,14 +415,12 @@ impl TestConfig {
         unique_name: "__rspack_test__".to_string(),
         chunk_loading_global: "webpackChunkwebpack".to_string(),
         path: context.join("dist"),
-        library: self.output.library.map(|l| {
-          return c::LibraryOptions {
-            name: None,
-            export: None,
-            library_type: l.r#type,
-            umd_named_define: None,
-            auxiliary_comment: None,
-          };
+        library: self.output.library.map(|l| c::LibraryOptions {
+          name: None,
+          export: None,
+          library_type: l.r#type,
+          umd_named_define: None,
+          auxiliary_comment: None,
         }),
         enabled_library_types: Some(vec!["system".to_string()]),
         strict_module_error_handling: false,

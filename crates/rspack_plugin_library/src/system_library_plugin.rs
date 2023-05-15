@@ -1,20 +1,17 @@
 use std::hash::Hash;
 
-use rspack_core::rspack_sources::Source;
-use rspack_core::TargetPlatform::Node;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, LibraryName,
-  LibraryOptions, Module, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, JsChunkHashArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRenderHookOutput, RenderArgs, RuntimeGlobals,
 };
-use rspack_error::Result;
 
-use super::utils::{external_arguments, external_dep_array};
+use super::utils::external_dep_array;
 use crate::utils::{external_module_names, normalize_name};
 
 #[derive(Debug, Default)]
-pub struct SystemLibraryPlugin {}
+pub struct SystemLibraryPlugin;
 
 impl SystemLibraryPlugin {
   pub fn new() -> Self {
@@ -42,7 +39,7 @@ impl Plugin for SystemLibraryPlugin {
     let compilation = &args.compilation;
     // system-named-assets-path is not supported
     let name = normalize_name(&compilation.options.output.library)?
-      .and_then(|name| Some(format!("\"{name}\",")))
+      .map(|name| format!("\"{name}\","))
       .unwrap_or("".to_string());
 
     let modules = compilation
@@ -85,7 +82,7 @@ impl Plugin for SystemLibraryPlugin {
         f.push_str(&format!(
           "Object.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})"
         ));
-        f.push_str("}");
+        f.push('}');
         f
       })
       .collect::<Vec<_>>()
@@ -106,7 +103,6 @@ impl Plugin for SystemLibraryPlugin {
       source.add(RawSource::from(setters))
     }
     source.add(RawSource::from("execute: function() {\n"));
-    source.add(RawSource::from(format!("console.log({dynamic_export});")));
     source.add(RawSource::from(format!("{dynamic_export}(")));
     source.add(args.source.clone());
     source.add(RawSource::from(")}\n"));
