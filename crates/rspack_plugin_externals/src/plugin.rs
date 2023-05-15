@@ -37,26 +37,31 @@ impl ExternalPlugin {
     r#type: Option<String>,
     dependency: &dyn ModuleDependency,
   ) -> Option<ExternalModule> {
-    let mut external_module_config = match config {
-      ExternalItemValue::String(config) => config,
+    let mut external_module_config: Vec<String> = match config {
+      ExternalItemValue::String(config) => vec![config.clone()],
       ExternalItemValue::Bool(config) => {
         if *config {
-          dependency.request()
+          vec![dependency.request().to_string()]
         } else {
           return None;
         }
       }
+      ExternalItemValue::Array(config) => config.to_vec(),
     };
+
     let external_module_type = r#type.unwrap_or_else(|| {
-      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(external_module_config)
-        && let Some((t, c)) = external_module_config.split_once(' ') {
-        external_module_config = c;
+      let head = external_module_config
+        .get_mut(0)
+        .expect("should have at least one element");
+      if UNSPECIFIED_EXTERNAL_TYPE_REGEXP.is_match(head.as_str())
+        && let Some((t, c)) = head.clone().as_str().split_once(' ') {
+        *head = c.to_string();
         return t.to_owned();
       }
       self.r#type.clone()
     });
     Some(ExternalModule::new(
-      external_module_config.to_owned(),
+      external_module_config,
       external_module_type,
       dependency.request().to_owned(),
     ))

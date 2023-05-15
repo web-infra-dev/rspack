@@ -376,6 +376,14 @@ module.exports = {
 			description: "The dependency used for the external.",
 			anyOf: [
 				{
+					type: "array",
+					items: {
+						description: "A part of the target of the external.",
+						type: "string",
+						minLength: 1
+					}
+				},
+				{
 					description: "The target of the external.",
 					type: "string"
 				},
