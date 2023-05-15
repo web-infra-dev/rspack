@@ -94,6 +94,7 @@ const System = {
 	},
 	ensureExecuted: name => {
 		let m = System.registry[name];
+		console.log(m);
 		if (!m && System._require) {
 			const oldName = System._nextName;
 			System._nextName = name;
