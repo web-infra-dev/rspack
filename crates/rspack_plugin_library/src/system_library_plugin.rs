@@ -40,7 +40,10 @@ impl Plugin for SystemLibraryPlugin {
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     let compilation = &args.compilation;
-    let name = normalize_name(&compilation.options.output.library)?.unwrap_or("".to_string());
+    // system-named-assets-path is not supported
+    let name = normalize_name(&compilation.options.output.library)?
+      .and_then(|name| Some(format!("\"{name}\",")))
+      .unwrap_or("".to_string());
 
     let modules = compilation
       .chunk_graph
@@ -106,7 +109,6 @@ impl Plugin for SystemLibraryPlugin {
     source.add(RawSource::from(format!("console.log({dynamic_export});")));
     source.add(RawSource::from(format!("{dynamic_export}(")));
     source.add(args.source.clone());
-    dbg!(args.source.source());
     source.add(RawSource::from(")}\n"));
     source.add(RawSource::from("}\n"));
     source.add(RawSource::from("\n})"));
