@@ -1,2 +1,4 @@
-let a = "index";
-require(`./child/${a}.js`);
+import {a} from './lib.js'
+function test() {
+	a
+}

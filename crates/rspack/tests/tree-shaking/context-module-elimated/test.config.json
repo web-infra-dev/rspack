@@ -3,7 +3,7 @@
     "sideEffects": "true"
   },
   "builtins": {
-    "treeShaking": "true",
+    "treeShaking": "module",
     "define": {
       "process.env.NODE_ENV": "'development'"
     }

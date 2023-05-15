@@ -479,7 +479,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             continue;
           }
 
-          // we need to pushed dependencies of context module instead of only its self, context module doesn't have ast,
+          // we need to push either dependencies of context module instead of only its self, context module doesn't have ast,
           // which imply it will be treated as a external module in analyze phase
           if matches!(
             dependency.dependency_type(),
@@ -487,7 +487,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::RequireContext
               | DependencyType::ImportContext
           ) {
-            let deps_of_context_module = self
+            let deps_module_id_of_context_module = self
               .compilation
               .module_graph
               .dependencies_by_module_identifier(module_identifier)
@@ -504,7 +504,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                   .collect::<Vec<_>>()
               })
               .unwrap_or_default();
-            q.extend(deps_of_context_module);
+            q.extend(deps_module_id_of_context_module);
           }
           q.push_back(*module_identifier);
         }
