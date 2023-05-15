@@ -828,3 +828,10 @@ export interface SchemeAndJsResourceData {
   scheme: string
 }
 
+export interface ThreadsafeNodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+  removeDirAll: (...args: any[]) => any
+}
+
