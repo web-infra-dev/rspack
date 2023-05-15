@@ -63,26 +63,26 @@ impl Plugin for SystemLibraryPlugin {
     let dynamic_export = "__WEBPACK_DYNAMIC_EXPORT__";
     let external_var_declarations = external_arguments
       .iter()
-      .map(|name| format!("var {name} = {{}};"))
+      .map(|name| format!("var {name} = {{}};\n"))
       .collect::<Vec<_>>()
-      .join("\n");
+      .join("");
     let external_var_initialization = external_arguments
       .iter()
-      .map(|name| format!("Object.defineProperty( {name} , \"__esModule\", {{ value: true }});"))
+      .map(|name| format!("Object.defineProperty( {name} , \"__esModule\", {{ value: true }});\n"))
       .collect::<Vec<_>>()
-      .join("\n");
-    let mut setters = external_arguments
+      .join("");
+    let setters = external_arguments
       .iter()
       .map(|name| {
-        let mut f = "function(module) {{".to_string();
+        let mut f = "function(module) {\n".to_string();
         f.push_str(&format!(
-          "Object.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})"
+          "\tObject.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})\n"
         ));
-        f.push('}');
+        f.push_str("}");
         f
       })
       .collect::<Vec<_>>()
-      .join("\n");
+      .join(",\n");
     let is_has_external_modules = modules.is_empty();
     let mut source = ConcatSource::default();
     source.add(RawSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{\n")));
@@ -94,8 +94,8 @@ impl Plugin for SystemLibraryPlugin {
     }
     source.add(RawSource::from("return {\n"));
     if !is_has_external_modules {
-      // setter : { function(module){} }
-      setters.push_str(",\n");
+      // setter : { [function(module){},...] },
+      let setters = format!("setters: [{}],\n", setters);
       source.add(RawSource::from(setters))
     }
     source.add(RawSource::from("execute: function() {\n"));
