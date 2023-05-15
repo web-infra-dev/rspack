@@ -7,7 +7,7 @@ use rspack_core::{
   PluginRenderHookOutput, RenderArgs, RuntimeGlobals,
 };
 
-use super::utils::external_dep_array;
+use super::utils::external_system_dep_array;
 use crate::utils::{external_module_names, normalize_name};
 
 #[derive(Debug, Default)]
@@ -56,7 +56,7 @@ impl Plugin for SystemLibraryPlugin {
           })
       })
       .collect::<Vec<&ExternalModule>>();
-    let external_deps_array = external_dep_array(&modules);
+    let external_deps_array = external_system_dep_array(&modules);
     let external_arguments = external_module_names(&modules, compilation);
 
     // The name of the variable provided by System for exporting

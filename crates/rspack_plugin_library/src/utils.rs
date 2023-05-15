@@ -11,6 +11,22 @@ pub fn external_dep_array(modules: &[&ExternalModule]) -> String {
   format!("[{value}]")
 }
 
+pub fn external_system_dep_array(modules: &[&ExternalModule]) -> String {
+  let value = modules
+    .iter()
+    .map(|m| {
+      m.request
+        .0
+        .iter()
+        .map(|r| format!("\"{r}\""))
+        .collect::<Vec<_>>()
+        .join(",")
+    })
+    .collect::<Vec<_>>()
+    .join(", ");
+  format!("[{value}]")
+}
+
 fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> Vec<String> {
   modules
     .iter()
