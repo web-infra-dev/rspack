@@ -354,10 +354,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       });
       let mut q = VecDeque::from_iter(
-        self
-          .compilation
-          .entry_modules()
-          .chain(context_entry_modules),
+        self.compilation.entry_modules(), // .chain(context_entry_modules),
       );
       while let Some(module_identifier) = q.pop_front() {
         if visited.contains(&module_identifier) {
@@ -386,6 +383,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             .entry_module_identifiers
             .contains(&module_identifier)
         {
+          dbg!(&module_identifier);
           continue;
         } else {
         }
@@ -427,7 +425,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           });
         // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
         for dependency_id in mgm.dependencies.iter() {
-          let module_ident = match self
+          let module_identifier = match self
             .compilation
             .module_graph
             .module_identifier_by_dependency_id(dependency_id)
@@ -465,7 +463,6 @@ impl<'a> CodeSizeOptimizer<'a> {
               continue;
             }
           };
-
           let need_bailout = matches!(
             dependency.dependency_type(),
             DependencyType::CommonJSRequireContext
@@ -475,16 +472,42 @@ impl<'a> CodeSizeOptimizer<'a> {
               | DependencyType::ImportContext
           );
 
-          if self.side_effects_free_modules.contains(module_ident)
-            && !reachable_dependency_identifier.contains(module_ident)
+          if self.side_effects_free_modules.contains(module_identifier)
+            && !reachable_dependency_identifier.contains(module_identifier)
             && !need_bailout
           {
             continue;
           }
-          q.push_back(*module_ident);
+
+          // we need to pushed dependencies of context module instead of only its self, context module doesn't have ast,
+          // which imply it will be treated as a external module in analyze phase
+          if matches!(
+            dependency.dependency_type(),
+            DependencyType::CommonJSRequireContext
+              | DependencyType::RequireContext
+              | DependencyType::ImportContext
+          ) {
+            let deps_of_context_module = self
+              .compilation
+              .module_graph
+              .dependencies_by_module_identifier(module_identifier)
+              .map(|deps| {
+                deps
+                  .iter()
+                  .filter_map(|dep| {
+                    self
+                      .compilation
+                      .module_graph
+                      .module_identifier_by_dependency_id(dep)
+                      .map(|ident| *ident)
+                  })
+                  .collect::<Vec<_>>()
+              })
+              .unwrap_or_default();
+            q.extend(deps_of_context_module);
+          }
+          q.push_back(*module_identifier);
         }
-        // dbg!(&module_identifier);
-        // dbg!(&reachable_dependency_identifier);
       }
 
       for node_index in visited_symbol_node_index {
