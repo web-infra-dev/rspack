@@ -29,10 +29,7 @@ impl ExternalRequest {
     // we're sure array have more than one element,because it is valid in js side
     self.0.get(0).expect("should have at least element")
   }
-  pub fn as_array(self) -> Vec<String> {
-    self.0
-  }
-  pub fn as_array_ref(&self) -> &Vec<String> {
+  pub fn as_array(&self) -> &Vec<String> {
     &self.0
   }
 }
@@ -50,12 +47,12 @@ fn get_source_for_global_variable_external(
   request: &ExternalRequest,
   external_type: &ExternalType,
 ) -> String {
-  let object_lookup = property_access(request.as_array_ref(), 0);
+  let object_lookup = property_access(request.as_array(), 0);
   format!("{external_type}{object_lookup}")
 }
 
-fn get_source_for_default_case(optional: bool, request: &ExternalRequest) -> String {
-  let request = request.as_array_ref();
+fn get_source_for_default_case(_optional: bool, request: &ExternalRequest) -> String {
+  let request = request.as_array();
   let variable_name = request.get(0).expect("should have at least one element");
   let object_lookup = property_access(request, 1);
   format!("{variable_name}{object_lookup}")
@@ -81,7 +78,7 @@ impl ExternalModule {
   }
 
   fn get_source_for_commonjs(&self) -> String {
-    let request = &self.request.as_array_ref();
+    let request = &self.request.as_array();
     let module_name = request.get(0).expect("should have at least one element");
     format!(
       "module.exports = require('{}'){}",

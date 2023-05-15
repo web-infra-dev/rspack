@@ -3,9 +3,9 @@ use std::{fmt::Debug, path::PathBuf};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ApplyContext, ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule,
-  ExternalRequest, ExternalType, FactorizeArgs, ModuleDependency, ModuleExt, ModuleFactoryResult,
-  NormalModuleFactoryContext, Plugin, PluginContext, PluginFactorizeHookOutput,
+  ApplyContext, ExternalItem, ExternalItemFnCtx, ExternalItemValue, ExternalModule, ExternalType,
+  FactorizeArgs, ModuleDependency, ModuleExt, ModuleFactoryResult, NormalModuleFactoryContext,
+  Plugin, PluginContext, PluginFactorizeHookOutput,
 };
 use rspack_error::Result;
 
