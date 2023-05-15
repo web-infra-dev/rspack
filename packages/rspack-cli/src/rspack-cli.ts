@@ -90,6 +90,7 @@ export class RspackCLI {
 			raw: val => console.log(val)
 		};
 	}
+
 	async run(argv: string[]) {
 		if (semver.lt(semver.clean(process.version), "14.0.0")) {
 			this.getLogger().warn(

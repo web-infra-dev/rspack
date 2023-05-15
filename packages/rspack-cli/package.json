@@ -48,6 +48,7 @@
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
     "webpack-bundle-analyzer": "4.6.1",
+    "get-tsconfig": "^4.5.0",
     "yargs": "17.6.2",
     "semver": "6.3.0"
   }

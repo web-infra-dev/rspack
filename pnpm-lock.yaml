@@ -732,6 +732,7 @@ importers:
       concat-stream: ^2.0.0
       cross-env: 7.0.3
       execa: ^5.0.0
+      get-tsconfig: ^4.5.0
       internal-ip: 6.2.0
       semver: 6.3.0
       source-map-support: ^0.5.19
@@ -743,6 +744,7 @@ importers:
       '@rspack/core': link:../rspack
       '@rspack/dev-server': link:../rspack-dev-server
       colorette: 2.0.19
+      get-tsconfig: 4.5.0
       semver: 6.3.0
       webpack-bundle-analyzer: 4.6.1
       yargs: 17.6.2

@@ -3,6 +3,8 @@ import { pathToFileURL } from "url";
 import fs from "fs";
 import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
+import { getTsconfig } from "get-tsconfig";
+import { validate, ValidationError } from "schema-utils";
 
 const supportedExtensions = [".js", ".ts", ".mjs", ".cjs"];
 const defaultConfig = "rspack.config";
@@ -74,4 +76,30 @@ async function requireWithAdditionalExtension(resolvedPath: string) {
 		loadedConfig = (await import(fileUrl)).default;
 	}
 	return loadedConfig;
+}
+
+function revalidateTsconfig(options: RspackOptions | MultiRspackOptions) {
+	try {
+		(Array.isArray(options) ? options : [options]).forEach(option => {
+			let resolveTsConfig =
+				(option as RspackOptions).resolve?.tsConfigPath ??
+				(option as RspackOptions).context ??
+				process.cwd();
+			const loadResult = getTsconfig(resolveTsConfig);
+			loadResult?.config &&
+				validate(require("./config/ts-schema.js"), loadResult.config);
+		});
+	} catch (e) {
+		if (!(e instanceof ValidationError)) {
+			throw e;
+		}
+		// 'strict', 'loose', 'loose-silent'
+		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "loose";
+		if (strategy === "loose-silent") return;
+		if (strategy === "loose") {
+			console.log(`\x1b[33m${e.message}\x1b[0m`);
+			return;
+		}
+		// throw new InvalidateConfigurationError(e.message);
+	}
 }
