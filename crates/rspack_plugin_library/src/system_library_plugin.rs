@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+use rspack_core::rspack_sources::Source;
 use rspack_core::TargetPlatform::Node;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
@@ -74,7 +75,7 @@ impl Plugin for SystemLibraryPlugin {
       .map(|name| format!("Object.defineProperty( {name} , \"__esModule\", {{ value: true }});"))
       .collect::<Vec<_>>()
       .join("\n");
-    let setters = external_arguments
+    let mut setters = external_arguments
       .iter()
       .map(|name| {
         let mut f = format!("function(module) {{");
@@ -88,24 +89,27 @@ impl Plugin for SystemLibraryPlugin {
       .join("\n");
     let is_has_external_modules = modules.is_empty();
     let mut source = ConcatSource::default();
-    source.add(RawSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{")));
-    if is_has_external_modules {
+    source.add(RawSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{\n")));
+    if !is_has_external_modules {
       // 	var __WEBPACK_EXTERNAL_MODULE_{}__ = {};
       source.add(RawSource::from(format!("{external_var_declarations}")));
       // Object.defineProperty(__WEBPACK_EXTERNAL_MODULE_{}__, "__esModule", { value: true });
       source.add(RawSource::from(format!("{external_var_initialization}")))
     }
-    source.add(RawSource::from("return {"));
-    if is_has_external_modules {
+    source.add(RawSource::from("return {\n"));
+    if !is_has_external_modules {
       // setter : { function(module){} }
+      setters.push_str(",\n");
       source.add(RawSource::from(setters))
     }
-    source.add(RawSource::from("execute: function() {"));
-    source.add(RawSource::from(format!("{dynamic_export}")));
+    source.add(RawSource::from("execute: function() {\n"));
+    source.add(RawSource::from(format!("console.log({dynamic_export});")));
+    source.add(RawSource::from(format!("{dynamic_export}(")));
     source.add(args.source.clone());
-    source.add(RawSource::from("}"));
-    source.add(RawSource::from("}"));
-    source.add(RawSource::from("\n});"));
+    dbg!(args.source.source());
+    source.add(RawSource::from(")}\n"));
+    source.add(RawSource::from("}\n"));
+    source.add(RawSource::from("\n})"));
     Ok(Some(source.boxed()))
   }
 

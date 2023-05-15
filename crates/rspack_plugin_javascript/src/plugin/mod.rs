@@ -281,6 +281,10 @@ impl JsPlugin {
       render_chunk_modules(compilation, &args.chunk_ukey)?;
     let (header, startup) = self.render_bootstrap(&args.chunk_ukey, args.compilation);
     let mut sources = ConcatSource::default();
+    let is_iife = compilation.options.output.iife;
+    if is_iife {
+      sources.add(RawSource::from("(function() {\n"));
+    }
     sources.add(RawSource::from("var __webpack_modules__ = "));
     sources.add(module_source);
     sources.add(RawSource::from("\n"));
@@ -311,20 +315,32 @@ impl JsPlugin {
         sources.add(RawSource::from("return __webpack_exports__;\n"));
       }
     }
-    let mut final_source = if compilation.options.output.iife {
-      self.render_iife(sources.boxed())
-    } else {
-      sources.boxed()
-    };
+    if is_iife {
+      sources.add(RawSource::from("\n})()"));
+    }
+    let mut final_source = sources.boxed();
     final_source = render_chunk_init_fragments(final_source, &mut chunk_init_fragments);
     if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
       source: &final_source,
     })? {
-      return Ok(source);
+      let final_source = Self::end_iife(is_iife, source);
+      return Ok(final_source);
     }
+    let final_source = Self::end_iife(is_iife, final_source);
     Ok(final_source)
+  }
+
+  fn end_iife(is_iife: bool, source: BoxSource) -> BoxSource {
+    if is_iife {
+      let mut sources = ConcatSource::default();
+      sources.add(source);
+      sources.add(RawSource::from(";\n"));
+      sources.boxed()
+    } else {
+      source
+    }
   }
 
   #[inline]

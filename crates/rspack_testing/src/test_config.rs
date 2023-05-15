@@ -511,8 +511,17 @@ impl TestConfig {
       .boxed(),
     );
     if let Some(library) = &options.output.library {
-      if "system" == library.library_type {
-        plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed());
+      let library = library.library_type.as_str();
+      match library {
+        "system" => {
+          plugins.push(rspack_plugin_library::SystemLibraryPlugin::default().boxed());
+        }
+        "amd" | "amd-require" => {
+          plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
+          plugins
+            .push(rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed());
+        }
+        _ => {}
       }
     }
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
