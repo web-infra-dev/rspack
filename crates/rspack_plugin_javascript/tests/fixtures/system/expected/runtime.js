@@ -1,7 +1,7 @@
 System.register([], function(__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
 return {
 execute: function() {
-console.log(__WEBPACK_DYNAMIC_EXPORT__);__WEBPACK_DYNAMIC_EXPORT__((function() {
+__WEBPACK_DYNAMIC_EXPORT__((function() {
 var __webpack_modules__ = {
 
 }
