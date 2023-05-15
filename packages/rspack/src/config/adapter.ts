@@ -441,6 +441,11 @@ function getRawExternals(externals: Externals): RawOptions["externals"] {
 			return { type: "string", stringPayload: value };
 		} else if (typeof value === "boolean") {
 			return { type: "bool", boolPayload: value };
+		} else if (Array.isArray(value)) {
+			return {
+				type: "array",
+				arrayPayload: value
+			};
 		}
 		throw new Error("unreachable");
 	}

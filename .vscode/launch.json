@@ -11,13 +11,22 @@
       "type": "lldb",
       "request": "launch",
       "sourceLanguages": ["rust"],
-      "name": "debug-rust",
+      "name": "debug-rust-jest",
+      "program": "node",
+      "args": ["--inspect", "../../node_modules/.bin/jest", "--workerThreads"],
+      "cwd": "${workspaceFolder}/packages/rspack"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["rust"],
+      "name": "debug-rust-basic",
       "program": "node",
       "args": [
         "--inspect",
         "bin/rspack",
         "-c",
-        "../../examples/angular/rspack.config.js"
+        "../../examples/basic/rspack.config.js"
       ],
       "cwd": "${workspaceFolder}/packages/rspack-cli"
     },
@@ -38,8 +47,8 @@
   ],
   "compounds": [
     {
-      "name": "debug-rspack",
-      "configurations": ["debug-js", "debug-rust"]
+      "name": "debug-basic",
+      "configurations": ["debug-js", "debug-rust-basic"]
     },
     {
       "name": "debug-rspack-2",

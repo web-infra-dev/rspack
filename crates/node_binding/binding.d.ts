@@ -326,12 +326,6 @@ export interface JsStatsWarning {
   formatted: string
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface RawAssetParserDataUrlOption {
   maxSize?: number
 }
@@ -475,9 +469,10 @@ export interface RawExternalItemFnResult {
 }
 
 export interface RawExternalItemValue {
-  type: "string" | "bool"
+  type: "string" | "bool" | "array"
   stringPayload?: string
   boolPayload?: boolean
+  arrayPayload?: Array<string>
 }
 
 export interface RawExternalsPresets {
@@ -807,12 +802,5 @@ export interface RawTrustedTypes {
 export interface SchemeAndJsResourceData {
   resourceData: JsResourceData
   scheme: string
-}
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
 }
 

@@ -273,7 +273,6 @@ class Compiler {
 			this.#_instance ??
 			new binding.Rspack(
 				options,
-
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
 					make: this.#make.bind(this),
