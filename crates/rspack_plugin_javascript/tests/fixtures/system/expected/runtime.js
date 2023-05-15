@@ -1,4 +1,7 @@
-System.register([], function(__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {return {execute: function() {__WEBPACK_DYNAMIC_EXPORT__(function() {
+System.register([], function(__WEBPACK_DYNAMIC_EXPORT__, __system_context__) {
+return {
+execute: function() {
+console.log(__WEBPACK_DYNAMIC_EXPORT__);__WEBPACK_DYNAMIC_EXPORT__((function() {
 var __webpack_modules__ = {
 
 }
@@ -12,7 +15,7 @@ function __webpack_require__(moduleId) {
       }
       // Create a new module (and put it into the cache)
       var module = (__webpack_module_cache__[moduleId] = {
-       exports: {} 
+       exports: {}
       });
       // Execute the module function
       __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
@@ -118,6 +121,7 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 
 })();
 
-})();
-}}
+})())}
+}
+
 });
