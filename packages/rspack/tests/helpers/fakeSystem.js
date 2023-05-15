@@ -13,7 +13,6 @@ const System = {
 			deps = [];
 		}
 		const dynamicExport = result => {
-			console.log(result);
 			if (System.registry[name] !== entry) {
 				throw new Error(`Module ${name} calls dynamicExport too late`);
 			}
