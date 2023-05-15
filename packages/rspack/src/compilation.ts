@@ -355,8 +355,9 @@ export class Compilation {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
-			// @ts-expect-error
-			const source = createSourceFromRaw(asset.source);
+			const source = asset.source
+				? createSourceFromRaw(asset.source)
+				: undefined;
 			return {
 				...asset,
 				source
