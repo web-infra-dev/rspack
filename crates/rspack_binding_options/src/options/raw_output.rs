@@ -6,7 +6,6 @@ use rspack_core::{
 use rspack_error::internal_error;
 use serde::Deserialize;
 
-#[cfg(feature = "node-api")]
 use crate::JsLoaderRunner;
 use crate::RawOptionsApply;
 
@@ -150,7 +149,7 @@ impl RawOptionsApply for RawOutputOptions {
   fn apply(
     self,
     plugins: &mut Vec<BoxPlugin>,
-    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
+    _: &JsLoaderRunner,
   ) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_chunk_format_plugin(plugins)?;
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());

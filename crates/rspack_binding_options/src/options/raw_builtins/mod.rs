@@ -9,7 +9,6 @@ use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use serde::Deserialize;
 
-#[cfg(feature = "node-api")]
 use crate::JsLoaderRunner;
 
 mod raw_banner;
@@ -108,7 +107,7 @@ pub struct RawBuiltins {
   pub define: Define,
   #[napi(ts_type = "Record<string, string[]>")]
   pub provide: Provide,
-  pub tree_shaking: bool,
+  pub tree_shaking: String,
   pub progress: Option<RawProgressPluginConfig>,
   pub react: RawReactOptions,
   pub decorator: Option<RawDecoratorOptions>,
@@ -128,7 +127,7 @@ impl RawOptionsApply for RawBuiltins {
   fn apply(
     self,
     plugins: &mut Vec<rspack_core::BoxPlugin>,
-    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
+    _: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     if let Some(htmls) = self.html {
       for html in htmls {
@@ -173,7 +172,7 @@ impl RawOptionsApply for RawBuiltins {
       preset_env: self.preset_env.map(Into::into),
       define: self.define,
       provide: self.provide,
-      tree_shaking: self.tree_shaking,
+      tree_shaking: self.tree_shaking.into(),
       react: self.react.into(),
       decorator: self.decorator.map(|i| i.into()),
       no_emit_assets: self.no_emit_assets,

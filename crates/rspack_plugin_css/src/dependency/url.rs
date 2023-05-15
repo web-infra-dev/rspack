@@ -1,9 +1,12 @@
 use rspack_core::{
-  create_css_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Compilation,
-  CssAstPath, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency, ModuleIdentifier,
+  create_css_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, CssAstPath, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier,
+  PublicPath,
 };
 use swc_core::css::ast::UrlValue;
+
+use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
 
 #[derive(Debug, Clone)]
 pub struct CssUrlDependency {
@@ -34,14 +37,14 @@ impl CssUrlDependency {
       .module_generation_result_map
       .get(identifier);
     if let Some(code_gen_result) = code_gen_result {
-      if let Some(url) = code_gen_result.data.get("url") {
-        Some(url.to_string())
-      } else if let Some(filename) = code_gen_result.data.get("filename") {
-        let public_path = compilation
-          .options
-          .output
-          .public_path
-          .render(compilation, filename);
+      if let Some(url) = code_gen_result.data.get::<CodeGenerationDataUrl>() {
+        Some(url.inner().to_string())
+      } else if let Some(filename) = code_gen_result.data.get::<CodeGenerationDataFilename>() {
+        let filename = filename.inner();
+        let public_path = match &compilation.options.output.public_path {
+          PublicPath::String(p) => p,
+          PublicPath::Auto => AUTO_PUBLIC_PATH_PLACEHOLDER,
+        };
         Some(format!("{public_path}{filename}"))
       } else {
         None

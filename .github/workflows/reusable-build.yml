@@ -19,7 +19,6 @@ name: Reusable Release
 #     uses: ./.github/workflows/reusable-build.yml
 #     with:
 #       target: ${{ matrix.target }}
-#       docker: true
 
 on:
   workflow_call:
@@ -27,9 +26,6 @@ on:
       target:
         required: true
         type: string
-      docker:
-        required: true
-        type: boolean
       tests:
         description: "Run tests?"
         default: false
@@ -42,7 +38,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       host: ${{ steps.run.outputs.host }}
-      docker: ${{ steps.run.outputs.docker }}
     steps:
       - name: Choose Target for ${{ inputs.target }}
         id: run
@@ -50,9 +45,6 @@ jobs:
         run: |
           if [[ "${{ contains(inputs.target, 'linux') }}" == "true" ]]; then
             echo "host=ubuntu-latest" >> "$GITHUB_OUTPUT"
-            if [[ "${{ inputs.docker }}" == "true" ]]; then
-              echo "docker=true" >> "$GITHUB_OUTPUT"
-            fi
           fi
           if [[ "${{ contains(inputs.target, 'windows') }}" == "true" ]]; then
             echo "host=windows-latest" >> "$GITHUB_OUTPUT"
@@ -72,19 +64,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        if: ${{ needs.select.outputs.docker != 'true' }}
-        run: rustup show
-
       - name: Setup Rust Target
-        if: ${{ needs.select.outputs.docker != 'true' }}
         run: rustup target add ${{ inputs.target }}
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           shared-key: build-${{ inputs.target }}
-          workspaces: "./crates/node_binding -> target"
           save-if: ${{ github.ref_name == 'main' }} # This should be safe because we have nightly building the cache every day
 
       - name: Pnpm Cache
@@ -164,6 +150,33 @@ jobs:
           path: crates/node_binding/*.node
           if-no-files-found: error
 
+  e2e:
+    name: E2E Testing
+    needs: [select, build]
+    if: inputs.tests && inputs.target == 'x86_64-unknown-linux-gnu'
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.33.0-jammy
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Download bindings
+        uses: actions/download-artifact@v3
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: 16
+
+      - name: Run e2e
+        shell: bash
+        run: |
+          pnpm run build:js
+          pnpm run test:e2e
+
   test:
     needs: [select, build]
     if: inputs.tests
@@ -175,6 +188,9 @@ jobs:
       matrix:
         node: [14, 16]
     name: Test Node ${{ matrix.node }}
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - uses: actions/checkout@v3
 
@@ -188,13 +204,28 @@ jobs:
         shell: bash
         run: ls -lah crates/node_binding/*.node
 
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm-cache
+        with:
+          node-version: ${{ matrix.node }}
+
+      ### x86_64-apple-darwin
+
+      - name: Test x86_64-apple-darwin
+        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
+        run: pnpm run test:ci
+
+      ### x86_64-pc-windows-msvc
+
+      - name: Test x86_64-pc-windows-msvc
+        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
+        run: pnpm run test:ci
+
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        uses: ./.github/actions/docker-test
-        with:
-          node: ${{ matrix.node }}
+        run: pnpm run test:ci
 
       ### aarch64-unknown-linux-gnu
 
@@ -243,49 +274,3 @@ jobs:
         with:
           node: ${{ matrix.node }}
           options: --platform linux/arm64
-
-      ### x86_64-apple-darwin
-
-      - name: Setup x86_64-apple-darwin
-        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
-        uses: ./.github/actions/pnpm-cache
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Test x86_64-apple-darwin
-        if: ${{ inputs.target == 'x86_64-apple-darwin' }}
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-          PUPPETEER_SKIP_DOWNLOAD: true
-        shell: bash
-        run: |
-          set -e
-          corepack enable
-          pnpm install
-          pnpm run build:js
-          pnpm run test:unit
-          pnpm run test:example
-          # pnpm run test:e2e
-
-      ### x86_64-pc-windows-msvc
-
-      - name: Setup x86_64-pc-windows-msvc
-        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
-        uses: ./.github/actions/pnpm-cache
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Test x86_64-pc-windows-msvc
-        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
-          PUPPETEER_SKIP_DOWNLOAD: true
-        shell: bash
-        run: |
-          set -e
-          corepack enable
-          pnpm install
-          pnpm run build:js
-          pnpm run test:unit
-          pnpm run test:example
-          # pnpm run test:e2e

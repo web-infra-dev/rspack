@@ -1,7 +1,5 @@
 use napi_derive::napi;
-#[cfg(feature = "node-api")]
 use tracing::{span_enabled, Level};
-#[cfg(feature = "node-api")]
 use {
   napi::bindgen_prelude::*,
   napi::NapiRaw,
@@ -19,20 +17,32 @@ pub struct JsLoader {
   pub identifier: String,
 }
 
-#[cfg(feature = "node-api")]
+/// Loader Runner for JavaScript environment
 #[derive(Clone)]
-pub struct JsLoaderRunner(ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>);
+pub enum JsLoaderRunner {
+  ThreadsafeFunction(ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>),
+  /// Used for non-JavaScript environment such as calling from the Rust side for testing purposes
+  Noop,
+}
 
-#[cfg(feature = "node-api")]
-impl std::ops::Deref for JsLoaderRunner {
-  type Target = ThreadsafeFunction<JsLoaderContext, LoaderThreadsafeLoaderResult>;
+impl JsLoaderRunner {
+  pub fn noop() -> Self {
+    Self::Noop
+  }
 
-  fn deref(&self) -> &Self::Target {
-    &self.0
+  pub fn call(
+    &self,
+    value: JsLoaderContext,
+    mode: ThreadsafeFunctionCallMode,
+  ) -> Result<tokio::sync::oneshot::Receiver<rspack_error::Result<LoaderThreadsafeLoaderResult>>>
+  {
+    match self {
+      Self::ThreadsafeFunction(func) => func.call(value, mode),
+      Self::Noop => unreachable!(),
+    }
   }
 }
 
-#[cfg(feature = "node-api")]
 impl TryFrom<JsFunction> for JsLoaderRunner {
   type Error = napi::Error;
 
@@ -56,7 +66,7 @@ impl TryFrom<JsFunction> for JsLoaderRunner {
           let resource = ctx.value.resource.clone();
 
           let loader_name = if span_enabled!(Level::TRACE) {
-            let loader_path = ctx.value.current_loader.clone();
+            let loader_path = &ctx.value.current_loader;
             // try to remove the previous node_modules parts from path for better display
 
             let parts = loader_path.split("node_modules/");
@@ -88,17 +98,15 @@ impl TryFrom<JsFunction> for JsLoaderRunner {
       Ok(func)
     })?;
 
-    Ok(JsLoaderRunner(func))
+    Ok(Self::ThreadsafeFunction(func))
   }
 }
 
-#[cfg(feature = "node-api")]
 pub struct JsLoaderAdapter {
   pub runner: JsLoaderRunner,
   pub identifier: Identifier,
 }
 
-#[cfg(feature = "node-api")]
 impl std::fmt::Debug for JsLoaderAdapter {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JsLoaderAdapter")
@@ -107,14 +115,12 @@ impl std::fmt::Debug for JsLoaderAdapter {
   }
 }
 
-#[cfg(feature = "node-api")]
 impl Identifiable for JsLoaderAdapter {
   fn identifier(&self) -> Identifier {
     self.identifier
   }
 }
 
-#[cfg(feature = "node-api")]
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
   async fn pitch(
@@ -169,7 +175,6 @@ impl Loader<LoaderRunnerContext> for JsLoaderAdapter {
   }
 }
 
-#[cfg(feature = "node-api")]
 fn sync_loader_context(
   loader_result: JsLoaderResult,
   loader_context: &mut LoaderContext<'_, LoaderRunnerContext>,
@@ -211,7 +216,6 @@ fn sync_loader_context(
   Ok(())
 }
 
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct JsLoaderContext {
   /// Content maybe empty in pitching stage
@@ -233,7 +237,6 @@ pub struct JsLoaderContext {
   pub is_pitching: bool,
 }
 
-#[cfg(feature = "node-api")]
 impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
   for JsLoaderContext
 {
@@ -288,7 +291,6 @@ impl TryFrom<&rspack_core::LoaderContext<'_, rspack_core::LoaderRunnerContext>>
   }
 }
 
-#[cfg(feature = "node-api")]
 #[napi(object)]
 pub struct JsLoaderResult {
   /// Content in pitching stage can be empty
@@ -304,5 +306,4 @@ pub struct JsLoaderResult {
   pub is_pitching: bool,
 }
 
-#[cfg(feature = "node-api")]
 pub type LoaderThreadsafeLoaderResult = Option<JsLoaderResult>;

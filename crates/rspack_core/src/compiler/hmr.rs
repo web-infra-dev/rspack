@@ -159,6 +159,8 @@ where
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
+        new_compilation.make_failed_module =
+          std::mem::take(&mut self.compilation.make_failed_module);
         new_compilation.entry_dependencies =
           std::mem::take(&mut self.compilation.entry_dependencies);
         new_compilation.lazy_visit_modules =
@@ -170,6 +172,14 @@ where
           std::mem::take(&mut self.compilation.missing_dependencies);
         new_compilation.build_dependencies =
           std::mem::take(&mut self.compilation.build_dependencies);
+        // tree shaking usage start
+        new_compilation.optimize_analyze_result_map =
+          std::mem::take(&mut self.compilation.optimize_analyze_result_map);
+        new_compilation.entry_module_identifiers =
+          std::mem::take(&mut self.compilation.entry_module_identifiers);
+        new_compilation.bailout_module_identifiers =
+          std::mem::take(&mut self.compilation.bailout_module_identifiers);
+        // tree shaking usage end
 
         // seal stage used
         new_compilation.code_splitting_cache =
@@ -358,7 +368,7 @@ where
             module.hash(&mut hot_update_chunk.hash);
           }
         }
-        let hash = format!("{:x}", hot_update_chunk.hash.finish());
+        let hash = format!("{:016x}", hot_update_chunk.hash.finish());
         hot_update_chunk
           .content_hash
           .insert(crate::SourceType::JavaScript, hash.clone());

@@ -116,8 +116,8 @@ describe("snapshots", () => {
 		+       "pureFuncs": Array [],
 		+     },
 		@@ ... @@
-		-     "treeShaking": false,
-		+     "treeShaking": true,
+		-     "treeShaking": "false",
+		+     "treeShaking": "true",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
@@ -165,8 +165,8 @@ describe("snapshots", () => {
 		+       "pureFuncs": Array [],
 		+     },
 		@@ ... @@
-		-     "treeShaking": false,
-		+     "treeShaking": true,
+		-     "treeShaking": "false",
+		+     "treeShaking": "true",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",

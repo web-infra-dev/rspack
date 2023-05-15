@@ -11,8 +11,6 @@ rspack_testing = { path = "../rspack_testing" }
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-base64 = "0.13"
-better_scoped_tls = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
 either = "1"
@@ -28,7 +26,6 @@ rspack_identifier = { path = "../rspack_identifier" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 sourcemap = "6.2.3"
 sugar_path = { workspace = true }
 swc_config = { workspace = true }
@@ -50,6 +47,5 @@ swc_emotion = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
-tracing = { workspace = true }
 url = "2.3.1"
 xxhash-rust = { workspace = true, features = ["xxh3", "xxh32"] }

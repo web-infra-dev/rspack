@@ -21,7 +21,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 use xxhash_rust::xxh3::Xxh3;
 
@@ -32,7 +32,7 @@ use crate::{
   CompilerOptions, Context, Dependency, DependencyId, FactoryMeta, GenerateContext,
   LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
+  ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -591,8 +591,6 @@ impl Module for NormalModule {
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
 
-    // TODO: match package.json type files
-    build_meta.strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm);
     Ok(
       BuildResult {
         build_info,
@@ -606,8 +604,6 @@ impl Module for NormalModule {
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
-      let mut data = HashMap::default();
-      let mut runtime_requirements = RuntimeGlobals::default();
       for source_type in self.source_types() {
         let mut generation_result = self.parser_and_generator.generate(
           ast_or_source,
@@ -615,8 +611,8 @@ impl Module for NormalModule {
           &mut GenerateContext {
             compilation,
             module_generator_options: self.generator_options.as_ref(),
-            runtime_requirements: &mut runtime_requirements,
-            data: &mut data,
+            runtime_requirements: &mut code_generation_result.runtime_requirements,
+            data: &mut code_generation_result.data,
             requested_source_type: *source_type,
           },
         )?;
@@ -625,10 +621,6 @@ impl Module for NormalModule {
           .map(|i| i, |s| CachedSource::new(s).boxed());
         code_generation_result.add(*source_type, generation_result);
       }
-      code_generation_result.data.extend(data);
-      code_generation_result
-        .runtime_requirements
-        .add(runtime_requirements);
       code_generation_result.set_hash();
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {

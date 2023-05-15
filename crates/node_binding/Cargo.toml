@@ -6,57 +6,40 @@ publish    = false
 repository = "https://github.com/web-infra-dev/rspack"
 version    = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-rspack_binding_macros = { path = "../rspack_binding_macros" }
-rspack_binding_options = { path = "../rspack_binding_options", default-features = false, features = [
-  "node-api",
-] }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_fs = { path = "../rspack_fs", features = ["async"] }
-rspack_fs_node = { path = "../rspack_fs_node" }
-rspack_identifier = { path = "../rspack_identifier" }
-rspack_napi_shared = { path = "../rspack_napi_shared" }
-rspack_plugin_html = { path = "../rspack_plugin_html" }
-rspack_tracing = { path = "../rspack_tracing" }
+rspack_binding_macros  = { path = "../rspack_binding_macros" }
+rspack_binding_options = { path = "../rspack_binding_options" }
+rspack_core            = { path = "../rspack_core" }
+rspack_error           = { path = "../rspack_error" }
+rspack_fs_node         = { path = "../rspack_fs_node" }
+rspack_identifier      = { path = "../rspack_identifier" }
+rspack_napi_shared     = { path = "../rspack_napi_shared" }
+rspack_tracing         = { path = "../rspack_tracing" }
 
-anyhow      = { version = "1.0.65", features = ["backtrace"] }
-async-trait = "0.1.53"
-backtrace   = "0.3"
-dashmap     = "5.4.0"
-futures     = "0.3"
-once_cell   = "1"
-regex       = "1.6.0"
-serde       = { version = "1", features = ["derive"] }
-serde_json  = "1"
-tokio       = { version = "1.28.0", features = ["rt", "rt-multi-thread", "macros"] }
-tracing     = "0.1.34"
+anyhow      = { workspace = true }
+async-trait = { workspace = true }
+backtrace   = { workspace = true }
+dashmap     = { workspace = true }
+futures     = { workspace = true }
+once_cell   = { workspace = true }
+tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
+tracing     = { workspace = true }
 
-# Pinned
-napi        = { version = "=2.12.5" }
-napi-derive = { version = "=2.12.3" }
-napi-sys    = { version = "=2.2.3" }
+napi        = { workspace = true }
+napi-derive = { workspace = true }
+napi-sys    = { workspace = true }
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-mimalloc-rust = { version = "0.2" }
+mimalloc-rust = { workspace = true }
 
 [target.'cfg(all(target_os = "linux", not(all(target_env = "musl", target_arch = "aarch64"))))'.dependencies]
-mimalloc-rust = { version = "0.2", features = ["local-dynamic-tls"] }
+mimalloc-rust = { workspace = true, features = ["local-dynamic-tls"] }
 
 [build-dependencies]
-napi-build = { version = "=2.0.1" }
+napi-build = { workspace = true }
 
 [dev-dependencies]
-testing_macros = { version = "0.2.5" }
-
-[profile.release]
-codegen-units = 1
-debug         = false
-lto           = false # disabled by now, because it will significantly increase our compile time.
-opt-level     = 3
-strip         = true
+testing_macros = { workspace = true }

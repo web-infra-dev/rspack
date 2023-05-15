@@ -9,7 +9,7 @@
 
 use std::{env, path::PathBuf};
 
-use rspack_binding_options::{RawOptions, RawOptionsApply};
+use rspack_binding_options::{JsLoaderRunner, RawOptions, RawOptionsApply};
 use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::evaluate_to_json;
@@ -36,7 +36,9 @@ async fn main() {
   }
   let raw: RawOptions = serde_json::from_slice(&raw).expect("ok");
   let mut plugins = Vec::new();
-  let options = raw.apply(&mut plugins).expect("should be ok");
+  let options = raw
+    .apply(&mut plugins, &JsLoaderRunner::noop())
+    .expect("should be ok");
   let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
   compiler
     .build()

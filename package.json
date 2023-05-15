@@ -28,9 +28,10 @@
     "changeset": "changeset",
     "prepare": "is-ci || husky install",
     "pnpm:devPreinstall": "is-ci || node ./scripts/doctor.js",
-    "test:example": "NODE_OPTIONS=--max_old_space_size=8192 pnpm --filter \"example-*\" build",
-    "test:unit": "NODE_OPTIONS=--max_old_space_size=8192 pnpm --filter \"@rspack/*\" test",
-    "test:e2e": "NODE_OPTIONS=--max_old_space_size=8192 pnpm --filter \"@rspack-e2e/*\" test"
+    "test:example": "pnpm --filter \"example-*\" build",
+    "test:unit": "pnpm --filter \"@rspack/*\" test",
+    "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
+    "test:ci": "NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit"
   },
   "lint-staged": {
     "*.rs": "rustfmt --edition 2021",
@@ -51,21 +52,17 @@
     "@changesets/cli": "2.24.4",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
-    "@types/react": "17.0.52",
-    "@types/react-dom": "17.0.19",
     "commander": "10.0.1",
-    "esbuild": "^0.15.9",
     "husky": "^7.0.4",
     "is-ci": "3.0.1",
     "jest": "29.0.3",
     "lint-staged": "^12.5.0",
     "prettier": "2.5.1",
     "rimraf": "3.0.2",
-    "ts-jest": "29.0.1",
+    "ts-jest": "29.1.0",
     "typescript": "5.0.2",
     "webpack": "5.74.0",
-    "webpack-cli": "4.10.0",
-    "why-is-node-running": "2.2.1"
+    "webpack-cli": "4.10.0"
   },
   "optionalDependencies": {
     "sass-embedded-darwin-arm64": "1.58.3",

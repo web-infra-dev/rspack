@@ -10,6 +10,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "@node-rs/crc32": "1.7.0"
+  },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "babel-loader": "9.1.2",
@@ -31,6 +34,8 @@
     "source-map-loader": "4.0.1",
     "thread-loader": "4.0.1",
     "ts-loader": "9.4.2",
-    "image-webpack-loader": "8.1.0"
+    "image-webpack-loader": "8.1.0",
+    "svg-react-loader": "0.4.6",
+    "node-loader": "2.0.0"
   }
 }

@@ -9,30 +9,71 @@
  */
 import * as binding from "@rspack/binding";
 import fs from "fs";
+import path from "path";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
+import {
+	OutputNormalized,
+	RspackOptionsNormalized,
+	RspackPluginInstance
+} from "./config";
+import { RuleSetCompiler } from "./RuleSetCompiler";
+import { Stats } from "./stats";
+import { Compilation, CompilationParams } from "./compilation";
 import { ContextModuleFactory } from "./ContextModuleFactory";
 import ResolverFactory from "./ResolverFactory";
-import { RuleSetCompiler } from "./RuleSetCompiler";
-import { Compilation, CompilationParams } from "./compilation";
-import { RspackOptionsNormalized } from "./config";
 import { getRawOptions } from "./config/adapter";
 import { LoaderContext, LoaderResult } from "./config/adapter-rule-use";
 import ConcurrentCompilationError from "./error/ConcurrentCompilationError";
 import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
+import { makePathsRelative } from "./util/identifier";
 import CacheFacade from "./lib/CacheFacade";
 import { runLoader } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./normalModuleFactory";
-import { Stats } from "./stats";
 import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
 import Watching from "./watching";
+import { NormalModule } from "./normalModule";
 
 class EntryPlugin {
+	constructor(
+		public context: string,
+		public entry: string,
+		public options: {
+			name?: string;
+			runtime?: string;
+		} = {}
+	) {}
+	apply(compiler: Compiler) {
+		const entry = this.context
+			? path.resolve(this.context, this.entry)
+			: this.entry;
+
+		compiler.options.entry = {
+			[this.options.name || "main"]: {
+				import: [entry],
+				runtime: this.options.runtime
+			}
+		};
+	}
+}
+
+class NodeTargetPlugin {
 	apply() {}
+}
+
+class NodeTemplatePlugin {
+	apply() {}
+}
+
+class EnableLibraryPlugin {
+	constructor(private libraryType: string) {}
+	apply(compiler: Compiler) {
+		compiler.options.output.enabledLibraryTypes = [this.libraryType];
+	}
 }
 class HotModuleReplacementPlugin {
 	apply() {}
@@ -68,7 +109,7 @@ class Compiler {
 		done: tapable.AsyncSeriesHook<Stats>;
 		afterDone: tapable.SyncHook<Stats>;
 		// TODO: CompilationParams
-		compilation: tapable.SyncHook<Compilation>;
+		compilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		// TODO: CompilationParams
 		thisCompilation: tapable.SyncHook<[Compilation, CompilationParams]>;
 		invalid: tapable.SyncHook<[string | null, number]>;
@@ -89,10 +130,12 @@ class Compiler {
 		afterPlugins: tapable.SyncHook<[Compiler]>;
 		afterResolvers: tapable.SyncHook<[Compiler]>;
 		make: tapable.AsyncParallelHook<[Compilation]>;
+		beforeCompile: tapable.AsyncSeriesHook<any>;
+		finishModules: tapable.AsyncSeriesHook<[any]>;
 	};
 	options: RspackOptionsNormalized;
 	#disabledHooks: string[];
-
+	parentCompilation?: Compilation;
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
 		this.options = options;
@@ -101,7 +144,8 @@ class Compiler {
 		// to workaround some plugin access webpack, we may change dev-server to avoid this hack in the future
 		this.webpack = {
 			EntryPlugin, // modernjs/server use this to inject dev-client
-			HotModuleReplacementPlugin, // modernjs/server will auto inject this this plugin not set
+			HotModuleReplacementPlugin, // modernjs/server will auto inject this plugin not set
+			NormalModule,
 			get sources(): typeof import("webpack-sources") {
 				return require("webpack-sources");
 			},
@@ -111,6 +155,14 @@ class Compiler {
 			},
 			get rspackVersion() {
 				return require("../package.json").version;
+			},
+			WebpackError: Error,
+			node: {
+				NodeTargetPlugin,
+				NodeTemplatePlugin
+			},
+			library: {
+				EnableLibraryPlugin
 			},
 			util: {
 				get createHash() {
@@ -152,7 +204,10 @@ class Compiler {
 				"compilation",
 				"params"
 			]),
-			compilation: new tapable.SyncHook<Compilation>(["compilation"]),
+			compilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
+				"compilation",
+				"params"
+			]),
 			invalid: new SyncHook(["filename", "changeTime"]),
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
@@ -169,7 +224,9 @@ class Compiler {
 			afterEnvironment: new tapable.SyncHook([]),
 			afterPlugins: new tapable.SyncHook(["compiler"]),
 			afterResolvers: new tapable.SyncHook(["compiler"]),
-			make: new tapable.AsyncParallelHook(["compilation"])
+			make: new tapable.AsyncParallelHook(["compilation"]),
+			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
+			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
@@ -218,6 +275,7 @@ class Compiler {
 				options,
 
 				{
+					beforeCompile: this.#beforeCompile.bind(this),
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
 					afterEmit: this.#afterEmit.bind(this),
@@ -277,6 +335,128 @@ class Compiler {
 			);
 
 		return this.#_instance;
+	}
+	createChildCompiler(
+		compilation: Compilation,
+		compilerName: string,
+		compilerIndex: number,
+		outputOptions: OutputNormalized,
+		plugins: RspackPluginInstance[]
+	) {
+		const childCompiler = new Compiler(this.context, {
+			...this.options,
+			output: {
+				...this.options.output,
+				...outputOptions
+			},
+			// TODO: check why we need to have builtins otherwise this.#instance will fail to initialize Rspack
+			builtins: {
+				...this.options.builtins,
+				html: undefined
+			}
+		});
+		childCompiler.name = compilerName;
+		childCompiler.outputPath = this.outputPath;
+		childCompiler.inputFileSystem = this.inputFileSystem;
+		// childCompiler.outputFileSystem = null;
+		childCompiler.resolverFactory = this.resolverFactory;
+		childCompiler.modifiedFiles = this.modifiedFiles;
+		childCompiler.removedFiles = this.removedFiles;
+		// childCompiler.fileTimestamps = this.fileTimestamps;
+		// childCompiler.contextTimestamps = this.contextTimestamps;
+		// childCompiler.fsStartTime = this.fsStartTime;
+		childCompiler.cache = this.cache;
+		childCompiler.compilerPath = `${this.compilerPath}${compilerName}|${compilerIndex}|`;
+		// childCompiler._backCompat = this._backCompat;
+
+		const relativeCompilerName = makePathsRelative(
+			this.context,
+			compilerName,
+			this.root
+		);
+		// if (!this.records[relativeCompilerName]) {
+		// 	this.records[relativeCompilerName] = [];
+		// }
+		// if (this.records[relativeCompilerName][compilerIndex]) {
+		// 	childCompiler.records = this.records[relativeCompilerName][compilerIndex];
+		// } else {
+		// 	this.records[relativeCompilerName].push((childCompiler.records = {}));
+		// }
+
+		childCompiler.parentCompilation = compilation;
+		childCompiler.root = this.root;
+		if (Array.isArray(plugins)) {
+			for (const plugin of plugins) {
+				plugin.apply(childCompiler);
+			}
+		}
+		for (const name in this.hooks) {
+			if (
+				![
+					"make",
+					"compile",
+					"emit",
+					"afterEmit",
+					"invalid",
+					"done",
+					"thisCompilation"
+				].includes(name)
+			) {
+				//@ts-ignore
+				if (childCompiler.hooks[name]) {
+					//@ts-ignore
+					childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
+				}
+			}
+		}
+
+		// compilation.hooks.childCompiler.call(
+		// 	childCompiler,
+		// 	compilerName,
+		// 	compilerIndex
+		// );
+
+		return childCompiler;
+	}
+
+	runAsChild(callback: any) {
+		const startTime = Date.now();
+
+		const finalCallback = (
+			err: Error | null,
+			entries?: any,
+			compilation?: Compilation
+		) => {
+			try {
+				callback(err, entries, compilation);
+			} catch (e) {
+				const err = new Error(`compiler.runAsChild callback error: ${e}`);
+				// err.details = e.stack;
+				this.parentCompilation!.errors.push(err);
+				// TODO: remove once this works
+				console.log(e);
+			}
+		};
+
+		this.run((err, stats) => {
+			if (err) return finalCallback(err);
+			const compilation: Compilation = stats!.compilation;
+
+			this.parentCompilation!.children.push(compilation);
+			for (const { name, source, info } of compilation.getAssets()) {
+				this.parentCompilation!.emitAsset(name, source, info);
+			}
+
+			const entries = [];
+			for (const ep of compilation.entrypoints.values()) {
+				entries.push(...ep.getFiles());
+			}
+
+			// compilation.startTime = startTime;
+			// compilation.endTime = Date.now();
+
+			return finalCallback(null, entries, compilation);
+		});
 	}
 	getInfrastructureLogger(name: string | Function) {
 		if (!name) {
@@ -365,6 +545,7 @@ class Compiler {
 		const disabledHooks = [];
 		const hookMap = {
 			make: this.hooks.make,
+			beforeCompile: this.hooks.beforeCompile,
 			emit: this.hooks.emit,
 			afterEmit: this.hooks.afterEmit,
 			processAssetsStageAdditional:
@@ -409,6 +590,18 @@ class Compiler {
 		}
 	}
 
+	async #beforeCompile() {
+		await this.hooks.beforeCompile.promise();
+		// compilation is not created yet, so this will fail
+		// this.#updateDisabledHooks();
+	}
+
+	async #finishModules() {
+		await this.compilation.hooks.finishModules.promise(
+			this.compilation.getModules()
+		);
+		this.#updateDisabledHooks();
+	}
 	async #processAssets(stage: number) {
 		await this.compilation
 			.__internal_getProcessAssetsHookByStage(stage)
@@ -486,7 +679,9 @@ class Compiler {
 
 	#compilation(native: binding.JsCompilation) {
 		// TODO: implement this based on the child compiler impl.
-		this.hooks.compilation.call(this.compilation);
+		this.hooks.compilation.call(this.compilation, {
+			normalModuleFactory: this.compilation.normalModuleFactory!
+		});
 
 		this.#updateDisabledHooks();
 	}

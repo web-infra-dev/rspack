@@ -18,16 +18,10 @@ termcolor          = "1.2"
 
 [dev-dependencies]
 insta = { workspace = true }
-rspack = { path = "../rspack" }
+# rspack = { path = "../rspack" }
 rspack_binding_options = { path = "../rspack_binding_options" }
-rspack_core = { path = "../rspack_core" }
-rspack_fs = { path = "../rspack_fs", features = ["async"] }
-rspack_testing = { path = "../rspack_testing" }
-rspack_tracing = { path = "../rspack_tracing" }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }
+rspack_core            = { path = "../rspack_core" }
+rspack_fs              = { path = "../rspack_fs", features = ["async"] }
+rspack_testing         = { path = "../rspack_testing" }
+rspack_tracing         = { path = "../rspack_tracing" }
+tokio                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

@@ -1,3 +1,5 @@
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_core::{
   CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
   Dependency, DependencyCategory, EsmDynamicImportDependency, ImportContextDependency,
@@ -24,6 +26,7 @@ pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
+pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 
 pub struct DependencyScanner<'a> {
   pub unresolved_ctxt: &'a SyntaxContext,
@@ -32,6 +35,7 @@ pub struct DependencyScanner<'a> {
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
   pub comments: Option<&'a dyn Comments>,
+  pub in_try: bool,
 }
 
 impl DependencyScanner<'_> {
@@ -71,6 +75,7 @@ impl DependencyScanner<'_> {
                     request,
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
+                    self.in_try
                   )));
                   return;
                 }
@@ -79,6 +84,7 @@ impl DependencyScanner<'_> {
                     s.value.clone(),
                     Some(call_expr.span.into()),
                     as_parent_path(ast_path),
+                    self.in_try,
                   )));
                   return;
                 }
@@ -107,7 +113,6 @@ impl DependencyScanner<'_> {
   }
 
   fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
-    use once_cell::sync::Lazy;
     use swc_core::common::comments::CommentKind;
     static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
       regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)`)"#)
@@ -360,6 +365,15 @@ impl VisitAstPath for DependencyScanner<'_> {
     self.add_new_url(node, &*ast_path);
     node.visit_children_with_path(self, ast_path);
   }
+  fn visit_try_stmt<'ast: 'r, 'r>(
+    &mut self,
+    node: &'ast swc_core::ecma::ast::TryStmt,
+    ast_path: &mut swc_core::ecma::visit::AstNodePath<'r>,
+  ) {
+    self.in_try = true;
+    node.visit_children_with_path(self, ast_path);
+    self.in_try = false;
+  }
 
   fn visit_expr<'ast: 'r, 'r>(
     &mut self,
@@ -425,6 +439,13 @@ impl VisitAstPath for DependencyScanner<'_> {
               )));
             }
           }
+          WEBPACK_CHUNK_LOAD => {
+            self.add_presentational_dependency(Box::new(ConstDependency::new(
+              Expr::Ident(quote_ident!(RuntimeGlobals::ENSURE_CHUNK)),
+              Some(RuntimeGlobals::ENSURE_CHUNK),
+              as_parent_path(ast_path),
+            )));
+          }
           _ => {}
         }
       }
@@ -455,6 +476,7 @@ impl<'a> DependencyScanner<'a> {
     comments: Option<&'a dyn Comments>,
   ) -> Self {
     Self {
+      in_try: false,
       unresolved_ctxt,
       dependencies,
       presentational_dependencies,
@@ -466,11 +488,11 @@ impl<'a> DependencyScanner<'a> {
 }
 
 #[inline]
-fn split_context_from_prefix(prefix: &str) -> (&str, &str) {
+fn split_context_from_prefix(prefix: String) -> (String, String) {
   if let Some(idx) = prefix.rfind('/') {
-    (&prefix[..idx], &prefix[idx + 1..])
+    (prefix[..idx].to_string(), format!(".{}", &prefix[idx..]))
   } else {
-    (".", prefix)
+    (".".to_string(), prefix)
   }
 }
 
@@ -481,6 +503,15 @@ fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
     Expr::Call(call) => scan_context_module_concat_call(call),
     _ => None,
   }
+}
+
+static META_REG: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"[-\[\]\\/{}()*+?.^$|]").expect("Failed to initialize `MATCH_RESOURCE_REGEX`")
+});
+
+#[inline]
+fn quote_meta(str: String) -> String {
+  META_REG.replace_all(&str, "\\$0").to_string()
 }
 
 // require(`./${a}.js`)
@@ -501,7 +532,7 @@ fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
   } else {
     String::new()
   };
-  let (context, prefix) = split_context_from_prefix(&prefix_raw);
+  let (context, prefix) = split_context_from_prefix(prefix_raw);
   let inner_reg = tpl
     .quasis
     .iter()
@@ -510,8 +541,12 @@ fn scan_context_module_tpl(tpl: &Tpl) -> (String, String) {
     .map(|s| s.raw.to_string() + ".*")
     .collect::<Vec<String>>()
     .join("");
-  let reg = format!("^{prefix}.*{inner_reg}{postfix_raw}$");
-  (context.to_string(), reg)
+  let reg = format!(
+    "^{prefix}.*{inner_reg}{postfix_raw}$",
+    prefix = quote_meta(prefix),
+    postfix_raw = quote_meta(postfix_raw)
+  );
+  (context, reg)
 }
 
 // require("./" + a + ".js")
@@ -534,10 +569,14 @@ fn scan_context_module_bin(bin: &BinExpr) -> Option<(String, String)> {
     return None;
   }
 
-  let (context, prefix) = split_context_from_prefix(&prefix_raw);
-  let reg = format!("^{prefix}.*{postfix_raw}$");
+  let (context, prefix) = split_context_from_prefix(prefix_raw);
+  let reg = format!(
+    "^{prefix}.*{postfix_raw}$",
+    prefix = quote_meta(prefix),
+    postfix_raw = quote_meta(postfix_raw)
+  );
 
-  Some((context.to_string(), reg))
+  Some((context, reg))
 }
 
 fn find_expr_prefix_string(expr: &Expr) -> Option<String> {
@@ -581,10 +620,14 @@ fn scan_context_module_concat_call(expr: &CallExpr) -> Option<(String, String)> 
     return None;
   }
 
-  let (context, prefix) = split_context_from_prefix(&prefix_raw);
-  let reg = format!("^{prefix}.*{postfix_raw}$");
+  let (context, prefix) = split_context_from_prefix(prefix_raw);
+  let reg = format!(
+    "^{prefix}.*{postfix_raw}$",
+    prefix = quote_meta(prefix),
+    postfix_raw = quote_meta(postfix_raw)
+  );
 
-  Some((context.to_string(), reg))
+  Some((context, reg))
 }
 
 fn is_concat_call(expr: &CallExpr) -> bool {

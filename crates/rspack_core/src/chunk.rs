@@ -118,12 +118,17 @@ impl Chunk {
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> HashSet<ChunkUkey> {
-    let mut chunks = HashSet::default();
+    let mut chunks: std::collections::HashSet<
+      rspack_database::Ukey<Chunk>,
+      std::hash::BuildHasherDefault<rustc_hash::FxHasher>,
+    > = HashSet::default();
+    let mut visit_chunk_groups = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
       chunks: &mut HashSet<ChunkUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
       let group = chunk_group_by_ukey
         .get(chunk_group_ukey)
@@ -134,12 +139,26 @@ impl Chunk {
       }
 
       for child_group_ukey in group.children.iter() {
-        add_chunks(child_group_ukey, chunks, chunk_group_by_ukey);
+        if !visit_chunk_groups.contains(child_group_ukey) {
+          visit_chunk_groups.insert(*child_group_ukey);
+          add_chunks(
+            child_group_ukey,
+            chunks,
+            chunk_group_by_ukey,
+            visit_chunk_groups,
+          );
+        }
       }
     }
 
     for group_ukey in &self.groups {
-      add_chunks(group_ukey, &mut chunks, chunk_group_by_ukey);
+      visit_chunk_groups.insert(*group_ukey);
+      add_chunks(
+        group_ukey,
+        &mut chunks,
+        chunk_group_by_ukey,
+        &mut visit_chunk_groups,
+      );
     }
 
     chunks
@@ -150,11 +169,13 @@ impl Chunk {
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> HashSet<ChunkUkey> {
     let mut chunks = HashSet::default();
+    let mut visit_chunk_groups = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
       chunks: &mut HashSet<ChunkUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
       let group = chunk_group_by_ukey
         .get(chunk_group_ukey)
@@ -166,13 +187,26 @@ impl Chunk {
         }
 
         for child_group_ukey in group.children.iter() {
-          add_chunks(child_group_ukey, chunks, chunk_group_by_ukey);
+          if !visit_chunk_groups.contains(child_group_ukey) {
+            visit_chunk_groups.insert(*child_group_ukey);
+            add_chunks(
+              child_group_ukey,
+              chunks,
+              chunk_group_by_ukey,
+              visit_chunk_groups,
+            );
+          }
         }
       }
     }
 
     for group_ukey in &self.groups {
-      add_chunks(group_ukey, &mut chunks, chunk_group_by_ukey);
+      add_chunks(
+        group_ukey,
+        &mut chunks,
+        chunk_group_by_ukey,
+        &mut visit_chunk_groups,
+      );
     }
 
     chunks
@@ -199,6 +233,7 @@ impl Chunk {
       .cloned()
       .collect();
     let mut initial_queue = self.groups.clone();
+    let mut visit_chunk_groups = HashSet::default();
 
     fn add_to_queue(
       chunk_group_by_ukey: &ChunkGroupByUkey,
@@ -234,6 +269,7 @@ impl Chunk {
       chunks: &mut HashSet<ChunkUkey>,
       initial_chunks: &HashSet<ChunkUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
         for chunk_ukey in chunk_group.chunks.iter() {
@@ -243,7 +279,16 @@ impl Chunk {
         }
 
         for group_ukey in chunk_group.children.iter() {
-          add_chunks(chunk_group_by_ukey, chunks, initial_chunks, group_ukey);
+          if !visit_chunk_groups.contains(group_ukey) {
+            visit_chunk_groups.insert(*group_ukey);
+            add_chunks(
+              chunk_group_by_ukey,
+              chunks,
+              initial_chunks,
+              group_ukey,
+              visit_chunk_groups,
+            );
+          }
         }
       }
     }
@@ -254,6 +299,7 @@ impl Chunk {
         &mut chunks,
         &initial_chunks,
         group_ukey,
+        &mut visit_chunk_groups,
       );
     }
 
@@ -263,7 +309,7 @@ impl Chunk {
   // pub fn get_all_referenced_async_entry_points() -> HashSet<ChunkUkey> {}
 
   pub fn get_render_hash(&self) -> String {
-    format!("{:x}", self.hash.finish())
+    format!("{:016x}", self.hash.finish())
   }
 
   pub fn expect_id(&self) -> &str {

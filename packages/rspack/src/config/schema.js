@@ -849,6 +849,10 @@ module.exports = {
 						"Removes modules from chunks when these modules are already included in all parents.",
 					type: "boolean"
 				},
+				removeEmptyChunks: {
+					description: "Remove chunks which are empty.",
+					type: "boolean"
+				},
 				runtimeChunk: {
 					$ref: "#/definitions/OptimizationRuntimeChunk"
 				},
@@ -958,6 +962,11 @@ module.exports = {
 				reuseExistingChunk: {
 					description:
 						"Try to reuse existing chunk (with name) when it has matching modules.",
+					type: "boolean"
+				},
+				enforce: {
+					description:
+						"ignore splitChunks.minSize, splitChunks.minChunks, splitChunks.maxAsyncRequests and splitChunks.maxInitialRequests options and always create chunks for this cache group.",
 					type: "boolean"
 				},
 				test: {
@@ -1865,6 +1874,11 @@ module.exports = {
 				},
 				builtAt: {
 					description: "Add built at time information.",
+					type: "boolean"
+				},
+				nestedModules: {
+					description:
+						"Add information about modules nested in other modules (like with module concatenation).",
 					type: "boolean"
 				}
 			}

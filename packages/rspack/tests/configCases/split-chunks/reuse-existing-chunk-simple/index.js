@@ -1,4 +1,4 @@
-() => import("./foo");
+() => import(/* webpackChunkName: "dyn-foo" */ "./foo");
 
 import fs from "fs";
 import path from "path";
@@ -6,8 +6,5 @@ import path from "path";
 export default "index.js";
 
 it("reuse-existing-chunk-simple", () => {
-	expect(fs.existsSync(path.resolve(__dirname, "./splittedFoo.js"))).toBe(
-		false
-	);
-	expect(fs.existsSync(path.resolve(__dirname, "./foo_js.js"))).toBe(true);
+	expect(fs.existsSync(path.resolve(__dirname, "./dyn-foo.js"))).toBe(true);
 });

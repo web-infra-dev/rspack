@@ -110,6 +110,7 @@ pub struct ResolveArgs<'a> {
   pub span: Option<ErrorSpan>,
   pub resolve_options: Option<Resolve>,
   pub resolve_to_context: bool,
+  pub optional: bool,
   pub file_dependencies: &'a mut HashSet<PathBuf>,
   pub missing_dependencies: &'a mut HashSet<PathBuf>,
 }

@@ -563,6 +563,7 @@ export interface StatsOptions {
 	timings?: boolean;
 	builtAt?: boolean;
 	moduleAssets?: boolean;
+	nestedModules?: boolean;
 }
 
 ///// Optimization /////
@@ -573,6 +574,10 @@ export interface Optimization {
 	splitChunks?: OptimizationSplitChunksOptions | false;
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
+	/**
+	 * Remove chunks which are empty.
+	 */
+	removeEmptyChunks?: boolean;
 	sideEffects?: "flag" | boolean;
 	realContentHash?: boolean;
 }

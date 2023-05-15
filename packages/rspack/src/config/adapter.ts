@@ -457,9 +457,10 @@ function getRawOptimization(
 	assert(
 		!isNil(optimization.moduleIds) &&
 			!isNil(optimization.removeAvailableModules) &&
+			!isNil(optimization.removeEmptyChunks) &&
 			!isNil(optimization.sideEffects) &&
 			!isNil(optimization.realContentHash),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
 		splitChunks: optimization.splitChunks
@@ -467,6 +468,7 @@ function getRawOptimization(
 			: undefined,
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
+		removeEmptyChunks: optimization.removeEmptyChunks,
 		sideEffects: String(optimization.sideEffects),
 		realContentHash: optimization.realContentHash
 	};

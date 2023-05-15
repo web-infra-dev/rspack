@@ -10,14 +10,8 @@ name = "rspack-ast-viewer"
 path = "src/main.rs"
 
 [dependencies]
-anyhow = { workspace = true }
-argh = "0.1.10"
-regex = { workspace = true }
-swc_core = { workspace = true, features = [
-  "ecma_ast",
-  "ecma_parser",
-  "css_ast",
-  "css_parser",
-  "common",
-] }
+anyhow              = { workspace = true }
+argh                = "0.1.10"
+regex               = { workspace = true }
+swc_core            = { workspace = true, features = ["ecma_ast", "ecma_parser", "css_ast", "css_parser", "common"] }
 swc_error_reporters = { workspace = true }

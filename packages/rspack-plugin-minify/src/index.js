@@ -1,4 +1,6 @@
 const isJsFile = /\.[cm]?js(?:\?.*)?$/i;
+const isCssFile = /\.css(?:\?.*)?$/i;
+
 const esbuild = require("esbuild");
 const terser = require("terser");
 const { RawSource, SourceMapSource } = require("webpack-sources");
@@ -8,17 +10,21 @@ module.exports = class RspackMinifyPlugin {
 	 * @param {{minifier: 'esbuild' | 'terser'}} options
 	 */
 	constructor(options) {
-		this.options = options || {
+		this.options = {
 			minifier: "esbuild",
-			target: "es6"
+			target: "es6",
+			css: false,
+			...options
 		};
 	}
-	async transform(code, { sourcemap, sourcefile }) {
-		if (this.options.minifier === "esbuild") {
+	async transform(code, { sourcemap, sourcefile, css }) {
+		if (this.options.minifier === "esbuild" || css) {
 			return await esbuild.transform(code, {
+				loader: css ? "css" : "js",
 				target: this.options.target,
 				sourcefile,
 				sourcemap,
+				format: "iife",
 				minify: true,
 				minifyIdentifiers: true,
 				minifySyntax: true,
@@ -55,7 +61,10 @@ module.exports = class RspackMinifyPlugin {
 					} = compilation.compiler;
 					const sourcemap = !!devtool;
 					const assets = compilation.getAssets().filter(asset => {
-						return isJsFile.test(asset.name);
+						return (
+							isJsFile.test(asset.name) ||
+							(this.options.css && isCssFile.test(asset.name))
+						);
 					});
 
 					await Promise.all(
@@ -64,6 +73,7 @@ module.exports = class RspackMinifyPlugin {
 							const sourceAsString = source.toString();
 							const result = await this.transform(sourceAsString, {
 								sourcemap,
+								css: isCssFile.test(asset.name),
 								sourcefile: asset.name
 							});
 							compilation.updateAsset(

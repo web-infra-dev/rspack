@@ -6,9 +6,10 @@ use rspack_identifier::{Identifiable, Identifier};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AstOrSource, BuildContext, BuildResult, ChunkInitFragments, CodeGenerationResult,
-  Compilation, Context, ExternalType, GenerationResult, InitFragment, InitFragmentStage,
-  LibIdentOptions, Module, ModuleType, RuntimeGlobals, SourceType,
+  to_identifier, AstOrSource, BuildContext, BuildMetaExportsType, BuildResult, ChunkInitFragments,
+  CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
+  GenerationResult, InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleType,
+  RuntimeGlobals, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -181,7 +182,20 @@ impl Module for ExternalModule {
     &mut self,
     _build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    Ok(BuildResult::default().with_empty_diagnostic())
+    let mut build_result = BuildResult::default();
+    // TODO add exports_type for request
+    match self.external_type.as_str() {
+      "this" => build_result.build_info.strict = false,
+      "system" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "module" => build_result.build_meta.exports_type = BuildMetaExportsType::Namespace,
+      "script" | "promise" => build_result.build_meta.is_async = true,
+      "import" => {
+        build_result.build_meta.is_async = true;
+        build_result.build_meta.exports_type = BuildMetaExportsType::Namespace;
+      }
+      _ => build_result.build_meta.exports_type = BuildMetaExportsType::Dynamic,
+    }
+    Ok(build_result.with_empty_diagnostic())
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
@@ -198,7 +212,9 @@ impl Module for ExternalModule {
             .boxed(),
           )),
         );
-        cgr.data.insert("url".to_owned(), self.request.clone());
+        cgr
+          .data
+          .insert(CodeGenerationDataUrl::new(self.request.clone()));
       }
       "css-import" => {
         cgr.add(

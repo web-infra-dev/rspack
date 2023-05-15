@@ -2,7 +2,6 @@ import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import serializer from "jest-serializer-path";
-
 expect.addSnapshotSerializer(serializer);
 
 // The aims of use a cutstom value rather than
@@ -112,6 +111,7 @@ async function match(config: RspackOptions) {
 	);
 	await server.start();
 	// it will break ci
+	//@ts-ignore
 	delete server.options.port;
 	expect(server.options).toMatchSnapshot();
 	await server.stop();

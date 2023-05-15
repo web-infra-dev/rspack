@@ -35,8 +35,8 @@ export class JsCompilation {
 
 export class JsStats {
   getAssets(): JsStatsGetAssets
-  getModules(reasons: boolean, moduleAssets: boolean): Array<JsStatsModule>
-  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean): Array<JsStatsChunk>
+  getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean): Array<JsStatsModule>
+  getChunks(chunkModules: boolean, chunksRelations: boolean, reasons: boolean, moduleAssets: boolean, nestedModules: boolean): Array<JsStatsChunk>
   getEntrypoints(): Array<JsStatsChunkGroup>
   getNamedChunkGroups(): Array<JsStatsChunkGroup>
   getErrors(): Array<JsStatsError>
@@ -113,7 +113,7 @@ export interface JsAssetInfo {
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
    */
-  contentHash?: string
+  contentHash: Array<string>
   /**
    * when asset was created from a source file (potentially transformed), the original filename relative to compilation context
    * size in bytes, only set after asset has been emitted
@@ -171,6 +171,7 @@ export interface JsHooks {
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
+  beforeCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
@@ -282,6 +283,7 @@ export interface JsStatsChunkGroupAsset {
 export interface JsStatsError {
   message: string
   formatted: string
+  title: string
 }
 
 export interface JsStatsGetAssets {
@@ -369,7 +371,7 @@ export interface RawBuiltins {
   presetEnv?: RawPresetEnv
   define: Record<string, string>
   provide: Record<string, string[]>
-  treeShaking: boolean
+  treeShaking: string
   progress?: RawProgressPluginConfig
   react: RawReactOptions
   decorator?: RawDecoratorOptions
@@ -392,6 +394,7 @@ export interface RawCacheGroupOptions {
   minSize?: number
   name?: string
   reuseExistingChunk?: boolean
+  enforce?: boolean
 }
 
 export interface RawCacheOptions {
@@ -602,6 +605,7 @@ export interface RawOptimizationOptions {
   splitChunks?: RawSplitChunksOptions
   moduleIds: string
   removeAvailableModules: boolean
+  removeEmptyChunks: boolean
   sideEffects: string
   realContentHash: boolean
 }

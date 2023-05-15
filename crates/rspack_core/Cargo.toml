@@ -7,8 +7,8 @@ version    = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }
+anymap = "1.0.0-beta.2"
 async-recursion = { workspace = true }
-async-scoped = { workspace = true, features = ["use-tokio"] }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
 dashmap = { workspace = true }
@@ -37,7 +37,6 @@ rspack_sources = { workspace = true }
 rspack_symbol = { path = "../rspack_symbol" }
 rspack_util = { path = "../rspack_util" }
 rustc-hash = { workspace = true }
-serde = { workspace = true }
 serde_json = { workspace = true }
 string_cache = "0.8.7"
 sugar_path = { workspace = true }
@@ -70,13 +69,7 @@ swc_emotion = { workspace = true }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_plugin_import = { workspace = true }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
