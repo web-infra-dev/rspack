@@ -74,12 +74,9 @@ impl Plugin for SystemLibraryPlugin {
     let setters = external_arguments
       .iter()
       .map(|name| {
-        let mut f = "function(module) {\n".to_string();
-        f.push_str(&format!(
-          "\tObject.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})\n"
-        ));
-        f.push_str("}");
-        f
+        format!(
+          "function(module) {{\n\tObject.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})\n}}"
+        )
       })
       .collect::<Vec<_>>()
       .join(",\n");
