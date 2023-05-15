@@ -1,12 +1,6 @@
 module.exports = {
-	builtins: {
-		define: {
-			EXPECTED: "Array.isArray",
-			EXPECTED2: "path.resolve",
-			EXPECTED3: "globalThis"
-		}
-	},
 	externals: [
+		"path",
 		"foo",
 		/^raz$/,
 		{
@@ -14,8 +8,10 @@ module.exports = {
 			baz: "var 'baz'",
 			myos: "commonjs os",
 			external: ["Array", "isArray"],
-			external2: ["commonjs path", "resolve"],
-			external3: ["var globalThis"]
+			external2: ["commonjs process", "version"],
+			external3: ["var globalThis"],
+			external4: ["global process", "version"],
+			external5: ["this obj", "name"]
 		},
 		function ({ request }, callback) {
 			if (request === "fn") {

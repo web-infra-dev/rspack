@@ -204,7 +204,7 @@ fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {
     .map(|m| {
       let request = &m.request;
       // TODO: check if external module is optional
-      format!("require('{request}')")
+      format!("require('{}')", request.as_str())
     })
     .collect::<Vec<_>>()
     .join(", ")
