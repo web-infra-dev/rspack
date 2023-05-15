@@ -102,7 +102,7 @@ impl ExternalModule {
     let mut runtime_requirements: RuntimeGlobals = Default::default();
     let source = match self.external_type.as_str() {
       "this" => format!(
-        "module.exports = (function() {{ return this['{}']; }}())",
+        "module.exports = (function() {{ return {}; }}())",
         get_source_for_global_variable_external(&self.request, &self.external_type)
       ),
       "window" | "self" => format!(
@@ -111,7 +111,10 @@ impl ExternalModule {
       ),
       "global" => format!(
         "module.exports ={} ",
-        get_source_for_global_variable_external(&self.request, &self.external_type)
+        get_source_for_global_variable_external(
+          &self.request,
+          &compilation.options.output.global_object
+        )
       ),
       "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" => {
         self.get_source_for_commonjs()
