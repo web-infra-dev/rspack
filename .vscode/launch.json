@@ -11,6 +11,15 @@
       "type": "lldb",
       "request": "launch",
       "sourceLanguages": ["rust"],
+      "name": "debug-rust-jest",
+      "program": "node",
+      "args": ["--inspect", "../../node_modules/.bin/jest", "--workerThreads"],
+      "cwd": "${workspaceFolder}/packages/rspack"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": ["rust"],
       "name": "debug-rust",
       "program": "node",
       "args": [
