@@ -74,7 +74,7 @@ impl Plugin for SystemLibraryPlugin {
     let mut setters = external_arguments
       .iter()
       .map(|name| {
-        let mut f = format!("function(module) {{");
+        let mut f = "function(module) {{".to_string();
         f.push_str(&format!(
           "Object.keys(module).forEach(function(key) {{\n {name}[key] = module[key]; }})"
         ));
@@ -88,9 +88,9 @@ impl Plugin for SystemLibraryPlugin {
     source.add(RawSource::from(format!("System.register({name}{external_deps_array}, function({dynamic_export}, __system_context__) {{\n")));
     if !is_has_external_modules {
       // 	var __WEBPACK_EXTERNAL_MODULE_{}__ = {};
-      source.add(RawSource::from(format!("{external_var_declarations}")));
+      source.add(RawSource::from(external_var_declarations));
       // Object.defineProperty(__WEBPACK_EXTERNAL_MODULE_{}__, "__esModule", { value: true });
-      source.add(RawSource::from(format!("{external_var_initialization}")))
+      source.add(RawSource::from(external_var_initialization));
     }
     source.add(RawSource::from("return {\n"));
     if !is_has_external_modules {
