@@ -13,11 +13,7 @@ use crate::utils::{external_module_names, normalize_name};
 #[derive(Debug, Default)]
 pub struct SystemLibraryPlugin;
 
-impl SystemLibraryPlugin {
-  pub fn new() -> Self {
-    Self {}
-  }
-}
+impl SystemLibraryPlugin {}
 
 impl Plugin for SystemLibraryPlugin {
   fn name(&self) -> &'static str {
