@@ -38,6 +38,8 @@ import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
+import StatsFactory from "./stats/StatsFactory";
+import StatsPrinter from "./stats/StatsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
@@ -83,6 +85,8 @@ export class Compilation {
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
+		statsFactory: tapable.SyncHook<[StatsFactory, string], undefined>;
+		statsPrinter: tapable.SyncHook<[StatsPrinter, string], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -116,7 +120,9 @@ export class Compilation {
 			]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"]),
 			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
-			processWarnings: new tapable.SyncWaterfallHook(["warnings"])
+			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
+			statsFactory: new tapable.SyncHook(["statsFactory", "options"]),
+			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -266,7 +272,17 @@ export class Compilation {
 
 		return options;
 	}
+	createStatsFactory(options: any) {
+		const statsFactory = new StatsFactory();
+		this.hooks.statsFactory.call(statsFactory, options);
+		return statsFactory;
+	}
 
+	createStatsPrinter(options: any) {
+		const statsPrinter = new StatsPrinter();
+		this.hooks.statsPrinter.call(statsPrinter, options);
+		return statsPrinter;
+	}
 	/**
 	 * Update an existing asset. Trying to update an asset that doesn't exist will throw an error.
 	 *

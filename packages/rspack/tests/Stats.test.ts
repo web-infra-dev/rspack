@@ -143,7 +143,7 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: a8535b55b7de03c8
+		"a8535b55b7de03c8
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  215 bytes    main  [emitted]  main
@@ -174,7 +174,7 @@ describe("Stats", () => {
 			entry: "./fixtures/abc"
 		});
 		expect(stats?.toString({ timings: false })).toMatchInlineSnapshot(`
-		"Hash: 54a4e1c6f704eccd
+		"54a4e1c6f704eccd
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main

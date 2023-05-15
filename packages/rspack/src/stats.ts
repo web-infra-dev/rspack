@@ -143,6 +143,10 @@ export class Stats {
 		const options = this.compilation.createStatsOptions(opts, {
 			forToString: true
 		});
+		// call hooks
+		this.compilation.createStatsFactory(options);
+		this.compilation.createStatsPrinter(options);
+		// TODO:  add plugin for Stats
 		const useColors = optionsOrFallback(options.colors, false);
 		const obj: any = this.toJson(options, true);
 		return Stats.jsonToString(obj, useColors);
@@ -262,7 +266,6 @@ export class Stats {
 		};
 
 		if (obj.hash) {
-			colors.normal("Hash: ");
 			colors.bold(obj.hash);
 			newline();
 		}
