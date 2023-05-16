@@ -8,7 +8,7 @@ import {
 	RspackOptions,
 	MultiRspackOptions
 } from "@rspack/core";
-import path from "node:path";
+import path from "path";
 
 const defaultRoot = "dist";
 export class PreviewCommand implements RspackCommand {
