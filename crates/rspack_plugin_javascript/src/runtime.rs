@@ -1,5 +1,3 @@
-use dashmap::DashMap;
-use once_cell::sync::Lazy;
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
@@ -7,8 +5,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rustc_hash::FxHashSet as HashSet;
-
-static MODULE_RENDER_CACHE: Lazy<DashMap<BoxSource, BoxSource>> = Lazy::new(DashMap::default);
 
 pub fn render_chunk_modules(
   compilation: &Compilation,

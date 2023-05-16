@@ -1,5 +1,3 @@
-#![allow(unused_variables)]
-#![allow(dead_code)]
 #![allow(clippy::obfuscated_if_else)]
 #![allow(clippy::comparison_chain)]
 
@@ -26,7 +24,6 @@ use crate::{
 #[derive(Debug)]
 pub struct SplitChunksPlugin {
   raw_options: SplitChunksOptions,
-  options: NormalizedOptions,
   _cache_group_source_by_key: HashMap<String, CacheGroupSource>,
   cache_group_by_key: HashMap<String, CacheGroup>,
 }
@@ -43,14 +40,6 @@ impl SplitChunksPlugin {
     let min_size = normalize_sizes(options.min_size, &default_size_types);
     let min_size_reduction = normalize_sizes(options.min_size_reduction, &default_size_types);
     let max_size = normalize_sizes(options.max_size, &default_size_types);
-
-    let enforce_size_threshold =
-      normalize_sizes(options.enforce_size_threshold, &default_size_types);
-    let max_async_size = normalize_sizes(options.max_async_size, &default_size_types);
-    let max_initial_size = normalize_sizes(options.max_initial_size, &default_size_types);
-    let min_remaining_size = normalize_sizes(options.min_remaining_size, &default_size_types);
-
-    let name = options.name.clone().unwrap_or_else(|| Arc::new(|_| None));
 
     let normalized_options = NormalizedOptions {
       chunk_filter: {
@@ -144,19 +133,10 @@ impl SplitChunksPlugin {
     );
 
     Self {
-      options: normalized_options,
       _cache_group_source_by_key: cache_group_source_by_key,
       raw_options: options,
       cache_group_by_key,
     }
-  }
-
-  fn chunks_filter(&self, chunk: &Chunk, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {
-    self
-      .raw_options
-      .chunks
-      .unwrap_or(ChunkType::All)
-      .is_selected(chunk, chunk_group_by_ukey)
   }
 
   fn get_cache_groups(&self, module: &dyn Module) -> Vec<String> {
@@ -610,7 +590,6 @@ impl SplitChunksPlugin {
 
   fn split_used_chunks(
     &self,
-    item: &ChunksInfoItem,
     used_chunks: &HashSet<ChunkUkey>,
     new_chunk: ChunkUkey,
     compilation: &mut Compilation,
@@ -825,7 +804,7 @@ impl Plugin for SplitChunksPlugin {
 
         // Walk through all chunks
         let new_chunk_ukey = new_chunk;
-        self.split_used_chunks(&item, &used_chunks, new_chunk, compilation);
+        self.split_used_chunks(&used_chunks, new_chunk, compilation);
 
         let new_chunk = compilation
           .chunk_by_ukey

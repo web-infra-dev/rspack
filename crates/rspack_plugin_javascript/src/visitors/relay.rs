@@ -91,6 +91,7 @@ impl<'a> Fold for Relay<'a> {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum BuildRequirePathError {
   FileNameNotReal,
 }

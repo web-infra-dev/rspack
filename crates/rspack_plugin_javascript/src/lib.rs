@@ -1,8 +1,5 @@
 #![feature(let_chains)]
 #![feature(box_patterns)]
-#![allow(dead_code)]
-
-// use once_cell::sync::Lazy;
 
 pub(crate) mod dependency;
 mod plugin;

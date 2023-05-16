@@ -8,20 +8,18 @@ use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut, Visi
 use crate::utils::is_dynamic_import_literal_expr;
 
 pub fn inject_runtime_helper(
-  unresolved_mark: Mark,
+  _unresolved_mark: Mark,
   runtime_requirements: &mut RuntimeGlobals,
 ) -> impl Fold + '_ {
   let helper_mark = HELPERS.with(|helper| helper.mark());
   as_folder(InjectRuntimeHelper {
     helper_mark,
-    unresolved_mark,
     runtime_requirements,
   })
 }
 
 struct InjectRuntimeHelper<'a> {
   helper_mark: Mark,
-  unresolved_mark: Mark,
   runtime_requirements: &'a mut RuntimeGlobals,
 }
 
