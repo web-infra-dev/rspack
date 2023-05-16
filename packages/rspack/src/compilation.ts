@@ -627,7 +627,10 @@ export class Compilation {
 			return {
 				...chunk,
 				name: chunk.names.length > 0 ? chunk.names[0] : "",
-				modules: this.__internal__getAssociatedModules(chunk)
+				modules: this.__internal__getAssociatedModules(chunk),
+				isOnlyInitial: function () {
+					return this.initial;
+				}
 			};
 		});
 		return chunks;
@@ -783,6 +786,22 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
+		if (stage > Compilation.PROCESS_ASSETS_STAGE_REPORT) {
+			this.pushDiagnostic(
+				"warning",
+				"not supported process_assets_stage",
+				`custom stage for process_assets is not supported yet, so ${stage} is fallback to Compilation.PROCESS_ASSETS_STAGE_REPORT(${Compilation.PROCESS_ASSETS_STAGE_REPORT}) `
+			);
+			stage = Compilation.PROCESS_ASSETS_STAGE_REPORT;
+		}
+		if (stage < Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL) {
+			this.pushDiagnostic(
+				"warning",
+				"not supported process_assets_stage",
+				`custom stage for process_assets is not supported yet, so ${stage} is fallback to Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL(${Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL}) `
+			);
+			stage = Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL;
+		}
 		switch (stage) {
 			case Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL:
 				return this.hooks.processAssets.stageAdditional;
