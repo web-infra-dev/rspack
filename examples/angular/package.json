@@ -29,7 +29,7 @@
     "@angular/cli": "~16.0.0",
     "@angular/compiler-cli": "^16.0.0",
     "@rspack/cli": "workspace:*",
-    "@rspack/plugin-minify": "0.1.9",
+    "@rspack/plugin-minify": "workspace:*",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.1.0",
     "karma-coverage": "~2.2.0",
