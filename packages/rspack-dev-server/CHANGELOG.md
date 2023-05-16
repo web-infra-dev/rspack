@@ -1,5 +1,15 @@
 # rspack-dev-server
 
+## 0.1.10
+
+### Patch Changes
+
+- cafa227d: fix cannot reading noEmitAssets by always getting the first compiler's noEmitAssets
+- Updated dependencies [cafa227d]
+  - @rspack/dev-server@0.1.10
+  - @rspack/dev-middleware@0.1.10
+  - @rspack/dev-client@0.1.10
+
 ## 0.1.9
 
 ### Patch Changes
