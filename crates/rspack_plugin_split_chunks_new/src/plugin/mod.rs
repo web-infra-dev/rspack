@@ -107,7 +107,6 @@ impl SplitChunksPlugin {
             min_size: cache_group.min_size.clone(),
             max_async_size: cache_group.max_async_size.clone(),
             max_initial_size: cache_group.max_initial_size.clone(),
-            keys: vec![cache_group.key.clone()],
           },
         );
       }
@@ -162,5 +161,4 @@ struct MaxSizeSetting {
   pub min_size: SplitChunkSizes,
   pub max_async_size: SplitChunkSizes,
   pub max_initial_size: SplitChunkSizes,
-  pub keys: Vec<String>,
 }

@@ -1,7 +1,4 @@
-use std::{
-  borrow::Cow,
-  sync::{Arc, Mutex, RwLock},
-};
+use std::{borrow::Cow, sync::Mutex};
 
 use rayon::prelude::*;
 use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier};
@@ -20,18 +17,16 @@ struct GroupItem {
 
 #[derive(Debug)]
 struct Group {
-  chunk: ChunkUkey,
   nodes: Vec<GroupItem>,
   pub size: SplitChunkSizes,
 }
 
 impl Group {
-  fn new(items: Vec<GroupItem>, chunk: ChunkUkey) -> Self {
+  fn new(items: Vec<GroupItem>) -> Self {
     let mut summed_size = SplitChunkSizes::empty();
     items.iter().for_each(|item| summed_size.add_by(&item.size));
 
     Self {
-      chunk,
       nodes: items,
       size: summed_size,
     }
@@ -80,14 +75,14 @@ fn deterministic_grouping_for_modules(
     .filter_map(|node| {
       // The Module itself is already bigger than `allow_max_size`, we will create a chunk
       // just for it.
-      if node.size.bigger_than(&allow_max_size) && !node.size.smaller_than(min_size) {
+      if node.size.bigger_than(allow_max_size) && !node.size.smaller_than(min_size) {
         tracing::trace!(
           "Module({}) itself {:?} is already bigger than `allow_max_size` {:?}",
           node.module,
           node.size,
           allow_max_size
         );
-        results.push(Group::new(vec![node], *chunk));
+        results.push(Group::new(vec![node]));
         None
       } else {
         Some(node)
@@ -95,13 +90,13 @@ fn deterministic_grouping_for_modules(
     })
     .collect::<Vec<_>>();
 
-  let initial_group = Group::new(initial_nodes, *chunk);
+  let initial_group = Group::new(initial_nodes);
 
   let mut queue = vec![initial_group];
 
   while let Some(mut group) = queue.pop() {
-    // only groups bigger than maxSize need to be splitted
-    if group.size.bigger_than(&allow_max_size) || group.nodes.is_empty() {
+    // only groups bigger than maxSize need to be split
+    if group.size.bigger_than(allow_max_size) || group.nodes.is_empty() {
       continue;
     }
 
@@ -124,7 +119,7 @@ fn deterministic_grouping_for_modules(
       right_size.add_by(&group.nodes[right].size);
 
       if right != 0 {
-        right -= 1;
+        right = right.saturating_sub(1);
       }
     }
 
@@ -146,8 +141,8 @@ fn deterministic_grouping_for_modules(
     if left < right {
       let right_nodes = group.nodes.split_off(left + 1);
       let left_nodes = group.nodes;
-      queue.push(Group::new(right_nodes, *chunk));
-      queue.push(Group::new(left_nodes, *chunk));
+      queue.push(Group::new(right_nodes));
+      queue.push(Group::new(left_nodes));
     }
   }
 
@@ -195,7 +190,7 @@ impl SplitChunksPlugin {
           .unwrap_or(&fallback_cache_group.max_initial_size);
 
         if max_size_setting.is_none()
-          && !(fallback_cache_group.chunks_filter)(&chunk, chunk_group_db)
+          && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)
         {
           tracing::debug!("Chunk({}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reasons.join("~"));
           return None;
@@ -257,9 +252,9 @@ impl SplitChunksPlugin {
           min_size,
         } = &info;
         let results = deterministic_grouping_for_modules(
-          &*compilation.lock().expect("Should not panic"),
-          &chunk,
-          &allow_max_size,
+          &compilation.lock().expect("Should not panic"),
+          chunk,
+          allow_max_size,
           min_size,
         );
 
@@ -312,11 +307,11 @@ impl SplitChunksPlugin {
             // Add module to new chunk
             compilation
               .chunk_graph
-              .connect_chunk_and_module(new_part.ukey, module.module.clone());
+              .connect_chunk_and_module(new_part.ukey, module.module);
             // Remove module from used chunks
             compilation
               .chunk_graph
-              .disconnect_chunk_and_module(&old_chunk, module.module.clone())
+              .disconnect_chunk_and_module(&old_chunk, module.module)
           })
         } else {
           chunk.name = name;
