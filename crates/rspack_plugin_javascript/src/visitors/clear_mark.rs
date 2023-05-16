@@ -2,15 +2,12 @@ use swc_core::{
   common::SyntaxContext,
   ecma::{
     ast::Ident,
-    visit::{as_folder, noop_visit_mut_type, Fold, VisitMut},
+    visit::{noop_visit_mut_type, VisitMut},
   },
 };
 
-pub fn clear_mark() -> impl Fold {
-  as_folder(ClearMark {})
-}
-
 struct ClearMark;
+
 impl VisitMut for ClearMark {
   noop_visit_mut_type!();
 

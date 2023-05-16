@@ -142,8 +142,6 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
   pub(crate) potential_top_mark: HashSet<Mark>,
-  #[allow(dead_code)]
-  comments: Option<&'a SwcComments>,
 }
 
 impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
@@ -208,7 +206,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     uri: ModuleIdentifier,
     dep_to_module_identifier: &'a ModuleGraph,
     options: &'a Arc<CompilerOptions>,
-    comments: Option<&'a SwcComments>,
+    _comments: Option<&'a SwcComments>,
   ) -> Self {
     Self {
       top_level_mark: mark_info.top_level_mark,
@@ -233,7 +231,6 @@ impl<'a> ModuleRefAnalyze<'a> {
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
       potential_top_mark: HashSet::from_iter([mark_info.top_level_mark]),
-      comments,
     }
   }
 

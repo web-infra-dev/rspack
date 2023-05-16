@@ -1,11 +1,6 @@
 use std::collections::HashSet;
 
-use once_cell::sync::Lazy;
-use regex::Regex;
-use rspack_core::{
-  Compilation, Dependency, DependencyCategory, DependencyType, Module, ModuleDependency,
-  ModuleGraphModule, ModuleIdentifier, RuntimeGlobals,
-};
+use rspack_core::{Compilation, Dependency, DependencyCategory, Module, RuntimeGlobals};
 use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::utils::{member_expr, ExprFactory};
 use {
@@ -16,9 +11,6 @@ use {
 };
 
 use super::{is_import_meta_hot_accept_call, is_module_hot_accept_call};
-
-pub static SWC_HELPERS_REG: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"@swc/helpers/lib/(\w*)\.js$").expect("TODO:"));
 
 pub struct RspackModuleFinalizer<'a> {
   pub module: &'a dyn Module,
@@ -65,8 +57,6 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       .expect("Failed to get module graph module");
 
     n.visit_mut_with(&mut HmrApiRewrite {
-      module: self.module,
-      compilation: self.compilation,
       module_bindings: &mut module_bindings,
       esm_dependencies: &esm_dependencies,
     });
@@ -76,8 +66,6 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
 }
 
 pub struct RspackModuleFormatTransformer<'a> {
-  compilation: &'a Compilation,
-  module: &'a dyn Module,
   unresolved_ctxt: SyntaxContext,
   module_bindings: &'a mut HashMap<String, (JsWord, SyntaxContext, bool)>,
 }
@@ -85,14 +73,12 @@ pub struct RspackModuleFormatTransformer<'a> {
 impl<'a> RspackModuleFormatTransformer<'a> {
   pub fn new(
     unresolved_mark: Mark,
-    module: &'a dyn Module,
-    compilation: &'a Compilation,
+    _module: &'a dyn Module,
+    _compilation: &'a Compilation,
     module_bindings: &'a mut HashMap<String, (JsWord, SyntaxContext, bool)>,
   ) -> Self {
     Self {
       unresolved_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
-      module,
-      compilation,
       module_bindings,
     }
   }
@@ -167,44 +153,11 @@ impl<'a> VisitMut for RspackModuleFormatTransformer<'a> {
 }
 
 pub struct HmrApiRewrite<'a> {
-  compilation: &'a Compilation,
-  module: &'a dyn Module,
   module_bindings: &'a HashMap<String, (JsWord, SyntaxContext, bool)>,
   esm_dependencies: &'a HashSet<String>,
 }
 
 impl<'a> HmrApiRewrite<'a> {
-  /// Try to get the module_identifier from `src`, `dependency_type`, and `importer`, it's a legacy way and has performance issue, which should be removed.
-  /// TODO: remove this in the future
-  fn resolve_module_legacy(
-    &self,
-    module_identifier: &ModuleIdentifier,
-    src: &str,
-    dependency_type: &DependencyType,
-  ) -> Option<&ModuleGraphModule> {
-    self
-      .compilation
-      .module_graph
-      .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| {
-        mgm.dependencies.iter().find_map(|id| {
-          let dependency = self
-            .compilation
-            .module_graph
-            .dependency_by_id(id)
-            .expect("should have dependency");
-          if dependency.request() == src && dependency.dependency_type() == dependency_type {
-            self
-              .compilation
-              .module_graph
-              .module_graph_module_by_dependency_id(&dependency.id().expect("should have id"))
-          } else {
-            None
-          }
-        })
-      })
-  }
-
   fn rewrite_module_hot_accept(&mut self, n: &mut CallExpr) {
     fn create_auto_import(value: Option<&(JsWord, SyntaxContext, bool)>, str: String) -> Stmt {
       if let Some((sym, ctxt, inter_op)) = value {

@@ -1,5 +1,3 @@
-#![allow(unused_variables)]
-#![allow(dead_code)]
 #![allow(clippy::obfuscated_if_else)]
 #![allow(clippy::comparison_chain)]
 
@@ -61,7 +59,6 @@ pub fn create_cache_group(
     }
     cloned
   };
-  let get_name = group_source.get_name.clone();
   let chunks_filter = group_source.chunks_filter.clone();
   CacheGroup {
     key: group_source.key.clone(),
@@ -129,7 +126,7 @@ pub fn create_cache_group_source(
 
   let get_name = options
     .name
-    .map(|name| Arc::new(move |m: &dyn Module| Some(name.clone())) as SplitChunksNameFn);
+    .map(|name| Arc::new(move |_: &dyn Module| Some(name.clone())) as SplitChunksNameFn);
 
   CacheGroupSource {
     key,

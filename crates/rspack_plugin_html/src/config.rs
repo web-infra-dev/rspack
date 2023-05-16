@@ -95,10 +95,6 @@ fn default_filename() -> String {
   String::from("index.html")
 }
 
-fn default_template() -> String {
-  String::from("index.html")
-}
-
 fn default_script_loading() -> HtmlPluginConfigScriptLoading {
   HtmlPluginConfigScriptLoading::Defer
 }
