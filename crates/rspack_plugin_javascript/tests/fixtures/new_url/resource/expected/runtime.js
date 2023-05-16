@@ -122,4 +122,4 @@ chunkLoadingGlobal.push = webpackJsonpCallback.bind(
 
 })();
 
-})();
+})()
