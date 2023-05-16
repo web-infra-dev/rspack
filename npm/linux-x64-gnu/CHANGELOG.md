@@ -1,5 +1,7 @@
 # @rspack/binding-linux-x64-gnu
 
+## 0.1.11
+
 ## 0.1.9
 
 ## 0.1.8

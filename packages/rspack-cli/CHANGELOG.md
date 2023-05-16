@@ -1,5 +1,31 @@
 # @rspack/cli
 
+## 0.1.11
+
+### Patch Changes
+
+- d7bcdeb1: add --entry flags
+- Updated dependencies [5d4333f]
+- Updated dependencies [2bb2bcd6]
+- Updated dependencies [1d76fec]
+- Updated dependencies [8d0cba49]
+- Updated dependencies [fdaad48]
+- Updated dependencies [b452de5]
+- Updated dependencies [488071c]
+- Updated dependencies [bce8523]
+- Updated dependencies [5b33c94d]
+- Updated dependencies [1c83bbd]
+- Updated dependencies [4e25fafa]
+- Updated dependencies [bc52026]
+- Updated dependencies [04daf09]
+- Updated dependencies [3abb2fc]
+- Updated dependencies [c567571]
+- Updated dependencies [cafa227d]
+- Updated dependencies [f4c1f8d]
+- Updated dependencies [6ec9e1c]
+  - @rspack/core@0.1.11
+  - @rspack/dev-server@0.1.11
+
 ## 0.1.9
 
 ### Patch Changes
