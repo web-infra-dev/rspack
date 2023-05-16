@@ -42,4 +42,4 @@ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack
 var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
-]);
+])
