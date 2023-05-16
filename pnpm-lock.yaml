@@ -412,6 +412,7 @@ importers:
       generate-package-json-webpack-plugin: ^2.6.0
       license-webpack-plugin: ^4.0.2
       webpack-bundle-analyzer: 4.7.0
+      webpack-manifest-plugin: 5.0.0
       webpack-stats-plugin: 1.1.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
@@ -421,6 +422,7 @@ importers:
       generate-package-json-webpack-plugin: 2.6.0
       license-webpack-plugin: 4.0.2
       webpack-bundle-analyzer: 4.7.0
+      webpack-manifest-plugin: 5.0.0
       webpack-stats-plugin: 1.1.1
 
   examples/polyfill:
@@ -20469,6 +20471,10 @@ packages:
     dev: true
     optional: true
 
+  /source-list-map/2.0.1:
+    resolution: {integrity: sha512-qnQ7gVMxGNxsiL4lEuJwe/To8UnK7fAnmbGEEH8RpLouuKbeEm0lhbQVFIrNSuB+G7tVrAlVsZgETT5nljf+Iw==}
+    dev: true
+
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
     engines: {node: '>=0.10.0'}
@@ -22827,12 +22833,30 @@ packages:
       uuid: 3.4.0
     dev: true
 
+  /webpack-manifest-plugin/5.0.0:
+    resolution: {integrity: sha512-8RQfMAdc5Uw3QbCQ/CBV/AXqOR8mt03B6GJmRbhWopE8GzRfEpn+k0ZuWywxW+5QZsffhmFDY1J6ohqJo+eMuw==}
+    engines: {node: '>=12.22.0'}
+    peerDependencies:
+      webpack: ^5.47.0
+    dependencies:
+      tapable: 2.2.1
+      webpack-sources: 2.3.1
+    dev: true
+
   /webpack-merge/5.8.0:
     resolution: {integrity: sha512-/SaI7xY0831XwP6kzuwhKWVKDP9t1QY1h65lAFLbZqMPIuYcD9QAW4u9STIbU9kaJbPBB/geU/gLr1wDjOhQ+Q==}
     engines: {node: '>=10.0.0'}
     dependencies:
       clone-deep: 4.0.1
       wildcard: 2.0.0
+    dev: true
+
+  /webpack-sources/2.3.1:
+    resolution: {integrity: sha512-y9EI9AO42JjEcrTJFOYmVywVZdKVUfOvDUPsJea5GIr1JOEGFVqwlY2K098fFoIjOkDzHn2AjRvM8dsBZu+gCA==}
+    engines: {node: '>=10.13.0'}
+    dependencies:
+      source-list-map: 2.0.1
+      source-map: 0.6.1
     dev: true
 
   /webpack-sources/3.2.3:

@@ -4,6 +4,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 const HtmlPlugin = require("@rspack/plugin-html").default;
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const minifyPlugin = require("@rspack/plugin-minify");
+const manifestPlugin = require("webpack-manifest-plugin").WebpackManifestPlugin;
 const GeneratePackageJsonPlugin = require("generate-package-json-webpack-plugin");
 const licensePlugin = require("license-webpack-plugin");
 /** @type {import('@rspack/cli').Configuration} */
@@ -55,6 +56,9 @@ const config = {
 			},
 			perChunkOutput: true,
 			outputFilename: `3rdpartylicenses.txt`
+		}),
+		new manifestPlugin({
+			fileName: "rspack-manifest.json"
 		})
 	]
 };

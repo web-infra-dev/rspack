@@ -18,6 +18,7 @@
     "generate-package-json-webpack-plugin": "^2.6.0",
     "license-webpack-plugin": "^4.0.2",
     "webpack-bundle-analyzer": "4.7.0",
-    "webpack-stats-plugin": "1.1.1"
+    "webpack-stats-plugin": "1.1.1",
+    "webpack-manifest-plugin": "5.0.0"
   }
 }
