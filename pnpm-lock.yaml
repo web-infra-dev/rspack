@@ -387,6 +387,14 @@ importers:
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
 
+  examples/node-polyfill:
+    specifiers:
+      '@rspack/cli': workspace:*
+      '@rspack/plugin-node-polyfill': workspace:*
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      '@rspack/plugin-node-polyfill': link:../../packages/rspack-plugin-node-polyfill
+
   examples/perfsee:
     specifiers:
       '@perfsee/webpack': 1.6.0
