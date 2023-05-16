@@ -1,6 +1,6 @@
 import { readFile, run } from "../../utils/test-utils";
 import { resolve } from "path";
-
+console.log("version:", process.version);
 describe("build command", () => {
 	it("it should work ", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, []);
