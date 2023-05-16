@@ -13,6 +13,7 @@ import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
+import { RawFallbackCacheGroupOptions } from "@rspack/binding";
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
@@ -593,6 +594,10 @@ export interface OptimizationSplitChunksOptions {
 	enforceSizeThreshold?: OptimizationSplitChunksSizes;
 	minRemainingSize?: OptimizationSplitChunksSizes;
 	name?: string | false;
+	maxSize?: number;
+	maxAsyncSize?: number;
+	maxInitialSize?: number;
+	fallbackCacheGroup?: RawFallbackCacheGroupOptions;
 }
 export interface OptimizationSplitChunksCacheGroup {
 	chunks?: "initial" | "async" | "all";
@@ -602,6 +607,9 @@ export interface OptimizationSplitChunksCacheGroup {
 	reuseExistingChunk?: boolean;
 	test?: RegExp;
 	minSize?: number;
+	maxSize?: number;
+	maxAsyncSize?: number;
+	maxInitialSize?: number;
 }
 export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =

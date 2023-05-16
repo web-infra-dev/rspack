@@ -31,4 +31,6 @@ pub struct CacheGroup {
   pub id_hint: String,
   pub max_initial_requests: u32,
   pub max_async_requests: u32,
+  pub max_async_size: SplitChunkSizes,
+  pub max_initial_size: SplitChunkSizes,
 }

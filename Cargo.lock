@@ -2706,6 +2706,7 @@ dependencies = [
  "rspack_core",
  "rspack_identifier",
  "rspack_regex",
+ "rspack_util",
  "rustc-hash",
  "tracing",
 ]

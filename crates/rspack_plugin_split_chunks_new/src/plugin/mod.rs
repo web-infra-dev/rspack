@@ -1,47 +1,59 @@
 mod chunk;
 mod max_request;
+mod max_size;
 mod min_size;
 mod module_group;
 
 use std::{borrow::Cow, fmt::Debug};
 
-use rspack_core::{Compilation, Plugin};
+use rspack_core::{ChunkUkey, Compilation, Plugin};
 use rustc_hash::FxHashMap;
 
-use crate::{cache_group::CacheGroup, module_group::ModuleGroup};
+use crate::{
+  cache_group::CacheGroup, common::FallbackCacheGroup, module_group::ModuleGroup, SplitChunkSizes,
+};
 
 type ModuleGroupMap = FxHashMap<String, ModuleGroup>;
 
+#[derive(Debug)]
 pub struct PluginOptions {
   pub cache_groups: Vec<CacheGroup>,
+  pub fallback_cache_group: FallbackCacheGroup,
 }
 
 pub struct SplitChunksPlugin {
   cache_groups: Box<[CacheGroup]>,
+  fallback_cache_group: FallbackCacheGroup,
 }
 
 impl SplitChunksPlugin {
   pub fn new(options: PluginOptions) -> Self {
+    tracing::debug!("Create `SplitChunksPlugin` with {:#?}", options);
     Self {
       cache_groups: options.cache_groups.into(),
+      fallback_cache_group: options.fallback_cache_group,
     }
   }
 
   async fn inner_impl(&self, compilation: &mut Compilation) {
     let mut module_group_map = self.prepare_module_group_map(compilation).await;
-
-    tracing::trace!("module_group_map: {module_group_map:#?}");
-    tracing::trace!("cache_groups: {:#?}", self.cache_groups);
+    tracing::trace!("prepared module_group_map {:#?}", module_group_map);
 
     self.ensure_min_size_fit(compilation, &mut module_group_map);
+
+    let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
 
     while !module_group_map.is_empty() {
       let (module_group_key, mut module_group) = self.find_best_module_group(&mut module_group_map);
       tracing::trace!(
-        "process {module_group_key}, {} `ModuleGroup` remains",
-        module_group_map.len()
+        "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
+        module_group_key,
+        module_group_map.len(),
       );
-      let cache_group = &self.cache_groups[module_group.cache_group_index];
+      let process_span = tracing::trace_span!("Process ModuleGroup({})", module_group_key);
+
+      process_span.in_scope(|| {
+        let cache_group = &self.cache_groups[module_group.cache_group_index];
 
       let mut is_reuse_existing_chunk = false;
       let mut is_reuse_existing_chunk_with_all_modules = false;
@@ -83,9 +95,21 @@ impl SplitChunksPlugin {
 
         if used_chunks_len < cache_group.min_chunks as usize {
           // `min_size` is not satisfied, ignore this invalid `ModuleGroup`
-          tracing::trace!("{module_group_key} bailout for used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})", cache_group.min_chunks);
-          continue;
+          tracing::trace!("ModuleGroup({module_group_key}) is skipped. Reason: used_chunks_len({used_chunks_len:?}) < cache_group.min_chunks({:?})", cache_group.min_chunks);
+          return;
         }
+      }
+
+      if !cache_group.max_initial_size.is_empty() || !cache_group.max_async_size.is_empty() {
+        max_size_setting_map.insert(
+          new_chunk,
+          MaxSizeSetting {
+            min_size: cache_group.min_size.clone(),
+            max_async_size: cache_group.max_async_size.clone(),
+            max_initial_size: cache_group.max_initial_size.clone(),
+            keys: vec![cache_group.key.clone()],
+          },
+        );
       }
 
       self.move_modules_to_new_chunk_and_remove_from_old_chunks(
@@ -103,7 +127,10 @@ impl SplitChunksPlugin {
         &used_chunks,
         compilation,
       );
+      })
     }
+
+    self.ensure_max_size_fit(compilation, max_size_setting_map);
   }
 }
 
@@ -128,4 +155,12 @@ impl Plugin for SplitChunksPlugin {
     // tracing::trace!("SplitChunksPlugin is: {:?}", duration);
     Ok(())
   }
+}
+
+#[derive(Debug)]
+struct MaxSizeSetting {
+  pub min_size: SplitChunkSizes,
+  pub max_async_size: SplitChunkSizes,
+  pub max_initial_size: SplitChunkSizes,
+  pub keys: Vec<String>,
 }

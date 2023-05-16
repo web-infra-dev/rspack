@@ -494,7 +494,10 @@ function getRawSplitChunksOptions(
 							minChunks: group.minChunks,
 							chunks: group.chunks,
 							reuseExistingChunk: group.reuseExistingChunk,
-							minSize: group.minSize
+							minSize: group.minSize,
+							maxAsyncSize: group.maxAsyncSize,
+							maxInitialSize: group.maxInitialSize,
+							maxSize: group.maxSize
 						};
 						return [key, normalizedGroup];
 					})
@@ -506,7 +509,11 @@ function getRawSplitChunksOptions(
 		minChunks: sc.minChunks,
 		minSize: sc.minSize,
 		enforceSizeThreshold: sc.enforceSizeThreshold,
-		minRemainingSize: sc.minRemainingSize
+		minRemainingSize: sc.minRemainingSize,
+		maxSize: sc.maxSize,
+		maxAsyncSize: sc.maxAsyncSize,
+		maxInitialSize: sc.maxInitialSize,
+		fallbackCacheGroup: sc.fallbackCacheGroup
 	};
 }
 
