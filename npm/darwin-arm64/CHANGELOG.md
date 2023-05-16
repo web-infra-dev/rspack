@@ -1,5 +1,7 @@
 # @rspack/binding-darwin-arm64
 
+## 0.1.11
+
 ## 0.1.9
 
 ## 0.1.8

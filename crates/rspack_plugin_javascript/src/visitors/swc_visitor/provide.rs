@@ -49,46 +49,6 @@ impl<'a> ProvideBuiltin<'a> {
     None
   }
 
-  fn create_obj_expr(&self, span: Span, module_path: &[String]) -> Expr {
-    let call_expr = self.create_call_expr(span, &module_path[0]);
-    let mut obj_expr = Expr::Call(call_expr);
-
-    for module_name in module_path.iter().skip(1) {
-      let member_expr = MemberExpr {
-        span,
-        obj: Box::new(obj_expr),
-        prop: MemberProp::Computed(ComputedPropName {
-          span,
-          expr: Box::new(Expr::Lit(Lit::Str(Str {
-            span,
-            value: module_name.to_string().into(),
-            raw: None,
-          }))),
-        }),
-      };
-
-      obj_expr = Expr::Member(member_expr);
-    }
-
-    obj_expr
-  }
-
-  fn create_call_expr(&self, span: Span, module_path: &str) -> CallExpr {
-    CallExpr {
-      span,
-      callee: Callee::Expr(Box::new(Expr::Ident(Ident::new("require".into(), span)))),
-      args: vec![ExprOrSpread {
-        spread: None,
-        expr: Box::new(Expr::Lit(Lit::Str(Str {
-          span,
-          value: module_path.to_string().into(),
-          raw: None,
-        }))),
-      }],
-      type_args: Default::default(),
-    }
-  }
-
   fn get_nested_identifier_name(&self, member_expr: &MemberExpr) -> String {
     let mut identifier_name = String::new();
 

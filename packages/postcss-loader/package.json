@@ -1,6 +1,6 @@
 {
   "name": "@rspack/postcss-loader",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "license": "MIT",
   "description": "PostCSS loader for rspack",
   "main": "src/index.js",

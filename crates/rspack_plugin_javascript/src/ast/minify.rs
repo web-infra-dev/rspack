@@ -9,11 +9,10 @@ use rspack_core::{
   ModuleType,
 };
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
-use swc_config::config_types::BoolOr;
 use swc_core::{
   common::{
     collections::AHashMap,
-    comments::{Comment, CommentKind, Comments, SingleThreadedComments},
+    comments::{CommentKind, Comments, SingleThreadedComments},
     errors::{Emitter, Handler, HANDLER},
     BytePos, FileName, Mark, SourceMap, GLOBALS,
   },
@@ -38,8 +37,8 @@ use swc_ecma_minifier::{
 use super::parse::parse_js;
 use super::stringify::{print, SourceMapConfig};
 use crate::{
-  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyCommentOption,
-  JsMinifyOptions, SourceMapsConfig, TransformOutput,
+  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyOptions,
+  SourceMapsConfig, TransformOutput,
 };
 
 pub fn minify(
@@ -266,33 +265,6 @@ impl Visit for IdentCollector {
 
   fn visit_ident(&mut self, ident: &Ident) {
     self.names.insert(ident.span.lo, ident.sym.clone());
-  }
-}
-
-fn minify_file_comments(
-  comments: &SingleThreadedComments,
-  preserve_comments: BoolOr<JsMinifyCommentOption>,
-) {
-  match preserve_comments {
-    BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => {}
-
-    BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
-      let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
-        // Preserve license comments.
-        vc.retain(|c: &Comment| c.text.contains("@license") || c.text.starts_with('!'));
-        !vc.is_empty()
-      };
-      let (mut l, mut t) = comments.borrow_all_mut();
-
-      l.retain(preserve_excl);
-      t.retain(preserve_excl);
-    }
-
-    BoolOr::Bool(false) => {
-      let (mut l, mut t) = comments.borrow_all_mut();
-      l.clear();
-      t.clear();
-    }
   }
 }
 

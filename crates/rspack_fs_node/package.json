@@ -1,6 +1,6 @@
 {
   "name": "@rspack/fs",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "description": "File system utilities for rspack",
   "private": true,
   "license": "MIT",

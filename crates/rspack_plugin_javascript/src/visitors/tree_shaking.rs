@@ -23,7 +23,7 @@ pub fn tree_shaking_visitor<'a>(
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
   extra_mark: MarkInfo,
   include_module_ids: &'a IdentifierSet,
-  options: Arc<CompilerOptions>,
+  _options: Arc<CompilerOptions>,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
@@ -37,7 +37,6 @@ pub fn tree_shaking_visitor<'a>(
     module_item_map,
     extra_mark,
     include_module_ids,
-    options,
   }
 }
 
@@ -70,7 +69,6 @@ struct TreeShaker<'a> {
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
   extra_mark: MarkInfo,
   include_module_ids: &'a IdentifierSet,
-  options: Arc<CompilerOptions>,
 }
 
 impl<'a> Fold for TreeShaker<'a> {

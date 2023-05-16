@@ -1,5 +1,4 @@
 #![feature(box_patterns)]
-#![allow(dead_code)]
 
 pub mod config;
 pub mod parser;

@@ -107,7 +107,7 @@ importers:
       '@angular/router': ^16.0.0
       '@ngtools/webpack': ^16.0.0
       '@rspack/cli': workspace:*
-      '@rspack/plugin-minify': 0.1.9
+      '@rspack/plugin-minify': workspace:*
       karma: ~6.4.0
       karma-chrome-launcher: ~3.1.0
       karma-coverage: ~2.2.0
@@ -411,6 +411,7 @@ importers:
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: ^2.6.0
       license-webpack-plugin: ^4.0.2
+      rspack-manifest-plugin: 5.0.0-alpha0
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
     devDependencies:
@@ -420,6 +421,7 @@ importers:
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: 2.6.0
       license-webpack-plugin: 4.0.2
+      rspack-manifest-plugin: 5.0.0-alpha0
       webpack-bundle-analyzer: 4.7.0
       webpack-stats-plugin: 1.1.1
 
@@ -19682,6 +19684,16 @@ packages:
       fsevents: 2.3.2
     dev: true
 
+  /rspack-manifest-plugin/5.0.0-alpha0:
+    resolution: {integrity: sha512-a84H6P/lK0x3kb0I8Qdiwxrnjt1oNW0j+7kwPMWcODJu8eYFBrTXa1t+14n18Jvg9RKIR6llCH16mYxf2d0s8A==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      webpack: ^5.75.0
+    dependencies:
+      tapable: 2.2.1
+      webpack-sources: 2.3.1
+    dev: true
+
   /run-async/2.4.1:
     resolution: {integrity: sha512-tvVnVv01b8c1RrA6Ep7JkStj85Guv/YrMcwqYQnwjsAS2cTmmPGBBjAjpCW7RrSodNSoE2/qg9O4bceNvUuDgQ==}
     engines: {node: '>=0.12.0'}
@@ -20468,6 +20480,10 @@ packages:
       is-plain-obj: 1.1.0
     dev: true
     optional: true
+
+  /source-list-map/2.0.1:
+    resolution: {integrity: sha512-qnQ7gVMxGNxsiL4lEuJwe/To8UnK7fAnmbGEEH8RpLouuKbeEm0lhbQVFIrNSuB+G7tVrAlVsZgETT5nljf+Iw==}
+    dev: true
 
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
@@ -22833,6 +22849,14 @@ packages:
     dependencies:
       clone-deep: 4.0.1
       wildcard: 2.0.0
+    dev: true
+
+  /webpack-sources/2.3.1:
+    resolution: {integrity: sha512-y9EI9AO42JjEcrTJFOYmVywVZdKVUfOvDUPsJea5GIr1JOEGFVqwlY2K098fFoIjOkDzHn2AjRvM8dsBZu+gCA==}
+    engines: {node: '>=10.13.0'}
+    dependencies:
+      source-list-map: 2.0.1
+      source-map: 0.6.1
     dev: true
 
   /webpack-sources/3.2.3:

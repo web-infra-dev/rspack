@@ -13,11 +13,7 @@ pub struct CommonJSRequireDependency {
   id: Option<DependencyId>,
   request: JsWord,
   optional: bool,
-  // user_request: String,
-  category: &'static DependencyCategory,
-  dependency_type: &'static DependencyType,
   span: Option<ErrorSpan>,
-  #[allow(unused)]
   ast_path: JsAstPath,
 }
 
@@ -31,10 +27,7 @@ impl CommonJSRequireDependency {
     Self {
       id: None,
       request,
-      // user_request,
       optional,
-      category: &DependencyCategory::CommonJS,
-      dependency_type: &DependencyType::CjsRequire,
       span,
       ast_path,
     }

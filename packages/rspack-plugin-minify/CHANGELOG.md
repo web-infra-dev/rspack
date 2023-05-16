@@ -1,5 +1,11 @@
 # @rspack/plugin-minify
 
+## 0.1.11
+
+### Patch Changes
+
+- 1a85689: support minify css
+
 ## 0.1.9
 
 ## 0.1.8
