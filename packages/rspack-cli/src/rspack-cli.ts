@@ -23,7 +23,8 @@ import {
 import { normalizeEnv } from "./utils/options";
 import {
 	loadRspackConfig,
-	findFileWithSupportedExtensions
+	findFileWithSupportedExtensions,
+	revalidateTsconfig
 } from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
 import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
@@ -55,6 +56,7 @@ export class RspackCLI {
 		}
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackCommand);
+		revalidateTsconfig(config);
 
 		const isWatch = Array.isArray(config)
 			? (config as MultiRspackOptions).some(i => i.watch)

@@ -78,7 +78,9 @@ async function requireWithAdditionalExtension(resolvedPath: string) {
 	return loadedConfig;
 }
 
-function revalidateTsconfig(options: RspackOptions | MultiRspackOptions) {
+export function revalidateTsconfig(
+	options: RspackOptions | MultiRspackOptions
+) {
 	try {
 		(Array.isArray(options) ? options : [options]).forEach(option => {
 			let resolveTsConfig =

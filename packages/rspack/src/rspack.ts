@@ -7,32 +7,32 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { getTsconfig } from "get-tsconfig";
-import util from "util";
-import { Compiler } from "./compiler";
 import {
+	getNormalizedRspackOptions,
 	RspackOptions,
-	RspackPluginFunction,
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
-	getNormalizedRspackOptions
+	RspackPluginFunction
 } from "./config";
+import { Compiler } from "./compiler";
 import { Stats } from "./stats";
+import util from "util";
 
-import assert from "assert";
-import { ValidationError, validate } from "schema-utils";
-import { Callback } from "tapable";
-import rspackOptionsCheck from "./config/schema.check.js";
-import InvalidateConfigurationError from "./error/InvalidateConfiguration";
+import { RspackOptionsApply } from "./rspackOptionsApply";
+import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
 import {
 	MultiCompiler,
 	MultiCompilerOptions,
 	MultiRspackOptions
 } from "./multiCompiler";
+import { Callback } from "tapable";
 import MultiStats from "./multiStats";
-import NodeEnvironmentPlugin from "./node/NodeEnvironmentPlugin";
-import { RspackOptionsApply } from "./rspackOptionsApply";
+import assert from "assert";
 import { asArray, isNil } from "./util";
+import rspackOptionsCheck from "./config/schema.check.js";
+import InvalidateConfigurationError from "./error/InvalidateConfiguration";
+import { validate, ValidationError } from "schema-utils";
+import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -78,6 +78,10 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 		}
 	}
 
+	if (options.ignoreWarnings !== undefined) {
+		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
+	}
+
 	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
@@ -112,32 +116,6 @@ function revalidateWithStrategy(options: RspackOptions | MultiRspackOptions) {
 	}
 }
 
-function revalidateTsconfig(options: RspackOptions | MultiRspackOptions) {
-	try {
-		asArray(options).forEach(option => {
-			let resolveTsConfig =
-				(option as RspackOptions).resolve?.tsConfigPath ??
-				(option as RspackOptions).context ??
-				process.cwd();
-			const loadResult = getTsconfig(resolveTsConfig);
-			loadResult?.config &&
-				validate(require("./config/ts-schema.js"), loadResult.config);
-		});
-	} catch (e) {
-		if (!(e instanceof ValidationError)) {
-			throw e;
-		}
-		// 'strict', 'loose', 'loose-silent'
-		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "loose";
-		if (strategy === "loose-silent") return;
-		if (strategy === "loose") {
-			console.log(`\x1b[33m${e.message}\x1b[0m`);
-			return;
-		}
-		// throw new InvalidateConfigurationError(e.message);
-	}
-}
-
 function rspack(
 	options: MultiRspackOptions,
 	callback?: Callback<Error, MultiStats>
@@ -158,7 +136,6 @@ function rspack(
 		// slow path
 		revalidateWithStrategy(options);
 	}
-	revalidateTsconfig(options);
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);
