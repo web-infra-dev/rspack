@@ -1,5 +1,44 @@
 # @rspack/core
 
+## 0.1.11
+
+### Patch Changes
+
+- 5d4333f: fix: rebuild loses error messages
+- 2bb2bcd6: add extractComments option
+- 1d76fec: refactor: remove dependency parent module identifier
+- 8d0cba49: fix rebuild panic when tap watchRun hook
+- fdaad48: fix: call devServer.invalidate() panic
+- b452de5: fix: entry startup for target node
+- 488071c: feat: add build meta exports type
+- bce8523: db9a03e7: add compilation processWarnings hook
+  db9a03e7: feat: ignoreWarnings option
+- 5b33c94d: fix: hash chunk_loading_global
+- 1c83bbd: fix: add correct chunk group runtime for multiply entry single runtime
+- 4e25fafa: fix: react refresh usage finder
+- bc52026: fix: already split module should connect chunk group at multiply entry
+- 04daf09: feat: add optimization.realContentHash
+- 3abb2fc: feat: support inline match resource
+- c567571: fix: add entry startup to fix async script chunk loading
+- f4c1f8d: refactor: external module for http request
+- 6ec9e1c: fix: css url generate with auto public path
+- Updated dependencies [f609f7a4]
+- Updated dependencies [ada51e2]
+- Updated dependencies [2bb2bcd6]
+- Updated dependencies [ff85ce8]
+- Updated dependencies [e764de62]
+- Updated dependencies [c0e550b]
+- Updated dependencies [088220b3]
+- Updated dependencies [abf788a0]
+- Updated dependencies [2a6a778]
+- Updated dependencies [e5d33eb]
+- Updated dependencies [04daf09]
+- Updated dependencies [3abb2fc]
+- Updated dependencies [2d9e5c2]
+- Updated dependencies [f4c1f8d]
+  - @rspack/binding@0.1.11
+  - @rspack/dev-client@0.1.11
+
 ## 0.1.9
 
 ### Patch Changes
