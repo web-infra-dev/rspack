@@ -1164,26 +1164,29 @@ fn get_inherit_export_ref_graph(
   for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
     // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
     let mut inherit_export_maps = {
-      let main_module = analyze_result_map.get_mut(module_id).expect("TODO:");
+      let main_module = analyze_result_map
+        .get_mut(module_id)
+        .unwrap_or_else(|| panic!("Can't get analyze_result of {}", module_id));
       std::mem::take(&mut main_module.inherit_export_maps)
     };
     for inherit_export_module_identifier in inherit_export_module_id {
       let export_module = analyze_result_map
         .get(inherit_export_module_identifier)
-        .unwrap_or_else(|| {
-          panic!("inherit_export_module_identifier not found: {inherit_export_module_identifier:?}")
+        .map(|analyze_result| {
+          analyze_result
+            .export_map
+            .iter()
+            .filter_map(|(k, v)| {
+              // export * should not reexport default export
+              if k == "default" {
+                None
+              } else {
+                Some((k.clone(), v.clone()))
+              }
+            })
+            .collect::<HashMap<JsWord, SymbolRef>>()
         })
-        .export_map
-        .iter()
-        .filter_map(|(k, v)| {
-          // export * should not reexport default export
-          if k == "default" {
-            None
-          } else {
-            Some((k.clone(), v.clone()))
-          }
-        })
-        .collect::<HashMap<JsWord, SymbolRef>>();
+        .unwrap_or_default();
       inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
     }
     analyze_result_map
