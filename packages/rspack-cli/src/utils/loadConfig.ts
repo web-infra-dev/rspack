@@ -89,7 +89,7 @@ export function revalidateTsconfig(
 				process.cwd();
 			const loadResult = getTsconfig(resolveTsConfig);
 			loadResult?.config &&
-				validate(require("./config/ts-schema.js"), loadResult.config);
+				validate(require("./config/ts-schema"), loadResult.config);
 		});
 	} catch (e) {
 		if (!(e instanceof ValidationError)) {
@@ -99,9 +99,7 @@ export function revalidateTsconfig(
 		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "loose";
 		if (strategy === "loose-silent") return;
 		if (strategy === "loose") {
-			console.log(`\x1b[33m${e.message}\x1b[0m`);
-			return;
+			return e.message;
 		}
-		// throw new InvalidateConfigurationError(e.message);
 	}
 }

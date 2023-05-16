@@ -56,7 +56,14 @@ export class RspackCLI {
 		}
 		let config = await this.loadConfig(options);
 		config = await this.buildConfig(config, options, rspackCommand);
-		revalidateTsconfig(config);
+		try {
+			let message = revalidateTsconfig(config);
+			if (message) {
+				this.getLogger().warn(message);
+			}
+		} catch (e) {
+			this.getLogger().error(e.message());
+		}
 
 		const isWatch = Array.isArray(config)
 			? (config as MultiRspackOptions).some(i => i.watch)
