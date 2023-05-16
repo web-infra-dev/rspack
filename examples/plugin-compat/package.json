@@ -19,6 +19,6 @@
     "license-webpack-plugin": "^4.0.2",
     "webpack-bundle-analyzer": "4.7.0",
     "webpack-stats-plugin": "1.1.1",
-    "webpack-manifest-plugin": "5.0.0"
+    "rspack-manifest-plugin": "5.0.0-alpha0"
   }
 }

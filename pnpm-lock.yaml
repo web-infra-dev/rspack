@@ -411,8 +411,8 @@ importers:
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: ^2.6.0
       license-webpack-plugin: ^4.0.2
+      rspack-manifest-plugin: 5.0.0-alpha0
       webpack-bundle-analyzer: 4.7.0
-      webpack-manifest-plugin: 5.0.0
       webpack-stats-plugin: 1.1.1
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
@@ -421,8 +421,8 @@ importers:
       copy-webpack-plugin: 5.1.2
       generate-package-json-webpack-plugin: 2.6.0
       license-webpack-plugin: 4.0.2
+      rspack-manifest-plugin: 5.0.0-alpha0
       webpack-bundle-analyzer: 4.7.0
-      webpack-manifest-plugin: 5.0.0
       webpack-stats-plugin: 1.1.1
 
   examples/polyfill:
@@ -19684,6 +19684,16 @@ packages:
       fsevents: 2.3.2
     dev: true
 
+  /rspack-manifest-plugin/5.0.0-alpha0:
+    resolution: {integrity: sha512-a84H6P/lK0x3kb0I8Qdiwxrnjt1oNW0j+7kwPMWcODJu8eYFBrTXa1t+14n18Jvg9RKIR6llCH16mYxf2d0s8A==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      webpack: ^5.75.0
+    dependencies:
+      tapable: 2.2.1
+      webpack-sources: 2.3.1
+    dev: true
+
   /run-async/2.4.1:
     resolution: {integrity: sha512-tvVnVv01b8c1RrA6Ep7JkStj85Guv/YrMcwqYQnwjsAS2cTmmPGBBjAjpCW7RrSodNSoE2/qg9O4bceNvUuDgQ==}
     engines: {node: '>=0.12.0'}
@@ -22831,16 +22841,6 @@ packages:
     dependencies:
       ansi-colors: 3.2.4
       uuid: 3.4.0
-    dev: true
-
-  /webpack-manifest-plugin/5.0.0:
-    resolution: {integrity: sha512-8RQfMAdc5Uw3QbCQ/CBV/AXqOR8mt03B6GJmRbhWopE8GzRfEpn+k0ZuWywxW+5QZsffhmFDY1J6ohqJo+eMuw==}
-    engines: {node: '>=12.22.0'}
-    peerDependencies:
-      webpack: ^5.47.0
-    dependencies:
-      tapable: 2.2.1
-      webpack-sources: 2.3.1
     dev: true
 
   /webpack-merge/5.8.0:
