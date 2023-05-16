@@ -1,44 +1,25 @@
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
-  ModuleDependency, ModuleIdentifier, RuntimeGlobals,
+  ModuleDependency, RuntimeGlobals,
 };
 use swc_core::common::Spanned;
 use swc_core::ecma::utils::{member_expr, quote_ident, quote_str};
 use swc_core::ecma::{ast::*, atoms::JsWord};
 
-#[derive(Debug, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct URLDependency {
   id: Option<DependencyId>,
-  parent_module_identifier: Option<ModuleIdentifier>,
   request: JsWord,
   span: Option<ErrorSpan>,
   #[allow(unused)]
   ast_path: JsAstPath,
 }
 
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl PartialEq for URLDependency {
-  fn eq(&self, other: &Self) -> bool {
-    self.parent_module_identifier == other.parent_module_identifier && self.request == other.request
-  }
-}
-
-// Do not edit this, as it is used to uniquely identify the dependency.
-impl std::hash::Hash for URLDependency {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.parent_module_identifier.hash(state);
-    self.request.hash(state);
-    self.category().hash(state);
-    self.dependency_type().hash(state);
-  }
-}
-
 impl URLDependency {
   pub fn new(request: JsWord, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
       id: None,
-      parent_module_identifier: None,
       request,
       span,
       ast_path,
@@ -52,13 +33,6 @@ impl Dependency for URLDependency {
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = module_identifier;
   }
 
   fn category(&self) -> &DependencyCategory {

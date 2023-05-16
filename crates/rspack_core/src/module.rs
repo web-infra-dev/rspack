@@ -34,11 +34,32 @@ pub struct BuildInfo {
 }
 
 #[derive(Debug, Default, Clone)]
+pub enum BuildMetaExportsType {
+  #[default]
+  Default,
+  Namespace,
+  Flagged,
+  Dynamic,
+}
+
+#[derive(Debug, Default, Clone)]
+pub enum BuildMetaDefaultObject {
+  #[default]
+  False,
+  Redirect,
+  RedirectWarn,
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct BuildMeta {
+  pub strict: bool,
   pub strict_harmony_module: bool,
   pub is_async: bool,
-  // TODO webpack exportsType
   pub esm: bool,
+  pub exports_type: BuildMetaExportsType,
+  pub default_object: BuildMetaDefaultObject,
+  pub module_argument: &'static str,
+  pub exports_argument: &'static str,
 }
 
 // webpack build info
@@ -145,56 +166,6 @@ impl Identifiable for Box<dyn Module> {
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
     self.as_ref().identifier()
-  }
-}
-
-#[async_trait::async_trait]
-impl Module for Box<dyn Module> {
-  fn module_type(&self) -> &ModuleType {
-    (**self).module_type()
-  }
-
-  fn source_types(&self) -> &[SourceType] {
-    (**self).source_types()
-  }
-
-  fn original_source(&self) -> Option<&dyn Source> {
-    (**self).original_source()
-  }
-
-  fn readable_identifier(&self, context: &Context) -> Cow<str> {
-    (**self).readable_identifier(context)
-  }
-
-  fn size(&self, source_type: &SourceType) -> f64 {
-    (**self).size(source_type)
-  }
-
-  async fn build(
-    &mut self,
-    build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    (**self).build(build_context).await
-  }
-
-  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    (**self).code_generation(compilation)
-  }
-
-  fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<str>> {
-    (**self).lib_ident(options)
-  }
-
-  fn get_code_generation_dependencies(&self) -> Option<&[Box<dyn ModuleDependency>]> {
-    (**self).get_code_generation_dependencies()
-  }
-
-  fn get_resolve_options(&self) -> Option<&Resolve> {
-    (**self).get_resolve_options()
-  }
-
-  fn name_for_condition(&self) -> Option<Cow<str>> {
-    (**self).name_for_condition()
   }
 }
 
@@ -377,15 +348,15 @@ mod test {
     e1.hash(&mut state1);
     e2.hash(&mut state2);
 
-    let hash1 = format!("{:x}", state1.finish());
-    let hash2 = format!("{:x}", state2.finish());
+    let hash1 = format!("{:016x}", state1.finish());
+    let hash2 = format!("{:016x}", state2.finish());
     assert_eq!(hash1, hash2);
 
     let e3: Box<dyn Module> = ExternalModule("e3").boxed();
     let mut state3 = xxhash_rust::xxh3::Xxh3::default();
     e3.hash(&mut state3);
 
-    let hash3 = format!("{:x}", state3.finish());
+    let hash3 = format!("{:016x}", state3.finish());
     assert_ne!(hash1, hash3);
   }
 

@@ -8,7 +8,7 @@ use rspack_error::Result;
 use crate::runtime_module::JsonpChunkLoadingRuntimeModule;
 
 #[derive(Debug)]
-pub struct JsonpChunkLoadingPlugin {}
+pub struct JsonpChunkLoadingPlugin;
 
 #[async_trait]
 impl Plugin for JsonpChunkLoadingPlugin {

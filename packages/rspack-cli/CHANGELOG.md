@@ -1,5 +1,26 @@
 # @rspack/cli
 
+## 0.1.9
+
+### Patch Changes
+
+- bc65893: feat: add moduleAssets for stats
+- a14278e: provide a preview command, help user preview the build output.
+- Updated dependencies [7c26a2d]
+- Updated dependencies [820c029]
+- Updated dependencies [bc65893]
+- Updated dependencies [6cc3076]
+- Updated dependencies [7342a47]
+- Updated dependencies [c1720f9]
+- Updated dependencies [0f1d3be]
+- Updated dependencies [e2647bb]
+- Updated dependencies [057829b]
+- Updated dependencies [ef7d3c5]
+- Updated dependencies [c162cb6]
+- Updated dependencies [b77b706]
+  - @rspack/core@0.1.9
+  - @rspack/dev-server@0.1.9
+
 ## 0.1.8
 
 ### Patch Changes

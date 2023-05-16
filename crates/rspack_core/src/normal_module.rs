@@ -21,7 +21,7 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use serde_json::json;
 use xxhash_rust::xxh3::Xxh3;
 
@@ -32,10 +32,11 @@ use crate::{
   CompilerOptions, Context, Dependency, DependencyId, FactoryMeta, GenerateContext,
   LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
   ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, RuntimeGlobals, SourceType,
+  ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
+  #[derive(Default)]
   pub struct ModuleSyntax: u8 {
     const COMMONJS = 1 << 0;
     const ESM = 1 << 1;
@@ -89,18 +90,13 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<usize>,
   pub post_order_index: Option<usize>,
   pub module_syntax: ModuleSyntax,
-  pub used: bool,
   pub factory_meta: Option<FactoryMeta>,
   pub build_info: Option<BuildInfo>,
   pub build_meta: Option<BuildMeta>,
 }
 
 impl ModuleGraphModule {
-  pub fn new(
-    module_identifier: ModuleIdentifier,
-    module_type: ModuleType,
-    default_used: bool,
-  ) -> Self {
+  pub fn new(module_identifier: ModuleIdentifier, module_type: ModuleType) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
@@ -113,7 +109,6 @@ impl ModuleGraphModule {
       pre_order_index: None,
       post_order_index: None,
       module_syntax: ModuleSyntax::empty(),
-      used: default_used,
       factory_meta: None,
       build_info: None,
       build_meta: None,
@@ -188,7 +183,10 @@ impl ModuleGraphModule {
     self
       .dependencies
       .iter()
-      .filter(|id| !is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
+      .filter(|id| {
+        let dep = module_graph.dependency_by_id(id).expect("should have id");
+        !is_async_dependency(dep) && !dep.weak()
+      })
       .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
       .collect()
   }
@@ -202,21 +200,19 @@ impl ModuleGraphModule {
       .iter()
       .filter_map(|id| {
         let dep = module_graph.dependency_by_id(id).expect("should have id");
-        let is_async = is_async_dependency(dep);
+        if !is_async_dependency(dep) {
+          return None;
+        }
         let module = module_graph
           .module_identifier_by_dependency_id(id)
           .expect("should have a module here");
 
-        if is_async {
-          let chunk_name = dep
-            .as_ref()
-            .as_any()
-            .downcast_ref::<EsmDynamicImportDependency>()
-            .and_then(|f| f.name.as_deref());
-          Some((module, chunk_name))
-        } else {
-          None
-        }
+        let chunk_name = dep
+          .as_ref()
+          .as_any()
+          .downcast_ref::<EsmDynamicImportDependency>()
+          .and_then(|f| f.name.as_deref());
+        Some((module, chunk_name))
       })
       .collect()
   }
@@ -330,6 +326,8 @@ pub struct NormalModule {
   module_type: ModuleType,
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
+  /// Resource matched with inline match resource, (`!=!` syntax)
+  match_resource: Option<ResourceData>,
   /// Resource data (path, query, fragment etc.)
   resource_data: ResourceData,
   /// Loaders for the module
@@ -393,14 +391,20 @@ impl NormalModule {
     parser_and_generator: Box<dyn ParserAndGenerator>,
     parser_options: Option<AssetParserOptions>,
     generator_options: Option<AssetGeneratorOptions>,
+    match_resource: Option<ResourceData>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
     loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
   ) -> Self {
     let module_type = module_type.into();
+    let identifier = if module_type == ModuleType::Js {
+      request.to_string()
+    } else {
+      format!("{module_type}|{request}")
+    };
     Self {
-      id: ModuleIdentifier::from(format!("{module_type}|{request}")),
+      id: ModuleIdentifier::from(identifier),
       request,
       user_request,
       raw_request,
@@ -408,6 +412,7 @@ impl NormalModule {
       parser_and_generator,
       parser_options,
       generator_options,
+      match_resource,
       resource_data,
       resolve_options,
       loaders,
@@ -420,6 +425,10 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
     }
+  }
+
+  pub fn match_resource(&self) -> Option<&ResourceData> {
+    self.match_resource.as_ref()
   }
 
   pub fn resource_resolved_data(&self) -> &ResourceData {
@@ -568,15 +577,7 @@ impl Module for NormalModule {
     // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
-    self.code_generation_dependencies = Some(
-      code_generation_dependencies
-        .into_iter()
-        .map(|mut d| {
-          d.set_parent_module_identifier(Some(self.identifier()));
-          d
-        })
-        .collect::<Vec<_>>(),
-    );
+    self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
     let mut hasher = Xxh3::new();
@@ -590,8 +591,6 @@ impl Module for NormalModule {
     build_info.build_dependencies = loader_result.build_dependencies;
     build_info.asset_filenames = loader_result.asset_filenames;
 
-    // TODO: match package.json type files
-    build_meta.strict_harmony_module = matches!(self.module_type, ModuleType::JsEsm);
     Ok(
       BuildResult {
         build_info,
@@ -605,8 +604,6 @@ impl Module for NormalModule {
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
-      let mut data = HashMap::default();
-      let mut runtime_requirements = RuntimeGlobals::default();
       for source_type in self.source_types() {
         let mut generation_result = self.parser_and_generator.generate(
           ast_or_source,
@@ -614,8 +611,8 @@ impl Module for NormalModule {
           &mut GenerateContext {
             compilation,
             module_generator_options: self.generator_options.as_ref(),
-            runtime_requirements: &mut runtime_requirements,
-            data: &mut data,
+            runtime_requirements: &mut code_generation_result.runtime_requirements,
+            data: &mut code_generation_result.data,
             requested_source_type: *source_type,
           },
         )?;
@@ -624,10 +621,6 @@ impl Module for NormalModule {
           .map(|i| i, |s| CachedSource::new(s).boxed());
         code_generation_result.add(*source_type, generation_result);
       }
-      code_generation_result.data.extend(data);
-      code_generation_result
-        .runtime_requirements
-        .add(runtime_requirements);
       code_generation_result.set_hash();
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {

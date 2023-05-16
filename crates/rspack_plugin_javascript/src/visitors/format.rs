@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::utils::{member_expr, ExprFactory};
 use {
   swc_core::common::{Mark, SyntaxContext, DUMMY_SP},
-  swc_core::ecma::ast::{self, *},
+  swc_core::ecma::ast::*,
   swc_core::ecma::atoms::JsWord,
   swc_core::ecma::visit::{noop_visit_mut_type, Fold, VisitMut, VisitMutWith},
 };
@@ -29,10 +29,10 @@ pub struct RspackModuleFinalizer<'a> {
 }
 
 impl<'a> Fold for RspackModuleFinalizer<'a> {
-  fn fold_module(&mut self, mut module: ast::Module) -> ast::Module {
+  fn fold_program(&mut self, mut n: Program) -> Program {
     let mut module_bindings = HashMap::default();
     // TODO: should use dependency's code generation
-    module.visit_mut_with(&mut RspackModuleFormatTransformer::new(
+    n.visit_mut_with(&mut RspackModuleFormatTransformer::new(
       self.unresolved_mark,
       self.module,
       self.compilation,
@@ -64,24 +64,14 @@ impl<'a> Fold for RspackModuleFinalizer<'a> {
       })
       .expect("Failed to get module graph module");
 
-    module.visit_mut_with(&mut HmrApiRewrite {
+    n.visit_mut_with(&mut HmrApiRewrite {
       module: self.module,
       compilation: self.compilation,
       module_bindings: &mut module_bindings,
       esm_dependencies: &esm_dependencies,
     });
-    let body = module
-      .body
-      .into_iter()
-      .filter_map(|stmt| stmt.stmt())
-      .map(|stmt| stmt.into())
-      .collect();
 
-    ast::Module {
-      span: Default::default(),
-      body,
-      shebang: None,
-    }
+    n
   }
 }
 
@@ -350,14 +340,14 @@ impl<'a> HmrApiRewrite<'a> {
             ..
           }) = n.args.get_mut(1)
           {
-            if let box BlockStmtOrExpr::Expr(box expr) = body {
+            if let box BlockStmtOrExpr::Expr(box ref mut expr) = body {
               auto_import_stmts.push(
                 std::mem::replace(expr, Expr::Invalid(Invalid { span: DUMMY_SP })).into_stmt(),
               );
-              *body = box BlockStmtOrExpr::BlockStmt(BlockStmt {
+              *body = Box::new(BlockStmtOrExpr::BlockStmt(BlockStmt {
                 span: DUMMY_SP,
                 stmts: auto_import_stmts,
-              });
+              }));
             }
           }
         }

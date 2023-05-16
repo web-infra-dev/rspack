@@ -1,24 +1,11 @@
-/**
- * @type {import('@rspack/cli').Configuration}
- */
-module.exports = {
-	target: "web",
-	mode: "development",
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+	mode: "none",
 	entry: {
 		main: "./src/index.js"
 	},
-	devtool: "source-map",
-	experiments: {
-		css: true
-	},
-	builtins: {
-		minify: false,
-		html: [
-			{
-				template: "./index.html"
-			}
-		]
-	},
+	target: "node",
+	externalsType: "commonjs",
 	module: {
 		rules: [
 			{
@@ -39,6 +26,9 @@ module.exports = {
 				test: /\.js$/,
 				use: [
 					{
+						loader: "thread-loader"
+					},
+					{
 						loader: "babel-loader",
 						options: {
 							presets: [["@babel/preset-env", { targets: "defaults" }]]
@@ -52,26 +42,31 @@ module.exports = {
 			{
 				test: /\.less$/,
 				use: [
-					{ loader: "style-loader" },
-					{ loader: "css-loader" },
-					{ loader: "less-loader" }
+					{
+						loader: "style-loader",
+						options: {
+							esModule: false
+						}
+					},
+					"css-loader",
+					"less-loader"
 				]
 			},
 			{
 				test: /\.scss$/,
 				use: [
-					{ loader: "style-loader" },
-					{ loader: "css-loader" },
-					{ loader: "sass-loader" }
+					{ loader: "style-loader", options: { esModule: false } },
+					"css-loader",
+					"sass-loader"
 				]
 			},
 			{
 				test: /\.yaml$/,
-				use: [{ loader: "yaml-loader" }]
+				use: ["yaml-loader"]
 			},
 			{
 				test: /\.styl$/,
-				use: [{ loader: "stylus-loader" }],
+				use: ["stylus-loader"],
 				type: "css"
 			},
 			{
@@ -85,33 +80,48 @@ module.exports = {
 			},
 			{
 				test: /\.svg$/,
-				use: [
-					{
-						loader: "@svgr/webpack"
-					},
-					{
-						loader: "file-loader"
-					}
-				],
+				exclude: /arco\.svg/,
+				use: ["@svgr/webpack", "file-loader"],
 				type: "javascript/auto"
 			},
 			{
 				test: /\.txt/,
-				use: [
-					{
-						loader: "raw-loader"
-					}
-				],
+				use: ["raw-loader"],
 				type: "javascript/auto"
 			},
 			{
+				test: /\h.png$/,
+				use: ["file-loader"]
+			},
+			{
+				test: /\.node$/,
+				use: [
+					{
+						loader: "node-loader",
+						options: {
+							name: "[path][name].[ext]"
+						}
+					}
+				]
+			},
+			{
 				test: /\.png$/,
+				exclude: /\h.png$/,
 				use: [
 					{
 						loader: "file-loader"
+					},
+					{
+						loader: "image-webpack-loader",
+						options: {
+							optipng: {
+								enabled: true
+							}
+						}
 					}
 				]
 			}
 		]
 	}
 };
+module.exports = config;

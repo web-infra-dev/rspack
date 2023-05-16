@@ -11,12 +11,12 @@ type ResourceData = {
 // resource_query: (!info.query.is_empty()).then_some(info.query),
 // resource_fragment: (!info.fragment.is_empty()).then_some(info.fragment),
 type ResourceDataWithData = ResourceData & { data?: Record<string, any> };
-// type ResolveData = {
-// 	context: string;
-// 	request: string;
-// 	assertions: Record<string, any> | undefined;
-// 	// dependencies: ModuleDependency[];
-// };
+type ResolveData = {
+	context?: string;
+	request: string;
+	// assertions: Record<string, any> | undefined;
+	// dependencies: ModuleDependency[];
+};
 
 export class NormalModuleFactory {
 	hooks: {
@@ -24,6 +24,7 @@ export class NormalModuleFactory {
 		resolveForScheme: HookMap<
 			AsyncSeriesBailHook<[ResourceDataWithData], true | void>
 		>;
+		beforeResolve: AsyncSeriesBailHook<[ResolveData], boolean | void>;
 	};
 	constructor() {
 		this.hooks = {
@@ -32,7 +33,7 @@ export class NormalModuleFactory {
 			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
 			resolveForScheme: new HookMap(
 				() => new AsyncSeriesBailHook(["resourceData"])
-			)
+			),
 			// /** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
 			// resolveInScheme: new HookMap(
 			// 	() => new AsyncSeriesBailHook(["resourceData", "resolveData"])
@@ -40,7 +41,7 @@ export class NormalModuleFactory {
 			// /** @type {AsyncSeriesBailHook<[ResolveData], Module>} */
 			// factorize: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
-			// beforeResolve: new AsyncSeriesBailHook(["resolveData"]),
+			beforeResolve: new AsyncSeriesBailHook(["resolveData"])
 			// /** @type {AsyncSeriesBailHook<[ResolveData], false | void>} */
 			// afterResolve: new AsyncSeriesBailHook(["resolveData"]),
 			// /** @type {AsyncSeriesBailHook<[ResolveData["createData"], ResolveData], Module | void>} */

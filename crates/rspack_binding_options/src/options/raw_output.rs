@@ -6,7 +6,6 @@ use rspack_core::{
 use rspack_error::internal_error;
 use serde::Deserialize;
 
-#[cfg(feature = "node-api")]
 use crate::JsLoaderRunner;
 use crate::RawOptionsApply;
 
@@ -142,6 +141,7 @@ pub struct RawOutputOptions {
   pub chunk_loading: Option<String>,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
+  pub source_map_filename: String,
 }
 
 impl RawOptionsApply for RawOutputOptions {
@@ -149,7 +149,7 @@ impl RawOptionsApply for RawOutputOptions {
   fn apply(
     self,
     plugins: &mut Vec<BoxPlugin>,
-    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
+    _: &JsLoaderRunner,
   ) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_chunk_format_plugin(plugins)?;
     plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
@@ -186,6 +186,7 @@ impl RawOptionsApply for RawOutputOptions {
       iife: self.iife,
       module: self.module,
       trusted_types: self.trusted_types.map(Into::into),
+      source_map_filename: self.source_map_filename.into(),
     })
   }
 }
@@ -226,12 +227,15 @@ impl RawOutputOptions {
             plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
           }
           "require" => {
+            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
             plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
           }
+          // TODO async-node
           "import" => {
             plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
           }
           "import-scripts" => {
+            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(true).boxed());
             plugins.push(rspack_plugin_runtime::ImportScriptsChunkLoadingPlugin {}.boxed());
           }
           "universal" => {
@@ -367,14 +371,17 @@ impl RawOutputOptions {
             );
           }
           "umd" | "umd2" => {
+            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
             plugins.push(rspack_plugin_library::UmdLibraryPlugin::new("umd2".eq(library)).boxed());
           }
           "amd" | "amd-require" => {
+            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
             plugins.push(
               rspack_plugin_library::AmdLibraryPlugin::new("amd-require".eq(library)).boxed(),
             );
           }
           "module" => {
+            plugins.push(rspack_plugin_library::ExportPropertyLibraryPlugin::default().boxed());
             plugins.push(rspack_plugin_library::ModuleLibraryPlugin::default().boxed());
           }
           _ => {}

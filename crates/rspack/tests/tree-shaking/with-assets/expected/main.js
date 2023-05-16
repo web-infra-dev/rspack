@@ -1,7 +1,4 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./a.svg": function (module, exports, __webpack_require__) {
-"use strict";
-module.exports = "data:image/svg+xml;base64,";},
 "./a.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -25,9 +22,12 @@ var _asvg = __webpack_require__.ir(__webpack_require__("./a.svg"));
 _a.a;
 _asvg.default;
 },
+"./a.svg": function (module, exports, __webpack_require__) {
+module.exports = "data:image/svg+xml;base64,";},
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

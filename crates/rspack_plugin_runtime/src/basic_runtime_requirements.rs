@@ -6,16 +6,15 @@ use rspack_core::{
 use rspack_error::Result;
 
 use crate::runtime_module::{
-  CreateScriptUrlRuntimeModule, GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule,
-  GetFullHashRuntimeModule, GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule,
-  GlobalRuntimeModule, HasOwnPropertyRuntimeModule, LoadChunkWithModuleRuntimeModule,
-  LoadScriptRuntimeModule, NormalRuntimeModule, PublicPathRuntimeModule,
+  CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, GetChunkFilenameRuntimeModule,
+  GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
+  GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
+  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, NormalRuntimeModule,
+  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
 };
 
 #[derive(Debug)]
-pub struct BasicRuntimeRequirementPlugin {}
-
-impl BasicRuntimeRequirementPlugin {}
+pub struct BasicRuntimeRequirementPlugin;
 
 #[async_trait]
 impl Plugin for BasicRuntimeRequirementPlugin {
@@ -130,6 +129,11 @@ impl Plugin for BasicRuntimeRequirementPlugin {
         RuntimeGlobals::CREATE_SCRIPT_URL => {
           compilation.add_runtime_module(chunk, CreateScriptUrlRuntimeModule::default().boxed())
         }
+        RuntimeGlobals::ON_CHUNKS_LOADED => {
+          compilation.add_runtime_module(chunk, OnChunkLoadedRuntimeModule::default().boxed());
+        }
+        RuntimeGlobals::DEFINE_PROPERTY_GETTERS => compilation
+          .add_runtime_module(chunk, DefinePropertyGettersRuntimeModule::default().boxed()),
         RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => compilation
           .add_runtime_module(chunk, GetTrustedTypesPolicyRuntimeModule::default().boxed()),
         _ => {}

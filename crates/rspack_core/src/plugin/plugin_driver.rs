@@ -13,11 +13,12 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
   Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
   ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType,
-  NormalModule, NormalModuleFactoryContext, NormalModuleFactoryResolveForSchemeArgs,
-  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
-  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
-  PluginModuleHookOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
+  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
+  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
+  PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
+  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
@@ -166,6 +167,16 @@ impl PluginDriver {
     Ok(())
   }
 
+  pub async fn before_compile(
+    &mut self,
+    // compilationParams: &mut CompilationParams<'_>,
+  ) -> PluginCompilationHookOutput {
+    for plugin in &mut self.plugins {
+      plugin.before_compile().await?;
+    }
+
+    Ok(())
+  }
   /// Executed while initializing the compilation, right before emitting the compilation event. This hook is not copied to child compilers.
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation
@@ -247,12 +258,19 @@ impl PluginDriver {
   }
 
   pub fn render_startup(&self, args: RenderStartupArgs) -> PluginRenderStartupHookOutput {
+    let mut source = args.source;
     for plugin in &self.plugins {
-      if let Some(source) = plugin.render_startup(PluginContext::new(), &args)? {
-        return Ok(Some(source));
+      if let Some(s) = plugin.render_startup(
+        PluginContext::new(),
+        &RenderStartupArgs {
+          source: source.clone(),
+          ..args
+        },
+      )? {
+        source = s;
       }
     }
-    Ok(None)
+    Ok(Some(source))
   }
 
   pub fn js_chunk_hash(&self, mut args: JsChunkHashArgs) -> PluginJsChunkHashHookOutput {
@@ -295,6 +313,35 @@ impl PluginDriver {
       tracing::trace!("running render runtime:{}", plugin.name());
       if let Some(module) = plugin.module(PluginContext::new(), &args).await? {
         return Ok(Some(module));
+      }
+    }
+    Ok(None)
+  }
+
+  pub async fn before_resolve(
+    &self,
+    args: NormalModuleBeforeResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin.before_resolve(PluginContext::new(), &args).await? {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
+
+  pub async fn context_module_before_resolve(
+    &self,
+    args: NormalModuleBeforeResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin
+        .context_module_before_resolve(PluginContext::new(), &args)
+        .await?
+      {
+        return Ok(Some(data));
       }
     }
     Ok(None)
@@ -373,6 +420,7 @@ impl PluginDriver {
     run_stage!(process_assets_stage_dev_tooling);
     run_stage!(process_assets_stage_optimize_inline);
     run_stage!(process_assets_stage_summarize);
+    run_stage!(process_assets_stage_optimize_hash);
     run_stage!(process_assets_stage_report);
     Ok(())
   }
@@ -395,9 +443,11 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(name = "plugin:optimize_chunks", skip_all)]
-  pub fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
+  pub async fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
-      plugin.optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })?;
+      plugin
+        .optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })
+        .await?;
     }
     Ok(())
   }

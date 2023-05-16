@@ -22,6 +22,18 @@ export const getNormalizedRspackOptions = (
 	config: RspackOptions
 ): RspackOptionsNormalized => {
 	return {
+		ignoreWarnings:
+			config.ignoreWarnings !== undefined
+				? config.ignoreWarnings.map(ignore => {
+						if (typeof ignore === "function") {
+							return ignore;
+						} else {
+							return warning => {
+								return ignore.test(warning.message);
+							};
+						}
+				  })
+				: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
 		context: config.context,
@@ -74,6 +86,7 @@ export const getNormalizedRspackOptions = (
 				importFunctionName: output.importFunctionName,
 				iife: output.iife,
 				module: output.module,
+				sourceMapFilename: output.sourceMapFilename,
 				library: libraryBase && {
 					type:
 						output.libraryTarget !== undefined

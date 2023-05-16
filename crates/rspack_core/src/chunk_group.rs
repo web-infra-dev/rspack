@@ -51,6 +51,10 @@ impl ChunkGroup {
     }
   }
 
+  pub fn parents_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
+    self.parents.iter()
+  }
+
   pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
     // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
     self
@@ -115,17 +119,25 @@ impl ChunkGroup {
   }
 
   pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
-    self
-      .parents
-      .iter()
-      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
-      .flat_map(|group| {
-        group
-          .ancestors(chunk_group_by_ukey)
-          .into_iter()
-          .chain([group.ukey])
-      })
-      .collect()
+    let mut queue = vec![];
+    let mut ancestors = HashSet::default();
+
+    queue.extend(self.parents.iter().copied());
+
+    while let Some(chunk_group_ukey) = queue.pop() {
+      if ancestors.contains(&chunk_group_ukey) {
+        continue;
+      }
+      ancestors.insert(chunk_group_ukey);
+      let chunk_group = chunk_group_by_ukey
+        .get(&chunk_group_ukey)
+        .expect("should have chunk group");
+      for parent in &chunk_group.parents {
+        queue.push(*parent);
+      }
+    }
+
+    ancestors
   }
 
   pub fn insert_chunk(&mut self, chunk: ChunkUkey, before: ChunkUkey) -> bool {

@@ -1,8 +1,8 @@
 use rspack_error::Result;
 
 use crate::{
-  CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ModuleDependency,
+  CodeGeneratable, CodeGeneratableResult, ContextMode, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -23,10 +23,6 @@ impl Dependency for ContextElementDependency {
 
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-
-  fn parent_module_identifier(&self) -> Option<&crate::ModuleIdentifier> {
-    None
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -53,6 +49,13 @@ impl ModuleDependency for ContextElementDependency {
 
   fn span(&self) -> Option<&crate::ErrorSpan> {
     None
+  }
+
+  fn weak(&self) -> bool {
+    matches!(
+      self.options.mode,
+      ContextMode::AsyncWeak | ContextMode::Weak
+    )
   }
 
   fn options(&self) -> Option<&ContextOptions> {

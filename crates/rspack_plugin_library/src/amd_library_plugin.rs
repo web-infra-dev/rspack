@@ -81,7 +81,7 @@ impl Plugin for AmdLibraryPlugin {
       )));
     } else if let Some(name) = name {
       let normalize_name =
-        Filename::from(name).render_with_chunk(chunk, ".js", &SourceType::JavaScript);
+        Filename::from(name).render_with_chunk(chunk, ".js", &SourceType::JavaScript, None);
       source.add(RawSource::from(format!(
         "define('{normalize_name}', {external_deps_array}, {fn_start}"
       )));

@@ -1,7 +1,6 @@
 {
   "name": "example-loader-compat",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "private": true,
   "scripts": {
@@ -11,6 +10,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "@node-rs/crc32": "1.7.0"
+  },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "babel-loader": "9.1.2",
@@ -29,6 +31,11 @@
     "url-loader": "4.1.1",
     "stylus": "0.59.0",
     "autoprefixer": "10.4.13",
-    "source-map-loader": "4.0.1"
+    "source-map-loader": "4.0.1",
+    "thread-loader": "4.0.1",
+    "ts-loader": "9.4.2",
+    "image-webpack-loader": "8.1.0",
+    "svg-react-loader": "0.4.6",
+    "node-loader": "2.0.0"
   }
 }

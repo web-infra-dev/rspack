@@ -34,6 +34,7 @@ exports[`normalize options snapshot no options 1`] = `
     "type": "http",
   },
   "setupExitSignals": true,
+  "setupMiddlewares": [Function],
   "static": [
     {
       "directory": "<PROJECT_ROOT>/public",
@@ -90,6 +91,7 @@ exports[`normalize options snapshot port string 1`] = `
     "type": "http",
   },
   "setupExitSignals": true,
+  "setupMiddlewares": [Function],
   "static": [
     {
       "directory": "<PROJECT_ROOT>/public",

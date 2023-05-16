@@ -9,12 +9,16 @@ use rspack_core::{
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::{internal_error, Result};
-use rspack_plugin_javascript::runtime::{render_chunk_modules, render_chunk_runtime_modules};
+use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
+use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
-use crate::get_runtime_chunk_path;
+use crate::{
+  get_all_chunks, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
+};
+
 #[derive(Debug)]
-pub struct ModuleChunkFormatPlugin {}
+pub struct ModuleChunkFormatPlugin;
 
 #[async_trait]
 impl Plugin for ModuleChunkFormatPlugin {
@@ -91,8 +95,9 @@ impl Plugin for ModuleChunkFormatPlugin {
     _ctx: PluginContext,
     args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
+    let compilation = args.compilation;
     let chunk = args.chunk();
-
+    let base_chunk_output_name = get_chunk_output_name(chunk, compilation);
     if matches!(chunk.kind, ChunkKind::HotUpdate) {
       return Err(internal_error!(
         "HMR is not implemented for module chunk format yet"
@@ -105,57 +110,100 @@ impl Plugin for ModuleChunkFormatPlugin {
       &chunk.expect_id().to_string()
     )));
     sources.add(RawSource::from("export const modules = "));
-    sources.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+    sources.add(args.module_source.clone());
     sources.add(RawSource::from(";\n"));
 
-    if !args
-      .compilation
+    if !compilation
       .chunk_graph
       .get_chunk_runtime_modules_in_order(args.chunk_ukey)
       .is_empty()
     {
       sources.add(RawSource::from("export const runtime = "));
-      sources.add(render_chunk_runtime_modules(
-        args.compilation,
-        args.chunk_ukey,
-      )?);
+      sources.add(render_chunk_runtime_modules(compilation, args.chunk_ukey)?);
       sources.add(RawSource::from(";\n"));
     }
 
-    let has_entry = chunk.has_entry_module(&args.compilation.chunk_graph);
-    if has_entry {
+    if chunk.has_entry_module(&compilation.chunk_graph) {
+      let runtime_chunk_output_name = get_runtime_chunk_output_name(args)?;
       sources.add(RawSource::from(format!(
         "import __webpack_require__ from '{}';\n",
-        get_runtime_chunk_path(args)?
+        get_relative_path(&base_chunk_output_name, &runtime_chunk_output_name)
       )));
 
-      //   let mut startup_source = ConcatSource::default();
-
-      //   startup_source.add(RawSource::from(
-      //     r#"
-      //   var __webpack_exec__ = function(moduleId) {
-      //     __webpack_require__(__webpack_require__.s = moduleId);
-      //   }
-      //   "#,
-      //   ));
-      let last_entry_module = args
-        .compilation
+      let entries = compilation
         .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey)
+        .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey);
+
+      let mut startup_source = vec![];
+
+      startup_source.push(format!(
+        "var __webpack_exec__ = function(moduleId) {{ return __webpack_require__({} = moduleId); }}",
+        RuntimeGlobals::ENTRY_MODULE_ID
+      ));
+
+      let mut loaded_chunks = HashSet::default();
+      for (i, (module, entry)) in entries.iter().enumerate() {
+        let module_id = compilation
+          .module_graph
+          .module_graph_module_by_identifier(module)
+          .map(|module| module.id(&compilation.chunk_graph))
+          .expect("should have module id");
+        let runtime_chunk = compilation
+          .chunk_group_by_ukey
+          .get(entry)
+          .map(|e| e.get_runtime_chunk())
+          .expect("should have runtime chunk");
+        let chunks = get_all_chunks(
+          entry,
+          &runtime_chunk,
+          None,
+          &compilation.chunk_group_by_ukey,
+        );
+
+        for chunk_ukey in chunks.iter() {
+          if loaded_chunks.contains(chunk_ukey) {
+            continue;
+          }
+          loaded_chunks.insert(*chunk_ukey);
+          let index = loaded_chunks.len();
+          let chunk = compilation
+            .chunk_by_ukey
+            .get(chunk_ukey)
+            .expect("chunk should exist in chunk_by_ukey");
+          let other_chunk_output_name = get_chunk_output_name(chunk, compilation);
+          startup_source.push(format!(
+            "import * as __webpack_chunk_${index}__ from '{}';",
+            get_relative_path(&base_chunk_output_name, &other_chunk_output_name)
+          ));
+          startup_source.push(format!(
+            "{}(__webpack_chunk_${index}__);",
+            RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+          ));
+        }
+        startup_source.push(format!(
+          "{}__webpack_exec__('{module_id}');",
+          if i + 1 == entries.len() {
+            "var __webpack_exports__ = "
+          } else {
+            ""
+          }
+        ));
+      }
+
+      let last_entry_module = entries
         .keys()
         .last()
         .expect("should have last entry module");
-      if let Some(s) =
-        args
-          .compilation
-          .plugin_driver
-          .read()
-          .await
-          .render_startup(RenderStartupArgs {
-            compilation: args.compilation,
-            chunk: &chunk.ukey,
-            module: *last_entry_module,
-          })?
+      if let Some(s) = compilation
+        .plugin_driver
+        .read()
+        .await
+        .render_startup(RenderStartupArgs {
+          compilation,
+          chunk: &chunk.ukey,
+          module: *last_entry_module,
+          source: RawSource::from(startup_source.join("\n")).boxed(),
+        })?
       {
         sources.add(s);
       }

@@ -114,13 +114,18 @@ impl Stats<'_> {
     (assets, assets_by_chunk_name)
   }
 
-  pub fn get_modules(&self, reasons: bool, module_assets: bool) -> Result<Vec<StatsModule>> {
+  pub fn get_modules(
+    &self,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+  ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module, reasons, module_assets))
+      .map(|module| self.get_module(module, reasons, module_assets, nested_modules))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
@@ -132,6 +137,7 @@ impl Stats<'_> {
     chunk_relations: bool,
     reasons: bool,
     module_assets: bool,
+    nested_modules: bool,
   ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
@@ -147,7 +153,7 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m, reasons, module_assets))
+            .map(|m| self.get_module(m, reasons, module_assets, nested_modules))
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -189,7 +195,7 @@ impl Stats<'_> {
       .chunk_group_by_ukey
       .get(ukey)
       .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
-    let mut chunks: Vec<String> = cg
+    let chunks: Vec<String> = cg
       .chunks
       .iter()
       .map(|c| {
@@ -201,8 +207,7 @@ impl Stats<'_> {
       })
       .map(|c| c.expect_id().to_string())
       .collect();
-    chunks.sort_unstable();
-    let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
+    let assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
       let chunk = self
         .compilation
         .chunk_by_ukey
@@ -222,7 +227,6 @@ impl Stats<'_> {
       }
       acc
     });
-    assets.sort_by_cached_key(|v| v.name.to_string());
     StatsChunkGroup {
       name: name.to_string(),
       chunks,
@@ -257,6 +261,7 @@ impl Stats<'_> {
       .compilation
       .get_errors()
       .map(|d| StatsError {
+        title: d.title.clone(),
         message: d.message.clone(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
@@ -295,6 +300,7 @@ impl Stats<'_> {
     module: &BoxModule,
     reasons: bool,
     module_assets: bool,
+    nested_modules: bool,
   ) -> Result<StatsModule> {
     let identifier = module.identifier();
     let mgm = self
@@ -341,7 +347,7 @@ impl Stats<'_> {
             StatsModuleReason {
               module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
               module_name,
-              module_id,
+              module_id: module_id.and_then(|i| i),
               r#type,
               user_request,
             }
@@ -380,6 +386,9 @@ impl Stats<'_> {
       assets
     });
 
+    // TODO: a placeholder for concatenation modules
+    let modules = nested_modules.then(Vec::new);
+
     Ok(StatsModule {
       r#type: "module",
       module_type: *module.module_type(),
@@ -387,15 +396,20 @@ impl Stats<'_> {
       name: module
         .readable_identifier(&self.compilation.options.context)
         .into(),
-      id: mgm.id(&self.compilation.chunk_graph).to_string(),
+      id: self
+        .compilation
+        .chunk_graph
+        .get_module_id(identifier)
+        .clone(),
       chunks,
       size: module.size(&SourceType::JavaScript),
       issuer: issuer.map(|i| i.identifier().to_string()),
       issuer_name,
-      issuer_id,
+      issuer_id: issuer_id.and_then(|i| i),
       issuer_path,
       reasons,
       assets,
+      modules,
     })
   }
 
@@ -444,23 +458,21 @@ impl Stats<'_> {
   }
 }
 
-fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -> (String, String) {
+fn get_stats_module_name_and_id(
+  module: &BoxModule,
+  compilation: &Compilation,
+) -> (String, Option<String>) {
   let identifier = module.identifier();
-  let mgm = compilation
-    .module_graph
-    .module_graph_module_by_identifier(&identifier)
-    .unwrap_or_else(|| {
-      panic!("module_graph.module_graph_module_by_identifier({identifier:?}) failed")
-    });
   let name = module.readable_identifier(&compilation.options.context);
-  let id = mgm.id(&compilation.chunk_graph);
-  (name.to_string(), id.to_string())
+  let id = compilation.chunk_graph.get_module_id(identifier).to_owned();
+  (name.to_string(), id)
 }
 
 #[derive(Debug)]
 pub struct StatsError {
   pub message: String,
   pub formatted: String,
+  pub title: String,
 }
 
 #[derive(Debug)]
@@ -498,7 +510,7 @@ pub struct StatsModule {
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
   pub chunks: Vec<String>,
   pub size: f64,
   pub issuer: Option<String>,
@@ -507,6 +519,7 @@ pub struct StatsModule {
   pub issuer_path: Vec<StatsModuleIssuer>,
   pub reasons: Option<Vec<StatsModuleReason>>,
   pub assets: Option<Vec<String>>,
+  pub modules: Option<Vec<StatsModule>>,
 }
 
 #[derive(Debug)]
@@ -542,7 +555,7 @@ pub struct StatsChunkGroup {
 pub struct StatsModuleIssuer {
   pub identifier: String,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
 }
 
 #[derive(Debug)]

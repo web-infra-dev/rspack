@@ -1,5 +1,22 @@
 # @rspack/binding
 
+## 0.1.9
+
+### Patch Changes
+
+- 820c029: perf: compose loaders on the native side
+- 0fd6d7a: feat: support loader-runner and pitching
+- bc65893: feat: add moduleAssets for stats
+- 61d6e5d: feat: support inline loader
+- aee4fdc: fix: react refresh runtime inject for nest function call
+- c1720f9: add optimizeModules hook
+- c951f35: feat: impl new loader-runner
+- e2647bb: feat: require.resolve and require.resolveWeak for string literal
+- 057829b: fix: source map lost when enable builtins.banner
+- c162cb6: feat: support banner plugin
+- b77b706: fix: undefined reasons with stats.toJson({ reasons: true })
+- 7f2cf5e: feat: support `Rule.enforce`
+
 ## 0.1.8
 
 ### Patch Changes

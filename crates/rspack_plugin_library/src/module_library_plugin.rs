@@ -9,7 +9,7 @@ use rspack_core::{
 use crate::utils::property_access;
 
 #[derive(Debug, Default)]
-pub struct ModuleLibraryPlugin {}
+pub struct ModuleLibraryPlugin;
 
 impl ModuleLibraryPlugin {}
 
@@ -24,6 +24,7 @@ impl Plugin for ModuleLibraryPlugin {
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
     let mut source = ConcatSource::default();
+    source.add(args.source.clone());
     let mut exports = vec![];
     if let Some(ordered_exports) = args.compilation.exports_info_map.get(&args.module) {
       for info in ordered_exports {

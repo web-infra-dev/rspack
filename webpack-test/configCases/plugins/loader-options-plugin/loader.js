@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinition<{}, { minimize: boolean, jsfile: boolean }>} */
+/** @type {import("@rspack/core").LoaderDefinition<{}, { minimize: boolean, jsfile: boolean }>} */
 module.exports = function () {
 	return (
 		"module.exports = " +

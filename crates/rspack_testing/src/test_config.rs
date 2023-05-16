@@ -39,6 +39,10 @@ fn default_public_path() -> String {
   "auto".to_string()
 }
 
+fn default_tree_shaking() -> String {
+  "false".to_string()
+}
+
 fn default_target() -> Vec<String> {
   vec!["web".to_string(), "es2022".to_string()]
 }
@@ -101,6 +105,8 @@ pub struct Optimization {
   // True by default to reduce code in snapshots.
   #[serde(default = "true_by_default")]
   pub remove_available_modules: bool,
+  #[serde(default = "true_by_default")]
+  pub remove_empty_chunks: bool,
   #[serde(default = "default_optimization_module_ids")]
   pub module_ids: String,
   #[serde(default = "default_optimization_side_effects")]
@@ -124,6 +130,14 @@ pub struct Minification {
   pub drop_console: bool,
   #[serde(default)]
   pub pure_funcs: Vec<String>,
+  #[serde(default)]
+  pub extract_comments: Option<String>,
+}
+
+#[derive(Debug, Default, JsonSchema, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CodeGeneration {
+  pub keep_comments: bool,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default, Clone)]
@@ -147,14 +161,16 @@ pub struct Builtins {
   pub html: Vec<HtmlPluginConfig>,
   #[serde(default)]
   pub minify_options: Option<Minification>,
-  #[serde(default)]
-  pub tree_shaking: bool,
+  #[serde(default = "default_tree_shaking")]
+  pub tree_shaking: String,
   #[serde(default)]
   pub preset_env: Option<PresetEnv>,
   #[serde(default)]
   pub css: Css,
   #[serde(default)]
   pub dev_friendly_split_chunks: bool,
+  #[serde(default)]
+  pub code_generation: Option<CodeGeneration>,
 }
 
 #[derive(Debug, JsonSchema, Deserialize, Default)]
@@ -230,6 +246,8 @@ pub struct Output {
   pub css_filename: String,
   #[serde(default = "default_chunk_filename")]
   pub css_chunk_filename: String,
+  #[serde(default = "default_chunk_filename")]
+  pub source_map_filename: String,
 }
 
 #[derive(Debug, JsonSchema, Deserialize)]
@@ -392,6 +410,8 @@ impl TestConfig {
         iife: true,
         module: false,
         trusted_types: None,
+        source_map_filename: c::Filename::from_str(&self.output.source_map_filename)
+          .expect("Should exist"),
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),
@@ -409,13 +429,17 @@ impl TestConfig {
       builtins: c::Builtins {
         define: self.builtins.define,
         provide: self.builtins.provide,
-        tree_shaking: self.builtins.tree_shaking,
+        tree_shaking: self.builtins.tree_shaking.into(),
         minify_options: self.builtins.minify_options.map(|op| c::Minification {
           passes: op.passes,
           drop_console: op.drop_console,
           pure_funcs: op.pure_funcs,
+          extract_comments: op.extract_comments,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),
+        code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {
+          keep_comments: op.keep_comments,
+        }),
         ..Default::default()
       },
       module: c::ModuleOptions {
@@ -435,6 +459,7 @@ impl TestConfig {
       }),
       optimization: c::Optimization {
         remove_available_modules: self.optimization.remove_available_modules,
+        remove_empty_chunks: self.optimization.remove_empty_chunks,
         side_effects: c::SideEffectOption::from(self.optimization.side_effects.as_str()),
       },
     };
@@ -522,6 +547,7 @@ impl TestConfig {
       plugins.push(rspack_plugin_wasm::FetchCompileAsyncWasmPlugin {}.boxed());
       plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::new().boxed());
     }
+    plugins.push(rspack_plugin_externals::http_url_external_plugin(true));
 
     (options, plugins)
   }

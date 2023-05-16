@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use sugar_path::SugarPath;
 
-use crate::{Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
+use crate::{AssetInfo, Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
 
 #[derive(Debug)]
 pub struct OutputOptions {
@@ -33,6 +33,7 @@ pub struct OutputOptions {
   pub iife: bool,
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
+  pub source_map_filename: Filename,
 }
 
 #[derive(Debug)]
@@ -79,6 +80,7 @@ impl std::fmt::Display for CrossOriginLoading {
   }
 }
 
+pub const FILE_PLACEHOLDER: &str = "[file]";
 pub const NAME_PLACEHOLDER: &str = "[name]";
 pub const PATH_PLACEHOLDER: &str = "[path]";
 pub const EXT_PLACEHOLDER: &str = "[ext]";
@@ -93,6 +95,7 @@ pub const QUERY_PLACEHOLDER: &str = "[query]";
 
 #[derive(Debug, Default)]
 pub struct FilenameRenderOptions {
+  pub file: Option<String>,
   pub name: Option<String>,
   pub path: Option<String>,
   pub extension: Option<String>,
@@ -129,22 +132,58 @@ impl Filename {
     chunk: &Chunk,
     extension: &str,
     source_type: &SourceType,
+    asset_info: Option<&mut AssetInfo>,
   ) -> String {
     let hash = Some(chunk.get_render_hash());
-    self.render(FilenameRenderOptions {
-      // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
-      name: chunk.name_for_filename_template(),
-      extension: Some(extension.to_owned()),
-      id: chunk.id.clone(),
-      contenthash: chunk.content_hash.get(source_type).cloned(),
-      chunkhash: hash.clone(),
-      hash,
-      ..Default::default()
-    })
+    self.render(
+      FilenameRenderOptions {
+        // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
+        name: chunk.name_for_filename_template(),
+        extension: Some(extension.to_owned()),
+        id: chunk.id.clone(),
+        contenthash: chunk.content_hash.get(source_type).cloned(),
+        chunkhash: hash.clone(),
+        hash,
+        ..Default::default()
+      },
+      asset_info,
+    )
   }
 
-  pub fn render(&self, options: FilenameRenderOptions) -> String {
+  pub fn render_with_chunk_and_file(
+    &self,
+    chunk: &Chunk,
+    file: &str,
+    extension: &str,
+    source_type: &SourceType,
+    asset_info: Option<&mut AssetInfo>,
+  ) -> String {
+    let hash = Some(chunk.get_render_hash());
+    self.render(
+      FilenameRenderOptions {
+        // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
+        file: Some(file.to_owned()),
+        name: chunk.name_for_filename_template(),
+        extension: Some(extension.to_owned()),
+        id: chunk.id.clone(),
+        contenthash: chunk.content_hash.get(source_type).cloned(),
+        chunkhash: hash.clone(),
+        hash,
+        ..Default::default()
+      },
+      asset_info,
+    )
+  }
+
+  pub fn render(
+    &self,
+    options: FilenameRenderOptions,
+    mut asset_info: Option<&mut AssetInfo>,
+  ) -> String {
     let mut filename = self.template.clone();
+    if let Some(file) = options.file {
+      filename = filename.replace(FILE_PLACEHOLDER, &file);
+    }
     if let Some(name) = options.name {
       filename = filename.replace(NAME_PLACEHOLDER, &name);
     }
@@ -170,7 +209,11 @@ impl Filename {
             .and_then(|m| m.as_str().parse().ok())
             .unwrap_or(hash_len)
             .min(hash_len);
-          &contenthash[..hash_len.min(contenthash.len())]
+          let contenthash = &contenthash[..hash_len.min(contenthash.len())];
+          if let Some(asset_info) = asset_info.as_mut() {
+            asset_info.set_content_hash(contenthash.to_owned());
+          }
+          contenthash
         })
         .into_owned();
     }
@@ -218,7 +261,7 @@ pub enum PublicPath {
 
 impl PublicPath {
   pub fn render(&self, compilation: &Compilation, filename: &str) -> String {
-    match self {
+    let public_path = match self {
       Self::String(s) => s.clone(),
       Self::Auto => match Path::new(filename).parent() {
         None => "".to_string(),
@@ -230,6 +273,15 @@ impl PublicPath {
           .to_string_lossy()
           .to_string(),
       },
+    };
+    Self::ensure_ends_with_slash(public_path)
+  }
+
+  pub fn ensure_ends_with_slash(public_path: String) -> String {
+    if !public_path.is_empty() && !public_path.ends_with('/') {
+      public_path + "/"
+    } else {
+      public_path
     }
   }
 }

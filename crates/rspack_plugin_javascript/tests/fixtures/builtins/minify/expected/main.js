@@ -1,0 +1,1 @@
+(self.webpackChunkwebpack=self.webpackChunkwebpack||[]).push([["main"],{"./index.js":function(n,e,a){n.exports=Math.random()}},function(n){n(n.s="./index.js")}]);

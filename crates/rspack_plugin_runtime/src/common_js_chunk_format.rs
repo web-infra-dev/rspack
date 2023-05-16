@@ -9,14 +9,15 @@ use rspack_core::{
   PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_plugin_javascript::runtime::{
-  generate_chunk_entry_code, render_chunk_modules, render_chunk_runtime_modules,
+use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
+
+use crate::{
+  generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
+  update_hash_for_entry_startup,
 };
 
-use super::update_hash_for_entry_startup;
-use crate::get_runtime_chunk_path;
 #[derive(Debug)]
-pub struct CommonJsChunkFormatPlugin {}
+pub struct CommonJsChunkFormatPlugin;
 
 #[async_trait]
 impl Plugin for CommonJsChunkFormatPlugin {
@@ -54,6 +55,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
       > 0
     {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     }
 
@@ -93,13 +95,14 @@ impl Plugin for CommonJsChunkFormatPlugin {
     args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
     let chunk = args.chunk();
+    let base_chunk_output_name = get_chunk_output_name(chunk, args.compilation);
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from(format!(
       "exports.ids = ['{}'];\n",
       &chunk.expect_id().to_string()
     )));
     sources.add(RawSource::from("exports.modules = "));
-    sources.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+    sources.add(args.module_source.clone());
     sources.add(RawSource::from(";\n"));
     if !args
       .compilation
@@ -116,20 +119,24 @@ impl Plugin for CommonJsChunkFormatPlugin {
     }
 
     if chunk.has_entry_module(&args.compilation.chunk_graph) {
+      let runtime_chunk_output_name = get_runtime_chunk_output_name(args)?;
       sources.add(RawSource::from(format!(
-        "\nvar {} = require('{}');\n",
+        "var {} = require('{}');\n",
         RuntimeGlobals::REQUIRE,
-        get_runtime_chunk_path(args)?
+        get_relative_path(&base_chunk_output_name, &runtime_chunk_output_name)
       )));
       sources.add(RawSource::from(format!(
-        "\n{}(exports)\n",
+        "{}(exports)\n",
         RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
       )));
-      sources.add(generate_chunk_entry_code(args.compilation, args.chunk_ukey));
-      let last_entry_module = args
+
+      let entries = args
         .compilation
         .chunk_graph
-        .get_chunk_entry_modules_with_chunk_group_iterable(&chunk.ukey)
+        .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey);
+      let start_up_source =
+        generate_entry_startup(args.compilation, args.chunk_ukey, entries, false);
+      let last_entry_module = entries
         .keys()
         .last()
         .expect("should have last entry module");
@@ -143,6 +150,7 @@ impl Plugin for CommonJsChunkFormatPlugin {
             compilation: args.compilation,
             chunk: &chunk.ukey,
             module: *last_entry_module,
+            source: start_up_source,
           })?
       {
         sources.add(s);

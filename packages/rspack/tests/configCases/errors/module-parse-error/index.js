@@ -6,7 +6,7 @@ it("parse error module should have 'throw error'", () => {
 		require("./recoverable.js");
 		require("./non-recoverable.js");
 	} catch (e) {
-		expect(e.message.includes('`let` cannot be used as an identifier in strict mode')).toBe(true);
+		expect(e.message.includes('Expected a semicolon')).toBe(true);
 	}
 
 	const output = fs.readFileSync(path.resolve(__dirname, "main.js"), "utf-8");

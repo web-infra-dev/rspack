@@ -331,7 +331,7 @@ impl SplitChunksPlugin {
           .expect("TODO:");
         let combs = vec![compilation
           .chunk_graph
-          .get_modules_chunks(module.identifier())];
+          .get_module_chunks(module.identifier())];
 
         for combinations in combs {
           if combinations.len() < cache_group.min_chunks as usize {
@@ -627,6 +627,7 @@ impl SplitChunksPlugin {
   }
 }
 
+#[async_trait::async_trait]
 impl Plugin for SplitChunksPlugin {
   fn name(&self) -> &'static str {
     "split_chunks"
@@ -636,10 +637,10 @@ impl Plugin for SplitChunksPlugin {
   #[allow(clippy::if_same_then_else)]
   #[allow(clippy::collapsible_else_if)]
   #[allow(unused)]
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs,
+    args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
     let compilation = args.compilation;
 
@@ -745,7 +746,7 @@ impl Plugin for SplitChunksPlugin {
                 item_cache_group,
                 item.cache_group_index,
                 &chunk_arr,
-                compilation
+                &**compilation
                   .module_graph
                   .module_by_identifier(module)
                   .expect("Module not found"),

@@ -8,7 +8,7 @@ use rspack_core::{
 use rspack_error::Result;
 use runtime_module::AsyncRuntimeModule;
 
-use crate::runtime_module::{EnsureChunkRuntimeModule, OnChunkLoadedRuntimeModule};
+use crate::runtime_module::EnsureChunkRuntimeModule;
 mod helpers;
 pub use helpers::*;
 mod lazy_compilation;
@@ -34,10 +34,11 @@ pub use module_chunk_loading::ModuleChunkLoadingPlugin;
 mod import_scripts_chunk_loading;
 pub use import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin;
 mod runtime_module;
-#[derive(Debug)]
-pub struct RuntimePlugin {}
+mod startup_chunk_dependencies;
+pub use startup_chunk_dependencies::StartupChunkDependenciesPlugin;
 
-impl RuntimePlugin {}
+#[derive(Debug)]
+pub struct RuntimePlugin;
 
 #[async_trait]
 impl Plugin for RuntimePlugin {
@@ -78,10 +79,6 @@ impl Plugin for RuntimePlugin {
 
     if runtime_requirements.contains(RuntimeGlobals::ASYNC_MODULE) {
       compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
-    }
-
-    if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
-      compilation.add_runtime_module(chunk, OnChunkLoadedRuntimeModule::default().boxed());
     }
 
     Ok(())

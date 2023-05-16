@@ -4,6 +4,7 @@ use std::{
   path::PathBuf,
 };
 
+use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_identifier::{IdentifierMap, IdentifierSet};
@@ -55,26 +56,23 @@ where
       compilation: &Compilation,
     ) -> (IdentifierMap<(u64, String)>, IdentifierMap<String>) {
       let modules_map = compilation
-        .module_graph
-        .modules()
-        .values()
-        .map(|module| {
-          let identifier = module.identifier();
-          (
-            identifier,
-            (
-              compilation
-                .module_graph
-                .get_module_hash(&identifier)
-                .expect("Module hash expected"),
-              compilation
-                .chunk_graph
-                .get_module_id(identifier)
-                .as_deref()
-                .expect("should has module id")
-                .to_string(),
-            ),
-          )
+        .chunk_graph
+        .chunk_graph_module_by_module_identifier
+        .par_iter()
+        .filter_map(|(identifier, cgm)| {
+          let module_hash = compilation.module_graph.get_module_hash(identifier);
+          let cid = cgm.id.as_deref();
+          if let Some(module_hash) = module_hash && let Some(cid) = cid {
+              Some((
+                  *identifier,
+                  (
+                      module_hash,
+                      cid.to_string(),
+                  ),
+              ))
+          } else {
+              None
+          }
         })
         .collect::<IdentifierMap<_>>();
 
@@ -161,6 +159,8 @@ where
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
         new_compilation.make_failed_dependencies =
           std::mem::take(&mut self.compilation.make_failed_dependencies);
+        new_compilation.make_failed_module =
+          std::mem::take(&mut self.compilation.make_failed_module);
         new_compilation.entry_dependencies =
           std::mem::take(&mut self.compilation.entry_dependencies);
         new_compilation.lazy_visit_modules =
@@ -172,6 +172,14 @@ where
           std::mem::take(&mut self.compilation.missing_dependencies);
         new_compilation.build_dependencies =
           std::mem::take(&mut self.compilation.build_dependencies);
+        // tree shaking usage start
+        new_compilation.optimize_analyze_result_map =
+          std::mem::take(&mut self.compilation.optimize_analyze_result_map);
+        new_compilation.entry_module_identifiers =
+          std::mem::take(&mut self.compilation.entry_module_identifiers);
+        new_compilation.bailout_module_identifiers =
+          std::mem::take(&mut self.compilation.bailout_module_identifiers);
+        // tree shaking usage end
 
         // seal stage used
         new_compilation.code_splitting_cache =
@@ -206,7 +214,13 @@ where
           .compilation
           .entry_dependencies
           .iter()
-          .flat_map(|(_, deps)| deps.clone())
+          .flat_map(|(_, deps)| {
+            deps
+              .clone()
+              .into_iter()
+              .map(|d| (d, None))
+              .collect::<Vec<_>>()
+          })
           .collect::<HashSet<_>>();
         SetupMakeParam::ForceBuildDeps(deps)
       };
@@ -354,7 +368,7 @@ where
             module.hash(&mut hot_update_chunk.hash);
           }
         }
-        let hash = format!("{:x}", hot_update_chunk.hash.finish());
+        let hash = format!("{:016x}", hot_update_chunk.hash.finish());
         hot_update_chunk
           .content_hash
           .insert(crate::SourceType::JavaScript, hash.clone());
@@ -394,7 +408,7 @@ where
         for entry in render_manifest {
           let asset = CompilationAsset::new(
             Some(entry.source),
-            AssetInfo::default().with_hot_module_replacement(true),
+            entry.info.with_hot_module_replacement(true),
           );
 
           // TODO: should use `get_path_info` to get filename.

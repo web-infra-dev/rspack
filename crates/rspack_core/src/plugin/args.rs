@@ -94,6 +94,12 @@ pub struct NormalModuleFactoryResolveForSchemeArgs {
   pub scheme: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct NormalModuleBeforeResolveArgs<'a> {
+  pub request: &'a str,
+  pub context: &'a Option<String>,
+}
+
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {
   pub importer: Option<&'a PathBuf>,
@@ -104,6 +110,7 @@ pub struct ResolveArgs<'a> {
   pub span: Option<ErrorSpan>,
   pub resolve_options: Option<Resolve>,
   pub resolve_to_context: bool,
+  pub optional: bool,
   pub file_dependencies: &'a mut HashSet<PathBuf>,
   pub missing_dependencies: &'a mut HashSet<PathBuf>,
 }
@@ -184,6 +191,7 @@ pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
 pub struct RenderChunkArgs<'a> {
   pub compilation: &'a Compilation,
   pub chunk_ukey: &'a ChunkUkey,
+  pub module_source: BoxSource,
 }
 
 #[derive(Debug)]
@@ -214,6 +222,7 @@ pub struct RenderStartupArgs<'a> {
   pub compilation: &'a Compilation,
   pub chunk: &'a ChunkUkey,
   pub module: ModuleIdentifier,
+  pub source: BoxSource,
 }
 
 impl<'me> RenderStartupArgs<'me> {

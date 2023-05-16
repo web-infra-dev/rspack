@@ -25,15 +25,16 @@ struct ChunkInfo<'a> {
   modules: &'a [SharedModule],
 }
 
+#[async_trait::async_trait]
 impl Plugin for DevFriendlySplitChunksPlugin {
   fn name(&self) -> &'static str {
     "DevFriendlySplitChunksPlugin"
   }
 
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs,
+    args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
     use rayon::prelude::*;
     let compilation = args.compilation;
@@ -46,7 +47,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
       .par_bridge()
       .map(|m| m.identifier())
       .filter_map(|module| {
-        let chunks = compilation.chunk_graph.get_modules_chunks(module);
+        let chunks = compilation.chunk_graph.get_module_chunks(module);
 
         let is_initial_loaded = chunks.iter().any(|c| {
           c.as_ref(&compilation.chunk_by_ukey)
@@ -136,11 +137,11 @@ impl Plugin for DevFriendlySplitChunksPlugin {
             let mut size_of_new_modules = 0.0;
             let start_idx = last_end_idx;
             while size_of_new_modules < MAX_SIZE_PER_CHUNK && last_end_idx < modules.len() {
-              let module_size = compilation
+              let module_size = (**compilation
                 .module_graph
                 .module_by_identifier(&modules[last_end_idx].module)
-                .expect("Should have a module here")
-                .estimated_size(&rspack_core::SourceType::JavaScript);
+                .expect("Should have a module here"))
+              .estimated_size(&rspack_core::SourceType::JavaScript);
               // about 500kb
               let pre_calculated_size_of_new_modules = size_of_new_modules + module_size;
               if pre_calculated_size_of_new_modules > MAX_SIZE_PER_CHUNK
@@ -247,7 +248,7 @@ trait EstimatedSize {
   fn estimated_size(&self, source_type: &rspack_core::SourceType) -> f64;
 }
 
-impl<T: Module> EstimatedSize for T {
+impl<T: Module + ?Sized> EstimatedSize for T {
   fn estimated_size(&self, source_type: &rspack_core::SourceType) -> f64 {
     use rspack_core::ModuleType;
     let coefficient: f64 = match self.module_type() {

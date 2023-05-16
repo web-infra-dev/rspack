@@ -10,8 +10,8 @@ mod connection;
 pub use connection::{ConnectionId, ModuleGraphConnection};
 
 use crate::{
-  BoxModule, BoxModuleDependency, BuildInfo, BuildMeta, DependencyId, Module, ModuleGraphModule,
-  ModuleIdentifier,
+  BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta, DependencyId, Module,
+  ModuleGraphModule, ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
@@ -249,6 +249,15 @@ impl ModuleGraph {
       .and_then(|dependency_id| self.dependency_by_id(dependency_id))
   }
 
+  pub fn parent_module_by_dependency_id(
+    &self,
+    dependency_id: &DependencyId,
+  ) -> Option<ModuleIdentifier> {
+    self
+      .connection_by_dependency(dependency_id)
+      .and_then(|c| c.original_module_identifier)
+  }
+
   pub fn connection_by_connection_id(
     &self,
     connection_id: &ConnectionId,
@@ -341,7 +350,7 @@ impl ModuleGraph {
   }
 
   /// Remove a connection and return connection origin module identifier and dependency
-  fn revoke_connection(&mut self, connection_id: ConnectionId) -> Option<DependencyId> {
+  fn revoke_connection(&mut self, connection_id: ConnectionId) -> Option<BuildDependency> {
     let connection = match self.connections[*connection_id].take() {
       Some(c) => c,
       None => return None,
@@ -380,11 +389,11 @@ impl ModuleGraph {
       mgm.incoming_connections.remove(&connection_id);
     }
 
-    Some(dependency_id)
+    Some((dependency_id, original_module_identifier))
   }
 
   /// Remove module from module graph and return parent module identifier and dependency pair
-  pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<DependencyId> {
+  pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
     self.module_identifier_to_module.remove(module_identifier);
     let mgm = self
       .module_identifier_to_module_graph_module
@@ -518,11 +527,7 @@ mod test {
 
   macro_rules! impl_noop_trait_dep_type {
     ($ident:ident) => {
-      impl Dependency for $ident {
-        fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-          self.0.as_ref()
-        }
-      }
+      impl Dependency for $ident {}
 
       impl ModuleDependency for $ident {
         fn request(&self) -> &str {
@@ -552,7 +557,7 @@ mod test {
   impl_noop_trait_dep_type!(Edge);
 
   fn add_module_to_graph(mg: &mut ModuleGraph, m: Box<dyn Module>) {
-    let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js, true);
+    let mgm = ModuleGraphModule::new(m.identifier(), ModuleType::Js);
     mg.add_module_graph_module(mgm);
     mg.add_module(m);
   }
@@ -609,9 +614,9 @@ mod test {
     let a_id = a.identifier();
     let b_id = b.identifier();
     let a_to_b = edge!(Some(a_id), b_id.as_str());
-    add_module_to_graph(&mut mg, box a);
-    add_module_to_graph(&mut mg, box b);
-    let a_to_b_id = link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, box (a_to_b));
+    add_module_to_graph(&mut mg, Box::new(a));
+    add_module_to_graph(&mut mg, Box::new(b));
+    let a_to_b_id = link_modules_with_dependency(&mut mg, Some(&a_id), &b_id, Box::new(a_to_b));
 
     let mgm_a = mgm(&mg, &a_id);
     let mgm_b = mgm(&mg, &b_id);
@@ -622,8 +627,8 @@ mod test {
     let c = node!("c");
     let c_id = c.identifier();
     let b_to_c = edge!(Some(b_id), c_id.as_str());
-    add_module_to_graph(&mut mg, box c);
-    let b_to_c_id = link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, box (b_to_c));
+    add_module_to_graph(&mut mg, Box::new(c));
+    let b_to_c_id = link_modules_with_dependency(&mut mg, Some(&b_id), &c_id, Box::new(b_to_c));
 
     let mgm_b = mgm(&mg, &b_id);
     let mgm_c = mgm(&mg, &c_id);

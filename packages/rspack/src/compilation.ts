@@ -8,43 +8,41 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 import * as tapable from "tapable";
-import { RawSource, Source } from "webpack-sources";
-import { Resolver } from "enhanced-resolve";
+import { Source } from "webpack-sources";
 
 import {
-	JsCompilation,
-	JsAssetInfo,
-	JsCompatSource,
 	JsAsset,
-	JsModule,
+	JsAssetInfo,
 	JsChunk,
-	JsStatsError,
-	JsStatsWarning
+	JsCompatSource,
+	JsCompilation,
+	JsModule,
+	JsStatsChunk,
+	JsStatsError
 } from "@rspack/binding";
 
 import {
 	RspackOptionsNormalized,
 	StatsOptions,
 	OutputNormalized,
-	StatsValue
+	StatsValue,
+	RspackPluginInstance
 } from "./config";
-import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
+import { ContextModuleFactory } from "./ContextModuleFactory";
+import ResolverFactory from "./ResolverFactory";
 import { ChunkGroup } from "./chunk_group";
 import { Compiler } from "./compiler";
-import ResolverFactory from "./ResolverFactory";
+import ErrorHelpers from "./ErrorHelpers";
+import { LogType, Logger } from "./logging/Logger";
+import { NormalModule } from "./normalModule";
+import { NormalModuleFactory } from "./normalModuleFactory";
+import { Stats, normalizeStatsPreset } from "./stats";
+import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
+import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
-import { Logger, LogType } from "./logging/Logger";
-import * as ErrorHelpers from "./ErrorHelpers";
-import { concatErrorMsgAndStack } from "./util";
-import { normalizeStatsPreset, Stats } from "./stats";
-import { NormalModuleFactory } from "./normalModuleFactory";
-import CacheFacade from "./lib/CacheFacade";
-
-const hashDigestLength = 8;
-const EMPTY_ASSET_INFO = {};
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -83,6 +81,7 @@ export class Compilation {
 		>;
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
+		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -91,9 +90,12 @@ export class Compilation {
 	inputFileSystem: any;
 	logging: Map<string, LogEntry[]>;
 	name?: string;
+	childrenCounters: Record<string, number> = {};
 	startTime?: number;
 	endTime?: number;
 	normalModuleFactory?: NormalModuleFactory;
+	children: Compilation[] = [];
+	contextModuleFactory?: ContextModuleFactory;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
@@ -112,7 +114,8 @@ export class Compilation {
 				"modules"
 			]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"]),
-			chunkAsset: new tapable.SyncHook(["chunk", "filename"])
+			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
+			processWarnings: new tapable.SyncWaterfallHook(["warnings"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -121,6 +124,11 @@ export class Compilation {
 		this.outputOptions = compiler.options.output;
 		this.logging = new Map();
 		this.#inner = inner;
+		// Cache the current NormalModuleHooks
+	}
+
+	get currentNormalModuleHooks() {
+		return NormalModule.getCompilationHooks(this);
 	}
 
 	get hash() {
@@ -250,6 +258,10 @@ export class Compilation {
 			!context.forToString
 		);
 		options.moduleAssets = optionOrLocalFallback(options.moduleAssets, true);
+		options.nestedModules = optionOrLocalFallback(
+			options.nestedModules,
+			!context.forToString
+		);
 
 		return options;
 	}
@@ -264,14 +276,12 @@ export class Compilation {
 	 *
 	 * @param {string} file file name
 	 * @param {Source | function(Source): Source} newSourceOrFunction new asset source or function converting old to new
-	 * @param {JsAssetInfo | function(JsAssetInfo): JsAssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
+	 * @param {AssetInfo | function(AssetInfo): AssetInfo} assetInfoUpdateOrFunction new asset info or function converting old to new
 	 */
 	updateAsset(
 		filename: string,
 		newSourceOrFunction: Source | ((source: Source) => Source),
-		assetInfoUpdateOrFunction:
-			| JsAssetInfo
-			| ((assetInfo: JsAssetInfo) => JsAssetInfo)
+		assetInfoUpdateOrFunction: AssetInfo | ((assetInfo: AssetInfo) => AssetInfo)
 	) {
 		let compatNewSourceOrFunction:
 			| JsCompatSource
@@ -292,7 +302,9 @@ export class Compilation {
 		this.#inner.updateAsset(
 			filename,
 			compatNewSourceOrFunction,
-			assetInfoUpdateOrFunction
+			typeof assetInfoUpdateOrFunction === "function"
+				? jsAssetInfo => toJsAssetInfo(assetInfoUpdateOrFunction(jsAssetInfo))
+				: toJsAssetInfo(assetInfoUpdateOrFunction)
 		);
 	}
 
@@ -320,16 +332,11 @@ export class Compilation {
 	 * @returns {void}
 	 */
 	emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-		const info = Object.assign(
-			{
-				minimized: false,
-				development: false,
-				hotModuleReplacement: false,
-				related: {}
-			},
-			assetInfo
+		this.#inner.emitAsset(
+			filename,
+			createRawFromSource(source),
+			toJsAssetInfo(assetInfo)
 		);
-		this.#inner.emitAsset(filename, createRawFromSource(source), info);
 	}
 
 	deleteAsset(filename: string) {
@@ -380,13 +387,13 @@ export class Compilation {
 	get errors() {
 		let inner = this.#inner;
 		return {
-			push: (...errs: Error[]) => {
+			push: (...errs: (Error | JsStatsError)[]) => {
 				// compatible for javascript array
 				for (let i = 0; i < errs.length; i++) {
 					let error = errs[i];
 					this.#inner.pushDiagnostic(
 						"error",
-						error.name,
+						isJsStatsError(error) ? error.title : error.name,
 						concatErrorMsgAndStack(error)
 					);
 				}
@@ -401,7 +408,7 @@ export class Compilation {
 							return { done: true };
 						}
 						return {
-							value: [errors[index++]],
+							value: errors[index++],
 							done: false
 						};
 					}
@@ -414,12 +421,14 @@ export class Compilation {
 		let inner = this.#inner;
 		return {
 			// compatible for javascript array
-			push: (...warns: Error[]) => {
+			push: (...warns: (Error | JsStatsError)[]) => {
+				// TODO: find a way to make JsStatsError be actual errors
+				warns = this.hooks.processWarnings.call(warns as any);
 				for (let i = 0; i < warns.length; i++) {
 					let warn = warns[i];
 					this.#inner.pushDiagnostic(
 						"warning",
-						warn.name,
+						isJsStatsError(warn) ? warn.title : warn.name,
 						concatErrorMsgAndStack(warn)
 					);
 				}
@@ -598,6 +607,80 @@ export class Compilation {
 		);
 	}
 
+	get modules() {
+		return this.getModules().map(item => {
+			return {
+				identifier: () => item.moduleIdentifier,
+				...item
+			};
+		});
+	}
+
+	get chunks() {
+		var stats = this.getStats().toJson({
+			all: false,
+			chunks: true,
+			chunkModules: true,
+			reasons: true
+		});
+		const chunks = stats.chunks?.map(chunk => {
+			return {
+				...chunk,
+				name: chunk.names.length > 0 ? chunk.names[0] : "",
+				modules: this.__internal__getAssociatedModules(chunk)
+			};
+		});
+		return chunks;
+	}
+
+	/**
+	 * Get the associated `modules` of an given chunk.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
+		let modules = this.getModules();
+		let moduleMap: Map<string, JsModule> = new Map();
+		for (let module of modules) {
+			moduleMap.set(module.moduleIdentifier, module);
+		}
+		return chunk.modules?.flatMap(chunkModule => {
+			let jsModule = this.__internal__findJsModule(
+				chunkModule.issuer ?? chunkModule.identifier,
+				moduleMap
+			);
+			return {
+				...jsModule
+				// dependencies: chunkModule.reasons?.flatMap(jsReason => {
+				// 	let jsOriginModule = this.__internal__findJsModule(
+				// 		jsReason.moduleIdentifier ?? "",
+				// 		moduleMap
+				// 	);
+				// 	return {
+				// 		...jsReason,
+				// 		originModule: jsOriginModule
+				// 	};
+				// })
+			};
+		});
+	}
+
+	/**
+	 * Find a modules in an array.
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__findJsModule(
+		identifier: string,
+		modules: Map<string, JsModule>
+	): JsModule | undefined {
+		return modules.get(identifier);
+	}
+
 	getModules(): JsModule[] {
 		return this.#inner.getModules();
 	}
@@ -609,10 +692,25 @@ export class Compilation {
 		return new Stats(this);
 	}
 
+	createChildCompiler(
+		name: string,
+		outputOptions: OutputNormalized,
+		plugins: RspackPluginInstance[]
+	) {
+		const idx = this.childrenCounters[name] || 0;
+		this.childrenCounters[name] = idx + 1;
+		return this.compiler.createChildCompiler(
+			this,
+			name,
+			idx,
+			outputOptions,
+			plugins
+		);
+	}
 	/**
-	 * Get the `Source` of an given asset filename.
+	 * Get the `Source` of a given asset filename.
 	 *
-	 * Note: This is not a webpack public API, maybe removed in future.
+	 * Note: This is not a webpack public API, maybe removed in the future.
 	 *
 	 * @internal
 	 */
@@ -681,6 +779,7 @@ export class Compilation {
 	static PROCESS_ASSETS_STAGE_NONE = 0;
 	static PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE = 700;
 	static PROCESS_ASSETS_STAGE_SUMMARIZE = 1000;
+	static PROCESS_ASSETS_STAGE_OPTIMIZE_HASH = 2500;
 	static PROCESS_ASSETS_STAGE_REPORT = 5000;
 
 	__internal_getProcessAssetsHookByStage(stage: number) {
@@ -697,6 +796,8 @@ export class Compilation {
 				return this.hooks.processAssets.stageOptimizeInline;
 			case Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE:
 				return this.hooks.processAssets.stageSummarize;
+			case Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH:
+				return this.hooks.processAssets.stageOptimizeHash;
 			case Compilation.PROCESS_ASSETS_STAGE_REPORT:
 				return this.hooks.processAssets.stageReport;
 			default:

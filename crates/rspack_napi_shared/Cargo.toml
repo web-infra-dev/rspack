@@ -8,18 +8,6 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-napi = { workspace = true, features = [
-  "async",
-  "tokio_rt",
-  "serde-json",
-  "napi4",
-  "anyhow",
-] }
+napi         = { workspace = true, features = ["async", "tokio_rt", "serde-json", "napi4", "anyhow"] }
 rspack_error = { path = "../rspack_error" }
-tokio = { workspace = true, features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }
+tokio        = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }

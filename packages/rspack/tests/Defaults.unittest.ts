@@ -72,347 +72,7 @@ describe("snapshots", () => {
 	const baseConfig = getDefaultConfig({ mode: "none" });
 
 	it("should have the correct base config", () => {
-		expect(baseConfig).toMatchInlineSnapshot(`
-		{
-		  "builtins": {
-		    "banner": undefined,
-		    "copy": undefined,
-		    "css": {
-		      "modules": {
-		        "exportsOnly": false,
-		        "localIdentName": "[path][name][ext]__[local]",
-		        "localsConvention": "asIs",
-		      },
-		    },
-		    "decorator": {
-		      "emitMetadata": true,
-		      "legacy": true,
-		    },
-		    "define": {},
-		    "devFriendlySplitChunks": false,
-		    "emotion": undefined,
-		    "html": [],
-		    "minifyOptions": undefined,
-		    "noEmitAssets": false,
-		    "pluginImport": undefined,
-		    "postcss": {
-		      "pxtorem": undefined,
-		    },
-		    "presetEnv": undefined,
-		    "progress": undefined,
-		    "provide": {},
-		    "react": {},
-		    "relay": undefined,
-		    "treeShaking": false,
-		  },
-		  "cache": false,
-		  "context": "<cwd>",
-		  "dependencies": undefined,
-		  "devServer": undefined,
-		  "devtool": false,
-		  "entry": {
-		    "main": {
-		      "import": [
-		        "./src",
-		      ],
-		    },
-		  },
-		  "experiments": {
-		    "asyncWebAssembly": false,
-		    "incrementalRebuild": true,
-		    "lazyCompilation": false,
-		    "newSplitChunks": false,
-		  },
-		  "externals": undefined,
-		  "externalsPresets": {
-		    "node": false,
-		  },
-		  "externalsType": "var",
-		  "infrastructureLogging": {},
-		  "mode": "none",
-		  "module": {
-		    "defaultRules": [
-		      {
-		        "test": /\\\\\\.json\\$/i,
-		        "type": "json",
-		      },
-		      {
-		        "resolve": {
-		          "byDependency": {
-		            "esm": {
-		              "fullySpecified": true,
-		            },
-		          },
-		        },
-		        "test": /\\\\\\.mjs\\$/i,
-		        "type": "javascript/esm",
-		      },
-		      {
-		        "descriptionData": {
-		          "type": "module",
-		        },
-		        "resolve": {
-		          "byDependency": {
-		            "esm": {
-		              "fullySpecified": true,
-		            },
-		          },
-		        },
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/esm",
-		      },
-		      {
-		        "test": /\\\\\\.cjs\\$/i,
-		        "type": "javascript/dynamic",
-		      },
-		      {
-		        "descriptionData": {
-		          "type": "commonjs",
-		        },
-		        "test": /\\\\\\.js\\$/i,
-		        "type": "javascript/dynamic",
-		      },
-		      {
-		        "test": /\\\\\\.jsx\\$/i,
-		        "type": "jsx",
-		      },
-		      {
-		        "test": /\\\\\\.ts\\$/i,
-		        "type": "ts",
-		      },
-		      {
-		        "test": /\\\\\\.tsx\\$/i,
-		        "type": "tsx",
-		      },
-		      {
-		        "oneOf": [
-		          {
-		            "resolve": {
-		              "fullySpecified": true,
-		            },
-		            "test": /\\\\\\.module\\\\\\.css\\$/i,
-		            "type": "css/module",
-		          },
-		          {
-		            "resolve": {
-		              "fullySpecified": true,
-		              "preferRelative": true,
-		            },
-		            "type": "css",
-		          },
-		        ],
-		        "test": /\\\\\\.css\\$/i,
-		      },
-		      {
-		        "dependency": "url",
-		        "oneOf": [
-		          {
-		            "type": "asset/resource",
-		          },
-		        ],
-		      },
-		    ],
-		    "parser": {
-		      "asset": {
-		        "dataUrlCondition": {
-		          "maxSize": 8096,
-		        },
-		      },
-		    },
-		    "rules": [],
-		  },
-		  "name": undefined,
-		  "node": {
-		    "__dirname": "warn-mock",
-		    "__filename": "warn-mock",
-		    "global": "warn",
-		  },
-		  "optimization": {
-		    "minimize": false,
-		    "minimizer": [],
-		    "moduleIds": "named",
-		    "removeAvailableModules": true,
-		    "runtimeChunk": false,
-		    "sideEffects": "flag",
-		    "splitChunks": {
-		      "cacheGroups": {
-		        "default": {
-		          "idHint": "",
-		          "minChunks": 2,
-		          "priority": -20,
-		          "reuseExistingChunk": true,
-		        },
-		        "defaultVendors": {
-		          "idHint": "vendors",
-		          "priority": -10,
-		          "reuseExistingChunk": true,
-		          "test": /\\[\\\\\\\\/\\]node_modules\\[\\\\\\\\/\\]/i,
-		        },
-		      },
-		      "chunks": "async",
-		      "enforceSizeThreshold": 30000,
-		      "maxAsyncRequests": Infinity,
-		      "maxInitialRequests": Infinity,
-		      "minChunks": 1,
-		      "minRemainingSize": undefined,
-		      "minSize": 10000,
-		    },
-		  },
-		  "output": {
-		    "assetModuleFilename": "[hash][ext][query]",
-		    "chunkFilename": "[name].js",
-		    "chunkFormat": "array-push",
-		    "chunkLoading": "jsonp",
-		    "chunkLoadingGlobal": "webpackChunk@rspack/core",
-		    "clean": false,
-		    "crossOriginLoading": false,
-		    "cssChunkFilename": "[name].css",
-		    "cssFilename": "[name].css",
-		    "enabledChunkLoadingTypes": [
-		      "jsonp",
-		    ],
-		    "enabledLibraryTypes": [],
-		    "enabledWasmLoadingTypes": [
-		      "fetch",
-		    ],
-		    "filename": "[name].js",
-		    "globalObject": "self",
-		    "iife": true,
-		    "importFunctionName": "import",
-		    "library": undefined,
-		    "module": false,
-		    "path": "<cwd>/dist",
-		    "publicPath": "auto",
-		    "strictModuleErrorHandling": false,
-		    "trustedTypes": undefined,
-		    "uniqueName": "@rspack/core",
-		    "wasmLoading": "fetch",
-		    "webassemblyModuleFilename": "[hash].module.wasm",
-		  },
-		  "plugins": [],
-		  "resolve": {
-		    "browserField": true,
-		    "byDependency": {
-		      "commonjs": {
-		        "browserField": true,
-		        "conditionNames": [
-		          "require",
-		          "module",
-		          "...",
-		        ],
-		        "extensions": [
-		          ".tsx",
-		          ".ts",
-		          ".jsx",
-		          ".js",
-		          ".json",
-		          ".wasm",
-		        ],
-		        "mainFields": [
-		          "browser",
-		          "module",
-		          "...",
-		        ],
-		      },
-		      "esm": {
-		        "browserField": true,
-		        "conditionNames": [
-		          "import",
-		          "module",
-		          "...",
-		        ],
-		        "extensions": [
-		          ".tsx",
-		          ".ts",
-		          ".jsx",
-		          ".js",
-		          ".json",
-		          ".wasm",
-		        ],
-		        "mainFields": [
-		          "browser",
-		          "module",
-		          "...",
-		        ],
-		      },
-		      "unknown": {
-		        "browserField": true,
-		        "conditionNames": [
-		          "require",
-		          "module",
-		          "...",
-		        ],
-		        "extensions": [
-		          ".tsx",
-		          ".ts",
-		          ".jsx",
-		          ".js",
-		          ".json",
-		          ".wasm",
-		        ],
-		        "mainFields": [
-		          "browser",
-		          "module",
-		          "...",
-		        ],
-		      },
-		      "url": {
-		        "preferRelative": true,
-		      },
-		      "wasm": {
-		        "browserField": true,
-		        "conditionNames": [
-		          "import",
-		          "module",
-		          "...",
-		        ],
-		        "extensions": [
-		          ".tsx",
-		          ".ts",
-		          ".jsx",
-		          ".js",
-		          ".json",
-		          ".wasm",
-		        ],
-		        "mainFields": [
-		          "browser",
-		          "module",
-		          "...",
-		        ],
-		      },
-		    },
-		    "conditionNames": [
-		      "webpack",
-		      "production",
-		      "browser",
-		    ],
-		    "extensions": [],
-		    "mainFields": [
-		      "main",
-		    ],
-		    "mainFiles": [
-		      "index",
-		    ],
-		    "modules": [
-		      "node_modules",
-		    ],
-		  },
-		  "snapshot": {
-		    "module": {
-		      "hash": false,
-		      "timestamp": true,
-		    },
-		    "resolve": {
-		      "hash": false,
-		      "timestamp": true,
-		    },
-		  },
-		  "stats": {},
-		  "target": "web",
-		  "watch": false,
-		  "watchOptions": {},
-		}
-	`);
+		expect(baseConfig).toMatchSnapshot();
 	});
 
 	const test = (name, options, fn, before, after) => {
@@ -451,12 +111,13 @@ describe("snapshots", () => {
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
 		+       "dropConsole": false,
+		+       "extractComments": undefined,
 		+       "passes": 1,
 		+       "pureFuncs": Array [],
 		+     },
 		@@ ... @@
-		-     "treeShaking": false,
-		+     "treeShaking": true,
+		-     "treeShaking": "false",
+		+     "treeShaking": "true",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": undefined,
@@ -499,12 +160,13 @@ describe("snapshots", () => {
 		-     "minifyOptions": undefined,
 		+     "minifyOptions": Object {
 		+       "dropConsole": false,
+		+       "extractComments": undefined,
 		+       "passes": 1,
 		+       "pureFuncs": Array [],
 		+     },
 		@@ ... @@
-		-     "treeShaking": false,
-		+     "treeShaking": true,
+		-     "treeShaking": "false",
+		+     "treeShaking": "true",
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "production",
@@ -860,7 +522,9 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "node": false,
+		-     "web": true,
 		+     "node": true,
+		+     "web": false,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "__filename": "warn-mock",
@@ -944,7 +608,9 @@ describe("snapshots", () => {
 
 		@@ ... @@
 		-     "node": false,
+		-     "web": true,
 		+     "node": true,
+		+     "web": false,
 		@@ ... @@
 		-     "__dirname": "warn-mock",
 		-     "__filename": "warn-mock",
@@ -1364,9 +1030,29 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "css": true,
 			+     "css": false,
 			+     "futureDefaults": true,
+			@@ ... @@
+			-       },
+			-       Object {
+			-         "oneOf": Array [
+			-           Object {
+			-             "resolve": Object {
+			-               "fullySpecified": true,
+			-             },
+			-             "test": /\\.module\\.css$/i,
+			-             "type": "css/module",
+			-           },
+			-           Object {
+			-             "resolve": Object {
+			-               "fullySpecified": true,
+			-               "preferRelative": true,
+			-             },
+			-             "type": "css",
+			-           },
+			-         ],
+			-         "test": /\\.css$/i,
 		`)
 	);
 });
-export {};

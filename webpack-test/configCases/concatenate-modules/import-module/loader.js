@@ -1,4 +1,4 @@
-/** @type {import("../../../../").LoaderDefinitionFunction} */
+/** @type {import("@rspack/core").LoaderDefinitionFunction} */
 module.exports = function () {
 	const callback = this.async();
 	this.importModule("./module1", { baseUri: "webpack://" }, (err, exports) => {

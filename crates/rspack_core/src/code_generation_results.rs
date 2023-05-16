@@ -1,13 +1,16 @@
 use std::collections::hash_map::Entry;
 use std::hash::{Hash, Hasher};
+use std::ops::{Deref, DerefMut};
 
+use anymap::CloneAny;
 use rspack_error::{internal_error, Result};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  AstOrSource, ModuleIdentifier, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType,
+  AssetInfo, AstOrSource, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -21,11 +24,76 @@ impl From<AstOrSource> for GenerationResult {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataUrl {
+  inner: String,
+}
+
+impl CodeGenerationDataUrl {
+  pub fn new(inner: String) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &str {
+    &self.inner
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataFilename {
+  inner: String,
+}
+
+impl CodeGenerationDataFilename {
+  pub fn new(inner: String) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &str {
+    &self.inner
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataAssetInfo {
+  inner: AssetInfo,
+}
+
+impl CodeGenerationDataAssetInfo {
+  pub fn new(inner: AssetInfo) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &AssetInfo {
+    &self.inner
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CodeGenerationData {
+  inner: anymap::Map<dyn CloneAny + Send + Sync>,
+}
+
+impl Deref for CodeGenerationData {
+  type Target = anymap::Map<dyn CloneAny + Send + Sync>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.inner
+  }
+}
+
+impl DerefMut for CodeGenerationData {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.inner
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
   inner: HashMap<SourceType, GenerationResult>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
-  pub data: HashMap<String, String>,
+  pub data: CodeGenerationData,
+  pub chunk_init_fragments: ChunkInitFragments,
   pub runtime_requirements: RuntimeGlobals,
   pub hash: u64,
 }
@@ -70,6 +138,10 @@ impl CodeGenerationResult {
       if let Some(source) = generation_result.ast_or_source.as_source() {
         source.hash(&mut state);
       }
+    }
+    for (k, v) in &self.chunk_init_fragments {
+      k.hash(&mut state);
+      v.hash(&mut state);
     }
     self.hash = state.finish();
   }

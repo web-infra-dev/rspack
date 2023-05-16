@@ -1,7 +1,7 @@
 const path = require("path");
 const directory = path.resolve(__dirname, "directory");
 
-/** @type {import("../../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	this.addContextDependency(directory);
 	const callback = this.async();

@@ -14,6 +14,10 @@ pub trait RuntimeModule: Module {
   fn cacheable(&self) -> bool {
     true
   }
+  // if wrap iife
+  fn should_isolate(&self) -> bool {
+    false
+  }
 }
 
 /**

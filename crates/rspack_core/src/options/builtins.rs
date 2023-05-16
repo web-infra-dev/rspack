@@ -30,13 +30,62 @@ pub struct DecoratorOptions {
   pub emit_metadata: bool,
 }
 
+#[derive(Debug, Clone, Default, Copy)]
+pub enum TreeShaking {
+  True,
+  #[default]
+  False,
+  Module,
+}
+
+impl TreeShaking {
+  pub fn enable(&self) -> bool {
+    matches!(self, TreeShaking::Module | TreeShaking::True)
+  }
+
+  /// Returns `true` if the tree shaking is [`True`].
+  ///
+  /// [`True`]: TreeShaking::True
+  #[must_use]
+  pub fn is_true(&self) -> bool {
+    matches!(self, Self::True)
+  }
+
+  /// Returns `true` if the tree shaking is [`False`].
+  ///
+  /// [`False`]: TreeShaking::False
+  #[must_use]
+  pub fn is_false(&self) -> bool {
+    matches!(self, Self::False)
+  }
+
+  /// Returns `true` if the tree shaking is [`Module`].
+  ///
+  /// [`Module`]: TreeShaking::Module
+  #[must_use]
+  pub fn is_module(&self) -> bool {
+    matches!(self, Self::Module)
+  }
+}
+
+impl From<String> for TreeShaking {
+  fn from(value: String) -> Self {
+    match value.as_ref() {
+      "true" => TreeShaking::True,
+      "false" => TreeShaking::False,
+      "module" => TreeShaking::Module,
+      _ => panic!("Unknown tree shaking option, please use one of `true`, `false` and `module`"),
+    }
+  }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Builtins {
   pub minify_options: Option<Minification>,
   pub preset_env: Option<PresetEnv>,
   pub define: Define,
   pub provide: Provide,
-  pub tree_shaking: bool,
+  pub tree_shaking: TreeShaking,
   pub react: ReactOptions,
   pub decorator: Option<DecoratorOptions>,
   pub no_emit_assets: bool,
@@ -44,6 +93,7 @@ pub struct Builtins {
   pub dev_friendly_split_chunks: bool,
   pub plugin_import: Option<Vec<PluginImportConfig>>,
   pub relay: Option<RelayConfig>,
+  pub code_generation: Option<CodeGeneration>,
 }
 
 #[derive(Debug, Clone, Default, Hash)]
@@ -51,6 +101,12 @@ pub struct Minification {
   pub passes: usize,
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
+  pub extract_comments: Option<String>,
+}
+
+#[derive(Debug, Copy, Clone, Default)]
+pub struct CodeGeneration {
+  pub keep_comments: bool,
 }
 
 #[derive(Debug, Clone)]

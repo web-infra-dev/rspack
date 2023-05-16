@@ -40,8 +40,4 @@ runs:
 
           corepack enable
           pnpm install
-          pnpm run build:js
-          pnpm run test:unit
-          pnpm run test:example
-          # e2e is disabled because this does not run on some targets
-          # pnpm run test:e2e
+          pnpm run test:ci

@@ -335,6 +335,10 @@ module.exports = {
 				outputModule: {
 					description: "Allow output javascript files as module source type.",
 					type: "boolean"
+				},
+				newSplitChunks: {
+					description: "Enable new SplitChunksPlugin",
+					type: "boolean"
 				}
 			}
 		},
@@ -362,7 +366,7 @@ module.exports = {
 				{
 					description:
 						"The function is called on each dependency (`function(context, request, callback(err, result))`).",
-					instanceof: "Function",
+					instanceof: "Function"
 					// tsType:
 					// 	"(((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>))"
 				}
@@ -437,6 +441,15 @@ module.exports = {
 			]
 		},
 		Filename: {
+			description:
+				"Specifies the filename of output files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.",
+			oneOf: [
+				{
+					$ref: "#/definitions/FilenameTemplate"
+				}
+			]
+		},
+		SourceMapFilename: {
 			description:
 				"Specifies the filename of output files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.",
 			oneOf: [
@@ -715,6 +728,22 @@ module.exports = {
 			description: "Enable production optimizations or development hints.",
 			enum: ["development", "production", "none"]
 		},
+		ignoreWarnings: {
+			description: "ignore warnings based on pattern",
+			type: "array",
+			items: {
+				anyOf: [
+					{
+						instanceof: "RegExp"
+					},
+					{
+						instanceof: "Function"
+						// tsType:
+						// 	"(warning: Error, compilation: Compilation) => boolean"
+					}
+				]
+			}
+		},
 		ModuleOptions: {
 			description:
 				"Options affecting the normal modules (`NormalModuleFactory`).",
@@ -820,6 +849,10 @@ module.exports = {
 						"Removes modules from chunks when these modules are already included in all parents.",
 					type: "boolean"
 				},
+				removeEmptyChunks: {
+					description: "Remove chunks which are empty.",
+					type: "boolean"
+				},
 				runtimeChunk: {
 					$ref: "#/definitions/OptimizationRuntimeChunk"
 				},
@@ -846,6 +879,11 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksOptions"
 						}
 					]
+				},
+				realContentHash: {
+					description:
+						"Use real [contenthash] based on final content of the assets.",
+					type: "boolean"
 				}
 			}
 		},
@@ -926,11 +964,24 @@ module.exports = {
 						"Try to reuse existing chunk (with name) when it has matching modules.",
 					type: "boolean"
 				},
+				enforce: {
+					description:
+						"ignore splitChunks.minSize, splitChunks.minChunks, splitChunks.maxAsyncRequests and splitChunks.maxInitialRequests options and always create chunks for this cache group.",
+					type: "boolean"
+				},
 				test: {
 					description: "Assign modules to a cache group by module name.",
 					anyOf: [
 						{
 							instanceof: "RegExp"
+						}
+					]
+				},
+				minSize: {
+					description: "Minimal size for the created chunks.",
+					oneOf: [
+						{
+							$ref: "#/definitions/OptimizationSplitChunksSizes"
 						}
 					]
 				}
@@ -941,6 +992,14 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				name: {
+					description: "The name or name for chunks.",
+					anyOf: [
+						{
+							type: "string"
+						}
+					]
+				},
 				cacheGroups: {
 					description:
 						"Assign modules to a cache group (modules from different cache groups are tried to keep in separate chunks, default categories: 'default', 'defaultVendors').",
@@ -1006,6 +1065,11 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksSizes"
 						}
 					]
+				},
+				reuseExistingChunk: {
+					description:
+						"If the current chunk contains modules already split out from the main bundle, it will be reused instead of a new one being generated. This can affect the resulting file name of the chunk.",
+					type: "boolean"
 				}
 			}
 		},
@@ -1151,6 +1215,9 @@ module.exports = {
 							$ref: "#/definitions/TrustedTypes"
 						}
 					]
+				},
+				sourceMapFilename: {
+					$ref: "#/definitions/SourceMapFilename"
 				}
 			}
 		},
@@ -1808,6 +1875,11 @@ module.exports = {
 				builtAt: {
 					description: "Add built at time information.",
 					type: "boolean"
+				},
+				nestedModules: {
+					description:
+						"Add information about modules nested in other modules (like with module concatenation).",
+					type: "boolean"
 				}
 			}
 		},
@@ -2041,6 +2113,9 @@ module.exports = {
 			description: "Builtins features in rspack",
 			type: "object",
 			additionalProperties: true
+		},
+		ignoreWarnings: {
+			$ref: "#/definitions/ignoreWarnings"
 		}
 	}
 };

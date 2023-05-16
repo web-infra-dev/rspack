@@ -5,6 +5,6 @@
 				"./process.js"
 			]
 		},
-		"treeShaking": true
+		"treeShaking": "true"
 	}
 }

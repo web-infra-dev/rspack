@@ -1,5 +1,5 @@
 const path = require("path");
-/** @type {import("../../../../").LoaderDefinition} */
+/** @type {import("@rspack/core").LoaderDefinition} */
 module.exports = function () {
 	const resolve1 = this.getResolve();
 	const resolve2 = this.getResolve({

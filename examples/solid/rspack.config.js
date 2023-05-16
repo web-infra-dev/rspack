@@ -1,4 +1,5 @@
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	context: __dirname,
 	entry: {
 		main: "./src/index.jsx"
@@ -42,3 +43,5 @@ module.exports = {
 		}
 	}
 };
+module.exports = config
+

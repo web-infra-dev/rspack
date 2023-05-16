@@ -14,7 +14,8 @@ import type {
 	RawPresetEnv,
 	RawPluginImportConfig,
 	RawCssModulesConfig,
-	RawRelayConfig
+	RawRelayConfig,
+	RawCodeGeneration
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { getBannerConditions } from "./adapter";
@@ -45,10 +46,17 @@ export type CssPluginConfig = {
 	modules?: Partial<RawCssModulesConfig>;
 };
 
+export type MinificationConfig = {
+	passes?: number;
+	dropConsole?: boolean;
+	pureFuncs?: Array<string>;
+	extractComments?: boolean | RegExp;
+};
+
 export interface Builtins {
 	css?: CssPluginConfig;
 	postcss?: RawPostCssConfig;
-	treeShaking?: boolean;
+	treeShaking?: boolean | "module";
 	progress?: boolean | RawProgressPluginConfig;
 	react?: RawReactOptions;
 	noEmitAssets?: boolean;
@@ -56,7 +64,7 @@ export interface Builtins {
 	provide?: Record<string, string | string[]>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minifyOptions?: Partial<RawMinification>;
+	minifyOptions?: MinificationConfig;
 	emotion?: EmotionConfig;
 	presetEnv?: Partial<RawBuiltins["presetEnv"]>;
 	polyfill?: boolean;
@@ -65,6 +73,7 @@ export interface Builtins {
 	banner?: BannerConfigs;
 	pluginImport?: PluginImportConfig[];
 	relay?: RelayConfig;
+	codeGeneration?: Partial<RawCodeGeneration>;
 }
 
 export type PluginImportConfig = {
@@ -165,6 +174,17 @@ function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 		return [key, value];
 	});
 	return Object.fromEntries(entries);
+}
+
+function resolveTreeShaking(
+	treeShaking: Builtins["treeShaking"],
+	production: boolean
+): RawBuiltins["treeShaking"] {
+	return treeShaking !== undefined
+		? treeShaking.toString()
+		: production
+		? "true"
+		: "false";
 }
 
 function resolveProvide(
@@ -356,7 +376,7 @@ export function resolveBuiltinsOptions(
 			}
 		},
 		postcss: { pxtorem: undefined, ...builtins.postcss },
-		treeShaking: builtins.treeShaking ?? !!production,
+		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
 		react: builtins.react ?? {},
 		noEmitAssets: builtins.noEmitAssets ?? false,
 		define: resolveDefine(builtins.define || {}),
@@ -373,7 +393,8 @@ export function resolveBuiltinsOptions(
 		pluginImport: resolvePluginImport(builtins.pluginImport),
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
-			: undefined
+			: undefined,
+		codeGeneration: resolveCodeGeneration(builtins)
 	};
 }
 
@@ -418,10 +439,25 @@ export function resolveMinifyOptions(
 		return undefined;
 	}
 
+	let extractComments = builtins.minifyOptions?.extractComments
+		? String(builtins.minifyOptions.extractComments)
+		: undefined;
+
 	return {
 		passes: 1,
 		dropConsole: false,
 		pureFuncs: [],
-		...builtins.minifyOptions
+		...builtins.minifyOptions,
+		extractComments
+	};
+}
+
+export function resolveCodeGeneration(builtins: Builtins): RawCodeGeneration {
+	if (!builtins.codeGeneration) {
+		return { keepComments: Boolean(builtins.minifyOptions?.extractComments) };
+	}
+	return {
+		keepComments: false,
+		...builtins.codeGeneration
 	};
 }

@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{Builtins, Define, Minification, PluginExt, PresetEnv, Provide};
+use rspack_core::{Builtins, CodeGeneration, Define, Minification, PluginExt, PresetEnv, Provide};
 use rspack_error::internal_error;
 use rspack_plugin_banner::{BannerConfig, BannerPlugin};
 use rspack_plugin_copy::CopyPlugin;
@@ -9,7 +9,6 @@ use rspack_plugin_html::HtmlPlugin;
 use rspack_plugin_progress::ProgressPlugin;
 use serde::Deserialize;
 
-#[cfg(feature = "node-api")]
 use crate::JsLoaderRunner;
 
 mod raw_banner;
@@ -43,6 +42,7 @@ pub struct RawMinification {
   pub passes: u32,
   pub drop_console: bool,
   pub pure_funcs: Vec<String>,
+  pub extract_comments: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -55,12 +55,20 @@ pub struct RawPresetEnv {
   pub core_js: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCodeGeneration {
+  pub keep_comments: bool,
+}
+
 impl From<RawMinification> for Minification {
   fn from(value: RawMinification) -> Self {
     Self {
       passes: value.passes as usize,
       drop_console: value.drop_console,
       pure_funcs: value.pure_funcs,
+      extract_comments: value.extract_comments,
     }
   }
 }
@@ -79,6 +87,13 @@ impl From<RawPresetEnv> for PresetEnv {
   }
 }
 
+impl From<RawCodeGeneration> for CodeGeneration {
+  fn from(raw_code_generation: RawCodeGeneration) -> Self {
+    Self {
+      keep_comments: raw_code_generation.keep_comments,
+    }
+  }
+}
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
@@ -92,7 +107,7 @@ pub struct RawBuiltins {
   pub define: Define,
   #[napi(ts_type = "Record<string, string[]>")]
   pub provide: Provide,
-  pub tree_shaking: bool,
+  pub tree_shaking: String,
   pub progress: Option<RawProgressPluginConfig>,
   pub react: RawReactOptions,
   pub decorator: Option<RawDecoratorOptions>,
@@ -103,6 +118,7 @@ pub struct RawBuiltins {
   pub banner: Option<Vec<RawBannerConfig>>,
   pub plugin_import: Option<Vec<RawPluginImportConfig>>,
   pub relay: Option<RawRelayConfig>,
+  pub code_generation: Option<RawCodeGeneration>,
 }
 
 impl RawOptionsApply for RawBuiltins {
@@ -111,7 +127,7 @@ impl RawOptionsApply for RawBuiltins {
   fn apply(
     self,
     plugins: &mut Vec<rspack_core::BoxPlugin>,
-    #[cfg(feature = "node-api")] _: &JsLoaderRunner,
+    _: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     if let Some(htmls) = self.html {
       for html in htmls {
@@ -156,7 +172,7 @@ impl RawOptionsApply for RawBuiltins {
       preset_env: self.preset_env.map(Into::into),
       define: self.define,
       provide: self.provide,
-      tree_shaking: self.tree_shaking,
+      tree_shaking: self.tree_shaking.into(),
       react: self.react.into(),
       decorator: self.decorator.map(|i| i.into()),
       no_emit_assets: self.no_emit_assets,
@@ -170,6 +186,7 @@ impl RawOptionsApply for RawBuiltins {
         .plugin_import
         .map(|plugin_imports| plugin_imports.into_iter().map(Into::into).collect()),
       relay: self.relay.map(Into::into),
+      code_generation: self.code_generation.map(Into::into),
     })
   }
 }

@@ -11,7 +11,7 @@
     "directory": "packages/playground"
   },
   "devDependencies": {
-    "playwright-chromium": "1.32.1",
+    "playwright-chromium": "1.33.0",
     "fs-extra": "11.1.1",
     "@types/fs-extra": "11.0.1",
     "jest-environment-node": "29.5.0",

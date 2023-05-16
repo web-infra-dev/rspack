@@ -13,6 +13,8 @@ import { StatsValue, StatsOptions } from "./config";
 import { LogType } from "./logging/Logger";
 
 export type StatsCompilation = {
+	version?: string;
+	rspackVersion?: string;
 	name?: string;
 	hash?: string;
 	time?: number;
@@ -91,13 +93,15 @@ export class Stats {
 				options.chunkModules!,
 				options.chunkRelations!,
 				options.reasons!,
-				options.moduleAssets!
+				options.moduleAssets!,
+				options.nestedModules!
 			);
 		}
 		if (options.modules) {
 			obj.modules = this.#inner.getModules(
 				options.reasons!,
-				options.moduleAssets!
+				options.moduleAssets!,
+				options.nestedModules!
 			);
 		}
 		if (options.entrypoints) {

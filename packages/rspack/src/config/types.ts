@@ -12,10 +12,15 @@ import watchpack from "watchpack";
 import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
+import { Compilation } from "..";
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
-export type { LoaderContext } from "./adapter-rule-use";
+export type {
+	LoaderContext,
+	LoaderDefinitionFunction,
+	LoaderDefinition
+} from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
 
@@ -45,6 +50,7 @@ export interface RspackOptions {
 	watchOptions?: WatchOptions;
 	devServer?: DevServer;
 	builtins?: Builtins;
+	ignoreWarnings?: IgnoreWarningsPattern;
 }
 
 export interface RspackOptionsNormalized {
@@ -73,6 +79,7 @@ export interface RspackOptionsNormalized {
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
 	builtins: Builtins;
+	ignoreWarnings?: IgnoreWarningsNormalized;
 }
 
 export type HashFunction = string | typeof import("../util/hash");
@@ -95,6 +102,14 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
+export type IgnoreWarningsPattern = (
+	| RegExp
+	| ((warning: Error, compilation: Compilation) => boolean)
+)[];
+export type IgnoreWarningsNormalized = ((
+	warning: Error,
+	compilation: Compilation
+) => boolean)[];
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }
@@ -143,6 +158,7 @@ export interface Output {
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: true | string | TrustedTypes;
+	sourceMapFilename?: SourceMapFilename;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -160,6 +176,7 @@ export type ChunkLoadingGlobal = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
+export type SourceMapFilename = FilenameTemplate;
 export type Iife = boolean;
 export type Clean = boolean;
 export interface LibraryCustomUmdCommentObject {
@@ -243,6 +260,7 @@ export interface OutputNormalized {
 	chunkLoading?: string | false;
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: TrustedTypes;
+	sourceMapFilename?: SourceMapFilename;
 	/**
 	 * Algorithm used for generation the hash (see node.js crypto package).
 	 */
@@ -451,6 +469,7 @@ export type ExternalsType =
 ///// ExternalsPresets /////
 export interface ExternalsPresets {
 	node?: boolean;
+	web?: boolean;
 }
 
 ///// InfrastructureLogging /////
@@ -544,6 +563,7 @@ export interface StatsOptions {
 	timings?: boolean;
 	builtAt?: boolean;
 	moduleAssets?: boolean;
+	nestedModules?: boolean;
 }
 
 ///// Optimization /////
@@ -554,7 +574,12 @@ export interface Optimization {
 	splitChunks?: OptimizationSplitChunksOptions | false;
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
+	/**
+	 * Remove chunks which are empty.
+	 */
+	removeEmptyChunks?: boolean;
 	sideEffects?: "flag" | boolean;
+	realContentHash?: boolean;
 }
 export interface OptimizationSplitChunksOptions {
 	cacheGroups?: {
@@ -567,14 +592,16 @@ export interface OptimizationSplitChunksOptions {
 	minSize?: OptimizationSplitChunksSizes;
 	enforceSizeThreshold?: OptimizationSplitChunksSizes;
 	minRemainingSize?: OptimizationSplitChunksSizes;
+	name?: string | false;
 }
 export interface OptimizationSplitChunksCacheGroup {
 	chunks?: "initial" | "async" | "all";
 	minChunks?: number;
-	name?: string;
+	name?: string | false;
 	priority?: number;
 	reuseExistingChunk?: boolean;
 	test?: RegExp;
+	minSize?: number;
 }
 export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =
@@ -604,6 +631,7 @@ export interface Experiments {
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
+	css?: boolean;
 }
 
 ///// Watch /////

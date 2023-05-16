@@ -3,19 +3,22 @@ use std::{
   sync::Arc,
 };
 
+use once_cell::sync::Lazy;
+use regex::Regex;
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifiable;
-use sugar_path::AsPath;
+use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache, module_rule_matcher, resolve, AssetGeneratorOptions, AssetParserOptions, BoxLoader,
-  CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta,
-  MissingModule, ModuleArgs, ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
-  SharedPluginDriver,
+  cache::Cache, module_rule_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  AssetGeneratorOptions, AssetParserOptions, BoxLoader, CompilerOptions, Dependency,
+  DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
+  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
+  NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -32,9 +35,15 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
+    if let Ok(Some(before_resolve_data)) = self.before_resolve(&data).await {
+      return Ok(before_resolve_data);
+    }
     Ok(self.factorize(data).await?)
   }
 }
+
+static MATCH_RESOURCE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new("^([^!]+)!=!").expect("Failed to initialize `MATCH_RESOURCE_REGEX`"));
 
 impl NormalModuleFactory {
   pub fn new(
@@ -51,6 +60,50 @@ impl NormalModuleFactory {
     }
   }
 
+  pub async fn before_resolve(
+    &mut self,
+    data: &ModuleFactoryCreateData,
+  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    if let Ok(Some(false)) = self
+      .plugin_driver
+      .read()
+      .await
+      .before_resolve(NormalModuleBeforeResolveArgs {
+        request: data.dependency.request(),
+        context: &data.context,
+      })
+      .await
+    {
+      let importer = self.context.original_resource_path.as_ref();
+      let importer_with_context = if let Some(importer) = importer {
+        Path::new(importer)
+          .parent()
+          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+          .to_path_buf()
+      } else {
+        PathBuf::from(self.context.options.context.as_path())
+      };
+      let request_without_match_resource = data.dependency.request();
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
+      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+      let missing_module = MissingModule::new(
+        module_identifier,
+        format!("{ident} (missing)"),
+        format!("Failed to resolve {request_without_match_resource}"),
+      )
+      .boxed();
+      self.context.module_type = Some(*missing_module.module_type());
+      return Ok(Some(
+        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
+      ));
+    }
+    Ok(None)
+  }
+
   pub async fn factorize_normal_module(
     &mut self,
     data: ModuleFactoryCreateData,
@@ -64,44 +117,30 @@ impl NormalModuleFactory {
     } else {
       PathBuf::from(self.context.options.context.as_path())
     };
-    let specifier = data.dependency.request();
-    if should_skip_resolve(specifier) {
-      return Ok(None);
-    }
+    let mut request_without_match_resource = data.dependency.request();
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
 
-    let mut resolve_args = ResolveArgs {
-      importer,
-      context: data.context,
-      specifier,
-      dependency_type: data.dependency.dependency_type(),
-      dependency_category: data.dependency.category(),
-      span: data.dependency.span().cloned(),
-      resolve_options: data.resolve_options,
-      resolve_to_context: false,
-      file_dependencies: &mut file_dependencies,
-      missing_dependencies: &mut missing_dependencies,
-    };
-
-    let scheme = url::Url::parse(specifier)
+    let scheme = url::Url::parse(request_without_match_resource)
       .map(|url| url.scheme().to_string())
       .ok();
     let plugin_driver = &self.plugin_driver;
+
+    let mut match_resource_data: Option<ResourceData> = None;
     let mut inline_loaders: Vec<BoxLoader> = vec![];
     let mut no_pre_auto_loaders = false;
     let mut no_auto_loaders = false;
     let mut no_pre_post_auto_loaders = false;
 
     // with scheme, windows absolute path is considered scheme by `url`
-    let resource_data = if let Some(scheme) = scheme && !Path::is_absolute(Path::new(specifier)) {
+    let resource_data = if let Some(scheme) = scheme && !Path::is_absolute(Path::new(request_without_match_resource)) {
       let data = plugin_driver
         .read()
         .await
         .normal_module_factory_resolve_for_scheme(NormalModuleFactoryResolveForSchemeArgs {
           resource: ResourceData {
-            resource: specifier.to_string(),
+            resource: request_without_match_resource.to_string(),
             resource_description: None,
             resource_fragment: None,
             resource_query: None,
@@ -113,13 +152,14 @@ impl NormalModuleFactory {
       match data {
         Ok(Some(data)) => data,
         Ok(None) => {
-          let ident = format!("{}{specifier}", importer_with_context.display());
+
+          let ident = format!("{}{request_without_match_resource}", importer_with_context.display());
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
           let missing_module = MissingModule::new(
             module_identifier,
             format!("{ident} (missing)"),
-            format!("Failed to resolve {specifier}"),
+            format!("Failed to resolve {request_without_match_resource}"),
           )
           .boxed();
           self.context.module_type = Some(*missing_module.module_type());
@@ -133,7 +173,72 @@ impl NormalModuleFactory {
       }
     } else {
       {
-        let mut request = specifier.chars();
+        let plugin_driver = self.plugin_driver.read().await;
+        let importer = importer.map(|i| {i.display().to_string()});
+        let context = {
+          if let Some(context) = &data.context {
+            context.as_path()
+          } else if let Some(i) = importer.as_ref() {
+            {
+              // TODO: delete this fn after use `normalModule.context` rather than `importer`
+              if let Some(index) = i.find('?') {
+                Path::new(&i[0..index])
+              } else {
+                Path::new(i)
+              }
+            }
+            .parent()
+            .ok_or_else(|| internal_error!("parent() failed for {:?}", importer))?
+          } else {
+            &plugin_driver.options.context
+          }
+        };
+        request_without_match_resource = {
+          let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
+          if let Some(m) = match_resource_match {
+            let mut match_resource: String = m.get(1).expect("Should have match resource").as_str().to_owned();
+            let mut chars = match_resource.chars();
+            let first_char = chars.next();
+            let second_char = chars.next();
+
+            if matches!(first_char, Some('.')) && (matches!(second_char, Some('/')) || (matches!(second_char, Some('.')) && matches!(chars.next(), Some('/')))) {
+              // if matchResources startsWith ../ or ./
+              match_resource = context.join(match_resource).absolutize().to_string_lossy().to_string();
+            }
+
+            let ResourceParsedData {
+              path,
+              query,
+              fragment
+            } = parse_resource(&match_resource).expect("Should parse resource");
+            match_resource_data = Some(ResourceData {
+              resource: match_resource,
+              resource_path: path,
+              resource_query: query,
+              resource_fragment: fragment,
+              resource_description: None
+            });
+
+            // e.g. ./index.js!=!
+            let whole_matched = m.get(0).expect("Whole matched").as_str();
+
+            match request_without_match_resource.char_indices().nth(whole_matched.len()) {
+              Some((pos, _)) => {
+                &request_without_match_resource[pos..]
+              },
+              None => {
+                let dependency = data.dependency;
+                unreachable!("Invalid dependency: {dependency:?}")
+              }
+            }
+          } else {
+            request_without_match_resource
+          }
+        };
+
+        // dbg!(&match_resource_data);
+
+        let mut request = request_without_match_resource.chars();
         let first_char = request.next();
         let second_char = request.next();
         // See: https://webpack.js.org/concepts/loaders/#inline
@@ -142,7 +247,7 @@ impl NormalModuleFactory {
         no_pre_post_auto_loaders = matches!(first_char, Some('!')) && matches!(second_char, Some('!'));
 
         let mut raw_elements = {
-          let s = match specifier.char_indices().nth({
+          let s = match request_without_match_resource.char_indices().nth({
             if no_pre_auto_loaders || no_pre_post_auto_loaders {
               2
             } else if no_auto_loaders {
@@ -152,49 +257,30 @@ impl NormalModuleFactory {
             }
           }) {
             Some((pos, _)) => {
-              &specifier[pos..]
+              &request_without_match_resource[pos..]
             },
             None=> {
-              unreachable!()
+              let dependency = data.dependency;
+              unreachable!("Invalid dependency: {dependency:?}")
             }
           };
           s.split('!').filter(|item| !item.is_empty()).collect::<Vec<_>>()
         };
-        resolve_args.specifier = raw_elements.pop().ok_or_else(|| {
-          let s = resolve_args.specifier;
-          internal_error!("Invalid request: {s}")
+        request_without_match_resource = raw_elements.pop().ok_or_else(|| {
+          internal_error!("Invalid request: {request_without_match_resource}")
         })?;
 
         let loader_resolver = self.resolver_factory.get(ResolveOptionsWithDependencyType {
-          resolve_options: resolve_args.resolve_options.clone(),
+          resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           dependency_type: DependencyType::CjsRequire,
           dependency_category: DependencyCategory::CommonJS,
         });
 
-        let plugin_driver = self.plugin_driver.read().await;
         for element in raw_elements {
-          let importer = resolve_args.importer.map(|i| i.display().to_string());
           let res = plugin_driver.resolve_loader(
             &self.context.options,
-            {
-              if let Some(context) = &resolve_args.context {
-                context.as_path()
-              } else if let Some(i) = importer.as_ref() {
-                {
-                  // TODO: delete this fn after use `normalModule.context` rather than `importer`
-                  if let Some(index) = i.find('?') {
-                    Path::new(&i[0..index])
-                  } else {
-                    Path::new(i)
-                  }
-                }
-                .parent()
-                .ok_or_else(|| internal_error!("parent() failed for {:?}", importer))?
-              } else {
-                &plugin_driver.options.context
-              }
-            },
+            context,
             &loader_resolver,
             element
             )
@@ -204,6 +290,21 @@ impl NormalModuleFactory {
           inline_loaders.push(res);
         }
       }
+      let optional = data.dependency.get_optional();
+
+      let resolve_args = ResolveArgs {
+        importer,
+        context: data.context,
+        specifier: request_without_match_resource,
+        dependency_type: data.dependency.dependency_type(),
+        dependency_category: data.dependency.category(),
+        span: data.dependency.span().cloned(),
+        resolve_options: data.resolve_options,
+        resolve_to_context: false,
+        optional,
+        file_dependencies: &mut file_dependencies,
+        missing_dependencies: &mut missing_dependencies,
+      };
 
       // default resolve
       let resource_data = self
@@ -223,7 +324,7 @@ impl NormalModuleFactory {
           }
         }
         Ok(ResolveResult::Ignored) => {
-          let ident = format!("{}/{}", importer_with_context.display(), specifier);
+          let ident = format!("{}/{}", importer_with_context.display(), request_without_match_resource);
           let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
           let raw_module = RawModule::new(
@@ -240,7 +341,7 @@ impl NormalModuleFactory {
           ));
         }
         Err(ResolveError(runtime_error, internal_error)) => {
-          let ident = format!("{}{specifier}", importer_with_context.display());
+          let ident = format!("{}{request_without_match_resource}", importer_with_context.display());
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
           let missing_module = MissingModule::new(
@@ -258,19 +359,29 @@ impl NormalModuleFactory {
     };
     //TODO: with contextScheme
     let resolved_module_rules = self
-      .calculate_module_rules(&resource_data, data.dependency.category())
+      .calculate_module_rules(
+        if let Some(match_resource_data) = match_resource_data.as_ref() {
+          match_resource_data
+        } else {
+          &resource_data
+        },
+        data.dependency.category(),
+      )
       .await?;
 
-    let user_request = if !inline_loaders.is_empty() {
-      let s = inline_loaders
-        .iter()
-        .map(|i| i.identifier().as_str())
-        .collect::<Vec<_>>()
-        .join("!");
-      format!("{s}!{}", resource_data.resource)
-    } else {
-      resource_data.resource.clone()
+    let user_request = {
+      let suffix = stringify_loaders_and_resource(&inline_loaders, &resource_data.resource);
+      if let Some(ResourceData { resource, .. }) = match_resource_data.as_ref() {
+        let mut resource = resource.to_owned();
+        resource += "!=!";
+        resource += &*suffix;
+        resource
+      } else {
+        suffix.into_owned()
+      }
     };
+
+    // dbg!(&user_request);
 
     // TODO: move loader resolver to rust
     let loaders: Vec<BoxLoader> = {
@@ -303,8 +414,13 @@ impl NormalModuleFactory {
       );
 
       all_loaders.extend(post_loaders);
-      all_loaders.extend(inline_loaders);
-      all_loaders.extend(normal_loaders);
+      if match_resource_data.is_some() {
+        all_loaders.extend(normal_loaders);
+        all_loaders.extend(inline_loaders);
+      } else {
+        all_loaders.extend(inline_loaders);
+        all_loaders.extend(normal_loaders);
+      }
       all_loaders.extend(pre_loaders);
 
       all_loaders
@@ -355,6 +471,7 @@ impl NormalModuleFactory {
       resolved_parser_and_generator,
       resolved_parser_options,
       resolved_generator_options,
+      match_resource_data,
       resource_data,
       resolved_resolve_options,
       loaders,
@@ -366,7 +483,7 @@ impl NormalModuleFactory {
       .read()
       .await
       .module(ModuleArgs {
-        dependency_type: *data.dependency.dependency_type(),
+        dependency_type: data.dependency.dependency_type().clone(),
         indentfiler: normal_module.identifier(),
         lazy_visit_modules: self.context.lazy_visit_modules.clone(),
       })
@@ -492,13 +609,6 @@ impl NormalModuleFactory {
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
   }
-}
-
-pub fn should_skip_resolve(s: &str) -> bool {
-  s.starts_with("data:")
-    || s.starts_with("http://")
-    || s.starts_with("https://")
-    || s.starts_with("//")
 }
 
 #[derive(Debug, Clone)]

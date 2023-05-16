@@ -52,7 +52,26 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         Some(chunk) => {
           let chunks = match self.all_chunks {
             true => chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey),
-            false => chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey),
+            false => {
+              let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
+              if compilation
+                .chunk_graph
+                .get_tree_runtime_requirements(&chunk.ukey)
+                .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+              {
+                for c in compilation
+                  .chunk_graph
+                  .get_chunk_entry_dependent_chunks_iterable(
+                    &chunk.ukey,
+                    &compilation.chunk_by_ukey,
+                    &compilation.chunk_group_by_ukey,
+                  )
+                {
+                  chunks.insert(c);
+                }
+              }
+              chunks
+            }
           };
 
           let mut chunks_map = HashMap::default();
@@ -72,9 +91,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 _ => unreachable!(),
               };
               let hash = Some(chunk.get_render_hash());
-              chunks_map.insert(
-                chunk.expect_id().to_string(),
-                filename_template.render(FilenameRenderOptions {
+              let filename = filename_template.render(
+                FilenameRenderOptions {
                   name: chunk.name_for_filename_template(),
                   extension: Some(format!(".{}", self.content_type)),
                   id: chunk.id.clone(),
@@ -82,8 +100,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   chunkhash: hash.clone(),
                   hash,
                   ..Default::default()
-                }),
+                },
+                None,
               );
+              chunks_map.insert(chunk.expect_id().to_string(), format!("\"{filename}\""));
             }
           }
           match chunks_map.is_empty() {

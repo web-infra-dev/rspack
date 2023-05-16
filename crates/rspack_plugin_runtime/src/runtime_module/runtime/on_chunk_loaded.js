@@ -9,13 +9,15 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	}
 	var notFulfilled = Infinity;
 	for (var i = 0; i < deferred.length; i++) {
-		var [chunkIds, fn, priority] = deferred[i];
+		var chunkIds = deferred[i][0],
+			fn = deferred[i][1],
+			priority = deferred[i][2];
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
 				(priority & (1 === 0) || notFulfilled >= priority) &&
 				Object.keys(__webpack_require__.O).every(function (key) {
-					__webpack_require__.O[key](chunkIds[j]);
+					return __webpack_require__.O[key](chunkIds[j]);
 				})
 			) {
 				chunkIds.splice(j--, 1);

@@ -8,7 +8,7 @@ use rspack_error::Result;
 use crate::runtime_module::HotModuleReplacementRuntimeModule;
 
 #[derive(Debug)]
-pub struct HotModuleReplacementPlugin {}
+pub struct HotModuleReplacementPlugin;
 
 #[async_trait]
 impl Plugin for HotModuleReplacementPlugin {

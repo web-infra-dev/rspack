@@ -19,7 +19,7 @@ module.exports = {
                 compilation.updateAsset(
                   key,
                   new ConcatSource(
-                    new RawSource("let let = let;\n"),
+                    new RawSource("const a {}\n"),
                     value
                   )
                 );

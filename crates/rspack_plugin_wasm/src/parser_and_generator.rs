@@ -8,17 +8,17 @@ use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
 // use rspack_core::StaticExportsDependency;
 use rspack_core::{
-  AstOrSource, Context, Dependency, Filename, FilenameRenderOptions, GenerateContext,
-  GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
-  ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
+  AstOrSource, BuildMetaExportsType, Context, Dependency, Filename, FilenameRenderOptions,
+  GenerateContext, GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::Identifier;
-use rspack_plugin_asset::ModuleIdToFileName;
 use sugar_path::SugarPath;
 use wasmparser::{Import, Parser, Payload};
 
 use crate::dependency::WasmImportDependency;
+use crate::ModuleIdToFileName;
 
 #[derive(Debug)]
 pub struct AsyncWasmParserAndGenerator {
@@ -35,6 +35,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;
     parse_context.build_meta.is_async = true;
+    parse_context.build_meta.exports_type = BuildMetaExportsType::Namespace;
 
     let source = parse_context.source;
 
@@ -62,7 +63,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             for import in s {
               match import {
                 Ok(Import { module, name, ty }) => {
-                  let dep = box WasmImportDependency::new(module.into(), name.into(), ty)
+                  let dep = Box::new(WasmImportDependency::new(module.into(), name.into(), ty))
                     as Box<dyn ModuleDependency>;
 
                   dependencies.push(dep);
@@ -283,28 +284,31 @@ fn render_wasm_name(
   wasm_filename_template: &Filename,
   hash: String,
 ) -> String {
-  wasm_filename_template.render(FilenameRenderOptions {
-    name: normal_module.and_then(|m| {
-      let p = Path::new(&m.resource_resolved_data().resource_path);
-      p.file_stem().map(|s| s.to_string_lossy().to_string())
-    }),
-    path: normal_module.map(|m| {
-      Path::new(&m.resource_resolved_data().resource_path)
-        .relative(ctx)
-        .to_string_lossy()
-        .to_string()
-    }),
-    extension: normal_module.and_then(|m| {
-      Path::new(&m.resource_resolved_data().resource_path)
-        .extension()
-        .and_then(OsStr::to_str)
-        .map(|str| format!("{}{}", ".", str))
-    }),
-    contenthash: Some(hash.clone()),
-    chunkhash: Some(hash.clone()),
-    hash: Some(hash),
-    ..Default::default()
-  })
+  wasm_filename_template.render(
+    FilenameRenderOptions {
+      name: normal_module.and_then(|m| {
+        let p = Path::new(&m.resource_resolved_data().resource_path);
+        p.file_stem().map(|s| s.to_string_lossy().to_string())
+      }),
+      path: normal_module.map(|m| {
+        Path::new(&m.resource_resolved_data().resource_path)
+          .relative(ctx)
+          .to_string_lossy()
+          .to_string()
+      }),
+      extension: normal_module.and_then(|m| {
+        Path::new(&m.resource_resolved_data().resource_path)
+          .extension()
+          .and_then(OsStr::to_str)
+          .map(|str| format!("{}{}", ".", str))
+      }),
+      contenthash: Some(hash.clone()),
+      chunkhash: Some(hash.clone()),
+      hash: Some(hash),
+      ..Default::default()
+    },
+    None,
+  )
 }
 
 fn render_import_stmt(import_var: &str, module_id: &str) -> String {
@@ -315,5 +319,5 @@ fn render_import_stmt(import_var: &str, module_id: &str) -> String {
 fn hash_for_ast_or_source(ast_or_source: &AstOrSource) -> String {
   let mut hasher = DefaultHasher::new();
   ast_or_source.hash(&mut hasher);
-  format!("{:x}", hasher.finish())
+  format!("{:016x}", hasher.finish())
 }

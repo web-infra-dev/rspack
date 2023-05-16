@@ -24,9 +24,7 @@ use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 pub mod relay;
 mod swc_visitor;
 mod tree_shaking;
-use rspack_core::{
-  ast::javascript::Ast, BuildMeta, CompilerOptions, GenerateContext, ResourceData,
-};
+use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::{Error, Result};
 use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
@@ -40,6 +38,7 @@ mod async_module;
 use crate::visitors::async_module::{build_async_module, build_await_dependencies};
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
+use crate::visitors::tree_shaking::MarkInfo;
 
 macro_rules! either {
   ($config: expr, $f: expr) => {
@@ -52,20 +51,20 @@ macro_rules! either {
 }
 
 /// return (ast, top_level_mark, unresolved_mark, globals)
+#[allow(clippy::too_many_arguments)]
 pub fn run_before_pass(
   resource_data: &ResourceData,
   ast: &mut Ast,
   options: &CompilerOptions,
   syntax: Syntax,
   build_info: &mut BuildInfo,
-  build_meta: &mut BuildMeta,
   module_type: &ModuleType,
+  source: &str,
 ) -> Result<()> {
   let es_version = match options.target.es_version {
     rspack_core::TargetEsVersion::Esx(es_version) => Some(es_version),
     _ => None,
   };
-  let hash = build_info.hash;
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
@@ -81,7 +80,7 @@ pub fn run_before_pass(
     }
 
     let mut pass = chain!(
-      strict_mode(build_info, build_meta),
+      strict_mode(build_info),
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
       //      swc_visitor::lint(
       //        &ast,
@@ -119,7 +118,7 @@ pub fn run_before_pass(
           swc_emotion::emotion(
             emotion_options.clone(),
             &resource_data.resource_path,
-            xxh32(&hash.to_be_bytes(), 0),
+            xxh32(source.as_bytes(), 0),
             cm.clone(),
             comments,
           )
@@ -190,6 +189,7 @@ pub fn run_after_pass(
       let top_level_mark = context.top_level_mark;
       let compilation = generate_context.compilation;
       let builtin_tree_shaking = compilation.options.builtins.tree_shaking;
+      // dbg!(&builtin_tree_shaking);
       let minify_options = &compilation.options.builtins.minify_options;
       let comments = None;
       let dependency_visitors =
@@ -198,8 +198,12 @@ pub fn run_after_pass(
         .module_graph
         .module_graph_module_by_identifier(&module.identifier())
         .expect("should have module graph module");
-      let need_tree_shaking = mgm.used;
+      let need_tree_shaking = compilation
+        .include_module_ids
+        .contains(&mgm.module_identifier);
       let build_meta = mgm.build_meta.as_ref().expect("should have build meta");
+      let build_info = mgm.build_info.as_ref().expect("should have build info");
+
       let DependencyCodeGenerationVisitors {
         visitors,
         root_visitors,
@@ -241,28 +245,31 @@ pub fn run_after_pass(
             &compilation.module_graph,
             module.identifier(),
             &compilation.used_symbol_ref,
-            top_level_mark,
             &compilation.side_effects_free_modules,
             &compilation.module_item_map,
-            context.helpers.mark()
+            MarkInfo {
+              top_level_mark,
+              helper_mark: context.helpers.mark()
+            },
+            &compilation.include_module_ids,
+            compilation.options.clone()
           ),
-          builtin_tree_shaking && need_tree_shaking
+          builtin_tree_shaking.is_true() && need_tree_shaking
         ),
         Optional::new(
           Repeat::new(dce(Config::default(), unresolved_mark)),
-          need_tree_shaking && builtin_tree_shaking && minify_options.is_none()
+          need_tree_shaking && builtin_tree_shaking.is_true() && minify_options.is_none()
         ),
         Optional::new(
           dce(Config::default(), unresolved_mark),
-          need_tree_shaking && builtin_tree_shaking && minify_options.is_some()
+          need_tree_shaking && builtin_tree_shaking.is_true() && minify_options.is_some()
         ),
         swc_visitor::build_module(
           &cm,
           unresolved_mark,
           Some(ModuleConfig::CommonJs(CommonjsConfig {
             ignore_dynamic: true,
-            // here will remove `use strict`
-            strict_mode: false,
+            strict_mode: build_info.strict,
             import_interop: // if build_meta.strict_harmony_module {
             //  Some(ImportInterop::Node)
             // } else
@@ -271,7 +278,7 @@ pub fn run_after_pass(
             } else {
               Some(ImportInterop::None)
             },
-            allow_top_level_this: true,
+            allow_top_level_this: !build_info.strict,
             ..Default::default()
           })),
           comments,

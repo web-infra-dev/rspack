@@ -12,7 +12,7 @@ function __webpack_require__(moduleId) {
       }
       // Create a new module (and put it into the cache)
       var module = (__webpack_module_cache__[moduleId] = {
-       exports: {} 
+       exports: {}
       });
       // Execute the module function
       __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
@@ -35,13 +35,15 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	}
 	var notFulfilled = Infinity;
 	for (var i = 0; i < deferred.length; i++) {
-		var [chunkIds, fn, priority] = deferred[i];
+		var chunkIds = deferred[i][0],
+			fn = deferred[i][1],
+			priority = deferred[i][2];
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
 				(priority & (1 === 0) || notFulfilled >= priority) &&
 				Object.keys(__webpack_require__.O).every(function (key) {
-					__webpack_require__.O[key](chunkIds[j]);
+					return __webpack_require__.O[key](chunkIds[j]);
 				})
 			) {
 				chunkIds.splice(j--, 1);
@@ -72,17 +74,19 @@ __webpack_require__.o = function (obj, prop) {
 __webpack_require__.b = document.baseURI || self.location.href;
 var installedChunks = {"runtime": 0,};
 __webpack_require__.O.j = function (chunkId) {
-	installedChunks[chunkId] === 0;
+	return installedChunks[chunkId] === 0;
 };
 // install a JSONP callback for chunk loading
 var webpackJsonpCallback = function (parentChunkLoadingFunction, data) {
-	var [chunkIds, moreModules, runtime] = data;
+	var chunkIds = data[0],
+	moreModules = data[1],
+	runtime = data[2];
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
 	var moduleId,
 		chunkId,
 		i = 0;
-	if (chunkIds.some(id => installedChunks[id] !== 0)) {
+	if (chunkIds.some(function(id) { return installedChunks[id] !== 0 })) {
 		for (moduleId in moreModules) {
 			if (__webpack_require__.o(moreModules, moduleId)) {
 				__webpack_require__.m[moduleId] = moreModules[moduleId];

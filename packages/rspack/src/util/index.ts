@@ -1,3 +1,6 @@
+import { JsAssetInfo, JsStatsError } from "@rspack/binding";
+import { AssetInfo } from "../compilation";
+
 export function mapValues(
 	record: Record<string, string>,
 	fn: (key: string) => string
@@ -44,8 +47,21 @@ export function isPromiseLike(value: unknown): value is Promise<any> {
 	);
 }
 
-export function concatErrorMsgAndStack(err: Error): string {
-	return `${err.message}${err.stack ? `\n${err.stack}` : ""}`;
+export function isJsStatsError(err: any): err is JsStatsError {
+	return !(err instanceof Error) && err.formatted;
+}
+
+export function concatErrorMsgAndStack(err: Error | JsStatsError): string {
+	// deduplicate the error if message is already shown in the stack
+	//@ts-ignore
+	const stackStartPrefix = err.name ? `${err.name}: ` : "Error: ";
+	return isJsStatsError(err)
+		? err.formatted
+		: err.stack
+		? err.stack.startsWith(`${stackStartPrefix}${err.message}`)
+			? `${err.stack}`
+			: `${err.message}\n${err.stack}`
+		: `${err.message}`;
 }
 
 export function indent(str: string, prefix: string) {
@@ -58,4 +74,15 @@ export function asArray<T>(item: readonly T[]): readonly T[];
 export function asArray<T>(item: T): T[];
 export function asArray<T>(item: T | T[]): T[] {
 	return Array.isArray(item) ? item : [item];
+}
+
+export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
+	return {
+		minimized: false,
+		development: false,
+		hotModuleReplacement: false,
+		related: {},
+		contentHash: [],
+		...info
+	};
 }

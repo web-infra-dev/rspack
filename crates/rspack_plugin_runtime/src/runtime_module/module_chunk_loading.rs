@@ -109,8 +109,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if with_on_chunk_load {
       source.add(RawSource::from(format!(
-        r#"{} = function(chunkId) {{
-            installedChunks[chunkId] === 0;
+        r#"{}.j = function(chunkId) {{
+            return installedChunks[chunkId] === 0;
         }}"#,
         RuntimeGlobals::ON_CHUNKS_LOADED
       )));

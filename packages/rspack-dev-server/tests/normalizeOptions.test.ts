@@ -1,14 +1,14 @@
-import type { RspackOptions } from "@rspack/core";
+import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import serializer from "jest-serializer-path";
-
 expect.addSnapshotSerializer(serializer);
 
 // The aims of use a cutstom value rather than
 // default is to avoid stack overflow trigged
 // by `webpack/schemas/WebpackOption.check.js` in debug mode
 const ENTRY = "./placeholder.js";
+const ENTRY1 = "./placeholder1.js";
 
 describe("normalize options snapshot", () => {
 	it("no options", async () => {
@@ -74,6 +74,22 @@ describe("normalize options snapshot", () => {
 		expect(server.options.hot).toBe(true);
 		await server.stop();
 	});
+
+	it("should support multi-compiler", async () => {
+		const compiler = rspack([
+			{
+				entry: ENTRY,
+				stats: "none"
+			},
+			{
+				entry: ENTRY1,
+				stats: "none"
+			}
+		]);
+		const server = new RspackDevServer({}, compiler);
+		await server.start();
+		await server.stop();
+	});
 });
 
 async function match(config: RspackOptions) {
@@ -95,6 +111,7 @@ async function match(config: RspackOptions) {
 	);
 	await server.start();
 	// it will break ci
+	//@ts-ignore
 	delete server.options.port;
 	expect(server.options).toMatchSnapshot();
 	await server.stop();

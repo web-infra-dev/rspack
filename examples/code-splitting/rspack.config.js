@@ -1,4 +1,5 @@
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	mode: "development",
 	entry: {
 		main: {
@@ -12,3 +13,4 @@ module.exports = {
 		}
 	}
 };
+module.exports = config;

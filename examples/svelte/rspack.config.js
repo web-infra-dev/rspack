@@ -4,8 +4,8 @@ const { default: HtmlPlugin } = require("@rspack/plugin-html");
 
 const mode = process.env.NODE_ENV || "development";
 const prod = mode === "production";
-
-module.exports = {
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
 	entry: {
 		main: ["./src/main.ts"]
 	},
@@ -32,8 +32,8 @@ module.exports = {
 							compilerOptions: {
 								dev: !prod
 							},
-							// TODO: checkout https://github.com/sveltejs/svelte-loader/blob/5373e5c9b005241e9974b13746f9f4ad05260d4a/index.js#L75
-							// emitCss: prod,
+
+							emitCss: prod,
 							hotReload: !prod,
 							preprocess: sveltePreprocess({ sourceMap: !prod, postcss: true })
 						}
@@ -56,3 +56,4 @@ module.exports = {
 		historyApiFallback: true
 	}
 };
+module.exports = config;

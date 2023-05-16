@@ -51,7 +51,12 @@ impl AssignLibraryPlugin {
             root
               .iter()
               .map(|v| {
-                Filename::from(v.clone()).render_with_chunk(chunk, ".js", &SourceType::JavaScript)
+                Filename::from(v.clone()).render_with_chunk(
+                  chunk,
+                  ".js",
+                  &SourceType::JavaScript,
+                  None,
+                )
               })
               .collect::<Vec<_>>(),
           );
@@ -85,6 +90,7 @@ impl Plugin for AssignLibraryPlugin {
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
     let mut source = ConcatSource::default();
+    source.add(args.source.clone());
     // TODO: respect entryOptions.library
     let library = &args.compilation.options.output.library;
     let is_copy = if let Some(library) = library {

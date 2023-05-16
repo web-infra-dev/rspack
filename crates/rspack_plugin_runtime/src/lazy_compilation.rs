@@ -79,7 +79,7 @@ impl PartialEq for LazyCompilationProxyModule {
 impl Eq for LazyCompilationProxyModule {}
 
 #[derive(Debug)]
-pub struct LazyCompilationPlugin {}
+pub struct LazyCompilationPlugin;
 
 #[async_trait]
 impl Plugin for LazyCompilationPlugin {
