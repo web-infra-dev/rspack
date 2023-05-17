@@ -10,7 +10,7 @@ fn init_tokio_runtime() -> tokio::runtime::Runtime {
     // 6mb+
     .thread_stack_size(6777216)
     .build()
-    .unwrap()
+    .expect("should initial tokio runtime without error")
 }
 
 pub fn tokio_rt() -> &'static tokio::runtime::Runtime {
