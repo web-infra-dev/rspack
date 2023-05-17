@@ -27,7 +27,9 @@
     "zone.js": "~0.12.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^15.2.8",
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "@angular-devkit/build-angular": "~15.2.8",
     "@angular/cli": "~15.2.8",
     "@angular/compiler-cli": "^15.2.0",
     "@types/jasmine": "~4.3.0",

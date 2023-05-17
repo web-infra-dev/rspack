@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   selector: 'dynamic-content-rendering',
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './dynamic-content-rendering.html',
-  styleUrls: ['./dynamic-content-rendering.css']
+  styleUrls: ['./dynamic-content-rendering.scss']
 })
 export class DynamicContentRenderingComponent {
 

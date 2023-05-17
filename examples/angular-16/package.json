@@ -28,7 +28,10 @@
     "raw-loader": "4.0.2"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^16.0.0",
+    "@angular-devkit/build-angular": "file:../../../angular-cli/dist/@angular-devkit/build-angular",
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "esbuild": "0.17.8",
     "@angular/cli": "~16.0.0",
     "@angular/compiler-cli": "^16.0.0",
     "@types/jasmine": "~4.3.0",
