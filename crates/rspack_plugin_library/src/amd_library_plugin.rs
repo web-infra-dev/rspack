@@ -2,13 +2,13 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, LibraryName,
-  LibraryOptions, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
-  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
-use rspack_error::Result;
 
 use super::utils::{external_arguments, external_dep_array};
+use crate::utils::normalize_name;
 
 #[derive(Debug)]
 pub struct AmdLibraryPlugin {
@@ -18,22 +18,6 @@ pub struct AmdLibraryPlugin {
 impl AmdLibraryPlugin {
   pub fn new(require_as_wrapper: bool) -> Self {
     Self { require_as_wrapper }
-  }
-
-  pub fn normalize_name(&self, o: &Option<LibraryOptions>) -> Result<Option<String>> {
-    if let Some(LibraryOptions {
-      name: Some(LibraryName {
-        root: Some(root), ..
-      }),
-      ..
-    }) = o
-    {
-      // TODO error "AMD library name must be a simple string or unset."
-      if let Some(name) = root.get(0) {
-        return Ok(Some(name.to_string()));
-      }
-    }
-    Ok(None)
   }
 }
 
@@ -73,7 +57,7 @@ impl Plugin for AmdLibraryPlugin {
     if compilation.options.output.iife || !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
       fn_start.push_str(" return ");
     }
-    let name = self.normalize_name(&compilation.options.output.library)?;
+    let name = normalize_name(&compilation.options.output.library)?;
     let mut source = ConcatSource::default();
     if self.require_as_wrapper {
       source.add(RawSource::from(format!(

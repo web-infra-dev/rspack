@@ -389,7 +389,7 @@ impl JsPlugin {
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from("(function() {\n"));
     sources.add(content);
-    sources.add(RawSource::from("\n})();\n"));
+    sources.add(RawSource::from("\n})()\n"));
     sources.boxed()
   }
 }

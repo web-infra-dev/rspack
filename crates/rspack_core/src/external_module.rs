@@ -77,6 +77,10 @@ impl ExternalModule {
     }
   }
 
+  pub fn get_external_type(&self) -> &ExternalType {
+    &self.external_type
+  }
+
   fn get_source_for_commonjs(&self) -> String {
     let request = &self.request.as_array();
     let module_name = request.get(0).expect("should have at least one element");

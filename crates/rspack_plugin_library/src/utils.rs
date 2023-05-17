@@ -1,4 +1,5 @@
-use rspack_core::{to_identifier, Compilation, ExternalModule};
+use rspack_core::{to_identifier, Compilation, ExternalModule, LibraryName, LibraryOptions};
+use rspack_error::Result;
 use rspack_identifier::Identifiable;
 
 pub fn external_dep_array(modules: &[&ExternalModule]) -> String {
@@ -10,7 +11,23 @@ pub fn external_dep_array(modules: &[&ExternalModule]) -> String {
   format!("[{value}]")
 }
 
-pub fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> String {
+pub fn external_system_dep_array(modules: &[&ExternalModule]) -> String {
+  let value = modules
+    .iter()
+    .map(|m| {
+      m.request
+        .0
+        .iter()
+        .map(|r| format!("\"{r}\""))
+        .collect::<Vec<_>>()
+        .join(",")
+    })
+    .collect::<Vec<_>>()
+    .join(", ");
+  format!("[{value}]")
+}
+
+fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> Vec<String> {
   modules
     .iter()
     .map(|m| {
@@ -26,24 +43,34 @@ pub fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation
       )
     })
     .collect::<Vec<_>>()
-    .join(", ")
 }
 
-// pub fn normalize_name(o: &Option<LibraryOptions>) -> Result<Option<String>> {
-//   if let Some(LibraryOptions {
-//     name: Some(LibraryName {
-//       root: Some(root), ..
-//     }),
-//     ..
-//   }) = o
-//   {
-//     // TODO error "AMD library name must be a simple string or unset."
-//     if let Some(name) = root.get(0) {
-//       return Ok(Some(name.to_string()));
-//     }
-//   }
-//   Ok(None)
-// }
+pub fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> String {
+  inner_external_arguments(modules, compilation).join(", ")
+}
+
+pub fn external_module_names(
+  modules: &[&ExternalModule],
+  compilation: &Compilation,
+) -> Vec<String> {
+  inner_external_arguments(modules, compilation)
+}
+
+pub fn normalize_name(o: &Option<LibraryOptions>) -> Result<Option<String>> {
+  if let Some(LibraryOptions {
+    name: Some(LibraryName {
+      root: Some(root), ..
+    }),
+    ..
+  }) = o
+  {
+    // TODO error "AMD library name must be a simple string or unset."
+    if let Some(name) = root.get(0) {
+      return Ok(Some(name.to_string()));
+    }
+  }
+  Ok(None)
+}
 
 pub fn property_access(o: &Vec<String>) -> String {
   let mut str = String::default();
