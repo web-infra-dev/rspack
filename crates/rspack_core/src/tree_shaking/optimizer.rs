@@ -32,8 +32,9 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -1241,7 +1242,6 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           {
             Some(ast) => JsModule::new(ast, *module_identifier).analyze(compilation),
             None => {
-              // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
               return None;
             }
           }

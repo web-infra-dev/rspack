@@ -28,6 +28,7 @@ use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
   BailoutFlag,
 };
+use crate::tree_shaking::debug_care_module_id;
 use crate::{
   CompilerOptions, Dependency, DependencyType, FactoryMeta, ModuleGraph, ModuleIdentifier,
   ModuleSyntax,
@@ -121,9 +122,6 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub inherit_export_maps: IdentifierLinkedMap<HashMap<JsWord, SymbolRef>>,
   current_body_owner_symbol_ext: Option<SymbolExt>,
   pub(crate) maybe_lazy_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
-  /// ```js
-  /// The method
-  /// ```
   pub(crate) immediate_evaluate_reference_map: HashMap<SymbolExt, HashSet<IdOrMemExpr>>,
   pub(crate) reachable_import_and_export: HashMap<JsWord, HashSet<SymbolRef>>,
   state: AnalyzeState,
@@ -423,7 +421,16 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               let id = match ref_id {
                 IdOrMemExpr::Id(ref id) => id,
                 // TODO: inspect namespace access
-                IdOrMemExpr::MemberExpr { object, .. } => object,
+                IdOrMemExpr::MemberExpr { object, property } => match self.import_map.get(object) {
+                  Some(SymbolRef::Star(uri)) => {
+                    return HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                      uri.src(),
+                      self.module_identifier,
+                      IndirectType::Import(property.clone(), None),
+                    ))]);
+                  }
+                  _ => object,
+                },
               };
               // dbg!(&id);
               let ret = self.import_map.get(id);
@@ -446,11 +453,22 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ref_list
           .iter()
           .flat_map(|ref_id| {
+            if debug_care_module_id(self.module_identifier.as_str()) {
+              dbg!(&ref_id);
+            }
             // Only used id imported from other module would generate a side effects.
             let id = match ref_id {
               IdOrMemExpr::Id(ref id) => id,
-              // TODO: inspect namespace access
-              IdOrMemExpr::MemberExpr { object, .. } => object,
+              IdOrMemExpr::MemberExpr { object, property } => match self.import_map.get(object) {
+                Some(SymbolRef::Star(uri)) => {
+                  return HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
+                    uri.src(),
+                    self.module_identifier,
+                    IndirectType::Import(property.clone(), None),
+                  ))]);
+                }
+                _ => object,
+              },
             };
             let ret = self.import_map.get(id);
             match ret {
@@ -706,7 +724,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_assign_expr(&mut self, node: &AssignExpr) {
-    // TODO: assign should have body ext too
     let before_owner_extend_symbol = self.current_body_owner_symbol_ext.clone();
     let target = if before_owner_extend_symbol.is_none() {
       let target = first_ident_of_assign_lhs(node);
@@ -763,7 +780,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
 
-        if mark == self.top_level_mark {
+        if self.potential_top_mark.contains(&mark) {
           let member_expr = IdOrMemExpr::MemberExpr {
             object: id.clone(),
             property: prop.sym.clone(),
@@ -796,7 +813,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
         let id: BetterId = obj.to_id().into();
         let mark = id.ctxt.outer();
-        if mark == self.top_level_mark {
+        if self.potential_top_mark.contains(&mark) {
           let member_expr = IdOrMemExpr::MemberExpr {
             object: id.clone(),
             property: value.clone(),
@@ -1026,7 +1043,8 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ele.init.visit_with(self);
         continue;
       };
-      if let Some(ref init) = ele.init && lhs.ctxt.outer() == self.top_level_mark {
+      if let Some(ref init) = ele.init && self.potential_top_mark.contains(&lhs.ctxt.outer()) {
+
         let mut symbol_ext = SymbolExt::new(lhs, SymbolFlag::VAR_DECL);
         match init {
             box Expr::Fn(_) => symbol_ext.flag.insert(SymbolFlag::FUNCTION_EXPR),
@@ -1053,6 +1071,15 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
       }
+    }
+  }
+
+  fn visit_object_lit(&mut self, n: &ObjectLit) {
+    for prop in n.props.iter() {
+      // if debug_care_module_id(self.module_identifier.as_str()) {
+      //   dbg!(&prop);
+      // }
+      prop.visit_with(self);
     }
   }
 }
