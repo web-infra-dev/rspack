@@ -779,6 +779,7 @@ export interface RawResolveOptions {
   modules?: Array<string>
   byDependency?: Record<string, RawResolveOptions>
   fullySpecified?: boolean
+  exportsFields?: Array<string>
 }
 
 export interface RawRuleSetCondition {
