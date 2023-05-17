@@ -6,6 +6,7 @@ __webpack_require__.el("./single_quote.js").then(__webpack_require__.bind(__webp
 __webpack_require__.el("./other.js").then(__webpack_require__.bind(__webpack_require__, "./other.js")).then(__webpack_require__.ir);
 __webpack_require__.el("./user/1.js").then(__webpack_require__.bind(__webpack_require__, "./user/1.js")).then(__webpack_require__.ir);
 __webpack_require__.el("./user/page/2.js").then(__webpack_require__.bind(__webpack_require__, "./user/page/2.js")).then(__webpack_require__.ir);
+__webpack_require__.el("./user/page/3.js").then(__webpack_require__.bind(__webpack_require__, "./user/page/3.js")).then(__webpack_require__.ir);
 __webpack_require__.el("./bug_only_single_quote.js").then(__webpack_require__.bind(__webpack_require__, "./bug_only_single_quote.js")).then(__webpack_require__.ir);
 },
 
