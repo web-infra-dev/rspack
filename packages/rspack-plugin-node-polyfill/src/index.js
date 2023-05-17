@@ -34,7 +34,6 @@ module.exports = class PolyfillBuiltinsPlugin {
 	apply(compiler) {
 		const provide = {
 			Buffer: [require.resolve("buffer/"), "Buffer"],
-			console: [require.resolve("console-browserify")],
 			process: [require.resolve("process/browser")]
 		};
 
