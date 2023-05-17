@@ -621,6 +621,7 @@ const getResolveDefaults = ({
 		extensions: [],
 		browserField,
 		mainFields: ["main"].filter(Boolean),
+		exportsFields: ["exports"],
 		byDependency: {
 			wasm: esmDeps(),
 			esm: esmDeps(),

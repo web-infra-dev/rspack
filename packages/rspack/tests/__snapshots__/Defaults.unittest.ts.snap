@@ -323,6 +323,9 @@ exports[`snapshots should have the correct base config 1`] = `
       "production",
       "browser",
     ],
+    "exportsFields": [
+      "exports",
+    ],
     "extensions": [],
     "mainFields": [
       "main",

@@ -1435,6 +1435,16 @@ module.exports = {
 				tsConfigPath: {
 					description: "Path to tsconfig.json",
 					type: "string"
+				},
+				exportsFields: {
+					description:
+						"Fields in the description file (usually package.json) which are used to redirect requests inside the module.",
+					type: "array",
+					items: {
+						description:
+							"Field name from the description file (package.json) which are used to find the default entry point.",
+						type: "string"
+					}
 				}
 			}
 		},

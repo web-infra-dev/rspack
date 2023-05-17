@@ -63,13 +63,12 @@ impl ResolverFactory {
         Some(o) => base_options.merge(o.clone()),
         None => base_options,
       };
-      let resolver = Arc::new(Resolver(nodejs_resolver::Resolver::new(
-        merged_options.to_inner_options(
-          self.cache.clone(),
-          options.resolve_to_context,
-          options.dependency_category,
-        ),
-      )));
+      let normalized = merged_options.to_inner_options(
+        self.cache.clone(),
+        options.resolve_to_context,
+        options.dependency_category,
+      );
+      let resolver = Arc::new(Resolver(nodejs_resolver::Resolver::new(normalized)));
       self.resolvers.insert(options, resolver.clone());
       resolver
     }

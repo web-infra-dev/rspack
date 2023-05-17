@@ -45,6 +45,9 @@ pub struct Resolve {
   /// extensions or main files are not resolved for it.
   /// Default is `false`.
   pub fully_specified: Option<bool>,
+  /// A list of exports fields in descriptions files
+  /// Default is `[["exports"]]`.
+  pub exports_field: Option<Vec<Vec<String>>>,
   pub by_dependency: Option<ByDependency>,
 }
 
@@ -86,6 +89,9 @@ impl Resolve {
       .unwrap_or_else(|| vec!["node_modules".to_string()]);
     let fallback = options.fallback.unwrap_or_default();
     let fully_specified = options.fully_specified.unwrap_or_default();
+    let exports_field = options
+      .exports_field
+      .unwrap_or_else(|| vec![vec!["exports".to_string()]]);
     nodejs_resolver::Options {
       fallback,
       modules,
@@ -103,6 +109,7 @@ impl Resolve {
       tsconfig,
       resolve_to_context,
       fully_specified,
+      exports_field,
     }
   }
 
@@ -204,7 +211,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     pre.merge(now)
   });
   let tsconfig = overwrite(base.tsconfig, other.tsconfig, |_, value| value);
-
+  let exports_field = overwrite(base.exports_field, other.exports_field, |_, value| value);
   Resolve {
     fallback,
     modules,
@@ -219,6 +226,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     tsconfig,
     by_dependency,
     fully_specified,
+    exports_field,
   }
 }
 
