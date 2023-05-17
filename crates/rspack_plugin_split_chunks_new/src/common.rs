@@ -5,9 +5,10 @@ use std::{
   sync::Arc,
 };
 
+use derivative::Derivative;
 use futures_util::FutureExt;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>;
 
@@ -55,8 +56,8 @@ pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
   .unwrap_or_else(create_default_module_filter)
 }
 
-#[derive(Debug, Default)]
-pub struct SplitChunkSizes(FxHashMap<SourceType, f64>);
+#[derive(Debug, Default, Clone)]
+pub struct SplitChunkSizes(pub(crate) FxHashMap<SourceType, f64>);
 
 impl SplitChunkSizes {
   pub fn empty() -> Self {
@@ -70,6 +71,64 @@ impl SplitChunkSizes {
         .map(|ty| (*ty, initial_bytes))
         .collect(),
     )
+  }
+
+  /// Port https://github.com/webpack/webpack/blob/c1a5e4fdeef6c64b4f5624830de7abdecba6301a/lib/optimize/SplitChunksPlugin.js#L283-L290
+  pub fn merge(mut self, other: &Self) -> Self {
+    other.iter().for_each(|(ty, size)| {
+      if !self.contains_key(ty) {
+        self.insert(*ty, *size);
+      }
+    });
+
+    self
+  }
+
+  pub fn combine_with(&mut self, other: &Self, combine: &impl Fn(f64, f64) -> f64) {
+    let source_types = self
+      .keys()
+      .chain(other.keys())
+      .copied()
+      .collect::<FxHashSet<_>>();
+
+    source_types.into_iter().for_each(|ty| {
+      let self_size = self.get(&ty).copied();
+      let other_size = other.get(&ty).copied();
+      match (self_size, other_size) {
+        (None, Some(size)) | (Some(size), None) => {
+          self.insert(ty, size);
+        }
+        (Some(self_size), Some(other_size)) => {
+          self.insert(ty, combine(self_size, other_size));
+        }
+        (None, None) => {}
+      }
+    })
+  }
+
+  pub fn bigger_than(&self, other: &Self) -> bool {
+    self.iter().any(|(ty, ty_size)| {
+      if *ty_size == 0.0 {
+        false
+      } else {
+        let other_size = other.get(ty).copied().unwrap_or(-f64::INFINITY);
+        *ty_size > other_size
+      }
+    })
+  }
+  pub fn smaller_than(&self, other: &Self) -> bool {
+    self.iter().any(|(ty, ty_size)| {
+      if *ty_size == 0.0 {
+        false
+      } else {
+        let other_size = other.get(ty).copied().unwrap_or(f64::INFINITY);
+        *ty_size < other_size
+      }
+    })
+  }
+
+  pub fn add_by(&mut self, other: &Self) {
+    self.combine_with(other, &|a, b| a + b)
   }
 }
 
@@ -97,4 +156,14 @@ pub fn create_chunk_name_getter_by_const_name(name: String) -> ChunkNameGetter {
 
 pub fn create_empty_chunk_name_getter() -> ChunkNameGetter {
   Arc::new(move |_module| future::ready(None).boxed())
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct FallbackCacheGroup {
+  #[derivative(Debug = "ignore")]
+  pub chunks_filter: ChunkFilter,
+  pub min_size: SplitChunkSizes,
+  pub max_async_size: SplitChunkSizes,
+  pub max_initial_size: SplitChunkSizes,
 }

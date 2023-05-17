@@ -17,7 +17,6 @@ use crate::common::SplitChunkSizes;
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) struct ModuleGroup {
-  #[derivative(Debug = "ignore")]
   pub modules: IdentifierSet,
   pub cache_group_index: usize,
   pub cache_group_priority: f64,

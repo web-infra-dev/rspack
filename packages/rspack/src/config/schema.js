@@ -981,6 +981,12 @@ module.exports = {
 						"ignore splitChunks.minSize, splitChunks.minChunks, splitChunks.maxAsyncRequests and splitChunks.maxInitialRequests options and always create chunks for this cache group.",
 					type: "boolean"
 				},
+				hidePathInfo: {
+					type: "boolean"
+				},
+				maxSize: {
+					type: "number"
+				},
 				test: {
 					description: "Assign modules to a cache group by module name.",
 					anyOf: [
@@ -1004,6 +1010,26 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				fallbackCacheGroup: {
+					type: "object",
+					properties: {
+						maxSize: {
+							type: "number"
+						},
+						maxInitialSize: {
+							type: "number"
+						},
+						maxAsyncSize: {
+							type: "number"
+						},
+						minSize: {
+							type: "number"
+						}
+					}
+				},
+				hidePathInfo: {
+					type: "boolean"
+				},
 				name: {
 					description: "The name or name for chunks.",
 					anyOf: [
@@ -1077,6 +1103,15 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksSizes"
 						}
 					]
+				},
+				maxSize: {
+					type: "number"
+				},
+				maxInitialSize: {
+					type: "number"
+				},
+				maxAsyncSize: {
+					type: "number"
 				},
 				reuseExistingChunk: {
 					description:

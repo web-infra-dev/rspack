@@ -18,5 +18,6 @@ dashmap      = { workspace = true }
 derivative   = { workspace = true }
 futures-util = { workspace = true }
 rayon        = { workspace = true }
+rspack_util  = { path = "../rspack_util" }
 rustc-hash   = { workspace = true }
 tracing      = { workspace = true }

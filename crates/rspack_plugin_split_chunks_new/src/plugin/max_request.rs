@@ -54,7 +54,6 @@ impl SplitChunksPlugin {
           .unwrap_or_default();
 
         if actually_requests >= allowed_max_request {
-          tracing::trace!("{{{:?}}} removed for actually_requests({actually_requests:?}) >= {allowed_max_request:?} ", chunk.chunk_reasons.join("~"));
           Some(chunk.ukey)
         } else {
           None

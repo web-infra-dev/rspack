@@ -69,6 +69,12 @@ impl SplitChunksPlugin {
             let is_match_the_test: bool = (cache_group.test)(module);
 
             if !is_match_the_test {
+              tracing::trace!(
+                "Module({:?}) is ignored by CacheGroup({:?}). Reason: is_match_the_test({:?})",
+                module.identifier(),
+                cache_group.key,
+                is_match_the_test,
+              );
               return;
             }
 
@@ -81,6 +87,13 @@ impl SplitChunksPlugin {
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
             if selected_chunks.len() < cache_group.min_chunks as usize {
+              tracing::trace!(
+                "Module({:?}) is ignored by CacheGroup({:?}). Reason: selected_chunks.len({:?}) < cache_group.min_chunks({:?})",
+                module.identifier(),
+                cache_group.key,
+                selected_chunks.len(),
+                cache_group.min_chunks,
+              );
               return;
             }
 

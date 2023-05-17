@@ -410,6 +410,9 @@ export interface RawCacheGroupOptions {
   chunks?: string
   minChunks?: number
   minSize?: number
+  maxSize?: number
+  maxAsyncSize?: number
+  maxInitialSize?: number
   name?: string
   reuseExistingChunk?: boolean
   enforce?: boolean
@@ -502,6 +505,14 @@ export interface RawExternalItemValue {
 export interface RawExternalsPresets {
   node: boolean
   web: boolean
+}
+
+export interface RawFallbackCacheGroupOptions {
+  chunks?: string
+  minSize?: number
+  maxSize?: number
+  maxAsyncSize?: number
+  maxInitialSize?: number
 }
 
 export interface RawGlobOptions {
@@ -796,6 +807,7 @@ export interface RawSnapshotStrategy {
 }
 
 export interface RawSplitChunksOptions {
+  fallbackCacheGroup?: RawFallbackCacheGroupOptions
   name?: string
   cacheGroups?: Record<string, RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
@@ -806,6 +818,9 @@ export interface RawSplitChunksOptions {
   minSize?: number
   enforceSizeThreshold?: number
   minRemainingSize?: number
+  maxSize?: number
+  maxAsyncSize?: number
+  maxInitialSize?: number
 }
 
 export interface RawStatsOptions {

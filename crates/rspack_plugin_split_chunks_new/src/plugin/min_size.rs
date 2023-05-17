@@ -17,6 +17,11 @@ impl SplitChunksPlugin {
         let cache_group = &self.cache_groups[module_group.cache_group_index];
         // Fast path
         if cache_group.min_size.is_empty() {
+          tracing::debug!(
+            "ModuleGroup({}) skips `minSize` checking. Reason: min_size of CacheGroup({}) is empty",
+            module_group_key,
+            cache_group.key,
+          );
           return None;
         }
 
@@ -32,6 +37,14 @@ impl SplitChunksPlugin {
               .unwrap_or_default();
 
             if *module_group_ty_size < cache_group_ty_min_size {
+              tracing::trace!(
+                "ModuleGroup({}) have violating SourceType({:?}). Reason: module_group_ty_size({:?}) < CacheGroup({}).min_size({:?})",
+                module_group_key,
+                module_group_ty,
+                module_group_ty_size,
+                cache_group.key,
+                cache_group_ty_min_size,
+              );
               Some(*module_group_ty)
             } else {
               None
@@ -66,7 +79,6 @@ impl SplitChunksPlugin {
           .for_each(|violating_module| module_group.remove_module(violating_module));
 
         if module_group.modules.is_empty() {
-          tracing::trace!("{module_group_key} removed for minSize not fit");
           Some(module_group_key.clone())
         } else {
           None
@@ -75,6 +87,10 @@ impl SplitChunksPlugin {
       .collect::<Vec<_>>();
 
     invalidated_module_groups.into_iter().for_each(|key| {
+      tracing::debug!(
+        "ModuleGroup({}) is removed. Reason: empty modules cause by `minSize` checking",
+        key,
+      );
       module_group_map.remove(&key);
     });
   }
