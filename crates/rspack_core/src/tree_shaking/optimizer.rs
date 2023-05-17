@@ -1164,27 +1164,41 @@ fn get_inherit_export_ref_graph(
   for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
     // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
     let mut inherit_export_maps = {
-      let main_module = analyze_result_map.get_mut(module_id).expect("TODO:");
+      let main_module = if let Some(result) = analyze_result_map.get_mut(module_id) {
+        result
+      } else {
+        tracing::warn!("Can't get analyze result of {}", module_id);
+        continue;
+      };
       std::mem::take(&mut main_module.inherit_export_maps)
     };
     for inherit_export_module_identifier in inherit_export_module_id {
-      let export_module = analyze_result_map
+      let inherit_export_map = if let Some(inherit_export_map) = analyze_result_map
         .get(inherit_export_module_identifier)
-        .unwrap_or_else(|| {
-          panic!("inherit_export_module_identifier not found: {inherit_export_module_identifier:?}")
-        })
-        .export_map
-        .iter()
-        .filter_map(|(k, v)| {
-          // export * should not reexport default export
-          if k == "default" {
-            None
-          } else {
-            Some((k.clone(), v.clone()))
-          }
-        })
-        .collect::<HashMap<JsWord, SymbolRef>>();
-      inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
+        .map(|analyze_result| {
+          analyze_result
+            .export_map
+            .iter()
+            .filter_map(|(k, v)| {
+              // export * should not reexport default export
+              if k == "default" {
+                None
+              } else {
+                Some((k.clone(), v.clone()))
+              }
+            })
+            .collect::<HashMap<JsWord, SymbolRef>>()
+        }) {
+        inherit_export_map
+      } else {
+        tracing::warn!(
+          "Can't get analyze result of {}",
+          inherit_export_module_identifier
+        );
+        HashMap::default()
+      };
+
+      inherit_export_maps.insert(*inherit_export_module_identifier, inherit_export_map);
     }
     analyze_result_map
       .get_mut(module_id)
