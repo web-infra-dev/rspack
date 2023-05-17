@@ -341,7 +341,7 @@ module.exports = {
 					type: "boolean"
 				},
 				css: {
-					description: "Enable css support.",
+					description: "Enable native css support.",
 					type: "boolean"
 				}
 			}
