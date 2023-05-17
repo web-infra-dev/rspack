@@ -115,7 +115,7 @@ impl DependencyScanner<'_> {
   fn try_extract_webpack_chunk_name(&self, first_arg_span_of_import_call: &Span) -> Option<String> {
     use swc_core::common::comments::CommentKind;
     static WEBPACK_CHUNK_NAME_CAPTURE_RE: Lazy<regex::Regex> = Lazy::new(|| {
-      regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]]+/)*?[\w0-9_\-\[\]]+)`)"#)
+      regex::Regex::new(r#"webpackChunkName\s*:\s*("(?P<_1>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)"|'(?P<_2>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)'|`(?P<_3>(\./)?([\w0-9_\-\[\]\(\)]+/)*?[\w0-9_\-\[\]\(\)]+)`)"#)
         .expect("invalid regex")
     });
     self
