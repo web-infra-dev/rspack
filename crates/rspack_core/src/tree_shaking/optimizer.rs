@@ -32,8 +32,9 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -328,6 +329,8 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: HashSet<SymbolRef>,
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
+    dbg!(&used_export_module_identifiers);
+    dbg!(&self.bailout_modules);
     let mut include_module_ids = IdentifierSet::default();
     if side_effects_analyze {
       let symbol_graph = &self.symbol_graph;
@@ -343,6 +346,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           }
         }
       }
+      dbg!(&module_visited_symbol_ref);
       // pruning
       let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
       let mut visited = IdentifierSet::default();
@@ -404,6 +408,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               &symbol_ref,
               &mut reachable_dependency_identifier,
               symbol_graph,
+              &self.bailout_modules,
             );
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
@@ -653,6 +658,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     let is_bailout_module_identifier = self
       .bailout_modules
       .contains_key(&current_symbol_ref.module_identifier());
+    dbg!(&current_symbol_ref);
     match &current_symbol_ref {
       SymbolRef::Direct(symbol) => {
         merge_used_export_type(
@@ -1233,16 +1239,13 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           AssetModule::new(*module_identifier).analyze(compilation)
         };
 
-        // dbg_matches!(
-        //   &uri_key,
-        //   // &analyzer.export_all_list,
-        //   &analyzer.export_map,
-        //   &analyzer.import_map,
-        //   &analyzer.maybe_lazy_reference_map,
-        //   &analyzer.immediate_evaluate_reference_map,
-        //   &analyzer.reachable_import_and_export,
-        //   &analyzer.used_symbol_ref
-        // );
+        dbg_matches!(
+          module_identifier.as_str(),
+          &optimize_analyze_result.export_map,
+          &optimize_analyze_result.import_map,
+          &optimize_analyze_result.reachable_import_of_export,
+          &optimize_analyze_result.used_symbol_refs
+        );
 
         Some((*module_identifier, optimize_analyze_result))
       })
@@ -1255,8 +1258,23 @@ fn update_reachable_dependency(
   symbol_ref: &&SymbolRef,
   reachable_dependency_identifier: &mut IdentifierSet,
   symbol_graph: &SymbolGraph,
+  bailout_modules: &IdentifierMap<BailoutFlag>,
 ) {
   let root_module_identifier = symbol_ref.importer();
+  // FIXME: currently we don't analyze export info of bailout module like commonjs,
+  // it may cause we don't include bailout module in such scenario:
+  // ```js
+  // //index.js
+  // import * as all from './lib.js'
+  // all
+  // // lib.js
+  // exports['a'] = 1000;
+  // ```
+  // This code would lib.js would be unreachable when it is marked as sideEffects false.
+  // Currently we use such a workaround, make bailout module reachable.
+  if bailout_modules.contains_key(&symbol_ref.module_identifier()) {
+    reachable_dependency_identifier.insert(symbol_ref.module_identifier());
+  }
   let node_index = *symbol_graph
     .get_node_index(symbol_ref)
     .unwrap_or_else(|| panic!("Can't get NodeIndex of {symbol_ref:?}"));
