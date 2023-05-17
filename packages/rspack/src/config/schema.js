@@ -339,6 +339,10 @@ module.exports = {
 				newSplitChunks: {
 					description: "Enable new SplitChunksPlugin",
 					type: "boolean"
+				},
+				css: {
+					description: "Enable native css support.",
+					type: "boolean"
 				}
 			}
 		},
