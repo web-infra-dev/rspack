@@ -28,7 +28,6 @@ use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
   BailoutFlag,
 };
-use crate::tree_shaking::debug_care_module_id;
 use crate::{
   CompilerOptions, Dependency, DependencyType, FactoryMeta, ModuleGraph, ModuleIdentifier,
   ModuleSyntax,
@@ -453,9 +452,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         ref_list
           .iter()
           .flat_map(|ref_id| {
-            if debug_care_module_id(self.module_identifier.as_str()) {
-              dbg!(&ref_id);
-            }
             // Only used id imported from other module would generate a side effects.
             let id = match ref_id {
               IdOrMemExpr::Id(ref id) => id,
@@ -1071,15 +1067,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
         node.visit_children_with(self);
       }
-    }
-  }
-
-  fn visit_object_lit(&mut self, n: &ObjectLit) {
-    for prop in n.props.iter() {
-      // if debug_care_module_id(self.module_identifier.as_str()) {
-      //   dbg!(&prop);
-      // }
-      prop.visit_with(self);
     }
   }
 }
