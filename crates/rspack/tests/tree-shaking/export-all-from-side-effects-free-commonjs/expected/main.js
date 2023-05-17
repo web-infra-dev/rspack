@@ -1,7 +1,14 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
-all;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
+_lib;
+},
+"./lib.js": function (module, exports, __webpack_require__) {
+exports['a'] = 100000;
 },
 
 },function(__webpack_require__) {
