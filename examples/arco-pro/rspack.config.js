@@ -13,7 +13,7 @@ const config = {
 		historyApiFallback: true
 	},
 	mode: prod ? "production" : "development",
-	devtool: prod ? false : "source-map",
+	devtool: false,
 	builtins: {
 		progress: {},
 		treeShaking: true,
@@ -43,7 +43,16 @@ const config = {
 			}
 		]
 	},
-	resolve: { alias: { "@": path.resolve(__dirname, "src") } },
+	resolve: {
+		alias: {
+			"@": path.resolve(__dirname, "src"),
+			// The default exported mock.js is a minified file with super deep binary
+			// expression, which causes stack overflow for swc parser in debug mode.
+			// Alias to the unminified version mitigates this problem.
+			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
+			"mockjs": require.resolve("mockjs/src/mock.js"),
+		}
+	},
 	output: {
 		publicPath: "/",
 		filename: "[name].[contenthash].js"
