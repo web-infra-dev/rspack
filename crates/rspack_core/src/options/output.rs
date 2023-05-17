@@ -8,7 +8,9 @@ use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use sugar_path::SugarPath;
 
-use crate::{AssetInfo, Chunk, ChunkGroupByUkey, ChunkKind, Compilation, SourceType};
+use crate::{
+  AssetInfo, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Module, RuntimeSpec,
+};
 
 #[derive(Debug)]
 pub struct OutputOptions {
@@ -81,30 +83,112 @@ impl std::fmt::Display for CrossOriginLoading {
 }
 
 pub const FILE_PLACEHOLDER: &str = "[file]";
+pub const BASE_PLACEHOLDER: &str = "[base]";
 pub const NAME_PLACEHOLDER: &str = "[name]";
 pub const PATH_PLACEHOLDER: &str = "[path]";
 pub const EXT_PLACEHOLDER: &str = "[ext]";
+pub const QUERY_PLACEHOLDER: &str = "[query]";
+pub const FRAGMENT_PLACEHOLDER: &str = "[fragment]";
 pub const ID_PLACEHOLDER: &str = "[id]";
+pub const RUNTIME_PLACEHOLDER: &str = "[runtime]";
+pub const URL_PLACEHOLDER: &str = "[url]";
 pub static HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[hash(:(\d*))?]").expect("Invalid regex"));
 pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
 pub static CONTENT_HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
-pub const QUERY_PLACEHOLDER: &str = "[query]";
 
-#[derive(Debug, Default)]
-pub struct FilenameRenderOptions {
-  pub file: Option<String>,
-  pub name: Option<String>,
-  pub path: Option<String>,
-  pub extension: Option<String>,
-  pub id: Option<String>,
-  pub contenthash: Option<String>,
-  pub chunkhash: Option<String>,
-  pub hash: Option<String>,
-  pub query: Option<String>,
+#[derive(Debug, Default, Clone, Copy)]
+pub struct PathData<'a> {
+  pub filename: Option<&'a Path>,
+  pub query: Option<&'a str>,
+  pub fragment: Option<&'a str>,
+  pub chunk: Option<&'a Chunk>,
+  pub module: Option<&'a dyn Module>,
+  pub hash: Option<&'a str>,
+  pub content_hash: Option<&'a str>,
+  pub chunk_graph: Option<&'a ChunkGraph>,
+  pub runtime: Option<&'a str>,
+  pub url: Option<&'a str>,
 }
+
+impl<'a> PathData<'a> {
+  pub fn filename(mut self, v: &'a Path) -> Self {
+    self.filename = Some(v);
+    self
+  }
+
+  pub fn query(mut self, v: &'a str) -> Self {
+    self.query = Some(v);
+    self
+  }
+
+  pub fn query_optional(mut self, v: Option<&'a str>) -> Self {
+    self.query = v;
+    self
+  }
+
+  pub fn fragment(mut self, v: &'a str) -> Self {
+    self.fragment = Some(v);
+    self
+  }
+
+  pub fn fragment_optional(mut self, v: Option<&'a str>) -> Self {
+    self.fragment = v;
+    self
+  }
+
+  pub fn chunk(mut self, v: &'a Chunk) -> Self {
+    self.chunk = Some(v);
+    self
+  }
+
+  pub fn module(mut self, v: &'a dyn Module) -> Self {
+    self.module = Some(v);
+    self
+  }
+
+  pub fn hash(mut self, v: &'a str) -> Self {
+    self.hash = Some(v);
+    self
+  }
+
+  pub fn hash_optional(mut self, v: Option<&'a str>) -> Self {
+    self.hash = v;
+    self
+  }
+
+  pub fn content_hash(mut self, v: &'a str) -> Self {
+    self.content_hash = Some(v);
+    self
+  }
+
+  pub fn content_hash_optional(mut self, v: Option<&'a str>) -> Self {
+    self.content_hash = v;
+    self
+  }
+
+  pub fn chunk_graph(mut self, v: &'a ChunkGraph) -> Self {
+    self.chunk_graph = Some(v);
+    self
+  }
+
+  pub fn runtime(mut self, v: &'a RuntimeSpec) -> Self {
+    self.runtime = if v.len() == 1 {
+      v.iter().next().map(|v| v.as_ref())
+    } else {
+      None
+    };
+    self
+  }
+
+  pub fn url(mut self, v: &'a str) -> Self {
+    self.url = Some(v);
+    self
+  }
+}
+
 #[derive(Debug, Clone)]
 pub struct Filename {
   template: String,
@@ -127,130 +211,87 @@ impl From<String> for Filename {
 }
 
 impl Filename {
-  pub fn render_with_chunk(
-    &self,
-    chunk: &Chunk,
-    extension: &str,
-    source_type: &SourceType,
-    asset_info: Option<&mut AssetInfo>,
-  ) -> String {
-    let hash = Some(chunk.get_render_hash());
-    self.render(
-      FilenameRenderOptions {
-        // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
-        name: chunk.name_for_filename_template(),
-        extension: Some(extension.to_owned()),
-        id: chunk.id.clone(),
-        contenthash: chunk.content_hash.get(source_type).cloned(),
-        chunkhash: hash.clone(),
-        hash,
-        ..Default::default()
-      },
-      asset_info,
-    )
-  }
-
-  pub fn render_with_chunk_and_file(
-    &self,
-    chunk: &Chunk,
-    file: &str,
-    extension: &str,
-    source_type: &SourceType,
-    asset_info: Option<&mut AssetInfo>,
-  ) -> String {
-    let hash = Some(chunk.get_render_hash());
-    self.render(
-      FilenameRenderOptions {
-        // See https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/TemplatedPathPlugin.js#L214
-        file: Some(file.to_owned()),
-        name: chunk.name_for_filename_template(),
-        extension: Some(extension.to_owned()),
-        id: chunk.id.clone(),
-        contenthash: chunk.content_hash.get(source_type).cloned(),
-        chunkhash: hash.clone(),
-        hash,
-        ..Default::default()
-      },
-      asset_info,
-    )
-  }
-
-  pub fn render(
-    &self,
-    options: FilenameRenderOptions,
-    mut asset_info: Option<&mut AssetInfo>,
-  ) -> String {
-    let mut filename = self.template.clone();
-    if let Some(file) = options.file {
-      filename = filename.replace(FILE_PLACEHOLDER, &file);
+  pub fn render(&self, options: PathData, mut asset_info: Option<&mut AssetInfo>) -> String {
+    let mut template = self.template.clone();
+    if let Some(filename) = options.filename {
+      template = template.replace(FILE_PLACEHOLDER, &filename.to_string_lossy());
+      template = template.replace(
+        EXT_PLACEHOLDER,
+        &filename
+          .extension()
+          .map(|p| format!(".{}", p.to_string_lossy()))
+          .unwrap_or_default(),
+      );
+      if let Some(base) = filename.file_name().map(|p| p.to_string_lossy()) {
+        template = template.replace(BASE_PLACEHOLDER, &base);
+      }
+      if let Some(name) = filename.file_stem().map(|p| p.to_string_lossy()) {
+        template = template.replace(NAME_PLACEHOLDER, &name);
+      }
+      template = template.replace(
+        PATH_PLACEHOLDER,
+        &filename
+          .parent()
+          .map(|p| p.to_string_lossy() + "/")
+          .unwrap_or_default(),
+      );
     }
-    if let Some(name) = options.name {
-      filename = filename.replace(NAME_PLACEHOLDER, &name);
-    }
-
-    if let Some(path) = options.path {
-      filename = filename.replace(PATH_PLACEHOLDER, &path);
-    }
-
-    if let Some(ext) = options.extension {
-      filename = filename.replace(EXT_PLACEHOLDER, &ext);
-    }
-
-    if let Some(id) = options.id {
-      filename = filename.replace(ID_PLACEHOLDER, &id);
-    }
-
-    if let Some(contenthash) = options.contenthash {
-      filename = CONTENT_HASH_PLACEHOLDER
-        .replace_all(&filename, |caps: &Captures| {
-          let hash_len = contenthash.len();
-          let hash_len: usize = caps
-            .get(2)
-            .and_then(|m| m.as_str().parse().ok())
-            .unwrap_or(hash_len)
-            .min(hash_len);
-          let contenthash = &contenthash[..hash_len.min(contenthash.len())];
+    template = template.replace(QUERY_PLACEHOLDER, options.query.unwrap_or_default());
+    template = template.replace(FRAGMENT_PLACEHOLDER, options.fragment.unwrap_or_default());
+    if let Some(content_hash) = options.content_hash {
+      template = CONTENT_HASH_PLACEHOLDER
+        .replace_all(&template, |caps: &Captures| {
+          let content_hash = &content_hash[..hash_len(content_hash, caps)];
           if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_content_hash(contenthash.to_owned());
+            asset_info.set_immutable(true);
+            asset_info.set_content_hash(content_hash.to_owned());
           }
-          contenthash
+          content_hash
         })
         .into_owned();
     }
-
-    if let Some(chunkhash) = options.chunkhash {
-      filename = CHUNK_HASH_PLACEHOLDER
-        .replace_all(&filename, |caps: &Captures| {
-          let hash_len = chunkhash.len();
-          let hash_len: usize = caps
-            .get(2)
-            .and_then(|m| m.as_str().parse().ok())
-            .unwrap_or(hash_len)
-            .min(hash_len);
-          &chunkhash[..hash_len.min(chunkhash.len())]
-        })
-        .into_owned();
-    }
-
     if let Some(hash) = options.hash {
-      filename = HASH_PLACEHOLDER
-        .replace_all(&filename, |caps: &Captures| {
-          let hash_len = hash.len();
-          let hash_len: usize = caps
-            .get(2)
-            .and_then(|m| m.as_str().parse().ok())
-            .unwrap_or(hash_len)
-            .min(hash_len);
-          &hash[..hash_len]
+      template = HASH_PLACEHOLDER
+        .replace_all(&template, |caps: &Captures| {
+          let hash = &hash[..hash_len(hash, caps)];
+          if let Some(asset_info) = asset_info.as_mut() {
+            asset_info.set_immutable(true);
+            asset_info.set_content_hash(hash.to_owned());
+          }
+          hash
         })
         .into_owned();
     }
-
-    if let Some(query) = options.query {
-      filename = filename.replace(QUERY_PLACEHOLDER, &query);
+    if let Some(chunk) = options.chunk {
+      if let Some(id) = &chunk.id {
+        template = template.replace(ID_PLACEHOLDER, id);
+      }
+      if let Some(name) = chunk.name_for_filename_template() {
+        template = template.replace(NAME_PLACEHOLDER, name);
+      }
     }
-    filename
+    if let Some(module) = options.module {
+      if let Some(chunk_graph) = options.chunk_graph {
+        if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
+          template = template.replace(ID_PLACEHOLDER, id);
+        }
+      }
+    }
+    template = template.replace(RUNTIME_PLACEHOLDER, options.runtime.unwrap_or("_"));
+    if let Some(url) = options.url {
+      template = template.replace(URL_PLACEHOLDER, url);
+    }
+    template
   }
+}
+
+fn hash_len(hash: &str, caps: &Captures) -> usize {
+  let hash_len = hash.len();
+  caps
+    .get(2)
+    .and_then(|m| m.as_str().parse().ok())
+    .unwrap_or(hash_len)
+    .min(hash_len)
 }
 
 #[derive(Debug)]

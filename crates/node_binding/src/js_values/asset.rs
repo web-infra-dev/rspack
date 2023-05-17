@@ -15,7 +15,7 @@ impl From<JsAssetInfoRelated> for rspack_core::AssetInfoRelated {
 #[napi(object)]
 pub struct JsAssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
-  // pub immutable: bool,
+  pub immutable: bool,
   /// whether the asset is minimized
   pub minimized: bool,
   /// the value(s) of the full hash used for this asset
@@ -43,6 +43,7 @@ pub struct JsAssetInfo {
 impl From<JsAssetInfo> for rspack_core::AssetInfo {
   fn from(i: JsAssetInfo) -> Self {
     Self {
+      immutable: i.immutable,
       minimized: i.minimized,
       development: i.development,
       hot_module_replacement: i.hot_module_replacement,
@@ -70,6 +71,7 @@ impl From<rspack_core::AssetInfoRelated> for JsAssetInfoRelated {
 impl From<rspack_core::AssetInfo> for JsAssetInfo {
   fn from(info: rspack_core::AssetInfo) -> Self {
     Self {
+      immutable: info.immutable,
       minimized: info.minimized,
       development: info.development,
       hot_module_replacement: info.hot_module_replacement,

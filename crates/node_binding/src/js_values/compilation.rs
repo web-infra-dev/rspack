@@ -10,8 +10,9 @@ use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
 use super::module::ToJsModule;
+use super::PathWithInfo;
 use crate::{
-  js_values::{chunk::JsChunk, module::JsModule},
+  js_values::{chunk::JsChunk, module::JsModule, PathData},
   CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
 };
 
@@ -311,6 +312,44 @@ impl JsCompilation {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
       Ok(compilation.inner.get_stats())
     })?))
+  }
+
+  #[napi]
+  pub fn get_asset_path(&self, filename: String, data: PathData) -> String {
+    self.inner.get_asset_path(
+      &rspack_core::Filename::from(filename),
+      data.as_core_path_data(),
+    )
+  }
+
+  #[napi]
+  pub fn get_asset_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
+    self
+      .inner
+      .get_asset_path_with_info(
+        &rspack_core::Filename::from(filename),
+        data.as_core_path_data(),
+      )
+      .into()
+  }
+
+  #[napi]
+  pub fn get_path(&self, filename: String, data: PathData) -> String {
+    self.inner.get_path(
+      &rspack_core::Filename::from(filename),
+      data.as_core_path_data(),
+    )
+  }
+
+  #[napi]
+  pub fn get_path_with_info(&self, filename: String, data: PathData) -> PathWithInfo {
+    self
+      .inner
+      .get_path_with_info(
+        &rspack_core::Filename::from(filename),
+        data.as_core_path_data(),
+      )
+      .into()
   }
 
   #[napi]

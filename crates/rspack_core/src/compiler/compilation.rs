@@ -41,10 +41,10 @@ use crate::{
   ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
   CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
   DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory, RuntimeGlobals,
-  RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType,
+  NormalModuleAstOrSource, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -1416,6 +1416,40 @@ impl Compilation {
       .runtime_modules
       .insert(runtime_module_identifier, module);
   }
+
+  pub fn get_path<'b, 'a: 'b>(&'a self, filename: &Filename, mut data: PathData<'b>) -> String {
+    if data.hash.is_none() {
+      data.hash = Some(&self.hash);
+    }
+    filename.render(data, None)
+  }
+
+  pub fn get_path_with_info<'b, 'a: 'b>(
+    &'a self,
+    filename: &Filename,
+    mut data: PathData<'b>,
+  ) -> (String, AssetInfo) {
+    let mut info = AssetInfo::default();
+    if data.hash.is_none() {
+      data.hash = Some(&self.hash);
+    }
+    let path = filename.render(data, Some(&mut info));
+    (path, info)
+  }
+
+  pub fn get_asset_path(&self, filename: &Filename, data: PathData) -> String {
+    filename.render(data, None)
+  }
+
+  pub fn get_asset_path_with_info(
+    &self,
+    filename: &Filename,
+    data: PathData,
+  ) -> (String, AssetInfo) {
+    let mut info = AssetInfo::default();
+    let path = filename.render(data, Some(&mut info));
+    (path, info)
+  }
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
@@ -1465,7 +1499,7 @@ impl CompilationAsset {
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
-  // pub immutable: bool,
+  pub immutable: bool,
   /// whether the asset is minimized
   pub minimized: bool,
   /// the value(s) of the full hash used for this asset
@@ -1518,6 +1552,10 @@ impl AssetInfo {
 
   pub fn set_content_hash(&mut self, v: String) {
     self.content_hash.insert(v);
+  }
+
+  pub fn set_immutable(&mut self, v: bool) {
+    self.immutable = v;
   }
 }
 

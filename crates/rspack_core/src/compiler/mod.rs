@@ -244,6 +244,10 @@ where
     asset: &CompilationAsset,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
+      let filename = filename
+        .split_once('?')
+        .map(|(filename, _query)| filename)
+        .unwrap_or(filename);
       let file_path = Path::new(&output_path).join(filename);
       self
         .output_filesystem

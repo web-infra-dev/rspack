@@ -1,6 +1,5 @@
 use std::{
   collections::hash_map::DefaultHasher,
-  ffi::OsStr,
   hash::{Hash, Hasher},
   path::Path,
 };
@@ -9,12 +8,11 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{RawSource, SourceExt},
-  AssetInfo, AssetParserDataUrlOption, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
+  AssetParserDataUrlOption, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
   BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationDataUrl, FilenameRenderOptions, GenerateContext, GenerationResult, Module,
-  ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
-  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, RuntimeGlobals,
-  SourceType,
+  CodeGenerationDataUrl, GenerateContext, GenerationResult, Module, ParseContext,
+  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
+  RenderManifestArgs, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
 use sugar_path::SugarPath;
@@ -249,34 +247,27 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           .asset_module_filename,
       );
     let contenthash = hash_value_to_string(self.hash_for_ast_or_source(ast_or_source));
+    let normal_module = module
+      .as_normal_module()
+      .expect("module should be a NormalModule in AssetParserAndGenerator");
 
-    let mut asset_info = AssetInfo::default();
-    let asset_filename = asset_filename_template.render(
-      FilenameRenderOptions {
-        name: module.as_normal_module().and_then(|m| {
-          let p = Path::new(&m.resource_resolved_data().resource_path);
-          p.file_stem().map(|s| s.to_string_lossy().to_string())
-        }),
-        path: module.as_normal_module().map(|m| {
-          Path::new(&m.resource_resolved_data().resource_path)
-            .relative(&generate_context.compilation.options.context)
-            .to_string_lossy()
-            .to_string()
-        }),
-        extension: module.as_normal_module().and_then(|m| {
-          Path::new(&m.resource_resolved_data().resource_path)
-            .extension()
-            .and_then(OsStr::to_str)
-            .map(|str| format!("{}{}", ".", str))
-        }),
-        id: None,
-        contenthash: Some(contenthash.clone()),
-        chunkhash: None,
-        hash: Some(contenthash),
-        query: Some("".to_string()),
-        ..Default::default()
-      },
-      Some(&mut asset_info),
+    let resource_data = normal_module
+      .match_resource()
+      .unwrap_or_else(|| normal_module.resource_resolved_data());
+    let (asset_filename, asset_info) = generate_context.compilation.get_asset_path_with_info(
+      asset_filename_template,
+      PathData::default()
+        .module(module)
+        .chunk_graph(&generate_context.compilation.chunk_graph)
+        .content_hash(&contenthash)
+        .hash(&contenthash)
+        .filename(
+          &resource_data
+            .resource_path
+            .relative(&generate_context.compilation.options.context),
+        )
+        .query_optional(resource_data.resource_query.as_deref())
+        .fragment_optional(resource_data.resource_query.as_deref()),
     );
 
     let result = match generate_context.requested_source_type {
@@ -451,14 +442,7 @@ impl Plugin for AssetPlugin {
               .get::<CodeGenerationDataAssetInfo>()
               .expect("should have asset_info")
               .inner();
-            RenderManifestEntry::new(
-              source,
-              asset_filename.to_owned(),
-              PathData {
-                chunk_ukey: args.chunk_ukey,
-              },
-              asset_info.to_owned(),
-            )
+            RenderManifestEntry::new(source, asset_filename.to_owned(), asset_info.to_owned())
           });
 
         Ok(result)

@@ -1,6 +1,5 @@
 #![allow(clippy::comparison_chain)]
 
-use std::path::Path;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
@@ -137,15 +136,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     let locals = if css_modules {
-      let path = Path::new(&resource_data.resource_path).relative(&compiler_options.context);
+      let filename = &resource_data
+        .resource_path
+        .relative(&compiler_options.context);
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig {
-          name: path.file_stem().map(|n| n.to_string_lossy().to_string()),
-          path: path.parent().map(|p| p.to_string_lossy().to_string() + "/"),
-          ext: path
-            .extension()
-            .map(|e| format!("{}{}", ".", e.to_string_lossy())),
+          filename,
           local_name_ident: &self.config.modules.local_ident_name,
         },
       );

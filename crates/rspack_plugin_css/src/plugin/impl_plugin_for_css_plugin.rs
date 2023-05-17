@@ -4,7 +4,6 @@ use std::hash::{Hash, Hasher};
 
 use rayon::prelude::*;
 use rspack_core::rspack_sources::ReplaceSource;
-use rspack_core::AssetInfo;
 use rspack_core::{
   get_css_chunk_filename_template,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt},
@@ -160,16 +159,19 @@ impl Plugin for CssPlugin {
       .collect::<Vec<ConcatSource>>();
 
     let source = ConcatSource::new(sources);
-    let mut asset_info = AssetInfo::default();
 
     let filename_template = get_css_chunk_filename_template(
       chunk,
       &args.compilation.options.output,
       &args.compilation.chunk_group_by_ukey,
     );
-
-    let output_path =
-      filename_template.render_with_chunk(chunk, ".css", &SourceType::Css, Some(&mut asset_info));
+    let (output_path, asset_info) = compilation.get_path_with_info(
+      filename_template,
+      PathData::default()
+        .chunk(chunk)
+        .content_hash_optional(chunk.content_hash.get(&SourceType::Css).map(|i| i.as_str()))
+        .runtime(&chunk.runtime),
+    );
 
     let content = source.source();
     let auto_public_path_matches: Vec<_> = AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX
@@ -191,14 +193,9 @@ impl Plugin for CssPlugin {
     } else {
       source.boxed()
     };
-
-    let path_data = PathData {
-      chunk_ukey: args.chunk_ukey,
-    };
     Ok(vec![RenderManifestEntry::new(
       source.boxed(),
       output_path,
-      path_data,
       asset_info,
     )])
   }

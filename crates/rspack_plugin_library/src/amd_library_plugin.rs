@@ -2,9 +2,9 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, ExternalModule, Filename, JsChunkHashArgs, PathData,
+  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext,
+  PluginJsChunkHashHookOutput, PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
 
 use super::utils::{external_arguments, external_dep_array};
@@ -64,8 +64,15 @@ impl Plugin for AmdLibraryPlugin {
         "require({external_deps_array}, {fn_start}"
       )));
     } else if let Some(name) = name {
-      let normalize_name =
-        Filename::from(name).render_with_chunk(chunk, ".js", &SourceType::JavaScript, None);
+      let normalize_name = compilation.get_path(
+        &Filename::from(name),
+        PathData::default().chunk(chunk).content_hash_optional(
+          chunk
+            .content_hash
+            .get(&SourceType::JavaScript)
+            .map(|i| i.as_str()),
+        ),
+      );
       source.add(RawSource::from(format!(
         "define('{normalize_name}', {external_deps_array}, {fn_start}"
       )));

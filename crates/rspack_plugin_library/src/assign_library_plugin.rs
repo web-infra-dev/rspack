@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, Plugin, PluginContext,
+  Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin, PluginContext,
   PluginJsChunkHashHookOutput, PluginRenderHookOutput, PluginRenderStartupHookOutput, RenderArgs,
   RenderStartupArgs, SourceType,
 };
@@ -51,11 +51,14 @@ impl AssignLibraryPlugin {
             root
               .iter()
               .map(|v| {
-                Filename::from(v.clone()).render_with_chunk(
-                  chunk,
-                  ".js",
-                  &SourceType::JavaScript,
-                  None,
+                compilation.get_path(
+                  &Filename::from(v.to_owned()),
+                  PathData::default().chunk(chunk).content_hash_optional(
+                    chunk
+                      .content_hash
+                      .get(&SourceType::JavaScript)
+                      .map(|i| i.as_str()),
+                  ),
                 )
               })
               .collect::<Vec<_>>(),

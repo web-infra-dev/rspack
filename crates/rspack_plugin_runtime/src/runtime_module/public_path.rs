@@ -1,7 +1,8 @@
 use rspack_core::{
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, OutputOptions, PublicPath, RuntimeGlobals, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, OutputOptions, PathData, PublicPath, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
 use rspack_identifier::Identifier;
 
@@ -48,7 +49,15 @@ impl RuntimeModule for PublicPathRuntimeModule {
           &compilation.options.output,
           &compilation.chunk_group_by_ukey,
         );
-        let filename = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript, None);
+        let filename = compilation.get_path(
+          filename,
+          PathData::default().chunk(chunk).content_hash_optional(
+            chunk
+              .content_hash
+              .get(&SourceType::JavaScript)
+              .map(|i| i.as_str()),
+          ),
+        );
         RawSource::from(auto_public_path_template(
           &filename,
           &compilation.options.output,

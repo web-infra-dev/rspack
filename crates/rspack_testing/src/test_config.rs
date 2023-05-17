@@ -50,8 +50,16 @@ fn enable_runtime_by_default() -> Option<String> {
   Some("runtime".to_string())
 }
 
-fn default_chunk_filename() -> String {
-  "[name][ext]".to_string()
+fn default_js_filename() -> String {
+  "[name].js".to_string()
+}
+
+fn default_css_filename() -> String {
+  "[name].css".to_string()
+}
+
+fn default_map_filename() -> String {
+  "[file].map".to_string()
 }
 
 fn default_optimization_module_ids() -> String {
@@ -238,15 +246,15 @@ pub struct Output {
   pub clean: bool,
   #[serde(default = "default_public_path")]
   pub public_path: String,
-  #[serde(default = "default_chunk_filename")]
+  #[serde(default = "default_js_filename")]
   pub filename: String,
-  #[serde(default = "default_chunk_filename")]
+  #[serde(default = "default_js_filename")]
   pub chunk_filename: String,
-  #[serde(default = "default_chunk_filename")]
+  #[serde(default = "default_css_filename")]
   pub css_filename: String,
-  #[serde(default = "default_chunk_filename")]
+  #[serde(default = "default_css_filename")]
   pub css_chunk_filename: String,
-  #[serde(default = "default_chunk_filename")]
+  #[serde(default = "default_map_filename")]
   pub source_map_filename: String,
   #[serde(default)]
   pub library: Option<LibraryOptions>,
