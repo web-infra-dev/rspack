@@ -343,6 +343,7 @@ export interface PathData {
   contentHash?: string
   runtime?: string
   url?: string
+  id?: string
 }
 
 export interface PathWithInfo {
@@ -681,6 +682,8 @@ export interface RawOutputOptions {
   crossOriginLoading: RawCrossOriginLoading
   cssFilename: string
   cssChunkFilename: string
+  hotUpdateMainFilename: string
+  hotUpdateChunkFilename: string
   uniqueName: string
   chunkLoadingGlobal: string
   library?: RawLibraryOptions

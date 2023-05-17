@@ -213,6 +213,8 @@ exports[`snapshots should have the correct base config 1`] = `
     ],
     "filename": "[name].js",
     "globalObject": "self",
+    "hotUpdateChunkFilename": "[id].[fullhash].hot-update.js",
+    "hotUpdateMainFilename": "[runtime].[fullhash].hot-update.json",
     "iife": true,
     "importFunctionName": "import",
     "library": undefined,

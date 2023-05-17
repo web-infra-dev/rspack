@@ -354,6 +354,12 @@ const applyOutputDefaults = (
 		}
 		return "[id].css";
 	});
+	D(
+		output,
+		"hotUpdateChunkFilename",
+		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
+	);
+	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 	D(output, "assetModuleFilename", "[hash][ext][query]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));

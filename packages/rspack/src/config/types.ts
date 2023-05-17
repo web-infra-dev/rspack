@@ -139,6 +139,8 @@ export interface Output {
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
+	hotUpdateMainFilename?: HotUpdateMainFilename;
+	hotUpdateChunkFilename?: HotUpdateChunkFilename;
 	uniqueName?: UniqueName;
 	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
@@ -171,6 +173,8 @@ export type ChunkFilename = FilenameTemplate;
 export type CrossOriginLoading = false | "anonymous" | "use-credentials";
 export type CssFilename = FilenameTemplate;
 export type CssChunkFilename = FilenameTemplate;
+export type HotUpdateChunkFilename = FilenameTemplate;
+export type HotUpdateMainFilename = FilenameTemplate;
 export type FilenameTemplate = string;
 export type UniqueName = string;
 export type ChunkLoadingGlobal = string;
@@ -244,6 +248,8 @@ export interface OutputNormalized {
 	crossOriginLoading?: CrossOriginLoading;
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
+	hotUpdateMainFilename?: HotUpdateMainFilename;
+	hotUpdateChunkFilename?: HotUpdateChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
 	chunkLoadingGlobal?: ChunkLoadingGlobal;
