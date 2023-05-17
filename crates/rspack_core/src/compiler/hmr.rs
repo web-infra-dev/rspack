@@ -13,28 +13,21 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
-  RenderManifestArgs, RuntimeSpec, SetupMakeParam,
+  PathData, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
 };
-
-const HOT_UPDATE_MAIN_FILENAME: &str = "hot-update.json";
-
-fn get_hot_update_main_filename(chunk_name: &str) -> String {
-  format!("{chunk_name}.{HOT_UPDATE_MAIN_FILENAME}")
-}
 
 #[derive(Default)]
 struct HotUpdateContent {
+  runtime: RuntimeSpec,
   updated_chunk_ids: HashSet<String>,
   removed_chunk_ids: HashSet<String>,
   _removed_modules: IdentifierSet,
-  // TODO: should [chunk-name].[hash].hot-update.json
-  filename: String,
 }
 
 impl HotUpdateContent {
-  fn new(chunk_name: &str) -> Self {
+  fn new(runtime: RuntimeSpec) -> Self {
     Self {
-      filename: get_hot_update_main_filename(chunk_name),
+      runtime,
       ..Default::default()
     }
   }
@@ -52,6 +45,7 @@ where
   ) -> Result<()> {
     assert!(!changed_files.is_empty() || !removed_files.is_empty());
     let old = self.compilation.get_stats();
+    let old_hash = self.compilation.hash.clone();
     fn collect_changed_modules(
       compilation: &Compilation,
     ) -> (IdentifierMap<(u64, String)>, IdentifierMap<String>) {
@@ -107,7 +101,12 @@ where
 
     let mut hot_update_main_content_by_runtime = all_old_runtime
       .iter()
-      .map(|id| (id.to_string(), HotUpdateContent::new(id.as_ref())))
+      .map(|runtime| {
+        (
+          runtime.to_string(),
+          HotUpdateContent::new(HashSet::from_iter([runtime.clone()])),
+        )
+      })
       .collect::<HashMap<String, HotUpdateContent>>();
 
     let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
@@ -411,10 +410,16 @@ where
             entry.info.with_hot_module_replacement(true),
           );
 
-          // TODO: should use `get_path_info` to get filename.
-          let chunk = self.compilation.chunk_by_ukey.get(&ukey);
-          let id = chunk.map_or(String::new(), |c| c.expect_id().to_string());
-          self.compilation.emit_asset(id + ".hot-update.js", asset);
+          let chunk = self
+            .compilation
+            .chunk_by_ukey
+            .get(&ukey)
+            .expect("should have update chunk");
+          let filename = self.compilation.get_path(
+            &self.compilation.options.output.hot_update_chunk_filename,
+            PathData::default().chunk(chunk).hash(&old_hash),
+          );
+          self.compilation.emit_asset(filename, asset);
         }
 
         new_runtime.iter().for_each(|runtime| {
@@ -435,8 +440,14 @@ where
         .iter()
         .map(|x| x.to_owned())
         .collect();
+      let filename = self.compilation.get_path(
+        &self.compilation.options.output.hot_update_main_filename,
+        PathData::default()
+          .runtime(&content.runtime)
+          .hash(&old_hash),
+      );
       self.compilation.emit_asset(
-        content.filename,
+        filename,
         CompilationAsset::new(
           Some(
             RawSource::Source(

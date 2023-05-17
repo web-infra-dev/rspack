@@ -53,6 +53,8 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           chunk_loading_global: "webpackChunkwebpack".to_string(),
           css_chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
           css_filename: rspack_core::Filename::from_str("").expect("TODO:"),
+          hot_update_chunk_filename: rspack_core::Filename::from_str("").expect("Should exist"),
+          hot_update_main_filename: rspack_core::Filename::from_str("").expect("Should exist"),
           library: None,
           enabled_library_types: None,
           strict_module_error_handling: false,

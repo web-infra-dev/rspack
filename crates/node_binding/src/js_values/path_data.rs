@@ -11,6 +11,7 @@ pub struct PathData {
   pub content_hash: Option<String>,
   pub runtime: Option<String>,
   pub url: Option<String>,
+  pub id: Option<String>,
 }
 
 impl PathData {
@@ -26,6 +27,7 @@ impl PathData {
       chunk_graph: None,
       runtime: self.runtime.as_deref(),
       url: self.url.as_deref(),
+      id: self.id.as_deref(),
     }
   }
 }

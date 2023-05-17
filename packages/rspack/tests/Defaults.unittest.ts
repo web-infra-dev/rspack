@@ -248,6 +248,9 @@ describe("snapshots", () => {
 		-     "filename": "[name].js",
 		+     "filename": "[name].mjs",
 		@@ ... @@
+		-     "hotUpdateChunkFilename": "[id].[fullhash].hot-update.js",
+		+     "hotUpdateChunkFilename": "[id].[fullhash].hot-update.mjs",
+		@@ ... @@
 		-     "iife": true,
 		+     "iife": false,
 		@@ ... @@

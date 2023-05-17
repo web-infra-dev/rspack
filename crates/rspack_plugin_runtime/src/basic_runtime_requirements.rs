@@ -71,6 +71,22 @@ impl Plugin for BasicRuntimeRequirementPlugin {
       }
     }
 
+    if (runtime_requirements.contains(RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME)
+      && compilation
+        .options
+        .output
+        .hot_update_chunk_filename
+        .has_hash_placeholder())
+      || (runtime_requirements.contains(RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME)
+        && compilation
+          .options
+          .output
+          .hot_update_main_filename
+          .has_hash_placeholder())
+    {
+      runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
+    }
+
     let mut sorted_runtime_requirement = runtime_requirements.iter().collect::<Vec<_>>();
     // TODO: we don't need sort since iter is deterministic for BitFlags
     sorted_runtime_requirement.sort_unstable_by_key(|r| r.name());
@@ -100,16 +116,24 @@ impl Plugin for BasicRuntimeRequirementPlugin {
           .boxed(),
         ),
         RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME => {
-          // TODO: need hash
-          // hu: get the filename of hotUpdateChunk.
           compilation.add_runtime_module(
             chunk,
             GetChunkUpdateFilenameRuntimeModule::default().boxed(),
           );
         }
-        RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => {
-          compilation.add_runtime_module(chunk, GetMainFilenameRuntimeModule::default().boxed())
-        }
+        RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME => compilation.add_runtime_module(
+          chunk,
+          GetMainFilenameRuntimeModule::new(
+            RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME,
+            compilation
+              .options
+              .output
+              .hot_update_main_filename
+              .template()
+              .to_string(),
+          )
+          .boxed(),
+        ),
         RuntimeGlobals::LOAD_SCRIPT => compilation.add_runtime_module(
           chunk,
           LoadScriptRuntimeModule::new(compilation.options.output.trusted_types.is_some()).boxed(),

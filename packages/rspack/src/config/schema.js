@@ -125,6 +125,18 @@ module.exports = {
 				}
 			]
 		},
+		HotUpdateChunkFilename: {
+			description:
+				"The filename of the Hot Update Chunks. They are inside the output.path directory.",
+			type: "string",
+			absolutePath: false
+		},
+		HotUpdateMainFilename: {
+			description:
+				"The filename of the Hot Update Main File. It is inside the 'output.path' directory.",
+			type: "string",
+			absolutePath: false
+		},
 		WebassemblyModuleFilename: {
 			description:
 				"The filename of WebAssembly modules as relative path inside the 'output.path' directory.",
@@ -1142,6 +1154,12 @@ module.exports = {
 				},
 				cssFilename: {
 					$ref: "#/definitions/CssFilename"
+				},
+				hotUpdateChunkFilename: {
+					$ref: "#/definitions/HotUpdateChunkFilename"
+				},
+				hotUpdateMainFilename: {
+					$ref: "#/definitions/HotUpdateMainFilename"
 				},
 				enabledWasmLoadingTypes: {
 					$ref: "#/definitions/EnabledWasmLoadingTypes"

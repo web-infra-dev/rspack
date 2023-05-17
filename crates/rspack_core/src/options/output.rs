@@ -27,6 +27,8 @@ pub struct OutputOptions {
   pub cross_origin_loading: CrossOriginLoading,
   pub css_filename: Filename,
   pub css_chunk_filename: Filename,
+  pub hot_update_main_filename: Filename,
+  pub hot_update_chunk_filename: Filename,
   pub library: Option<LibraryOptions>,
   pub enabled_library_types: Option<Vec<String>>,
   pub strict_module_error_handling: bool,
@@ -98,6 +100,8 @@ pub static CHUNK_HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[chunkhash(:(\d*))?]").expect("Invalid regex"));
 pub static CONTENT_HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[contenthash(:(\d*))?]").expect("Invalid regex"));
+pub static FULL_HASH_PLACEHOLDER: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct PathData<'a> {
@@ -111,6 +115,7 @@ pub struct PathData<'a> {
   pub chunk_graph: Option<&'a ChunkGraph>,
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
+  pub id: Option<&'a str>,
 }
 
 impl<'a> PathData<'a> {
@@ -187,6 +192,11 @@ impl<'a> PathData<'a> {
     self.url = Some(v);
     self
   }
+
+  pub fn id(mut self, id: &'a str) -> Self {
+    self.id = Some(id);
+    self
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -211,6 +221,14 @@ impl From<String> for Filename {
 }
 
 impl Filename {
+  pub fn template(&self) -> &str {
+    &self.template
+  }
+
+  pub fn has_hash_placeholder(&self) -> bool {
+    HASH_PLACEHOLDER.is_match(&self.template) || FULL_HASH_PLACEHOLDER.is_match(&self.template)
+  }
+
   pub fn render(&self, options: PathData, mut asset_info: Option<&mut AssetInfo>) -> String {
     let mut template = self.template.clone();
     if let Some(filename) = options.filename {
@@ -251,26 +269,32 @@ impl Filename {
         .into_owned();
     }
     if let Some(hash) = options.hash {
-      template = HASH_PLACEHOLDER
-        .replace_all(&template, |caps: &Captures| {
-          let hash = &hash[..hash_len(hash, caps)];
-          if let Some(asset_info) = asset_info.as_mut() {
-            asset_info.set_immutable(true);
-            asset_info.set_content_hash(hash.to_owned());
-          }
-          hash
-        })
-        .into_owned();
+      for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
+        template = reg
+          .replace_all(&template, |caps: &Captures| {
+            let hash = &hash[..hash_len(hash, caps)];
+            if let Some(asset_info) = asset_info.as_mut() {
+              asset_info.set_immutable(true);
+              asset_info.set_content_hash(hash.to_owned());
+            }
+            hash
+          })
+          .into_owned();
+      }
     }
     if let Some(chunk) = options.chunk {
-      if let Some(id) = &chunk.id {
+      if let Some(id) = &options.id {
+        template = template.replace(ID_PLACEHOLDER, id);
+      } else if let Some(id) = &chunk.id {
         template = template.replace(ID_PLACEHOLDER, id);
       }
       if let Some(name) = chunk.name_for_filename_template() {
         template = template.replace(NAME_PLACEHOLDER, name);
       }
     }
-    if let Some(module) = options.module {
+    if let Some(id) = &options.id {
+      template = template.replace(ID_PLACEHOLDER, id);
+    } else if let Some(module) = options.module {
       if let Some(chunk_graph) = options.chunk_graph {
         if let Some(id) = chunk_graph.get_module_id(module.identifier()) {
           template = template.replace(ID_PLACEHOLDER, id);

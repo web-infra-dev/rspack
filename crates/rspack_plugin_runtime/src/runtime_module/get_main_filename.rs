@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule, RuntimeSpec,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
 };
 use rspack_identifier::Identifier;
 
@@ -10,13 +10,17 @@ use crate::impl_runtime_module;
 pub struct GetMainFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
   id: Identifier,
+  global: RuntimeGlobals,
+  filename: String,
 }
 
-impl Default for GetMainFilenameRuntimeModule {
-  fn default() -> Self {
+impl GetMainFilenameRuntimeModule {
+  pub fn new(global: RuntimeGlobals, filename: String) -> Self {
     Self {
       chunk: None,
-      id: Identifier::from("webpack/runtime/get_main_filename"),
+      id: Identifier::from(format!("webpack/runtime/get_main_filename/{global}")),
+      global,
+      filename,
     }
   }
 }
@@ -32,10 +36,20 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         .chunk_by_ukey
         .get(&chunk_ukey)
         .expect("Chunk not found");
-      RawSource::from(
-        include_str!("runtime/get_update_manifest_filename.js")
-          .replace("$CHUNK_ID$", &stringify_runtime(&chunk.runtime)),
-      )
+      let filename = compilation.get_path(
+        &self.filename.clone().into(),
+        PathData::default()
+          .chunk(chunk)
+          .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
+          .runtime(&chunk.runtime),
+      );
+      RawSource::from(format!(
+        "{} = function () {{
+            return '{}';
+         }};
+        ",
+        self.global, filename
+      ))
       .boxed()
     } else {
       unreachable!("should attach chunk for get_main_filename")
@@ -48,8 +62,3 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
 }
 
 impl_runtime_module!(GetMainFilenameRuntimeModule);
-
-#[inline]
-fn stringify_runtime(runtime: &RuntimeSpec) -> String {
-  Vec::from_iter(runtime.iter().map(|s| (*s).as_ref())).join("_")
-}

@@ -68,6 +68,8 @@ export const getNormalizedRspackOptions = (
 				crossOriginLoading: output.crossOriginLoading,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
+				hotUpdateMainFilename: output.hotUpdateMainFilename,
+				hotUpdateChunkFilename: output.hotUpdateChunkFilename,
 				assetModuleFilename: output.assetModuleFilename,
 				wasmLoading: output.wasmLoading,
 				enabledChunkLoadingTypes: output.enabledChunkLoadingTypes

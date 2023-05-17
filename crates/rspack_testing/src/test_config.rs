@@ -415,6 +415,10 @@ impl TestConfig {
         css_filename: c::Filename::from_str(&self.output.css_filename).expect("Should exist"),
         css_chunk_filename: c::Filename::from_str(&self.output.css_chunk_filename)
           .expect("Should exist"),
+        hot_update_chunk_filename: c::Filename::from_str("[id].[fullhash].hot-update.js")
+          .expect("Should exist"),
+        hot_update_main_filename: c::Filename::from_str("[runtime].[fullhash].hot-update.json")
+          .expect("Should exist"),
         asset_module_filename: c::Filename::from_str("[hash][ext][query]").expect("Should exist"),
         wasm_loading: c::WasmLoading::Enable(c::WasmLoadingType::from("fetch")),
         webassembly_module_filename: c::Filename::from_str("[hash].module.wasm")
