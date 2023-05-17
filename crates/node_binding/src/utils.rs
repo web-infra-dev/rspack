@@ -12,6 +12,8 @@ use rspack_napi_shared::threadsafe_function::{
   ThreadSafeContext, ThreadsafeFunction, ThreadsafeFunctionCallMode,
 };
 
+use crate::tokio_runtime::tokio_rt;
+
 static CUSTOM_TRACE_SUBSCRIBER: OnceCell<bool> = OnceCell::new();
 
 /// Try to resolve the string value of a given named property
@@ -140,7 +142,7 @@ where
     Ok(())
   })?;
 
-  napi::bindgen_prelude::spawn(async move {
+  tokio_rt().spawn(async move {
     let fut = CatchUnwindFuture::create(fut);
     let res = fut.await;
     match res {

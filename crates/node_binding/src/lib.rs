@@ -20,6 +20,7 @@ use rspack_napi_shared::NAPI_ENV;
 mod hook;
 mod js_values;
 mod plugins;
+mod tokio_runtime;
 mod utils;
 
 use hook::*;
