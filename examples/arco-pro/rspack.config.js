@@ -46,11 +46,11 @@ const config = {
 	resolve: {
 		alias: {
 			"@": path.resolve(__dirname, "src"),
-			// The default exported mock.js is a minified file with super deep binary
+			// The default exported mock.js contains a minified [parser](https://github.com/nuysoft/Mock/blob/refactoring/src/mock/regexp/parser.js) with super deep binary
 			// expression, which causes stack overflow for swc parser in debug mode.
 			// Alias to the unminified version mitigates this problem.
 			// See also <https://github.com/search?q=repo%3Aswc-project%2Fswc+parser+stack+overflow&type=issues>
-			"mockjs": require.resolve("mockjs/src/mock.js"),
+			mockjs: require.resolve("./patches/mock.js")
 		}
 	},
 	output: {
