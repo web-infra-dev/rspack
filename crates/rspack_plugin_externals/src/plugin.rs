@@ -118,7 +118,6 @@ impl Plugin for ExternalPlugin {
         }
         ExternalItem::Fn(f) => {
           let request = args.dependency.request();
-          dbg!(&request);
 
           let result = f(ExternalItemFnCtx {
             context: PathBuf::from(request.to_string())
