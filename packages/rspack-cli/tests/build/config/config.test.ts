@@ -55,7 +55,7 @@ describe("rspack cli", () => {
 		});
 	});
 
-	describe("run esm config", () => {
+	describe("should load esm config", () => {
 		const cwd = resolve(__dirname, "./esm");
 
 		const packageJsonPath = resolve(cwd, "./package.json");

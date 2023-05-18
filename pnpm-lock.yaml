@@ -939,7 +939,6 @@ importers:
       '@discoveryjs/json-ext': ^0.5.7
       '@rspack/core': workspace:*
       '@rspack/dev-server': workspace:*
-      '@types/tmp': ^0.2.3
       '@types/webpack-bundle-analyzer': ^4.6.0
       colorette: 2.0.19
       concat-stream: ^2.0.0
@@ -959,7 +958,6 @@ importers:
       webpack-bundle-analyzer: 4.6.1
       yargs: 17.6.2
     devDependencies:
-      '@types/tmp': 0.2.3
       '@types/webpack-bundle-analyzer': 4.6.0
       concat-stream: 2.0.0
       execa: 5.1.1
@@ -11444,10 +11442,6 @@ packages:
       '@types/react': 18.2.6
       csstype: 3.1.1
     dev: false
-
-  /@types/tmp/0.2.3:
-    resolution: {integrity: sha512-dDZH/tXzwjutnuk4UacGgFRwV+JSLaXL1ikvidfJprkb7L9Nx1njcRHHmi3Dsvt7pgqqTEeucQuOrWHPFgzVHA==}
-    dev: true
 
   /@types/unist/2.0.6:
     resolution: {integrity: sha512-PBjIUxZHOuj0R15/xuwJYjFi+KZdNFrehocChv4g5hu6aFroHue8m0lBP0POdK2nKzbw0cgV1mws8+V/JAcEkQ==}
