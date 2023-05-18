@@ -34,10 +34,10 @@ impl Plugin for FetchCompileAsyncWasmPlugin {
       runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
       args.compilation.add_runtime_module(
         args.chunk,
-        AsyncWasmLoadingRuntimeModule::new(format!(
-          "fetch({} + $PATH)",
-          RuntimeGlobals::PUBLIC_PATH
-        ))
+        AsyncWasmLoadingRuntimeModule::new(
+          format!("fetch({} + $PATH)", RuntimeGlobals::PUBLIC_PATH),
+          true,
+        )
         .boxed(),
       );
     }
@@ -74,11 +74,14 @@ impl Plugin for ReadFileCompileAsyncWasmPlugin {
       runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
       args.compilation.add_runtime_module(
         args.chunk,
-        AsyncWasmLoadingRuntimeModule::new(if self.import {
-          include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
-        } else {
-          include_str!("runtime/read_file_compile_async_wasm.js").to_string()
-        })
+        AsyncWasmLoadingRuntimeModule::new(
+          if self.import {
+            include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
+          } else {
+            include_str!("runtime/read_file_compile_async_wasm.js").to_string()
+          },
+          false,
+        )
         .boxed(),
       );
     }
