@@ -346,15 +346,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       // pruning
       let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
       let mut visited = IdentifierSet::default();
-      let context_entry_modules = self.bailout_modules.iter().filter_map(|(k, v)| {
-        if v.contains(BailoutFlag::CONTEXT_MODULE) {
-          Some(*k)
-        } else {
-          None
-        }
-      });
       let mut q = VecDeque::from_iter(
-        self.compilation.entry_modules(), // .chain(context_entry_modules),
+        self.compilation.entry_modules(), //
       );
       while let Some(module_identifier) = q.pop_front() {
         if visited.contains(&module_identifier) {
@@ -498,7 +491,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                       .compilation
                       .module_graph
                       .module_identifier_by_dependency_id(dep)
-                      .map(|ident| *ident)
+                      .cloned()
                   })
                   .collect::<Vec<_>>()
               })
