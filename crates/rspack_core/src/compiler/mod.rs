@@ -16,10 +16,7 @@ use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
-use crate::{
-  cache::Cache, fast_set, tree_shaking::webpack_ext::ExportInfoExt, CompilerOptions, Plugin,
-  PluginDriver, SharedPluginDriver,
-};
+use crate::{cache::Cache, fast_set, CompilerOptions, Plugin, PluginDriver, SharedPluginDriver};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -175,14 +172,6 @@ where
         && self.options.optimization.side_effects.is_enable()
       {
         self.compilation.include_module_ids = analyze_result.include_module_ids;
-      }
-      for entry in &self.compilation.entry_module_identifiers {
-        if let Some(analyze_results) = analyze_result.analyze_results.get(entry) {
-          self
-            .compilation
-            .exports_info_map
-            .insert(*entry, analyze_results.ordered_exports());
-        }
       }
       self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
     }
