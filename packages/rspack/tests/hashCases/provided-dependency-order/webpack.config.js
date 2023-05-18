@@ -2,7 +2,7 @@ const NodePolyfillPlugin = require("@rspack/plugin-node-polyfill");
 
 /** @type {import("../../../").Configuration} */
 module.exports = {
-	mode: "production",
+	mode: "development",
 	devtool: false,
 	output: {
 		filename: "[name].[contenthash]-[contenthash:6].js"
@@ -10,6 +10,5 @@ module.exports = {
 	optimization: {
 		realContentHash: true
 	},
-	stats: "normal",
 	plugins: [new NodePolyfillPlugin()]
 };

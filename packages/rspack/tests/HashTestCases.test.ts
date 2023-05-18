@@ -18,13 +18,21 @@ const tests = fs.readdirSync(base).filter(testName => {
 describe("HashTestCases", () => {
 	tests.forEach(testName => {
 		it("should print correct hash for " + testName, async () => {
-			const configPath = path.resolve(base, testName, "webpack.config.js");
-			const testConfigPath = path.resolve(base, testName, "test.config.js");
+			const testPath = path.resolve(base, testName);
+			console.log(testPath);
+			const configPath = path.resolve(testPath, "webpack.config.js");
+			const testConfigPath = path.resolve(testPath, "test.config.js");
 			let config;
 			if (fs.existsSync(configPath)) {
 				config = require(configPath);
 			} else {
 				throw new Error("HashTestCases must have a webpack.config.js");
+			}
+			if (!Array.isArray(config) && typeof config === "object") {
+				config.context ??= testPath;
+				config.entry ??= "./index";
+				config.output ??= {};
+				config.output.path ??= path.resolve(testPath, "dist");
 			}
 			let testConfig;
 			if (fs.existsSync(testConfigPath)) {
