@@ -1250,7 +1250,7 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
 }
 
 fn update_reachable_dependency(
-  symbol_ref: &&SymbolRef,
+  symbol_ref: &SymbolRef,
   reachable_dependency_identifier: &mut IdentifierSet,
   symbol_graph: &SymbolGraph,
   bailout_modules: &IdentifierMap<BailoutFlag>,
@@ -1265,9 +1265,16 @@ fn update_reachable_dependency(
   // // lib.js
   // exports['a'] = 1000;
   // ```
-  // This code would lib.js would be unreachable when it is marked as sideEffects false.
-  // Currently we use such a workaround, make bailout module reachable.
-  if bailout_modules.contains_key(&symbol_ref.module_identifier()) {
+  // This code would let lib.js be unreachable when it is marked as sideEffects false.
+  // Currently we use such a workaround make bailout module reachable.
+  if matches!(
+    symbol_ref,
+    SymbolRef::Star(StarSymbol {
+      ty: StarSymbolKind::ImportAllAs,
+      ..
+    })
+  ) && bailout_modules.contains_key(&symbol_ref.module_identifier())
+  {
     reachable_dependency_identifier.insert(symbol_ref.module_identifier());
   }
   let node_index = *symbol_graph
