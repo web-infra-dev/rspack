@@ -78,8 +78,9 @@ export function describeCases(config: { name: string; casePath: string }) {
 											path: outputPath
 										}
 									};
-
-									fs.rmdirSync(outputPath, { recursive: true });
+									if (fs.existsSync(outputPath)) {
+										fs.rmdirSync(outputPath, { recursive: true });
+									}
 									const stats = await util.promisify(rspack)(options);
 									const statsJson = stats!.toJson();
 									if (category.name === "errors") {
