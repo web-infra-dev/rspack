@@ -26,20 +26,13 @@
     "directory": "packages/rspack-cli"
   },
   "devDependencies": {
+    "@types/tmp": "^0.2.3",
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
     "execa": "^5.0.0",
     "internal-ip": "6.2.0",
-    "source-map-support": "^0.5.19",
-    "ts-node": "10.9.1"
-  },
-  "peerDependencies": {
-    "ts-node": ">= 10"
-  },
-  "peerDependenciesMeta": {
-    "ts-node": {
-      "optional": true
-    }
+    "read-pkg-up": "^9.1.0",
+    "source-map-support": "^0.5.19"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",

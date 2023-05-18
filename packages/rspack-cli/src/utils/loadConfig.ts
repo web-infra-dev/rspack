@@ -1,11 +1,88 @@
 import path from "path";
-import { pathToFileURL } from "url";
 import fs from "fs";
 import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
+import findExtFile from "./findExtFile";
+import { rspack } from "@rspack/core";
+import isESM from "./isESM";
+import { build } from "esbuild";
 
-const supportedExtensions = [".js", ".ts", ".mjs", ".cjs"];
-const defaultConfig = "rspack.config";
+const DEFAULT_CONFIG_NAME = "rspack.config" as const;
+
+const buildConfig = async (options: {
+	entry: string;
+	output: string;
+	type: "esm" | "cjs";
+}) => {
+	const { entry, output, type } = options;
+
+	await build({
+		absWorkingDir: process.cwd(),
+		bundle: true,
+		entryPoints: [entry],
+		outfile: output,
+		format: type,
+		target: ["node14.18", "node16"], // Ignore the user's ts tsconfig
+		write: true,
+		sourcemap: "inline",
+		platform: "node",
+		external: ["@rspack/core"]
+	});
+
+	//  TODO: Bootstrap with rspack?
+	//  I don't know how to configure to output the correct esm/cjs file.
+	//  The import/require out file is always wrong in importConfig.
+	//
+	// 	const compiler = rspack({
+	// 		entry: entry,
+	// 		mode: "none",
+	// 		target: "node",
+	// 		experiments: {
+	// 			outputModule: type === "esm"
+	// 		},
+	// 		output: {
+	// 			path: path.dirname(output),
+	// 			filename: path.basename(output),
+	// 			chunkFormat: type === "esm" ? "module" : "commonjs",
+	// 			module: type === "esm",
+	// 			clean: false,
+	// 			library: {
+	// 				type: type
+	// 			}
+	// 		}
+	// 	});
+	// 	return new Promise((resolve, reject) =>
+	// 		compiler.build(error => (error ? reject(error) : resolve(output)))
+	// 	);
+	// };
+};
+
+const importConfig = async (
+	configPath: string
+): Promise<LoadedRspackConfig> => {
+	const esm = await isESM(configPath);
+
+	const type = esm ? "esm" : "cjs";
+
+	const tempPath = `${configPath}.timestamp-${Date.now()}-${Math.random()
+		.toString(16)
+		.slice(2)}${type === "esm" ? ".mjs" : ".cjs"}`;
+
+	try {
+		await buildConfig({
+			entry: configPath,
+			output: tempPath,
+			type
+		});
+		const module = await (esm ? import(tempPath) : require(tempPath));
+		const config = Reflect.has(module, "default") ? module.default : module;
+		return config;
+	} catch (error) {
+		throw error;
+	} finally {
+		fs.unlinkSync(tempPath);
+	}
+};
 
 export type LoadedRspackConfig =
 	| undefined
@@ -19,64 +96,20 @@ export type LoadedRspackConfig =
 export async function loadRspackConfig(
 	options: RspackCLIOptions
 ): Promise<LoadedRspackConfig> {
-	let loadedConfig: LoadedRspackConfig;
-	// if we pass config paras
 	if (options.config) {
-		const resolvedConfigPath = path.resolve(process.cwd(), options.config);
-		if (!fs.existsSync(resolvedConfigPath)) {
-			throw new Error(`config file "${resolvedConfigPath}" not exists`);
+		const configPath = path.resolve(process.cwd(), options.config);
+		if (!fs.existsSync(configPath)) {
+			throw new Error(`config file "${configPath}" not found.`);
 		}
-		loadedConfig = await requireWithAdditionalExtension(resolvedConfigPath);
+		return importConfig(configPath);
 	} else {
-		let defaultConfigPath = findFileWithSupportedExtensions(
-			path.resolve(process.cwd(), defaultConfig)
+		const defaultConfig = findExtFile(
+			path.resolve(process.cwd(), DEFAULT_CONFIG_NAME)
 		);
-		if (defaultConfigPath != null) {
-			loadedConfig = await requireWithAdditionalExtension(defaultConfigPath);
+		if (defaultConfig) {
+			return importConfig(defaultConfig);
 		} else {
-			loadedConfig = {};
+			return {};
 		}
 	}
-	return loadedConfig;
-}
-
-// takes a basePath like `webpack.config`, return `webpack.config.{js,ts}` if
-// exists. returns null if none of them exists
-export function findFileWithSupportedExtensions(
-	basePath: string
-): string | null {
-	for (const extension of supportedExtensions) {
-		if (fs.existsSync(basePath + extension)) {
-			return basePath + extension;
-		}
-	}
-	return null;
-}
-
-let hasRegisteredTS = false;
-async function requireWithAdditionalExtension(resolvedPath: string) {
-	if (resolvedPath.endsWith("ts") && !hasRegisteredTS) {
-		hasRegisteredTS = true;
-		let tsNode: any;
-		try {
-			tsNode = require("ts-node");
-		} catch (e) {
-			throw new Error("`ts-node` is required to use TypeScript configuration.");
-		}
-		tsNode.register({ transpileOnly: true });
-	}
-	let loadedConfig;
-	if (resolvedPath.endsWith("ts")) {
-		loadedConfig = require(resolvedPath);
-	} else if (resolvedPath.endsWith(".cjs")) {
-		/**
-		 * this is a dirty hack to help us test rsapck-cli because we can't dynamic import js config due to [nodejs bug](https://github.com/nodejs/node/issues/35889) in jest
-		 */
-		loadedConfig = require(resolvedPath);
-	} else {
-		// dynamic import can handle both cjs & mjs
-		const fileUrl = pathToFileURL(resolvedPath).href;
-		loadedConfig = (await import(fileUrl)).default;
-	}
-	return loadedConfig;
 }

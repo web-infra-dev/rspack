@@ -6,9 +6,6 @@
     "rootDir": "src",
     "moduleResolution": "nodenext"
   },
-  "ts-node": {
-    "transpileOnly": true
-  },
   "references": [
     {
       "path": "../rspack"
