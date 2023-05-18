@@ -1,5 +1,5 @@
 pub mod base64 {
-  use base64_simd::{Base64 as Raw, STANDARD};
+  use base64_simd::{Base64 as Raw, Error, STANDARD};
 
   pub struct Base64(Raw);
 
@@ -10,6 +10,10 @@ pub mod base64 {
 
     pub fn encode_to_string<D: AsRef<[u8]>>(&self, data: D) -> String {
       self.0.encode_to_string(data)
+    }
+
+    pub fn decode_to_vec<D: AsRef<[u8]>>(&self, data: D) -> Result<Vec<u8>, Error> {
+      self.0.decode_to_vec(data)
     }
   }
 

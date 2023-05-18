@@ -5,7 +5,7 @@ use rspack_identifier::Identifiable;
 pub fn external_dep_array(modules: &[&ExternalModule]) -> String {
   let value = modules
     .iter()
-    .map(|m| format!("'{}'", m.request.as_str()))
+    .map(|m| serde_json::to_string(&m.request).expect("invalid json to_string"))
     .collect::<Vec<_>>()
     .join(", ");
   format!("[{value}]")

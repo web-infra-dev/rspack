@@ -26,6 +26,7 @@ rspack_identifier = { path = "../rspack_identifier" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }
+serde_json = { workspace = true }
 sourcemap = "6.2.3"
 sugar_path = { workspace = true }
 swc_config = { workspace = true }

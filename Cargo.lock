@@ -2201,6 +2201,7 @@ dependencies = [
  "rspack_plugin_real_content_hash",
  "rspack_plugin_remove_empty_chunks",
  "rspack_plugin_runtime",
+ "rspack_plugin_schemes",
  "rspack_plugin_split_chunks",
  "rspack_plugin_split_chunks_new",
  "rspack_plugin_wasm",
@@ -2260,6 +2261,7 @@ dependencies = [
  "rspack_symbol",
  "rspack_util",
  "rustc-hash",
+ "serde",
  "serde_json",
  "string_cache",
  "sugar_path",
@@ -2599,6 +2601,7 @@ dependencies = [
  "rspack_symbol",
  "rspack_testing",
  "rustc-hash",
+ "serde_json",
  "sourcemap",
  "sugar_path",
  "swc_config",
@@ -2630,6 +2633,7 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_identifier",
+ "serde_json",
 ]
 
 [[package]]
@@ -2678,6 +2682,24 @@ dependencies = [
  "rspack_identifier",
  "rspack_plugin_javascript",
  "rustc-hash",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_plugin_schemes"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "derivative",
+ "indexmap",
+ "once_cell",
+ "rayon",
+ "regex",
+ "rspack_base64",
+ "rspack_core",
+ "rspack_error",
+ "rustc-hash",
+ "urlencoding",
  "xxhash-rust",
 ]
 

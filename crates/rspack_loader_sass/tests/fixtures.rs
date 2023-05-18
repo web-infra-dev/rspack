@@ -24,13 +24,12 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let (result, _) = run_loaders(
     &[Arc::new(SassLoader::new(SassLoaderOptions::default()))
       as Arc<dyn Loader<LoaderRunnerContext>>],
-    &ResourceData {
-      resource: actual_path.to_string_lossy().to_string(),
-      resource_path: url.to_file_path().expect("bad url file path"),
-      resource_query: url.query().map(|q| q.to_owned()),
-      resource_fragment: url.fragment().map(|f| f.to_owned()),
-      resource_description: None,
-    },
+    &ResourceData::new(
+      actual_path.to_string_lossy().to_string(),
+      url.to_file_path().expect("bad url file path"),
+    )
+    .query_optional(url.query().map(|q| q.to_owned()))
+    .fragment_optional(url.fragment().map(|f| f.to_owned())),
     &[],
     CompilerContext {
       options: std::sync::Arc::new(CompilerOptions {

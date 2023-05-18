@@ -1,11 +1,12 @@
 use std::{
-  fmt::Debug,
+  fmt::{self, Debug},
   path::{Path, PathBuf},
   sync::Arc,
 };
 
 use derivative::Derivative;
 use nodejs_resolver::DescriptionData;
+use once_cell::sync::OnceCell;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
@@ -18,6 +19,46 @@ use crate::{
   plugin::LoaderRunnerPlugin,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Scheme {
+  Normal,
+  Data,
+  File,
+  Custom(String),
+  // Http,
+}
+
+impl From<&str> for Scheme {
+  fn from(value: &str) -> Self {
+    match value {
+      "data" => Self::Data,
+      "file" => Self::File,
+      v => Self::Custom(v.to_string()),
+    }
+  }
+}
+
+impl fmt::Display for Scheme {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "{}",
+      match self {
+        Self::Normal => "",
+        Self::Data => "data",
+        Self::File => "file",
+        Self::Custom(v) => v,
+      }
+    )
+  }
+}
+
+pub fn get_scheme(specifier: &str) -> Scheme {
+  url::Url::parse(specifier)
+    .map(|url| Scheme::from(url.scheme()))
+    .unwrap_or(Scheme::Normal)
+}
+
 #[derive(Debug, Clone)]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
@@ -29,6 +70,82 @@ pub struct ResourceData {
   /// Resource fragment with `#` prefix
   pub resource_fragment: Option<String>,
   pub resource_description: Option<Arc<DescriptionData>>,
+  pub mimetype: Option<String>,
+  pub parameters: Option<String>,
+  pub encoding: Option<String>,
+  pub encoded_content: Option<String>,
+  scheme: OnceCell<Scheme>,
+}
+
+impl ResourceData {
+  pub fn new(resource: String, path: PathBuf) -> Self {
+    Self {
+      resource,
+      resource_path: path,
+      resource_query: None,
+      resource_fragment: None,
+      resource_description: None,
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
+      scheme: OnceCell::new(),
+    }
+  }
+
+  pub fn get_scheme(&self) -> &Scheme {
+    self.scheme.get_or_init(|| get_scheme(&self.resource))
+  }
+
+  pub fn query(mut self, v: String) -> Self {
+    self.resource_query = Some(v);
+    self
+  }
+
+  pub fn query_optional(mut self, v: Option<String>) -> Self {
+    self.resource_query = v;
+    self
+  }
+
+  pub fn fragment(mut self, v: String) -> Self {
+    self.resource_fragment = Some(v);
+    self
+  }
+
+  pub fn fragment_optional(mut self, v: Option<String>) -> Self {
+    self.resource_fragment = v;
+    self
+  }
+
+  pub fn description(mut self, v: Arc<DescriptionData>) -> Self {
+    self.resource_description = Some(v);
+    self
+  }
+
+  pub fn description_optional(mut self, v: Option<Arc<DescriptionData>>) -> Self {
+    self.resource_description = v;
+    self
+  }
+
+  pub fn mimetype(mut self, v: String) -> Self {
+    self.mimetype = Some(v);
+    self
+  }
+
+  pub fn parameters(mut self, v: String) -> Self {
+    self.parameters = Some(v);
+    self
+  }
+
+  pub fn encoding(mut self, v: String) -> Self {
+    self.encoding = Some(v);
+    self
+  }
+
+  pub fn encoded_content(mut self, v: String) -> Self {
+    self.encoded_content = Some(v);
+    self
+  }
 }
 
 #[derive(Derivative)]
@@ -293,6 +410,7 @@ pub async fn run_loaders<C: Send>(
 mod test {
   use std::{cell::RefCell, sync::Arc};
 
+  use once_cell::sync::OnceCell;
   use rspack_error::Result;
   use rspack_identifier::{Identifiable, Identifier};
 
@@ -301,6 +419,7 @@ mod test {
     content::Content,
     loader::test::{Composed, Custom, Custom2},
     plugin::LoaderRunnerPlugin,
+    runner::Scheme,
     DisplayWithSuffix,
   };
 
@@ -360,11 +479,16 @@ mod test {
     let i0 = p1.identifier();
 
     let rs = ResourceData {
+      scheme: OnceCell::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
       resource_fragment: None,
       resource_query: None,
       resource_path: Default::default(),
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
     };
 
     run_loaders(&[c1, p1, c2, c3], &rs, &[Box::new(TestContentPlugin)], ())
@@ -528,11 +652,16 @@ mod test {
     let p2 = Arc::new(Pitching2) as Arc<dyn Loader<()>>;
 
     let rs = ResourceData {
+      scheme: OnceCell::new(),
       resource: "/rspack/main.js?abc=123#efg".to_owned(),
       resource_description: None,
       resource_fragment: None,
       resource_query: None,
       resource_path: Default::default(),
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
     };
 
     run_loaders::<()>(&[p1, p2, c1, c2], &rs, &[Box::new(TestContentPlugin)], ())
