@@ -1,4 +1,6 @@
-benchcases/** linguist-detectable=false
-fixtures/** linguist-detectable=false
-webpack-test/** linguist-detectable=false
+benchcases/**/*.js linguist-detectable=false
+webpack-examples/**/*.js linguist-detectable=false
+webpack-test/**/*.js linguist-detectable=false
+**/tests/**/*.js linguist-detectable=false
+
 * text=auto
