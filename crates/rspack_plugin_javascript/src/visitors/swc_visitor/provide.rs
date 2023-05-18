@@ -1,5 +1,4 @@
-use std::collections::HashSet;
-
+use indexmap::IndexSet;
 use rspack_core::Provide;
 use swc_core::common::util::take::Take;
 use swc_core::common::Span;
@@ -18,7 +17,8 @@ static MODULE_DOT: &str = r#"_dot_"#;
 pub struct ProvideBuiltin<'a> {
   opts: &'a Provide,
   unresolved_mark: Mark,
-  current_import_provide: HashSet<String>,
+  // the order should be stable to ensure the generated code is stable
+  current_import_provide: IndexSet<String>,
 }
 
 impl<'a> ProvideBuiltin<'a> {
@@ -26,7 +26,7 @@ impl<'a> ProvideBuiltin<'a> {
     ProvideBuiltin {
       opts,
       unresolved_mark,
-      current_import_provide: HashSet::new(),
+      current_import_provide: IndexSet::new(),
     }
   }
 
