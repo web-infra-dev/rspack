@@ -404,6 +404,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               &symbol_ref,
               &mut reachable_dependency_identifier,
               symbol_graph,
+              &self.bailout_modules,
             );
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
@@ -1234,14 +1235,11 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
         };
 
         // dbg_matches!(
-        //   &uri_key,
-        //   // &analyzer.export_all_list,
-        //   &analyzer.export_map,
-        //   &analyzer.import_map,
-        //   &analyzer.maybe_lazy_reference_map,
-        //   &analyzer.immediate_evaluate_reference_map,
-        //   &analyzer.reachable_import_and_export,
-        //   &analyzer.used_symbol_ref
+        //   module_identifier.as_str(),
+        //   &optimize_analyze_result.export_map,
+        //   &optimize_analyze_result.import_map,
+        //   &optimize_analyze_result.reachable_import_of_export,
+        //   &optimize_analyze_result.used_symbol_refs
         // );
 
         Some((*module_identifier, optimize_analyze_result))
@@ -1252,11 +1250,33 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
 }
 
 fn update_reachable_dependency(
-  symbol_ref: &&SymbolRef,
+  symbol_ref: &SymbolRef,
   reachable_dependency_identifier: &mut IdentifierSet,
   symbol_graph: &SymbolGraph,
+  bailout_modules: &IdentifierMap<BailoutFlag>,
 ) {
   let root_module_identifier = symbol_ref.importer();
+  // FIXME: currently we don't analyze export info of bailout module like commonjs,
+  // it may cause we don't include bailout module in such scenario:
+  // ```js
+  // //index.js
+  // import * as all from './lib.js'
+  // all
+  // // lib.js
+  // exports['a'] = 1000;
+  // ```
+  // This code would let lib.js be unreachable when it is marked as sideEffects false.
+  // Currently we use such a workaround make bailout module reachable.
+  if matches!(
+    symbol_ref,
+    SymbolRef::Star(StarSymbol {
+      ty: StarSymbolKind::ImportAllAs,
+      ..
+    })
+  ) && bailout_modules.contains_key(&symbol_ref.module_identifier())
+  {
+    reachable_dependency_identifier.insert(symbol_ref.module_identifier());
+  }
   let node_index = *symbol_graph
     .get_node_index(symbol_ref)
     .unwrap_or_else(|| panic!("Can't get NodeIndex of {symbol_ref:?}"));
