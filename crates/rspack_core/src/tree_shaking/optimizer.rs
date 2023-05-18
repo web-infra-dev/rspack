@@ -401,7 +401,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
             update_reachable_dependency(
-              &symbol_ref,
+              symbol_ref,
               &mut reachable_dependency_identifier,
               symbol_graph,
               &self.bailout_modules,
