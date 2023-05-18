@@ -40,8 +40,8 @@ module.exports = class PolyfillBuiltinsPlugin {
 		compiler.options.builtins = {
 			...compiler.options.builtins,
 			provide: {
-				...compiler.options.builtins?.provide,
-				...provide
+				...provide,
+				...compiler.options.builtins?.provide
 			}
 		};
 		compiler.options.resolve.fallback = {
