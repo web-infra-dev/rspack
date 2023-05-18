@@ -12,7 +12,7 @@ describe("loadRspackConfig", () => {
 
 	it("should load test config file", async () => {
 		const config = await loadRspackConfig({
-			config: resolve(__dirname, ".", "test.rspack.config.js")
+			config: resolve(__dirname, ".", "test.rspack.config.cjs")
 		});
 		expect(config).toBeDefined();
 	});

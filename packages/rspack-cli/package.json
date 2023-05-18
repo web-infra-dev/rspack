@@ -12,7 +12,7 @@
     "build": "rimraf dist/ && tsc -b --force",
     "clean": "rimraf dist/ && tsc -b --clean",
     "dev": "tsc -b -w",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --runInBand"
+    "test": "cross-env jest --runInBand"
   },
   "files": [
     "bin",

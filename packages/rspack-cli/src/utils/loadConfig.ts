@@ -68,6 +68,11 @@ async function requireWithAdditionalExtension(resolvedPath: string) {
 	let loadedConfig;
 	if (resolvedPath.endsWith("ts")) {
 		loadedConfig = require(resolvedPath);
+	} else if (resolvedPath.endsWith(".cjs")) {
+		/**
+		 * this is a dirty hack to help us test rsapck-cli because we can't dynamic import js config due to [nodejs bug](https://github.com/nodejs/node/issues/35889) in jest
+		 */
+		loadedConfig = require(resolvedPath);
 	} else {
 		// dynamic import can handle both cjs & mjs
 		const fileUrl = pathToFileURL(resolvedPath).href;
