@@ -49,6 +49,6 @@
       "<rootDir>/dist",
       "<rootDir>/tests/dist"
     ],
-    "testEnvironment": "node"
+    "testEnvironment": "../../scripts/test/patch-node-env.cjs"
   }
 }

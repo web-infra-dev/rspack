@@ -2,7 +2,9 @@ use std::hash::Hash;
 
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  to_identifier, JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
+  to_identifier,
+  tree_shaking::webpack_ext::ExportInfoExt,
+  JsChunkHashArgs, Plugin, PluginContext, PluginJsChunkHashHookOutput,
   PluginRenderStartupHookOutput, RenderStartupArgs,
 };
 
@@ -26,8 +28,12 @@ impl Plugin for ModuleLibraryPlugin {
     let mut source = ConcatSource::default();
     source.add(args.source.clone());
     let mut exports = vec![];
-    if let Some(ordered_exports) = args.compilation.exports_info_map.get(&args.module) {
-      for info in ordered_exports {
+    if let Some(analyze_results) = args
+      .compilation
+      .optimize_analyze_result_map
+      .get(&args.module)
+    {
+      for info in analyze_results.ordered_exports() {
         let name = to_identifier(info.name.as_ref());
         let var_name = format!("__webpack_exports__{}", name);
         source.add(RawSource::from(format!(

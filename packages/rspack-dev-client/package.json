@@ -16,7 +16,6 @@
     "directory": "packages/rspack-dev-client"
   },
   "devDependencies": {
-    "@types/node": "16.11.7",
     "react-refresh": "0.14.0"
   },
   "dependencies": {
