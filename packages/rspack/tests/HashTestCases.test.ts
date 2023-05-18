@@ -19,7 +19,6 @@ describe("HashTestCases", () => {
 	tests.forEach(testName => {
 		it("should print correct hash for " + testName, async () => {
 			const testPath = path.resolve(base, testName);
-			console.log(testPath);
 			const configPath = path.resolve(testPath, "webpack.config.js");
 			const testConfigPath = path.resolve(testPath, "test.config.js");
 			let config;
