@@ -254,7 +254,7 @@ pub fn run_after_pass(
             &compilation.include_module_ids,
             compilation.options.clone()
           ),
-          builtin_tree_shaking.is_true() && need_tree_shaking
+          builtin_tree_shaking.enable() && need_tree_shaking
         ),
         Optional::new(
           Repeat::new(dce(Config::default(), unresolved_mark)),
