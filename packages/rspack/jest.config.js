@@ -1,6 +1,6 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 const config = {
-	testEnvironment: "node",
+	testEnvironment: "../../scripts/test/patch-node-env.cjs",
 	testMatch: [
 		"<rootDir>/tests/*.test.ts",
 		"<rootDir>/tests/*.basictest.ts",

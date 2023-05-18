@@ -186,7 +186,7 @@ jobs:
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
-        node: [14, 16]
+        node: [14, 16, 18]
     name: Test Node ${{ matrix.node }}
     env:
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
@@ -209,6 +209,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      ### x86_64-unknown-linux-gnu
+
+      - name: Test x86_64-unknown-linux-gnu
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        run: pnpm run test:ci
+
       ### x86_64-apple-darwin
 
       - name: Test x86_64-apple-darwin
@@ -220,57 +226,3 @@ jobs:
       - name: Test x86_64-pc-windows-msvc
         if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
-
-      ### x86_64-unknown-linux-gnu
-
-      - name: Test x86_64-unknown-linux-gnu
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        run: pnpm run test:ci
-
-      ### aarch64-unknown-linux-gnu
-
-      - name: Set up QEMU aarch64-unknown-linux-gnu
-        if: ${{ false && inputs.target == 'aarch64-unknown-linux-gnu' }}
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-
-      - name: Set up qemu-user-static aarch64-unknown-linux-gnu
-        if: ${{ false && inputs.target == 'aarch64-unknown-linux-gnu' }}
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-      - name: Test aarch64-unknown-linux-gnu
-        if: ${{ false && inputs.target == 'aarch64-unknown-linux-gnu' }}
-        uses: ./.github/actions/docker-test
-        with:
-          node: ${{ matrix.node }}
-          options: --platform linux/arm64
-
-      ### x86_64-unknown-linux-musl
-
-      - name: Test x86_64-unknown-linux-musl
-        if: ${{ false && inputs.target == 'x86_64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker-test
-        with:
-          node: ${{ matrix.node }}
-          image: alpine
-
-      ### aarch64-unknown-linux-musl
-
-      - name: Set up QEMU aarch64-unknown-linux-musl
-        if: ${{ false && inputs.target == 'aarch64-unknown-linux-musl' }}
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-          image: alpine
-
-      - name: Set up qemu-user-static aarch64-unknown-linux-musl
-        if: ${{ false && inputs.target == 'aarch64-unknown-linux-musl' }}
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-      - name: Test aarch64-unknown-linux-musl
-        if: ${{ false && inputs.target == 'aarch64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker-test
-        with:
-          node: ${{ matrix.node }}
-          options: --platform linux/arm64
