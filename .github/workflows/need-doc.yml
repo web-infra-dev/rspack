@@ -1,0 +1,34 @@
+name: Need Documentation
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  doc:
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'need documentation') }}
+    # if: ${{ github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'need documentation') }}
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            const title = 'Document rspack change: ' + github.event.pull_request.title;
+
+            const body = 'See pull request:\n  * ' + github.event.pull_request.url;
+
+            console.log(title);
+            console.log(body);
+
+            const result = await github.rest.issues.get({
+              owner: 'web-infra-dev',
+              repo: 'rspack-website',
+              issue_number: 296
+            });
+            console.log(result);
+            # github.rest.issues.create({
+              # owner: 'web-infra-dev',
+              # repo: 'rspack-website',
+              # title: title ,
+            # });
