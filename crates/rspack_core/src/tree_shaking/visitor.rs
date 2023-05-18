@@ -815,13 +815,16 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             property: value.clone(),
           };
           match self.current_body_owner_symbol_ext {
-            Some(ref body_owner_symbol_ext) if body_owner_symbol_ext.id() != &id => {
-              self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
+            Some(ref body_owner_symbol_ext) => {
+              if body_owner_symbol_ext.id() != &id {
+                self.add_reference(body_owner_symbol_ext.clone(), member_expr, false);
+              } else if self.state.contains(AnalyzeState::ASSIGNMENT_LHS) {
+                self.add_reference(body_owner_symbol_ext.clone(), member_expr, true);
+              }
             }
             None => {
               self.used_id_set.insert(member_expr);
             }
-            _ => {}
           }
         }
       }
