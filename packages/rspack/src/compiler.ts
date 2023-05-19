@@ -123,6 +123,7 @@ class Compiler {
 		emit: tapable.AsyncSeriesHook<[Compilation]>;
 		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
+		shutdown: tapable.AsyncSeriesHook<[]>;
 		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
 		watchClose: tapable.SyncHook<[]>;
 		environment: tapable.SyncHook<[]>;
@@ -212,6 +213,7 @@ class Compiler {
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
+			shutdown: new tapable.AsyncSeriesHook([]),
 			normalModuleFactory: new tapable.SyncHook<NormalModuleFactory>([
 				"normalModuleFactory"
 			]),
@@ -803,7 +805,7 @@ class Compiler {
 		}
 	}
 
-	close(callback: () => void) {
+	close(callback: (error?: Error | null) => void) {
 		// WARNING: Arbitrarily dropping the instance is not safe, as it may still be in use by the background thread.
 		// A hint is necessary for the compiler to know when it is safe to drop the instance.
 		// For example: register a callback to the background thread, and drop the instance when the callback is called (calling the `close` method queues the signal)
@@ -820,7 +822,10 @@ class Compiler {
 			});
 			return;
 		}
-		callback();
+		this.hooks.shutdown.callAsync(err => {
+			if (err) return callback(err);
+			this.cache.shutdown(callback);
+		});
 	}
 
 	getAsset(name: string) {
