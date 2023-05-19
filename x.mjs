@@ -13,6 +13,22 @@ program
   .showHelpAfterError(true)
   .showSuggestionAfterError(true);
 
+// x ready
+program
+  .command("ready")
+  .alias("r")
+  .description("ready to create a pull request, build and run all tests")
+  .action(async function () {
+    await $`cargo check`;
+    await $`cargo lint`;
+    await $`cargo test`;
+    await $`pnpm install`;
+    await $`pnpm run build:cli:release`;
+    await $`pnpm run test:example`;
+    await $`pnpm run test:unit`;
+    console.log(chalk.green('All passed.'))
+  });
+
 // x install
 program
   .command("install")
