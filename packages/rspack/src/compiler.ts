@@ -131,6 +131,7 @@ class Compiler {
 		afterResolvers: tapable.SyncHook<[Compiler]>;
 		make: tapable.AsyncParallelHook<[Compilation]>;
 		beforeCompile: tapable.AsyncSeriesHook<any>;
+		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
 	};
 	options: RspackOptionsNormalized;
@@ -226,6 +227,7 @@ class Compiler {
 			afterResolvers: new tapable.SyncHook(["compiler"]),
 			make: new tapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
+			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.modifiedFiles = undefined;
@@ -275,6 +277,7 @@ class Compiler {
 				options,
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
+					afterCompile: this.#afterCompile.bind(this),
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
 					afterEmit: this.#afterEmit.bind(this),
@@ -549,6 +552,7 @@ class Compiler {
 		const hookMap = {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
+			afterCompile: this.hooks.afterCompile,
 			emit: this.hooks.emit,
 			afterEmit: this.hooks.afterEmit,
 			processAssetsStageAdditional:
@@ -598,6 +602,11 @@ class Compiler {
 		await this.hooks.beforeCompile.promise();
 		// compilation is not created yet, so this will fail
 		// this.#updateDisabledHooks();
+	}
+
+	async #afterCompile() {
+		await this.hooks.afterCompile.promise(this.compilation);
+		this.#updateDisabledHooks();
 	}
 
 	async #finishModules() {

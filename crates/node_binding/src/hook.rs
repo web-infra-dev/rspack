@@ -18,6 +18,7 @@ pub enum Hook {
   AfterEmit,
   OptimizeChunkModules,
   BeforeCompile,
+  AfterCompile,
   FinishModules,
   OptimizeModules,
   /// webpack `compilation.hooks.chunkAsset`
@@ -42,6 +43,7 @@ impl From<String> for Hook {
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
       "beforeCompile" => Hook::BeforeCompile,
+      "afterCompile" => Hook::AfterCompile,
       "finishModules" => Hook::FinishModules,
       "optimizeModules" => Hook::OptimizeModules,
       "chunkAsset" => Hook::ChunkAsset,

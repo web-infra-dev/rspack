@@ -37,6 +37,7 @@ pub struct JsHooksAdapter {
   pub optimize_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub before_compile_tsfn: ThreadsafeFunction<(), ()>,
+  pub after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
@@ -377,6 +378,28 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call before compile: {err}",))?
   }
 
+  async fn after_compile(
+    &mut self,
+    compilation: &mut rspack_core::Compilation,
+  ) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::AfterCompile) {
+      return Ok(());
+    }
+
+    let compilation = JsCompilation::from_compilation(unsafe {
+      std::mem::transmute::<&'_ mut rspack_core::Compilation, &'static mut rspack_core::Compilation>(
+        compilation,
+      )
+    });
+
+    self
+      .after_compile_tsfn
+      .call(compilation, ThreadsafeFunctionCallMode::NonBlocking)
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call after compile: {err}"))?
+  }
+
   async fn finish_modules(
     &mut self,
     compilation: &mut rspack_core::Compilation,
@@ -448,6 +471,7 @@ impl JsHooksAdapter {
       context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
       before_compile,
+      after_compile,
       finish_modules,
       chunk_asset,
     } = js_hooks;
@@ -481,6 +505,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(optimize_chunk_module, env);
     let before_compile_tsfn: ThreadsafeFunction<(), ()> =
       js_fn_into_theadsafe_fn!(before_compile, env);
+    let after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()> =
+      js_fn_into_theadsafe_fn!(after_compile, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_modules, env);
     let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
@@ -512,6 +538,7 @@ impl JsHooksAdapter {
       optimize_modules_tsfn,
       optimize_chunk_modules_tsfn,
       before_compile_tsfn,
+      after_compile_tsfn,
       before_resolve,
       context_module_before_resolve,
       normal_module_factory_resolve_for_scheme,
