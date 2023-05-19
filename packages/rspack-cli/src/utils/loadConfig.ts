@@ -26,7 +26,7 @@ const buildConfig = async (options: {
 		write: true,
 		sourcemap: "inline",
 		platform: "node",
-		external: ["@rspack/core"]
+		packages: "external"
 	});
 
 	//  TODO: Bootstrap with rspack?
