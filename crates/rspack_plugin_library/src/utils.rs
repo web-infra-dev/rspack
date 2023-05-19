@@ -5,7 +5,7 @@ use rspack_identifier::Identifiable;
 pub fn external_dep_array(modules: &[&ExternalModule]) -> String {
   let value = modules
     .iter()
-    .map(|m| format!("'{}'", m.request))
+    .map(|m| format!("'{}'", m.request.as_str()))
     .collect::<Vec<_>>()
     .join(", ");
   format!("[{value}]")
