@@ -13,9 +13,8 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
   Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
   ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType,
-  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
-  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
+  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
+  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
   PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
   PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
@@ -349,12 +348,12 @@ impl PluginDriver {
 
   pub async fn normal_module_factory_resolve_for_scheme(
     &self,
-    args: NormalModuleFactoryResolveForSchemeArgs,
+    args: &ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
       if let Some(data) = plugin
-        .normal_module_factory_resolve_for_scheme(PluginContext::new(), &args)
+        .normal_module_factory_resolve_for_scheme(PluginContext::new(), args)
         .await?
       {
         return Ok(Some(data));

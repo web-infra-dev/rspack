@@ -7,9 +7,8 @@ pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
 use rspack_binding_macros::js_fn_into_theadsafe_fn;
 use rspack_core::{
-  ChunkAssetArgs, NormalModuleBeforeResolveArgs, NormalModuleFactoryResolveForSchemeArgs,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
-  ResourceData,
+  ChunkAssetArgs, NormalModuleBeforeResolveArgs, PluginNormalModuleFactoryBeforeResolveOutput,
+  PluginNormalModuleFactoryResolveForSchemeOutput, ResourceData,
 };
 use rspack_error::internal_error;
 use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
@@ -164,7 +163,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &NormalModuleFactoryResolveForSchemeArgs,
+    args: &ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
     let res = self
       .normal_module_factory_resolve_for_scheme
@@ -173,13 +172,11 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?;
     res.map(|res| {
-      Some(ResourceData {
-        resource: res.resource,
-        resource_fragment: res.fragment,
-        resource_path: PathBuf::from(res.path),
-        resource_query: res.query,
-        resource_description: None,
-      })
+      Some(
+        ResourceData::new(res.resource, PathBuf::from(res.path))
+          .query_optional(res.query)
+          .fragment_optional(res.fragment),
+      )
     })
   }
 

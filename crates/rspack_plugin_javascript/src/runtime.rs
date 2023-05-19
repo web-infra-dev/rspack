@@ -3,7 +3,7 @@ use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt}
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals, SourceType,
 };
-use rspack_error::Result;
+use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 pub fn render_chunk_modules(
@@ -83,9 +83,13 @@ pub fn render_chunk_modules(
     },
   );
 
-  let module_sources = module_code_array
+  let module_sources: Vec<_> = module_code_array
+    .into_iter()
+    .map(|(_, source, _)| source)
+    .collect::<Result<_>>()?;
+  let module_sources = module_sources
     .into_par_iter()
-    .fold(ConcatSource::default, |mut output, (_, source, _)| {
+    .fold(ConcatSource::default, |mut output, source| {
       output.add(source);
       output
     })
@@ -100,11 +104,10 @@ pub fn render_chunk_modules(
 }
 
 /* remove `strict` parameter for now, let SWC manage `use strict` annotation directly */
-fn render_module(source: BoxSource, _strict: bool, module_id: &str) -> BoxSource {
+fn render_module(source: BoxSource, _strict: bool, module_id: &str) -> Result<BoxSource> {
   let mut sources = ConcatSource::new([
-    RawSource::from("\""),
-    RawSource::from(module_id.to_string()),
-    RawSource::from("\": "),
+    RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),
+    RawSource::from(": "),
     RawSource::from(format!(
       "function (module, exports, {}) {{\n",
       RuntimeGlobals::REQUIRE
@@ -116,7 +119,7 @@ fn render_module(source: BoxSource, _strict: bool, module_id: &str) -> BoxSource
   sources.add(source);
   sources.add(RawSource::from("},\n"));
 
-  sources.boxed()
+  Ok(sources.boxed())
 }
 
 pub fn render_chunk_runtime_modules(

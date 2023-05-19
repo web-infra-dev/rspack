@@ -18,7 +18,7 @@ exports[`HashTestCases should print correct hash for package-path-change-1 1`] =
 
 exports[`HashTestCases should print correct hash for provided-dependency-order 1`] = `
 [
-  "main.782d558c9d947378-782d55.js",
+  "main.7e4466459ed5d1d2-7e4466.js",
 ]
 `;
 

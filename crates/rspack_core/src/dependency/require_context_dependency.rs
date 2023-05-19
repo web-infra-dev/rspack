@@ -1,4 +1,4 @@
-use rspack_error::Result;
+use rspack_error::{internal_error, Result};
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
@@ -74,9 +74,10 @@ impl CodeGeneratable for RequireContextDependency {
       if let Some(module_id) = compilation
         .module_graph
         .module_graph_module_by_dependency_id(&id)
-        .map(|m| m.id(&compilation.chunk_graph).to_string())
+        .map(|m| m.id(&compilation.chunk_graph))
       {
-        let module_id = format!("'{module_id}'");
+        let module_id =
+          serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?;
         code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
             *n = CallExpr {

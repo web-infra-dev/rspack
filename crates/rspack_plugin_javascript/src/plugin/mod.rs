@@ -189,7 +189,7 @@ impl JsPlugin {
             .module_graph_module_by_identifier(module)
             .map(|module| module.id(&compilation.chunk_graph))
             .expect("should have module id");
-          let mut module_id_expr = format!("'{module_id}'");
+          let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
             module_id_expr = format!("{} = {module_id_expr}", RuntimeGlobals::ENTRY_MODULE_ID);
           }

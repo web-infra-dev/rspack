@@ -9,10 +9,10 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
   ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
   FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
-  NormalModuleFactoryResolveForSchemeArgs, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
+  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType,
+  ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -112,7 +112,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleFactoryResolveForSchemeArgs,
+    _args: &ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
     Ok(None)
   }
