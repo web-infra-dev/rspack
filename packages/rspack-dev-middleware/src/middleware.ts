@@ -1,8 +1,7 @@
 import { extname } from "path";
-import type { IncomingMessage } from "http";
+import type { IncomingMessage, ServerResponse, RequestListener } from "http";
 import type { Compiler } from "@rspack/core";
 import wdm from "webpack-dev-middleware";
-import type { RequestHandler, Response } from "express";
 import mime from "mime-types";
 import { parse } from "url";
 import crypto from "crypto";
@@ -16,14 +15,14 @@ function etag(buf: any) {
 export function getRspackMemoryAssets(
 	compiler: Compiler,
 	rdm: ReturnType<typeof wdm>
-): RequestHandler {
+): RequestListener {
 	const publicPath = compiler.options.output.publicPath
 		? compiler.options.output.publicPath.replace(/\/$/, "") + "/"
 		: "/";
-	return function (req: IncomingMessage, res: Response, next: () => void) {
+	return function (req: IncomingMessage, res: ServerResponse) {
 		const { method, url } = req;
 		if (method !== "GET") {
-			return next();
+			return;
 		}
 
 		// css hmr will append query string, so here need to remove query string
@@ -43,7 +42,7 @@ export function getRspackMemoryAssets(
 				return compiler.getAsset(filename + indexValue);
 			})();
 		if (!buffer) {
-			return next();
+			return;
 		}
 		let contentType;
 		if (filename === "") {
@@ -59,9 +58,10 @@ export function getRspackMemoryAssets(
 		res.setHeader("Content-Type", contentType);
 		res.setHeader("ETag", calcEtag);
 		if (calcEtag === oldEtag) {
-			res.status(304).send();
+			res.statusCode = 304;
+			res.end();
 		} else {
-			res.send(buffer);
+			res.end(buffer);
 		}
 	};
 }
