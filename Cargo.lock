@@ -2690,17 +2690,12 @@ name = "rspack_plugin_schemes"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "derivative",
- "indexmap",
  "once_cell",
- "rayon",
  "regex",
  "rspack_base64",
  "rspack_core",
  "rspack_error",
- "rustc-hash",
  "urlencoding",
- "xxhash-rust",
 ]
 
 [[package]]

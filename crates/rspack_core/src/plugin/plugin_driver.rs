@@ -353,7 +353,7 @@ impl PluginDriver {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
       if let Some(data) = plugin
-        .normal_module_factory_resolve_for_scheme(PluginContext::new(), &args)
+        .normal_module_factory_resolve_for_scheme(PluginContext::new(), args)
         .await?
       {
         return Ok(Some(data));
