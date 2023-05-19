@@ -8,5 +8,5 @@ module.exports = {
 			commonjs: "test-library-[name]"
 		}
 	},
-	externals: "module"
+	externals: ["module"]
 };

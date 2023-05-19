@@ -1,3 +1,4 @@
+export * from "module";
 it("should run", function () {});
 
 it("should name define", function () {
