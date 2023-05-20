@@ -112,11 +112,14 @@ impl Plugin for DevtoolPlugin {
           map.set_file(Some(filename.clone()));
           for source in map.sources_mut() {
             let uri = normalize_custom_filename(source);
-            let resource_path = if let Some(relative_path) = diff_paths(uri, &context) {
+            let mut resource_path = if let Some(relative_path) = diff_paths(uri, &context) {
               relative_path.to_string_lossy().to_string()
             } else {
               uri.to_owned()
             };
+            if cfg!(target_os = "windows") {
+              resource_path = resource_path.replace("\\", "/");
+            }
             *source = self
               .module_filename_template
               .replace("[namespace]", &self.namespace)
@@ -236,11 +239,16 @@ pub fn wrap_eval_source_map(
 ) -> Result<BoxSource> {
   for source in map.sources_mut() {
     let uri = normalize_custom_filename(source);
-    *source = if let Some(relative_path) = diff_paths(uri, &*compilation.options.context) {
-      relative_path.to_string_lossy().to_string()
-    } else {
-      uri.to_owned()
-    };
+    let mut resource_path =
+      if let Some(relative_path) = diff_paths(uri, &*compilation.options.context) {
+        relative_path.to_string_lossy().to_string()
+      } else {
+        uri.to_owned()
+      };
+    if cfg!(target_os = "windows") {
+      resource_path = resource_path.replace("\\", "/");
+    }
+    *source = resource_path;
   }
   if compilation.options.devtool.no_sources() {
     for content in map.sources_content_mut() {
