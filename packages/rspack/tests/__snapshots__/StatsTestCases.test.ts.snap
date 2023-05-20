@@ -470,6 +470,296 @@ error[javascript]: JavaScript parsing error
 "
 `;
 
+exports[`StatsTestCases should print correct stats for missing-module 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.js",
+      "size": 677,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
+  "chunks": [
+    {
+      "children": [],
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "modules": [
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
+          "size": 810,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "990",
+          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+          "issuerId": "10",
+          "issuerName": "./index.js",
+          "issuerPath": [
+            {
+              "id": "10",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+              "name": "./index.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing)",
+          "reasons": [
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+              "moduleName": "./index.js",
+              "type": "require.resolve",
+              "userRequest": "./missing-module",
+            },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+              "moduleName": "./index.js",
+              "type": "require.resolve",
+              "userRequest": "./missing-module",
+            },
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+              "moduleName": "./index.js",
+              "type": "cjs require",
+              "userRequest": "./missing-module",
+            },
+          ],
+          "size": 160,
+          "type": "module",
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 970,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 677,
+        },
+      ],
+      "assetsSize": 677,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "hash": "5dcd4f3c6ff00a32",
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "10",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 810,
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "990",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing)",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+          "moduleName": "./index.js",
+          "type": "require.resolve",
+          "userRequest": "./missing-module",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+          "moduleName": "./index.js",
+          "type": "require.resolve",
+          "userRequest": "./missing-module",
+        },
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+          "moduleName": "./index.js",
+          "type": "cjs require",
+          "userRequest": "./missing-module",
+        },
+      ],
+      "size": 160,
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 677,
+        },
+      ],
+      "assetsSize": 677,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/missing-module/dist",
+  "publicPath": "",
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+   ┌─ tests\\statsCases\\missing-module\\index.js:26:3
+   │
+26 │         require.resolveWeak("./missing-module");
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>\\tests\\statsCases\\missing-module\\index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+    },
+    {
+      "formatted": "warning[internal]: Resolve error
+   ┌─ tests\\statsCases\\missing-module\\index.js:15:3
+   │
+15 │         require.resolve("./missing-module");
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>\\tests\\statsCases\\missing-module\\index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+    },
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests\\statsCases\\missing-module\\index.js:4:3
+  │
+4 │         require("./missing-module");
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>\\tests\\statsCases\\missing-module\\index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+    },
+  ],
+  "warningsCount": 3,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for missing-module 2`] = `
+"Hash: 5dcd4f3c6ff00a32
+    Asset       Size  Chunks             Chunk Names
+bundle.js  677 bytes    main  [emitted]  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 970 bytes [entry]
+ [10] ./index.js 810 bytes {main}
+     entry ./index 
+ [990] <PROJECT_ROOT>\\tests\\statsCases\\missing-module./missing-module (missing) 160 bytes {main}
+     require.resolve ./missing-module [10]
+     require.resolve ./missing-module [10]
+     cjs require ./missing-module [10]
+[10] ./index.js 810 bytes {main}
+    entry ./index 
+[990] <PROJECT_ROOT>\\tests\\statsCases\\missing-module./missing-module (missing) 160 bytes {main}
+    require.resolve ./missing-module [10]
+    require.resolve ./missing-module [10]
+    cjs require ./missing-module [10]
+
+warning[internal]: Resolve error
+   ┌─ tests\\statsCases\\missing-module\\index.js:26:3
+   │
+26 │         require.resolveWeak("./missing-module");
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>\\tests\\statsCases\\missing-module\\index.js
+
+
+
+warning[internal]: Resolve error
+   ┌─ tests\\statsCases\\missing-module\\index.js:15:3
+   │
+15 │         require.resolve("./missing-module");
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>\\tests\\statsCases\\missing-module\\index.js
+
+
+
+warning[internal]: Resolve error
+  ┌─ tests\\statsCases\\missing-module\\index.js:4:3
+  │
+4 │         require("./missing-module");
+  │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>\\tests\\statsCases\\missing-module\\index.js
+
+"
+`;
+
 exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
 {
   "entrypoints": {
