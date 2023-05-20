@@ -51,7 +51,9 @@ impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
     self
       .local_name_ident
       .render(LocalIdentNameRenderOptions {
-        path_data: PathData::default().filename(self.filename).hash(&hash),
+        path_data: PathData::default()
+          .filename(&self.filename.to_string_lossy())
+          .hash(&hash),
         local: Some(local),
       })
       .into()

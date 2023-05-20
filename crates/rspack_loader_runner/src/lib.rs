@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod content;
 mod loader;
 mod plugin;

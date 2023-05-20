@@ -226,6 +226,16 @@ export interface JsModule {
   moduleIdentifier: string
 }
 
+export interface JsResolveForSchemeInput {
+  resourceData: JsResourceData
+  scheme: string
+}
+
+export interface JsResolveForSchemeResult {
+  resourceData: JsResourceData
+  stop: boolean
+}
+
 export interface JsResourceData {
   /** Resource with absolute path, query and fragment */
   resource: string
@@ -337,8 +347,6 @@ export interface NodeFS {
 
 export interface PathData {
   filename?: string
-  query?: string
-  fragment?: string
   hash?: string
   contentHash?: string
   runtime?: string
@@ -587,6 +595,7 @@ export interface RawModuleRule {
   resource?: RawRuleSetCondition
   /** A condition matcher against the resource query. */
   resourceQuery?: RawRuleSetCondition
+  resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
   use?: Array<RawModuleRuleUse>
@@ -596,6 +605,8 @@ export interface RawModuleRule {
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
+  scheme?: RawRuleSetCondition
+  mimetype?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
@@ -840,11 +851,6 @@ export interface RawStyleConfig {
 
 export interface RawTrustedTypes {
   policyName?: string
-}
-
-export interface SchemeAndJsResourceData {
-  resourceData: JsResourceData
-  scheme: string
 }
 
 export interface ThreadsafeNodeFS {

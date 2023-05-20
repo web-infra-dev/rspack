@@ -133,41 +133,17 @@ impl NormalModuleFactory {
     let mut no_pre_post_auto_loaders = false;
 
     // with scheme, windows absolute path is considered scheme by `url`
-    let resource_data = if scheme != Scheme::Normal
+    let resource_data = if scheme != Scheme::None
       && !Path::is_absolute(Path::new(request_without_match_resource))
     {
-      let data = plugin_driver
+      plugin_driver
         .read()
         .await
-        .normal_module_factory_resolve_for_scheme(&ResourceData::new(
+        .normal_module_factory_resolve_for_scheme(ResourceData::new(
           request_without_match_resource.to_string(),
           "".into(),
         ))
-        .await;
-      match data {
-        Ok(Some(data)) => data,
-        Ok(None) => {
-          let ident = format!(
-            "{}{request_without_match_resource}",
-            importer_with_context.display()
-          );
-          let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
-
-          let missing_module = MissingModule::new(
-            module_identifier,
-            format!("{ident} (missing)"),
-            format!("Failed to resolve {request_without_match_resource}"),
-          )
-          .boxed();
-          self.context.module_type = Some(*missing_module.module_type());
-          return Ok(Some(
-            ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
-          ));
-        }
-        Err(err) => {
-          return Err(err);
-        }
-      }
+        .await?
     } else {
       {
         let plugin_driver = self.plugin_driver.read().await;

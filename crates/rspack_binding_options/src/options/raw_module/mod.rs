@@ -223,6 +223,7 @@ pub struct RawModuleRule {
   pub resource: Option<RawRuleSetCondition>,
   /// A condition matcher against the resource query.
   pub resource_query: Option<RawRuleSetCondition>,
+  pub resource_fragment: Option<RawRuleSetCondition>,
   pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
@@ -234,6 +235,8 @@ pub struct RawModuleRule {
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
+  pub scheme: Option<RawRuleSetCondition>,
+  pub mimetype: Option<RawRuleSetCondition>,
   pub one_of: Option<Vec<RawModuleRule>>,
   /// Specifies the category of the loader. No value means normal loader.
   #[napi(ts_type = "'pre' | 'post'")]
@@ -384,6 +387,10 @@ impl RawOptionsApply for RawModuleRule {
       include: self.include.map(|raw| raw.try_into()).transpose()?,
       exclude: self.exclude.map(|raw| raw.try_into()).transpose()?,
       resource_query: self.resource_query.map(|raw| raw.try_into()).transpose()?,
+      resource_fragment: self
+        .resource_fragment
+        .map(|raw| raw.try_into())
+        .transpose()?,
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
       r#use: uses,
@@ -394,6 +401,8 @@ impl RawOptionsApply for RawModuleRule {
       side_effects: self.side_effects,
       issuer: self.issuer.map(|raw| raw.try_into()).transpose()?,
       dependency: self.dependency.map(|raw| raw.try_into()).transpose()?,
+      scheme: self.scheme.map(|raw| raw.try_into()).transpose()?,
+      mimetype: self.mimetype.map(|raw| raw.try_into()).transpose()?,
       one_of,
       enforce,
     })

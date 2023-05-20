@@ -20,6 +20,7 @@ glob-match = "0.2.1"
 hashlink = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
+mime_guess = { workspace = true }
 nodejs-resolver = { workspace = true }
 once_cell = { workspace = true }
 paste = { workspace = true }

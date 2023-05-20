@@ -24,7 +24,7 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
-pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<Option<ResourceData>>;
+pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
 pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
 pub type PluginChunkHashHookOutput = Result<Option<u64>>;
@@ -112,9 +112,9 @@ pub trait Plugin: Debug + Send + Sync {
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: PluginContext,
-    _args: &ResourceData,
+    args: ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    Ok(None)
+    Ok((args, false))
   }
 
   async fn content_hash(
