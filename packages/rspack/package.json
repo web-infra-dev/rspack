@@ -10,7 +10,7 @@
     "build": "tsc",
     "prepare": "pnpm precompile-schema",
     "dev": "tsc -w",
-    "test": "jest --runInBand",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "precompile-schema": "node ./scripts/precompile-schema.js"
   },
   "files": [
