@@ -470,228 +470,6 @@ error[javascript]: JavaScript parsing error
 "
 `;
 
-exports[`StatsTestCases should print correct stats for missing-module 1`] = `
-{
-  "assets": [
-    {
-      "chunkNames": [
-        "main",
-      ],
-      "chunks": [
-        "main",
-      ],
-      "emitted": true,
-      "info": {
-        "development": false,
-        "hotModuleReplacement": false,
-      },
-      "name": "bundle.js",
-      "size": 337,
-      "type": "asset",
-    },
-  ],
-  "assetsByChunkName": {
-    "main": [
-      "bundle.js",
-    ],
-  },
-  "chunks": [
-    {
-      "children": [],
-      "entry": true,
-      "files": [
-        "bundle.js",
-      ],
-      "id": "main",
-      "initial": true,
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-          "issuerPath": [],
-          "moduleType": "javascript/auto",
-          "name": "./index.js",
-          "reasons": [
-            {
-              "type": "entry",
-              "userRequest": "./index",
-            },
-          ],
-          "size": 54,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "990",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing)",
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-              "moduleName": "./index.js",
-              "type": "cjs require",
-              "userRequest": "./missing-module",
-            },
-          ],
-          "size": 160,
-          "type": "module",
-        },
-      ],
-      "names": [
-        "main",
-      ],
-      "parents": [],
-      "siblings": [],
-      "size": 214,
-      "type": "chunk",
-    },
-  ],
-  "entrypoints": {
-    "main": {
-      "assets": [
-        {
-          "name": "bundle.js",
-          "size": 337,
-        },
-      ],
-      "assetsSize": 337,
-      "chunks": [
-        "main",
-      ],
-      "name": "main",
-    },
-  },
-  "errors": [],
-  "errorsCount": 0,
-  "hash": "86f5c59e2c1004be",
-  "modules": [
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-      "issuerPath": [],
-      "moduleType": "javascript/auto",
-      "name": "./index.js",
-      "reasons": [
-        {
-          "type": "entry",
-          "userRequest": "./index",
-        },
-      ],
-      "size": 54,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "990",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-      "issuerId": "10",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing)",
-      "reasons": [
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-          "moduleName": "./index.js",
-          "type": "cjs require",
-          "userRequest": "./missing-module",
-        },
-      ],
-      "size": 160,
-      "type": "module",
-    },
-  ],
-  "namedChunkGroups": {
-    "main": {
-      "assets": [
-        {
-          "name": "bundle.js",
-          "size": 337,
-        },
-      ],
-      "assetsSize": 337,
-      "chunks": [
-        "main",
-      ],
-      "name": "main",
-    },
-  },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/missing-module/dist",
-  "publicPath": "",
-  "warnings": [
-    {
-      "formatted": "warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-module/index.js:2:2
-  │
-2 │     require("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
-
-",
-      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-    },
-  ],
-  "warningsCount": 1,
-}
-`;
-
-exports[`StatsTestCases should print correct stats for missing-module 2`] = `
-"Hash: 86f5c59e2c1004be
-    Asset       Size  Chunks             Chunk Names
-bundle.js  337 bytes    main  [emitted]  main
-Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 214 bytes [entry]
- [10] ./index.js 54 bytes {main}
-     entry ./index 
- [990] <PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing) 160 bytes {main}
-     cjs require ./missing-module [10]
-[10] ./index.js 54 bytes {main}
-    entry ./index 
-[990] <PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing) 160 bytes {main}
-    cjs require ./missing-module [10]
-
-warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-module/index.js:2:2
-  │
-2 │     require("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
-
-"
-`;
-
 exports[`StatsTestCases should print correct stats for missing-module-resolve-weal-module 1`] = `
 {
   "assets": [
@@ -2381,4 +2159,226 @@ chunk {main} bundle.js (main) 26 bytes [entry]
      entry ./index 
 [10] ./index.js 26 bytes {main}
     entry ./index "
+`;
+
+exports[`StatsTestCases should print correct stats for try-missing-module 1`] = `
+{
+  "assets": [
+    {
+      "chunkNames": [
+        "main",
+      ],
+      "chunks": [
+        "main",
+      ],
+      "emitted": true,
+      "info": {
+        "development": false,
+        "hotModuleReplacement": false,
+      },
+      "name": "bundle.js",
+      "size": 341,
+      "type": "asset",
+    },
+  ],
+  "assetsByChunkName": {
+    "main": [
+      "bundle.js",
+    ],
+  },
+  "chunks": [
+    {
+      "children": [],
+      "entry": true,
+      "files": [
+        "bundle.js",
+      ],
+      "id": "main",
+      "initial": true,
+      "modules": [
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+          "issuerPath": [],
+          "moduleType": "javascript/auto",
+          "name": "./index.js",
+          "reasons": [
+            {
+              "type": "entry",
+              "userRequest": "./index",
+            },
+          ],
+          "size": 54,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "725",
+          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/try-missing-module./missing-module",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+          "issuerId": "10",
+          "issuerName": "./index.js",
+          "issuerPath": [
+            {
+              "id": "10",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+              "name": "./index.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "<PROJECT_ROOT>/tests/statsCases/try-missing-module./missing-module (missing)",
+          "reasons": [
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+              "moduleName": "./index.js",
+              "type": "cjs require",
+              "userRequest": "./missing-module",
+            },
+          ],
+          "size": 160,
+          "type": "module",
+        },
+      ],
+      "names": [
+        "main",
+      ],
+      "parents": [],
+      "siblings": [],
+      "size": 214,
+      "type": "chunk",
+    },
+  ],
+  "entrypoints": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 341,
+        },
+      ],
+      "assetsSize": 341,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "errors": [],
+  "errorsCount": 0,
+  "hash": "39e4f2dff125a4bf",
+  "modules": [
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "10",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+      "issuerPath": [],
+      "moduleType": "javascript/auto",
+      "name": "./index.js",
+      "reasons": [
+        {
+          "type": "entry",
+          "userRequest": "./index",
+        },
+      ],
+      "size": 54,
+      "type": "module",
+    },
+    {
+      "assets": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "725",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/try-missing-module./missing-module",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+      "issuerId": "10",
+      "issuerName": "./index.js",
+      "issuerPath": [
+        {
+          "id": "10",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+          "name": "./index.js",
+        },
+      ],
+      "moduleType": "javascript/auto",
+      "name": "<PROJECT_ROOT>/tests/statsCases/try-missing-module./missing-module (missing)",
+      "reasons": [
+        {
+          "moduleId": "10",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+          "moduleName": "./index.js",
+          "type": "cjs require",
+          "userRequest": "./missing-module",
+        },
+      ],
+      "size": 160,
+      "type": "module",
+    },
+  ],
+  "namedChunkGroups": {
+    "main": {
+      "assets": [
+        {
+          "name": "bundle.js",
+          "size": 341,
+        },
+      ],
+      "assetsSize": 341,
+      "chunks": [
+        "main",
+      ],
+      "name": "main",
+    },
+  },
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/try-missing-module/dist",
+  "publicPath": "",
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-missing-module/index.js:2:2
+  │
+2 │     require("./missing-module");
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try-missing-module 2`] = `
+"Hash: 39e4f2dff125a4bf
+    Asset       Size  Chunks             Chunk Names
+bundle.js  341 bytes    main  [emitted]  main
+Entrypoint main = bundle.js
+chunk {main} bundle.js (main) 214 bytes [entry]
+ [10] ./index.js 54 bytes {main}
+     entry ./index 
+ [725] <PROJECT_ROOT>/tests/statsCases/try-missing-module./missing-module (missing) 160 bytes {main}
+     cjs require ./missing-module [10]
+[10] ./index.js 54 bytes {main}
+    entry ./index 
+[725] <PROJECT_ROOT>/tests/statsCases/try-missing-module./missing-module (missing) 160 bytes {main}
+    cjs require ./missing-module [10]
+
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-missing-module/index.js:2:2
+  │
+2 │     require("./missing-module");
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-missing-module/index.js
+
+"
 `;
