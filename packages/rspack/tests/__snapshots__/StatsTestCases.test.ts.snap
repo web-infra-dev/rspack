@@ -548,14 +548,14 @@ exports[`StatsTestCases should print correct stats for missing-module 1`] = `
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
               "moduleName": "./index.js",
-              "type": "require.resolve",
+              "type": "cjs require",
               "userRequest": "./missing-module",
             },
             {
               "moduleId": "10",
               "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
               "moduleName": "./index.js",
-              "type": "cjs require",
+              "type": "require.resolve",
               "userRequest": "./missing-module",
             },
             {
@@ -641,14 +641,14 @@ exports[`StatsTestCases should print correct stats for missing-module 1`] = `
           "moduleId": "10",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
           "moduleName": "./index.js",
-          "type": "require.resolve",
+          "type": "cjs require",
           "userRequest": "./missing-module",
         },
         {
           "moduleId": "10",
           "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
           "moduleName": "./index.js",
-          "type": "cjs require",
+          "type": "require.resolve",
           "userRequest": "./missing-module",
         },
         {
@@ -683,16 +683,6 @@ exports[`StatsTestCases should print correct stats for missing-module 1`] = `
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error
-   ┌─ tests/statsCases/missing-module/index.js:26:3
-   │
-26 │         require.resolveWeak("./missing-module");
-   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
-
-",
-      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
-    },
-    {
-      "formatted": "warning[internal]: Resolve error
   ┌─ tests/statsCases/missing-module/index.js:4:3
   │
 4 │         require("./missing-module");
@@ -707,6 +697,16 @@ exports[`StatsTestCases should print correct stats for missing-module 1`] = `
    │
 15 │         require.resolve("./missing-module");
    │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
+    },
+    {
+      "formatted": "warning[internal]: Resolve error
+   ┌─ tests/statsCases/missing-module/index.js:26:3
+   │
+26 │         require.resolveWeak("./missing-module");
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js",
@@ -725,23 +725,15 @@ chunk {main} bundle.js (main) 970 bytes [entry]
  [10] ./index.js 810 bytes {main}
      entry ./index 
  [990] <PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing) 160 bytes {main}
-     require.resolve ./missing-module [10]
      cjs require ./missing-module [10]
+     require.resolve ./missing-module [10]
      require.resolve ./missing-module [10]
 [10] ./index.js 810 bytes {main}
     entry ./index 
 [990] <PROJECT_ROOT>/tests/statsCases/missing-module./missing-module (missing) 160 bytes {main}
-    require.resolve ./missing-module [10]
     cjs require ./missing-module [10]
     require.resolve ./missing-module [10]
-
-warning[internal]: Resolve error
-   ┌─ tests/statsCases/missing-module/index.js:26:3
-   │
-26 │         require.resolveWeak("./missing-module");
-   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
-
-
+    require.resolve ./missing-module [10]
 
 warning[internal]: Resolve error
   ┌─ tests/statsCases/missing-module/index.js:4:3
@@ -756,6 +748,14 @@ warning[internal]: Resolve error
    │
 15 │         require.resolve("./missing-module");
    │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
+
+
+
+warning[internal]: Resolve error
+   ┌─ tests/statsCases/missing-module/index.js:26:3
+   │
+26 │         require.resolveWeak("./missing-module");
+   │         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module/index.js
 
 "
 `;
