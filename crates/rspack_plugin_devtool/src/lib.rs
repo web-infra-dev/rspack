@@ -118,7 +118,7 @@ impl Plugin for DevtoolPlugin {
               uri.to_owned()
             };
             if cfg!(target_os = "windows") {
-              resource_path = resource_path.replace("\\", "/");
+              resource_path = resource_path.replace('\\', '/');
             }
             *source = self
               .module_filename_template
@@ -246,7 +246,7 @@ pub fn wrap_eval_source_map(
         uri.to_owned()
       };
     if cfg!(target_os = "windows") {
-      resource_path = resource_path.replace("\\", "/");
+      resource_path = resource_path.replace('\\', '/');
     }
     *source = resource_path;
   }
