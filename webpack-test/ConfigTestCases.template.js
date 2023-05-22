@@ -69,12 +69,16 @@ const describeCases = config => {
 					describe(testName, function () {
 						const testDirectory = path.join(casesPath, category.name, testName);
 						const filterPath = path.join(testDirectory, "test.filter.js");
-						if (fs.existsSync(filterPath) && !require(filterPath)()) {
-							describe.skip(testName, () => {
-								it("filtered", () => {});
-							});
-							return;
-						} 
+						if (fs.existsSync(filterPath)) {
+							let flag = require(filterPath)()
+							let normalizedName = getNormalizedFilterName(flag, relativePath);
+							if (normalizedName.length > 0) {
+								describe.skip(normalizedName, () => {
+									it("filtered", () => {});
+								});
+								return;
+							}
+						}
 						const infraStructureLog = [];
 						const outBaseDir = path.join(__dirname, "js");
 						const testSubPath = path.join(config.name, category.name, testName);
