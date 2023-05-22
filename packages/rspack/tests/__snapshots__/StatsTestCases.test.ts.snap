@@ -470,414 +470,6 @@ error[javascript]: JavaScript parsing error
 "
 `;
 
-exports[`StatsTestCases should print correct stats for missing-module-resolve-weak-module 1`] = `
-{
-  "assets": [
-    {
-      "chunkNames": [
-        "main",
-      ],
-      "chunks": [
-        "main",
-      ],
-      "emitted": true,
-      "info": {
-        "development": false,
-        "hotModuleReplacement": false,
-      },
-      "name": "bundle.js",
-      "size": 174,
-      "type": "asset",
-    },
-  ],
-  "assetsByChunkName": {
-    "main": [
-      "bundle.js",
-    ],
-  },
-  "chunks": [
-    {
-      "children": [],
-      "entry": true,
-      "files": [
-        "bundle.js",
-      ],
-      "id": "main",
-      "initial": true,
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
-          "issuerPath": [],
-          "moduleType": "javascript/auto",
-          "name": "./index.js",
-          "reasons": [
-            {
-              "type": "entry",
-              "userRequest": "./index",
-            },
-          ],
-          "size": 66,
-          "type": "module",
-        },
-      ],
-      "names": [
-        "main",
-      ],
-      "parents": [],
-      "siblings": [],
-      "size": 66,
-      "type": "chunk",
-    },
-  ],
-  "entrypoints": {
-    "main": {
-      "assets": [
-        {
-          "name": "bundle.js",
-          "size": 174,
-        },
-      ],
-      "assetsSize": 174,
-      "chunks": [
-        "main",
-      ],
-      "name": "main",
-    },
-  },
-  "errors": [],
-  "errorsCount": 0,
-  "hash": "4d999ec4c90b3147",
-  "modules": [
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
-      "issuerPath": [],
-      "moduleType": "javascript/auto",
-      "name": "./index.js",
-      "reasons": [
-        {
-          "type": "entry",
-          "userRequest": "./index",
-        },
-      ],
-      "size": 66,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [],
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module./missing-module",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
-      "issuerId": "10",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module./missing-module (missing)",
-      "reasons": [
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
-          "moduleName": "./index.js",
-          "type": "require.resolve",
-          "userRequest": "./missing-module",
-        },
-      ],
-      "size": 160,
-      "type": "module",
-    },
-  ],
-  "namedChunkGroups": {
-    "main": {
-      "assets": [
-        {
-          "name": "bundle.js",
-          "size": 174,
-        },
-      ],
-      "assetsSize": 174,
-      "chunks": [
-        "main",
-      ],
-      "name": "main",
-    },
-  },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/dist",
-  "publicPath": "",
-  "warnings": [
-    {
-      "formatted": "warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-module-resolve-weak-module/index.js:2:2
-  │
-2 │     require.resolveWeak("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js
-
-",
-      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
-    },
-  ],
-  "warningsCount": 1,
-}
-`;
-
-exports[`StatsTestCases should print correct stats for missing-module-resolve-weak-module 2`] = `
-"Hash: 4d999ec4c90b3147
-    Asset       Size  Chunks             Chunk Names
-bundle.js  174 bytes    main  [emitted]  main
-Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 66 bytes [entry]
- [10] ./index.js 66 bytes {main}
-     entry ./index 
-[10] ./index.js 66 bytes {main}
-    entry ./index 
-<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module./missing-module (missing) 160 bytes
-    require.resolve ./missing-module [10]
-
-warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-module-resolve-weak-module/index.js:2:2
-  │
-2 │     require.resolveWeak("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js
-
-"
-`;
-
-exports[`StatsTestCases should print correct stats for missing-require-resolve-module 1`] = `
-{
-  "assets": [
-    {
-      "chunkNames": [
-        "main",
-      ],
-      "chunks": [
-        "main",
-      ],
-      "emitted": true,
-      "info": {
-        "development": false,
-        "hotModuleReplacement": false,
-      },
-      "name": "bundle.js",
-      "size": 335,
-      "type": "asset",
-    },
-  ],
-  "assetsByChunkName": {
-    "main": [
-      "bundle.js",
-    ],
-  },
-  "chunks": [
-    {
-      "children": [],
-      "entry": true,
-      "files": [
-        "bundle.js",
-      ],
-      "id": "main",
-      "initial": true,
-      "modules": [
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-          "issuerPath": [],
-          "moduleType": "javascript/auto",
-          "name": "./index.js",
-          "reasons": [
-            {
-              "type": "entry",
-              "userRequest": "./index",
-            },
-          ],
-          "size": 62,
-          "type": "module",
-        },
-        {
-          "assets": [],
-          "chunks": [
-            "main",
-          ],
-          "id": "118",
-          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module",
-          "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-          "issuerId": "10",
-          "issuerName": "./index.js",
-          "issuerPath": [
-            {
-              "id": "10",
-              "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-              "name": "./index.js",
-            },
-          ],
-          "moduleType": "javascript/auto",
-          "name": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing)",
-          "reasons": [
-            {
-              "moduleId": "10",
-              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-              "moduleName": "./index.js",
-              "type": "require.resolve",
-              "userRequest": "./missing-module",
-            },
-          ],
-          "size": 160,
-          "type": "module",
-        },
-      ],
-      "names": [
-        "main",
-      ],
-      "parents": [],
-      "siblings": [],
-      "size": 222,
-      "type": "chunk",
-    },
-  ],
-  "entrypoints": {
-    "main": {
-      "assets": [
-        {
-          "name": "bundle.js",
-          "size": 335,
-        },
-      ],
-      "assetsSize": 335,
-      "chunks": [
-        "main",
-      ],
-      "name": "main",
-    },
-  },
-  "errors": [],
-  "errorsCount": 0,
-  "hash": "c8f817d226fa3736",
-  "modules": [
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-      "issuerPath": [],
-      "moduleType": "javascript/auto",
-      "name": "./index.js",
-      "reasons": [
-        {
-          "type": "entry",
-          "userRequest": "./index",
-        },
-      ],
-      "size": 62,
-      "type": "module",
-    },
-    {
-      "assets": [],
-      "chunks": [
-        "main",
-      ],
-      "id": "118",
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-      "issuerId": "10",
-      "issuerName": "./index.js",
-      "issuerPath": [
-        {
-          "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-          "name": "./index.js",
-        },
-      ],
-      "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing)",
-      "reasons": [
-        {
-          "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-          "moduleName": "./index.js",
-          "type": "require.resolve",
-          "userRequest": "./missing-module",
-        },
-      ],
-      "size": 160,
-      "type": "module",
-    },
-  ],
-  "namedChunkGroups": {
-    "main": {
-      "assets": [
-        {
-          "name": "bundle.js",
-          "size": 335,
-        },
-      ],
-      "assetsSize": 335,
-      "chunks": [
-        "main",
-      ],
-      "name": "main",
-    },
-  },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/dist",
-  "publicPath": "",
-  "warnings": [
-    {
-      "formatted": "warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-require-resolve-module/index.js:2:2
-  │
-2 │     require.resolve("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js
-
-",
-      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
-    },
-  ],
-  "warningsCount": 1,
-}
-`;
-
-exports[`StatsTestCases should print correct stats for missing-require-resolve-module 2`] = `
-"Hash: c8f817d226fa3736
-    Asset       Size  Chunks             Chunk Names
-bundle.js  335 bytes    main  [emitted]  main
-Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 222 bytes [entry]
- [10] ./index.js 62 bytes {main}
-     entry ./index 
- [118] <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing) 160 bytes {main}
-     require.resolve ./missing-module [10]
-[10] ./index.js 62 bytes {main}
-    entry ./index 
-[118] <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing) 160 bytes {main}
-    require.resolve ./missing-module [10]
-
-warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-require-resolve-module/index.js:2:2
-  │
-2 │     require.resolve("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js
-
-"
-`;
-
 exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
 {
   "entrypoints": {
@@ -2195,4 +1787,97 @@ chunk {main} bundle.js (main) 26 bytes [entry]
      entry ./index 
 [10] ./index.js 26 bytes {main}
     entry ./index "
+`;
+
+exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require--module/index.js:2:2
+  │
+2 │     require('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
+"
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require--module/index.js:2:2
+  │
+2 │     require('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+
+"
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-module 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:2
+  │
+2 │     require.resolve('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
+"
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:2
+  │
+2 │     require.resolve('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+
+"
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:2
+  │
+2 │     require.resolveWeak('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
+"
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:2
+  │
+2 │     require.resolveWeak('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+
+"
 `;
