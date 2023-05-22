@@ -850,19 +850,13 @@ importers:
   packages/rspack-dev-client:
     specifiers:
       '@pmmmwh/react-refresh-webpack-plugin': 0.5.10
-      events: 3.3.0
       react-refresh: 0.14.0
       webpack: 5.76.0
-      webpack-dev-server: 4.11.1
-      ws: 8.8.1
     dependencies:
-      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10_i6m7wiivkn5w6supvzovvorrom
-      events: 3.3.0
-      webpack: 5.76.0
-      webpack-dev-server: 4.11.1_webpack@5.76.0
-      ws: 8.8.1
+      '@pmmmwh/react-refresh-webpack-plugin': 0.5.10_kpkvch5jhx6s5tusmqrn4u64d4
     devDependencies:
       react-refresh: 0.14.0
+      webpack: 5.76.0
 
   packages/rspack-dev-middleware:
     specifiers:
@@ -6845,7 +6839,7 @@ packages:
       source-map: 0.7.4
     dev: true
 
-  /@pmmmwh/react-refresh-webpack-plugin/0.5.10_i6m7wiivkn5w6supvzovvorrom:
+  /@pmmmwh/react-refresh-webpack-plugin/0.5.10_kpkvch5jhx6s5tusmqrn4u64d4:
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
     engines: {node: '>= 10.13'}
     peerDependencies:
@@ -6882,7 +6876,6 @@ packages:
       schema-utils: 3.1.1
       source-map: 0.7.4
       webpack: 5.76.0
-      webpack-dev-server: 4.11.1_webpack@5.76.0
     dev: false
 
   /@polka/url/1.0.0-next.21:
@@ -22559,54 +22552,6 @@ packages:
       webpack: 5.80.0_esbuild@0.17.18
     dev: true
 
-  /webpack-dev-server/4.11.1_webpack@5.76.0:
-    resolution: {integrity: sha512-lILVz9tAUy1zGFwieuaQtYiadImb5M3d+H+L1zDYalYoDl0cksAB1UNyuE5MMWJrG6zR1tXkCP2fitl7yoUJiw==}
-    engines: {node: '>= 12.13.0'}
-    hasBin: true
-    peerDependencies:
-      webpack: ^4.37.0 || ^5.0.0
-      webpack-cli: '*'
-    peerDependenciesMeta:
-      webpack-cli:
-        optional: true
-    dependencies:
-      '@types/bonjour': 3.5.10
-      '@types/connect-history-api-fallback': 1.3.5
-      '@types/express': 4.17.14
-      '@types/serve-index': 1.9.1
-      '@types/serve-static': 1.15.0
-      '@types/sockjs': 0.3.33
-      '@types/ws': 8.5.3
-      ansi-html-community: 0.0.8
-      bonjour-service: 1.0.14
-      chokidar: 3.5.3
-      colorette: 2.0.19
-      compression: 1.7.4
-      connect-history-api-fallback: 2.0.0
-      default-gateway: 6.0.3
-      express: 4.18.2
-      graceful-fs: 4.2.10
-      html-entities: 2.3.3
-      http-proxy-middleware: 2.0.6_@types+express@4.17.14
-      ipaddr.js: 2.0.1
-      open: 8.4.0
-      p-retry: 4.6.2
-      rimraf: 3.0.2
-      schema-utils: 4.0.0
-      selfsigned: 2.1.1
-      serve-index: 1.9.1
-      sockjs: 0.3.24
-      spdy: 4.0.2
-      webpack: 5.76.0
-      webpack-dev-middleware: 5.3.3_webpack@5.76.0
-      ws: 8.10.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - supports-color
-      - utf-8-validate
-    dev: false
-
   /webpack-dev-server/4.13.1:
     resolution: {integrity: sha512-5tWg00bnWbYgkN+pd5yISQKDejRBYGEw15RaEEslH+zdbNDxxaZvEAO2WulaSaFKb5n3YG8JXsGaDsut1D0xdA==}
     engines: {node: '>= 12.13.0'}
@@ -23183,6 +23128,7 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+    dev: true
 
   /ws/8.11.0:
     resolution: {integrity: sha512-HPG3wQd9sNQoT9xHyNCXoDUa+Xw/VevmY9FoHyQ+g+rrMn4j6FB4np7Z0OhdTgjx6MgQLK7jwSy1YecU1+4Asg==}
