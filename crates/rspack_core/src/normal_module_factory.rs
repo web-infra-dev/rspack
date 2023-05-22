@@ -17,9 +17,8 @@ use crate::{
   DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
   ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleFactoryResolveForSchemeArgs, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, RawModule, Resolve, ResolveArgs,
+  ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
   ResourceParsedData, SharedPluginDriver,
 };
 
@@ -294,7 +293,7 @@ impl NormalModuleFactory {
           }) {
             Some((pos, _)) => &request_without_match_resource[pos..],
             None => {
-              let dependency = data.dependency;
+              let dependency = &data.dependency;
               unreachable!("Invalid dependency: {dependency:?}")
             }
           };

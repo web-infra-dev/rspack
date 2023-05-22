@@ -1,7 +1,4 @@
-use rspack_core::{
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleFactoryResolveForSchemeArgs, ResourceData,
-};
+use rspack_core::{NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ResourceData};
 
 #[napi(object)]
 pub struct JsResolveForSchemeInput {
