@@ -62,7 +62,7 @@ const describeCases = config => {
 						const filterPath = path.join(testDirectory, "test.filter.js");
 						if (fs.existsSync(filterPath)) {
 							let flag = require(filterPath)(config)
-							let normalizedName = getNormalizedFilterName(flag, relativePath);
+							let normalizedName = getNormalizedFilterName(flag, test);
 							if (normalizedName.length > 0) {
 								describe.skip(normalizedName, () => {
 									it("filtered", () => {});
