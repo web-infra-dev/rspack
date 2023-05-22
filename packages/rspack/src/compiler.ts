@@ -444,7 +444,11 @@ class Compiler {
 
 			this.parentCompilation!.children.push(compilation);
 			for (const { name, source, info } of compilation.getAssets()) {
-				this.parentCompilation!.emitAsset(name, source, info);
+				// Do not emit asset if source is not available.
+				// Webpack will emit it anyway.
+				if (source) {
+					this.parentCompilation!.emitAsset(name, source, info);
+				}
 			}
 
 			const entries = [];
