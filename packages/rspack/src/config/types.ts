@@ -324,6 +324,8 @@ export interface RuleSetRule {
 	};
 	oneOf?: RuleSetRule[];
 	type?: string;
+	loader?: RuleSetLoader;
+	options?: RuleSetLoaderOptions;
 	use?: RuleSetUse;
 	parser?: {
 		[k: string]: any;

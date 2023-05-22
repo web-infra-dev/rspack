@@ -278,6 +278,17 @@ const getRawModuleRule = (
 	rule: RuleSetRule,
 	options: ComposeJsUseOptions
 ): RawModuleRule => {
+	// Rule.loader is a shortcut to Rule.use: [ { loader } ].
+	// See: https://webpack.js.org/configuration/module/#ruleloader
+	if (rule.loader) {
+		rule.use = [
+			{
+				loader: rule.loader,
+				options: rule.options
+			}
+		];
+	}
+
 	return {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
