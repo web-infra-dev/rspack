@@ -13,6 +13,7 @@ use super::{as_parent_path, expr_matcher, is_require_resolve_call, is_require_re
 pub struct CommonJsScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
+  in_try: bool,
 }
 
 impl<'a> CommonJsScanner<'a> {
@@ -23,6 +24,7 @@ impl<'a> CommonJsScanner<'a> {
     Self {
       dependencies,
       presentational_dependencies,
+      in_try: false,
     }
   }
 
@@ -50,6 +52,7 @@ impl<'a> CommonJsScanner<'a> {
           weak,
           node.span.into(),
           ast_path,
+          self.in_try,
         )));
       }
     }
@@ -57,6 +60,16 @@ impl<'a> CommonJsScanner<'a> {
 }
 
 impl VisitAstPath for CommonJsScanner<'_> {
+  fn visit_try_stmt<'ast: 'r, 'r>(
+    &mut self,
+    node: &'ast swc_core::ecma::ast::TryStmt,
+    ast_path: &mut swc_core::ecma::visit::AstNodePath<'r>,
+  ) {
+    self.in_try = true;
+    node.visit_children_with_path(self, ast_path);
+    self.in_try = false;
+  }
+
   fn visit_expr<'ast: 'r, 'r>(
     &mut self,
     expr: &'ast Expr,
