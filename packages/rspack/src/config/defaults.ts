@@ -191,7 +191,15 @@ const applyModuleDefaults = (
 		};
 		const rules: RuleSetRules = [
 			{
+				mimetype: "application/node",
+				type: "javascript/auto"
+			},
+			{
 				test: /\.json$/i,
+				type: "json"
+			},
+			{
+				mimetype: "application/json",
 				type: "json"
 			},
 			{
@@ -217,6 +225,12 @@ const applyModuleDefaults = (
 				...commonjs
 			},
 			{
+				mimetype: {
+					or: ["text/javascript", "application/javascript"]
+				},
+				...esm
+			},
+			{
 				test: /\.jsx$/i,
 				type: "jsx"
 			},
@@ -229,6 +243,31 @@ const applyModuleDefaults = (
 				type: "tsx"
 			}
 		];
+
+		if (asyncWebAssembly) {
+			const wasm = {
+				type: "webassembly/async",
+				rules: [
+					{
+						descriptionData: {
+							type: "module"
+						},
+						resolve: {
+							fullySpecified: true
+						}
+					}
+				]
+			};
+			rules.push({
+				test: /\.wasm$/i,
+				...wasm
+			});
+			rules.push({
+				mimetype: "application/wasm",
+				...wasm
+			});
+		}
+
 		if (css) {
 			const cssRule = {
 				type: "css",
@@ -255,34 +294,23 @@ const applyModuleDefaults = (
 					}
 				]
 			});
-		}
-
-		if (asyncWebAssembly) {
-			const wasm = {
-				type: "webassembly/async",
-				rules: [
-					{
-						descriptionData: {
-							type: "module"
-						},
-						resolve: {
-							fullySpecified: true
-						}
-					}
-				]
-			};
 			rules.push({
-				test: /\.wasm$/i,
-				...wasm
+				mimetype: "text/css+module",
+				...cssModulesRule
+			});
+			rules.push({
+				mimetype: "text/css",
+				...cssRule
 			});
 		}
+
 		rules.push({
 			dependency: "url",
 			oneOf: [
-				// {
-				// 	scheme: /^data$/,
-				// 	type: "asset/inline"
-				// },
+				{
+					scheme: /^data$/,
+					type: "asset/inline"
+				},
 				{
 					type: "asset/resource"
 				}

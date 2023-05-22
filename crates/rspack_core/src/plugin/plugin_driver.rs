@@ -13,11 +13,12 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
   Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
   ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType,
-  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
-  Plugin, PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
   PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
-  PluginNormalModuleFactoryBeforeResolveOutput, PluginNormalModuleFactoryResolveForSchemeOutput,
+  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
@@ -330,6 +331,18 @@ impl PluginDriver {
     Ok(None)
   }
 
+  pub async fn after_resolve(
+    &self,
+    args: NormalModuleAfterResolveArgs<'_>,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    for plugin in &self.plugins {
+      tracing::trace!("running resolve for scheme:{}", plugin.name());
+      if let Some(data) = plugin.after_resolve(PluginContext::new(), &args).await? {
+        return Ok(Some(data));
+      }
+    }
+    Ok(None)
+  }
   pub async fn context_module_before_resolve(
     &self,
     args: NormalModuleBeforeResolveArgs<'_>,
@@ -348,18 +361,21 @@ impl PluginDriver {
 
   pub async fn normal_module_factory_resolve_for_scheme(
     &self,
-    args: &ResourceData,
-  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
+    args: ResourceData,
+  ) -> Result<ResourceData> {
+    let mut args = args;
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin
+      let (ret, stop) = plugin
         .normal_module_factory_resolve_for_scheme(PluginContext::new(), args)
-        .await?
-      {
-        return Ok(Some(data));
+        .await?;
+      if stop {
+        return Ok(ret);
+      } else {
+        args = ret;
       }
     }
-    Ok(None)
+    Ok(args)
   }
 
   #[instrument(name = "plugin:additional_chunk_runtime_requirements", skip_all)]

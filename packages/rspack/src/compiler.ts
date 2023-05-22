@@ -326,6 +326,7 @@ class Compiler {
 						this.#normalModuleFactoryResolveForScheme.bind(this),
 					chunkAsset: this.#chunkAsset.bind(this),
 					beforeResolve: this.#beforeResolve.bind(this),
+					afterResolve: this.#afterResolve.bind(this),
 					contextModuleBeforeResolve:
 						this.#contextModuleBeforeResolve.bind(this)
 				},
@@ -443,7 +444,11 @@ class Compiler {
 
 			this.parentCompilation!.children.push(compilation);
 			for (const { name, source, info } of compilation.getAssets()) {
-				this.parentCompilation!.emitAsset(name, source, info);
+				// Do not emit asset if source is not available.
+				// Webpack will emit it anyway.
+				if (source) {
+					this.parentCompilation!.emitAsset(name, source, info);
+				}
 			}
 
 			const entries = [];
@@ -579,10 +584,12 @@ class Compiler {
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
-			chunkAsset: this.compilation.hooks.chunkAsset
+			chunkAsset: this.compilation.hooks.chunkAsset,
+			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
+			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
-			if (hook.taps.length === 0) {
+			if (hook?.taps.length === 0) {
 				disabledHooks.push(name);
 			}
 		}
@@ -613,15 +620,30 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #beforeResolve(resourceData: binding.BeforeResolveData) {
+	async #beforeResolve(resolveData: binding.BeforeResolveData) {
 		let res =
-			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
-				resourceData
+			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise({
+				request: resolveData.request,
+				context: resolveData.context,
+				fileDependencies: [],
+				missingDependencies: [],
+				contextDependencies: []
+			});
+
+		this.#updateDisabledHooks();
+		return res;
+	}
+
+	async #afterResolve(resolveData: binding.AfterResolveData) {
+		let res =
+			await this.compilation.normalModuleFactory?.hooks.afterResolve.promise(
+				resolveData
 			);
 
 		this.#updateDisabledHooks();
 		return res;
 	}
+
 	async #contextModuleBeforeResolve(resourceData: binding.BeforeResolveData) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
@@ -633,12 +655,16 @@ class Compiler {
 	}
 
 	async #normalModuleFactoryResolveForScheme(
-		resourceData: binding.SchemeAndJsResourceData
-	) {
-		await this.compilation.normalModuleFactory?.hooks.resolveForScheme
-			.for(resourceData.scheme)
-			.promise(resourceData.resourceData);
-		return resourceData.resourceData;
+		input: binding.JsResolveForSchemeInput
+	): Promise<binding.JsResolveForSchemeResult> {
+		let stop =
+			await this.compilation.normalModuleFactory?.hooks.resolveForScheme
+				.for(input.scheme)
+				.promise(input.resourceData);
+		return {
+			resourceData: input.resourceData,
+			stop: stop === true
+		};
 	}
 
 	async #optimize_chunk_modules() {
