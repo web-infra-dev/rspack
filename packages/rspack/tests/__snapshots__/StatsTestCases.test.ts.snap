@@ -470,7 +470,7 @@ error[javascript]: JavaScript parsing error
 "
 `;
 
-exports[`StatsTestCases should print correct stats for missing-module-resolve-weal-module 1`] = `
+exports[`StatsTestCases should print correct stats for missing-module-resolve-weak-module 1`] = `
 {
   "assets": [
     {
@@ -511,7 +511,7 @@ exports[`StatsTestCases should print correct stats for missing-module-resolve-we
             "main",
           ],
           "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
@@ -559,7 +559,7 @@ exports[`StatsTestCases should print correct stats for missing-module-resolve-we
         "main",
       ],
       "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
@@ -575,23 +575,23 @@ exports[`StatsTestCases should print correct stats for missing-module-resolve-we
     {
       "assets": [],
       "chunks": [],
-      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module./missing-module",
-      "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js",
+      "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module./missing-module",
+      "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
       "issuerId": "10",
       "issuerName": "./index.js",
       "issuerPath": [
         {
           "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
           "name": "./index.js",
         },
       ],
       "moduleType": "javascript/auto",
-      "name": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module./missing-module (missing)",
+      "name": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module./missing-module (missing)",
       "reasons": [
         {
           "moduleId": "10",
-          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js",
+          "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
           "moduleName": "./index.js",
           "type": "require.resolve",
           "userRequest": "./missing-module",
@@ -616,25 +616,25 @@ exports[`StatsTestCases should print correct stats for missing-module-resolve-we
       "name": "main",
     },
   },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/dist",
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/dist",
   "publicPath": "",
   "warnings": [
     {
       "formatted": "warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-module-resolve-weal-module/index.js:2:2
+  ┌─ tests/statsCases/missing-module-resolve-weak-module/index.js:2:2
   │
 2 │     require.resolveWeak("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js
 
 ",
-      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js",
     },
   ],
   "warningsCount": 1,
 }
 `;
 
-exports[`StatsTestCases should print correct stats for missing-module-resolve-weal-module 2`] = `
+exports[`StatsTestCases should print correct stats for missing-module-resolve-weak-module 2`] = `
 "Hash: 4d999ec4c90b3147
     Asset       Size  Chunks             Chunk Names
 bundle.js  174 bytes    main  [emitted]  main
@@ -644,14 +644,14 @@ chunk {main} bundle.js (main) 66 bytes [entry]
      entry ./index 
 [10] ./index.js 66 bytes {main}
     entry ./index 
-<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module./missing-module (missing) 160 bytes
+<PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module./missing-module (missing) 160 bytes
     require.resolve ./missing-module [10]
 
 warning[internal]: Resolve error
-  ┌─ tests/statsCases/missing-module-resolve-weal-module/index.js:2:2
+  ┌─ tests/statsCases/missing-module-resolve-weak-module/index.js:2:2
   │
 2 │     require.resolveWeak("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weal-module/index.js
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-module-resolve-weak-module/index.js
 
 "
 `;
@@ -672,7 +672,7 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 174,
+      "size": 330,
       "type": "asset",
     },
   ],
@@ -707,7 +707,38 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
               "userRequest": "./index",
             },
           ],
-          "size": 66,
+          "size": 62,
+          "type": "module",
+        },
+        {
+          "assets": [],
+          "chunks": [
+            "main",
+          ],
+          "id": "118",
+          "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module",
+          "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
+          "issuerId": "10",
+          "issuerName": "./index.js",
+          "issuerPath": [
+            {
+              "id": "10",
+              "identifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
+              "name": "./index.js",
+            },
+          ],
+          "moduleType": "javascript/auto",
+          "name": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing)",
+          "reasons": [
+            {
+              "moduleId": "10",
+              "moduleIdentifier": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
+              "moduleName": "./index.js",
+              "type": "require.resolve",
+              "userRequest": "./missing-module",
+            },
+          ],
+          "size": 160,
           "type": "module",
         },
       ],
@@ -716,7 +747,7 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
       ],
       "parents": [],
       "siblings": [],
-      "size": 66,
+      "size": 222,
       "type": "chunk",
     },
   ],
@@ -725,10 +756,10 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
       "assets": [
         {
           "name": "bundle.js",
-          "size": 174,
+          "size": 330,
         },
       ],
-      "assetsSize": 174,
+      "assetsSize": 330,
       "chunks": [
         "main",
       ],
@@ -737,7 +768,7 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "4d999ec4c90b3147",
+  "hash": "798258a29c9cd862",
   "modules": [
     {
       "assets": [],
@@ -755,12 +786,15 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
           "userRequest": "./index",
         },
       ],
-      "size": 66,
+      "size": 62,
       "type": "module",
     },
     {
       "assets": [],
-      "chunks": [],
+      "chunks": [
+        "main",
+      ],
+      "id": "118",
       "identifier": "missing|<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module",
       "issuer": "<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
       "issuerId": "10",
@@ -792,10 +826,10 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
       "assets": [
         {
           "name": "bundle.js",
-          "size": 174,
+          "size": 330,
         },
       ],
-      "assetsSize": 174,
+      "assetsSize": 330,
       "chunks": [
         "main",
       ],
@@ -809,8 +843,8 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
       "formatted": "warning[internal]: Resolve error
   ┌─ tests/statsCases/missing-require-resolve-module/index.js:2:2
   │
-2 │     require.resolveWeak("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js
+2 │     require.resolve("./missing-module");
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js
 
 ",
       "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js",
@@ -821,23 +855,25 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
 `;
 
 exports[`StatsTestCases should print correct stats for missing-require-resolve-module 2`] = `
-"Hash: 4d999ec4c90b3147
+"Hash: 798258a29c9cd862
     Asset       Size  Chunks             Chunk Names
-bundle.js  174 bytes    main  [emitted]  main
+bundle.js  330 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 66 bytes [entry]
- [10] ./index.js 66 bytes {main}
+chunk {main} bundle.js (main) 222 bytes [entry]
+ [10] ./index.js 62 bytes {main}
      entry ./index 
-[10] ./index.js 66 bytes {main}
+ [118] <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing) 160 bytes {main}
+     require.resolve ./missing-module [10]
+[10] ./index.js 62 bytes {main}
     entry ./index 
-<PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing) 160 bytes
+[118] <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module./missing-module (missing) 160 bytes {main}
     require.resolve ./missing-module [10]
 
 warning[internal]: Resolve error
   ┌─ tests/statsCases/missing-require-resolve-module/index.js:2:2
   │
-2 │     require.resolveWeak("./missing-module");
-  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js
+2 │     require.resolve("./missing-module");
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/missing-require-resolve-module/index.js
 
 "
 `;

@@ -1,4 +1,4 @@
 try {
-	require.resolveWeak("./missing-module");
+	require.resolve("./missing-module");
 } catch (err) {
 }
