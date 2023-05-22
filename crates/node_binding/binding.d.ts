@@ -183,6 +183,7 @@ export interface JsHooks {
   optimizeModules: (...args: any[]) => any
   optimizeChunkModule: (...args: any[]) => any
   beforeCompile: (...args: any[]) => any
+  afterCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any

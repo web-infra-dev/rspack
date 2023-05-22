@@ -18,6 +18,7 @@ pub struct JsHooks {
   pub optimize_modules: JsFunction,
   pub optimize_chunk_module: JsFunction,
   pub before_compile: JsFunction,
+  pub after_compile: JsFunction,
   pub finish_modules: JsFunction,
   pub before_resolve: JsFunction,
   pub after_resolve: JsFunction,

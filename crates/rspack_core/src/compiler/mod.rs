@@ -177,6 +177,13 @@ where
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 
+    self
+      .plugin_driver
+      .write()
+      .await
+      .after_compile(&mut self.compilation)
+      .await?;
+
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
     self
