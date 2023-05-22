@@ -120,6 +120,7 @@ class Compiler {
 		normalModuleFactory: tapable.SyncHook<NormalModuleFactory>;
 		contextModuleFactory: tapable.SyncHook<ContextModuleFactory>;
 		initialize: tapable.SyncHook<[]>;
+		shouldEmit: tapable.SyncBailHook<[Compilation], true>;
 		infrastructureLog: tapable.SyncBailHook<[string, string, any[]], true>;
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
@@ -220,6 +221,7 @@ class Compiler {
 			]),
 			invalid: new SyncHook(["filename", "changeTime"]),
 			compile: new SyncHook(["params"]),
+			shouldEmit: new SyncBailHook(["compilation"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
 			shutdown: new tapable.AsyncSeriesHook([]),
@@ -844,16 +846,18 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
-						this.compilation.startTime = startTime;
-						this.compilation.endTime = Date.now();
-						const stats = new Stats(this.compilation);
-						this.hooks.done.callAsync(stats, err => {
-							if (err) {
-								return finalCallback(err);
-							} else {
-								return finalCallback(null, stats);
-							}
-						});
+						if (!this.hooks.shouldEmit.call(this.compilation)) {
+							this.compilation.startTime = startTime;
+							this.compilation.endTime = Date.now();
+							const stats = new Stats(this.compilation);
+							this.hooks.done.callAsync(stats, err => {
+								if (err) {
+									return finalCallback(err);
+								} else {
+									return finalCallback(null, stats);
+								}
+							});
+						}
 					});
 				});
 			});
