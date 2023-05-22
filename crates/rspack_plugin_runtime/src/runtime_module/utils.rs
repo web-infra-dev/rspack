@@ -134,7 +134,7 @@ pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative
       chunk
         .content_hash
         .get(&SourceType::JavaScript)
-        .map(|i| i.as_str()),
+        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
     ),
   );
   get_undo_path(

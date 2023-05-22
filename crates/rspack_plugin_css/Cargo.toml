@@ -9,7 +9,6 @@ version    = "0.1.0"
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
-data-encoding = "2.3.3"
 heck = "0.4.1"
 indexmap = { workspace = true }
 itertools = { workspace = true }
@@ -20,6 +19,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
 rustc-hash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
@@ -38,7 +38,6 @@ swc_core = { workspace = true, features = [
   "css_minifier",
 ] }
 tracing = { workspace = true }
-xxhash-rust = { workspace = true, features = ["xxh3"] }
 
 [dev-dependencies]
 hrx-parser     = "0.1.1"

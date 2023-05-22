@@ -14,7 +14,7 @@ itertools                = { workspace = true }
 rayon                    = { workspace = true }
 rspack_core              = { path = "../rspack_core" }
 rspack_error             = { path = "../rspack_error" }
+rspack_hash              = { path = "../rspack_hash" }
 rspack_identifier        = { path = "../rspack_identifier" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rustc-hash               = { workspace = true }
-xxhash-rust              = { workspace = true, features = ["xxh3"] }

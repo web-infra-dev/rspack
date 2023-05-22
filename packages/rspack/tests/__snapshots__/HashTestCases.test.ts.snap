@@ -1,25 +1,99 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`HashTestCases should print correct hash for package-path-change-0 1`] = `
+exports[`HashTestCases should print correct hash for package-path-change 1`] = `
 [
-  "runtime.c8619618c466366e.js",
-  "main.006edd8022a70bcf.js",
-  "0.acf446aa3893e384.js",
-]
-`;
-
-exports[`HashTestCases should print correct hash for package-path-change-1 1`] = `
-[
-  "runtime.9afd7b04ab9cca9c.js",
-  "main.7b25b592d62c77bb.js",
-  "0.659bab60b9361e17.js",
+  [
+    "runtime.7f0586c7600d359b.js",
+    "main.ae283079747efd8d.js",
+    "package.21a0f1a5105d88e4.js",
+  ],
+  [
+    "runtime.7f0586c7600d359b.js",
+    "main.ae283079747efd8d.js",
+    "package.21a0f1a5105d88e4.js",
+  ],
+  [
+    "runtime.71203c76a737d38c.js",
+    "main.0fdf57f872d5389f.js",
+    "package.ddd6641e118aeb66.js",
+  ],
 ]
 `;
 
 exports[`HashTestCases should print correct hash for provided-dependency-order 1`] = `
 [
-  "main.7e4466459ed5d1d2-7e4466.js",
+  [
+    "main.b7f76a1f37a38298-b7f76a.js",
+  ],
+  [
+    "main.b7f76a1f37a38298-b7f76a.js",
+  ],
+  [
+    "main.b7f76a1f37a38298-b7f76a.js",
+  ],
+  [
+    "main.b7f76a1f37a38298-b7f76a.js",
+  ],
+  [
+    "main.3413524915649c45-341352.js",
+  ],
+  [
+    "main.3413524915649c45-341352.js",
+  ],
+  [
+    "main.3413524915649c45-341352.js",
+  ],
+  [
+    "main.3413524915649c45-341352.js",
+  ],
 ]
 `;
 
-exports[`HashTestCases should print correct hash for real-content-hash 1`] = `undefined`;
+exports[`HashTestCases should print correct hash for real-content-hash 1`] = `
+[
+  [
+    "runtime.66546ad8332df586-66546a.js",
+    "a.0cad82d24e4824cd-0cad82.js",
+    "b.499766d2f42c7059-499766.js",
+    "lazy.b11c3ade724ec4f2-b11c3a.js",
+    "index.e867fb69be45af6f-e867fb.js",
+    "2a8ac7e44ef93d74.jpg",
+    "2a8ac7e44ef93d74.png",
+  ],
+  [
+    "runtime.66546ad8332df586-66546a.js",
+    "a.0cad82d24e4824cd-0cad82.js",
+    "b.499766d2f42c7059-499766.js",
+    "lazy.b11c3ade724ec4f2-b11c3a.js",
+    "index.e867fb69be45af6f-e867fb.js",
+    "2a8ac7e44ef93d74.jpg",
+    "2a8ac7e44ef93d74.png",
+  ],
+  [
+    "runtime.0ce21e3a19b21d4c-0ce21e.js",
+    "a.2869db05a04e68ef-2869db.js",
+    "b.e331ef61335079bf-e331ef.js",
+    "lazy.55bb305d10d9d8ce-55bb30.js",
+    "lazy.55bb305d10d9d8ce-55bb30.js.map",
+    "index.a3169444d870ba3d-a31694.js.map",
+    "index.a3169444d870ba3d-a31694.js",
+    "b.e331ef61335079bf-e331ef.js.map",
+    "a.2869db05a04e68ef-2869db.js.map",
+    "2a8ac7e44ef93d74.jpg",
+    "2a8ac7e44ef93d74.png",
+  ],
+  [
+    "runtime.d8b86cf0f6a67fdf-d8b86c.js",
+    "a.2869db05a04e68ef-2869db.js",
+    "b.e331ef61335079bf-e331ef.js",
+    "lazy.55bb305d10d9d8ce-55bb30.js",
+    "lazy.55bb305d10d9d8ce-55bb30.js.map",
+    "index.a3169444d870ba3d-a31694.js",
+    "index.a3169444d870ba3d-a31694.js.map",
+    "b.e331ef61335079bf-e331ef.js.map",
+    "a.2869db05a04e68ef-2869db.js.map",
+    "2a8ac7e44ef93d74.jpg",
+    "2a8ac7e44ef93d74.png",
+  ],
+]
+`;

@@ -1,5 +1,4 @@
 use std::{
-  collections::HashMap,
   path::Path,
   sync::{Arc, Mutex},
 };
@@ -7,14 +6,15 @@ use std::{
 use rayon::prelude::*;
 use rspack_error::{Diagnostic, Result};
 use rspack_loader_runner::ResourceData;
+use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
-  Chunk, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content,
-  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
+  Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs,
+  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module,
+  ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
   PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
@@ -22,8 +22,8 @@ use crate::{
   PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
   PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
   PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
-  SourceType, Stats, ThisCompilationArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory, Stats,
+  ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -206,25 +206,23 @@ impl PluginDriver {
     Ok(())
   }
 
-  pub async fn content_hash(
-    &self,
-    args: &ContentHashArgs<'_>,
-  ) -> Result<Vec<Option<(SourceType, String)>>> {
-    let mut result = vec![];
+  pub async fn content_hash(&self, args: &ContentHashArgs<'_>) -> Result<ChunkContentHash> {
+    let mut result = HashMap::default();
     for plugin in &self.plugins {
-      let hash = plugin.content_hash(PluginContext::new(), args).await?;
-      result.push(hash);
+      if let Some((source_type, hash_digest)) =
+        plugin.content_hash(PluginContext::new(), args).await?
+      {
+        result.insert(source_type, hash_digest);
+      }
     }
     Ok(result)
   }
 
-  pub async fn chunk_hash(&self, args: &ChunkHashArgs<'_>) -> PluginChunkHashHookOutput {
+  pub async fn chunk_hash(&self, args: &mut ChunkHashArgs<'_>) -> PluginChunkHashHookOutput {
     for plugin in &self.plugins {
-      if let Some(hash) = plugin.chunk_hash(PluginContext::new(), args).await? {
-        return Ok(Some(hash));
-      }
+      plugin.chunk_hash(PluginContext::new(), args).await?
     }
-    Ok(None)
+    Ok(())
   }
 
   pub async fn render_manifest(

@@ -22,6 +22,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rspack_core = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
+rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_symbol = { path = "../rspack_symbol" }
@@ -49,4 +50,4 @@ swc_node_comments = { workspace = true }
 swc_plugin_import = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 url = "2.3.1"
-xxhash-rust = { workspace = true, features = ["xxh3", "xxh32"] }
+xxhash-rust = { version = "0.8.6", features = ["xxh32"] }

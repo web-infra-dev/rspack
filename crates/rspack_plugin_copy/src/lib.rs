@@ -1,6 +1,7 @@
 #![feature(let_chains)]
 use std::{
   fs,
+  hash::Hash,
   path::{Path, PathBuf, MAIN_SEPARATOR},
   sync::Arc,
 };
@@ -14,9 +15,9 @@ use rspack_core::{
   PathData, Pattern, Plugin, ToType,
 };
 use rspack_error::Diagnostic;
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use sugar_path::{AsPath, SugarPath};
 use tracing::Level;
-use xxhash_rust::xxh3::Xxh3;
 
 #[derive(Debug)]
 struct Logger(&'static str);
@@ -59,17 +60,22 @@ impl CopyPlugin {
     Self { patterns }
   }
 
-  fn get_content_hash(source: &RawSource) -> u64 {
-    let mut hasher = Xxh3::default();
+  fn get_content_hash(
+    source: &RawSource,
+    function: &HashFunction,
+    digest: &HashDigest,
+    salt: &HashSalt,
+  ) -> RspackHashDigest {
+    let mut hasher = RspackHash::with_salt(function, salt);
     match &source {
       RawSource::Buffer(buffer) => {
-        hasher.update(buffer);
+        buffer.hash(&mut hasher);
       }
       RawSource::Source(source) => {
-        hasher.update(source.as_bytes());
+        source.hash(&mut hasher);
       }
     }
-    hasher.digest()
+    hasher.digest(digest)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -187,13 +193,19 @@ impl CopyPlugin {
         source_filename.display()
       ));
 
-      let content_hash = format!("{:016x}", Self::get_content_hash(&source));
+      let content_hash = Self::get_content_hash(
+        &source,
+        &compilation.options.output.hash_function,
+        &compilation.options.output.hash_digest,
+        &compilation.options.output.hash_salt,
+      );
+      let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
       let template_str = compilation.get_asset_path(
         &Filename::from(filename.to_string_lossy().to_string()),
         PathData::default()
           .filename(&source_filename.to_string_lossy())
-          .content_hash(&content_hash)
-          .hash(&content_hash),
+          .content_hash(content_hash)
+          .hash_optional(compilation.get_hash()),
       );
 
       LOGGER.log(&format!(

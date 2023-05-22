@@ -7,6 +7,8 @@ use std::{
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_hash::RspackHash;
+pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use sugar_path::SugarPath;
 
 use crate::{
@@ -40,6 +42,16 @@ pub struct OutputOptions {
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
   pub source_map_filename: Filename,
+  pub hash_function: HashFunction,
+  pub hash_digest: HashDigest,
+  pub hash_digest_length: usize,
+  pub hash_salt: HashSalt,
+}
+
+impl From<&OutputOptions> for RspackHash {
+  fn from(value: &OutputOptions) -> Self {
+    Self::with_salt(&value.hash_function, &value.hash_salt)
+  }
 }
 
 #[derive(Debug)]

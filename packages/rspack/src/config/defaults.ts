@@ -396,6 +396,9 @@ const applyOutputDefaults = (
 		"publicPath",
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
+	D(output, "hashFunction", "xxhash64");
+	D(output, "hashDigest", "hex");
+	D(output, "hashDigestLength", 16);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));

@@ -1,14 +1,13 @@
 use std::borrow::Cow;
 use std::hash::Hash;
 
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::Result;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::{RawSource, Source, SourceExt};
 use serde_json::json;
 
 use crate::{
-  AstOrSource, BuildContext, BuildResult, CodeGenerationResult, Compilation, Module,
-  ModuleIdentifier, ModuleType, SourceType,
+  AstOrSource, CodeGenerationResult, Compilation, Module, ModuleIdentifier, ModuleType, SourceType,
 };
 
 #[derive(Debug, Eq)]
@@ -55,14 +54,7 @@ impl Module for MissingModule {
     160.0
   }
 
-  async fn build(
-    &mut self,
-    _build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    Ok(BuildResult::default().with_empty_diagnostic())
-  }
-
-  fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut code_gen = CodeGenerationResult::default().with_javascript(AstOrSource::Source(
       RawSource::from(format!(
         "throw new Error({});\n",
@@ -70,7 +62,11 @@ impl Module for MissingModule {
       ))
       .boxed(),
     ));
-    code_gen.set_hash();
+    code_gen.set_hash(
+      &compilation.options.output.hash_function,
+      &compilation.options.output.hash_digest,
+      &compilation.options.output.hash_salt,
+    );
     Ok(code_gen)
   }
 }

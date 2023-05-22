@@ -1,8 +1,7 @@
 use std::{
   borrow::Cow,
   fmt::Debug,
-  hash::BuildHasherDefault,
-  hash::{Hash, Hasher},
+  hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -15,6 +14,7 @@ use derivative::Derivative;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
+use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_loader_runner::{run_loaders, Content, ResourceData};
 use rspack_sources::{
@@ -23,14 +23,13 @@ use rspack_sources::{
 };
 use rustc_hash::FxHasher;
 use serde_json::json;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   contextify, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule, BuildContext,
-  BuildResult, CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerOptions,
-  Context, Dependency, GenerateContext, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
-  ModuleAst, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Resolve, SourceType,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, CodeReplaceSourceDependency,
+  Compilation, CompilerOptions, Context, Dependency, GenerateContext, LibIdentOptions,
+  LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -346,8 +345,8 @@ impl Module for NormalModule {
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    let mut build_info = Default::default();
-    let mut build_meta = Default::default();
+    let mut build_info = BuildInfo::default();
+    let mut build_meta = BuildMeta::default();
     let mut diagnostics = Vec::new();
 
     build_context
@@ -372,7 +371,18 @@ impl Module for NormalModule {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
         self.ast_or_source = NormalModuleAstOrSource::BuiltFailed(e.to_string());
-        return Ok(BuildResult::default().with_diagnostic(e.into()));
+        let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+        self.update_hash(&mut hasher);
+        build_meta.hash(&mut hasher);
+        build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+        return Ok(
+          BuildResult {
+            build_info,
+            build_meta: Default::default(),
+            dependencies: Vec::new(),
+          }
+          .with_diagnostic(e.into()),
+        );
       }
     };
     diagnostics.extend(ds);
@@ -412,10 +422,12 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
     self.code_replace_source_dependencies = Some(code_replace_source_dependencies);
-    let mut hasher = Xxh3::new();
-    self.hash(&mut hasher);
 
-    build_info.hash = hasher.finish();
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
+    build_meta.hash(&mut hasher);
+
+    build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
     build_info.cacheable = loader_result.cacheable;
     build_info.file_dependencies = loader_result.file_dependencies;
     build_info.context_dependencies = loader_result.context_dependencies;
@@ -453,7 +465,11 @@ impl Module for NormalModule {
           .map(|i| i, |s| CachedSource::new(s).boxed());
         code_generation_result.add(*source_type, generation_result);
       }
-      code_generation_result.set_hash();
+      code_generation_result.set_hash(
+        &compilation.options.output.hash_function,
+        &compilation.options.output.hash_digest,
+        &compilation.options.output.hash_salt,
+      );
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -468,7 +484,11 @@ impl Module for NormalModule {
           ),
         );
       }
-      code_generation_result.set_hash();
+      code_generation_result.set_hash(
+        &compilation.options.output.hash_function,
+        &compilation.options.output.hash_digest,
+        &compilation.options.output.hash_salt,
+      );
       Ok(code_generation_result)
     } else {
       Err(internal_error!(

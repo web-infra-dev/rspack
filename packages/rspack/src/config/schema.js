@@ -137,6 +137,33 @@ module.exports = {
 			type: "string",
 			absolutePath: false
 		},
+		HashDigest: {
+			description: "Digest type used for the hash.",
+			type: "string"
+		},
+		HashDigestLength: {
+			description: "Number of chars which are used for the hash.",
+			type: "number",
+			minimum: 1
+		},
+		HashFunction: {
+			description:
+				"Algorithm used for generation the hash (see node.js crypto package).",
+			anyOf: [
+				{
+					type: "string",
+					minLength: 1
+				},
+				{
+					instanceof: "Function"
+				}
+			]
+		},
+		HashSalt: {
+			description: "Any string which is added to the hash to salt it.",
+			type: "string",
+			minLength: 1
+		},
 		WebassemblyModuleFilename: {
 			description:
 				"The filename of WebAssembly modules as relative path inside the 'output.path' directory.",
@@ -383,8 +410,6 @@ module.exports = {
 					description:
 						"The function is called on each dependency (`function(context, request, callback(err, result))`).",
 					instanceof: "Function"
-					// tsType:
-					// 	"(((data: ExternalItemFunctionData, callback: (err?: Error, result?: ExternalItemValue) => void) => void) | ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>))"
 				}
 			]
 		},
@@ -752,7 +777,7 @@ module.exports = {
 			description: "Enable production optimizations or development hints.",
 			enum: ["development", "production", "none"]
 		},
-		ignoreWarnings: {
+		IgnoreWarnings: {
 			description: "ignore warnings based on pattern",
 			type: "array",
 			items: {
@@ -762,8 +787,6 @@ module.exports = {
 					},
 					{
 						instanceof: "Function"
-						// tsType:
-						// 	"(warning: Error, compilation: Compilation) => boolean"
 					}
 				]
 			}
@@ -1283,6 +1306,18 @@ module.exports = {
 				},
 				sourceMapFilename: {
 					$ref: "#/definitions/SourceMapFilename"
+				},
+				hashDigest: {
+					$ref: "#/definitions/HashDigest"
+				},
+				hashDigestLength: {
+					$ref: "#/definitions/HashDigestLength"
+				},
+				hashFunction: {
+					$ref: "#/definitions/HashFunction"
+				},
+				hashSalt: {
+					$ref: "#/definitions/HashSalt"
 				}
 			}
 		},
@@ -2229,7 +2264,7 @@ module.exports = {
 			additionalProperties: true
 		},
 		ignoreWarnings: {
-			$ref: "#/definitions/ignoreWarnings"
+			$ref: "#/definitions/IgnoreWarnings"
 		}
 	}
 };

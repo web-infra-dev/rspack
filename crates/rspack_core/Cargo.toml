@@ -31,6 +31,7 @@ rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
 rspack_fs = { path = "../rspack_fs", features = ["async"] }
 rspack_futures = { path = "../rspack_futures" }
+rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
 rspack_loader_runner = { path = "../rspack_loader_runner" }
 rspack_regex = { path = "../rspack_regex" }
@@ -75,4 +76,4 @@ tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test
 tracing = { workspace = true }
 url = { workspace = true }
 ustr = { workspace = true }
-xxhash-rust = { workspace = true, features = ["xxh3"] }
+xxhash-rust = { version = "0.8.6", features = ["xxh3"] }

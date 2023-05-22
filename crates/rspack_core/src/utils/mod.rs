@@ -26,9 +26,6 @@ pub use fast_actions::*;
 mod queue;
 pub use queue::*;
 
-mod ext;
-pub use ext::*;
-
 mod find_graph_roots;
 pub use find_graph_roots::*;
 

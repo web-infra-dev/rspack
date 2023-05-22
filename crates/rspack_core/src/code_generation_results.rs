@@ -1,12 +1,12 @@
 use std::collections::hash_map::Entry;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
 use anymap::CloneAny;
 use rspack_error::{internal_error, Result};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   AssetInfo, AstOrSource, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
@@ -95,7 +95,7 @@ pub struct CodeGenerationResult {
   pub data: CodeGenerationData,
   pub chunk_init_fragments: ChunkInitFragments,
   pub runtime_requirements: RuntimeGlobals,
-  pub hash: u64,
+  pub hash: Option<RspackHashDigest>,
 }
 
 impl CodeGenerationResult {
@@ -131,19 +131,24 @@ impl CodeGenerationResult {
     debug_assert!(result.is_none());
   }
 
-  pub fn set_hash(&mut self) {
-    let mut state = Xxh3::default();
+  pub fn set_hash(
+    &mut self,
+    hash_function: &HashFunction,
+    hash_digest: &HashDigest,
+    hash_salt: &HashSalt,
+  ) {
+    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
     for (source_type, generation_result) in &self.inner {
-      source_type.hash(&mut state);
+      source_type.hash(&mut hasher);
       if let Some(source) = generation_result.ast_or_source.as_source() {
-        source.hash(&mut state);
+        source.hash(&mut hasher);
       }
     }
     for (k, v) in &self.chunk_init_fragments {
-      k.hash(&mut state);
-      v.hash(&mut state);
+      k.hash(&mut hasher);
+      v.hash(&mut hasher);
     }
-    self.hash = state.finish();
+    self.hash = Some(hasher.digest(hash_digest));
   }
 }
 
@@ -242,11 +247,11 @@ impl CodeGenerationResults {
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> Option<u64> {
+  ) -> Option<&RspackHashDigest> {
     let code_generation_result = self
       .get(module_identifier, runtime)
       .expect("should have code generation result");
 
-    Some(code_generation_result.hash)
+    code_generation_result.hash.as_ref()
   }
 }
