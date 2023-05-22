@@ -298,6 +298,11 @@ const getRawModuleRule = (
 		resourceQuery: rule.resourceQuery
 			? getRawRuleSetCondition(rule.resourceQuery)
 			: undefined,
+		resourceFragment: rule.resourceFragment
+			? getRawRuleSetCondition(rule.resourceFragment)
+			: undefined,
+		scheme: rule.scheme ? getRawRuleSetCondition(rule.scheme) : undefined,
+		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
 		use: createRawModuleRuleUses(rule.use ?? [], options),
 		type: rule.type,

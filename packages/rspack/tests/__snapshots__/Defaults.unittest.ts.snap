@@ -67,7 +67,15 @@ exports[`snapshots should have the correct base config 1`] = `
   "module": {
     "defaultRules": [
       {
+        "mimetype": "application/node",
+        "type": "javascript/auto",
+      },
+      {
         "test": /\\\\\\.json\\$/i,
+        "type": "json",
+      },
+      {
+        "mimetype": "application/json",
         "type": "json",
       },
       {
@@ -107,6 +115,22 @@ exports[`snapshots should have the correct base config 1`] = `
         "type": "javascript/dynamic",
       },
       {
+        "mimetype": {
+          "or": [
+            "text/javascript",
+            "application/javascript",
+          ],
+        },
+        "resolve": {
+          "byDependency": {
+            "esm": {
+              "fullySpecified": true,
+            },
+          },
+        },
+        "type": "javascript/esm",
+      },
+      {
         "test": /\\\\\\.jsx\\$/i,
         "type": "jsx",
       },
@@ -138,8 +162,27 @@ exports[`snapshots should have the correct base config 1`] = `
         "test": /\\\\\\.css\\$/i,
       },
       {
+        "mimetype": "text/css+module",
+        "resolve": {
+          "fullySpecified": true,
+        },
+        "type": "css/module",
+      },
+      {
+        "mimetype": "text/css",
+        "resolve": {
+          "fullySpecified": true,
+          "preferRelative": true,
+        },
+        "type": "css",
+      },
+      {
         "dependency": "url",
         "oneOf": [
+          {
+            "scheme": /\\^data\\$/,
+            "type": "asset/inline",
+          },
           {
             "type": "asset/resource",
           },

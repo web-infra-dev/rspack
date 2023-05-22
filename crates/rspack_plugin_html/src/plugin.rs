@@ -15,7 +15,6 @@ use rspack_core::{
   CompilationAsset, Filename, PathData, Plugin,
 };
 use serde::Deserialize;
-use sugar_path::SugarPath;
 use swc_html::visit::VisitMutWith;
 
 use crate::{
@@ -182,9 +181,7 @@ impl Plugin for HtmlPlugin {
     let html_file_name = Filename::from(config.filename.clone());
     let (output_path, asset_info) = compilation.get_path_with_info(
       &html_file_name,
-      PathData::default()
-        .filename(&Path::new(&url).relative(&compilation.options.context))
-        .content_hash(&hash),
+      PathData::default().filename(&url).content_hash(&hash),
     );
     compilation.emit_asset(
       output_path,

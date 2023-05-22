@@ -1,12 +1,8 @@
-use std::path::Path;
-
 use super::JsAssetInfo;
 
 #[napi(object)]
 pub struct PathData {
   pub filename: Option<String>,
-  pub query: Option<String>,
-  pub fragment: Option<String>,
   pub hash: Option<String>,
   pub content_hash: Option<String>,
   pub runtime: Option<String>,
@@ -17,9 +13,7 @@ pub struct PathData {
 impl PathData {
   pub fn as_core_path_data(&self) -> rspack_core::PathData {
     rspack_core::PathData {
-      filename: self.filename.as_deref().map(Path::new),
-      query: self.query.as_deref(),
-      fragment: self.fragment.as_deref(),
+      filename: self.filename.as_deref(),
       chunk: None,
       module: None,
       hash: self.hash.as_deref(),

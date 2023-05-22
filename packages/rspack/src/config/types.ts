@@ -317,6 +317,8 @@ export interface RuleSetRule {
 	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;
+	scheme?: RuleSetCondition;
+	mimetype?: RuleSetCondition;
 	descriptionData?: {
 		[k: string]: RuleSetCondition;
 	};

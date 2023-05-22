@@ -2244,6 +2244,7 @@ dependencies = [
  "hashlink",
  "indexmap",
  "itertools",
+ "mime_guess",
  "nodejs-resolver",
  "once_cell",
  "paste",
@@ -2440,12 +2441,16 @@ dependencies = [
  "anyhow",
  "async-trait",
  "mime_guess",
+ "once_cell",
  "rayon",
+ "regex",
  "rspack_base64",
  "rspack_core",
  "rspack_error",
  "rspack_testing",
- "sugar_path",
+ "rspack_util",
+ "serde_json",
+ "urlencoding",
 ]
 
 [[package]]

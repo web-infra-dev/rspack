@@ -191,7 +191,7 @@ impl CopyPlugin {
       let template_str = compilation.get_asset_path(
         &Filename::from(filename.to_string_lossy().to_string()),
         PathData::default()
-          .filename(&source_filename)
+          .filename(&source_filename.to_string_lossy())
           .content_hash(&content_hash)
           .hash(&content_hash),
       );

@@ -4,12 +4,14 @@ use std::{
   string::ParseError,
 };
 
+use derivative::Derivative;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
 use sugar_path::SugarPath;
 
 use crate::{
-  AssetInfo, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Module, RuntimeSpec,
+  parse_resource, AssetInfo, Chunk, ChunkGraph, ChunkGroupByUkey, ChunkKind, Compilation, Module,
+  ResourceParsedData, RuntimeSpec,
 };
 
 #[derive(Debug)]
@@ -103,15 +105,20 @@ pub static CONTENT_HASH_PLACEHOLDER: Lazy<Regex> =
 pub static FULL_HASH_PLACEHOLDER: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"\[fullhash(:(\d*))?]").expect("Invalid regex"));
 
-#[derive(Debug, Default, Clone, Copy)]
+static DATA_URI_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^data:([^;,]+)").expect("Invalid regex"));
+
+#[derive(Derivative, Default, Clone, Copy)]
+#[derivative(Debug)]
 pub struct PathData<'a> {
-  pub filename: Option<&'a Path>,
-  pub query: Option<&'a str>,
-  pub fragment: Option<&'a str>,
+  pub filename: Option<&'a str>,
+  #[derivative(Debug = "ignore")]
   pub chunk: Option<&'a Chunk>,
+  #[derivative(Debug = "ignore")]
   pub module: Option<&'a dyn Module>,
   pub hash: Option<&'a str>,
   pub content_hash: Option<&'a str>,
+  #[derivative(Debug = "ignore")]
   pub chunk_graph: Option<&'a ChunkGraph>,
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
@@ -119,28 +126,8 @@ pub struct PathData<'a> {
 }
 
 impl<'a> PathData<'a> {
-  pub fn filename(mut self, v: &'a Path) -> Self {
+  pub fn filename(mut self, v: &'a str) -> Self {
     self.filename = Some(v);
-    self
-  }
-
-  pub fn query(mut self, v: &'a str) -> Self {
-    self.query = Some(v);
-    self
-  }
-
-  pub fn query_optional(mut self, v: Option<&'a str>) -> Self {
-    self.query = v;
-    self
-  }
-
-  pub fn fragment(mut self, v: &'a str) -> Self {
-    self.fragment = Some(v);
-    self
-  }
-
-  pub fn fragment_optional(mut self, v: Option<&'a str>) -> Self {
-    self.fragment = v;
     self
   }
 
@@ -232,30 +219,55 @@ impl Filename {
   pub fn render(&self, options: PathData, mut asset_info: Option<&mut AssetInfo>) -> String {
     let mut template = self.template.clone();
     if let Some(filename) = options.filename {
-      template = template.replace(FILE_PLACEHOLDER, &filename.to_string_lossy());
-      template = template.replace(
-        EXT_PLACEHOLDER,
-        &filename
-          .extension()
-          .map(|p| format!(".{}", p.to_string_lossy()))
-          .unwrap_or_default(),
-      );
-      if let Some(base) = filename.file_name().map(|p| p.to_string_lossy()) {
-        template = template.replace(BASE_PLACEHOLDER, &base);
+      if let Some(caps) = DATA_URI_REGEX.captures(filename) {
+        let ext = mime_guess::get_mime_extensions_str(
+          caps
+            .get(1)
+            .expect("should match mime for data uri")
+            .as_str(),
+        )
+        .map(|exts| exts[0]);
+        template = template.replace(FILE_PLACEHOLDER, "");
+        template = template.replace(QUERY_PLACEHOLDER, "");
+        template = template.replace(FRAGMENT_PLACEHOLDER, "");
+        template = template.replace(PATH_PLACEHOLDER, "");
+        template = template.replace(BASE_PLACEHOLDER, "");
+        template = template.replace(NAME_PLACEHOLDER, "");
+        template = template.replace(
+          EXT_PLACEHOLDER,
+          &ext.map(|ext| format!(".{}", ext)).unwrap_or_default(),
+        );
+      } else if let Some(ResourceParsedData {
+        path: file,
+        query,
+        fragment,
+      }) = parse_resource(filename)
+      {
+        template = template.replace(FILE_PLACEHOLDER, &file.to_string_lossy());
+        template = template.replace(
+          EXT_PLACEHOLDER,
+          &file
+            .extension()
+            .map(|p| format!(".{}", p.to_string_lossy()))
+            .unwrap_or_default(),
+        );
+        if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
+          template = template.replace(BASE_PLACEHOLDER, &base);
+        }
+        if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
+          template = template.replace(NAME_PLACEHOLDER, &name);
+        }
+        template = template.replace(
+          PATH_PLACEHOLDER,
+          &file
+            .parent()
+            .map(|p| p.to_string_lossy() + "/")
+            .unwrap_or_default(),
+        );
+        template = template.replace(QUERY_PLACEHOLDER, &query.unwrap_or_default());
+        template = template.replace(FRAGMENT_PLACEHOLDER, &fragment.unwrap_or_default());
       }
-      if let Some(name) = filename.file_stem().map(|p| p.to_string_lossy()) {
-        template = template.replace(NAME_PLACEHOLDER, &name);
-      }
-      template = template.replace(
-        PATH_PLACEHOLDER,
-        &filename
-          .parent()
-          .map(|p| p.to_string_lossy() + "/")
-          .unwrap_or_default(),
-      );
     }
-    template = template.replace(QUERY_PLACEHOLDER, options.query.unwrap_or_default());
-    template = template.replace(FRAGMENT_PLACEHOLDER, options.fragment.unwrap_or_default());
     if let Some(content_hash) = options.content_hash {
       template = CONTENT_HASH_PLACEHOLDER
         .replace_all(&template, |caps: &Captures| {

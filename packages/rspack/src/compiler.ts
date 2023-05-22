@@ -633,12 +633,16 @@ class Compiler {
 	}
 
 	async #normalModuleFactoryResolveForScheme(
-		resourceData: binding.SchemeAndJsResourceData
-	) {
-		await this.compilation.normalModuleFactory?.hooks.resolveForScheme
-			.for(resourceData.scheme)
-			.promise(resourceData.resourceData);
-		return resourceData.resourceData;
+		input: binding.JsResolveForSchemeInput
+	): Promise<binding.JsResolveForSchemeResult> {
+		let stop =
+			await this.compilation.normalModuleFactory?.hooks.resolveForScheme
+				.for(input.scheme)
+				.promise(input.resourceData);
+		return {
+			resourceData: input.resourceData,
+			stop: stop === true
+		};
 	}
 
 	async #optimize_chunk_modules() {
