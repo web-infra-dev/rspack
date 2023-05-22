@@ -1,4 +1,4 @@
-use rspack_core::{NormalModuleBeforeResolveArgs, ResourceData};
+use rspack_core::{NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ResourceData};
 
 #[napi(object)]
 pub struct JsResolveForSchemeInput {
@@ -16,6 +16,15 @@ pub struct JsResolveForSchemeResult {
 pub struct BeforeResolveData {
   pub request: String,
   pub context: Option<String>,
+}
+
+#[napi(object)]
+pub struct AfterResolveData {
+  pub request: String,
+  pub context: Option<String>,
+  pub file_dependencies: Vec<String>,
+  pub context_dependencies: Vec<String>,
+  pub missing_dependencies: Vec<String>,
 }
 
 #[napi(object)]
@@ -55,6 +64,33 @@ impl From<NormalModuleBeforeResolveArgs<'_>> for BeforeResolveData {
     Self {
       context: value.context.to_owned(),
       request: value.request.to_string(),
+    }
+  }
+}
+
+impl From<NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
+  fn from(value: NormalModuleAfterResolveArgs) -> Self {
+    Self {
+      context: value.context.to_owned(),
+      request: value.request.to_string(),
+      file_dependencies: value
+        .file_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
+      context_dependencies: value
+        .context_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
+      missing_dependencies: value
+        .context_dependencies
+        .clone()
+        .into_iter()
+        .map(|item| item.to_string_lossy().to_string())
+        .collect::<Vec<_>>(),
     }
   }
 }

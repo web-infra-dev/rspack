@@ -85,6 +85,14 @@ export class Rspack {
   unsafe_drop(): void
 }
 
+export interface AfterResolveData {
+  request: string
+  context?: string
+  fileDependencies: Array<string>
+  contextDependencies: Array<string>
+  missingDependencies: Array<string>
+}
+
 export interface BeforeResolveData {
   request: string
   context?: string
@@ -177,6 +185,7 @@ export interface JsHooks {
   beforeCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
+  afterResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any

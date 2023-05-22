@@ -9,10 +9,10 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
   ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
   FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
-  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType,
-  ThisCompilationArgs,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -26,6 +26,7 @@ pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
 pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
+pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
 pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
 pub type PluginChunkHashHookOutput = Result<Option<u64>>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
@@ -94,6 +95,14 @@ pub trait Plugin: Debug + Send + Sync {
     _ctx: PluginContext,
     _args: &NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    Ok(None)
+  }
+
+  async fn after_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleAfterResolveArgs,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
     Ok(None)
   }
 

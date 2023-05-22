@@ -17,8 +17,8 @@ use crate::{
   DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
   ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleBeforeResolveArgs, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, RawModule, Resolve, ResolveArgs,
+  ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
   ResourceParsedData, SharedPluginDriver,
 };
 
@@ -34,12 +34,17 @@ pub struct NormalModuleFactory {
 impl ModuleFactory for NormalModuleFactory {
   async fn create(
     mut self,
-    data: ModuleFactoryCreateData,
+    mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     if let Ok(Some(before_resolve_data)) = self.before_resolve(&data).await {
       return Ok(before_resolve_data);
     }
-    Ok(self.factorize(data).await?)
+    let (factory_result, diagnostics) = self.factorize(&mut data).await?.split_into_parts();
+    if let Ok(Some(after_resolve_data)) = self.after_resolve(&data, &factory_result).await {
+      return Ok(after_resolve_data);
+    }
+
+    Ok(factory_result.with_diagnostic(diagnostics))
   }
 }
 
@@ -105,9 +110,56 @@ impl NormalModuleFactory {
     Ok(None)
   }
 
+  pub async fn after_resolve(
+    &mut self,
+    data: &ModuleFactoryCreateData,
+    factory_result: &ModuleFactoryResult,
+  ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    if let Ok(Some(false)) = self
+      .plugin_driver
+      .read()
+      .await
+      .after_resolve(NormalModuleAfterResolveArgs {
+        request: data.dependency.request(),
+        context: &data.context,
+        file_dependencies: &factory_result.file_dependencies,
+        context_dependencies: &factory_result.context_dependencies,
+        missing_dependencies: &factory_result.missing_dependencies,
+      })
+      .await
+    {
+      let importer = self.context.original_resource_path.as_ref();
+      let importer_with_context = if let Some(importer) = importer {
+        Path::new(importer)
+          .parent()
+          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+          .to_path_buf()
+      } else {
+        PathBuf::from(self.context.options.context.as_path())
+      };
+      let request_without_match_resource = data.dependency.request();
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
+      let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
+
+      let missing_module = MissingModule::new(
+        module_identifier,
+        format!("{ident} (missing)"),
+        format!("Failed to resolve {request_without_match_resource}"),
+      )
+      .boxed();
+      self.context.module_type = Some(*missing_module.module_type());
+      return Ok(Some(
+        ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
+      ));
+    }
+    Ok(None)
+  }
   pub async fn factorize_normal_module(
     &mut self,
-    data: ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let importer = self.context.original_resource_path.as_ref();
     let importer_with_context = if let Some(importer) = importer {
@@ -210,8 +262,7 @@ impl NormalModuleFactory {
             {
               Some((pos, _)) => &request_without_match_resource[pos..],
               None => {
-                let dependency = data.dependency;
-                unreachable!("Invalid dependency: {dependency:?}")
+                unreachable!("Invalid dependency: {:?}", &data.dependency)
               }
             }
           } else {
@@ -242,7 +293,7 @@ impl NormalModuleFactory {
           }) {
             Some((pos, _)) => &request_without_match_resource[pos..],
             None => {
-              let dependency = data.dependency;
+              let dependency = &data.dependency;
               unreachable!("Invalid dependency: {dependency:?}")
             }
           };
@@ -273,12 +324,14 @@ impl NormalModuleFactory {
 
       let resolve_args = ResolveArgs {
         importer,
-        context: data.context,
+        context: data.context.clone(),
         specifier: request_without_match_resource,
         dependency_type: data.dependency.dependency_type(),
         dependency_category: data.dependency.category(),
         span: data.dependency.span().cloned(),
-        resolve_options: data.resolve_options,
+        // take the options is safe here, because it
+        // is not used in after_resolve hooks
+        resolve_options: data.resolve_options.take(),
         resolve_to_context: false,
         optional,
         file_dependencies: &mut file_dependencies,
@@ -564,7 +617,7 @@ impl NormalModuleFactory {
 
   pub async fn factorize(
     &mut self,
-    data: ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let result = self
       .plugin_driver
