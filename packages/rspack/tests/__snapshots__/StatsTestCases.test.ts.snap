@@ -672,7 +672,7 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 330,
+      "size": 335,
       "type": "asset",
     },
   ],
@@ -756,10 +756,10 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
       "assets": [
         {
           "name": "bundle.js",
-          "size": 330,
+          "size": 335,
         },
       ],
-      "assetsSize": 330,
+      "assetsSize": 335,
       "chunks": [
         "main",
       ],
@@ -768,7 +768,7 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "798258a29c9cd862",
+  "hash": "c8f817d226fa3736",
   "modules": [
     {
       "assets": [],
@@ -826,10 +826,10 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
       "assets": [
         {
           "name": "bundle.js",
-          "size": 330,
+          "size": 335,
         },
       ],
-      "assetsSize": 330,
+      "assetsSize": 335,
       "chunks": [
         "main",
       ],
@@ -855,9 +855,9 @@ exports[`StatsTestCases should print correct stats for missing-require-resolve-m
 `;
 
 exports[`StatsTestCases should print correct stats for missing-require-resolve-module 2`] = `
-"Hash: 798258a29c9cd862
+"Hash: c8f817d226fa3736
     Asset       Size  Chunks             Chunk Names
-bundle.js  330 bytes    main  [emitted]  main
+bundle.js  335 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 222 bytes [entry]
  [10] ./index.js 62 bytes {main}
