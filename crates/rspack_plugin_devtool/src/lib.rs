@@ -112,7 +112,7 @@ impl Plugin for DevtoolPlugin {
         source.map(&MapOptions::new(self.columns)).map(|mut map| {
           map.set_file(Some(filename.clone()));
           for source in map.sources_mut() {
-            let source_path = contextify(&context, &source);
+            let source_path = contextify(&context, source);
             let uri = normalize_custom_filename(&source_path);
             let resource_path = if let Some(relative_path) = diff_paths(uri, &context) {
               relative_path.to_string_lossy().to_string()
@@ -237,7 +237,7 @@ pub fn wrap_eval_source_map(
   compilation: &Compilation,
 ) -> Result<BoxSource> {
   for source in map.sources_mut() {
-    let source_path = contextify(&compilation.options.context, &source);
+    let source_path = contextify(&compilation.options.context, source);
     let uri = normalize_custom_filename(&source_path);
     *source = if let Some(relative_path) = diff_paths(uri, &*compilation.options.context) {
       relative_path.to_string_lossy().to_string()
