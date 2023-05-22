@@ -16,7 +16,8 @@ use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunc
 use rspack_napi_shared::NapiResultExt;
 
 use crate::js_values::{
-  AfterResolveData, BeforeResolveData, JsChunkAssetArgs, JsResourceData, SchemeAndJsResourceData,
+  AfterResolveData, BeforeResolveData, JsChunkAssetArgs, JsResolveForSchemeInput,
+  JsResolveForSchemeResult,
 };
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 

@@ -19,11 +19,11 @@ use crate::{
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
   PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginNormalModuleFactoryResolveForSchemeOutput, PluginProcessAssetsOutput,
-  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
-  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, ResolverFactory, SourceType, Stats, ThisCompilationArgs,
+  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
+  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
+  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory,
+  SourceType, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
