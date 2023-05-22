@@ -18,6 +18,7 @@ const { parseResource } = require("./lib/util/identifier");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
+const { getNormalizedFilterName } = require('./lib/util/filterUtil')
 
 const casesPath = path.join(__dirname, "configCases");
 const categories = fs.readdirSync(casesPath).map(cat => {

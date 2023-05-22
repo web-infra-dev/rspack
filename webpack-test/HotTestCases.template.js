@@ -8,6 +8,7 @@ const vm = require("vm");
 const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
+const { getNormalizedFilterName } = require('./lib/util/filterUtil')
 
 const casesPath = path.join(__dirname, "hotCases");
 let categories = fs

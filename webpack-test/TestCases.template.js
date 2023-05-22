@@ -12,6 +12,7 @@ const deprecationTracking = require("./helpers/deprecationTracking");
 const captureStdio = require("./helpers/captureStdio");
 const asModule = require("./helpers/asModule");
 const filterInfraStructureErrors = require("./helpers/infrastructureLogErrors");
+const { getNormalizedFilterName } = require('./lib/util/filterUtil')
 
 const casesPath = path.join(__dirname, "cases");
 let categories = fs.readdirSync(casesPath);

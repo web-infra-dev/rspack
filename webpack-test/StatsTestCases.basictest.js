@@ -6,6 +6,7 @@ const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
 const webpack = require("@rspack/core").rspack;
+const { getNormalizedFilterName } = require('./lib/util/filterUtil')
 
 /**
  * Escapes regular expression metacharacters
@@ -33,7 +34,7 @@ const tests = fs
 			let flag = require(filterPath)()
 			let normalizedName = getNormalizedFilterName(flag, testName);
 			if (normalizedName.length > 0) {
-				describe.skip(normalizedName, () => it("filtered"));
+				describe.skip(normalizedName, () => it("filtered", () => {}));
 				return false;
 			}
 		}
