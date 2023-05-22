@@ -153,6 +153,10 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
 		fallback: getRawAlias(resolve.fallback),
+		extensionAlias: getRawAlias(resolve.extensionAlias) as Record<
+			string,
+			Array<string>
+		>,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }

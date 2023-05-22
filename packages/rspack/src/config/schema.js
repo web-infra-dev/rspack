@@ -1404,6 +1404,29 @@ module.exports = {
 						type: "string"
 					}
 				},
+				extensionAlias: {
+					description: "An object which maps extension to extension aliases.",
+					type: "object",
+					additionalProperties: {
+						description: "Extension alias.",
+						anyOf: [
+							{
+								description: "Multiple extensions.",
+								type: "array",
+								items: {
+									description: "Aliased extension.",
+									type: "string",
+									minLength: 1
+								}
+							},
+							{
+								description: "Aliased extension.",
+								type: "string",
+								minLength: 1
+							}
+						]
+					}
+				},
 				extensions: {
 					description:
 						"Extensions added to the request when trying to find the file.",

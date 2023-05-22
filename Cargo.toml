@@ -25,7 +25,7 @@ json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc-rust      = { version = "0.2" }
 mime_guess         = { version = "2.0.4" }
-nodejs-resolver    = { version = "0.0.84" }
+nodejs-resolver    = { version = "0.0.86" }
 once_cell          = { version = "1.17.1" }
 paste              = { version = "1.0" }
 pathdiff           = { version = "0.2.1" }
