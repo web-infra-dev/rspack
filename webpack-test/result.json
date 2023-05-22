@@ -1,0 +1,5 @@
+
+> webpack-test@0.0.6 test:metric:json /home/victor/Documents/rspack/rspack/webpack-test
+> node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand --bail --json
+
+ ELIFECYCLE  Command failed.
