@@ -31,7 +31,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.target }}
-      tests: true
 
   build-pr:
     if: github.ref_name != 'main'
@@ -43,4 +42,3 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.target }}
-      tests: true
