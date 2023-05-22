@@ -580,7 +580,7 @@ class Compiler {
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
-			chunkAsset: this.compilation.hooks.chunkAsset
+			chunkAsset: this.compilation.hooks.chunkAsset,
 			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve
 		};
