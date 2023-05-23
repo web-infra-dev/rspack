@@ -179,13 +179,13 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
 
   let alias = overwrite(base.alias, other.alias, |pre, mut now| {
     now.extend(pre.into_iter());
-    let now: indexmap::IndexSet<(String, Vec<AliasMap>)> = now.into_iter().collect();
-    now.into_iter().collect()
+    now.dedup();
+    now
   });
   let fallback = overwrite(base.fallback, other.fallback, |pre, mut now| {
     now.extend(pre.into_iter());
-    let now: indexmap::IndexSet<(String, Vec<AliasMap>)> = now.into_iter().collect();
-    now.into_iter().collect()
+    now.dedup();
+    now
   });
   let prefer_relative = overwrite(base.prefer_relative, other.prefer_relative, |_, value| {
     value
@@ -222,8 +222,8 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     other.extension_alias,
     |pre, mut now| {
       now.extend(pre.into_iter());
-      let now: indexmap::IndexSet<(String, Vec<String>)> = now.into_iter().collect();
-      now.into_iter().collect()
+      now.dedup();
+      now
     },
   );
   Resolve {
