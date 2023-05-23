@@ -68,7 +68,9 @@ impl ResolveModuleOccasion {
     let data = generator(args).await?;
     let mut paths = Vec::new();
     if let ResolveResult::Resource(resource) = &data {
-      paths.push(resource.path.as_path());
+      if resource.path.is_file() {
+        paths.push(resource.path.as_path());
+      }
     }
 
     let snapshot = self
