@@ -66,21 +66,6 @@ jobs:
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Release Nightly
-        uses: web-infra-dev/actions@v2
-        with:
-          version: "canary"
-          npmTag: "nightly"
-          type: "release"
-          branch: ""
-          tools: "changeset"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
-          ONLY_RELEASE_TAG: true
-
       - name: Release Full
         uses: web-infra-dev/actions@v2
         with:
