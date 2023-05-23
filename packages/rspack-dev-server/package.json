@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rimraf dist/ && tsc",
     "dev": "tsc -w",
-    "test": "rimraf .test-temp && jest --runInBand --verbose"
+    "test": "rimraf .test-temp && jest --runInBand"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

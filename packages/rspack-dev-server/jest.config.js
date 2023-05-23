@@ -9,10 +9,4 @@ const config = {
 	testTimeout: process.env.CI ? 120000 : 30000
 };
 
-if (process.env.CI) {
-	config.reporters = [["github-actions", { silent: false }], "summary"];
-} else {
-	config.reporters = ["default"];
-}
-
 module.exports = config;
