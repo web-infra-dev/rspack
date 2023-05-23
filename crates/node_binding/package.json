@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",

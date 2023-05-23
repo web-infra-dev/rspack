@@ -1,5 +1,11 @@
 # @rspack/binding
 
+## 0.1.12
+
+### Patch Changes
+
+- 8164d424: feat(new_split_chunks): support max_size
+
 ## 0.1.11
 
 ### Patch Changes

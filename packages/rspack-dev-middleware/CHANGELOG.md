@@ -1,5 +1,12 @@
 # @rspack/dev-middleware
 
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies [ab318de0]
+  - @rspack/core@0.1.12
+
 ## 0.1.11
 
 ### Patch Changes
