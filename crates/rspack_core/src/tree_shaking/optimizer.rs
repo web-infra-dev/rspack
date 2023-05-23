@@ -79,8 +79,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       analyze_result_map
     };
-    let mut analyze_result_map = par_analyze_module(self.compilation).await;
-    let mut analyze_result_map = parallelize_analyze_module(self.compilation).await;
+    let analyze_result_map = par_analyze_module(self.compilation).await;
 
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
