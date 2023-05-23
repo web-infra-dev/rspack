@@ -11,9 +11,9 @@ const convertSourceToString = source => {
 
 class AssetValidatorPlugin {
 	apply(compiler) {
-		compiler.hooks.shouldEmit.tap("AssetValidatorPlugin", compilation => {
-			this.validateAssets(compilation);
-		});
+		compiler.hooks.shouldEmit.tap("AssetValidatorPlugin", compilation =>
+			this.validateAssets(compilation)
+		);
 	}
 
 	validateAssets(compilation) {
@@ -28,6 +28,8 @@ class AssetValidatorPlugin {
 			const matches = contents.match(regex);
 
 			if (matches) {
+				// could be also false
+				// return false;
 				throw new Error(
 					"Our tool has identified the presence of the string 'MY_SUPER_SECRET' in your compiled code. Compilation has been aborted."
 				);
