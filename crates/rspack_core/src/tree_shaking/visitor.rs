@@ -206,7 +206,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     uri: ModuleIdentifier,
     dep_to_module_identifier: &'a ModuleGraph,
     options: &'a Arc<CompilerOptions>,
-    _comments: Option<&'a SwcComments>,
+    comments: Option<&'a SwcComments>,
   ) -> Self {
     Self {
       top_level_mark: mark_info.top_level_mark,
@@ -231,6 +231,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
       potential_top_mark: HashSet::from_iter([mark_info.top_level_mark]),
+      comments,
     }
   }
 
