@@ -846,18 +846,26 @@ class Compiler {
 						if (err) {
 							return finalCallback(err);
 						}
-						if (!this.hooks.shouldEmit.call(this.compilation)) {
-							this.compilation.startTime = startTime;
-							this.compilation.endTime = Date.now();
-							const stats = new Stats(this.compilation);
-							this.hooks.done.callAsync(stats, err => {
-								if (err) {
-									return finalCallback(err);
-								} else {
-									return finalCallback(null, stats);
-								}
-							});
+
+						try {
+							// @ts-expect-error
+							if (this.hooks.shouldEmit.call(this.compilation) === false) {
+								return;
+							}
+						} catch (e) {
+							return finalCallback(e);
 						}
+
+						this.compilation.startTime = startTime;
+						this.compilation.endTime = Date.now();
+						const stats = new Stats(this.compilation);
+						this.hooks.done.callAsync(stats, err => {
+							if (err) {
+								return finalCallback(err);
+							} else {
+								return finalCallback(null, stats);
+							}
+						});
 					});
 				});
 			});

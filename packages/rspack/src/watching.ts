@@ -238,7 +238,7 @@ class Watching {
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
 			if (err) return this._done(err, null);
 
-			if (this.compiler.hooks.shouldEmit.call(this.compiler.compilation)) {
+			if (!this.compiler.hooks.shouldEmit.call(this.compiler.compilation)) {
 				return this._done(null, this.compiler.compilation);
 			}
 
