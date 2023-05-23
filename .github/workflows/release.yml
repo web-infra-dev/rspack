@@ -7,7 +7,7 @@ on:
         type: choice
         description: "Release Version(canary, alpha, beta, latest)"
         required: true
-        default: "canary"
+        default: "latest"
         options:
           - canary
           - alpha
@@ -66,11 +66,26 @@ jobs:
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Release
+      - name: Release Nightly
+        uses: web-infra-dev/actions@v2
+        with:
+          version: "canary"
+          npmTag: "nightly"
+          type: "release"
+          branch: ""
+          tools: "changeset"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          ONLY_RELEASE_TAG: true
+
+      - name: Release Full
         uses: web-infra-dev/actions@v2
         with:
           # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
+          version: ${{ inputs.version }}
           type: "release"
           branch: ${{ github.ref_name }}
           tools: "changeset"
