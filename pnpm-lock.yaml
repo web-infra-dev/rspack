@@ -96,17 +96,6 @@ importers:
       '@napi-rs/cli': 2.14.2
       memfs: 3.4.12
 
-  examples/amd:
-    specifiers:
-      '@rspack/cli': workspace:*
-      react: ^18.2.0
-      react-dom: ^18.2.0
-    dependencies:
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-    devDependencies:
-      '@rspack/cli': link:../../packages/rspack-cli
-
   examples/angular:
     specifiers:
       '@angular-devkit/build-angular': ^16.0.0
