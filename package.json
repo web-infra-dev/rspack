@@ -54,7 +54,6 @@
     "@taplo/cli": "^0.5.2",
     "@types/jest": "29.1.0",
     "@types/node": "16",
-    "@types/node": "16",
     "@types/rimraf": "3.0.2",
     "commander": "10.0.1",
     "cross-env": "^7.0.3",
@@ -81,5 +80,10 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0"
+  "packageManager": "pnpm@7.32.0",
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "0.1.12"
+    }
+  }
 }
