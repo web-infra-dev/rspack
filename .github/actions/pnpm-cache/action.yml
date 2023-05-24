@@ -11,17 +11,39 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Install Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+
     # https://pnpm.io/continuous-integration#github-actions
     # Uses `packageManagement` field from package.json
     - name: Install pnpm
       uses: pnpm/action-setup@v2
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ inputs.node-version }}
-        cache: 'pnpm'
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-    - name: Install Npm Dependencies
+    - name: Setup pnpm cache
+      uses: actions/cache@v3
+      if: github.ref_name == 'main' # Only save cache on main branch
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          node-cache-${{ runner.os }}-pnpm-
+
+    - name: Setup pnpm cache
+      uses: actions/cache/restore@v3 # Note: this is `restore`, not `save`
+      if: github.ref_name != 'main' # Only restore cache on non-main branch
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          node-cache-${{ runner.os }}-pnpm-
+
+    - name: Install dependencies
       shell: bash
       run: pnpm install --no-frozen-lockfile
