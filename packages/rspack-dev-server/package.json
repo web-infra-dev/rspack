@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "build": "rimraf dist/ && tsc",
     "dev": "tsc -w",
-    "test": "rimraf .test-temp && jest --runInBand --verbose"
+    "test": "rimraf .test-temp && jest --runInBand"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",

@@ -282,6 +282,20 @@ describe("snapshots", () => {
 		+         ],
 		+         "test": /\\.wasm$/i,
 		+         "type": "webassembly/async",
+		+       },
+		+       Object {
+		+         "mimetype": "application/wasm",
+		+         "rules": Array [
+		+           Object {
+		+             "descriptionData": Object {
+		+               "type": "module",
+		+             },
+		+             "resolve": Object {
+		+               "fullySpecified": true,
+		+             },
+		+           },
+		+         ],
+		+         "type": "webassembly/async",
 	`)
 	);
 
@@ -312,6 +326,20 @@ describe("snapshots", () => {
 			+           },
 			+         ],
 			+         "test": /\\.wasm$/i,
+			+         "type": "webassembly/async",
+			+       },
+			+       Object {
+			+         "mimetype": "application/wasm",
+			+         "rules": Array [
+			+           Object {
+			+             "descriptionData": Object {
+			+               "type": "module",
+			+             },
+			+             "resolve": Object {
+			+               "fullySpecified": true,
+			+             },
+			+           },
+			+         ],
 			+         "type": "webassembly/async",
 		`)
 	);
@@ -1056,6 +1084,21 @@ describe("snapshots", () => {
 			-           },
 			-         ],
 			-         "test": /\\.css$/i,
+			-       },
+			-       Object {
+			-         "mimetype": "text/css+module",
+			-         "resolve": Object {
+			-           "fullySpecified": true,
+			-         },
+			-         "type": "css/module",
+			-       },
+			-       Object {
+			-         "mimetype": "text/css",
+			-         "resolve": Object {
+			-           "fullySpecified": true,
+			-           "preferRelative": true,
+			-         },
+			-         "type": "css",
 		`)
 	);
 });

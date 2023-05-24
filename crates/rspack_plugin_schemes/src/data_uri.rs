@@ -18,22 +18,39 @@ impl Plugin for DataUriPlugin {
   async fn normal_module_factory_resolve_for_scheme(
     &self,
     _ctx: PluginContext,
-    args: &ResourceData,
+    resource_data: ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    if let Some(captures) = URI_REGEX.captures(&args.resource)
-    && let Some(mimetype) = captures.get(1)
-    && let Some(parameters) = captures.get(2)
-    && let Some(encoding) = captures.get(3)
-    && let Some(encoded_content) = captures.get(4) {
-      let resource_data = args.clone();
-      return Ok(Some(resource_data
-        .mimetype(mimetype.as_str().to_owned())
-        .parameters(parameters.as_str().to_owned())
-        .encoding(encoding.as_str().to_owned())
-        .encoded_content(encoded_content.as_str().to_owned())
-      ))
+    if let Some(captures) = URI_REGEX.captures(&resource_data.resource) {
+      let mimetype = captures
+        .get(1)
+        .map(|i| i.as_str())
+        .unwrap_or_default()
+        .to_owned();
+      let parameters = captures
+        .get(2)
+        .map(|i| i.as_str())
+        .unwrap_or_default()
+        .to_owned();
+      let encoding = captures
+        .get(3)
+        .map(|i| i.as_str())
+        .unwrap_or_default()
+        .to_owned();
+      let encoded_content = captures
+        .get(4)
+        .map(|i| i.as_str())
+        .unwrap_or_default()
+        .to_owned();
+      return Ok((
+        resource_data
+          .mimetype(mimetype)
+          .parameters(parameters)
+          .encoding(encoding)
+          .encoded_content(encoded_content),
+        false,
+      ));
     }
-    Ok(None)
+    Ok((resource_data, false))
   }
 
   async fn read_resource(&self, resource_data: &ResourceData) -> PluginReadResourceOutput {

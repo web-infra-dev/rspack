@@ -1700,6 +1700,22 @@ module.exports = {
 						}
 					]
 				},
+				mimetype: {
+					description: "Match module mimetype when load from Data URI.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetConditionOrConditions"
+						}
+					]
+				},
+				scheme: {
+					description: "Match module scheme.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetConditionOrConditions"
+						}
+					]
+				},
 				rules: {
 					description:
 						"Match and execute these rules when this rule is matched.",

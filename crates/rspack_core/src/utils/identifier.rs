@@ -31,6 +31,7 @@ static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {
     .expect("Failed to initialize `PATH_QUERY_FRAGMENT_REGEXP`")
 });
 
+#[derive(Debug)]
 pub struct ResourceParsedData {
   pub path: PathBuf,
   pub query: Option<String>,

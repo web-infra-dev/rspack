@@ -8,6 +8,7 @@ const vm = require("vm");
 const rimraf = require("rimraf");
 const checkArrayExpectation = require("./checkArrayExpectation");
 const createLazyTestEnv = require("./helpers/createLazyTestEnv");
+const { getNormalizedFilterName } = require('./lib/util/filterUtil')
 
 const casesPath = path.join(__dirname, "hotCases");
 let categories = fs
@@ -29,11 +30,16 @@ const describeCases = config => {
 				category.tests.forEach(testName => {
 					const testDirectory = path.join(casesPath, category.name, testName);
 					const filterPath = path.join(testDirectory, "test.filter.js");
-					if (fs.existsSync(filterPath) && !require(filterPath)(config)) {
-						describe.skip(testName, () => {
-							it("filtered", () => {});
-						});
-						return;
+					if (fs.existsSync(filterPath) ) {
+						let flag = require(filterPath)(config)
+						let normalizedName = getNormalizedFilterName(flag, testName);
+						if (normalizedName.length > 0) {
+							describe.skip(normalizedName, () => {
+								it("filtered", () => {});
+							});
+							return;
+						}
+
 					}
 					describe(testName, () => {
 						/**@type{import("@rspack/core").MultiCompiler}*/

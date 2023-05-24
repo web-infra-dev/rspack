@@ -21,7 +21,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Scheme {
-  Normal,
+  None,
   Data,
   File,
   Custom(String),
@@ -31,6 +31,7 @@ pub enum Scheme {
 impl From<&str> for Scheme {
   fn from(value: &str) -> Self {
     match value {
+      "" => Self::None,
       "data" => Self::Data,
       "file" => Self::File,
       v => Self::Custom(v.to_string()),
@@ -44,7 +45,7 @@ impl fmt::Display for Scheme {
       f,
       "{}",
       match self {
-        Self::Normal => "",
+        Self::None => "",
         Self::Data => "data",
         Self::File => "file",
         Self::Custom(v) => v,
@@ -56,7 +57,7 @@ impl fmt::Display for Scheme {
 pub fn get_scheme(specifier: &str) -> Scheme {
   url::Url::parse(specifier)
     .map(|url| Scheme::from(url.scheme()))
-    .unwrap_or(Scheme::Normal)
+    .unwrap_or(Scheme::None)
 }
 
 #[derive(Debug, Clone)]

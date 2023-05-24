@@ -47,6 +47,11 @@ import {
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
+export interface Asset {
+	name: string;
+	source?: Source;
+	info: JsAssetInfo;
+}
 export interface LogEntry {
 	type: string;
 	args: any[];
@@ -349,15 +354,14 @@ export class Compilation {
 	 *
 	 * See: [Compilation.getAssets](https://webpack.js.org/api/compilation-object/#getassets)
 	 * Source: [getAssets](https://github.com/webpack/webpack/blob/9fcaa243573005d6fdece9a3f8d89a0e8b399613/lib/Compilation.js#L4448)
-	 *
-	 * @return {Readonly<JsAsset>[]}
 	 */
-	getAssets() {
+	getAssets(): Readonly<Asset>[] {
 		const assets = this.#inner.getAssets();
 
 		return assets.map(asset => {
-			// @ts-expect-error
-			const source = createSourceFromRaw(asset.source);
+			const source = asset.source
+				? createSourceFromRaw(asset.source)
+				: undefined;
 			return {
 				...asset,
 				source

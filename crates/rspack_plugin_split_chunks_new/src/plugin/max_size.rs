@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Mutex};
+use std::borrow::Cow;
 
 use rayon::prelude::*;
 use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier};
@@ -152,7 +152,7 @@ fn deterministic_grouping_for_modules(
   results
 }
 
-struct ChunkToBeSplit<'a> {
+struct ChunkWithSizeInfo<'a> {
   pub chunk: ChunkUkey,
   pub allow_max_size: Cow<'a, SplitChunkSizes>,
   pub min_size: &'a SplitChunkSizes,
@@ -166,97 +166,89 @@ impl SplitChunksPlugin {
     max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting>,
   ) {
     let fallback_cache_group = &self.fallback_cache_group;
-
     let automatic_name_delimiter = "~".to_string();
-
     let chunk_group_db = &compilation.chunk_group_by_ukey;
+    let compilation_ref = &*compilation;
 
-    let chunks_to_be_split = compilation
-      .chunk_by_ukey
-      .values_mut()
-      .par_bridge()
-      .filter_map(|chunk| {
-        let max_size_setting = max_size_setting_map.get(&chunk.ukey);
-        tracing::trace!("max_size_setting: {max_size_setting:#?} for {:?}", chunk.ukey);
+    let chunks_with_size_info = compilation_ref
+    .chunk_by_ukey
+    .values()
+    .par_bridge()
+    .filter_map(|chunk| {
+      let max_size_setting = max_size_setting_map.get(&chunk.ukey);
+      tracing::trace!("max_size_setting : {max_size_setting:#?} for {:?}", chunk.ukey);
 
-        let min_size = max_size_setting
-          .map(|s| &s.min_size)
-          .unwrap_or(&fallback_cache_group.min_size);
-        let max_async_size = max_size_setting
-          .map(|s| &s.max_async_size)
-          .unwrap_or(&fallback_cache_group.max_async_size);
-        let max_initial_size: &SplitChunkSizes = max_size_setting
-          .map(|s| &s.max_initial_size)
-          .unwrap_or(&fallback_cache_group.max_initial_size);
+      if max_size_setting.is_none()
+        && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)
+      {
+        tracing::debug!("Chunk({}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reasons.join("~"));
+        return None;
+      }
 
-        if max_size_setting.is_none()
-          && !(fallback_cache_group.chunks_filter)(chunk, chunk_group_db)
-        {
-          tracing::debug!("Chunk({}) skips `maxSize` checking. Reason: max_size_setting.is_none() and chunks_filter is false", chunk.chunk_reasons.join("~"));
-          return None;
-        }
+      let min_size = max_size_setting
+        .map(|s| &s.min_size)
+        .unwrap_or(&fallback_cache_group.min_size);
+      let max_async_size = max_size_setting
+        .map(|s| &s.max_async_size)
+        .unwrap_or(&fallback_cache_group.max_async_size);
+      let max_initial_size: &SplitChunkSizes = max_size_setting
+        .map(|s| &s.max_initial_size)
+        .unwrap_or(&fallback_cache_group.max_initial_size);
 
-        let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
-          Cow::Borrowed(max_initial_size)
-        } else if chunk.can_be_initial(chunk_group_db) {
-          let mut sizes = SplitChunkSizes::empty();
-          sizes.combine_with(max_async_size, &f64::min);
-          sizes.combine_with(max_initial_size, &f64::min);
-          Cow::Owned(sizes)
-        } else {
-          Cow::Borrowed(max_async_size)
-        };
 
-        // Fast path
-        if allow_max_size.is_empty() {
-          tracing::debug!(
-            "Chunk({}) skips the `maxSize` checking. Reason: allow_max_size is empty",
-            chunk.chunk_reasons.join("~")
-          );
-          return None;
-        }
+      let mut allow_max_size = if chunk.is_only_initial(chunk_group_db) {
+        Cow::Borrowed(max_initial_size)
+      } else if chunk.can_be_initial(chunk_group_db) {
+        let mut sizes = SplitChunkSizes::empty();
+        sizes.combine_with(max_async_size, &f64::min);
+        sizes.combine_with(max_initial_size, &f64::min);
+        Cow::Owned(sizes)
+      } else {
+        Cow::Borrowed(max_async_size)
+      };
 
-        let mut is_invalid = false;
-        allow_max_size.iter().for_each(|(ty, ty_max_size)| {
-          if let Some(ty_min_size) = min_size.get(ty) {
-            if ty_min_size > ty_max_size {
-              is_invalid = true;
-              tracing::warn!(
-                "minSize({}) should not be bigger than maxSize({})",
-                ty_min_size,
-                ty_max_size
-              );
-            }
+      // Fast path
+      if allow_max_size.is_empty() {
+        tracing::debug!(
+          "Chunk({}) skips the `maxSize` checking. Reason: allow_max_size is empty",
+          chunk.chunk_reasons.join("~")
+        );
+        return None;
+      }
+
+      let mut is_invalid = false;
+      allow_max_size.iter().for_each(|(ty, ty_max_size)| {
+        if let Some(ty_min_size) = min_size.get(ty) {
+          if ty_min_size > ty_max_size {
+            is_invalid = true;
+            tracing::warn!(
+              "minSize({}) should not be bigger than maxSize({})",
+              ty_min_size,
+              ty_max_size
+            );
           }
-        });
-        if is_invalid {
-          allow_max_size.to_mut().combine_with(min_size, &f64::max);
         }
+      });
+      if is_invalid {
+        allow_max_size.to_mut().combine_with(min_size, &f64::max);
+      }
 
-        Some(ChunkToBeSplit {
-          allow_max_size,
-          min_size,
-          chunk: chunk.ukey,
-        })
+      Some(ChunkWithSizeInfo {
+        allow_max_size,
+        min_size,
+        chunk: chunk.ukey,
       })
-      .collect::<Vec<_>>();
+    });
 
-    let compilation = Mutex::new(compilation);
-
-    let infos = chunks_to_be_split
-      .into_par_iter()
+    let infos_with_results = chunks_with_size_info
       .filter_map(|info| {
-        let ChunkToBeSplit {
+        let ChunkWithSizeInfo {
           chunk,
           allow_max_size,
           min_size,
         } = &info;
-        let results = deterministic_grouping_for_modules(
-          &compilation.lock().expect("Should not panic"),
-          chunk,
-          allow_max_size,
-          min_size,
-        );
+        let results =
+          deterministic_grouping_for_modules(compilation_ref, chunk, allow_max_size, min_size);
 
         if results.len() <= 1 {
           tracing::debug!(
@@ -270,10 +262,9 @@ impl SplitChunksPlugin {
       })
       .collect::<Vec<_>>();
 
-    infos.into_iter().for_each(|(info, results)| {
+    infos_with_results.into_iter().for_each(|(info, results)| {
       let last_index = results.len() - 1;
       results.into_iter().enumerate().for_each(|(index, group)| {
-        let compilation = &mut *compilation.lock().expect("Should not panic");
         let chunk = info.chunk.as_mut(&mut compilation.chunk_by_ukey);
         let name = chunk
           .name

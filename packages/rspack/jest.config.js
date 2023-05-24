@@ -22,10 +22,4 @@ const config = {
 	}
 };
 
-if (process.env.CI) {
-	config.reporters = [["github-actions", { silent: false }], "summary"];
-} else {
-	config.reporters = ["default"];
-}
-
 module.exports = config;

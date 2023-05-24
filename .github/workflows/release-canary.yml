@@ -40,13 +40,9 @@ jobs:
           USE_ZIG=1 pnpm -w build:cli:release:all
 
       - name: Release
-        uses: modern-js-dev/actions@v2
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: "canary"
-          type: "release"
-          branch: ""
-          tools: "changeset"
+        run: |
+          ./x version snapshot
+          ./x publish snapshot --tag canary
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1788,3 +1788,96 @@ chunk {main} bundle.js (main) 26 bytes [entry]
 [10] ./index.js 26 bytes {main}
     entry ./index "
 `;
+
+exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require--module/index.js:2:2
+  │
+2 │     require('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
+"
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require--module/index.js:2:2
+  │
+2 │     require('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
+
+"
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-module 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:2
+  │
+2 │     require.resolve('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
+"
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-module/index.js:2:2
+  │
+2 │     require.resolve('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
+
+"
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "formatted": "warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:2
+  │
+2 │     require.resolveWeak('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+
+",
+      "message": "Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
+"
+warning[internal]: Resolve error
+  ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:2
+  │
+2 │     require.resolveWeak('./missing-module')
+  │     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
+
+"
+`;

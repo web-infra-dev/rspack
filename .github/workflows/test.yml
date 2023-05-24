@@ -3,16 +3,22 @@ name: Test
 on:
   merge_group:
   workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        required: false
+        default: false
   pull_request:
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
     branches-ignore:
       - "release-**"
   push:
     branches:
       - main
     paths-ignore:
-      - '**/*.md'
+      - "**/*.md"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -31,7 +37,6 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.target }}
-      tests: true
 
   build-pr:
     if: github.ref_name != 'main'
@@ -43,4 +48,3 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.target }}
-      tests: true

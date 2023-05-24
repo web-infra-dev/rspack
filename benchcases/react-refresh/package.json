@@ -1,6 +1,6 @@
 {
   "name": "benchmarkcase-rspack-react-refresh",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "",
   "main": "index.js",
   "private": true,

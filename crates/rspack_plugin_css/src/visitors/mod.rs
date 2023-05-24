@@ -63,8 +63,6 @@ impl VisitAstPath for Analyzer<'_> {
     n: &'ast ImportPrelude,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    n.visit_children_with_path(self, ast_path);
-
     let specifier = match &*n.href {
       ImportHref::Url(u) => u.value.as_ref().map(|box s| match s {
         UrlValue::Str(s) => s.value.to_string(),
@@ -72,7 +70,7 @@ impl VisitAstPath for Analyzer<'_> {
       }),
       ImportHref::Str(s) => Some(s.value.to_string()),
     };
-    if let Some(specifier) = specifier && !is_url_requestable(&specifier) {
+    if let Some(specifier) = specifier {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
       self.deps.push(Box::new(CssImportDependency::new(
         specifier,
@@ -93,7 +91,7 @@ impl VisitAstPath for Analyzer<'_> {
       UrlValue::Str(s) => s.value.to_string(),
       UrlValue::Raw(r) => r.value.to_string(),
     });
-    if let Some(specifier) = specifier && !is_url_requestable(&specifier) {
+    if let Some(specifier) = specifier {
       let specifier = replace_module_request_prefix(specifier, self.diagnostics);
       let dep = Box::new(CssUrlDependency::new(
         specifier,
@@ -104,9 +102,4 @@ impl VisitAstPath for Analyzer<'_> {
       self.code_generation_dependencies.push(dep);
     }
   }
-}
-
-// TODO(ahabhgk): dataurl should be resolved by DataUriPlugin
-fn is_url_requestable(url: &str) -> bool {
-  url.starts_with("data:")
 }

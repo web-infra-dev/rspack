@@ -90,11 +90,12 @@ export type PluginImportConfig = {
 };
 
 export type CopyConfig = {
-	patterns:
-		| string[]
+	patterns: (
+		| string
 		| ({
 				from: string;
-		  } & Partial<RawPattern>)[];
+		  } & Partial<RawPattern>)
+	)[];
 };
 
 export type BannerCondition = string | RegExp;

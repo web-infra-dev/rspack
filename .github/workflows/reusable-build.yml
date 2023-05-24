@@ -26,11 +26,6 @@ on:
       target:
         required: true
         type: string
-      tests:
-        description: "Run tests?"
-        default: false
-        required: false
-        type: boolean
 
 jobs:
   select:
@@ -63,6 +58,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
@@ -153,7 +151,7 @@ jobs:
   e2e:
     name: E2E Testing
     needs: [select, build]
-    if: inputs.tests && inputs.target == 'x86_64-unknown-linux-gnu'
+    if: inputs.target == 'x86_64-unknown-linux-gnu'
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.33.0-jammy
@@ -179,7 +177,6 @@ jobs:
 
   test:
     needs: [select, build]
-    if: inputs.tests
     runs-on: ${{ needs.select.outputs.host }}
     # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
     timeout-minutes: 15

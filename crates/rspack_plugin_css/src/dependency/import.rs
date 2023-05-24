@@ -71,7 +71,6 @@ impl CodeGeneratable for CssImportDependency {
           .take()
           .into_iter()
           .filter(|rule| match rule {
-            // FIXME(ahabhgk): @import "data:..."
             Rule::AtRule(at_rule) => !matches!(at_rule.prelude, Some(box AtRulePrelude::ImportPrelude(_))),
             _ => true,
           })

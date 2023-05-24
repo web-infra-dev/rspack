@@ -1,8 +1,9 @@
 {
-  "name": "example-loader-compat",
+  "name": "example-plugin-compat",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "rspack serve",
     "build": "rspack build"
@@ -19,6 +20,7 @@
     "license-webpack-plugin": "^4.0.2",
     "webpack-bundle-analyzer": "4.7.0",
     "webpack-stats-plugin": "1.1.1",
-    "rspack-manifest-plugin": "5.0.0-alpha0"
+    "rspack-manifest-plugin": "5.0.0-alpha0",
+    "fork-ts-checker-webpack-plugin": "8.0.0"
   }
 }

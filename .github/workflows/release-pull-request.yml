@@ -13,6 +13,9 @@ on:
           - alpha
           - beta
           - latest
+  schedule:
+    # 08:00 AM Beijing Time on every Tuesday
+    - cron: "0 0 * * 2"
 
 jobs:
   release:
@@ -20,18 +23,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@master
+      - name: Checkout Main Branch
+        uses: actions/checkout@v3
         with:
-          # getting release note text need to get commit history
-          fetch-depth: 100
+          fetch-depth: 0 # Checkout full history for getting the correct changeset
+
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
+
       - name: Create Release Pull Request
         uses: web-infra-dev/actions@v2
         with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
+          version: ${{ inputs.version || 'latest' }}
           versionNumber: "auto"
           type: "pull request"
           tools: "changeset"

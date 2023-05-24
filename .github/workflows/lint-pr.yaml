@@ -44,6 +44,8 @@ jobs:
           disallowScopes: |
             [A-Z]+
           # Configure additional validation for the subject based on a regex.
+          ignoreLabels: |
+            bot
 
   release-labeling:
     # See context at https://github.com/web-infra-dev/rspack/discussions/2760
