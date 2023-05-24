@@ -1,8 +1,9 @@
 {
-  "name": "example-loader-compat",
+  "name": "example-plugin-compat",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "dev": "rspack serve",
     "build": "rspack build"
