@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -10,7 +10,7 @@
     "build": "tsc",
     "prepare": "pnpm precompile-schema",
     "dev": "tsc -w",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
+    "test": "node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/.bin/jest --runInBand --logHeapUsage",
     "precompile-schema": "node ./scripts/precompile-schema.js"
   },
   "files": [

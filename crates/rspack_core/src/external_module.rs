@@ -1,8 +1,9 @@
+use std::borrow::Cow;
 use std::hash::Hash;
-use std::{borrow::Cow, fmt};
 
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
+use serde::{Serialize, Serializer};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
@@ -18,9 +19,9 @@ static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::Css];
 #[derive(Debug, Clone)]
 pub struct ExternalRequest(pub Vec<String>);
 
-impl fmt::Display for ExternalRequest {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{:?}", self.0)
+impl Serialize for ExternalRequest {
+  fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+    self.0.serialize(serializer)
   }
 }
 
@@ -93,8 +94,9 @@ impl ExternalModule {
 
   fn get_source_for_import(&self, compilation: &Compilation) -> String {
     format!(
-      "module.exports = {}('{}')",
-      compilation.options.output.import_function_name, self.request
+      "module.exports = {}({})",
+      compilation.options.output.import_function_name,
+      serde_json::to_string(&self.request).expect("invalid json to_string")
     )
   }
 
@@ -224,7 +226,10 @@ impl Module for ExternalModule {
   }
 
   fn readable_identifier(&self, _context: &Context) -> Cow<str> {
-    Cow::Owned(format!("external {}", self.request))
+    Cow::Owned(format!(
+      "external {}",
+      serde_json::to_string(&self.request).expect("invalid json to_string")
+    ))
   }
 
   fn size(&self, _source_type: &SourceType) -> f64 {

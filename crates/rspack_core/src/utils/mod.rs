@@ -135,22 +135,3 @@ pub fn stringify_map(map: &HashMap<String, String>) -> String {
     })
   )
 }
-
-pub fn stringify_value_vec_map(map: &HashMap<String, Vec<String>>) -> String {
-  format!(
-    r#"{{{}}}"#,
-    map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#""{}": {},"#,
-          cur,
-          stringify_vec(map.get(cur).expect("get key from map"))
-        )
-        .as_str()
-    })
-  )
-}
-
-pub fn stringify_vec(vec: &[String]) -> String {
-  format!("[{}]", vec.iter().map(|s| format!("'{s}'")).join(",  "))
-}

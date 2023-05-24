@@ -182,7 +182,7 @@ impl Plugin for DevtoolPlugin {
                   source_map_filename_config,
                   PathData::default()
                     .chunk(chunk)
-                    .filename(Path::new(&filename))
+                    .filename(&filename)
                     .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.as_str())),
                 );
                 break;

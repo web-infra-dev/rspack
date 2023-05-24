@@ -17,16 +17,24 @@ pub struct RequireResolveDependency {
   span: ErrorSpan,
   #[allow(unused)]
   pub ast_path: JsAstPath,
+  optional: bool,
 }
 
 impl RequireResolveDependency {
-  pub fn new(request: String, weak: bool, span: ErrorSpan, ast_path: JsAstPath) -> Self {
+  pub fn new(
+    request: String,
+    weak: bool,
+    span: ErrorSpan,
+    ast_path: JsAstPath,
+    optional: bool,
+  ) -> Self {
     Self {
       request,
       weak,
       span,
       ast_path,
       id: None,
+      optional,
     }
   }
 }
@@ -66,6 +74,10 @@ impl ModuleDependency for RequireResolveDependency {
 
   fn options(&self) -> Option<&ContextOptions> {
     None
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
   }
 }
 

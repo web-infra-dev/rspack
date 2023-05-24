@@ -7,6 +7,7 @@ const minifyPlugin = require("@rspack/plugin-minify");
 const manifestPlugin = require("rspack-manifest-plugin").WebpackManifestPlugin;
 const GeneratePackageJsonPlugin = require("generate-package-json-webpack-plugin");
 const licensePlugin = require("license-webpack-plugin");
+const checkPlugin = require("fork-ts-checker-webpack-plugin");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	target: "node",
@@ -62,6 +63,7 @@ const config = {
 			perChunkOutput: true,
 			outputFilename: `3rdpartylicenses.txt`
 		}),
+		new checkPlugin(),
 		new manifestPlugin({
 			fileName: "rspack-manifest.json",
 			generate: (seed, files, entries) => {

@@ -8,7 +8,7 @@ use std::{
 };
 
 use nodejs_resolver::EnforceExtension;
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
@@ -177,9 +177,9 @@ impl ContextModule {
   }
 
   #[inline]
-  pub fn get_source_string(&self, compilation: &Compilation) -> BoxSource {
+  pub fn get_source_string(&self, compilation: &Compilation) -> Result<BoxSource> {
     match self.options.context_options.mode {
-      ContextMode::Lazy => self.get_lazy_source(compilation),
+      ContextMode::Lazy => Ok(self.get_lazy_source(compilation)),
       _ => self.generate_source(compilation),
     }
   }
@@ -194,7 +194,7 @@ impl ContextModule {
     .boxed()
   }
 
-  pub fn generate_source(&self, compilation: &Compilation) -> BoxSource {
+  pub fn generate_source(&self, compilation: &Compilation) -> Result<BoxSource> {
     let map = self.get_user_request_map(compilation);
     let mode = &self.options.context_options.mode;
     let is_async = matches!(
@@ -261,7 +261,8 @@ impl ContextModule {
 
     source.add(RawSource::from(format!(
       "webpackContext.id = '{}';\n",
-      self.id(&compilation.chunk_graph)
+      serde_json::to_string(self.id(&compilation.chunk_graph))
+        .map_err(|e| internal_error!(e.to_string()))?
     )));
     source.add(RawSource::from(
       r#"
@@ -272,7 +273,7 @@ impl ContextModule {
       module.exports = webpackContext;
       "#,
     ));
-    source.boxed()
+    Ok(source.boxed())
   }
 }
 
@@ -355,7 +356,7 @@ impl Module for ContextModule {
 
     code_generation_result.add(
       SourceType::JavaScript,
-      GenerationResult::from(AstOrSource::from(self.get_source_string(compilation))),
+      GenerationResult::from(AstOrSource::from(self.get_source_string(compilation)?)),
     );
     code_generation_result.set_hash();
     Ok(code_generation_result)

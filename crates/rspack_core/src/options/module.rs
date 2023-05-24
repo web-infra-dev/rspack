@@ -4,6 +4,7 @@ use std::{
 };
 
 use async_recursion::async_recursion;
+use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
@@ -119,7 +120,8 @@ where
   Ok(true)
 }
 
-#[derive(Default)]
+#[derive(Derivative, Default)]
+#[derivative(Debug)]
 pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
@@ -129,12 +131,16 @@ pub struct ModuleRule {
   pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
   pub resource_query: Option<RuleSetCondition>,
+  pub resource_fragment: Option<RuleSetCondition>,
   pub dependency: Option<RuleSetCondition>,
   pub issuer: Option<RuleSetCondition>,
+  pub scheme: Option<RuleSetCondition>,
+  pub mimetype: Option<RuleSetCondition>,
   pub description_data: Option<DescriptionData>,
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
+  #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: Vec<BoxLoader>,
   pub parser: Option<AssetParserOptions>,
   pub generator: Option<AssetGeneratorOptions>,
@@ -143,35 +149,19 @@ pub struct ModuleRule {
   pub enforce: ModuleRuleEnforce,
 }
 
-impl Debug for ModuleRule {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("ModuleRule")
-      .field("test", &self.test)
-      .field("include", &self.include)
-      .field("exclude", &self.exclude)
-      .field("resource", &self.resource)
-      .field("resource_query", &self.resource_query)
-      .field("dependency", &self.dependency)
-      .field("issuer", &self.issuer)
-      .field("description_data", &self.description_data)
-      .field("side_effects", &self.side_effects)
-      .field("r#type", &self.r#type)
-      .field(
-        "r#use",
-        &self
-          .r#use
-          .iter()
-          .map(|l| l.identifier().to_string())
-          .collect::<Vec<_>>()
-          .join("!"),
-      )
-      .field("parser", &self.parser)
-      .field("generator", &self.generator)
-      .field("resolve", &self.resolve)
-      .field("one_of", &self.one_of)
-      .field("enforce", &self.enforce)
-      .finish()
-  }
+fn fmt_use(
+  r#use: &[BoxLoader],
+  f: &mut std::fmt::Formatter,
+) -> std::result::Result<(), std::fmt::Error> {
+  write!(
+    f,
+    "{}",
+    r#use
+      .iter()
+      .map(|l| l.identifier().to_string())
+      .collect::<Vec<_>>()
+      .join("!")
+  )
 }
 
 #[derive(Debug, Default)]

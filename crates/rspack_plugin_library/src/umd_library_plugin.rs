@@ -194,7 +194,8 @@ impl Plugin for UmdLibraryPlugin {
 }
 
 fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> String {
-  let value = format!("'{}'", v.last().expect("should have last"));
+  let value =
+    serde_json::to_string(v.last().expect("should have last")).expect("invalid module_id");
   replace_keys(value, chunk, compilation)
 }
 

@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "isolatedModules": true,
+    "module": "ESNext",
+    "target": "es5"
+  },
+  "include": ["src/*"]
+}

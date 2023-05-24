@@ -1,5 +1,14 @@
 # @rspack/core
 
+## 0.1.12
+
+### Patch Changes
+
+- ab318de0: feat: add output.hotUpdateMainFilename & output.hotUpdateChunkFilename
+- Updated dependencies [8164d424]
+  - @rspack/binding@0.1.12
+  - @rspack/dev-client@0.1.12
+
 ## 0.1.11
 
 ### Patch Changes

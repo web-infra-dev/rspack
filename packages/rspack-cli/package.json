@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -12,7 +12,7 @@
     "build": "rimraf dist/ && tsc -b --force",
     "clean": "rimraf dist/ && tsc -b --clean",
     "dev": "tsc -b -w",
-    "test": "cross-env jest --runInBand"
+    "test": "jest --runInBand"
   },
   "files": [
     "bin",

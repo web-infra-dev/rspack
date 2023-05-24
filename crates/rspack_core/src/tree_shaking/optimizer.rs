@@ -1241,7 +1241,6 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           {
             Some(ast) => JsModule::new(ast, *module_identifier).analyze(compilation),
             None => {
-              // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
               return None;
             }
           }

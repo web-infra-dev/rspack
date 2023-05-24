@@ -123,6 +123,7 @@ class Compiler {
 		emit: tapable.AsyncSeriesHook<[Compilation]>;
 		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
+		shutdown: tapable.AsyncSeriesHook<[]>;
 		watchRun: tapable.AsyncSeriesHook<[Compiler]>;
 		watchClose: tapable.SyncHook<[]>;
 		environment: tapable.SyncHook<[]>;
@@ -131,6 +132,7 @@ class Compiler {
 		afterResolvers: tapable.SyncHook<[Compiler]>;
 		make: tapable.AsyncParallelHook<[Compilation]>;
 		beforeCompile: tapable.AsyncSeriesHook<any>;
+		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
 	};
 	options: RspackOptionsNormalized;
@@ -212,6 +214,7 @@ class Compiler {
 			compile: new SyncHook(["params"]),
 			infrastructureLog: new SyncBailHook(["origin", "type", "args"]),
 			failed: new SyncHook(["error"]),
+			shutdown: new tapable.AsyncSeriesHook([]),
 			normalModuleFactory: new tapable.SyncHook<NormalModuleFactory>([
 				"normalModuleFactory"
 			]),
@@ -226,6 +229,7 @@ class Compiler {
 			afterResolvers: new tapable.SyncHook(["compiler"]),
 			make: new tapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
+			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.modifiedFiles = undefined;
@@ -275,6 +279,7 @@ class Compiler {
 				options,
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
+					afterCompile: this.#afterCompile.bind(this),
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
 					afterEmit: this.#afterEmit.bind(this),
@@ -326,6 +331,7 @@ class Compiler {
 						this.#normalModuleFactoryResolveForScheme.bind(this),
 					chunkAsset: this.#chunkAsset.bind(this),
 					beforeResolve: this.#beforeResolve.bind(this),
+					afterResolve: this.#afterResolve.bind(this),
 					contextModuleBeforeResolve:
 						this.#contextModuleBeforeResolve.bind(this)
 				},
@@ -443,7 +449,11 @@ class Compiler {
 
 			this.parentCompilation!.children.push(compilation);
 			for (const { name, source, info } of compilation.getAssets()) {
-				this.parentCompilation!.emitAsset(name, source, info);
+				// Do not emit asset if source is not available.
+				// Webpack will emit it anyway.
+				if (source) {
+					this.parentCompilation!.emitAsset(name, source, info);
+				}
 			}
 
 			const entries = [];
@@ -549,6 +559,7 @@ class Compiler {
 		const hookMap = {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
+			afterCompile: this.hooks.afterCompile,
 			emit: this.hooks.emit,
 			afterEmit: this.hooks.afterEmit,
 			processAssetsStageAdditional:
@@ -579,10 +590,12 @@ class Compiler {
 			optimizeChunkModules: this.compilation.hooks.optimizeChunkModules,
 			finishModules: this.compilation.hooks.finishModules,
 			optimizeModules: this.compilation.hooks.optimizeModules,
-			chunkAsset: this.compilation.hooks.chunkAsset
+			chunkAsset: this.compilation.hooks.chunkAsset,
+			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
+			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
-			if (hook.taps.length === 0) {
+			if (hook?.taps.length === 0) {
 				disabledHooks.push(name);
 			}
 		}
@@ -600,6 +613,11 @@ class Compiler {
 		// this.#updateDisabledHooks();
 	}
 
+	async #afterCompile() {
+		await this.hooks.afterCompile.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+
 	async #finishModules() {
 		await this.compilation.hooks.finishModules.promise(
 			this.compilation.getModules()
@@ -613,15 +631,30 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #beforeResolve(resourceData: binding.BeforeResolveData) {
+	async #beforeResolve(resolveData: binding.BeforeResolveData) {
 		let res =
-			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
-				resourceData
+			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise({
+				request: resolveData.request,
+				context: resolveData.context,
+				fileDependencies: [],
+				missingDependencies: [],
+				contextDependencies: []
+			});
+
+		this.#updateDisabledHooks();
+		return res;
+	}
+
+	async #afterResolve(resolveData: binding.AfterResolveData) {
+		let res =
+			await this.compilation.normalModuleFactory?.hooks.afterResolve.promise(
+				resolveData
 			);
 
 		this.#updateDisabledHooks();
 		return res;
 	}
+
 	async #contextModuleBeforeResolve(resourceData: binding.BeforeResolveData) {
 		let res =
 			await this.compilation.contextModuleFactory?.hooks.beforeResolve.promise(
@@ -633,12 +666,16 @@ class Compiler {
 	}
 
 	async #normalModuleFactoryResolveForScheme(
-		resourceData: binding.SchemeAndJsResourceData
-	) {
-		await this.compilation.normalModuleFactory?.hooks.resolveForScheme
-			.for(resourceData.scheme)
-			.promise(resourceData.resourceData);
-		return resourceData.resourceData;
+		input: binding.JsResolveForSchemeInput
+	): Promise<binding.JsResolveForSchemeResult> {
+		let stop =
+			await this.compilation.normalModuleFactory?.hooks.resolveForScheme
+				.for(input.scheme)
+				.promise(input.resourceData);
+		return {
+			resourceData: input.resourceData,
+			stop: stop === true
+		};
 	}
 
 	async #optimize_chunk_modules() {
@@ -803,7 +840,7 @@ class Compiler {
 		}
 	}
 
-	close(callback: () => void) {
+	close(callback: (error?: Error | null) => void) {
 		// WARNING: Arbitrarily dropping the instance is not safe, as it may still be in use by the background thread.
 		// A hint is necessary for the compiler to know when it is safe to drop the instance.
 		// For example: register a callback to the background thread, and drop the instance when the callback is called (calling the `close` method queues the signal)
@@ -820,7 +857,10 @@ class Compiler {
 			});
 			return;
 		}
-		callback();
+		this.hooks.shutdown.callAsync(err => {
+			if (err) return callback(err);
+			this.cache.shutdown(callback);
+		});
 	}
 
 	getAsset(name: string) {

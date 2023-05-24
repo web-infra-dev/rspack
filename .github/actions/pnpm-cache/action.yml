@@ -24,4 +24,4 @@ runs:
 
     - name: Install Npm Dependencies
       shell: bash
-      run: pnpm install
+      run: pnpm install --no-frozen-lockfile

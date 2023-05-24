@@ -1,21 +1,23 @@
+#![feature(let_chains)]
+
 use std::{
   collections::hash_map::DefaultHasher,
   hash::{Hash, Hasher},
-  path::Path,
 };
 
 use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
-  rspack_sources::{RawSource, SourceExt},
+  rspack_sources::{BoxSource, RawSource, SourceExt},
   AssetParserDataUrlOption, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
   BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationDataUrl, GenerateContext, GenerationResult, Module, ParseContext,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestArgs, RenderManifestEntry, RuntimeGlobals, SourceType,
+  CodeGenerationDataUrl, Compilation, GenerateContext, GenerationResult, Module, NormalModule,
+  ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
-use sugar_path::SugarPath;
+use rspack_util::identifier::make_paths_relative;
 
 #[derive(Debug)]
 pub struct AssetConfig {
@@ -37,6 +39,8 @@ static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::Asset, SourceType::JavaScript];
 
 static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
+
+const DEFAULT_ENCODING: &str = "base64";
 
 #[derive(Debug)]
 enum DataUrlOption {
@@ -124,6 +128,61 @@ impl AssetParserAndGenerator {
       RuntimeGlobals::PUBLIC_PATH,
       filename
     ))
+  }
+
+  fn get_mimetype(&self, resource_data: &ResourceData) -> Result<String> {
+    if let Some(mimetype) = &resource_data.mimetype && let Some(parameters) = &resource_data.parameters {
+      return Ok(format!("{mimetype}{parameters}"));
+    }
+    mime_guess::MimeGuess::from_path(&resource_data.resource_path)
+      .first_raw()
+      .map(ToOwned::to_owned)
+      .ok_or_else(|| {
+        internal_error!(
+          "failed to guess mime type of {:?}",
+          resource_data.resource_path
+        )
+      })
+  }
+
+  fn get_encoding(&self, resource_data: &ResourceData) -> String {
+    if let Some(encoding) = &resource_data.encoding {
+      return encoding.to_owned();
+    }
+    String::from(DEFAULT_ENCODING)
+  }
+
+  fn get_encoded_content(
+    &self,
+    resource_data: &ResourceData,
+    encoding: &str,
+    source: &BoxSource,
+  ) -> Result<String> {
+    if let Some(encoded_content) = &resource_data.encoded_content {
+      return Ok(encoded_content.to_owned());
+    }
+    if encoding.is_empty() {
+      // to_lossy_string
+      return Ok(urlencoding::encode_binary(&source.buffer()).into_owned());
+    }
+    if encoding == DEFAULT_ENCODING {
+      return Ok(rspack_base64::encode_to_string(source.buffer()));
+    }
+    Err(internal_error!("Unsupported encoding {encoding}"))
+  }
+
+  fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
+    let relative = make_paths_relative(
+      &compilation.options.context.to_string_lossy(),
+      &module
+        .match_resource()
+        .unwrap_or(module.resource_resolved_data())
+        .resource,
+    );
+    if let Some(stripped) = relative.strip_prefix("./") {
+      return stripped.to_owned();
+    }
+    relative
   }
 }
 
@@ -250,10 +309,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let normal_module = module
       .as_normal_module()
       .expect("module should be a NormalModule in AssetParserAndGenerator");
-
-    let resource_data = normal_module
-      .match_resource()
-      .unwrap_or_else(|| normal_module.resource_resolved_data());
+    let source_file_name = self.get_source_file_name(normal_module, generate_context.compilation);
     let (asset_filename, asset_info) = generate_context.compilation.get_asset_path_with_info(
       asset_filename_template,
       PathData::default()
@@ -261,42 +317,38 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         .chunk_graph(&generate_context.compilation.chunk_graph)
         .content_hash(&contenthash)
         .hash(&contenthash)
-        .filename(
-          &resource_data
-            .resource_path
-            .relative(&generate_context.compilation.options.context),
-        )
-        .query_optional(resource_data.resource_query.as_deref())
-        .fragment_optional(resource_data.resource_query.as_deref()),
+        .filename(&source_file_name),
     );
 
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let module = module.try_as_normal_module()?;
-        let resource_path = &module.resource_resolved_data().resource_path;
 
         let exported_content = if parsed_asset_config.is_inline() {
+          let resource_data = module.resource_resolved_data();
+          let mimetype = self.get_mimetype(resource_data)?;
+          let encoding = self.get_encoding(resource_data);
+          let encoded_content = self.get_encoded_content(
+            resource_data,
+            &encoding,
+            ast_or_source
+              .as_source()
+              .expect("Expected source for asset generator, please file an issue."),
+          )?;
           let encoded_source = format!(
-            r#"data:{};base64,{}"#,
-            mime_guess::MimeGuess::from_path(Path::new(resource_path))
-              .first()
-              .ok_or_else(|| anyhow::format_err!(
-                "failed to guess mime type of {}",
-                resource_path.display()
-              ))?,
-            rspack_base64::encode_to_string(
-              ast_or_source
-                .as_source()
-                .expect("Expected source for asset generator, please file an issue.")
-                .buffer()
-            )
+            r#"data:{mimetype}{},{encoded_content}"#,
+            if encoding.is_empty() {
+              String::new()
+            } else {
+              format!(";{encoding}")
+            }
           );
 
           generate_context
             .data
             .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
 
-          format!("\"{encoded_source}\"")
+          serde_json::to_string(&encoded_source).map_err(|e| internal_error!(e.to_string()))?
         } else {
           generate_context
             .data

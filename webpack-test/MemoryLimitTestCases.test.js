@@ -6,6 +6,7 @@ const fs = require("graceful-fs");
 const rimraf = require("rimraf");
 const captureStdio = require("./helpers/captureStdio");
 const webpack = require("@rspack/core").rspack;
+const { getNormalizedFilterName } = require("./lib/util/filterUtil")
 
 const toMiB = bytes => `${Math.round(bytes / 1024 / 1024)}MiB`;
 const base = path.join(__dirname, "memoryLimitCases");
@@ -20,9 +21,15 @@ const tests = fs
 	.filter(testName => {
 		const testDirectory = path.join(base, testName);
 		const filterPath = path.join(testDirectory, "test.filter.js");
-		if (fs.existsSync(filterPath) && !require(filterPath)()) {
-			describe.skip(testName, () => it("filtered"));
-			return false;
+		if (fs.existsSync(filterPath)) {
+
+			let flag = require(filterPath)()
+			let normalizedName = getNormalizedFilterName(flag, relativePath);
+			if (normalizedName.length > 0) {
+				describe.skip(normalizedName, () => it("filtered"));
+				return false;
+			}
+
 		}
 		return true;
 	});

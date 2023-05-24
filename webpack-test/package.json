@@ -1,12 +1,13 @@
 {
   "name": "webpack-test",
   "private": "true",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand --bail",
-    "test:metric": "node --expose-gc --max-old-space-size=4096 --experimental-vm-modules --trace-deprecation ../node_modules/jest/bin/jest.js --logHeapUsage --runInBand --bail --json | node scripts/test-metric.js"
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail",
+    "test:metric": "NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest configTestCases --logHeapUsage --runInBand --bail --json | node scripts/test-metric.js",
+    "test:metric:json": "NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --json"
   },
   "files": [
     "dist"
@@ -108,7 +109,7 @@
       "<rootDir>/schemas",
       "<rootDir>/node_modules"
     ],
-    "testEnvironment": "../../scripts/test/patch-node-env.cjs",
+    "testEnvironment": "node",
     "coverageReporters": [
       "json"
     ]

@@ -71,6 +71,7 @@ pub use ukey::*;
 
 pub mod tree_shaking;
 
+pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme};
 pub use rspack_sources;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
