@@ -6,18 +6,24 @@ export default {
 </script>
 
 <template>
-  <div>
+  <div class="container">
+    <div>
     <a href="https://www.rspack.dev/" target="_blank">
       <img src="./assets/rspack.svg" class="logo" alt="Rspack logo" />
     </a>
     <a href="https://vuejs.org/" target="_blank">
       <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
     </a>
-  </div>
-  <HelloWorld msg="Rspack + Vue" />
+    </div>
+    <HelloWorld msg="Rspack + Vue" />
+  </div> 
 </template>
 
 <style scoped lang="less">
+.container {
+  text-align: center;
+}
+
 .logo {
   height: 6em;
   padding: 1.5em;

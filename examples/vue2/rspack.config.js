@@ -11,33 +11,28 @@ const config = {
 			{
 				template: "./index.html"
 			}
-		],
-		define: {
-			__VUE_OPTIONS_API__: JSON.stringify(true),
-			__VUE_PROD_DEVTOOLS__: JSON.stringify(false)
-		}
+		]
 	},
 	devServer: {
 		historyApiFallback: true
 	},
+	devtool: false,
 	plugins: [new VueLoaderPlugin()],
 	module: {
 		rules: [
 			{
 				test: /\.vue$/,
-				use: [
-					{
-						loader: "vue-loader",
-						options: {
-							experimentalInlineMatchResource: true
-						}
-					}
-				]
+				use: ["vue-loader"]
 			},
 			{
 				test: /\.less/,
-				use: ["less-loader"],
-				type: "css"
+				use: ["vue-style-loader", "css-loader", "less-loader"],
+				type: "javascript/auto"
+			},
+			{
+				test: /\.css/,
+				use: ["vue-style-loader", "css-loader"],
+				type: "javascript/auto"
 			},
 			{
 				test: /\.svg/,
