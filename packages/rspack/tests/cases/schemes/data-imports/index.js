@@ -26,6 +26,7 @@ it("data imports", () => {
   a: url("2c6053f86393fdda.svg");
   b: url("2c6053f86393fdda.svg");
   c: url("2c6053f86393fdda");
+  d: url("2c6053f86393fdda");
 }`);
 	expect(inlineSvg).toBe(
 		'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>'
