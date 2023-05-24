@@ -293,6 +293,7 @@ export interface ResolveOptions {
 	tsConfigPath?: string;
 	fullySpecified?: boolean;
 	exportsFields?: string[];
+	extensionAlias?: Record<string, string | string[]>;
 	byDependency?: {
 		[k: string]: ResolveOptions;
 	};
