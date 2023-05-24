@@ -1479,6 +1479,9 @@ pub struct AssetInfo {
   // pub javascript_module:
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: AssetInfoRelated,
+  /// the asset version, emit can be skipped when both filename and version are the same
+  /// An empty string means no version, it will always emit
+  pub version: String,
 }
 
 impl AssetInfo {
@@ -1504,6 +1507,11 @@ impl AssetInfo {
 
   pub fn with_content_hashes(mut self, v: HashSet<String>) -> Self {
     self.content_hash = v;
+    self
+  }
+
+  pub fn with_version(mut self, v: String) -> Self {
+    self.version = v;
     self
   }
 

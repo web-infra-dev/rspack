@@ -284,6 +284,10 @@ impl Filename {
       }
     }
     if let Some(content_hash) = options.content_hash {
+      if let Some(asset_info) = asset_info.as_mut() {
+        // set version as content hash
+        asset_info.version = content_hash.to_string();
+      }
       template = CONTENT_HASH_PLACEHOLDER
         .replace_all(&template, |caps: &Captures| {
           let content_hash = &content_hash[..hash_len(content_hash, caps)];

@@ -65,6 +65,7 @@ cfg_async! {
   #[napi(object, js_name = "ThreadsafeNodeFS")]
   pub struct ThreadsafeNodeFS {
     pub write_file: JsFunction,
+    pub remove_file: JsFunction,
     pub mkdir: JsFunction,
     pub mkdirp: JsFunction,
     pub remove_dir_all: JsFunction,
@@ -148,6 +149,7 @@ cfg_async! {
     fn try_into_tsfn_ref(self, env: &Env) -> napi::Result<ThreadsafeFunctionRef> {
       Ok(ThreadsafeFunctionRef {
         write_file: self.write_file.try_into_tsfn(env)?,
+        remove_file: self.remove_file.try_into_tsfn(env)?,
         mkdir: self.mkdir.try_into_tsfn(env)?,
         mkdirp: self.mkdirp.try_into_tsfn(env)?,
         remove_dir_all: self.remove_dir_all.try_into_tsfn(env)?,
@@ -157,6 +159,7 @@ cfg_async! {
 
   pub(crate) struct ThreadsafeFunctionRef {
     pub(crate) write_file: ThreadsafeFunction<(String, Vec<u8>), ()>,
+    pub(crate) remove_file: ThreadsafeFunction<String, ()>,
     pub(crate) mkdir: ThreadsafeFunction<String, ()>,
     pub(crate) mkdirp: ThreadsafeFunction<String, Either<String, ()>>,
     pub(crate) remove_dir_all: ThreadsafeFunction<String, Either<String, ()>>,
