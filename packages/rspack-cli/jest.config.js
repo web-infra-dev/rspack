@@ -7,10 +7,4 @@ const config = {
 	watchPathIgnorePatterns: ["<rootDir>/tests/.*/dist"]
 };
 
-if (process.env.CI) {
-	config.reporters = [["github-actions", { silent: false }], "summary"];
-} else {
-	config.reporters = ["default"];
-}
-
 module.exports = config;
