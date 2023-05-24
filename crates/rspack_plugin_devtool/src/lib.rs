@@ -114,11 +114,7 @@ impl Plugin for DevtoolPlugin {
           for source in map.sources_mut() {
             let source_path = contextify(&context, source);
             let uri = normalize_custom_filename(&source_path);
-            let resource_path = if let Some(relative_path) = diff_paths(uri, &context) {
-              relative_path.to_string_lossy().to_string()
-            } else {
-              uri.to_owned()
-            };
+            let resource_path = uri.to_owned();
             *source = self
               .module_filename_template
               .replace("[namespace]", &self.namespace)
@@ -239,11 +235,7 @@ pub fn wrap_eval_source_map(
   for source in map.sources_mut() {
     let source_path = contextify(&compilation.options.context, source);
     let uri = normalize_custom_filename(&source_path);
-    *source = if let Some(relative_path) = diff_paths(uri, &*compilation.options.context) {
-      relative_path.to_string_lossy().to_string()
-    } else {
-      uri.to_owned()
-    };
+    *source = uri.to_owned()
   }
   if compilation.options.devtool.no_sources() {
     for content in map.sources_content_mut() {

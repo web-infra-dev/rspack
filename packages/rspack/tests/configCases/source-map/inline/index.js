@@ -6,6 +6,6 @@ it("should have map from url comments if inline options is used", function () {
 			source
 		)[1];
 	const map = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
-	expect(map.sources).toContain("index.js");
+	expect(map.sources).toContain("./index.js");
 	expect(map.file).toEqual("main.js");
 });
