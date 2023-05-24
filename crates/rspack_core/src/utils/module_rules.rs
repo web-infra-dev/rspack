@@ -113,16 +113,24 @@ pub async fn module_rule_matcher_inner<'a>(
     return Ok(None);
   }
 
-  if let Some(description_data) = &module_rule.description_data
-    && let Some(resource_description) = &resource_data.resource_description {
-    for (k, matcher) in description_data {
-      if let Some(v) = resource_description.data().raw().get(k).and_then(|v| v.as_str()) {
-        if !matcher.try_match(v).await? {
+  if let Some(description_data) = &module_rule.description_data {
+    if let Some(resource_description) = &resource_data.resource_description {
+      for (k, matcher) in description_data {
+        if let Some(v) = resource_description
+          .data()
+          .raw()
+          .get(k)
+          .and_then(|v| v.as_str())
+        {
+          if !matcher.try_match(v).await? {
+            return Ok(None);
+          }
+        } else {
           return Ok(None);
         }
-      } else {
-        return Ok(None);
       }
+    } else {
+      return Ok(None);
     }
   }
 
