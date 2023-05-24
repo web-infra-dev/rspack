@@ -56,7 +56,14 @@ export const getNormalizedRspackOptions = (
 							name: libraryAsName
 					  } as LibraryOptions)
 					: undefined;
-
+			if (
+				typeof output.filename === "string" &&
+				output.filename.includes("[ext]")
+			) {
+				throw new Error(
+					"[ext] in output.filename is not supported, please use output.filename and output.cssFilename to specify different ext fo js and css file"
+				);
+			}
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
