@@ -635,6 +635,10 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 )),
               );
             }
+            Decl::Using(_) => {
+              // TODO(hyf0): swc bump
+              unimplemented!()
+            }
             Decl::Var(var) => {
               self.state |= AnalyzeState::EXPORT_DECL;
               var.visit_with(self);
@@ -1067,7 +1071,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
         unreachable!("We have been transformed typescript to javascript before.")
       }
-      Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) => {
+      Decl::Class(_) | Decl::Fn(_) | Decl::Var(_) | Decl::Using(_) => {
         node.visit_children_with(self);
       }
     }
@@ -1581,6 +1585,7 @@ fn is_pure_decl(stmt: &Decl, unresolved_ctxt: SyntaxContext) -> bool {
     Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt),
     Decl::Fn(_) => true,
     Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt),
+    Decl::Using(_) => false,
     Decl::TsInterface(_) => unreachable!(),
     Decl::TsTypeAlias(_) => unreachable!(),
 
