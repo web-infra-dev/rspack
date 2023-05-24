@@ -54,15 +54,15 @@ napi-build          = { version = "=2.0.1" }
 napi-derive         = { version = "=2.12.3" }
 napi-sys            = { version = "=2.2.3" }
 swc_config          = { version = "=0.1.5" }
-swc_core            = { version = "=0.75.35", default-features = false }
-swc_css             = { version = "=0.153.7" }
-swc_ecma_minifier   = { version = "=0.180.28", default-features = false }
-swc_emotion         = { version = "=0.30.5" }
-swc_error_reporters = { version = "=0.15.5" }
-swc_html            = { version = "=0.123.26" }
-swc_html_minifier   = { version = "=0.120.26" }
-swc_node_comments   = { version = "=0.18.5" }
-swc_plugin_import   = { version = "=0.1.5" }
+swc_core            = { version = "=0.76.26", default-features = false }
+swc_css             = { version = "=0.153.12" }
+swc_ecma_minifier   = { version = "=0.181.16", default-features = false }
+swc_emotion         = { version = "=0.33.0" }
+swc_error_reporters = { version = "=0.15.10" }
+swc_html            = { version = "=0.124.16" }
+swc_html_minifier   = { version = "=0.121.16" }
+swc_node_comments   = { version = "=0.18.10" }
+swc_plugin_import   = { version = "=0.1.7" }
 
 [profile.dev]
 debug       = 2

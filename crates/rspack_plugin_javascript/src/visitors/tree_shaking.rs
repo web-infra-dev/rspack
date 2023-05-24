@@ -243,6 +243,10 @@ impl<'a> TreeShaker<'a> {
           }))
         }
       }
+      Decl::Using(_) => {
+        // TODO(hyf0): swc bump
+        unimplemented!()
+      }
       Decl::Fn(mut func) => {
         let id = func.ident.to_id();
         let symbol = SymbolRef::Direct(Symbol::new(
