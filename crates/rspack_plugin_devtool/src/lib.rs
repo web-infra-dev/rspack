@@ -8,6 +8,7 @@ use pathdiff::diff_paths;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
+  contextify,
   rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt, SourceMap},
   AssetInfo, Compilation, CompilationAsset, JsChunkHashArgs, PathData, Plugin, PluginContext,
   PluginJsChunkHashHookOutput, PluginProcessAssetsOutput, PluginRenderModuleContentOutput,
@@ -111,12 +112,8 @@ impl Plugin for DevtoolPlugin {
         source.map(&MapOptions::new(self.columns)).map(|mut map| {
           map.set_file(Some(filename.clone()));
           for source in map.sources_mut() {
-            let uri = normalize_custom_filename(source);
-            let resource_path = if let Some(relative_path) = diff_paths(uri, &context) {
-              relative_path.to_string_lossy().to_string()
-            } else {
-              uri.to_owned()
-            };
+            let resource_path = normalize_custom_filename(source);
+            let resource_path = contextify(&context, resource_path);
             *source = self
               .module_filename_template
               .replace("[namespace]", &self.namespace)
@@ -160,10 +157,8 @@ impl Plugin for DevtoolPlugin {
             RawSource::from(current_source_mapping_url_comment.replace(
               "[url]",
               &format!("data:application/json;charset=utf-8;base64,{base64}"),
-            ))
-            .boxed(),
-          ])
-          .boxed(),
+            )).boxed(),
+          ]).boxed(),
         );
         args.compilation.emit_asset(filename, asset);
       } else {
@@ -208,10 +203,8 @@ impl Plugin for DevtoolPlugin {
             .expect("TODO:");
           asset.source = Some(ConcatSource::new([
             asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
-            RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url))
-              .boxed(),
-          ])
-          .boxed());
+            RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url)).boxed(),
+          ]).boxed());
           asset.info.related.source_map = Some(source_map_filename.clone());
           args.compilation.emit_asset(filename, asset);
         }
@@ -235,12 +228,9 @@ pub fn wrap_eval_source_map(
   compilation: &Compilation,
 ) -> Result<BoxSource> {
   for source in map.sources_mut() {
-    let uri = normalize_custom_filename(source);
-    *source = if let Some(relative_path) = diff_paths(uri, &*compilation.options.context) {
-      relative_path.to_string_lossy().to_string()
-    } else {
-      uri.to_owned()
-    };
+    let resource_path = normalize_custom_filename(source);
+    let resource_path = contextify(&compilation.options.context, resource_path);
+    *source = resource_path;
   }
   if compilation.options.devtool.no_sources() {
     for content in map.sources_content_mut() {
