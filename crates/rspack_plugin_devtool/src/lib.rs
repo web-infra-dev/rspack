@@ -112,9 +112,8 @@ impl Plugin for DevtoolPlugin {
         source.map(&MapOptions::new(self.columns)).map(|mut map| {
           map.set_file(Some(filename.clone()));
           for source in map.sources_mut() {
-            let source_path = contextify(&context, source);
-            let uri = normalize_custom_filename(&source_path);
-            let resource_path = uri.to_owned();
+            let resource_path = normalize_custom_filename(source);
+            let resource_path = contextify(&context, resource_path);
             *source = self
               .module_filename_template
               .replace("[namespace]", &self.namespace)
@@ -153,16 +152,14 @@ impl Plugin for DevtoolPlugin {
           .remove(&filename)
           .unwrap_or_else(|| panic!("TODO:"));
         asset.source = Some(
-                    ConcatSource::new([
-                        asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
-                        RawSource::from(current_source_mapping_url_comment.replace(
-                            "[url]",
-                            &format!("data:application/json;charset=utf-8;base64,{base64}"),
-                        ))
-                            .boxed(),
-                    ])
-                        .boxed(),
-                );
+          ConcatSource::new([
+            asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
+            RawSource::from(current_source_mapping_url_comment.replace(
+              "[url]",
+              &format!("data:application/json;charset=utf-8;base64,{base64}"),
+            )).boxed(),
+          ]).boxed(),
+        );
         args.compilation.emit_asset(filename, asset);
       } else {
         let mut source_map_filename = filename.to_owned() + ".map";
@@ -193,23 +190,21 @@ impl Plugin for DevtoolPlugin {
 
         if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
           let source_map_url = if let Some(public_path) = &self.public_path {
-                        format!("{public_path}{source_map_filename}")
-                    } else if let Some(dirname) = Path::new(&filename).parent() && let Some(relative) = diff_paths(&source_map_filename, dirname) {
-                        relative.to_string_lossy().into_owned()
-                    } else {
-                        source_map_filename.clone()
-                    };
+            format!("{public_path}{source_map_filename}")
+          } else if let Some(dirname) = Path::new(&filename).parent() && let Some(relative) = diff_paths(&source_map_filename, dirname) {
+            relative.to_string_lossy().into_owned()
+          } else {
+            source_map_filename.clone()
+          };
           let mut asset = args
             .compilation
             .assets_mut()
             .remove(&filename)
             .expect("TODO:");
           asset.source = Some(ConcatSource::new([
-                        asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
-                        RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url))
-                            .boxed(),
-                    ])
-                        .boxed());
+            asset.source.expect("source should never be `None` here, because `maps` is collected by asset with `Some(source)`"),
+            RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url)).boxed(),
+          ]).boxed());
           asset.info.related.source_map = Some(source_map_filename.clone());
           args.compilation.emit_asset(filename, asset);
         }
@@ -233,9 +228,9 @@ pub fn wrap_eval_source_map(
   compilation: &Compilation,
 ) -> Result<BoxSource> {
   for source in map.sources_mut() {
-    let source_path = contextify(&compilation.options.context, source);
-    let uri = normalize_custom_filename(&source_path);
-    *source = uri.to_owned()
+    let resource_path = normalize_custom_filename(source);
+    let resource_path = contextify(&compilation.options.context, resource_path);
+    *source = resource_path;
   }
   if compilation.options.devtool.no_sources() {
     for content in map.sources_content_mut() {
