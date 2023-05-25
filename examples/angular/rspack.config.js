@@ -1,6 +1,5 @@
 const { AngularWebpackPlugin } = require("@ngtools/webpack");
-
-// const {DedupeModuleResolvePlugin} = require('@angular-devkit/build-angular/src/webpack/plugins/dedupe-module-resolve-plugin');
+const {DedupeModuleResolvePlugin} = require('@angular-devkit/build-angular/src/webpack/plugins/dedupe-module-resolve-plugin');
 const {
 	NamedChunksPlugin
 } = require("@angular-devkit/build-angular/src/webpack/plugins/named-chunks-plugin");
@@ -8,6 +7,7 @@ const {
 	OccurrencesPlugin
 } = require("@angular-devkit/build-angular/src/webpack/plugins/occurrences-plugin");
 const path = require("path");
+
 /** @type {import('@rspack/cli').Configuration} */
 module.exports = {
 	mode: "production",
@@ -21,10 +21,10 @@ module.exports = {
 		extensions: [".ts", ".js"]
 	},
 	output: {
-		uniqueName: "zackAngularCli",
-		// 'hashFunction': 'xxhash64', // throws error
+		uniqueName: "angular",
+		hashFunction: 'xxhash64',
 		clean: true,
-		// path: "./dist",
+		path: "./dist",
 		publicPath: "",
 		filename: "[name].[contenthash:20].js",
 		chunkFilename: "[name].[contenthash:20].js",
@@ -55,7 +55,7 @@ module.exports = {
 					name: "common",
 					chunks: "async",
 					minChunks: 2,
-					// 'enforce': true, // throws error
+					enforce: true,
 					priority: 5
 				}
 				// 'vendors': false, // throws error
@@ -160,8 +160,7 @@ module.exports = {
 		]
 	},
 	plugins: [
-		// TODO: Add this back after https://github.com/web-infra-dev/rspack/issues/2619 lands
-		// new DedupeModuleResolvePlugin(),
+		new DedupeModuleResolvePlugin(),
 		new NamedChunksPlugin(),
 		new OccurrencesPlugin({
 			aot: true,
