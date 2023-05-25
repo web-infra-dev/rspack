@@ -21,6 +21,7 @@ use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
+// use crate::parser_and_generator::JavaScriptStringReplaceParserAndGenerator;
 use crate::{JsMinifyOptions, JsPlugin};
 
 #[async_trait]
@@ -31,6 +32,10 @@ impl Plugin for JsPlugin {
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     let create_parser_and_generator =
       move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
+
+    // let create_parser_and_generator = move || {
+    //   Box::new(JavaScriptStringReplaceParserAndGenerator::new()) as Box<dyn ParserAndGenerator>
+    // };
 
     ctx
       .context

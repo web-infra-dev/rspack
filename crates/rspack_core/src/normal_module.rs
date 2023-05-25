@@ -21,18 +21,16 @@ use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rustc_hash::{FxHashSet as HashSet, FxHasher};
+use rustc_hash::FxHasher;
 use serde_json::json;
 use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  contextify, dependency::EsmDynamicImportDependency, is_async_dependency,
-  module_graph::ConnectionId, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  CompilerOptions, Context, Dependency, DependencyId, FactoryMeta, GenerateContext,
-  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, Resolve, SourceType,
+  contextify, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule, BuildContext,
+  BuildResult, CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerOptions,
+  Context, Dependency, GenerateContext, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
+  ModuleAst, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, Resolve, SourceType,
 };
 
 bitflags! {
@@ -71,175 +69,6 @@ impl ModuleIssuer {
     } else {
       None
     }
-  }
-}
-
-#[derive(Debug)]
-pub struct ModuleGraphModule {
-  // edges from module to module
-  pub outgoing_connections: HashSet<ConnectionId>,
-  pub incoming_connections: HashSet<ConnectionId>,
-
-  issuer: ModuleIssuer,
-
-  // pub exec_order: usize,
-  pub module_identifier: ModuleIdentifier,
-  // TODO remove this since its included in module
-  pub module_type: ModuleType,
-  pub dependencies: Vec<DependencyId>,
-  pub(crate) pre_order_index: Option<usize>,
-  pub post_order_index: Option<usize>,
-  pub module_syntax: ModuleSyntax,
-  pub factory_meta: Option<FactoryMeta>,
-  pub build_info: Option<BuildInfo>,
-  pub build_meta: Option<BuildMeta>,
-}
-
-impl ModuleGraphModule {
-  pub fn new(module_identifier: ModuleIdentifier, module_type: ModuleType) -> Self {
-    Self {
-      outgoing_connections: Default::default(),
-      incoming_connections: Default::default(),
-
-      issuer: ModuleIssuer::Unset,
-      // exec_order: usize::MAX,
-      module_identifier,
-      dependencies: Default::default(),
-      module_type,
-      pre_order_index: None,
-      post_order_index: None,
-      module_syntax: ModuleSyntax::empty(),
-      factory_meta: None,
-      build_info: None,
-      build_meta: None,
-    }
-  }
-
-  pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
-    let c = chunk_graph.get_module_id(self.module_identifier).as_ref();
-    c.expect("module id not found").as_str()
-  }
-
-  pub fn add_incoming_connection(&mut self, connection_id: ConnectionId) {
-    self.incoming_connections.insert(connection_id);
-  }
-
-  pub fn add_outgoing_connection(&mut self, connection_id: ConnectionId) {
-    self.outgoing_connections.insert(connection_id);
-  }
-
-  pub fn incoming_connections_unordered<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
-    let result = self
-      .incoming_connections
-      .iter()
-      .map(|connection_id| {
-        module_graph
-          .connection_by_connection_id(connection_id)
-          .ok_or_else(|| {
-            internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id:?}"
-            )
-          })
-      })
-      .collect::<Result<Vec<_>>>()?
-      .into_iter();
-
-    Ok(result)
-  }
-
-  pub fn outgoing_connections_unordered<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
-    let result = self
-      .outgoing_connections
-      .iter()
-      .map(|connection_id| {
-        module_graph
-          .connection_by_connection_id(connection_id)
-          .ok_or_else(|| {
-            internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id:?}"
-            )
-          })
-      })
-      .collect::<Result<Vec<_>>>()?
-      .into_iter();
-
-    Ok(result)
-  }
-
-  // pub fn dependencies(&mut self) -> Vec<&ModuleDependency> {
-  //   self
-  //     .outgoing_connections_unordered()
-  //     .map(|conn| &conn.dependency)
-  //     .collect()
-  // }
-
-  pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleIdentifier> {
-    self
-      .dependencies
-      .iter()
-      .filter(|id| {
-        let dep = module_graph.dependency_by_id(id).expect("should have id");
-        !is_async_dependency(dep) && !dep.weak()
-      })
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-      .collect()
-  }
-
-  pub fn dynamic_depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<(&'a ModuleIdentifier, Option<&'a str>)> {
-    self
-      .dependencies
-      .iter()
-      .filter_map(|id| {
-        let dep = module_graph.dependency_by_id(id).expect("should have id");
-        if !is_async_dependency(dep) {
-          return None;
-        }
-        let module = module_graph
-          .module_identifier_by_dependency_id(id)
-          .expect("should have a module here");
-
-        let chunk_name = dep
-          .as_ref()
-          .as_any()
-          .downcast_ref::<EsmDynamicImportDependency>()
-          .and_then(|f| f.name.as_deref());
-        Some((module, chunk_name))
-      })
-      .collect()
-  }
-
-  pub fn all_depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleIdentifier> {
-    self
-      .dependencies
-      .iter()
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-      .collect()
-  }
-
-  pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {
-    if matches!(self.issuer, ModuleIssuer::Unset) {
-      self.issuer = ModuleIssuer::from_identifier(issuer);
-    }
-  }
-
-  pub fn set_issuer(&mut self, issuer: ModuleIssuer) {
-    self.issuer = issuer;
-  }
-
-  pub fn get_issuer(&self) -> &ModuleIssuer {
-    &self.issuer
   }
 }
 
@@ -353,6 +182,7 @@ pub struct NormalModule {
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn Dependency>>>,
+  code_replace_source_dependencies: Option<Vec<Box<dyn CodeReplaceSourceDependency>>>,
 }
 
 #[derive(Debug)]
@@ -424,6 +254,7 @@ impl NormalModule {
       cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
+      code_replace_source_dependencies: None,
     }
   }
 
@@ -554,6 +385,7 @@ impl Module for NormalModule {
         ast_or_source,
         dependencies,
         presentational_dependencies,
+        code_replace_source_dependencies,
       },
       ds,
     ) = self
@@ -579,7 +411,7 @@ impl Module for NormalModule {
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
-
+    self.code_replace_source_dependencies = Some(code_replace_source_dependencies);
     let mut hasher = Xxh3::new();
     self.hash(&mut hasher);
 
@@ -676,6 +508,16 @@ impl Module for NormalModule {
 
   fn get_presentational_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
     if let Some(deps) = self.presentational_dependencies.as_deref() && !deps.is_empty() {
+      Some(deps)
+    } else {
+      None
+    }
+  }
+
+  fn get_string_replace_generation_dependencies(
+    &self,
+  ) -> Option<&[Box<dyn CodeReplaceSourceDependency>]> {
+    if let Some(deps) = self.code_replace_source_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {
       None
