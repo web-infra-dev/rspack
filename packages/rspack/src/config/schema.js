@@ -1731,6 +1731,22 @@ module.exports = {
 						}
 					]
 				},
+				loader: {
+					description: "Shortcut for use.loader.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetLoader"
+						}
+					]
+				},
+				options: {
+					description: "Shortcut for use.options.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetLoaderOptions"
+						}
+					]
+				},
 				scheme: {
 					description: "Match module scheme.",
 					oneOf: [
