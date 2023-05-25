@@ -13,7 +13,9 @@ export async function publish_handler(mode, options) {
 			`//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`
 		);
 	}
-	await $`pnpm changeset publish --tag ${options.tag}`;
+	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
+		options.tag
+	} --no-git-checks`;
 	const version = await getLastVersion(root);
 	/**
 	 * @Todo test stable release later
