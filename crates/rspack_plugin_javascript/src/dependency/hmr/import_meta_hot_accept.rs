@@ -1,7 +1,8 @@
 use rspack_core::{
-  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
-  ModuleDependency,
+  create_javascript_visitor, module_id, CodeGeneratable, CodeGeneratableContext,
+  CodeGeneratableResult, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
+  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, JsAstPath, ModuleDependency,
 };
 use swc_core::ecma::atoms::{Atom, JsWord};
 
@@ -87,5 +88,92 @@ impl CodeGeneratable for ImportMetaModuleHotAcceptDependency {
     }
 
     Ok(code_gen)
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct ImportMetaHotAcceptDependency {
+  id: Option<DependencyId>,
+  request: JsWord,
+  start: u32,
+  end: u32,
+  category: &'static DependencyCategory,
+  dependency_type: &'static DependencyType,
+
+  span: Option<ErrorSpan>,
+}
+
+impl ImportMetaHotAcceptDependency {
+  pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
+    Self {
+      start,
+      end,
+      request,
+      category: &DependencyCategory::Esm,
+      dependency_type: &DependencyType::ImportMetaHotAccept,
+      span,
+      id: None,
+    }
+  }
+}
+
+impl Dependency for ImportMetaHotAcceptDependency {
+  fn id(&self) -> Option<DependencyId> {
+    self.id
+  }
+  fn set_id(&mut self, id: Option<DependencyId>) {
+    self.id = id;
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    self.category
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    self.dependency_type
+  }
+}
+
+impl ModuleDependency for ImportMetaHotAcceptDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn span(&self) -> Option<&ErrorSpan> {
+    self.span.as_ref()
+  }
+
+  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
+    Some(Box::new(self.clone()))
+  }
+}
+
+impl CodeGeneratable for ImportMetaHotAcceptDependency {
+  fn generate(
+    &self,
+    _code_generatable_context: &mut CodeGeneratableContext,
+  ) -> rspack_error::Result<CodeGeneratableResult> {
+    todo!()
+  }
+}
+
+impl CodeReplaceSourceDependency for ImportMetaHotAcceptDependency {
+  fn apply(
+    &self,
+    source: &mut CodeReplaceSourceDependencyReplaceSource,
+    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+  ) {
+    let id: DependencyId = self.id().expect("should have dependency id");
+
+    source.replace(
+      self.start,
+      self.end,
+      module_id(code_generatable_context.compilation, &id, &self.request).as_str(),
+      None,
+    );
   }
 }

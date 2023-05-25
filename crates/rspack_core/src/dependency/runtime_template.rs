@@ -1,6 +1,6 @@
 use crate::{
-  to_identifier, CodeReplaceSourceDependencyContext, DependencyId, ExportsType, InitFragment,
-  InitFragmentStage, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
+  to_identifier, CodeReplaceSourceDependencyContext, Compilation, DependencyId, ExportsType,
+  InitFragment, InitFragmentStage, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
 };
 
 pub fn export_from_import(
@@ -103,6 +103,16 @@ pub fn module_id_expr(request: &str, module_id: &str) -> String {
     request,
     serde_json::to_string(module_id).expect("should render module id")
   )
+}
+
+pub fn module_id(compilation: &Compilation, id: &DependencyId, request: &str) -> String {
+  let module_id = compilation
+    .module_graph
+    .module_graph_module_by_dependency_id(id)
+    .map(|m| m.id(&compilation.chunk_graph))
+    .expect("should have dependency id");
+
+  module_id_expr(request, module_id)
 }
 
 pub fn import_statement(

@@ -42,6 +42,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
       compiler_options,
       build_info,
       build_meta,
+      module_identifier,
       ..
     } = parse_context;
 
@@ -122,6 +123,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
           module_type,
           build_info,
           build_meta,
+          module_identifier,
         )
       });
 
