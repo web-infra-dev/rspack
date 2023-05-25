@@ -1,9 +1,11 @@
+use itertools::Itertools;
 use rspack_database::DatabaseItem;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 impl DatabaseItem for ChunkGroup {
@@ -167,6 +169,19 @@ impl ChunkGroup {
     }
 
     false
+  }
+
+  pub fn id(&self, compilation: &Compilation) -> String {
+    self
+      .chunks
+      .iter()
+      .filter_map(|chunk| {
+        compilation
+          .chunk_by_ukey
+          .get(chunk)
+          .and_then(|chunk| chunk.id.as_ref())
+      })
+      .join("+")
   }
 }
 

@@ -345,7 +345,7 @@ impl Chunk {
     {
       compilation.chunk_graph.get_module_id(*module).hash(hasher);
       if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
-        chunk_group.ukey.hash(hasher);
+        chunk_group.id(compilation).hash(hasher);
       }
     }
   }
