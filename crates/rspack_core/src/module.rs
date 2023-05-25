@@ -9,9 +9,9 @@ use rspack_sources::Source;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsAny, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context,
-  ContextModule, Dependency, DynEq, DynHash, ExternalModule, ModuleDependency, ModuleType,
-  NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
+  AsAny, CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerContext,
+  CompilerOptions, Context, ContextModule, Dependency, DynEq, DynHash, ExternalModule,
+  ModuleDependency, ModuleType, NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -36,9 +36,18 @@ pub struct BuildInfo {
 #[derive(Debug, Default, Clone)]
 pub enum BuildMetaExportsType {
   #[default]
+  Unset,
   Default,
   Namespace,
   Flagged,
+  Dynamic,
+}
+
+#[derive(Debug, Clone)]
+pub enum ExportsType {
+  DefaultOnly,
+  Namespace,
+  DefaultWithNamed,
   Dynamic,
 }
 
@@ -138,6 +147,12 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   }
 
   fn get_presentational_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
+    None
+  }
+
+  fn get_string_replace_generation_dependencies(
+    &self,
+  ) -> Option<&[Box<dyn CodeReplaceSourceDependency>]> {
     None
   }
 

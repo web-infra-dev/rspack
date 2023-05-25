@@ -96,6 +96,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         dependencies,
         presentational_dependencies: vec![],
         ast_or_source: source.into(),
+        code_replace_source_dependencies: vec![],
       }
       .with_diagnostic(diagnostic),
     )

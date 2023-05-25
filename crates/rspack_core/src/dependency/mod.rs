@@ -1,8 +1,13 @@
 mod entry;
+mod span;
 pub use entry::*;
+pub use span::SpanExt;
 mod runtime_requirements_dependency;
 pub use runtime_requirements_dependency::*;
 mod code_generatable;
+mod runtime_template;
+pub use runtime_template::*;
+mod dependency_macro;
 pub use code_generatable::*;
 mod context_element_dependency;
 pub use context_element_dependency::*;
@@ -13,6 +18,8 @@ pub use common_js_require_context_dependency::*;
 pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
 mod dynamic_import;
+mod replace_const_dependency;
+pub use replace_const_dependency::ReplaceConstDependency;
 mod require_context_dependency;
 mod require_resolve_dependency;
 use std::{
@@ -21,7 +28,8 @@ use std::{
   fmt::{Debug, Display},
   hash::Hash,
 };
-
+mod code_generatable_dependency;
+pub use code_generatable_dependency::*;
 use dyn_clone::{clone_trait_object, DynClone};
 pub use dynamic_import::*;
 pub use require_context_dependency::RequireContextDependency;
@@ -258,6 +266,10 @@ pub trait ModuleDependency: Dependency {
   }
   fn get_optional(&self) -> bool {
     false
+  }
+
+  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
+    None
   }
 }
 

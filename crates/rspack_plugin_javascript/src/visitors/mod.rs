@@ -22,7 +22,7 @@ use swc_core::ecma::transforms::base::Assumptions;
 use swc_core::ecma::transforms::module::util::ImportInterop;
 use swc_core::ecma::transforms::optimization::simplify::dce::{dce, Config};
 pub mod relay;
-mod swc_visitor;
+pub mod swc_visitor;
 mod tree_shaking;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::{Error, Result};
@@ -167,6 +167,7 @@ pub fn run_before_pass(
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
+      swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
     );
     program.fold_with(&mut pass);
 

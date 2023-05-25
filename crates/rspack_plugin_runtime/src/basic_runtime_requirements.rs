@@ -6,11 +6,12 @@ use rspack_core::{
 use rspack_error::Result;
 
 use crate::runtime_module::{
+  CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, GetChunkFilenameRuntimeModule,
   GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
   GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, NormalRuntimeModule,
-  OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
+  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
+  NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
 };
 
 #[derive(Debug)]
@@ -160,6 +161,17 @@ impl Plugin for BasicRuntimeRequirementPlugin {
           .add_runtime_module(chunk, DefinePropertyGettersRuntimeModule::default().boxed()),
         RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => compilation
           .add_runtime_module(chunk, GetTrustedTypesPolicyRuntimeModule::default().boxed()),
+        RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT => compilation.add_runtime_module(
+          chunk,
+          CreateFakeNamespaceObjectRuntimeModule::default().boxed(),
+        ),
+        RuntimeGlobals::MAKE_NAMESPACE_OBJECT => {
+          compilation.add_runtime_module(chunk, MakeNamespaceObjectRuntimeModule::default().boxed())
+        }
+        RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT => compilation.add_runtime_module(
+          chunk,
+          CompatGetDefaultExportRuntimeModule::default().boxed(),
+        ),
         _ => {}
       }
     }

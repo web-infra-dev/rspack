@@ -496,7 +496,7 @@ fn split_context_from_prefix(prefix: String) -> (String, String) {
   }
 }
 
-fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
+pub fn scanner_context_module(expr: &Expr) -> Option<(String, String)> {
   match expr {
     Expr::Tpl(tpl) if !tpl.exprs.is_empty() => Some(scan_context_module_tpl(tpl)),
     Expr::Bin(bin) => scan_context_module_bin(bin),

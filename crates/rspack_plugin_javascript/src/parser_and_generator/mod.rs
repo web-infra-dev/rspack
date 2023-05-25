@@ -8,6 +8,8 @@ use rspack_core::{
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use swc_core::common::util::take::Take;
 use swc_core::ecma::ast;
+mod string_replace;
+pub use string_replace::JavaScriptStringReplaceParserAndGenerator;
 
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{run_after_pass, run_before_pass, scan_dependencies};
@@ -76,23 +78,25 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &source,
     )?;
 
-    let (dependencies, presentational_dependencies) = ast.visit(|program, context| {
-      scan_dependencies(
-        program,
-        context.unresolved_mark,
-        resource_data,
-        compiler_options,
-        module_type,
-        build_info,
-        build_meta,
-      )
-    });
+    let (dependencies, presentational_dependencies, code_replace_source_dependencies) =
+      ast.visit(|program, context| {
+        scan_dependencies(
+          program,
+          context.unresolved_mark,
+          resource_data,
+          compiler_options,
+          module_type,
+          build_info,
+          build_meta,
+        )
+      });
 
     Ok(
       ParseResult {
         ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
         dependencies,
         presentational_dependencies,
+        code_replace_source_dependencies,
       }
       .with_diagnostic(diagnostics),
     )
