@@ -1,6 +1,6 @@
 const path = require("path");
 
-function config(subpath) {
+function config(subpath, realContentHash = false) {
 	return {
 		entry: `./index.js`,
 		context: path.resolve(__dirname, subpath),
@@ -9,6 +9,7 @@ function config(subpath) {
 			filename: "[name].[contenthash].js"
 		},
 		optimization: {
+			realContentHash,
 			moduleIds: "named",
 			minimize: false,
 			runtimeChunk: {
@@ -25,5 +26,8 @@ function config(subpath) {
 module.exports = [
 	config("version0"),
 	config("version0-copy"),
-	config("version1")
+	config("version1"),
+	config("rch-version0", true),
+	config("rch-version0-copy", true),
+	config("rch-version1", true)
 ];

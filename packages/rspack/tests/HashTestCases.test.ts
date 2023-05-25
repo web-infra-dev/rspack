@@ -47,18 +47,13 @@ describe("HashTestCases", () => {
 			} else {
 				expect(statsJson.errors!.length === 0);
 			}
-			if (isMultiCompiler) {
-				const files = statsJson.children?.map(child =>
-					child.assets?.map(x => x.name)
-				);
-				expect(files).toMatchSnapshot();
-			} else {
-				const files = statsJson.assets?.map(x => x.name);
-				expect(files).toMatchSnapshot();
-			}
 
 			if (testConfig && testConfig.validate) {
 				testConfig.validate(stats);
+			} else {
+				throw new Error(
+					"HashTestCases should have test.config.js and a validate method"
+				);
 			}
 		});
 	});
