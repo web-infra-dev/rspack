@@ -1,5 +1,5 @@
 {
-  "name": "example-vue",
+  "name": "example-vue2",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -10,10 +10,12 @@
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
+    "css-loader": "^6.7.4",
     "less": "4.1.3",
     "less-loader": "^11.1.0",
-    "vue": "3.2.47",
-    "vue-loader": "^17.1.1"
+    "vue": "2.7.14",
+    "vue-loader": "^15.10.1",
+    "vue-style-loader": "^4.1.3"
   },
   "keywords": [],
   "author": "",

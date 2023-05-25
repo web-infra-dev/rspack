@@ -11,15 +11,12 @@ const config = {
 			{
 				template: "./index.html"
 			}
-		],
-		define: {
-			__VUE_OPTIONS_API__: JSON.stringify(true),
-			__VUE_PROD_DEVTOOLS__: JSON.stringify(false)
-		}
+		]
 	},
 	devServer: {
 		historyApiFallback: true
 	},
+	devtool: false,
 	plugins: [new VueLoaderPlugin()],
 	module: {
 		rules: [
@@ -28,13 +25,13 @@ const config = {
 				use: ["vue-loader"]
 			},
 			{
-				test: /\.less$/,
-				use: ["style-loader", "css-loader", "less-loader"],
+				test: /\.less/,
+				use: ["vue-style-loader", "css-loader", "less-loader"],
 				type: "javascript/auto"
 			},
 			{
-				test: /\.css$/,
-				use: ["style-loader", "css-loader"],
+				test: /\.css/,
+				use: ["vue-style-loader", "css-loader"],
 				type: "javascript/auto"
 			},
 			{
