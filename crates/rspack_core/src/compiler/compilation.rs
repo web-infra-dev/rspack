@@ -1,31 +1,29 @@
 use std::{
   fmt::Debug,
-  hash::{BuildHasherDefault, Hash, Hasher},
+  hash::{BuildHasherDefault, Hash},
   path::PathBuf,
   sync::{
     atomic::{AtomicBool, Ordering},
-    // time::Instant,
     Arc,
   },
 };
 
 use dashmap::DashSet;
 use indexmap::{IndexMap, IndexSet};
-use rayon::prelude::{
-  IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator,
-};
+use itertools::Itertools;
+use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_futures::FuturesResults;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
@@ -35,14 +33,15 @@ use crate::{
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
-  BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
-  ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue, CleanTask,
-  CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs,
-  DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue,
-  FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
-  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
+  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
+  ContentHashArgs, DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, NormalModuleAstOrSource, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats,
+  TaskResult, WorkerTask,
 };
 
 #[derive(Debug)]
@@ -73,7 +72,7 @@ pub struct Compilation {
   pub make_failed_module: HashSet<ModuleIdentifier>,
   pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
-  pub runtime_module_code_generation_results: IdentifierMap<(u64, BoxSource)>,
+  pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
@@ -96,7 +95,7 @@ pub struct Compilation {
   pub code_generated_modules: IdentifierSet,
   pub cache: Arc<Cache>,
   pub code_splitting_cache: CodeSplittingCache,
-  pub hash: String,
+  pub hash: Option<RspackHashDigest>,
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
@@ -151,7 +150,7 @@ impl Compilation {
 
       cache,
       code_splitting_cache: Default::default(),
-      hash: Default::default(),
+      hash: None,
       lazy_visit_modules: Default::default(),
       used_chunk_ids: Default::default(),
 
@@ -1217,138 +1216,90 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_hash", skip_all)]
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    // move to make, only hash changed module at hmr.
-    // self.create_module_hash();
+    let mut compilation_hasher = RspackHash::from(&self.options.output);
+    let runtime_chunk_ukeys = self.get_chunk_graph_entries();
 
-    let mut compilation_hasher = Xxh3::new();
-    let chunk_hash_results = self
-      .chunk_by_ukey
-      .iter()
-      .map(|(chunk_key, _)| async {
-        let hash = plugin_driver
-          .read()
-          .await
-          .chunk_hash(&ChunkHashArgs {
-            chunk_ukey: *chunk_key,
-            compilation: self,
-          })
-          .await;
-        (*chunk_key, hash)
-      })
-      .collect::<FuturesResults<_>>()
-      .into_inner();
-    for (chunk_ukey, hash) in chunk_hash_results {
+    let other_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
+      self
+        .chunk_by_ukey
+        .keys()
+        .filter(|key| !runtime_chunk_ukeys.contains(key))
+        .map(|chunk| async {
+          let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
+          Ok((*chunk, hash_result))
+        })
+        .collect::<FuturesResults<_>>()
+        .into_inner();
+    for hash_result in other_chunk_hash_results {
+      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
       if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
-        hash?.hash(&mut chunk.hash);
+        chunk.hash = Some(chunk_hash);
+        chunk.content_hash = content_hash;
       }
     }
-    let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
-    chunks.sort_unstable_by_key(|chunk| chunk.ukey);
-    chunks
-      .par_iter_mut()
-      .flat_map_iter(|chunk| {
-        self
-          .chunk_graph
-          .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
-          .into_iter()
-          .filter_map(|m| {
-            self
-              .code_generation_results
-              .get_hash(&m.identifier(), Some(&chunk.runtime))
-          })
-          .inspect(|hash| hash.hash(&mut chunk.hash))
-      })
-      .collect::<Vec<_>>()
-      .iter()
-      .for_each(|hash| {
-        hash.hash(&mut compilation_hasher);
-      });
 
-    tracing::trace!("hash normal chunks chunk hash");
-
-    let runtime_chunk_ukeys = self.get_chunk_graph_entries();
     // runtime chunks should be hashed after all other chunks
-    let content_hash_chunks = self
-      .chunk_by_ukey
-      .keys()
-      .filter(|key| !runtime_chunk_ukeys.contains(key))
-      .copied()
-      .collect::<Vec<_>>();
-    self.create_chunk_content_hash(content_hash_chunks, plugin_driver.clone())?;
-
-    tracing::trace!("calculate normal chunks content hash");
-
     self.create_runtime_module_hash();
 
-    tracing::trace!("hash runtime modules");
+    let runtime_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
+      runtime_chunk_ukeys
+        .iter()
+        .map(|chunk| async {
+          let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
+          Ok((*chunk, hash_result))
+        })
+        .collect::<FuturesResults<_>>()
+        .into_inner();
+    for hash_result in runtime_chunk_hash_results {
+      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
+      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
+        chunk.hash = Some(chunk_hash);
+        chunk.content_hash = content_hash;
+      }
+    }
 
-    let mut entry_chunks = self
+    self
       .chunk_by_ukey
-      .values_mut()
-      .filter(|chunk| runtime_chunk_ukeys.contains(&chunk.ukey))
-      .collect::<Vec<_>>();
-    entry_chunks.sort_unstable_by_key(|chunk| chunk.ukey);
-    entry_chunks
-      .par_iter_mut()
-      .flat_map_iter(|chunk| {
-        self
-          .chunk_graph
-          .get_chunk_runtime_modules_in_order(&chunk.ukey)
-          .iter()
-          .filter_map(|identifier| self.runtime_module_code_generation_results.get(identifier))
-          .inspect(|(hash, _)| hash.hash(&mut chunk.hash))
-      })
-      .collect::<Vec<_>>()
-      .iter()
+      .values()
+      .sorted_unstable_by_key(|chunk| chunk.ukey)
+      .filter_map(|chunk| chunk.hash.as_ref())
       .for_each(|hash| {
         hash.hash(&mut compilation_hasher);
       });
-    tracing::trace!("calculate runtime chunks hash");
-
-    self.create_chunk_content_hash(
-      Vec::from_iter(runtime_chunk_ukeys.into_iter()),
-      plugin_driver.clone(),
-    )?;
-    tracing::trace!("calculate runtime chunks content hash");
-
-    // TODO(ahabhgk): refactor, upper-level wrapper for format!("{:016x}")
-    // 016 for length = 16
-    self.hash = format!("{:016x}", compilation_hasher.finish());
-    tracing::trace!("compilation hash");
+    self.hash = Some(compilation_hasher.digest(&self.options.output.hash_digest));
     Ok(())
   }
 
-  #[allow(clippy::unwrap_in_result)]
-  fn create_chunk_content_hash(
-    &mut self,
-    chunks: Vec<ChunkUkey>,
-    plugin_driver: SharedPluginDriver,
-  ) -> Result<()> {
-    let hash_results = chunks
-      .iter()
-      .map(|chunk_ukey| async {
-        let hashes = plugin_driver
-          .read()
-          .await
-          .content_hash(&ContentHashArgs {
-            chunk_ukey: *chunk_ukey,
-            compilation: self,
-          })
-          .await;
-        (*chunk_ukey, hashes)
-      })
-      .collect::<FuturesResults<_>>()
-      .into_inner();
-
-    for (chunk_ukey, hashes) in hash_results {
-      hashes?.into_iter().for_each(|hash| {
-        if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
-          chunk.content_hash.insert(source_type, hash);
-        }
-      });
+  async fn process_chunk_hash(
+    &self,
+    chunk_ukey: ChunkUkey,
+    plugin_driver: &SharedPluginDriver,
+  ) -> Result<(RspackHashDigest, ChunkContentHash)> {
+    let mut hasher = RspackHash::from(&self.options.output);
+    if let Some(chunk) = self.chunk_by_ukey.get(&chunk_ukey) {
+      chunk.update_hash(&mut hasher, self);
     }
+    plugin_driver
+      .read()
+      .await
+      .chunk_hash(&mut ChunkHashArgs {
+        chunk_ukey,
+        compilation: self,
+        hasher: &mut hasher,
+      })
+      .await?;
+    let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
-    Ok(())
+    let content_hash = plugin_driver
+      .read()
+      .await
+      .content_hash(&ContentHashArgs {
+        chunk_ukey,
+        compilation: self,
+      })
+      .await?;
+
+    Ok((chunk_hash, content_hash))
   }
 
   // #[instrument(name = "compilation:create_module_hash", skip_all)]
@@ -1358,7 +1309,7 @@ impl Compilation {
   //     .module_identifier_to_module
   //     .par_iter()
   //     .map(|(identifier, module)| {
-  //       let mut hasher = Xxh3::new();
+  //       let mut hasher = RspackHash::new();
   //       module.hash(&mut hasher);
   //       (*identifier, hasher.finish())
   //     })
@@ -1384,10 +1335,13 @@ impl Compilation {
       .par_iter()
       .map(|(identifier, module)| {
         let source = module.generate(self);
-        let mut hasher = Xxh3::new();
+        let mut hasher = RspackHash::from(&self.options.output);
         module.identifier().hash(&mut hasher);
         source.source().hash(&mut hasher);
-        (*identifier, (hasher.finish(), source))
+        (
+          *identifier,
+          (hasher.digest(&self.options.output.hash_digest), source),
+        )
       })
       .collect();
   }
@@ -1413,9 +1367,16 @@ impl Compilation {
       .insert(runtime_module_identifier, module);
   }
 
+  pub fn get_hash(&self) -> Option<&str> {
+    self
+      .hash
+      .as_ref()
+      .map(|hash| hash.rendered(self.options.output.hash_digest_length))
+  }
+
   pub fn get_path<'b, 'a: 'b>(&'a self, filename: &Filename, mut data: PathData<'b>) -> String {
     if data.hash.is_none() {
-      data.hash = Some(&self.hash);
+      data.hash = self.get_hash();
     }
     filename.render(data, None)
   }
@@ -1427,7 +1388,7 @@ impl Compilation {
   ) -> (String, AssetInfo) {
     let mut info = AssetInfo::default();
     if data.hash.is_none() {
-      data.hash = Some(&self.hash);
+      data.hash = self.get_hash();
     }
     let path = filename.render(data, Some(&mut info));
     (path, info)

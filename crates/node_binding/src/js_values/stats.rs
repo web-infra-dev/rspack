@@ -349,6 +349,10 @@ impl JsStats {
 
   #[napi]
   pub fn get_hash(&self) -> String {
-    self.inner.get_hash()
+    self
+      .inner
+      .get_hash()
+      .expect("should have hash in stats::get_hash")
+      .to_string()
   }
 }

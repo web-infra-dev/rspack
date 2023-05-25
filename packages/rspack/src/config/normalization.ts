@@ -142,7 +142,11 @@ export const getNormalizedRspackOptions = (
 							return { policyName: trustedTypes };
 						return { ...trustedTypes };
 					}
-				)
+				),
+				hashDigest: output.hashDigest,
+				hashDigestLength: output.hashDigestLength,
+				hashFunction: output.hashFunction,
+				hashSalt: output.hashSalt
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({

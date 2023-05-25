@@ -2,15 +2,16 @@ use std::borrow::Cow;
 use std::hash::Hash;
 
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use serde::{Serialize, Serializer};
 
 use crate::{
   rspack_sources::{BoxSource, RawSource, Source, SourceExt},
-  to_identifier, AstOrSource, BuildContext, BuildMetaExportsType, BuildResult, ChunkInitFragments,
-  CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context, ExternalType,
-  GenerationResult, InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleType,
-  RuntimeGlobals, SourceType,
+  to_identifier, AstOrSource, BuildContext, BuildInfo, BuildMetaExportsType, BuildResult,
+  ChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResult, Compilation, Context,
+  ExternalType, GenerationResult, InitFragment, InitFragmentStage, LibIdentOptions, Module,
+  ModuleType, RuntimeGlobals, SourceType,
 };
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -240,9 +241,21 @@ impl Module for ExternalModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    let mut build_result = BuildResult::default();
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
+
+    let build_info = BuildInfo {
+      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+      ..Default::default()
+    };
+
+    let mut build_result = BuildResult {
+      build_info,
+      build_meta: Default::default(),
+      dependencies: Vec::new(),
+    };
     // TODO add exports_type for request
     match self.external_type.as_str() {
       "this" => build_result.build_info.strict = false,
@@ -298,7 +311,11 @@ impl Module for ExternalModule {
         );
         cgr.chunk_init_fragments = chunk_init_fragments;
         cgr.runtime_requirements.add(runtime_requirements);
-        cgr.set_hash();
+        cgr.set_hash(
+          &compilation.options.output.hash_function,
+          &compilation.options.output.hash_digest,
+          &compilation.options.output.hash_salt,
+        );
       }
     };
     Ok(cgr)

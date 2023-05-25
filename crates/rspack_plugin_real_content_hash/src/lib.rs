@@ -2,7 +2,7 @@
 
 use std::{
   borrow::Cow,
-  hash::{BuildHasherDefault, Hash, Hasher},
+  hash::{BuildHasherDefault, Hash},
 };
 
 use derivative::Derivative;
@@ -13,8 +13,8 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
   AssetInfo, Plugin, PluginContext, PluginProcessAssetsOutput, ProcessAssetsArgs,
 };
+use rspack_hash::RspackHash;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
-use xxhash_rust::xxh3::Xxh3;
 
 type IndexSet<T> = indexmap::IndexSet<T, BuildHasherDefault<FxHasher>>;
 
@@ -103,13 +103,12 @@ impl RealContentHashPlugin {
               .buffer()
           })
           .collect();
-        let mut hasher = Xxh3::new();
+        let mut hasher = RspackHash::from(&compilation.options.output);
         for asset_content in asset_contents {
           asset_content.hash(&mut hasher);
         }
-        let new_hash = format!("{:016x}", hasher.finish());
-        let len = old_hash.len().min(new_hash.len());
-        let new_hash = new_hash[..len].to_string();
+        let new_hash = hasher.digest(&compilation.options.output.hash_digest);
+        let new_hash = new_hash.rendered(old_hash.len()).to_string();
         hash_to_new_hash.insert(old_hash, new_hash);
       }
     }

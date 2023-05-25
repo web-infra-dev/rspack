@@ -1,19 +1,14 @@
-use std::{
-  fmt::Write,
-  hash::{Hash, Hasher},
-  path::Path,
-};
+use std::{fmt::Write, hash::Hash, path::Path};
 
-use data_encoding::{Encoding, Specification};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{Compilation, ModuleDependency, PathData, RuntimeGlobals};
+use rspack_core::{Compilation, ModuleDependency, OutputOptions, PathData, RuntimeGlobals};
 use rspack_error::{internal_error, Result};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use swc_core::css::modules::CssClassName;
 use swc_core::ecma::atoms::JsWord;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::plugin::{LocalIdentName, LocalIdentNameRenderOptions, LocalsConvention};
 
@@ -21,31 +16,44 @@ pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_
 pub static AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX: Lazy<Regex> =
   Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("Invalid regexp"));
 
-static ENCODER: Lazy<Encoding> = Lazy::new(|| {
-  let mut spec = Specification::new();
-  spec
-    .symbols
-    .push_str("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-");
-  spec.encoding().expect("Invalid specification")
-});
-
 pub struct ModulesTransformConfig<'a> {
-  pub filename: &'a Path,
-  pub local_name_ident: &'a LocalIdentName,
+  filename: &'a Path,
+  local_name_ident: &'a LocalIdentName,
+  hash_function: &'a HashFunction,
+  hash_digest: &'a HashDigest,
+  hash_digest_length: usize,
+  hash_salt: &'a HashSalt,
+}
+
+impl<'a> ModulesTransformConfig<'a> {
+  pub fn new(
+    filename: &'a Path,
+    local_name_ident: &'a LocalIdentName,
+    output: &'a OutputOptions,
+  ) -> Self {
+    Self {
+      filename,
+      local_name_ident,
+      hash_function: &output.hash_function,
+      hash_digest: &output.hash_digest,
+      hash_digest_length: output.hash_digest_length,
+      hash_salt: &output.hash_salt,
+    }
+  }
 }
 
 impl swc_core::css::modules::TransformConfig for ModulesTransformConfig<'_> {
   fn new_name_for(&self, local: &JsWord) -> JsWord {
     let hash = {
-      let mut hasher = Xxh3::default();
+      let mut hasher = RspackHash::with_salt(self.hash_function, self.hash_salt);
       self.filename.hash(&mut hasher);
       local.hash(&mut hasher);
-      let hash = hasher.finish();
-      let hash = ENCODER.encode(&hash.to_le_bytes());
+      let hash = hasher.digest(self.hash_digest);
+      let hash = hash.rendered(self.hash_digest_length);
       if hash.as_bytes()[0].is_ascii_digit() {
         format!("_{hash}")
       } else {
-        hash
+        hash.into()
       }
     };
     self

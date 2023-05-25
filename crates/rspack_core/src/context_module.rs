@@ -2,21 +2,21 @@ use std::{
   borrow::Cow,
   fmt::{self, Display},
   fs,
-  hash::{Hash, Hasher},
+  hash::Hash,
   path::Path,
   sync::Arc,
 };
 
 use nodejs_resolver::EnforceExtension;
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_hash::RspackHash;
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_regex::RspackRegex;
 use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo,
+  contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
   DependencyCategory, DependencyType, GenerationResult, LibIdentOptions, Module, ModuleType,
   Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
@@ -311,9 +311,9 @@ impl Module for ContextModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    self.resolve_dependencies()
+    self.resolve_dependencies(build_context)
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
@@ -358,7 +358,11 @@ impl Module for ContextModule {
       SourceType::JavaScript,
       GenerationResult::from(AstOrSource::from(self.get_source_string(compilation)?)),
     );
-    code_generation_result.set_hash();
+    code_generation_result.set_hash(
+      &compilation.options.output.hash_function,
+      &compilation.options.output.hash_digest,
+      &compilation.options.output.hash_salt,
+    );
     Ok(code_generation_result)
   }
 }
@@ -377,7 +381,10 @@ impl Hash for ContextModule {
 }
 
 impl ContextModule {
-  pub fn resolve_dependencies(&self) -> Result<TWithDiagnosticArray<BuildResult>> {
+  pub fn resolve_dependencies(
+    &self,
+    build_context: BuildContext<'_>,
+  ) -> Result<TWithDiagnosticArray<BuildResult>> {
     let mut dependencies = vec![];
 
     tracing::trace!("resolving context module path {}", self.options.resource);
@@ -463,19 +470,19 @@ impl ContextModule {
 
     tracing::trace!("resolving dependencies for {:?}", dependencies);
 
-    let mut hasher = Xxh3::new();
-    self.hash(&mut hasher);
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
+
+    let build_info = BuildInfo {
+      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+      ..Default::default()
+    };
 
     Ok(
       BuildResult {
-        build_info: BuildInfo {
-          hash: hasher.finish(),
-          // TODO
-          cacheable: false,
-          ..Default::default()
-        },
+        build_info,
+        build_meta: BuildMeta::default(),
         dependencies,
-        ..Default::default()
       }
       .with_diagnostic(vec![]),
     )

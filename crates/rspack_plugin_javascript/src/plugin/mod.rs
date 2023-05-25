@@ -9,7 +9,7 @@ use rspack_core::{
   RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
-use xxhash_rust::xxh3::Xxh3;
+use rspack_hash::RspackHash;
 
 use crate::runtime::{
   render_chunk_init_fragments, render_chunk_modules, render_runtime_modules, stringify_array,
@@ -358,7 +358,7 @@ impl JsPlugin {
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
-    hasher: &mut Xxh3,
+    hasher: &mut RspackHash,
   ) -> PluginJsChunkHashHookOutput {
     compilation
       .plugin_driver
@@ -377,7 +377,7 @@ impl JsPlugin {
     &self,
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
-    hasher: &mut Xxh3,
+    hasher: &mut RspackHash,
   ) {
     // sample hash use content
     let (header, startup) = self.render_bootstrap(chunk_ukey, compilation);

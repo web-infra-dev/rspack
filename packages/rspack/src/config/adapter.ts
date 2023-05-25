@@ -201,7 +201,11 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
 		webassemblyModuleFilename: output.webassemblyModuleFilename!,
 		trustedTypes: output.trustedTypes!,
-		sourceMapFilename: output.sourceMapFilename!
+		sourceMapFilename: output.sourceMapFilename!,
+		hashFunction: output.hashFunction!,
+		hashDigest: output.hashDigest!,
+		hashDigestLength: output.hashDigestLength!,
+		hashSalt: output.hashSalt!
 	};
 }
 

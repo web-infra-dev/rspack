@@ -83,8 +83,6 @@ export interface RspackOptionsNormalized {
 	ignoreWarnings?: IgnoreWarningsNormalized;
 }
 
-export type HashFunction = string | typeof import("../util/hash");
-
 ///// Name /////
 export type Name = string;
 
@@ -162,6 +160,10 @@ export interface Output {
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: true | string | TrustedTypes;
 	sourceMapFilename?: SourceMapFilename;
+	hashDigest?: HashDigest;
+	hashDigestLength?: HashDigestLength;
+	hashFunction?: HashFunction;
+	hashSalt?: HashSalt;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -239,6 +241,10 @@ export type EnabledWasmLoadingTypes = WasmLoadingType[];
 export interface TrustedTypes {
 	policyName?: string;
 }
+export type HashDigest = string;
+export type HashDigestLength = number;
+export type HashFunction = string;
+export type HashSalt = string;
 export interface OutputNormalized {
 	path?: Path;
 	clean?: Clean;
@@ -268,10 +274,10 @@ export interface OutputNormalized {
 	enabledChunkLoadingTypes?: string[];
 	trustedTypes?: TrustedTypes;
 	sourceMapFilename?: SourceMapFilename;
-	/**
-	 * Algorithm used for generation the hash (see node.js crypto package).
-	 */
+	hashDigest?: HashDigest;
+	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
+	hashSalt?: HashSalt;
 }
 
 ///// Resolve /////

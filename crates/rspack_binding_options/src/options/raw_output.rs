@@ -144,6 +144,10 @@ pub struct RawOutputOptions {
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
   pub source_map_filename: String,
+  pub hash_function: String,
+  pub hash_digest: String,
+  pub hash_digest_length: u32,
+  pub hash_salt: Option<String>,
 }
 
 impl RawOptionsApply for RawOutputOptions {
@@ -191,6 +195,10 @@ impl RawOptionsApply for RawOutputOptions {
       module: self.module,
       trusted_types: self.trusted_types.map(Into::into),
       source_map_filename: self.source_map_filename.into(),
+      hash_function: self.hash_function.as_str().into(),
+      hash_digest: self.hash_digest.as_str().into(),
+      hash_digest_length: self.hash_digest_length as usize,
+      hash_salt: self.hash_salt.into(),
     })
   }
 }

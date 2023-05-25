@@ -57,7 +57,7 @@ impl AssignLibraryPlugin {
                     chunk
                       .content_hash
                       .get(&SourceType::JavaScript)
-                      .map(|i| i.as_str()),
+                      .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
                   ),
                 )
               })

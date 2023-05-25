@@ -180,7 +180,12 @@ impl Plugin for DevtoolPlugin {
                   PathData::default()
                     .chunk(chunk)
                     .filename(&filename)
-                    .content_hash_optional(chunk.content_hash.get(source_type).map(|i| i.as_str())),
+                    .content_hash_optional(
+                      chunk
+                        .content_hash
+                        .get(source_type)
+                        .map(|i| i.rendered(args.compilation.options.output.hash_digest_length)),
+                    ),
                 );
                 break;
               }

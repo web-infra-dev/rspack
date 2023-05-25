@@ -142,10 +142,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         .relative(&compiler_options.context);
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
-        ModulesTransformConfig {
+        ModulesTransformConfig::new(
           filename,
-          local_name_ident: &self.config.modules.local_ident_name,
-        },
+          &self.config.modules.local_ident_name,
+          &compiler_options.output,
+        ),
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();

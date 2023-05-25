@@ -89,7 +89,15 @@ impl Stats<'_> {
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
-    assets.sort_unstable_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
+    assets.sort_unstable_by(|a, b| {
+      if b.size == a.size {
+        // a to z
+        a.name.cmp(&b.name)
+      } else {
+        // big to small
+        b.size.total_cmp(&a.size)
+      }
+    });
 
     let mut assets_by_chunk_name: HashMap<String, Vec<String>> = HashMap::default();
     for (file, chunks) in compilation_file_to_chunks {
@@ -280,8 +288,8 @@ impl Stats<'_> {
       .collect()
   }
 
-  pub fn get_hash(&self) -> String {
-    self.compilation.hash.to_owned()
+  pub fn get_hash(&self) -> Option<&str> {
+    self.compilation.get_hash()
   }
 
   fn sort_modules(modules: &mut [StatsModule]) {

@@ -254,8 +254,8 @@ impl JsCompilation {
   }
 
   #[napi(getter)]
-  pub fn hash(&self) -> String {
-    self.inner.hash.to_string()
+  pub fn hash(&self) -> Option<String> {
+    self.inner.get_hash().map(|hash| hash.to_owned())
   }
 
   #[napi]

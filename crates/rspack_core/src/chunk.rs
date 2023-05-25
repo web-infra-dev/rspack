@@ -1,15 +1,12 @@
-use std::{
-  fmt::{Debug, Formatter, Result},
-  hash::Hasher,
-};
+use std::{fmt::Debug, hash::Hash};
 
 use rspack_database::DatabaseItem;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, ModuleGraph,
-  RuntimeSpec, SourceType,
+  ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
+  ModuleGraph, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,7 +15,9 @@ pub enum ChunkKind {
   Normal,
 }
 
-#[derive(Clone)]
+pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
+
+#[derive(Debug, Clone)]
 pub struct Chunk {
   // - If the chunk is create by entry, the name is the entry name
   // - (Rspack doesn't support it yet)If the chunk is create by dynamic import, the name
@@ -33,30 +32,14 @@ pub struct Chunk {
   pub groups: HashSet<ChunkGroupUkey>,
   pub runtime: RuntimeSpec,
   pub kind: ChunkKind,
-  pub hash: Xxh3,
-  pub content_hash: HashMap<SourceType, String>,
+  pub hash: Option<RspackHashDigest>,
+  pub content_hash: ChunkContentHash,
   pub chunk_reasons: Vec<String>,
 }
 
 impl DatabaseItem for Chunk {
   fn ukey(&self) -> rspack_database::Ukey<Self> {
     self.ukey
-  }
-}
-
-impl Debug for Chunk {
-  fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-    f.debug_struct("Chunk")
-      .field("name", &self.name)
-      .field("ukey", &self.ukey)
-      .field("id", &self.id)
-      .field("files", &self.files)
-      .field("groups", &self.groups)
-      .field("runtime", &self.runtime)
-      .field("kind", &self.kind)
-      .field("hash", &self.hash.finish())
-      .field("content_hash", &self.content_hash)
-      .finish()
   }
 }
 
@@ -72,7 +55,7 @@ impl Chunk {
       groups: Default::default(),
       runtime: HashSet::default(),
       kind,
-      hash: Default::default(),
+      hash: None,
       content_hash: HashMap::default(),
       chunk_reasons: Default::default(),
     }
@@ -308,8 +291,8 @@ impl Chunk {
 
   // pub fn get_all_referenced_async_entry_points() -> HashSet<ChunkUkey> {}
 
-  pub fn get_render_hash(&self) -> String {
-    format!("{:016x}", self.hash.finish())
+  pub fn get_render_hash(&self, length: usize) -> Option<&str> {
+    self.hash.as_ref().map(|hash| hash.rendered(length))
   }
 
   pub fn expect_id(&self) -> &str {
@@ -339,6 +322,32 @@ impl Chunk {
       group.remove_chunk(&self.ukey);
     }
     self.groups.clear();
+  }
+
+  pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
+    self.id.hash(hasher);
+    self.ids.hash(hasher);
+    for module in compilation
+      .chunk_graph
+      .get_ordered_chunk_modules(&self.ukey, &compilation.module_graph)
+    {
+      if let Some(hash) = compilation
+        .code_generation_results
+        .get_hash(&module.identifier(), Some(&self.runtime))
+      {
+        hash.hash(hasher);
+      }
+    }
+    "entry".hash(hasher);
+    for (module, chunk_group) in compilation
+      .chunk_graph
+      .get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
+    {
+      compilation.chunk_graph.get_module_id(*module).hash(hasher);
+      if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group) {
+        chunk_group.id(compilation).hash(hasher);
+      }
+    }
   }
 }
 

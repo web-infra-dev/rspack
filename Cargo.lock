@@ -664,9 +664,9 @@ dependencies = [
 
 [[package]]
 name = "data-encoding"
-version = "2.3.3"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23d8666cb01533c39dde32bcbab8e227b4ed6679b2c925eba05feabea39508fb"
+checksum = "c2e66c9d817f1720209181c316d28635c050fa304f9c79e47a520882661b7308"
 
 [[package]]
 name = "derivative"
@@ -2276,6 +2276,7 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_futures",
+ "rspack_hash",
  "rspack_identifier",
  "rspack_loader_runner",
  "rspack_regex",
@@ -2355,6 +2356,17 @@ name = "rspack_futures"
 version = "0.1.0"
 dependencies = [
  "async-scoped",
+]
+
+[[package]]
+name = "rspack_hash"
+version = "0.1.0"
+dependencies = [
+ "data-encoding",
+ "once_cell",
+ "rspack_util",
+ "smol_str",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -2500,12 +2512,12 @@ dependencies = [
  "rspack_core",
  "rspack_error",
  "rspack_futures",
+ "rspack_hash",
  "rspack_testing",
  "sugar_path",
  "testing_macros",
  "tokio",
  "tracing",
- "xxhash-rust",
 ]
 
 [[package]]
@@ -2515,7 +2527,6 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bitflags 1.3.2",
- "data-encoding",
  "heck",
  "hrx-parser",
  "indexmap",
@@ -2528,6 +2539,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
  "rspack_identifier",
  "rspack_testing",
  "rustc-hash",
@@ -2536,7 +2548,6 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "tracing",
- "xxhash-rust",
 ]
 
 [[package]]
@@ -2622,6 +2633,7 @@ dependencies = [
  "regex",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
  "rspack_identifier",
  "rspack_regex",
  "rspack_symbol",
@@ -2683,8 +2695,8 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_core",
+ "rspack_hash",
  "rustc-hash",
- "xxhash-rust",
 ]
 
 [[package]]
@@ -2705,10 +2717,10 @@ dependencies = [
  "rayon",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
  "rspack_identifier",
  "rspack_plugin_javascript",
  "rustc-hash",
- "xxhash-rust",
 ]
 
 [[package]]
@@ -3147,6 +3159,15 @@ name = "smawk"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f67ad224767faa3c7d8b6d91985b78e70a1324408abcb1cfcc2be4c06bc06043"
+
+[[package]]
+name = "smol_str"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74212e6bbe9a4352329b2f68ba3130c15a3f26fe88ff22dbdc6cdd58fa85e99c"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "sourcemap"

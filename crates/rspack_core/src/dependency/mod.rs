@@ -3,6 +3,7 @@ mod span;
 pub use entry::*;
 pub use span::SpanExt;
 mod runtime_requirements_dependency;
+use rspack_util::ext::AsAny;
 pub use runtime_requirements_dependency::*;
 mod code_generatable;
 mod runtime_template;
@@ -37,7 +38,7 @@ pub use require_resolve_dependency::RequireResolveDependency;
 mod static_exports_dependency;
 pub use static_exports_dependency::*;
 
-use crate::{AsAny, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier};
+use crate::{ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`

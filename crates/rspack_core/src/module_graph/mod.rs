@@ -3,6 +3,7 @@ use std::collections::hash_map::Entry;
 use std::path::PathBuf;
 
 use rspack_error::{internal_error, Result};
+use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -427,10 +428,10 @@ impl ModuleGraph {
   }
 
   #[inline]
-  pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<u64> {
+  pub fn get_module_hash(&self, module_identifier: &ModuleIdentifier) -> Option<&RspackHashDigest> {
     self
       .module_graph_module_by_identifier(module_identifier)
-      .and_then(|mgm| mgm.build_info.as_ref().map(|i| i.hash))
+      .and_then(|mgm| mgm.build_info.as_ref().and_then(|i| i.hash.as_ref()))
   }
 
   pub fn has_dependencies(

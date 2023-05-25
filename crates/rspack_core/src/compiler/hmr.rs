@@ -1,12 +1,9 @@
-use std::{
-  hash::{Hash, Hasher},
-  ops::Sub,
-  path::PathBuf,
-};
+use std::{hash::Hash, ops::Sub, path::PathBuf};
 
 use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -48,7 +45,10 @@ where
     let old_hash = self.compilation.hash.clone();
     fn collect_changed_modules(
       compilation: &Compilation,
-    ) -> (IdentifierMap<(u64, String)>, IdentifierMap<String>) {
+    ) -> (
+      IdentifierMap<(RspackHashDigest, String)>,
+      IdentifierMap<String>,
+    ) {
       let modules_map = compilation
         .chunk_graph
         .chunk_graph_module_by_module_identifier
@@ -60,7 +60,7 @@ where
               Some((
                   *identifier,
                   (
-                      module_hash,
+                      module_hash.clone(),
                       cid.to_string(),
                   ),
               ))
@@ -350,6 +350,7 @@ where
           ChunkKind::HotUpdate,
         );
         hot_update_chunk.runtime = new_runtime.clone();
+        let mut chunk_hash = RspackHash::from(&self.compilation.options.output);
         let ukey = hot_update_chunk.ukey;
         if let Some(current_chunk) = current_chunk {
           current_chunk
@@ -364,16 +365,16 @@ where
             .module_graph
             .module_by_identifier(module_identifier)
           {
-            module.hash(&mut hot_update_chunk.hash);
+            module.hash(&mut chunk_hash);
           }
         }
-        let hash = format!("{:016x}", hot_update_chunk.hash.finish());
+        let digest = chunk_hash.digest(&self.compilation.options.output.hash_digest);
         hot_update_chunk
           .content_hash
-          .insert(crate::SourceType::JavaScript, hash.clone());
+          .insert(crate::SourceType::JavaScript, digest.clone());
         hot_update_chunk
           .content_hash
-          .insert(crate::SourceType::Css, hash);
+          .insert(crate::SourceType::Css, digest);
 
         self.compilation.chunk_by_ukey.add(hot_update_chunk);
         self.compilation.chunk_graph.add_chunk(ukey);
@@ -417,7 +418,11 @@ where
             .expect("should have update chunk");
           let filename = self.compilation.get_path(
             &self.compilation.options.output.hot_update_chunk_filename,
-            PathData::default().chunk(chunk).hash(&old_hash),
+            PathData::default().chunk(chunk).hash_optional(
+              old_hash
+                .as_ref()
+                .map(|hash| hash.rendered(self.compilation.options.output.hash_digest_length)),
+            ),
           );
           self.compilation.emit_asset(filename, asset);
         }
@@ -442,9 +447,11 @@ where
         .collect();
       let filename = self.compilation.get_path(
         &self.compilation.options.output.hot_update_main_filename,
-        PathData::default()
-          .runtime(&content.runtime)
-          .hash(&old_hash),
+        PathData::default().runtime(&content.runtime).hash_optional(
+          old_hash
+            .as_ref()
+            .map(|hash| hash.rendered(self.compilation.options.output.hash_digest_length)),
+        ),
       );
       self.compilation.emit_asset(
         filename,

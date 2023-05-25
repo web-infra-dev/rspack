@@ -52,7 +52,11 @@ macro_rules! impl_runtime_module {
             self.generate(compilation),
           )),
         );
-        result.set_hash();
+        result.set_hash(
+          &compilation.options.output.hash_function,
+          &compilation.options.output.hash_digest,
+          &compilation.options.output.hash_salt,
+        );
         Ok(result)
       }
     }

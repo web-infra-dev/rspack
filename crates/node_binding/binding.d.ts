@@ -20,7 +20,7 @@ export class JsCompilation {
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
   get entrypoints(): Record<string, JsChunkGroup>
-  get hash(): string
+  get hash(): string | null
   getFileDependencies(): Array<string>
   getContextDependencies(): Array<string>
   getMissingDependencies(): Array<string>
@@ -719,6 +719,10 @@ export interface RawOutputOptions {
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string
+  hashFunction: string
+  hashDigest: string
+  hashDigestLength: number
+  hashSalt?: string
 }
 
 export interface RawParserOptions {
