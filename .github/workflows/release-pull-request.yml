@@ -9,10 +9,10 @@ on:
         required: true
         default: "latest"
         options:
-          - canary
-          - alpha
-          - beta
-          - latest
+          - major
+          - minor
+          - patch
+          - snapshot
   schedule:
     # 08:00 AM Beijing Time on every Tuesday
     - cron: "0 0 * * 2"
@@ -32,12 +32,12 @@ jobs:
         uses: ./.github/actions/pnpm-cache
 
       - name: Create Release Pull Request
-        uses: web-infra-dev/actions@v2
+        uses: hardfist/rspack-action@rspack
         with:
-          version: ${{ inputs.version || 'latest' }}
-          versionNumber: "auto"
-          type: "pull request"
-          tools: "changeset"
+          version: node ./x version ${{inputs.version || 'canary'}}
+          commit: Release
+          title: Release
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
