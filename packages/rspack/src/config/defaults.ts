@@ -145,7 +145,7 @@ const applyExperimentsDefaults = (experiments: Experiments) => {
 	D(experiments, "incrementalRebuild", true);
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
-	D(experiments, "newSplitChunks", false);
+	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 };
 
