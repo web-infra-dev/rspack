@@ -13,7 +13,7 @@
     "less": "4.1.3",
     "less-loader": "^11.1.0",
     "vue": "3.2.47",
-    "vue-loader": "link:/Users/hanabi/Projects/vue-loader"
+    "vue-loader": "^17.1.1"
   },
   "keywords": [],
   "author": "",
