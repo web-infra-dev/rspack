@@ -159,10 +159,10 @@ describe("Stats", () => {
 			      "assets": [
 			        {
 			          "name": "entryB.js",
-			          "size": 4839,
+			          "size": 4837,
 			        },
 			      ],
-			      "assetsSize": 4839,
+			      "assetsSize": 4837,
 			      "chunks": [
 			        "entryB",
 			      ],
@@ -202,7 +202,7 @@ describe("Stats", () => {
 			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryB.js",
-			      "size": 4839,
+			      "size": 4837,
 			      "type": "asset",
 			    },
 			    {
