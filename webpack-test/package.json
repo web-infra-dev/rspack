@@ -28,6 +28,7 @@
     "babel-loader": "^9.1.0",
     "babel-plugin-import": "^1.13.5",
     "chokidar": "3.5.3",
+    "coffee-loader": "^4.0.0",
     "copy-webpack-plugin": "5",
     "file-loader": "^6.2.0",
     "jest-serializer-path": "^0.1.15",
@@ -35,6 +36,7 @@
     "less-loader": "^11.1.0",
     "postcss-loader": "^7.0.2",
     "postcss-pxtorem": "^6.0.0",
+    "pug-loader": "^2.4.0",
     "react-relay": "^14.1.0",
     "rimraf": "3.0.2",
     "sass": "^1.56.2",
@@ -64,7 +66,9 @@
   },
   "jest": {
     "forceExit": true,
-    "setupFiles": ["<rootDir>/setupEnv.js"],
+    "setupFiles": [
+      "<rootDir>/setupEnv.js"
+    ],
     "setupFilesAfterEnv": [
       "<rootDir>/setupTestFramework.js"
     ],
