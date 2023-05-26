@@ -1,6 +1,7 @@
 import { run } from "../../utils/test-utils";
-import { existsSync, writeFileSync, unlinkSync } from "fs";
-import { resolve } from "path";
+import { writeFileSync, mkdirSync } from "fs";
+import { rm, readFile } from "fs/promises";
+import { join, resolve } from "path";
 
 describe("rspack cli", () => {
 	describe("should config not found", () => {
@@ -18,7 +19,9 @@ describe("rspack cli", () => {
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/js.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/js.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main cjs file/);
 		});
 
 		it("should load config.ts file", async () => {
@@ -29,7 +32,9 @@ describe("rspack cli", () => {
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/ts.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/ts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main cjs file/);
 		});
 
 		it("should load config.cjs file", async () => {
@@ -40,7 +45,9 @@ describe("rspack cli", () => {
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/cjs.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/cjs.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main cjs file/);
 		});
 
 		it("should load config.cts file", async () => {
@@ -51,26 +58,23 @@ describe("rspack cli", () => {
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/cts.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/cts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main cjs file/);
 		});
 	});
 
 	describe("should load esm config", () => {
 		const cwd = resolve(__dirname, "./esm");
 
-		const packageJsonPath = resolve(cwd, "./package.json");
-		beforeAll(() => {
-			// mock user's package.json type is module
-			writeFileSync(packageJsonPath, `{"type": "module"}`);
-		});
-		afterAll(() => unlinkSync(packageJsonPath));
-
 		it("should load default config.js file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/js.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/js.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main esm file/);
 		});
 
 		it("should load config.ts file", async () => {
@@ -81,7 +85,9 @@ describe("rspack cli", () => {
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/ts.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/ts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main esm file/);
 		});
 
 		it("should load config.mjs file", async () => {
@@ -92,7 +98,9 @@ describe("rspack cli", () => {
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/mjs.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/mjs.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main esm file/);
 		});
 
 		it("should load config.mts file", async () => {
@@ -103,7 +111,68 @@ describe("rspack cli", () => {
 			expect(stderr).toBeFalsy();
 			expect(stdout).toBeTruthy();
 			expect(exitCode).toBe(0);
-			expect(existsSync(resolve(cwd, "./dist/mts.bundle.js"))).toBeTruthy();
+			expect(
+				readFile(resolve(cwd, "./dist/mts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main esm file/);
+		});
+	});
+
+	describe("should load moonrepo config", () => {
+		const cwd = resolve(__dirname, "./moonrepo");
+
+		const packageADepsNodeModules = resolve(
+			cwd,
+			"./packageA/node_modules/test-deps"
+		);
+		const packageBDepsNodeModules = resolve(
+			cwd,
+			"./packageB/node_modules/test-deps"
+		);
+
+		beforeAll(() => {
+			// packageA
+			mkdirSync(packageADepsNodeModules, { recursive: true });
+			writeFileSync(
+				join(packageADepsNodeModules, "./package.json"),
+				`{ "version": "1.0.0", "name" : "test-deps", "main" : "./index.js" }`
+			);
+			writeFileSync(
+				join(packageADepsNodeModules, "./index.js"),
+				`export { default } from './package.json';`
+			);
+
+			// packageB
+			mkdirSync(packageBDepsNodeModules, { recursive: true });
+			writeFileSync(
+				join(packageBDepsNodeModules, "./package.json"),
+				`{ "version": "2.0.0", "name" : "test-deps", "main" : "./index.js" }`
+			);
+			writeFileSync(
+				join(packageBDepsNodeModules, "./index.js"),
+				`export { default } from './package.json';`
+			);
+		});
+
+		afterAll(() => {
+			rm(packageADepsNodeModules, { recursive: true, force: true });
+			rm(packageBDepsNodeModules, { recursive: true, force: true });
+		});
+
+		it("should load moonrepo config.ts file", async () => {
+			const { exitCode, stderr, stdout } = await run(cwd, [
+				"-c",
+				"rspack.config.ts"
+			]);
+
+			expect(stderr).toBeFalsy();
+			expect(stdout).toBeTruthy();
+			expect(exitCode).toBe(0);
+			expect(
+				readFile(
+					resolve(cwd, `./dist/moonrepo.bundle.depsA.1.0.0-depsB.2.0.0.js`),
+					{ encoding: "utf-8" }
+				)
+			).resolves.toMatch(/Main moonrepo file/);
 		});
 	});
 });
