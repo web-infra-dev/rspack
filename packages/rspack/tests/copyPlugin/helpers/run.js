@@ -5,6 +5,12 @@ import removeIllegalCharacterForWindows from "./removeIllegalCharacterForWindows
 
 import { compile, getCompiler, readAssets } from ".";
 
+function transformWindowPath(path) {
+	if (process.platform === "win32") {
+		return path.replace("/", "\\");
+	}
+	return path;
+}
 function resolveCopy(copy) {
 	if (!copy) {
 		return undefined;
@@ -104,7 +110,10 @@ function runEmit(opts) {
 					.filter(a => a !== "main.js")
 					.sort()
 			).toEqual(
-				opts.expectedAssetKeys.sort().map(removeIllegalCharacterForWindows)
+				opts.expectedAssetKeys
+					.map(transformWindowPath)
+					.sort()
+					.map(removeIllegalCharacterForWindows)
 			);
 		} else {
 			// eslint-disable-next-line no-param-reassign
@@ -197,7 +206,10 @@ function runChange(opts) {
 				changedFiles.length > 0
 			) {
 				expect(lastFiles.sort()).toEqual(
-					opts.expectedAssetKeys.sort().map(removeIllegalCharacterForWindows)
+					opts.expectedAssetKeys
+						.map(transformWindowPath)
+						.sort()
+						.map(removeIllegalCharacterForWindows)
 				);
 			} else {
 				expect(lastFiles).toEqual([]);
