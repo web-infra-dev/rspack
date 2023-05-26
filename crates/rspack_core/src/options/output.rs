@@ -253,7 +253,7 @@ impl Filename {
         path: file,
         query,
         fragment,
-      }) = dbg!(parse_resource(filename))
+      }) = parse_resource(filename)
       {
         template = template.replace(FILE_PLACEHOLDER, &file.to_string_lossy());
         template = template.replace(
