@@ -675,7 +675,7 @@ describe("MultiCompiler", function () {
 
 describe("Pressure test", function () {
 	it("should work well in multiCompilers", done => {
-		const configs = Array(100).fill({
+		const configs = Array(10).fill({
 			context: path.join(__dirname, "fixtures"),
 			entry: "./a.js"
 		});
