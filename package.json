@@ -31,7 +31,7 @@
     "test:example": "pnpm --filter \"example-*\" build",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
-    "test:ci": "NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit"
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit"
   },
   "lint-staged": {
     "*.rs": "rustfmt --edition 2021",
