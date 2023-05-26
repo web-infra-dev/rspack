@@ -631,8 +631,7 @@ const getResolveDefaults = ({
 		if (targetProperties.electron) conditions.push("electron");
 		if (targetProperties.nwjs) conditions.push("nwjs");
 	}
-
-	const jsExtensions = [".tsx", ".ts", ".jsx", ".js", ".json", ".wasm"];
+	const jsExtensions = [".js", ".json", ".wasm", ".tsx", ".ts", ".jsx"];
 
 	const tp = targetProperties;
 	const browserField =
