@@ -110,7 +110,7 @@
       "<rootDir>/schemas",
       "<rootDir>/node_modules"
     ],
-    "testEnvironment": "node",
+    "testEnvironment": "../scripts/test/patch-node-env.cjs",
     "coverageReporters": [
       "json"
     ]
