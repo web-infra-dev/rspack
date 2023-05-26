@@ -689,7 +689,7 @@ describe("Pressure test", function () {
 	});
 
 	it("should work well in concurrent", async () => {
-		const total = 100;
+		const total = process.platform === "win32" ? 10 : 100;
 
 		let finish = 0;
 

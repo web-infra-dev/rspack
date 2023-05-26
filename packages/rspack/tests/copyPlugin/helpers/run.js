@@ -7,7 +7,7 @@ import { compile, getCompiler, readAssets } from ".";
 
 function transformWindowPath(path) {
 	if (process.platform === "win32") {
-		return path.replace("/", "\\");
+		return path.replaceAll("/", "\\");
 	}
 	return path;
 }
