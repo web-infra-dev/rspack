@@ -628,6 +628,7 @@ export interface OptimizationSplitChunksCacheGroup {
 	maxSize?: number;
 	maxAsyncSize?: number;
 	maxInitialSize?: number;
+	enforce?: boolean;
 }
 export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =
