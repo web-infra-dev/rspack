@@ -1,11 +1,10 @@
-name: "Lint PR"
+name: Lint PR Title
 
 on:
   pull_request_target:
     types:
       - opened
       - edited
-      - synchronize
 
 jobs:
   lint-pr-title:
