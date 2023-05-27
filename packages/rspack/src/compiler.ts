@@ -341,7 +341,9 @@ class Compiler {
 					beforeResolve: this.#beforeResolve.bind(this),
 					afterResolve: this.#afterResolve.bind(this),
 					contextModuleBeforeResolve:
-						this.#contextModuleBeforeResolve.bind(this)
+						this.#contextModuleBeforeResolve.bind(this),
+					succeedModule: this.#succeedModule.bind(this),
+					stillValidModule: this.#stillValidModule.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 				loaderContext => runLoader(loaderContext, this)
@@ -602,7 +604,9 @@ class Compiler {
 			optimizeModules: this.compilation.hooks.optimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
 			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
-			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve
+			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
+			succeedModule: this.compilation.hooks.succeedModule,
+			stillValidModule: this.compilation.hooks.stillValidModule
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook?.taps.length === 0) {
@@ -745,6 +749,16 @@ class Compiler {
 
 	async #afterEmit() {
 		await this.hooks.afterEmit.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+
+	#succeedModule(module: binding.JsModule) {
+		this.compilation.hooks.succeedModule.call(module);
+		this.#updateDisabledHooks();
+	}
+
+	#stillValidModule(module: binding.JsModule) {
+		this.compilation.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
 	}
 

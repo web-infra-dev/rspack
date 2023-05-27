@@ -15,7 +15,7 @@ pub trait ToJsModule {
   fn to_js_module(&self) -> Result<JsModule>;
 }
 
-impl ToJsModule for dyn Module {
+impl ToJsModule for dyn Module + '_ {
   fn to_js_module(&self) -> Result<JsModule> {
     let original_source = self
       .original_source()

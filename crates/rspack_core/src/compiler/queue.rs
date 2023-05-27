@@ -224,7 +224,7 @@ impl WorkerTask for BuildTask {
     let cache = self.cache;
     let plugin_driver = self.plugin_driver;
 
-    let build_result = cache
+    let (build_result, is_cache_valid) = match cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
         plugin_driver
@@ -248,7 +248,19 @@ impl WorkerTask for BuildTask {
 
         result
       })
-      .await;
+      .await
+    {
+      Ok(result) => result,
+      Err(err) => panic!("build module get error: {}", err),
+    };
+
+    if is_cache_valid {
+      plugin_driver
+        .read()
+        .await
+        .still_valid_module(module.as_ref())
+        .await?;
+    }
 
     build_result.map(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();
