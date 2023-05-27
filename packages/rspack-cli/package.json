@@ -14,10 +14,7 @@
     "dev": "tsc -b -w",
     "test": "jest --runInBand"
   },
-  "files": [
-    "bin",
-    "dist"
-  ],
+  "files": ["bin", "dist"],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -37,7 +34,9 @@
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
+    "jiti": "^1.18.2",
     "semver": "6.3.0",
+    "sucrase": "^3.32.0",
     "webpack-bundle-analyzer": "4.6.1",
     "yargs": "17.6.2"
   }

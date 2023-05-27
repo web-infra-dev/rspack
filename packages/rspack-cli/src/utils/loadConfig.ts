@@ -4,13 +4,22 @@ import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
 import findExtFile from "./findExtFile";
 import jiti from "jiti";
+import { transform } from "sucrase";
 
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
 
 // Use it to load configuration files from https://github.com/unjs/jiti.
-const jitiLoad = (filePath: string) => {
-	return jiti(__filename, { interopDefault: true })(filePath);
-};
+const jitiLoad = (() => {
+	return jiti(__filename, {
+		interopDefault: true,
+		cache: true,
+		transform: options => {
+			return transform(options.source, {
+				transforms: ["typescript", "imports"]
+			});
+		}
+	});
+})();
 
 export type LoadedRspackConfig =
 	| undefined
