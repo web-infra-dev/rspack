@@ -172,7 +172,13 @@ impl CodeReplaceSourceDependency for NewModuleHotAcceptDependency {
     source.replace(
       self.start,
       self.end,
-      module_id(code_generatable_context.compilation, &id, &self.request).as_str(),
+      module_id(
+        code_generatable_context.compilation,
+        &id,
+        &self.request,
+        false,
+      )
+      .as_str(),
       None,
     );
   }

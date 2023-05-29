@@ -1,5 +1,6 @@
 use rspack_core::{
-  get_import_var, CodeReplaceSourceDependency, ModuleDependency, ReplaceConstDependency, SpanExt,
+  get_import_var, CodeReplaceSourceDependency, ModuleDependency, ModuleIdentifier,
+  ReplaceConstDependency, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -15,8 +16,9 @@ use swc_core::{
 
 use super::harmony_import_dependency_scanner::ImportMap;
 use crate::dependency::{
-  get_reexport_var, HarmonyExportHeaderDependency, HarmonyExportSpecifierDependency,
-  HarmonyExpressionHeaderDependency, HarmonyImportDependency, DEFAULT_EXPORT,
+  HarmonyExportHeaderDependency, HarmonyExportImportedSpecifierDependency,
+  HarmonyExportSpecifierDependency, HarmonyExpressionHeaderDependency, HarmonyImportDependency,
+  DEFAULT_EXPORT,
 };
 
 pub struct HarmonyExportDependencyScanner<'a> {
@@ -25,6 +27,7 @@ pub struct HarmonyExportDependencyScanner<'a> {
   pub import_map: &'a mut ImportMap,
   pub exports: Vec<(String, String)>,
   pub exports_all: Vec<String>,
+  module_identifier: ModuleIdentifier,
 }
 
 impl<'a> HarmonyExportDependencyScanner<'a> {
@@ -32,6 +35,7 @@ impl<'a> HarmonyExportDependencyScanner<'a> {
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
     code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
     import_map: &'a mut ImportMap,
+    module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       dependencies,
@@ -39,6 +43,7 @@ impl<'a> HarmonyExportDependencyScanner<'a> {
       import_map,
       exports: Default::default(),
       exports_all: Default::default(),
+      module_identifier,
     }
   }
 }
@@ -83,40 +88,38 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_named_export(&mut self, named_export: &'_ NamedExport) {
     if let Some(src) = &named_export.src {
-      let import_var: String = get_import_var(&src.value);
+      let mut ids = vec![];
       named_export
         .specifiers
         .iter()
         .for_each(|specifier| match specifier {
-          ExportSpecifier::Namespace(ns) => {
-            self.exports.push((
-              match &ns.name {
-                ModuleExportName::Ident(name) => name.sym.to_string(),
-                _ => unreachable!(),
-              },
-              import_var.to_string(),
-            ));
+          ExportSpecifier::Namespace(n) => {
+            if let ModuleExportName::Ident(export) = &n.name {
+              ids.push((export.sym.to_string(), None));
+            }
           }
-          ExportSpecifier::Default(_) => {
-            unreachable!();
-          }
+          ExportSpecifier::Default(_) => unreachable!(),
           ExportSpecifier::Named(named) => {
             if let ModuleExportName::Ident(orig) = &named.orig {
-              self.exports.push((
+              ids.push((
                 match &named.exported {
                   Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
                   None => orig.sym.to_string(),
                   _ => unreachable!(),
                 },
-                get_reexport_var(&import_var, &orig.sym),
+                Some(orig.sym.to_string()),
               ));
             }
           }
         });
 
-      // self.code_generable_dependencies.push(Box::new(
-      //   HarmonyExportImportedSpecifierDependency::new(src.value.to_string()),
-      // ));
+      self.code_generable_dependencies.push(Box::new(
+        HarmonyExportImportedSpecifierDependency::new(
+          src.value.to_string(),
+          ids,
+          self.module_identifier,
+        ),
+      ));
       self
         .dependencies
         .push(Box::new(HarmonyImportDependency::new(
@@ -129,26 +132,27 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         .specifiers
         .iter()
         .for_each(|specifier| match specifier {
-          ExportSpecifier::Namespace(_ns) => {
-            unreachable!()
-          }
-          ExportSpecifier::Default(_default) => {
-            unreachable!();
-          }
           ExportSpecifier::Named(named) => {
             if let ModuleExportName::Ident(orig) = &named.orig {
-              if self.import_map.get(&orig.to_id()).is_none() {
-                self.exports.push((
-                  match &named.exported {
-                    Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
-                    None => orig.sym.to_string(),
-                    _ => unreachable!(),
-                  },
-                  orig.sym.to_string(),
+              let export = match &named.exported {
+                Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
+                None => orig.sym.to_string(),
+                _ => unreachable!(),
+              };
+              if let Some(Some(reference)) = self.import_map.get(&orig.to_id()) {
+                self.code_generable_dependencies.push(Box::new(
+                  HarmonyExportImportedSpecifierDependency::new(
+                    reference.0.to_string(),
+                    vec![(export, reference.1.clone())],
+                    self.module_identifier,
+                  ),
                 ));
+              } else {
+                self.exports.push((export, orig.sym.to_string()));
               }
             }
           }
+          _ => unreachable!(),
         });
     }
     self

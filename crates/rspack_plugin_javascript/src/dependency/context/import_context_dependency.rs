@@ -107,6 +107,7 @@ impl CodeReplaceSourceDependency for ImportContextDependency {
     let context = normalize_context(&self.options.request);
 
     if !context.is_empty() {
+      source.insert(self.callee_end, "(", None);
       source.insert(
         self.args_end,
         format!(".replace('{context}', './'))").as_str(),

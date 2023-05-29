@@ -272,6 +272,10 @@ pub trait ModuleDependency: Dependency {
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     None
   }
+
+  fn chunk_name(&self) -> Option<&str> {
+    None
+  }
 }
 
 impl ModuleDependency for Box<dyn ModuleDependency> {
@@ -297,6 +301,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 
   fn get_optional(&self) -> bool {
     (**self).get_optional()
+  }
+
+  fn chunk_name(&self) -> Option<&str> {
+    (**self).chunk_name()
   }
 }
 

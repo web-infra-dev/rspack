@@ -149,7 +149,7 @@ impl Visit for ApiScanner<'_> {
         .push(Box::new(ReplaceConstDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
-          "module.id".into(),
+          "module.id".into(), // todo module_arguments
           Some(RuntimeGlobals::MODULE_ID),
         )));
     }

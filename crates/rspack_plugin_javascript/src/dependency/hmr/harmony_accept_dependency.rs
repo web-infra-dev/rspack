@@ -67,6 +67,7 @@ impl CodeReplaceSourceDependency for HarmonyAcceptDependency {
           code_generatable_context,
           &dep.id().expect("should have dependency"),
           dep.request(),
+          true,
         );
         content.push_str(stmts.0.as_str());
         content.push_str(stmts.1.as_str());

@@ -9,9 +9,13 @@ mod hmr_scanner;
 mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
+mod new_common_js_scanner;
+mod new_import_meta_scanner;
+mod new_node_stuff_scanner;
 mod node_stuff_scanner;
 mod require_context_scanner;
 mod scanner;
+mod url_scanner;
 mod util;
 pub use code_generation::*;
 use rspack_core::{
@@ -28,8 +32,10 @@ use self::{
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hmr_scanner::HmrDependencyScanner, hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
-  scanner::DependencyScanner,
+  new_common_js_scanner::NewCommonJsScanner, new_import_meta_scanner::NewImportMetaScanner,
+  new_node_stuff_scanner::NewNodeStuffScanner, node_stuff_scanner::NodeStuffScanner,
+  require_context_scanner::RequireContextScanner, scanner::DependencyScanner,
+  url_scanner::UrlScanner,
 };
 
 pub type ScanDependenciesResult = (
@@ -132,11 +138,25 @@ pub fn scan_dependencies_with_string_replace(
   ));
 
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    program.visit_with(&mut NewCommonJsScanner::new(
+      &mut code_replace_source_dependencies,
+    ));
     program.visit_with(&mut CommonJsImportDependencyScanner::new(
       &mut dependencies,
+      &mut code_replace_source_dependencies,
       &unresolved_ctxt,
     ));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
+
+    if let Some(node_option) = &compiler_options.node {
+      program.visit_with(&mut NewNodeStuffScanner::new(
+        &mut code_replace_source_dependencies,
+        &unresolved_ctxt,
+        compiler_options,
+        node_option,
+        resource_data,
+      ));
+    }
   }
 
   program.visit_with(&mut ImportScanner::new(
@@ -161,6 +181,13 @@ pub fn scan_dependencies_with_string_replace(
       &mut dependencies,
       &mut code_replace_source_dependencies,
       &mut import_map,
+      module_identifier,
+    ));
+    program.visit_with(&mut UrlScanner::new(&mut dependencies));
+    program.visit_with(&mut NewImportMetaScanner::new(
+      &mut code_replace_source_dependencies,
+      resource_data,
+      compiler_options,
     ));
   }
 
