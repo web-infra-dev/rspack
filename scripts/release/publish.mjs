@@ -22,6 +22,10 @@ export async function publish_handler(mode, options) {
 	 * @Todo test stable release later
 	 */
 	if (options.pushTags) {
+		console.info("git config user");
+		await $`git config --global --add safe.directory /github/workspace`;
+		await $`git config --global --user.name "github-actions[bot]"`;
+		await $`git config --global --user.email "github-actions[bot]@users.noreply.github.com"`;
 		console.info("git commit all...");
 		await $`git status`;
 		await $`git add .`;
