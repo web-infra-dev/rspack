@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-client",
-  "version": "0.1.12",
+  "version": "0.0.0-canary-e90d0a2ee-20230529070151",
   "license": "MIT",
   "description": "Development client for rspack",
   "scripts": {

@@ -21,11 +21,11 @@ export async function publish_handler(mode, options) {
 	/**
 	 * @Todo test stable release later
 	 */
-	if (mode === "stable") {
+	if (options.pushTags) {
 		console.info("git commit all...");
 		await $`git status`;
 		await $`git add .`;
-		await $`git commit -m publish ${version}`;
+		await $`git commit -m "publish ${version}"`;
 		await $`git status`;
 		await $`git push origin HEAD:${branch} --tags`;
 	}

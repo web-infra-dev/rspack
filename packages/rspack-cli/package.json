@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.1.12",
+  "version": "0.0.0-canary-e90d0a2ee-20230529070151",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -46,8 +46,8 @@
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
+    "semver": "6.3.0",
     "webpack-bundle-analyzer": "4.6.1",
-    "yargs": "17.6.2",
-    "semver": "6.3.0"
+    "yargs": "17.6.2"
   }
 }

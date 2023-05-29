@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "0.1.12",
+  "version": "0.0.0-canary-e90d0a2ee-20230529070151",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "A Fast Rust-based Web Bundler",
@@ -58,9 +58,9 @@
   "dependencies": {
     "@rspack/binding": "workspace:*",
     "@rspack/dev-client": "workspace:*",
-    "compare-versions": "6.0.0-rc.1",
     "@swc/helpers": "0.5.1",
     "browserslist": "^4.21.3",
+    "compare-versions": "6.0.0-rc.1",
     "enhanced-resolve": "5.12.0",
     "graceful-fs": "4.2.10",
     "neo-async": "2.6.2",
