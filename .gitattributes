@@ -4,6 +4,7 @@ webpack-test/**/*.js linguist-detectable=false
 **/tests/**/*.js linguist-detectable=false
 test/** eol=lf
 examples/* eol=lf
+**/tests/** eol=lf
 bin/* eol=lf
 *.svg eol=lf
 *.css eol=lf
