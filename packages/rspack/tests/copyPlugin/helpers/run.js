@@ -4,6 +4,7 @@ import fs from "fs";
 import removeIllegalCharacterForWindows from "./removeIllegalCharacterForWindows";
 
 import { compile, getCompiler, readAssets } from ".";
+import { transformWindowPath } from "./readAssets";
 
 function resolveCopy(copy) {
 	if (!copy) {
@@ -102,6 +103,7 @@ function runEmit(opts) {
 			expect(
 				Object.keys(compilation.assets)
 					.filter(a => a !== "main.js")
+					.map(transformWindowPath)
 					.sort()
 			).toEqual(
 				opts.expectedAssetKeys.sort().map(removeIllegalCharacterForWindows)
