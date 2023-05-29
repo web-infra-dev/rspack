@@ -8,5 +8,6 @@ bin/* eol=lf
 *.svg eol=lf
 *.css eol=lf
 *.js eol=lf
+*.ts eol=lf
 
 * text=auto
