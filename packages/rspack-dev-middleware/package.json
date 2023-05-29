@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-middleware",
-  "version": "0.1.12",
+  "version": "0.0.0-canary-81a38819-20230529102331",
   "license": "MIT",
   "description": "Development middleware for rspack",
   "main": "dist/index.js",
@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@rspack/core": "workspace:*",
-    "webpack-dev-middleware": "6.0.2",
-    "mime-types": "2.1.35"
+    "mime-types": "2.1.35",
+    "webpack-dev-middleware": "6.0.2"
   },
   "devDependencies": {
     "@types/mime-types": "2.1.1"

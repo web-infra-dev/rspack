@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.1.12",
+  "version": "0.0.0-canary-81a38819-20230529102331",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,

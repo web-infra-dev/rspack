@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-minify",
-  "version": "0.1.12",
+  "version": "0.0.0-canary-81a38819-20230529102331",
   "license": "MIT",
   "description": "Minify plugin for rspack",
   "main": "src/index.js",
@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "esbuild": "0.16.3",
-    "terser": "5.16.1",
     "jest-worker": "29.3.1",
+    "terser": "5.16.1",
     "webpack-sources": "3.2.3"
   }
 }
