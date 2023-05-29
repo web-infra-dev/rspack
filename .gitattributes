@@ -7,6 +7,6 @@ examples/* eol=lf
 bin/* eol=lf
 *.svg eol=lf
 *.css eol=lf
-*.js eal=lf
+*.js eol=lf
 
 * text=auto
