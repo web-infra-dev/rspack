@@ -408,7 +408,11 @@ where
         for entry in render_manifest {
           let asset = CompilationAsset::new(
             Some(entry.source),
-            entry.info.with_hot_module_replacement(true),
+            // Reset version to make hmr generated assets always emit
+            entry
+              .info
+              .with_hot_module_replacement(true)
+              .with_version(Default::default()),
           );
 
           let chunk = self

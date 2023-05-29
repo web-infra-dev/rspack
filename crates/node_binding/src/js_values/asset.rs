@@ -49,6 +49,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       hot_module_replacement: i.hot_module_replacement,
       related: i.related.into(),
       content_hash: i.content_hash.into_iter().collect(),
+      version: Default::default(),
     }
   }
 }

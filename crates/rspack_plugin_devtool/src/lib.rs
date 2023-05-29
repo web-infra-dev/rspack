@@ -211,9 +211,13 @@ impl Plugin for DevtoolPlugin {
             RawSource::from(current_source_mapping_url_comment.replace("[url]", &source_map_url)).boxed(),
           ]).boxed());
           asset.info.related.source_map = Some(source_map_filename.clone());
-          args.compilation.emit_asset(filename, asset);
+          args.compilation.emit_asset(filename.clone(), asset);
         }
-        let source_map_asset_info = AssetInfo::default().with_development(true);
+        let mut source_map_asset_info = AssetInfo::default().with_development(true);
+        if let Some(asset) = args.compilation.assets().get(&filename) {
+          // set source map asset version to be the same as the target asset
+          source_map_asset_info.version = asset.info.version.clone();
+        }
         args.compilation.emit_asset(
           source_map_filename,
           CompilationAsset::new(
