@@ -9,6 +9,14 @@ const [, , token, commit_sha] = process.argv;
 	const currentDataPath = path.resolve(rootDir, "out.json");
 	const currentData = fs.readFileSync(currentDataPath).toString();
 
+	await run("git", ["config", "--global", "user.name", "github-actions[bot]"]);
+	await run("git", [
+		"config",
+		"--global",
+		"user.email",
+		"41898282+github-actions[bot]@users.noreply.github.com",
+	]);
+
 	const targetDir = path.resolve(rootDir, ".gh-pages");
 	if (!fs.existsSync(targetDir)) {
 		await run("git", [
@@ -29,13 +37,13 @@ const [, , token, commit_sha] = process.argv;
 	let indexPath = path.resolve(targetDir, "index.txt");
 
 	let historyJson = "{}";
-  let indexContent = ""
+	let indexContent = "";
 	if (fs.existsSync(dataPath)) {
 		historyJson = fs.readFileSync(path.resolve(dataPath)).toString();
 	}
-  if (fs.existsSync(indexPath)) {
-    indexContent = fs.readFileSync(path.resolve(indexPath)).toString()
-  }
+	if (fs.existsSync(indexPath)) {
+		indexContent = fs.readFileSync(path.resolve(indexPath)).toString();
+	}
 
 	process.chdir(targetDir);
 	for (let i = 0; i < 21; i++) {
@@ -44,10 +52,10 @@ const [, , token, commit_sha] = process.argv;
 			await run("git", ["pull", "--rebase"]);
 
 			console.log("== update metric data ==");
-      const historyData = JSON.parse(historyJson)
-      historyData[commit_sha] = JSON.parse(currentData)
+			const historyData = JSON.parse(historyJson);
+			historyData[commit_sha] = JSON.parse(currentData);
 			console.log("== update index data ==");
-      indexContent = indexContent.trim() + "\n" + commit_sha.toString()
+			indexContent = indexContent.trim() + "\n" + commit_sha.toString();
 
 			fs.writeFileSync(dataPath, JSON.stringify(historyData));
 			fs.writeFileSync(indexPath, indexContent);
