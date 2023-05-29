@@ -273,7 +273,10 @@ impl Filename {
           PATH_PLACEHOLDER,
           &file
             .parent()
-            .map(|p| p.to_string_lossy() + "/")
+            .map(|p| p.to_string_lossy())
+            // "" -> "", "folder" -> "folder/"
+            .filter(|p| !p.is_empty())
+            .map(|p| p + "/")
             .unwrap_or_default(),
         );
         template = template.replace(QUERY_PLACEHOLDER, &query.unwrap_or_default());
