@@ -1,9 +1,9 @@
 {
-  "name": "@rspack/binding-darwin-arm64",
+  "name": "@rspack/binding-win32-ia32-msvc",
   "version": "0.0.0-canary-81a38819-20230529102331",
   "license": "MIT",
   "description": "Node binding for rspack",
-  "main": "rspack.darwin-arm64.node",
+  "main": "rspack.win32-ia32-msvc.node",
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -15,12 +15,12 @@
     "access": "public"
   },
   "files": [
-    "rspack.darwin-arm64.node"
+    "rspack.win32-ia32-msvc.node"
   ],
   "os": [
-    "darwin"
+    "win32"
   ],
   "cpu": [
-    "arm64"
+    "ia32"
   ]
 }

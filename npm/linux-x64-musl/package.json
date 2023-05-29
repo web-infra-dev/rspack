@@ -1,9 +1,9 @@
 {
-  "name": "@rspack/binding-darwin-arm64",
+  "name": "@rspack/binding-linux-x64-musl",
   "version": "0.0.0-canary-81a38819-20230529102331",
   "license": "MIT",
   "description": "Node binding for rspack",
-  "main": "rspack.darwin-arm64.node",
+  "main": "rspack.linux-x64-musl.node",
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -15,12 +15,15 @@
     "access": "public"
   },
   "files": [
-    "rspack.darwin-arm64.node"
+    "rspack.linux-x64-musl.node"
   ],
   "os": [
-    "darwin"
+    "linux"
   ],
   "cpu": [
-    "arm64"
+    "x64"
+  ],
+  "libc": [
+    "musl"
   ]
 }

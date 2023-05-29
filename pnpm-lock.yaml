@@ -78,12 +78,22 @@ importers:
       '@napi-rs/cli': 3.0.0-alpha.3
       '@rspack/binding-darwin-arm64': workspace:*
       '@rspack/binding-darwin-x64': workspace:*
+      '@rspack/binding-linux-arm64-gnu': workspace:*
+      '@rspack/binding-linux-arm64-musl': workspace:*
       '@rspack/binding-linux-x64-gnu': workspace:*
+      '@rspack/binding-linux-x64-musl': workspace:*
+      '@rspack/binding-win32-arm64-msvc': workspace:*
+      '@rspack/binding-win32-ia32-msvc': workspace:*
       '@rspack/binding-win32-x64-msvc': workspace:*
     optionalDependencies:
       '@rspack/binding-darwin-arm64': link:../../npm/darwin-arm64
       '@rspack/binding-darwin-x64': link:../../npm/darwin-x64
+      '@rspack/binding-linux-arm64-gnu': link:../../npm/linux-arm64-gnu
+      '@rspack/binding-linux-arm64-musl': link:../../npm/linux-arm64-musl
       '@rspack/binding-linux-x64-gnu': link:../../npm/linux-x64-gnu
+      '@rspack/binding-linux-x64-musl': link:../../npm/linux-x64-musl
+      '@rspack/binding-win32-arm64-msvc': link:../../npm/win32-arm64-msvc
+      '@rspack/binding-win32-ia32-msvc': link:../../npm/win32-ia32-msvc
       '@rspack/binding-win32-x64-msvc': link:../../npm/win32-x64-msvc
     devDependencies:
       '@napi-rs/cli': 3.0.0-alpha.3
@@ -716,7 +726,22 @@ importers:
   npm/darwin-x64:
     specifiers: {}
 
+  npm/linux-arm64-gnu:
+    specifiers: {}
+
+  npm/linux-arm64-musl:
+    specifiers: {}
+
   npm/linux-x64-gnu:
+    specifiers: {}
+
+  npm/linux-x64-musl:
+    specifiers: {}
+
+  npm/win32-arm64-msvc:
+    specifiers: {}
+
+  npm/win32-ia32-msvc:
     specifiers: {}
 
   npm/win32-x64-msvc:
