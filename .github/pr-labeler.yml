@@ -1,8 +1,0 @@
-# See context at https://github.com/web-infra-dev/rspack/discussions/2760
-
-"release: feature":
-  - "/^feat/"
-"release: performance":
-  - "/^perf/"
-"release: bug fix":
-  - "/^fix/"

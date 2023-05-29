@@ -1,2 +1,0 @@
-require("./a");
-require("./b");

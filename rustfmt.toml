@@ -1,5 +1,0 @@
-format_code_in_doc_comments = true # https://rust-lang.github.io/rustfmt/?version=v1.5.1&search=#format_code_in_doc_comments
-tab_spaces                  = 2
-
-group_imports     = "StdExternalCrate"
-unstable_features = true

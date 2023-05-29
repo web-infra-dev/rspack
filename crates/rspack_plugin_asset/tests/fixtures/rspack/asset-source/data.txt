@@ -1,2 +1,0 @@
-- Isn't Rspack a gamechanging bundler?
-  - Hella yeah!

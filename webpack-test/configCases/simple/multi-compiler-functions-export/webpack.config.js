@@ -1,5 +1,0 @@
-exports.default = [
-	function () {
-		return {};
-	}
-];

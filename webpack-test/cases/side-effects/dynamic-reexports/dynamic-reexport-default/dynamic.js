@@ -1,1 +1,0 @@
-Object(exports).default = "dynamic";

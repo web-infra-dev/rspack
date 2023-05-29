@@ -1,1 +1,0 @@
-import("./dynamic").then(console.log);

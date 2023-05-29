@@ -1,3 +1,0 @@
-/**! Chunk */
-
-console.log("Fail");

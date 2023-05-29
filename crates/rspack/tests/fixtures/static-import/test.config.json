@@ -1,9 +1,0 @@
-{
-	"entry": {
-		"main": {
-			"import": [
-				"./index.js"
-			]
-		}
-	}
-}

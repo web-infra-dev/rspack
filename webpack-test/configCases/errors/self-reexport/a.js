@@ -1,1 +1,0 @@
-export { something } from "./a";

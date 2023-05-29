@@ -1,7 +1,0 @@
-title = "TOML Example"
-
-[owner]
-bio          = "GitHub Cofounder & CEO\nLikes tater tots and beer."
-dob          = 1979-05-27T07:32:00Z
-name         = "Tom Preston-Werner"
-organization = "GitHub"

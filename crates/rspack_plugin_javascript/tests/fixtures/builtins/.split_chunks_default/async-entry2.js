@@ -1,2 +1,0 @@
-import './shared'
-import 'foo'

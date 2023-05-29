@@ -1,5 +1,0 @@
-This is a file!
-
-with some content
-
-it should break webpack :)

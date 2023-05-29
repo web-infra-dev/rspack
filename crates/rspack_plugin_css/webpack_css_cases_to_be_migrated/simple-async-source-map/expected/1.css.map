@@ -1,1 +1,0 @@
-{"version":3,"file":"1.css","mappings":"AAAA;EACE,iBAAiB;AACnB","sources":["webpack:///./in-async.css"],"sourcesContent":[".in-async {\n  background: green;\n}\n"],"names":[],"sourceRoot":""}

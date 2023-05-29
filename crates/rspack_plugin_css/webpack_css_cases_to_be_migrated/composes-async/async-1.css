@@ -1,4 +1,0 @@
-:local .base {
-  composes: composed from "./async-2.css";
-  background: blue;
-}

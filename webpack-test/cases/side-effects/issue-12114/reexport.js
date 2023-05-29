@@ -1,1 +1,0 @@
-export { f } from 'base';

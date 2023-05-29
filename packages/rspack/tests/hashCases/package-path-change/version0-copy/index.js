@@ -1,1 +1,0 @@
-import(/* webpackChunkName: "package" */ "package");
