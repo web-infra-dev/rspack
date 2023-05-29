@@ -42,7 +42,7 @@ process.stdin.on("end", () => {
 	} else {
     let json = JSON.stringify(extractedTestInfo)
     console.log(json)
-    const rootPath = path.resolve(__dirname, "..")
+    const rootPath = path.resolve(__dirname, "../../")
     fs.writeFileSync(path.resolve(rootPath, "out.json"), json)
 	}
 });
