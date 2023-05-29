@@ -77,7 +77,7 @@ jobs:
 
       - name: Release Full
         run: |
-          ./x publish stable --tag ${{inputs.tag}} $${inputs.dry_run && '--dry-run' || '--no-dry-run'} $${inputs.push_tags && '--push-tags' || '--no-push-tags'}
+          ./x publish stable --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
