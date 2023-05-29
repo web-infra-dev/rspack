@@ -73,10 +73,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0",
-  "pnpm": {
-    "overrides": {
-      "@rspack/core": "0.1.12"
-    }
-  }
+  "packageManager": "pnpm@7.32.0"
 }
