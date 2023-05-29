@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "0.0.0-canary-e90d0a2ee-20230529070151",
+  "version": "0.0.0-canary-9132627fb-20230529071143",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",

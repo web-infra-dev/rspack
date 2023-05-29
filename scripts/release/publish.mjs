@@ -27,6 +27,7 @@ export async function publish_handler(mode, options) {
 		await $`git add .`;
 		await $`git commit -m "publish ${version}"`;
 		await $`git status`;
-		await $`git push origin HEAD:${branch} --tags`;
+		await $`git tag ${version} -m ${version} `;
+		await $`git push origin --follow-tags`;
 	}
 }
