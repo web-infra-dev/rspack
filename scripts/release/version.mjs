@@ -30,7 +30,6 @@ export async function version_handler(version) {
 			`version must be one of ${allowedVersion}, but you passed ${version}`
 		);
 	}
-	await import("../check_changeset.js");
 	const root = process.cwd();
 
 	const lastVersion = await getLastVersion(root);
@@ -45,7 +44,8 @@ export async function version_handler(version) {
 		// skip all example upgrade
 		if (
 			workspace.manifest.name?.includes("example-") ||
-			workspace.manifest.private === true
+			(workspace.manifest.private === true &&
+				workspace.manifest.name !== "monorepo")
 		) {
 			continue;
 		}
