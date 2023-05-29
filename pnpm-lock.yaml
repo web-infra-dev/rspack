@@ -1093,6 +1093,7 @@ importers:
       babel-plugin-import: ^1.13.5
       browserslist: ^4.21.3
       chokidar: 3.5.3
+      coffee-loader: ^4.0.0
       copy-webpack-plugin: '5'
       enhanced-resolve: 5.12.0
       file-loader: ^6.2.0
@@ -1103,6 +1104,7 @@ importers:
       neo-async: 2.6.2
       postcss-loader: ^7.0.2
       postcss-pxtorem: ^6.0.0
+      pug-loader: ^2.4.0
       react-refresh: 0.14.0
       react-relay: ^14.1.0
       rimraf: 3.0.2
@@ -1148,6 +1150,7 @@ importers:
       babel-loader: 9.1.2
       babel-plugin-import: 1.13.5
       chokidar: 3.5.3
+      coffee-loader: 4.0.0
       copy-webpack-plugin: 5.1.2
       file-loader: 6.2.0
       jest-serializer-path: 0.1.15
@@ -1155,6 +1158,7 @@ importers:
       less-loader: 11.1.0_less@4.1.3
       postcss-loader: 7.0.2
       postcss-pxtorem: 6.0.0
+      pug-loader: 2.4.0
       react-relay: 14.1.0
       rimraf: 3.0.2
       sass: 1.56.2
@@ -6635,7 +6639,7 @@ packages:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.17
       callsites: 3.1.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
     dev: true
 
   /@jest/test-result/29.5.0:
@@ -6653,7 +6657,7 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
       '@jest/test-result': 29.5.0
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
       jest-haste-map: 29.5.0
       slash: 3.0.0
     dev: true
@@ -12497,7 +12501,7 @@ packages:
       babel-plugin-istanbul: 6.1.1
       babel-preset-jest: 29.5.0_@babel+core@7.21.0
       chalk: 4.1.2
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
       slash: 3.0.0
     transitivePeerDependencies:
       - supports-color
@@ -13817,6 +13821,14 @@ packages:
   /co/4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
     engines: {iojs: '>= 1.0.0', node: '>= 0.12.0'}
+    dev: true
+
+  /coffee-loader/4.0.0:
+    resolution: {integrity: sha512-RvgC8c0JwRew5lq3x2J+P4z9Cvan/v91muEvV90VJXcTuJbJQN20taZxfj6/XC4yysA8PInPGpxdB1J9LphLuQ==}
+    engines: {node: '>= 14.15.0'}
+    peerDependencies:
+      coffeescript: '>= 2.0.0'
+      webpack: ^5.0.0
     dev: true
 
   /collapse-white-space/1.0.6:
@@ -17224,6 +17236,7 @@ packages:
 
   /graceful-fs/4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+    dev: false
 
   /grapheme-splitter/1.0.4:
     resolution: {integrity: sha512-bzh50DW9kTPM00T8y4o8vQg89Di9oLJVLW/KaOGIXJWP/iqCN6WKYkbNOF04vFLJhwcpYUh9ydh/+5vpOqV4YQ==}
@@ -19372,7 +19385,7 @@ packages:
   /jsonfile/4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
     optionalDependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
 
   /jsonfile/6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
@@ -19595,7 +19608,7 @@ packages:
       tslib: 2.5.0
     optionalDependencies:
       errno: 0.1.8
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
       image-size: 0.5.5
       make-dir: 2.1.0
       mime: 1.6.0
@@ -19807,7 +19820,7 @@ packages:
     resolution: {integrity: sha512-Kx8hMakjX03tiGTLAIdJ+lL0htKnXjEZN6hk/tozf/WOuYGdZBJrZ+rCJRbVCugsjB3jMLn9746NsQIf5VjBMw==}
     engines: {node: '>=4'}
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
       parse-json: 4.0.0
       pify: 3.0.0
       strip-bom: 3.0.0
@@ -19827,7 +19840,7 @@ packages:
     resolution: {integrity: sha512-OfCBkGEw4nN6JLtgRidPX6QxjBQGQf72q3si2uvqyFEMbycSFFHwAZeXx6cJgFM9wmLrf9zBwCP3Ivqa+LLZPw==}
     engines: {node: '>=6'}
     dependencies:
-      graceful-fs: 4.2.11
+      graceful-fs: 4.2.10
       js-yaml: 3.14.1
       pify: 4.0.1
       strip-bom: 3.0.0
@@ -22799,6 +22812,16 @@ packages:
       pug-walk: 2.0.0
     dev: true
 
+  /pug-loader/2.4.0:
+    resolution: {integrity: sha512-cD4bU2wmkZ1EEVyu0IfKOsh1F26KPva5oglO1Doc3knx8VpBIXmFHw16k9sITYIjQMCnRv1vb4vfQgy7VdR6eg==}
+    peerDependencies:
+      pug: ^2.0.0
+    dependencies:
+      loader-utils: 1.4.2
+      pug-walk: 1.1.8
+      resolve: 1.22.2
+    dev: true
+
   /pug-parser/6.0.0:
     resolution: {integrity: sha512-ukiYM/9cH6Cml+AOl5kETtM9NR3WulyVP2y4HOU45DyMim1IeP/OOiyEWRr6qk5I5klpsBnbuHpwKmTx6WURnw==}
     dependencies:
@@ -22814,6 +22837,10 @@ packages:
     resolution: {integrity: sha512-zo8DsDpH7eTkPHCXFeAk1xZXJbyoTfdPlNR0bK7rpOMuhBYb0f5qUVCO1xlsitYd3w5FQTK7zpNVKb3rZoUrrQ==}
     dependencies:
       pug-error: 2.0.0
+    dev: true
+
+  /pug-walk/1.1.8:
+    resolution: {integrity: sha512-GMu3M5nUL3fju4/egXwZO0XLi6fW/K3T3VTgFQ14GxNi8btlxgT5qZL//JwZFm/2Fa64J/PNS8AZeys3wiMkVA==}
     dev: true
 
   /pug-walk/2.0.0:
