@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         type: choice
-        description: "Release Type(next, beta, alpha, latest)"
+        description: "Release Version(major|minor|patch|snapshot)"
         required: true
         default: "latest"
         options:

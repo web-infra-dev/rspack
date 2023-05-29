@@ -44,7 +44,8 @@ export async function version_handler(version) {
 		// skip all example upgrade
 		if (
 			workspace.manifest.name?.includes("example-") ||
-			workspace.manifest.private === true
+			(workspace.manifest.private === true &&
+				workspace.manifest.name !== "monorepo")
 		) {
 			continue;
 		}
