@@ -52,8 +52,21 @@ describe("StatsTestCases", () => {
 			} else if (statsJson.errors) {
 				expect(statsJson.errors.length === 0);
 			}
+			statsJson.errors?.forEach(error => {
+				error.formatted = error.formatted
+					.replaceAll(path.join(__dirname, ".."), "<PROJECT_ROOT>")
+					.replaceAll("\\", "/");
+			});
+			statsJson.warnings?.forEach(error => {
+				error.formatted = error.formatted
+					.replaceAll(path.join(__dirname, ".."), "<PROJECT_ROOT>")
+					.replaceAll("\\", "/");
+			});
 			expect(statsJson).toMatchSnapshot();
-			const statsString = stats.toString(statsOptions);
+			let statsString = stats.toString(statsOptions);
+			statsString = statsString
+				.replaceAll(path.join(__dirname, ".."), "<PROJECT_ROOT>")
+				.replaceAll("\\", "/");
 			expect(statsString).toMatchSnapshot();
 		});
 	});
