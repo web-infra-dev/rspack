@@ -7,7 +7,7 @@ on:
         type: choice
         description: "Release Version(major|minor|patch|snapshot)"
         required: true
-        default: "latest"
+        default: "patch"
         options:
           - major
           - minor
@@ -34,7 +34,7 @@ jobs:
       - name: Create Release Pull Request
         uses: hardfist/rspack-action@rspack
         with:
-          version: node ./x version ${{inputs.version || 'canary'}}
+          version: node ./x version ${{inputs.version || 'patch'}}
           createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
