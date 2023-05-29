@@ -156,7 +156,6 @@ const describeCases = config => {
 										"browser",
 										"web",
 										"browserify",
-										["jam", "main"],
 										"main"
 									],
 									aliasFields: ["browser"],
