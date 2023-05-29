@@ -21,11 +21,6 @@
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
-    "version:snapshot": "changeset version --snapshot",
-    "release:snapshot": "changeset publish --tag snapshot --no-git-tag --no-git-checks",
-    "release": "changeset publish --no-git-checks",
-    "bump": "changeset version",
-    "changeset": "changeset",
     "prepare": "is-ci || husky install",
     "pnpm:devPreinstall": "is-ci || node ./scripts/doctor.js",
     "test:example": "pnpm --filter \"example-*\" build",
@@ -48,7 +43,6 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "devDependencies": {
-    "@changesets/cli": "2.24.4",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
     "@types/jest": "29.1.0",

@@ -3,16 +3,25 @@ name: Release Full
 on:
   workflow_dispatch:
     inputs:
-      version:
+      tag:
         type: choice
-        description: "Release Version(canary, alpha, beta, latest)"
+        description: "Release Npm Tag"
         required: true
         default: "latest"
         options:
           - canary
-          - alpha
-          - beta
+          - nightly
           - latest
+      dry_run:
+        type: boolean
+        description: "DryRun release"
+        required: true
+        default: false
+      push_tags:
+        type: boolean
+        description: "push tags to github"
+        required: true
+        default: true
 jobs:
   build:
     strategy:
@@ -67,13 +76,8 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Release Full
-        uses: web-infra-dev/actions@v2
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ inputs.version }}
-          type: "release"
-          branch: ${{ github.ref_name }}
-          tools: "changeset"
+        run: |
+          ./x publish stable --tag ${{inputs.tag}} $${inputs.dry_run && '--dry-run' || '--no-dry-run'} $${inputs.push_tags && '--push-tags' || '--no-push-tags'}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
