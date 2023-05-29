@@ -26,7 +26,7 @@ jobs:
       - name: Checkout Main Branch
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Checkout full history for getting the correct changeset
+          fetch-depth: 0
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
