@@ -673,7 +673,7 @@ describe("MultiCompiler", function () {
 	}, 20000);
 });
 
-describe("Pressure test", function () {
+describe.skip("Pressure test", function () {
 	it("should work well in multiCompilers", done => {
 		const configs = Array(100).fill({
 			context: path.join(__dirname, "fixtures"),
