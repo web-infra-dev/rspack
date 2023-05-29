@@ -3,14 +3,6 @@ name: Release Full
 on:
   workflow_dispatch:
     inputs:
-      mode:
-        type: choice
-        description: "Release Mode(snapshot|stable)"
-        required: true
-        default: "stable"
-        options:
-          - stable
-          - snapshot
       tag:
         type: choice
         description: "Release Npm Tag"
@@ -19,6 +11,7 @@ on:
         options:
           - canary
           - nightly
+          - latest
       dry_run:
         type: boolean
         description: "DryRun release"
@@ -84,7 +77,7 @@ jobs:
 
       - name: Release Full
         run: |
-          ./x publish ${{inputs.mode}} --tag ${{inputs.tag}} $${inputs.dry_run && '--dry-run' || '--no-dry-run'} $${inputs.push_tags && '--push-tags' || '--no-push-tags'}
+          ./x publish stable --tag ${{inputs.tag}} $${inputs.dry_run && '--dry-run' || '--no-dry-run'} $${inputs.push_tags && '--push-tags' || '--no-push-tags'}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
