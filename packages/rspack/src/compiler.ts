@@ -87,6 +87,7 @@ class Compiler {
 	compilation: Compilation;
 	root: Compiler;
 	running: boolean;
+	idle: boolean;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
@@ -190,6 +191,7 @@ class Compiler {
 		this.root = this;
 		this.ruleSet = new RuleSetCompiler();
 		this.running = false;
+		this.idle = false;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
 		this.modifiedFiles = undefined;
@@ -753,6 +755,9 @@ class Compiler {
 		const doRun = () => {
 			// @ts-expect-error
 			const finalCallback = (err, stats?) => {
+				this.idle = true;
+				this.cache.beginIdle();
+				this.idle = true;
 				this.running = false;
 				if (err) {
 					this.hooks.failed.call(err);
@@ -789,7 +794,16 @@ class Compiler {
 				});
 			});
 		};
-		doRun();
+		if (this.idle) {
+			this.cache.endIdle(err => {
+				if (err) return callback(err);
+
+				this.idle = false;
+				doRun();
+			});
+		} else {
+			doRun();
+		}
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
 	build(cb: (error?: Error) => void) {
