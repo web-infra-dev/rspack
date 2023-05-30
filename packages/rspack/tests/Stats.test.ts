@@ -150,7 +150,7 @@ describe("Stats", () => {
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
 		 [876] ./fixtures/a.js 55 bytes {main}
-		     entry ./fixtures/a 
+		     entry ./fixtures/a
 		[876] ./fixtures/a.js 55 bytes {main}
 		    entry ./fixtures/a "
 	`);
@@ -173,7 +173,7 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(stats?.toString({ timings: false }).replaceAll("\\", "/"))
+		expect(stats?.toString({ timings: false }).replace(/\\/g, "/"))
 			.toMatchInlineSnapshot(`
 		"Hash: 639190004e3c864b
 		PublicPath: auto

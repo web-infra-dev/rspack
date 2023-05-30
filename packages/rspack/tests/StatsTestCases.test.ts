@@ -54,19 +54,25 @@ describe("StatsTestCases", () => {
 			}
 			statsJson.errors?.forEach(error => {
 				error.formatted = error.formatted
-					.replaceAll(path.join(__dirname, ".."), "<PROJECT_ROOT>")
-					.replaceAll("\\", "/");
+					?.replace(
+						new RegExp(path.join(__dirname, ".."), "g"),
+						"<PROJECT_ROOT>"
+					)
+					?.replace(/\\/g, "/");
 			});
 			statsJson.warnings?.forEach(error => {
 				error.formatted = error.formatted
-					.replaceAll(path.join(__dirname, ".."), "<PROJECT_ROOT>")
-					.replaceAll("\\", "/");
+					?.replace(
+						new RegExp(path.join(__dirname, ".."), "g"),
+						"<PROJECT_ROOT>"
+					)
+					?.replace(/\\/g, "/");
 			});
 			expect(statsJson).toMatchSnapshot();
 			let statsString = stats.toString(statsOptions);
 			statsString = statsString
-				.replaceAll(path.join(__dirname, ".."), "<PROJECT_ROOT>")
-				.replaceAll("\\", "/");
+				.replace(new RegExp(path.join(__dirname, ".."), "g"), "<PROJECT_ROOT>")
+				.replace(/\\/, "/");
 			expect(statsString).toMatchSnapshot();
 		});
 	});

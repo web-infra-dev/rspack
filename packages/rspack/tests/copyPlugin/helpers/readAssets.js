@@ -1,7 +1,7 @@
 import readAsset from "./readAsset";
 export function transformWindowPath(path) {
 	if (process.platform === "win32") {
-		return path.replaceAll("\\", "/");
+		return path.replace(/\\/g, "/");
 	}
 	return path;
 }
