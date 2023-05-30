@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-html",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "license": "MIT",
   "description": "HTML plugin for rspack",
   "main": "dist/index.js",
