@@ -181,7 +181,7 @@ jobs:
     needs: [select, build]
     runs-on: ${{ needs.select.outputs.host }}
     # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-    timeout-minutes: 20
+    timeout-minutes: 15
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
