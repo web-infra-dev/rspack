@@ -150,7 +150,7 @@ describe("Stats", () => {
 		Entrypoint main = main.js
 		chunk {main} main.js (main) 55 bytes [entry]
 		 [876] ./fixtures/a.js 55 bytes {main}
-		     entry ./fixtures/a
+		     entry ./fixtures/a 
 		[876] ./fixtures/a.js 55 bytes {main}
 		    entry ./fixtures/a "
 	`);
