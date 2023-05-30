@@ -1,2 +1,6 @@
 // var process = {};
-console.log(process.env)
+console.log(process.env);
+
+(function (process) {
+	console.log(process, process[0], process.env);
+})({});

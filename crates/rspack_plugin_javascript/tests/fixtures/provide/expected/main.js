@@ -2,9 +2,11 @@
 "./index.js": function (module, exports, __webpack_require__) {
 var process = __webpack_require__("./process.js");
 console.log(process.env);
+(function(process) {
+    console.log(process, process[0], process.env);
+})({});
 },
 "./process.js": function (module, exports, __webpack_require__) {
-__webpack_require__("./process.js");
 var process = module.exports = {};
 var cachedSetTimeout;
 var cachedClearTimeout;
