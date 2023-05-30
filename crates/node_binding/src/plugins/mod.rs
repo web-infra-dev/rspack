@@ -42,7 +42,7 @@ pub struct JsHooksAdapter {
   pub after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
-  pub before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
+  pub before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)>,
   pub after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
   pub context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
   pub normal_module_factory_resolve_for_scheme:
@@ -143,17 +143,27 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn before_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &NormalModuleBeforeResolveArgs,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     if self.is_hook_disabled(&Hook::BeforeResolve) {
       return Ok(None);
     }
-    self
+    dbg!(&args);
+    match self
       .before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
       .into_rspack_result()?
       .await
       .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
+    {
+      Ok((ret, resolve_data)) => {
+        println!("{:?}", ret);
+        args.request = resolve_data.request;
+        args.context = resolve_data.context;
+        Ok(ret)
+      }
+      Err(err) => Err(err),
+    }
   }
 
   async fn after_resolve(
@@ -174,7 +184,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn context_module_before_resolve(
     &self,
     _ctx: rspack_core::PluginContext,
-    args: &NormalModuleBeforeResolveArgs,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     self
       .context_module_before_resolve
@@ -542,7 +552,7 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(finish_modules, env);
     let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
       js_fn_into_theadsafe_fn!(context_module_before_resolve, env);
-    let before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
+    let before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)> =
       js_fn_into_theadsafe_fn!(before_resolve, env);
     let after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>> =
       js_fn_into_theadsafe_fn!(after_resolve, env);

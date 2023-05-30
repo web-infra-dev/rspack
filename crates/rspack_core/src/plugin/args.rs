@@ -89,9 +89,9 @@ pub struct ModuleArgs {
 }
 
 #[derive(Debug, Clone)]
-pub struct NormalModuleBeforeResolveArgs<'a> {
-  pub request: &'a str,
-  pub context: &'a Option<String>,
+pub struct NormalModuleBeforeResolveArgs {
+  pub request: String,
+  pub context: Option<String>,
 }
 #[derive(Debug, Clone)]
 pub struct NormalModuleAfterResolveArgs<'a> {

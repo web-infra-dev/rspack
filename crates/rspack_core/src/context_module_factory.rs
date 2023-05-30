@@ -20,9 +20,9 @@ impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
   async fn create(
     mut self,
-    data: ModuleFactoryCreateData,
+    mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(&data).await {
+    if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
       return Ok(before_resolve_result);
     }
     Ok(self.resolve(data).await?)
@@ -39,16 +39,17 @@ impl ContextModuleFactory {
 
   pub async fn before_resolve(
     &mut self,
-    data: &ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+      request: data.dependency.request().to_string(),
+      context: data.context.take(),
+    };
     if let Ok(Some(false)) = self
       .plugin_driver
       .read()
       .await
-      .context_module_before_resolve(NormalModuleBeforeResolveArgs {
-        request: data.dependency.request(),
-        context: &data.context,
-      })
+      .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
       let specifier = data.dependency.request();
@@ -69,6 +70,8 @@ impl ContextModuleFactory {
         ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
       ));
     }
+    data.context = before_resolve_args.context;
+    data.dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 

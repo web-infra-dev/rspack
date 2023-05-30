@@ -70,14 +70,16 @@ impl NormalModuleFactory {
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    // allow javascript plugin to modify args
+    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+      request: data.dependency.request().to_string(),
+      context: data.context.take(),
+    };
     if let Ok(Some(false)) = self
       .plugin_driver
       .read()
       .await
-      .before_resolve(NormalModuleBeforeResolveArgs {
-        request: data.dependency.request(),
-        context: &data.context,
-      })
+      .before_resolve(&mut before_resolve_args)
       .await
     {
       let importer = self.context.original_resource_path.as_ref();
@@ -107,6 +109,9 @@ impl NormalModuleFactory {
         ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
       ));
     }
+
+    data.context = before_resolve_args.context;
+    data.dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
