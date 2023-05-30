@@ -9,12 +9,13 @@ inputs:
     type: boolean
 
 runs:
+  using: composite
   steps:
     - name: diff
       id: pr-diff
       run: |
         echo "## Test Compatibility Diff" > output.md
-        node ./webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ input.sha }}
+        node ./webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ inputs.sha }}
 
         echo "comment=$comment" >> $GITHUB_OUTPUT
 
