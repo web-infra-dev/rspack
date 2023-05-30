@@ -12,8 +12,5 @@ rspack_fs      = { path = "../rspack_fs", features = ["async"] }
 rspack_testing = { path = "../rspack_testing" }
 tokio          = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 
-[target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dependencies]
-mimalloc-rust = { workspace = true }
-
 [[bin]]
 name = "rspack_build"
