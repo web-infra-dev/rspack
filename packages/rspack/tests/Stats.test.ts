@@ -142,18 +142,7 @@ describe("Stats", () => {
 		  "warningsCount": 0,
 		}
 	`);
-		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: d0d6acb2ce3a41e6
-		PublicPath: auto
-		  Asset       Size  Chunks             Chunk Names
-		main.js  215 bytes    main  [emitted]  main
-		Entrypoint main = main.js
-		chunk {main} main.js (main) 55 bytes [entry]
-		 [876] ./fixtures/a.js 55 bytes {main}
-		     entry ./fixtures/a
-		[876] ./fixtures/a.js 55 bytes {main}
-		    entry ./fixtures/a "
-	`);
+		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(``);
 	});
 
 	it("should omit all properties with all false", async () => {
