@@ -7,7 +7,7 @@ use swc_core::ecma::{
 };
 
 use super::expr_matcher;
-use crate::dependency::URLDependency;
+use crate::dependency::NewURLDependency;
 pub struct UrlScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
 }

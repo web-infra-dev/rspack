@@ -1,5 +1,5 @@
 mod new_url_dependency;
-
+pub use new_url_dependency::NewURLDependency;
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
