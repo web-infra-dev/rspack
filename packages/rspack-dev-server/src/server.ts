@@ -10,7 +10,7 @@
 import { Compiler, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher } from "chokidar";
-import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
+import { getRspackMemoryAssets, rdm } from "@rspack/dev-middleware";
 import type { Server } from "http";
 import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";

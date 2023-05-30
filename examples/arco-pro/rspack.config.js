@@ -1,5 +1,5 @@
 const path = require("path");
-const { default: HtmlPlugin } = require("@rspack/plugin-html");
+const { HtmlRspackPlugin } = require("@rspack/plugin-html");
 
 const prod = process.env.NODE_ENV === "production";
 
@@ -69,7 +69,7 @@ const config = {
 		}
 	},
 	plugins: [
-		new HtmlPlugin({
+		new HtmlRspackPlugin({
 			title: "Arco Pro App",
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.ico")

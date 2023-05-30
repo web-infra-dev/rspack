@@ -1,6 +1,6 @@
 const path = require("path");
 const sveltePreprocess = require("svelte-preprocess");
-const { default: HtmlPlugin } = require("@rspack/plugin-html");
+const { HtmlRspackPlugin } = require("@rspack/plugin-html");
 
 const mode = process.env.NODE_ENV || "development";
 const prod = mode === "production";
@@ -44,7 +44,7 @@ const config = {
 	},
 	mode,
 	plugins: [
-		new HtmlPlugin({
+		new HtmlRspackPlugin({
 			title: "Svelte App",
 			template: path.join(__dirname, "index.html"),
 			favicon: path.join(__dirname, "public", "favicon.png")

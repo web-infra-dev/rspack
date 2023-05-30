@@ -1,7 +1,7 @@
 const BundleAnalyzerPlugin =
 	require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
 const CopyPlugin = require("copy-webpack-plugin");
-const HtmlPlugin = require("@rspack/plugin-html").default;
+const { HtmlRspackPlugin } = require("@rspack/plugin-html");
 const { StatsWriterPlugin } = require("webpack-stats-plugin");
 const minifyPlugin = require("@rspack/plugin-minify");
 const manifestPlugin = require("rspack-manifest-plugin").WebpackManifestPlugin;
@@ -39,7 +39,7 @@ const config = {
 				dist: "."
 			}
 		]),
-		new HtmlPlugin({
+		new HtmlRspackPlugin({
 			template: "./index.ejs",
 			templateParameters: (compilation, assets, assetTags, options) => {
 				const cssFile = Object.keys(compilation.assets).filter(x =>

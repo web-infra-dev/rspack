@@ -249,7 +249,7 @@ export interface TemplateParameter {
 	webpackConfig: any;
 }
 
-export default class HtmlRspackPlugin implements RspackPluginInstance {
+export class HtmlRspackPlugin implements RspackPluginInstance {
 	name = "HtmlRspackPlugin";
 
 	userOptions: Options;

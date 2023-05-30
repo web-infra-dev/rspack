@@ -9,7 +9,7 @@
  */
 import { Compilation } from "@rspack/core";
 import { AsyncSeriesWaterfallHook } from "tapable";
-import HTMLRspackPlugin, { HtmlTagObject } from "./index";
+import { HtmlTagObject, HtmlRspackPlugin } from "./index";
 
 const htmlRspackPluginHooksMap = new WeakMap<
 	Compilation,
@@ -41,7 +41,7 @@ function createHtmlRspackPluginHooks() {
 				manifest?: string | undefined;
 			};
 			outputName: string;
-			plugin: HTMLRspackPlugin;
+			plugin: HtmlRspackPlugin;
 		}>(["pluginArgs"]),
 		alterAssetTags: new AsyncSeriesWaterfallHook<{
 			assetTags: {
@@ -51,30 +51,30 @@ function createHtmlRspackPluginHooks() {
 			};
 			publicPath: string;
 			outputName: string;
-			plugin: HTMLRspackPlugin;
+			plugin: HtmlRspackPlugin;
 		}>(["pluginArgs"]),
 		alterAssetTagGroups: new AsyncSeriesWaterfallHook<{
 			headTags: HtmlTagObject[];
 			bodyTags: HtmlTagObject[];
 			publicPath: string;
 			outputName: string;
-			plugin: HTMLRspackPlugin;
+			plugin: HtmlRspackPlugin;
 		}>(["pluginArgs"]),
 		afterTemplateExecution: new AsyncSeriesWaterfallHook<{
 			html: string;
 			headTags: HtmlTagObject[];
 			bodyTags: HtmlTagObject[];
 			outputName: string;
-			plugin: HTMLRspackPlugin;
+			plugin: HtmlRspackPlugin;
 		}>(["pluginArgs"]),
 		beforeEmit: new AsyncSeriesWaterfallHook<{
 			html: string;
 			outputName: string;
-			plugin: HTMLRspackPlugin;
+			plugin: HtmlRspackPlugin;
 		}>(["pluginArgs"]),
 		afterEmit: new AsyncSeriesWaterfallHook<{
 			outputName: string;
-			plugin: HTMLRspackPlugin;
+			plugin: HtmlRspackPlugin;
 		}>(["pluginArgs"])
 	};
 }
