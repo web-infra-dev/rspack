@@ -88,6 +88,20 @@ impl Plugin for BasicRuntimeRequirementPlugin {
       runtime_requirements.insert(RuntimeGlobals::GET_FULL_HASH);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT) {
+      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT) {
+      runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+      runtime_requirements.insert(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+    }
+
+    if runtime_requirements.contains(RuntimeGlobals::DEFINE_PROPERTY_GETTERS) {
+      runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+    }
+
     let mut sorted_runtime_requirement = runtime_requirements.iter().collect::<Vec<_>>();
     // TODO: we don't need sort since iter is deterministic for BitFlags
     sorted_runtime_requirement.sort_unstable_by_key(|r| r.name());

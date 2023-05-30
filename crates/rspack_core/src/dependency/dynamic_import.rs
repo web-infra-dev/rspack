@@ -94,6 +94,10 @@ impl ModuleDependency for EsmDynamicImportDependency {
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
   }
+
+  fn chunk_name(&self) -> Option<&str> {
+    self.name.as_deref()
+  }
 }
 
 impl CodeGeneratable for EsmDynamicImportDependency {

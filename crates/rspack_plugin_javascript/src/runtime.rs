@@ -1,7 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, RenderModuleContentArgs, RuntimeGlobals, SourceType,
+  ChunkInitFragments, ChunkUkey, Compilation, InitFragment, RenderModuleContentArgs,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
@@ -186,6 +187,10 @@ pub fn render_chunk_init_fragments(
   chunk_init_fragments: &mut ChunkInitFragments,
 ) -> BoxSource {
   let mut fragments = chunk_init_fragments.values().collect::<Vec<_>>();
+  render_init_fragments(source, &mut fragments)
+}
+
+pub fn render_init_fragments(source: BoxSource, fragments: &mut [&InitFragment]) -> BoxSource {
   fragments.sort_unstable_by_key(|m| m.stage);
 
   let mut sources = ConcatSource::default();

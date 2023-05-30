@@ -9,6 +9,7 @@ use rspack_core::{
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
+use crate::runtime::render_init_fragments;
 use crate::utils::syntax_by_module_type;
 use crate::visitors::{
   run_before_pass, scan_dependencies_with_string_replace, swc_visitor::resolver,
@@ -83,7 +84,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
     )?;
 
     let output: crate::TransformOutput =
-      crate::ast::stringify(&ast, &compiler_options.devtool, None)?;
+      crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
 
     let mut scan_ast = match crate::ast::parse(
       output.code.clone(), // TODO avoid code clone
@@ -190,14 +191,14 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
         dependencies
           .iter()
           .for_each(|dependency| dependency.apply(&mut source, &mut context));
-      }
-      init_fragments.sort_unstable_by_key(|f| f.stage);
-      for fragment in init_fragments {
-        source.insert(0, &fragment.content, None);
-      }
+      };
 
       Ok(GenerationResult {
-        ast_or_source: source.boxed().into(),
+        ast_or_source: render_init_fragments(
+          source.boxed(),
+          &mut init_fragments.iter().collect::<Vec<_>>(),
+        )
+        .into(),
       })
     } else {
       Err(internal_error!(

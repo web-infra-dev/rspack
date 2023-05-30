@@ -2,10 +2,9 @@ use rspack_error::{internal_error, Result};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  dependency::EsmDynamicImportDependency, is_async_dependency, module_graph::ConnectionId,
-  BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, DependencyId,
-  ExportsType, FactoryMeta, ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  ModuleIssuer, ModuleSyntax, ModuleType,
+  is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
+  BuildMetaExportsType, ChunkGraph, DependencyId, ExportsType, FactoryMeta, ModuleDependency,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -141,11 +140,7 @@ impl ModuleGraphModule {
           .module_identifier_by_dependency_id(id)
           .expect("should have a module here");
 
-        let chunk_name = dep
-          .as_ref()
-          .as_any()
-          .downcast_ref::<EsmDynamicImportDependency>()
-          .and_then(|f| f.name.as_deref());
+        let chunk_name = dep.chunk_name();
         Some((module, chunk_name))
       })
       .collect()

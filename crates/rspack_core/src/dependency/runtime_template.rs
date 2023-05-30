@@ -27,7 +27,7 @@ pub fn export_from_import(
       {
         match exports_type {
             ExportsType::Dynamic => {
-              return format!("{import_var}_default(){}", property_access(&export_name, 1));
+              return format!("{import_var}_default{}", property_access(&export_name, 1));
             }
             ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
               export_name = export_name[1..].to_vec();
@@ -49,7 +49,7 @@ pub fn export_from_import(
           InitFragmentStage::STAGE_HARMONY_EXPORTS,
           None,
         ));
-        return format!("/*#__PURE__*/ {import_var}_namespace_cache || {import_var}_namespace_cache = {}({import_var}{})", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
+        return format!("/*#__PURE__*/ {import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{}))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
       }
   }
 
@@ -105,20 +105,28 @@ pub fn module_id_expr(request: &str, module_id: &str) -> String {
   )
 }
 
-pub fn module_id(compilation: &Compilation, id: &DependencyId, request: &str) -> String {
-  let module_id = compilation
-    .module_graph
-    .module_graph_module_by_dependency_id(id)
-    .map(|m| m.id(&compilation.chunk_graph))
-    .expect("should have dependency id");
-
-  module_id_expr(request, module_id)
+pub fn module_id(
+  compilation: &Compilation,
+  id: &DependencyId,
+  request: &str,
+  weak: bool,
+) -> String {
+  if let Some(module_identifier) = compilation.module_graph.module_identifier_by_dependency_id(id)
+        && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
+  {
+    module_id_expr(request, module_id)
+  } else if weak {
+    "null /* weak dependency, without id */".to_string()
+  } else {
+    unreachable!("runtime template no module id")
+  }
 }
 
 pub fn import_statement(
   code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   id: &DependencyId,
   request: &str,
+  update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
   let CodeReplaceSourceDependencyContext {
     runtime_requirements,
@@ -137,8 +145,10 @@ pub fn import_statement(
 
   let import_var = get_import_var(request);
 
+  let opt_declaration = if update { "" } else { "var " };
+
   let import_content = format!(
-    "/* harmony import */ var {import_var} = {}({});\n",
+    "/* harmony import */{opt_declaration}{import_var} = {}({});\n",
     RuntimeGlobals::REQUIRE,
     module_id_expr(request, module_id)
   );
@@ -149,7 +159,7 @@ pub fn import_statement(
     return (
       import_content,
       format!(
-        "/* harmony import */ var {import_var}_default = /*#__PURE__*/{}({import_var});\n",
+        "/* harmony import */{opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
         RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
       ),
     );

@@ -6,37 +6,28 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::JsWord;
 
-// Webpack RequireHeaderDependency + CommonJsRequireDependency
 #[derive(Debug, Clone)]
-pub struct CommonJsRequireDependency {
-  id: Option<DependencyId>,
-  request: JsWord,
-  optional: bool,
+pub struct NewURLDependency {
   start: u32,
   end: u32,
+  id: Option<DependencyId>,
+  request: JsWord,
   span: Option<ErrorSpan>,
 }
 
-impl CommonJsRequireDependency {
-  pub fn new(
-    request: JsWord,
-    span: Option<ErrorSpan>,
-    start: u32,
-    end: u32,
-    optional: bool,
-  ) -> Self {
+impl NewURLDependency {
+  pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: None,
-      request,
-      optional,
       start,
       end,
+      id: None,
+      request,
       span,
     }
   }
 }
 
-impl Dependency for CommonJsRequireDependency {
+impl Dependency for NewURLDependency {
   fn id(&self) -> Option<DependencyId> {
     self.id
   }
@@ -45,15 +36,15 @@ impl Dependency for CommonJsRequireDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::CommonJS
+    &DependencyCategory::Url
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::CjsRequire
+    &DependencyType::NewUrl
   }
 }
 
-impl ModuleDependency for CommonJsRequireDependency {
+impl ModuleDependency for NewURLDependency {
   fn request(&self) -> &str {
     &self.request
   }
@@ -66,46 +57,44 @@ impl ModuleDependency for CommonJsRequireDependency {
     self.span.as_ref()
   }
 
-  fn get_optional(&self) -> bool {
-    self.optional
-  }
-
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     Some(Box::new(self.clone()))
   }
 }
 
-impl CodeGeneratable for CommonJsRequireDependency {
+impl CodeGeneratable for NewURLDependency {
   fn generate(
     &self,
     _code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
-    Ok(CodeGeneratableResult::default())
+    todo!()
   }
 }
 
-impl CodeReplaceSourceDependency for CommonJsRequireDependency {
+impl CodeReplaceSourceDependency for NewURLDependency {
   fn apply(
     &self,
     source: &mut CodeReplaceSourceDependencyReplaceSource,
     code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
     let CodeReplaceSourceDependencyContext {
-      runtime_requirements,
       compilation,
+      runtime_requirements,
       ..
     } = code_generatable_context;
-
     let id: DependencyId = self.id().expect("should have dependency id");
 
-    runtime_requirements.add(RuntimeGlobals::REQUIRE);
+    runtime_requirements.insert(RuntimeGlobals::BASE_URI);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+
     source.replace(
       self.start,
       self.end,
       format!(
-        "{}({})",
+        "/* asset import */{}({}), {}",
         RuntimeGlobals::REQUIRE,
-        module_id(compilation, &id, &self.request, false).as_str()
+        module_id(compilation, &id, &self.request, false),
+        RuntimeGlobals::BASE_URI
       )
       .as_str(),
       None,

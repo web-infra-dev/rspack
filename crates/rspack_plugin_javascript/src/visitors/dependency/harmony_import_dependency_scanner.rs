@@ -3,10 +3,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::{Span, SyntaxContext},
   ecma::{
-    ast::{
-      ExportSpecifier, Ident, ImportDecl, ImportSpecifier, ModuleExportName, NamedExport, Program,
-      Prop,
-    },
+    ast::{Ident, ImportDecl, ImportSpecifier, ModuleExportName, NamedExport, Program, Prop},
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },
@@ -140,7 +137,6 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
                 shorthand.span.real_lo(),
                 shorthand.span.real_hi(),
                 reference.1.clone(),
-                None,
               ))
             })
             .or_default();
@@ -161,47 +157,11 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           ident.span.real_lo(),
           ident.span.real_hi(),
           reference.1.clone(),
-          None,
         ));
     }
   }
 
   fn visit_import_decl(&mut self, _decl: &ImportDecl) {}
 
-  fn visit_named_export(&mut self, named_export: &NamedExport) {
-    if named_export.src.is_none() {
-      named_export
-        .specifiers
-        .iter()
-        .for_each(|specifier| match specifier {
-          ExportSpecifier::Namespace(_ns) => {
-            unreachable!()
-          }
-          ExportSpecifier::Default(_default) => {
-            unreachable!();
-          }
-          ExportSpecifier::Named(named) => {
-            if let ModuleExportName::Ident(orig) = &named.orig {
-              if let Some(Some(reference)) = self.import_map.get(&orig.to_id()) {
-                self
-                  .ref_dependencies
-                  .entry(reference.0.clone())
-                  .or_insert(vec![])
-                  .push(HarmonyImportSpecifierDependency::new(
-                    false,
-                    named.span.real_lo(),
-                    named.span.real_hi(),
-                    reference.1.clone(),
-                    Some(match &named.exported {
-                      Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
-                      None => orig.sym.to_string(),
-                      _ => unreachable!(),
-                    }),
-                  ));
-              }
-            }
-          }
-        });
-    }
-  }
+  fn visit_named_export(&mut self, _named_export: &NamedExport) {}
 }

@@ -1,36 +1,85 @@
-use rspack_core::{ContextMode, ContextOptions, DependencyCategory, ModuleDependency, SpanExt};
+use rspack_core::{
+  CodeReplaceSourceDependency, ContextMode, ContextOptions, DependencyCategory, ModuleDependency,
+  ReplaceConstDependency, SpanExt,
+};
 use rspack_regex::RspackRegex;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Callee, Expr, Lit},
+    ast::{CallExpr, Callee, Expr, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
-use super::scanner::scanner_context_module;
-use crate::dependency::{CommonJsRequireContextDependency, CommonJsRequireDependency};
+use super::{expr_matcher, scanner::scanner_context_module};
+use crate::dependency::{
+  CommonJsRequireContextDependency, CommonJsRequireDependency, RequireResolveDependency,
+};
 
 pub struct CommonJsImportDependencyScanner<'a> {
-  pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub unresolved_ctxt: &'a SyntaxContext,
+  dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+  code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+  unresolved_ctxt: &'a SyntaxContext,
+  in_try: bool,
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
+    code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
     unresolved_ctxt: &'a SyntaxContext,
   ) -> Self {
     Self {
       dependencies,
+      code_generable_dependencies,
       unresolved_ctxt,
+      in_try: false,
+    }
+  }
+
+  fn add_require_resolve(&mut self, node: &CallExpr, weak: bool) {
+    if !node.args.is_empty() {
+      if let Some(Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
+        self
+          .dependencies
+          .push(Box::new(RequireResolveDependency::new(
+            node.span.real_lo(),
+            node.span.real_hi(),
+            str.value.to_string(),
+            weak,
+            node.span.into(),
+            self.in_try,
+          )));
+      }
+    }
+  }
+
+  fn replace_require_resolve(&mut self, expr: &Expr) {
+    if expr_matcher::is_require(expr)
+      || expr_matcher::is_require_resolve(expr)
+      || expr_matcher::is_require_resolve_weak(expr)
+    {
+      self
+        .code_generable_dependencies
+        .push(Box::new(ReplaceConstDependency::new(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+          "true".into(),
+          None,
+        )));
     }
   }
 }
 
 impl Visit for CommonJsImportDependencyScanner<'_> {
   noop_visit_type!();
+
+  fn visit_try_stmt(&mut self, node: &TryStmt) {
+    self.in_try = true;
+    node.visit_children_with(self);
+    self.in_try = false;
+  }
 
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if let Callee::Expr(expr) = &call_expr.callee {
@@ -51,7 +100,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                     Some(call_expr.span.into()),
                     call_expr.span.real_lo(),
                     call_expr.span.real_hi(),
-                    false
+                    self.in_try
                   )));
                   return;
                 }
@@ -63,7 +112,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                       Some(call_expr.span.into()),
                       call_expr.span.real_lo(),
                       call_expr.span.real_hi(),
-                      false,
+                      self.in_try,
                     )));
                   return;
                 }
@@ -92,7 +141,46 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
           }
         }
       }
+      if expr_matcher::is_require_resolve(expr) {
+        self.add_require_resolve(call_expr, false);
+      }
+      if expr_matcher::is_require_resolve_weak(expr) {
+        self.add_require_resolve(call_expr, true);
+      }
     }
     call_expr.visit_children_with(self);
+  }
+
+  fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
+    if let UnaryExpr {
+      op: UnaryOp::TypeOf,
+      arg: box expr,
+      ..
+    } = unary_expr
+    {
+      if expr_matcher::is_require(expr)
+        || expr_matcher::is_require_resolve(expr)
+        || expr_matcher::is_require_resolve_weak(expr)
+      {
+        self
+          .code_generable_dependencies
+          .push(Box::new(ReplaceConstDependency::new(
+            unary_expr.span().real_lo(),
+            unary_expr.span().real_hi(),
+            "'function'".into(),
+            None,
+          )));
+      }
+    }
+    unary_expr.visit_children_with(self);
+  }
+
+  fn visit_if_stmt(&mut self, if_stmt: &IfStmt) {
+    self.replace_require_resolve(&if_stmt.test);
+    if let Expr::Bin(bin) = &*if_stmt.test {
+      self.replace_require_resolve(&bin.left);
+      self.replace_require_resolve(&bin.right);
+    }
+    if_stmt.visit_children_with(self);
   }
 }
