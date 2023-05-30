@@ -2,6 +2,7 @@ import { join } from "path";
 
 export interface ThreadsafeWritableNodeFS {
 	writeFile: (...args: any[]) => any;
+	removeFile: (...args: any[]) => any;
 	mkdir: (...args: any[]) => any;
 	mkdirp: (...args: any[]) => any;
 	removeDirAll: (...args: any[]) => any;
@@ -12,6 +13,7 @@ function createThreadsafeNodeFSFromRaw(
 ): ThreadsafeWritableNodeFS {
 	return {
 		writeFile: (file, data) => fs.writeFileSync(file, data),
+		removeFile: file => fs.unlinkSync(file),
 		mkdir: dir => fs.mkdirSync(dir),
 		mkdirp: dir =>
 			fs.mkdirSync(dir, {

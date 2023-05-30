@@ -61,7 +61,7 @@ pub enum BuildMetaDefaultObject {
   RedirectWarn,
 }
 
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct BuildMeta {
   pub strict: bool,
   pub strict_harmony_module: bool,
@@ -71,6 +71,21 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   pub module_argument: &'static str,
   pub exports_argument: &'static str,
+}
+
+impl Default for BuildMeta {
+  fn default() -> Self {
+    Self {
+      strict: Default::default(),
+      strict_harmony_module: Default::default(),
+      is_async: Default::default(),
+      esm: Default::default(),
+      exports_type: Default::default(),
+      default_object: Default::default(),
+      module_argument: "module",
+      exports_argument: "exports",
+    }
+  }
 }
 
 // webpack build info

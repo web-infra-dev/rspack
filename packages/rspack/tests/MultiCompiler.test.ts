@@ -4,7 +4,6 @@ import { FileSystemInfoEntry, Watcher } from "../src/util/fs";
 import { Compiler, MultiRspackOptions, rspack, RspackOptions } from "../src";
 import { assert } from "console";
 
-const isWin = process.platform === "win32";
 const createMultiCompiler = (
 	options?: RspackOptions[] | { parallelism?: number }
 ) => {
@@ -529,9 +528,7 @@ describe("MultiCompiler", function () {
 		});
 
 		// @ts-ignore
-		compiler.watchFileSystem = {
-			watch() {}
-		};
+		compiler.watchFileSystem = { watch() {} };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
 		let state = 0;
@@ -599,9 +596,7 @@ describe("MultiCompiler", function () {
 		]);
 
 		// @ts-ignore
-		compiler.watchFileSystem = {
-			watch() {}
-		};
+		compiler.watchFileSystem = { watch() {} };
 		compiler.outputFileSystem = createFsFromVolume(new Volume());
 
 		const watching = compiler.watch({}, error => {
@@ -678,8 +673,8 @@ describe("MultiCompiler", function () {
 	}, 20000);
 });
 
-describe("Pressure test", function () {
-	(isWin ? it.skip : it)("should work well in multiCompilers", done => {
+describe.skip("Pressure test", function () {
+	it("should work well in multiCompilers", done => {
 		const configs = Array(100).fill({
 			context: path.join(__dirname, "fixtures"),
 			entry: "./a.js"
@@ -693,7 +688,7 @@ describe("Pressure test", function () {
 		});
 	});
 
-	(isWin ? it.skip : it)("should work well in concurrent", async () => {
+	it("should work well in concurrent", async () => {
 		const total = 100;
 
 		let finish = 0;

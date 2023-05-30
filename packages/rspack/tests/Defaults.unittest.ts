@@ -126,7 +126,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,
@@ -175,7 +177,9 @@ describe("snapshots", () => {
 		+     "minimize": true,
 		@@ ... @@
 		-     "moduleIds": "named",
+		-     "realContentHash": false,
 		+     "moduleIds": "deterministic",
+		+     "realContentHash": true,
 		@@ ... @@
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,

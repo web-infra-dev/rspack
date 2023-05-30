@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.0.0",
+  "version": "0.1.12",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -21,16 +21,12 @@
     "lint:rs": "node ./scripts/check_rust_dependency.cjs",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
-    "version:snapshot": "changeset version --snapshot",
-    "release:snapshot": "changeset publish --tag snapshot --no-git-tag --no-git-checks",
-    "release": "changeset publish --no-git-checks",
-    "bump": "changeset version",
-    "changeset": "changeset",
     "prepare": "is-ci || husky install",
     "pnpm:devPreinstall": "is-ci || node ./scripts/doctor.js",
     "test:example": "pnpm --filter \"example-*\" build",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
+    "test:webpack": "pnpm --filter \"webpack-test\" test",
     "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit"
   },
   "lint-staged": {
@@ -40,9 +36,6 @@
     "crates/rspack_plugin_runtime/**/*.{ts,js}": "prettier --write",
     "*.toml": "npx @taplo/cli format"
   },
-  "engines": {
-    "pnpm": "7.32.0"
-  },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -50,7 +43,6 @@
     "url": "https://github.com/web-infra-dev/rspack"
   },
   "devDependencies": {
-    "@changesets/cli": "2.24.4",
     "@rspack/cli": "workspace:*",
     "@taplo/cli": "^0.5.2",
     "@types/jest": "29.1.0",
@@ -81,10 +73,5 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
-  "packageManager": "pnpm@7.32.0",
-  "pnpm": {
-    "overrides": {
-      "@rspack/core": "0.1.12"
-    }
-  }
+  "packageManager": "pnpm@7.32.0"
 }

@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  merge_group:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
+        required: false
+        default: false
+  pull_request:
+    types: [opened, synchronize]
+    paths-ignore:
+      - "**/*.md"
+    branches-ignore:
+      - "release-**"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.md"
+    tags-ignore:
+      - "**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+jobs:
+  test-linux:
+    name: Test Linux
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+
+  test-windows:
+    name: Test Windows
+    if: github.ref_name == 'main'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-pc-windows-msvc
+
+  test-mac:
+    name: Test Mac
+    if: github.ref_name == 'main'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-apple-darwin
+
+  spell:
+    name: Spell check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: crate-ci/typos@master
+        with:
+          files: .
+
+  rust_changes:
+    name: Rust Changes
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.filter.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            changed:
+              - '.github/workflows/ci.yml'
+              - 'crates/**'
+              - 'Cargo.lock'
+              - 'Cargo.toml'
+              - 'rust-toolchain.toml'
+
+  rust:
+    name: Rust check
+    needs: rust_changes
+    if: ${{ needs.rust_changes.outputs.changed == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install toolchain
+        run: rustup show
+
+      - name: Pnpm Cache # Required by some tests
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: check
+          save-if: ${{ github.ref_name == 'main' }}
+
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: Run Cargo Check
+        run: cargo check --workspace --all-targets --locked # Not using --release because it uses too much cache, and is also slow.
+
+      - name: Run Clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace --all-targets -- -D warnings
+
+      - name: Run test
+        run: cargo test --workspace -- --nocapture

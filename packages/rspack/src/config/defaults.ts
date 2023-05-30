@@ -145,7 +145,7 @@ const applyExperimentsDefaults = (experiments: Experiments) => {
 	D(experiments, "incrementalRebuild", true);
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
-	D(experiments, "newSplitChunks", false);
+	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 };
 
@@ -576,8 +576,7 @@ const applyOptimizationDefaults = (
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "runtimeChunk", false);
-	// TODO: change to true in production once realContentHash is stable
-	D(optimization, "realContentHash", false);
+	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => []);
 	const { splitChunks } = optimization;
@@ -631,8 +630,7 @@ const getResolveDefaults = ({
 		if (targetProperties.electron) conditions.push("electron");
 		if (targetProperties.nwjs) conditions.push("nwjs");
 	}
-
-	const jsExtensions = [".tsx", ".ts", ".jsx", ".js", ".json", ".wasm"];
+	const jsExtensions = [".js", ".json", ".wasm", ".tsx", ".ts", ".jsx"];
 
 	const tp = targetProperties;
 	const browserField =

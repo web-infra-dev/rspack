@@ -1,8 +1,7 @@
 use rspack_core::{
-  module_id_expr, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency,
+  import_statement, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
+  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyType,
+  ModuleDependency, ModuleIdentifier,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -11,9 +10,8 @@ pub struct HarmonyAcceptDependency {
   start: u32,
   end: u32,
   has_callback: bool,
-  id: Option<DependencyId>,
-  request: JsWord,
-  span: Option<ErrorSpan>,
+  module_identifier: ModuleIdentifier,
+  deps: Vec<(JsWord, DependencyCategory, DependencyType)>,
 }
 
 impl HarmonyAcceptDependency {
@@ -21,66 +19,77 @@ impl HarmonyAcceptDependency {
     start: u32,
     end: u32,
     has_callback: bool,
-    request: JsWord,
-    span: Option<ErrorSpan>,
+    module_identifier: ModuleIdentifier,
+    deps: Vec<(JsWord, DependencyCategory, DependencyType)>,
   ) -> Self {
     Self {
       start,
       end,
       has_callback,
-      request,
-      span,
-      id: None,
+      module_identifier,
+      deps,
     }
-  }
-}
-
-impl Dependency for HarmonyAcceptDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
-  fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Esm
-  }
-
-  fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ImportMetaHotAccept
-  }
-}
-
-impl ModuleDependency for HarmonyAcceptDependency {
-  fn request(&self) -> &str {
-    &self.request
-  }
-
-  fn user_request(&self) -> &str {
-    &self.request
-  }
-
-  fn span(&self) -> Option<&ErrorSpan> {
-    self.span.as_ref()
-  }
-}
-
-impl CodeGeneratable for HarmonyAcceptDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
   }
 }
 
 impl CodeReplaceSourceDependency for HarmonyAcceptDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    _code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeReplaceSourceDependencyReplaceSource,
+    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
-    todo!()
+    let CodeReplaceSourceDependencyContext { compilation, .. } = code_generatable_context;
+
+    let dependencies = {
+      let ids = compilation
+        .module_graph
+        .dependencies_by_module_identifier(&self.module_identifier)
+        .expect("should have dependencies");
+      ids
+        .iter()
+        .map(|id| {
+          compilation
+            .module_graph
+            .dependency_by_id(id)
+            .expect("should have dependency")
+        })
+        .collect::<Vec<_>>()
+    };
+
+    let mut content = String::default();
+
+    self.deps.iter().for_each(|dep| {
+      if let Some(dep) = dependencies
+        .iter()
+        .find(|d| d.request() == &dep.0 && d.category() == &dep.1 && d.dependency_type() == &dep.2)
+      {
+        let stmts = import_statement(
+          code_generatable_context,
+          &dep.id().expect("should have dependency"),
+          dep.request(),
+        );
+        content.push_str(stmts.0.as_str());
+        content.push_str(stmts.1.as_str());
+      }
+    });
+
+    if self.has_callback {
+      source.insert(
+        self.start,
+        format!("function(__WEBPACK_OUTDATED_DEPENDENCIES__) {{\n{content}(").as_str(),
+        None,
+      );
+      source.insert(
+        self.end,
+        ")(__WEBPACK_OUTDATED_DEPENDENCIES__); }.bind(this)",
+        None,
+      );
+    } else {
+      source.insert(
+        self.start,
+        format!(", function(){{\n{content}\n}}").as_str(),
+        None,
+      );
+    }
   }
 }

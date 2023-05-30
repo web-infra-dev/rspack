@@ -523,7 +523,8 @@ function getRawSplitChunksOptions(
 							minSize: group.minSize,
 							maxAsyncSize: group.maxAsyncSize,
 							maxInitialSize: group.maxInitialSize,
-							maxSize: group.maxSize
+							maxSize: group.maxSize,
+							enforce: group.enforce
 						};
 						return [key, normalizedGroup];
 					})

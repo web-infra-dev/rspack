@@ -7,6 +7,10 @@ inputs:
     default: '16'
     required: false
     type: string
+  save-if:
+    default: false
+    required: false
+    type: boolean
 
 runs:
   using: composite
@@ -26,18 +30,9 @@ runs:
       shell: bash
       run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
 
-    - name: Setup pnpm cache
-      uses: actions/cache@v3
-      if: github.ref_name == 'main' # Only save cache on main branch
-      with:
-        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
-        restore-keys: |
-          node-cache-${{ runner.os }}-pnpm-
-
-    - name: Setup pnpm cache
-      uses: actions/cache/restore@v3 # Note: this is `restore`, not `save`
-      if: github.ref_name != 'main' # Only restore cache on non-main branch
+    - name: Restore pnpm cache
+      id: restore
+      uses: actions/cache/restore@v3
       with:
         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
         key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
@@ -47,3 +42,10 @@ runs:
     - name: Install dependencies
       shell: bash
       run: pnpm install --no-frozen-lockfile
+
+    - name: Save pnpm cache
+      uses: actions/cache/save@v3
+      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' }}
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: node-cache-${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}

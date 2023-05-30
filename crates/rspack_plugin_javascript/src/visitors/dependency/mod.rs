@@ -6,6 +6,7 @@ mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 mod harmony_import_dependency_scanner;
 mod hmr_scanner;
+mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
@@ -15,7 +16,7 @@ mod util;
 pub use code_generation::*;
 use rspack_core::{
   ast::javascript::Program, BuildInfo, BuildMeta, CodeReplaceSourceDependency, CompilerOptions,
-  Dependency, ModuleDependency, ModuleType, ResourceData,
+  Dependency, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
 };
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
@@ -25,9 +26,10 @@ use self::{
   common_js_scanner::CommonJsScanner, harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
-  hmr_scanner::HmrDependencyScanner, import_meta_scanner::ImportMetaScanner,
-  import_scanner::ImportScanner, node_stuff_scanner::NodeStuffScanner,
-  require_context_scanner::RequireContextScanner, scanner::DependencyScanner,
+  hmr_scanner::HmrDependencyScanner, hot_module_replacement_scanner::HotModuleReplacementScanner,
+  import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
+  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
+  scanner::DependencyScanner,
 };
 
 pub type ScanDependenciesResult = (
@@ -106,14 +108,16 @@ pub fn scan_dependencies(
   (dependencies, presentational_dependencies, vec![])
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies_with_string_replace(
   program: &Program,
   unresolved_mark: Mark,
   resource_data: &ResourceData,
-  _compiler_options: &CompilerOptions,
+  compiler_options: &CompilerOptions,
   module_type: &ModuleType,
   build_info: &mut BuildInfo,
   build_meta: &mut BuildMeta,
+  module_identifier: ModuleIdentifier,
 ) -> ScanDependenciesResult {
   let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
   let presentational_dependencies: Vec<Box<dyn Dependency>> = vec![];
@@ -157,6 +161,15 @@ pub fn scan_dependencies_with_string_replace(
       &mut dependencies,
       &mut code_replace_source_dependencies,
       &mut import_map,
+    ));
+  }
+
+  if compiler_options.dev_server.hot {
+    program.visit_with(&mut HotModuleReplacementScanner::new(
+      &mut dependencies,
+      &mut code_replace_source_dependencies,
+      module_identifier,
+      build_meta,
     ));
   }
 

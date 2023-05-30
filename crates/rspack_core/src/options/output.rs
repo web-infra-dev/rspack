@@ -273,7 +273,10 @@ impl Filename {
           PATH_PLACEHOLDER,
           &file
             .parent()
-            .map(|p| p.to_string_lossy() + "/")
+            .map(|p| p.to_string_lossy())
+            // "" -> "", "folder" -> "folder/"
+            .filter(|p| !p.is_empty())
+            .map(|p| p + "/")
             .unwrap_or_default(),
         );
         template = template.replace(QUERY_PLACEHOLDER, &query.unwrap_or_default());
@@ -281,6 +284,10 @@ impl Filename {
       }
     }
     if let Some(content_hash) = options.content_hash {
+      if let Some(asset_info) = asset_info.as_mut() {
+        // set version as content hash
+        asset_info.version = content_hash.to_string();
+      }
       template = CONTENT_HASH_PLACEHOLDER
         .replace_all(&template, |caps: &Captures| {
           let content_hash = &content_hash[..hash_len(content_hash, caps)];

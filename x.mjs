@@ -126,6 +126,9 @@ let releaseCommand = program
 		"--dry-run",
 		"Does everything a publish would do except actually publishing to the registry"
 	)
+	.option("--no-dry-run", "negative dry-run")
+	.option("--push-tags", "push tags to github")
+	.option("--no-push-tags", "don't push tags to github")
 	.description("publish package after version bump")
 	.action(publish_handler);
 let argv = process.argv.slice(2); // remove the `node` and script call
