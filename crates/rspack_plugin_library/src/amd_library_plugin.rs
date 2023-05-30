@@ -70,7 +70,7 @@ impl Plugin for AmdLibraryPlugin {
           chunk
             .content_hash
             .get(&SourceType::JavaScript)
-            .map(|i| i.as_str()),
+            .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
         ),
       );
       source.add(RawSource::from(format!(

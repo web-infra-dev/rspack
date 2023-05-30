@@ -26,7 +26,8 @@ impl RuntimeModule for GetFullHashRuntimeModule {
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
     RawSource::from(
-      include_str!("runtime/get_full_hash.js").replace("$HASH$", compilation.hash.as_str()),
+      include_str!("runtime/get_full_hash.js")
+        .replace("$HASH$", compilation.get_hash().unwrap_or("XXXX")),
     )
     .boxed()
   }

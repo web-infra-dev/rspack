@@ -153,6 +153,10 @@ function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
 		fallback: getRawAlias(resolve.fallback),
+		extensionAlias: getRawAlias(resolve.extensionAlias) as Record<
+			string,
+			Array<string>
+		>,
 		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
@@ -197,7 +201,11 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
 		webassemblyModuleFilename: output.webassemblyModuleFilename!,
 		trustedTypes: output.trustedTypes!,
-		sourceMapFilename: output.sourceMapFilename!
+		sourceMapFilename: output.sourceMapFilename!,
+		hashFunction: output.hashFunction!,
+		hashDigest: output.hashDigest!,
+		hashDigestLength: output.hashDigestLength!,
+		hashSalt: output.hashSalt!
 	};
 }
 
@@ -515,7 +523,8 @@ function getRawSplitChunksOptions(
 							minSize: group.minSize,
 							maxAsyncSize: group.maxAsyncSize,
 							maxInitialSize: group.maxInitialSize,
-							maxSize: group.maxSize
+							maxSize: group.maxSize,
+							enforce: group.enforce
 						};
 						return [key, normalizedGroup];
 					})

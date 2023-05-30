@@ -27,7 +27,8 @@ describe("HashTestCases", () => {
 			} else {
 				throw new Error("HashTestCases must have a webpack.config.js");
 			}
-			if (!Array.isArray(config) && typeof config === "object") {
+			const isMultiCompiler = Array.isArray(config);
+			if (!isMultiCompiler && typeof config === "object") {
 				config.context ??= testPath;
 				config.entry ??= "./index";
 				config.output ??= {};
@@ -46,11 +47,13 @@ describe("HashTestCases", () => {
 			} else {
 				expect(statsJson.errors!.length === 0);
 			}
-			const files = statsJson.assets?.map(x => x.name);
-			expect(files).toMatchSnapshot();
 
 			if (testConfig && testConfig.validate) {
 				testConfig.validate(stats);
+			} else {
+				throw new Error(
+					"HashTestCases should have test.config.js and a validate method"
+				);
 			}
 		});
 	});

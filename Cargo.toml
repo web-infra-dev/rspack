@@ -25,14 +25,14 @@ json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc-rust      = { version = "0.2" }
 mime_guess         = { version = "2.0.4" }
-nodejs-resolver    = { version = "0.0.84" }
+nodejs-resolver    = { version = "0.0.86" }
 once_cell          = { version = "1.17.1" }
 paste              = { version = "1.0" }
 pathdiff           = { version = "0.2.1" }
 preset_env_base    = { version = "0.4.2" }
 rayon              = { version = "1.7.0" }
 regex              = { version = "1.8.1" }
-rspack_sources     = { version = "0.2.4" }
+rspack_sources     = { version = "0.2.5" }
 rustc-hash         = { version = "1.1.0" }
 schemars           = { version = "0.8.12" }
 serde              = { version = "1.0.160" }
@@ -46,7 +46,6 @@ tracing-subscriber = { version = "0.3.17" }
 url                = { version = "2.3.1" }
 urlencoding        = { version = "2.1.2" }
 ustr               = { version = "0.9.0" }
-xxhash-rust        = { version = "0.8.6" }
 
 # Pinned
 napi                = { version = "=2.12.5" }
@@ -54,15 +53,15 @@ napi-build          = { version = "=2.0.1" }
 napi-derive         = { version = "=2.12.3" }
 napi-sys            = { version = "=2.2.3" }
 swc_config          = { version = "=0.1.5" }
-swc_core            = { version = "=0.75.35", default-features = false }
-swc_css             = { version = "=0.153.7" }
-swc_ecma_minifier   = { version = "=0.180.28", default-features = false }
-swc_emotion         = { version = "=0.30.5" }
-swc_error_reporters = { version = "=0.15.5" }
-swc_html            = { version = "=0.123.26" }
-swc_html_minifier   = { version = "=0.120.26" }
-swc_node_comments   = { version = "=0.18.5" }
-swc_plugin_import   = { version = "=0.1.5" }
+swc_core            = { version = "=0.76.26", default-features = false }
+swc_css             = { version = "=0.153.12" }
+swc_ecma_minifier   = { version = "=0.181.16", default-features = false }
+swc_emotion         = { version = "=0.33.0" }
+swc_error_reporters = { version = "=0.15.10" }
+swc_html            = { version = "=0.124.16" }
+swc_html_minifier   = { version = "=0.121.16" }
+swc_node_comments   = { version = "=0.18.10" }
+swc_plugin_import   = { version = "=0.1.7" }
 
 [profile.dev]
 debug       = 2

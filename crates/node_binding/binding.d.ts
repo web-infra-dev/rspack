@@ -20,7 +20,7 @@ export class JsCompilation {
   emitAsset(filename: string, source: JsCompatSource, assetInfo: JsAssetInfo): void
   deleteAsset(filename: string): void
   get entrypoints(): Record<string, JsChunkGroup>
-  get hash(): string
+  get hash(): string | null
   getFileDependencies(): Array<string>
   getContextDependencies(): Array<string>
   getMissingDependencies(): Array<string>
@@ -719,6 +719,10 @@ export interface RawOutputOptions {
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string
+  hashFunction: string
+  hashDigest: string
+  hashDigestLength: number
+  hashSalt?: string
 }
 
 export interface RawParserOptions {
@@ -804,6 +808,7 @@ export interface RawResolveOptions {
   byDependency?: Record<string, RawResolveOptions>
   fullySpecified?: boolean
   exportsFields?: Array<string>
+  extensionAlias?: Record<string, Array<string>>
 }
 
 export interface RawRuleSetCondition {
@@ -865,6 +870,7 @@ export interface RawTrustedTypes {
 
 export interface ThreadsafeNodeFS {
   writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
   removeDirAll: (...args: any[]) => any

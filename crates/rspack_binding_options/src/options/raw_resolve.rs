@@ -29,6 +29,9 @@ pub struct RawResolveOptions {
   pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
   pub fully_specified: Option<bool>,
   pub exports_fields: Option<Vec<String>>,
+  #[serde(serialize_with = "ordered_map")]
+  #[napi(ts_type = "Record<string, Array<string>>")]
+  pub extension_alias: Option<HashMap<String, Vec<String>>>,
 }
 
 fn normalize_alias(alias: Option<RawAliasOption>) -> anyhow::Result<Option<Alias>> {
@@ -94,7 +97,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let exports_field = value
       .exports_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
-
+    let extension_alias = value.extension_alias.map(|v| v.into_iter().collect());
     Ok(Resolve {
       modules,
       prefer_relative,
@@ -110,6 +113,7 @@ impl TryFrom<RawResolveOptions> for Resolve {
       by_dependency,
       fully_specified,
       exports_field,
+      extension_alias,
     })
   }
 }

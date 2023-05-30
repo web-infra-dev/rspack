@@ -24,6 +24,7 @@ pub trait AsyncWritableFileSystem {
   /// This function will create a file if it does not exist, and will entirely replace its contents if it does.
   fn write<P: AsRef<Path>, D: AsRef<[u8]>>(&self, file: P, data: D) -> BoxFuture<'_, Result<()>>;
 
+  fn remove_file<P: AsRef<Path>>(&self, file: P) -> BoxFuture<'_, Result<()>>;
   fn remove_dir_all<P: AsRef<Path>>(&self, dir: P) -> BoxFuture<'_, Result<()>>;
 }
 

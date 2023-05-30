@@ -11,7 +11,7 @@ try {
 it("verify importing css js source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
-	expect(map.sources).toEqual(["../checkSourceMap.js", "a.js", "index.js"]);
+	expect(map.sources).toEqual(["../checkSourceMap.js", "./a.js", "./index.js"]);
 	expect(map.file).toEqual("main.js");
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
@@ -29,7 +29,7 @@ it("verify css source map", async () => {
 		"utf-8"
 	);
 	const cssMap = JSON.parse(cssSource);
-	expect(cssMap.sources).toEqual(["a.css"]);
+	expect(cssMap.sources).toEqual(["./a.css"]);
 	expect(cssMap.file).toEqual("main.css");
 	const cssOut = fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8");
 	expect(

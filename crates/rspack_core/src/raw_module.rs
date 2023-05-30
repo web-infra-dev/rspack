@@ -1,10 +1,10 @@
+use std::borrow::Cow;
 use std::hash::Hash;
-use std::{borrow::Cow, hash::Hasher};
 
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
 use rspack_sources::{BoxSource, RawSource, Source, SourceExt};
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
   AstOrSource, BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Context, Module,
@@ -68,14 +68,14 @@ impl Module for RawModule {
 
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    let mut hasher = Xxh3::new();
-    self.hash(&mut hasher);
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
     Ok(
       BuildResult {
         build_info: BuildInfo {
-          hash: hasher.finish(),
+          hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
           cacheable: true,
           ..Default::default()
         },
@@ -86,12 +86,16 @@ impl Module for RawModule {
     )
   }
 
-  fn code_generation(&self, _compilation: &crate::Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(&self, compilation: &crate::Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     let ast_or_source: AstOrSource = self.source.clone().into();
     cgr.runtime_requirements.add(self.runtime_requirements);
     cgr.add(SourceType::JavaScript, ast_or_source);
-    cgr.set_hash();
+    cgr.set_hash(
+      &compilation.options.output.hash_function,
+      &compilation.options.output.hash_digest,
+      &compilation.options.output.hash_salt,
+    );
     Ok(cgr)
   }
 }

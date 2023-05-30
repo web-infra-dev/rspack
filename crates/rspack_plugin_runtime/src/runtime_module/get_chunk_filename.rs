@@ -97,9 +97,9 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                     chunk
                       .content_hash
                       .get(&self.source_type)
-                      .map(|i| i.as_str()),
+                      .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
                   )
-                  .hash(&compilation.hash),
+                  .hash_optional(compilation.get_hash()),
               );
               chunks_map.insert(chunk.expect_id().to_string(), format!("\"{filename}\""));
             }

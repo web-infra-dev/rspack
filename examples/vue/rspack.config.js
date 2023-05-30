@@ -1,6 +1,8 @@
+const { VueLoaderPlugin } = require("vue-loader");
+
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	mode: "development",
+	context: __dirname,
 	entry: {
 		main: "./src/main.js"
 	},
@@ -18,17 +20,22 @@ const config = {
 	devServer: {
 		historyApiFallback: true
 	},
+	plugins: [new VueLoaderPlugin()],
 	module: {
 		rules: [
 			{
 				test: /\.vue$/,
-				use: ["./vue-loader.js"]
+				use: ["vue-loader"]
 			},
 			{
-				test: /\.vue$/,
-				resourceQuery: /type=style/,
-				use: ["./vue-loader.js"],
-				type: "css"
+				test: /\.less$/,
+				use: ["style-loader", "css-loader", "less-loader"],
+				type: "javascript/auto"
+			},
+			{
+				test: /\.css$/,
+				use: ["style-loader", "css-loader"],
+				type: "javascript/auto"
 			},
 			{
 				test: /\.svg/,

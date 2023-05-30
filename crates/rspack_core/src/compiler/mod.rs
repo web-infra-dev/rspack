@@ -6,6 +6,7 @@ mod resolver;
 use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
+use dashmap::DashMap;
 pub use queue::*;
 pub use resolver::*;
 use rspack_error::Result;
@@ -29,6 +30,9 @@ where
   pub plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub cache: Arc<Cache>,
+  /// emitted asset versions
+  /// the key of DashMap is filename, the value of DashMap is version
+  pub emitted_asset_versions: DashMap<String, String>,
 }
 
 impl<T> Compiler<T>
@@ -65,6 +69,7 @@ where
       plugin_driver,
       resolver_factory,
       cache,
+      emitted_asset_versions: Default::default(),
     }
   }
 
@@ -206,10 +211,28 @@ where
   #[instrument(name = "emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
     if self.options.output.clean {
-      self
-        .output_filesystem
-        .remove_dir_all(&self.options.output.path)
-        .await?;
+      if self.emitted_asset_versions.is_empty() {
+        self
+          .output_filesystem
+          .remove_dir_all(&self.options.output.path)
+          .await?;
+      } else {
+        // clean unused file
+        let assets = self.compilation.assets();
+        let _ = self
+          .emitted_asset_versions
+          .iter()
+          .filter_map(|item| {
+            let filename = item.key();
+            if !assets.contains_key(filename) {
+              self.emitted_asset_versions.remove(filename);
+              Some(self.output_filesystem.remove_file(filename))
+            } else {
+              None
+            }
+          })
+          .collect::<FuturesResults<_>>();
+      }
     }
 
     self
@@ -218,11 +241,19 @@ where
       .await
       .emit(&mut self.compilation)
       .await?;
+
     let _ = self
       .compilation
       .assets()
       .iter()
-      .map(|(filename, asset)| self.emit_asset(&self.options.output.path, filename, asset))
+      .filter_map(|(filename, asset)| {
+        if let Some(old_version) = self.emitted_asset_versions.get(filename) {
+          if old_version.as_str() == asset.info.version {
+            return None;
+          }
+        }
+        Some(self.emit_asset(&self.options.output.path, filename, asset))
+      })
       .collect::<FuturesResults<_>>();
 
     self
@@ -258,12 +289,11 @@ where
         .write(&file_path, source.buffer())
         .await?;
 
-      // let file = File::create(file_path).map_err(rspack_error::Error::from)?;
-      // let mut writer = BufWriter::new(file);
-      // source
-      //   .as_ref()
-      //   .to_writer(&mut writer)
-      //   .map_err(rspack_error::Error::from)?;
+      if !asset.info.version.is_empty() {
+        self
+          .emitted_asset_versions
+          .insert(filename.to_string(), asset.info.version.clone());
+      }
 
       self.compilation.emitted_assets.insert(filename.to_string());
     }

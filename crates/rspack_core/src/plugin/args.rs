@@ -2,9 +2,9 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use rspack_error::{internal_error, Result};
+use rspack_hash::RspackHash;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashSet as HashSet;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
@@ -45,6 +45,7 @@ impl<'me> ContentHashArgs<'me> {
 pub struct ChunkHashArgs<'c> {
   pub chunk_ukey: ChunkUkey,
   pub compilation: &'c Compilation,
+  pub hasher: &'c mut RspackHash,
 }
 
 impl<'me> ChunkHashArgs<'me> {
@@ -256,7 +257,7 @@ impl<'me> RenderArgs<'me> {
 pub struct JsChunkHashArgs<'a> {
   pub chunk_ukey: &'a ChunkUkey,
   pub compilation: &'a Compilation,
-  pub hasher: &'a mut Xxh3,
+  pub hasher: &'a mut RspackHash,
 }
 
 impl<'me> JsChunkHashArgs<'me> {

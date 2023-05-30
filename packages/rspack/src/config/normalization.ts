@@ -56,7 +56,33 @@ export const getNormalizedRspackOptions = (
 							name: libraryAsName
 					  } as LibraryOptions)
 					: undefined;
-
+			// DEPRECATE: remove this in after version
+			{
+				const yellow = (content: string) =>
+					`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
+				const ext = "[ext]";
+				const filenames = [
+					"filename",
+					"chunkFilename",
+					"cssFilename",
+					"cssChunkFilename"
+				] as const;
+				const checkFilename = (prop: typeof filenames[number]) => {
+					const oldFilename = output[prop];
+					if (typeof oldFilename === "string" && oldFilename.endsWith(ext)) {
+						const newFilename =
+							oldFilename.slice(0, -ext.length) +
+							(prop.includes("css") ? ".css" : ".js");
+						console.warn(
+							yellow(
+								`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
+							)
+						);
+						output[prop] = newFilename;
+					}
+				};
+				filenames.forEach(checkFilename);
+			}
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
@@ -116,7 +142,11 @@ export const getNormalizedRspackOptions = (
 							return { policyName: trustedTypes };
 						return { ...trustedTypes };
 					}
-				)
+				),
+				hashDigest: output.hashDigest,
+				hashDigestLength: output.hashDigestLength,
+				hashFunction: output.hashFunction,
+				hashSalt: output.hashSalt
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({

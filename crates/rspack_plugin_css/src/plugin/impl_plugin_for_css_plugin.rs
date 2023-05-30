@@ -1,6 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 use rayon::prelude::*;
 use rspack_core::rspack_sources::ReplaceSource;
@@ -11,7 +11,7 @@ use rspack_core::{
   RenderManifestEntry, SourceType,
 };
 use rspack_error::Result;
-use xxhash_rust::xxh3::Xxh3;
+use rspack_hash::RspackHash;
 
 use crate::parser_and_generator::CssParserAndGenerator;
 use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
@@ -63,7 +63,7 @@ impl Plugin for CssPlugin {
       &compilation.module_graph,
       compilation,
     );
-    let mut hasher = Xxh3::default();
+    let mut hasher = RspackHash::from(&compilation.options.output);
 
     ordered_modules
       .iter()
@@ -82,7 +82,10 @@ impl Plugin for CssPlugin {
         }
       });
 
-    Ok(Some((SourceType::Css, format!("{:016x}", hasher.finish()))))
+    Ok(Some((
+      SourceType::Css,
+      hasher.digest(&compilation.options.output.hash_digest),
+    )))
   }
 
   async fn render_manifest(
@@ -169,7 +172,12 @@ impl Plugin for CssPlugin {
       filename_template,
       PathData::default()
         .chunk(chunk)
-        .content_hash_optional(chunk.content_hash.get(&SourceType::Css).map(|i| i.as_str()))
+        .content_hash_optional(
+          chunk
+            .content_hash
+            .get(&SourceType::Css)
+            .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+        )
         .runtime(&chunk.runtime),
     );
 

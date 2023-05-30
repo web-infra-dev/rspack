@@ -9,7 +9,7 @@ it("basic", () => {
 		"utf-8"
 	);
 	const map = JSON.parse(sourceMap);
-	expect(map.sources).toContain("index.scss");
+	expect(map.sources).toContain("./index.scss");
 	expect(map.file).toEqual("main.css");
 	expect(map.sourcesContent).toEqual([scss]);
 });

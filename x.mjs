@@ -16,19 +16,19 @@ program
 
 // x ready
 program
-  .command("ready")
-  .alias("r")
-  .description("ready to create a pull request, build and run all tests")
-  .action(async function () {
-    await $`cargo check`;
-    await $`cargo lint`;
-    await $`cargo test`;
-    await $`pnpm install`;
-    await $`pnpm run build:cli:release`;
-    await $`pnpm run test:example`;
-    await $`pnpm run test:unit`;
-    console.log(chalk.green('All passed.'))
-  });
+	.command("ready")
+	.alias("r")
+	.description("ready to create a pull request, build and run all tests")
+	.action(async function () {
+		await $`cargo check`;
+		await $`cargo lint`;
+		await $`cargo test`;
+		await $`pnpm install`;
+		await $`pnpm run build:cli:release`;
+		await $`pnpm run test:example`;
+		await $`pnpm run test:unit`;
+		console.log(chalk.green("All passed."));
+	});
 
 // x install
 program
@@ -122,6 +122,13 @@ let releaseCommand = program
 	.command("publish")
 	.argument("<mode>", "publish mode (snapshot|stable)")
 	.requiredOption("--tag <char>", "publish tag")
+	.option(
+		"--dry-run",
+		"Does everything a publish would do except actually publishing to the registry"
+	)
+	.option("--no-dry-run", "negative dry-run")
+	.option("--push-tags", "push tags to github")
+	.option("--no-push-tags", "don't push tags to github")
 	.description("publish package after version bump")
 	.action(publish_handler);
 let argv = process.argv.slice(2); // remove the `node` and script call

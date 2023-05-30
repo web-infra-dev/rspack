@@ -1,9 +1,12 @@
 #![feature(get_mut_unchecked)]
 
+use std::hash::Hash;
+
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, RuntimeGlobals, RuntimeModuleExt,
+  AdditionalChunkRuntimeRequirementsArgs, JsChunkHashArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 use runtime_module::AsyncRuntimeModule;
@@ -81,6 +84,27 @@ impl Plugin for RuntimePlugin {
       compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
     }
 
+    Ok(())
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    for identifier in args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_iterable(args.chunk_ukey)
+    {
+      if let Some((hash, _)) = args
+        .compilation
+        .runtime_module_code_generation_results
+        .get(identifier)
+      {
+        hash.hash(&mut args.hasher);
+      }
+    }
     Ok(())
   }
 }

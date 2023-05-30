@@ -4,14 +4,16 @@ use std::{any::Any, borrow::Cow, fmt::Debug};
 
 use async_trait::async_trait;
 use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{Identifiable, Identifier};
 use rspack_sources::Source;
+use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  AsAny, CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context,
-  ContextModule, Dependency, DynEq, DynHash, ExternalModule, ModuleDependency, ModuleType,
-  NormalModule, RawModule, Resolve, SharedPluginDriver, SourceType,
+  CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerContext, CompilerOptions,
+  Context, ContextModule, Dependency, ExternalModule, ModuleDependency, ModuleType, NormalModule,
+  RawModule, Resolve, SharedPluginDriver, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -24,7 +26,7 @@ pub struct BuildContext<'a> {
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
-  pub hash: u64,
+  pub hash: Option<RspackHashDigest>,
   pub strict: bool,
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
@@ -33,16 +35,25 @@ pub struct BuildInfo {
   pub asset_filenames: HashSet<String>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Hash)]
 pub enum BuildMetaExportsType {
   #[default]
+  Unset,
   Default,
   Namespace,
   Flagged,
   Dynamic,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
+pub enum ExportsType {
+  DefaultOnly,
+  Namespace,
+  DefaultWithNamed,
+  Dynamic,
+}
+
+#[derive(Debug, Default, Clone, Hash)]
 pub enum BuildMetaDefaultObject {
   #[default]
   False,
@@ -50,7 +61,7 @@ pub enum BuildMetaDefaultObject {
   RedirectWarn,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct BuildMeta {
   pub strict: bool,
   pub strict_harmony_module: bool,
@@ -60,6 +71,21 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   pub module_argument: &'static str,
   pub exports_argument: &'static str,
+}
+
+impl Default for BuildMeta {
+  fn default() -> Self {
+    Self {
+      strict: Default::default(),
+      strict_harmony_module: Default::default(),
+      is_async: Default::default(),
+      esm: Default::default(),
+      exports_type: Default::default(),
+      default_object: Default::default(),
+      module_argument: "module",
+      exports_argument: "exports",
+    }
+  }
 }
 
 // webpack build info
@@ -100,9 +126,24 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
     &mut self,
-    _build_context: BuildContext<'_>,
+    build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    Ok(BuildResult::default().with_empty_diagnostic())
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
+
+    let build_info = BuildInfo {
+      hash: Some(hasher.digest(&build_context.compiler_options.output.hash_digest)),
+      ..Default::default()
+    };
+
+    Ok(
+      BuildResult {
+        build_info,
+        build_meta: Default::default(),
+        dependencies: Vec::new(),
+      }
+      .with_empty_diagnostic(),
+    )
   }
 
   /// The actual code generation of the module, which will be called by the `Compilation`.
@@ -138,6 +179,12 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   }
 
   fn get_presentational_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
+    None
+  }
+
+  fn get_string_replace_generation_dependencies(
+    &self,
+  ) -> Option<&[Box<dyn CodeReplaceSourceDependency>]> {
     None
   }
 
@@ -235,7 +282,7 @@ impl_module_downcast_helpers!(ExternalModule, external_module);
 #[cfg(test)]
 mod test {
   use std::borrow::Cow;
-  use std::hash::{Hash, Hasher};
+  use std::hash::Hash;
 
   use rspack_error::{Result, TWithDiagnosticArray};
   use rspack_identifier::{Identifiable, Identifier};
@@ -343,20 +390,20 @@ mod test {
     let e1: Box<dyn Module> = ExternalModule("e").boxed();
     let e2: Box<dyn Module> = ExternalModule("e").boxed();
 
-    let mut state1 = xxhash_rust::xxh3::Xxh3::default();
-    let mut state2 = xxhash_rust::xxh3::Xxh3::default();
+    let mut state1 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
+    let mut state2 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
     e1.hash(&mut state1);
     e2.hash(&mut state2);
 
-    let hash1 = format!("{:016x}", state1.finish());
-    let hash2 = format!("{:016x}", state2.finish());
+    let hash1 = state1.digest(&rspack_hash::HashDigest::Hex);
+    let hash2 = state2.digest(&rspack_hash::HashDigest::Hex);
     assert_eq!(hash1, hash2);
 
     let e3: Box<dyn Module> = ExternalModule("e3").boxed();
-    let mut state3 = xxhash_rust::xxh3::Xxh3::default();
+    let mut state3 = rspack_hash::RspackHash::new(&rspack_hash::HashFunction::Xxhash64);
     e3.hash(&mut state3);
 
-    let hash3 = format!("{:016x}", state3.finish());
+    let hash3 = state3.digest(&rspack_hash::HashDigest::Hex);
     assert_ne!(hash1, hash3);
   }
 

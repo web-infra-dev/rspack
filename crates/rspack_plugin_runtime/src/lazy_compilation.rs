@@ -37,7 +37,7 @@ impl Module for LazyCompilationProxyModule {
     200.0
   }
 
-  fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
     cgr.add(
@@ -52,7 +52,11 @@ impl Module for LazyCompilationProxyModule {
         .boxed(),
       ),
     );
-    cgr.set_hash();
+    cgr.set_hash(
+      &compilation.options.output.hash_function,
+      &compilation.options.output.hash_digest,
+      &compilation.options.output.hash_salt,
+    );
     Ok(cgr)
   }
 }

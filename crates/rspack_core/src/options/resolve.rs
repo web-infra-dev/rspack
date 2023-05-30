@@ -48,6 +48,9 @@ pub struct Resolve {
   /// A list of exports fields in descriptions files
   /// Default is `[["exports"]]`.
   pub exports_field: Option<Vec<Vec<String>>>,
+  /// A list map ext to another.
+  /// Default is `[]`
+  pub extension_alias: Option<Vec<(String, Vec<String>)>>,
   pub by_dependency: Option<ByDependency>,
 }
 
@@ -92,6 +95,7 @@ impl Resolve {
     let exports_field = options
       .exports_field
       .unwrap_or_else(|| vec![vec!["exports".to_string()]]);
+    let extension_alias = options.extension_alias.unwrap_or_default();
     nodejs_resolver::Options {
       fallback,
       modules,
@@ -110,6 +114,7 @@ impl Resolve {
       resolve_to_context,
       fully_specified,
       exports_field,
+      extension_alias,
     }
   }
 
@@ -174,13 +179,13 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
 
   let alias = overwrite(base.alias, other.alias, |pre, mut now| {
     now.extend(pre.into_iter());
-    let now: indexmap::IndexSet<(String, Vec<AliasMap>)> = now.into_iter().collect();
-    now.into_iter().collect()
+    now.dedup();
+    now
   });
   let fallback = overwrite(base.fallback, other.fallback, |pre, mut now| {
     now.extend(pre.into_iter());
-    let now: indexmap::IndexSet<(String, Vec<AliasMap>)> = now.into_iter().collect();
-    now.into_iter().collect()
+    now.dedup();
+    now
   });
   let prefer_relative = overwrite(base.prefer_relative, other.prefer_relative, |_, value| {
     value
@@ -212,6 +217,15 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
   });
   let tsconfig = overwrite(base.tsconfig, other.tsconfig, |_, value| value);
   let exports_field = overwrite(base.exports_field, other.exports_field, |_, value| value);
+  let extension_alias = overwrite(
+    base.extension_alias,
+    other.extension_alias,
+    |pre, mut now| {
+      now.extend(pre.into_iter());
+      now.dedup();
+      now
+    },
+  );
   Resolve {
     fallback,
     modules,
@@ -227,6 +241,7 @@ fn merge_resolver_options(base: Resolve, other: Resolve) -> Resolve {
     by_dependency,
     fully_specified,
     exports_field,
+    extension_alias,
   }
 }
 

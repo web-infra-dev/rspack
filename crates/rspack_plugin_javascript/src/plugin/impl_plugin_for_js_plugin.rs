@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 use std::sync::{mpsc, Mutex};
 
 use async_trait::async_trait;
@@ -16,11 +16,12 @@ use rspack_core::{
   ProcessAssetsArgs, RenderManifestEntry, RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, Diagnostic, Result};
+use rspack_hash::RspackHash;
 use swc_config::config_types::BoolOrDataConfig;
 use swc_ecma_minifier::option::terser::TerserCompressorOptions;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
+// use crate::parser_and_generator::JavaScriptStringReplaceParserAndGenerator;
 use crate::{JsMinifyOptions, JsPlugin};
 
 #[async_trait]
@@ -31,6 +32,10 @@ impl Plugin for JsPlugin {
   fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     let create_parser_and_generator =
       move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
+
+    // let create_parser_and_generator = move || {
+    //   Box::new(JavaScriptStringReplaceParserAndGenerator::new()) as Box<dyn ParserAndGenerator>
+    // };
 
     ctx
       .context
@@ -69,19 +74,18 @@ impl Plugin for JsPlugin {
   async fn chunk_hash(
     &self,
     _ctx: PluginContext,
-    args: &ChunkHashArgs<'_>,
+    args: &mut ChunkHashArgs<'_>,
   ) -> PluginChunkHashHookOutput {
-    let mut hasher = Xxh3::default();
     self
-      .get_chunk_hash(&args.chunk_ukey, args.compilation, &mut hasher)
+      .get_chunk_hash(&args.chunk_ukey, args.compilation, args.hasher)
       .await?;
     if args
       .chunk()
       .has_runtime(&args.compilation.chunk_group_by_ukey)
     {
-      self.update_hash_with_bootstrap(&args.chunk_ukey, args.compilation, &mut hasher)
+      self.update_hash_with_bootstrap(&args.chunk_ukey, args.compilation, args.hasher)
     }
-    Ok(Some(hasher.finish()))
+    Ok(())
   }
 
   async fn content_hash(
@@ -91,7 +95,7 @@ impl Plugin for JsPlugin {
   ) -> rspack_core::PluginContentHashHookOutput {
     let compilation = &args.compilation;
     let chunk = args.chunk();
-    let mut hasher = Xxh3::default();
+    let mut hasher = RspackHash::from(&compilation.options.output);
 
     if chunk.has_runtime(&args.compilation.chunk_group_by_ukey) {
       self.update_hash_with_bootstrap(&args.chunk_ukey, args.compilation, &mut hasher)
@@ -143,7 +147,7 @@ impl Plugin for JsPlugin {
 
     Ok(Some((
       SourceType::JavaScript,
-      format!("{:016x}", hasher.finish()),
+      hasher.digest(&compilation.options.output.hash_digest),
     )))
   }
 
@@ -175,7 +179,7 @@ impl Plugin for JsPlugin {
           chunk
             .content_hash
             .get(&SourceType::JavaScript)
-            .map(|i| i.as_str()),
+            .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
         )
         .runtime(&chunk.runtime),
     );

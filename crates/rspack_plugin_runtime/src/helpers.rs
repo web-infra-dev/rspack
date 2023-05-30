@@ -7,13 +7,13 @@ use rspack_core::{
   RuntimeGlobals,
 };
 use rspack_error::Result;
+use rspack_hash::RspackHash;
 use rspack_identifier::IdentifierLinkedMap;
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rustc_hash::FxHashSet as HashSet;
-use xxhash_rust::xxh3::Xxh3;
 
 pub fn update_hash_for_entry_startup(
-  hasher: &mut Xxh3,
+  hasher: &mut RspackHash,
   compilation: &Compilation,
   entries: &IdentifierLinkedMap<ChunkGroupUkey>,
   chunk: &ChunkUkey,
@@ -242,12 +242,12 @@ pub fn get_relative_path(base_chunk_output_name: &str, other_chunk_output_name: 
 }
 
 pub fn get_chunk_output_name(chunk: &Chunk, compilation: &Compilation) -> String {
-  let hash = chunk.get_render_hash();
+  let hash = chunk.get_render_hash(compilation.options.output.hash_digest_length);
   compilation.get_path(
     &compilation.options.output.chunk_filename,
     PathData::default()
       .chunk(chunk)
-      .content_hash(&hash)
-      .hash(&hash),
+      .content_hash_optional(hash)
+      .hash_optional(hash),
   )
 }

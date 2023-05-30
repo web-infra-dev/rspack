@@ -443,6 +443,10 @@ impl TestConfig {
         trusted_types: None,
         source_map_filename: c::Filename::from_str(&self.output.source_map_filename)
           .expect("Should exist"),
+        hash_function: c::HashFunction::Xxhash64,
+        hash_digest: c::HashDigest::Hex,
+        hash_digest_length: 16,
+        hash_salt: c::HashSalt::None,
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),

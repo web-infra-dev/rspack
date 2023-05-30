@@ -204,6 +204,14 @@ bitflags! {
     const ENSURE_CHUNK_INCLUDE_ENTRIES = 1 << 41;
 
     const STARTUP = 1 << 42;
+
+    const MAKE_NAMESPACE_OBJECT = 1 << 43;
+
+    const EXPORTS = 1 << 44;
+
+    const COMPAT_GET_DEFAULT_EXPORT = 1 << 45;
+
+    const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 46;
   }
 }
 
@@ -273,6 +281,10 @@ impl RuntimeGlobals {
       R::STARTUP_NO_DEFAULT => "__webpack_require__.x (no default handler)",
       R::ENSURE_CHUNK_INCLUDE_ENTRIES => "__webpack_require__.f (include entries)",
       R::STARTUP => "__webpack_require__.x",
+      R::MAKE_NAMESPACE_OBJECT => "__webpack_require__.r",
+      R::EXPORTS => "__webpack_exports__",
+      R::COMPAT_GET_DEFAULT_EXPORT => "__webpack_require__.n",
+      R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

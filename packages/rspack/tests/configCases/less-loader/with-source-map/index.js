@@ -10,7 +10,7 @@ it("basic", () => {
 	);
 	const sourceMap = fs.readFileSync(__dirname + "/main.css.map", "utf-8");
 	const map = JSON.parse(sourceMap);
-	expect(map.sources).toContain("index.less");
+	expect(map.sources).toContain("./index.less");
 	expect(map.file).toEqual("main.css");
 	expect(map.sourcesContent).toEqual([less]);
 });

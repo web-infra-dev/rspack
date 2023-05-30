@@ -1,6 +1,7 @@
 use std::{fmt::Debug, path::Path};
 
 use rspack_error::Result;
+use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
@@ -27,8 +28,8 @@ pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
 pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
 pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
 pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
-pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
-pub type PluginChunkHashHookOutput = Result<Option<u64>>;
+pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
+pub type PluginChunkHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
@@ -137,9 +138,9 @@ pub trait Plugin: Debug + Send + Sync {
   async fn chunk_hash(
     &self,
     _ctx: PluginContext,
-    _args: &ChunkHashArgs<'_>,
+    _args: &mut ChunkHashArgs<'_>,
   ) -> PluginChunkHashHookOutput {
-    Ok(None)
+    Ok(())
   }
 
   async fn render_manifest(

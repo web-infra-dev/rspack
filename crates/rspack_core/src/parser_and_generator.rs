@@ -6,8 +6,8 @@ use rspack_sources::BoxSource;
 
 use crate::{
   AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, BuildMeta, CodeGenerationData,
-  Compilation, CompilerOptions, Dependency, GenerationResult, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, SourceType,
+  CodeReplaceSourceDependency, Compilation, CompilerOptions, Dependency, GenerationResult, Module,
+  ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -28,6 +28,7 @@ pub struct ParseContext<'a> {
 pub struct ParseResult {
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: Vec<Box<dyn Dependency>>,
+  pub code_replace_source_dependencies: Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub ast_or_source: AstOrSource,
 }
 

@@ -107,7 +107,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ..
     } = parse_context;
     build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Namespace;
+    // here different webpack
+    build_meta.exports_type = BuildMetaExportsType::Default;
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let content = source.source().to_string();
     let css_modules = matches!(module_type, ModuleType::CssModule);
@@ -141,10 +142,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
         .relative(&compiler_options.context);
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
-        ModulesTransformConfig {
+        ModulesTransformConfig::new(
           filename,
-          local_name_ident: &self.config.modules.local_ident_name,
-        },
+          &self.config.modules.local_ident_name,
+          &compiler_options.output,
+        ),
       );
       let mut exports: IndexMap<JsWord, _> = result.renamed.into_iter().collect();
       exports.sort_keys();
@@ -189,6 +191,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         dependencies,
         presentational_dependencies: vec![],
         ast_or_source: AstOrSource::Ast(ModuleAst::Css(CssAst::new(stylesheet, cm))),
+        code_replace_source_dependencies: vec![],
       }
       .with_diagnostic(diagnostic),
     )

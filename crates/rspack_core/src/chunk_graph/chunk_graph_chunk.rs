@@ -247,6 +247,14 @@ impl ChunkGraph {
     &cgc.runtime_modules
   }
 
+  pub fn get_chunk_runtime_modules_iterable(
+    &self,
+    chunk_ukey: &ChunkUkey,
+  ) -> impl Iterator<Item = &ModuleIdentifier> {
+    let cgc = self.get_chunk_graph_chunk(chunk_ukey);
+    cgc.runtime_modules.iter()
+  }
+
   pub fn get_chunk_condition_map<F: Fn(&ChunkUkey, &ChunkGraph, &ModuleGraph) -> bool>(
     &self,
     chunk_ukey: &ChunkUkey,

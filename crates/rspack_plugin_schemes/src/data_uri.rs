@@ -59,7 +59,7 @@ impl Plugin for DataUriPlugin {
       let is_base64 = captures.get(3).is_some();
       if is_base64 {
         let base64 = rspack_base64::base64::Base64::new();
-        return Ok(Some(Content::Buffer(base64.decode_to_vec(body).map_err(|e| internal_error!(e.to_string()))?)))
+        return Ok(Some(Content::Buffer(base64.decode_to_vec(body.trim()).map_err(|e| internal_error!(e.to_string()))?)))
       }
       if !body.is_ascii() {
         return Ok(Some(Content::Buffer(urlencoding::decode_binary(body.as_bytes()).into_owned())))

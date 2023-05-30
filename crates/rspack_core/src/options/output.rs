@@ -7,6 +7,8 @@ use std::{
 use derivative::Derivative;
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use rspack_hash::RspackHash;
+pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use sugar_path::SugarPath;
 
 use crate::{
@@ -40,6 +42,16 @@ pub struct OutputOptions {
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
   pub source_map_filename: Filename,
+  pub hash_function: HashFunction,
+  pub hash_digest: HashDigest,
+  pub hash_digest_length: usize,
+  pub hash_salt: HashSalt,
+}
+
+impl From<&OutputOptions> for RspackHash {
+  fn from(value: &OutputOptions) -> Self {
+    Self::with_salt(&value.hash_function, &value.hash_salt)
+  }
 }
 
 #[derive(Debug)]
@@ -261,7 +273,10 @@ impl Filename {
           PATH_PLACEHOLDER,
           &file
             .parent()
-            .map(|p| p.to_string_lossy() + "/")
+            .map(|p| p.to_string_lossy())
+            // "" -> "", "folder" -> "folder/"
+            .filter(|p| !p.is_empty())
+            .map(|p| p + "/")
             .unwrap_or_default(),
         );
         template = template.replace(QUERY_PLACEHOLDER, &query.unwrap_or_default());
@@ -269,6 +284,10 @@ impl Filename {
       }
     }
     if let Some(content_hash) = options.content_hash {
+      if let Some(asset_info) = asset_info.as_mut() {
+        // set version as content hash
+        asset_info.version = content_hash.to_string();
+      }
       template = CONTENT_HASH_PLACEHOLDER
         .replace_all(&template, |caps: &Captures| {
           let content_hash = &content_hash[..hash_len(content_hash, caps)];
