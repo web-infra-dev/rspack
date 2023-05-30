@@ -49,6 +49,10 @@ impl ModuleDependency for CssComposeDependency {
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request;
+  }
 }
 
 impl CodeGeneratable for CssComposeDependency {

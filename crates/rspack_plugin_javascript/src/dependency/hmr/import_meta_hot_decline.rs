@@ -61,6 +61,10 @@ impl ModuleDependency for ImportMetaModuleHotDeclineDependency {
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for ImportMetaModuleHotDeclineDependency {
@@ -149,6 +153,10 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
 
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     Some(Box::new(self.clone()))
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
   }
 }
 

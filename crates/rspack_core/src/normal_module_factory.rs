@@ -36,7 +36,7 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    if let Ok(Some(before_resolve_data)) = self.before_resolve(&data).await {
+    if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
       return Ok(before_resolve_data);
     }
     let (factory_result, diagnostics) = self.factorize(&mut data).await?.split_into_parts();
@@ -68,7 +68,7 @@ impl NormalModuleFactory {
 
   pub async fn before_resolve(
     &mut self,
-    data: &ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     if let Ok(Some(false)) = self
       .plugin_driver

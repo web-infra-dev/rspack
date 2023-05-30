@@ -82,6 +82,10 @@ impl ModuleDependency for RequireResolveDependency {
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     Some(Box::new(self.clone()))
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request;
+  }
 }
 
 impl CodeGeneratable for RequireResolveDependency {
