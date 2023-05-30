@@ -223,5 +223,5 @@ jobs:
       ### x86_64-pc-windows-msvc
 
       - name: Test x86_64-pc-windows-msvc
-        if: ${{ false && inputs.target == 'x86_64-pc-windows-msvc' }}
+        if: ${{  inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
