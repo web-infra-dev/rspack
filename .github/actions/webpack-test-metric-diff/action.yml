@@ -1,12 +1,20 @@
 name: Webpack test metric diff
 
+inputs:
+  github-token:
+    required: true
+    type: string
+  sha:
+    required: true
+    type: boolean
+
 runs:
   steps:
     - name: diff
       id: pr-diff
       run: |
         echo "## Test Compatibility Diff" > output.md
-        node ./webpack-test/scripts/pr-diff.js ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
+        node ./webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ input.sha }}
 
         echo "comment=$comment" >> $GITHUB_OUTPUT
 
