@@ -5,6 +5,10 @@ import { rspack, RspackOptions } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
+const project_dir_reg = new RegExp(
+	path.join(__dirname, "..").replace("\\", "\\\\"),
+	"g"
+);
 
 const base = path.resolve(__dirname, "statsCases");
 const outputBase = path.resolve(__dirname, "stats");
@@ -54,25 +58,19 @@ describe("StatsTestCases", () => {
 			}
 			statsJson.errors?.forEach(error => {
 				error.formatted = error.formatted
-					?.replace(
-						new RegExp(path.join(__dirname, ".."), "g"),
-						"<PROJECT_ROOT>"
-					)
+					?.replace(project_dir_reg, "<PROJECT_ROOT>")
 					?.replace(/\\/g, "/");
 			});
 			statsJson.warnings?.forEach(error => {
 				error.formatted = error.formatted
-					?.replace(
-						new RegExp(path.join(__dirname, ".."), "g"),
-						"<PROJECT_ROOT>"
-					)
+					?.replace(project_dir_reg, "<PROJECT_ROOT>")
 					?.replace(/\\/g, "/");
 			});
 			expect(statsJson).toMatchSnapshot();
 			let statsString = stats.toString(statsOptions);
 			statsString = statsString
-				.replace(new RegExp(path.join(__dirname, ".."), "g"), "<PROJECT_ROOT>")
-				.replace(/\\/, "/");
+				.replace(project_dir_reg, "<PROJECT_ROOT>")
+				.replace(/\\/g, "/");
 			expect(statsString).toMatchSnapshot();
 		});
 	});
