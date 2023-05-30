@@ -31,13 +31,14 @@ impl<'a> ProvideBuiltin<'a> {
   }
 
   fn handle_ident(&mut self, ident: &mut Ident) {
-    if self.opts.get(&ident.sym.to_string()).is_some() {
+    if ident.span.has_mark(self.unresolved_mark) && self.opts.get(&ident.sym.to_string()).is_some()
+    {
       self.current_import_provide.insert(ident.sym.to_string());
     }
   }
 
   fn handle_member_expr(&mut self, member_expr: &MemberExpr) -> Option<Ident> {
-    let identifier_name = self.get_nested_identifier_name(member_expr);
+    let identifier_name = ProvideBuiltin::get_nested_identifier_name(member_expr)?;
     if self.opts.get(&identifier_name).is_some() {
       self.current_import_provide.insert(identifier_name.clone());
       let new_ident_sym = identifier_name.replace(SOURCE_DOT, MODULE_DOT);
@@ -49,37 +50,22 @@ impl<'a> ProvideBuiltin<'a> {
     None
   }
 
-  fn get_nested_identifier_name(&self, member_expr: &MemberExpr) -> String {
-    let mut identifier_name = String::new();
-
-    fn build_identifier_name(member_expr: &MemberExpr, identifier_name: &mut String) {
-      match &*member_expr.obj {
-        Expr::Member(nested_member_expr) => {
-          build_identifier_name(nested_member_expr, identifier_name);
-        }
-        Expr::Ident(ident) => {
-          if !identifier_name.is_empty() {
-            identifier_name.push('.');
-          }
-          identifier_name.push_str(&ident.sym);
-        }
-        Expr::This(_) => {
-          if !identifier_name.is_empty() {
-            identifier_name.push('.');
-          }
-          identifier_name.push_str("this");
-        }
-        _ => {}
+  fn get_nested_identifier_name(member_expr: &MemberExpr) -> Option<String> {
+    let mut obj: String = match &*member_expr.obj {
+      Expr::Member(nested_member_expr) => {
+        ProvideBuiltin::get_nested_identifier_name(nested_member_expr)
       }
+      Expr::Ident(ident) => Some(ident.sym.to_string()),
+      Expr::This(_) => Some("this".to_string()),
+      _ => None,
+    }?;
 
-      if let Some(ident_prop) = member_expr.prop.as_ident() {
-        identifier_name.push('.');
-        identifier_name.push_str(&ident_prop.sym);
-      }
+    if let Some(ident_prop) = member_expr.prop.as_ident() {
+      obj.push('.');
+      obj.push_str(&ident_prop.sym);
+      return Some(obj);
     }
-
-    build_identifier_name(member_expr, &mut identifier_name);
-    identifier_name
+    None
   }
 
   fn create_provide_require(&self) -> Vec<Stmt> {
