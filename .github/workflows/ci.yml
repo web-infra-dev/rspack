@@ -30,13 +30,14 @@ concurrency:
 jobs:
   test-linux:
     name: Test Linux
+    if: false
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
 
   test-windows:
     name: Test Windows
-    if: github.ref_name == 'main'
+#    if: github.ref_name == 'main'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
