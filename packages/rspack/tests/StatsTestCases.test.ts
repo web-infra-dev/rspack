@@ -5,6 +5,8 @@ import { rspack, RspackOptions } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
+
+console.log(path.join(__dirname, ".."), "=___________");
 const project_dir_reg = new RegExp(
 	path.join(__dirname, "..").replace("\\", "\\\\"),
 	"g"
