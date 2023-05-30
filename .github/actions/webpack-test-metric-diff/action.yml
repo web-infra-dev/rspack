@@ -13,6 +13,7 @@ runs:
   steps:
     - name: diff
       id: pr-diff
+      shell: bash
       run: |
         echo "## Test Compatibility Diff" > output.md
         node ./webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ inputs.sha }}
