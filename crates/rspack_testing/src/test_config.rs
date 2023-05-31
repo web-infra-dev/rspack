@@ -388,7 +388,7 @@ impl TestConfig {
     assert!(context.is_absolute());
 
     let options = CompilerOptions {
-      context: c::Context::new(context.clone()),
+      context: c::Context::new(context.to_string_lossy().to_string()),
       entry: self
         .entry
         .into_iter()

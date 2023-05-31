@@ -15,7 +15,7 @@ impl Plugin for DeterministicModuleIdsPlugin {
 
     let module_graph = &compilation.module_graph;
     let chunk_graph = &mut compilation.chunk_graph;
-    let context = &compilation.options.context.to_string_lossy();
+    let context = compilation.options.context.as_ref();
     let max_length = 3;
     let fail_on_conflict = false;
     let fixed_length = false;

@@ -21,7 +21,6 @@ use crate::{
   config::{HtmlPluginConfig, HtmlPluginConfigInject},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
-  utils::resolve_from_context,
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
 
@@ -69,12 +68,13 @@ impl Plugin for HtmlPlugin {
       )
     } else if let Some(template) = &config.template {
       // TODO: support loader query form
-      let resolved_template = resolve_from_context(&compilation.options.context, template.as_str());
+      let resolved_template =
+        AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str());
 
       let content = fs::read_to_string(&resolved_template).context(format!(
         "failed to read `{}` from `{}`",
         resolved_template.display(),
-        &compilation.options.context.display()
+        &compilation.options.context
       ))?;
       (content, resolved_template.to_string_lossy().to_string())
     } else {
@@ -190,11 +190,11 @@ impl Plugin for HtmlPlugin {
 
     if let Some(favicon) = &self.config.favicon {
       let url = parse_to_url(favicon);
-      let resolved_favicon = resolve_from_context(&compilation.options.context, url.path());
+      let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
       let content = fs::read(resolved_favicon).context(format!(
         "failed to read `{}` from `{}`",
         url.path(),
-        &compilation.options.context.display()
+        &compilation.options.context
       ))?;
       compilation.emit_asset(
         favicon.clone(),

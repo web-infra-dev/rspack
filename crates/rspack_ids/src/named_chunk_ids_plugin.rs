@@ -30,7 +30,7 @@ impl Plugin for NamedChunkIdsPlugin {
     let context = self
       .context
       .clone()
-      .unwrap_or_else(|| compilation.options.context.to_string_lossy().to_string());
+      .unwrap_or_else(|| compilation.options.context.to_string());
 
     let chunks = compilation
       .chunk_by_ukey

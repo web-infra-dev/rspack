@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{BoxModule, BoxModuleDependency, FactoryMeta, Resolve};
+use crate::{BoxModule, BoxModuleDependency, Context, FactoryMeta, Resolve};
 
 #[derive(Debug)]
 pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Resolve>,
-  pub context: Option<String>,
+  pub context: Context,
   pub dependency: BoxModuleDependency,
 }
 

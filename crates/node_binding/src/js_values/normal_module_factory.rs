@@ -15,13 +15,13 @@ pub struct JsResolveForSchemeResult {
 #[napi(object)]
 pub struct BeforeResolveData {
   pub request: String,
-  pub context: Option<String>,
+  pub context: String,
 }
 
 #[napi(object)]
 pub struct AfterResolveData {
   pub request: String,
-  pub context: Option<String>,
+  pub context: String,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,

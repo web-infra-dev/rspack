@@ -55,13 +55,13 @@ fn deterministic_grouping_for_modules(
     .chunk_graph
     .get_chunk_modules(chunk, &compilation.module_graph);
 
-  let context = compilation.options.context.to_string_lossy();
+  let context = compilation.options.context.as_ref();
 
   let nodes: Vec<GroupItem> = items
     .into_par_iter()
     .map(|module| {
       let module: &dyn Module = &**module;
-      let key: String = make_paths_relative(&context, module.identifier().as_str());
+      let key: String = make_paths_relative(context, module.identifier().as_str());
       GroupItem {
         module: module.identifier(),
         size: get_size(module),

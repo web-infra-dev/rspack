@@ -118,11 +118,7 @@ impl Plugin for ExternalPlugin {
         }
         ExternalItem::Fn(f) => {
           let request = args.dependency.request();
-          let context = args
-            .context
-            .as_ref()
-            .unwrap_or_else(|| panic!("{request} should have context"))
-            .to_string();
+          let context = args.context.to_string();
           let result = f(ExternalItemFnCtx {
             context,
             request: request.to_string(),
