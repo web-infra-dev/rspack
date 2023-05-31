@@ -76,6 +76,7 @@ impl<'me> RenderManifestArgs<'me> {
 
 #[derive(Debug, Clone)]
 pub struct FactorizeArgs<'me> {
+  pub context: &'me Option<String>,
   pub dependency: &'me dyn ModuleDependency,
   pub plugin_driver: &'me SharedPluginDriver,
 }

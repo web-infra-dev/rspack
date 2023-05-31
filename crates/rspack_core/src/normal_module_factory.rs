@@ -630,6 +630,7 @@ impl NormalModuleFactory {
       .await
       .factorize(
         FactorizeArgs {
+          context: &data.context,
           dependency: &*data.dependency,
           plugin_driver: &self.plugin_driver,
         },
