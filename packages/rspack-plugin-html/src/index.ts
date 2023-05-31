@@ -22,7 +22,7 @@ import {
 } from "./html-tags";
 
 export type { HtmlRspackPluginHooks } from "./hooks";
-export { defaultTemplateCompiler } from "./template";
+import { defaultTemplateCompiler } from "./template";
 
 export interface Options {
 	/**
@@ -258,7 +258,7 @@ export default class HtmlRspackPlugin implements RspackPluginInstance {
 	constructor(options?: Options) {
 		this.userOptions = options || {};
 	}
-
+	static defaultTemplateCompiler = defaultTemplateCompiler;
 	static getHooks = getHtmlRspackPluginHooks;
 
 	static createHtmlTagObject = createHtmlTagObject;
