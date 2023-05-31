@@ -634,17 +634,22 @@ class Compiler {
 	}
 
 	async #beforeResolve(resolveData: binding.BeforeResolveData) {
-		let res =
-			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise({
-				request: resolveData.request,
-				context: resolveData.context,
-				fileDependencies: [],
-				missingDependencies: [],
-				contextDependencies: []
-			});
+		const normalizedResolveData = {
+			request: resolveData.request,
+			context: resolveData.context,
+			fileDependencies: [],
+			missingDependencies: [],
+			contextDependencies: []
+		};
+		let ret =
+			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
+				normalizedResolveData
+			);
 
 		this.#updateDisabledHooks();
-		return res;
+		resolveData.request = normalizedResolveData.request;
+		resolveData.context = normalizedResolveData.context;
+		return [ret, resolveData];
 	}
 
 	async #afterResolve(resolveData: binding.AfterResolveData) {

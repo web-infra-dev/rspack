@@ -50,6 +50,10 @@ impl ModuleDependency for StaticExportsDependency {
   fn span(&self) -> Option<&ErrorSpan> {
     None
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request;
+  }
 }
 
 impl CodeGeneratable for StaticExportsDependency {

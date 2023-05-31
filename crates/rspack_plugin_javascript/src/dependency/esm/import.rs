@@ -61,6 +61,10 @@ impl ModuleDependency for EsmImportDependency {
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for EsmImportDependency {

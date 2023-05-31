@@ -36,7 +36,7 @@ impl ModuleFactory for NormalModuleFactory {
     mut self,
     mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    if let Ok(Some(before_resolve_data)) = self.before_resolve(&data).await {
+    if let Ok(Some(before_resolve_data)) = self.before_resolve(&mut data).await {
       return Ok(before_resolve_data);
     }
     let (factory_result, diagnostics) = self.factorize(&mut data).await?.split_into_parts();
@@ -68,16 +68,18 @@ impl NormalModuleFactory {
 
   pub async fn before_resolve(
     &mut self,
-    data: &ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    // allow javascript plugin to modify args
+    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+      request: data.dependency.request().to_string(),
+      context: data.context.take(),
+    };
     if let Ok(Some(false)) = self
       .plugin_driver
       .read()
       .await
-      .before_resolve(NormalModuleBeforeResolveArgs {
-        request: data.dependency.request(),
-        context: &data.context,
-      })
+      .before_resolve(&mut before_resolve_args)
       .await
     {
       let importer = self.context.original_resource_path.as_ref();
@@ -107,6 +109,9 @@ impl NormalModuleFactory {
         ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
       ));
     }
+
+    data.context = before_resolve_args.context;
+    data.dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 

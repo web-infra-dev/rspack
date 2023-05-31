@@ -64,6 +64,10 @@ impl ModuleDependency for ImportContextDependency {
   fn options(&self) -> Option<&ContextOptions> {
     Some(&self.options)
   }
+
+  fn set_request(&mut self, request: String) {
+    self.options.request = request;
+  }
 }
 
 impl CodeGeneratable for ImportContextDependency {

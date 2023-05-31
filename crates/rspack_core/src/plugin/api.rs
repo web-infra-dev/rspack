@@ -94,7 +94,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn before_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleBeforeResolveArgs,
+    _args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
@@ -110,7 +110,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn context_module_before_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleBeforeResolveArgs,
+    _args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }

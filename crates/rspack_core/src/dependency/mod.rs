@@ -261,6 +261,8 @@ pub trait ModuleDependency: Dependency {
   fn weak(&self) -> bool {
     false
   }
+  fn set_request(&mut self, request: String);
+
   // TODO should split to `ModuleDependency` and `ContextDependency`
   fn options(&self) -> Option<&ContextOptions> {
     None
@@ -305,6 +307,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
 
   fn chunk_name(&self) -> Option<&str> {
     (**self).chunk_name()
+  }
+
+  fn set_request(&mut self, request: String) {
+    (**self).set_request(request);
   }
 }
 

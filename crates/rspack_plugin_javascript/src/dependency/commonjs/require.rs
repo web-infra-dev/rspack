@@ -67,6 +67,10 @@ impl ModuleDependency for CommonJSRequireDependency {
   fn get_optional(&self) -> bool {
     self.optional
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for CommonJSRequireDependency {

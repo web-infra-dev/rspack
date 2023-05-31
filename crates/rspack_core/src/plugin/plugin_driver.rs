@@ -329,11 +329,11 @@ impl PluginDriver {
 
   pub async fn before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs<'_>,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin.before_resolve(PluginContext::new(), &args).await? {
+      tracing::trace!("before resolve {}", plugin.name());
+      if let Some(data) = plugin.before_resolve(PluginContext::new(), args).await? {
         return Ok(Some(data));
       }
     }
@@ -354,12 +354,12 @@ impl PluginDriver {
   }
   pub async fn context_module_before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs<'_>,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
       if let Some(data) = plugin
-        .context_module_before_resolve(PluginContext::new(), &args)
+        .context_module_before_resolve(PluginContext::new(), args)
         .await?
       {
         return Ok(Some(data));
