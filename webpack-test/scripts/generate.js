@@ -27,8 +27,8 @@ const [, , token, commit_sha] = process.argv;
 			"--depth",
 			"1",
 			token
-				? `https://${GITHUB_ACTOR}:${token}@github.com/IWANABETHATGUY/webpack-test-metric-history.git`
-				: "https://github.com/IWANABETHATGUY/webpack-test-metric-history",
+				? `https://${GITHUB_ACTOR}:${token}@github.com/web-infra-dev/rspack.git`
+				: "https://github.com/web-infra-dev/rspack",
 			".gh-pages",
 		]);
 	}
