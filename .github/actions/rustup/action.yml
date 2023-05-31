@@ -1,0 +1,82 @@
+# This action installs the minimal Rust profile and configures Swatinem/rust-cache.
+#
+# It is needed to install as few Rust components as possbile because
+# it takes a few minutes to install some of components on Windows and Mac, especially rust-doc.
+
+name: Rustup
+
+description: Install Rust with cache
+
+inputs:
+  # See https://rust-lang.github.io/rustup/concepts/components.html
+  clippy:
+    default: false
+    required: false
+    type: boolean
+  fmt:
+    default: false
+    required: false
+    type: boolean
+  docs:
+    default: false
+    required: false
+    type: boolean
+  save-cache:
+    default: false
+    required: false
+    type: boolean
+  shared-key:
+    default: 'check'
+    required: false
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Print Inputs
+      shell: bash
+      run: |
+        echo 'clippy: ${{ inputs.clippy }}'
+        echo 'fmt: ${{ inputs.fmt }}'
+        echo 'docs: ${{ inputs.docs }}'
+        echo 'save-cache: ${{ inputs.save-cache }}'
+        echo 'shared-key: ${{ inputs.shared-key }}'
+
+    - name: Remove `profile` line on MacOS
+      shell: bash
+      if: runner.os == 'macOS'
+      run: sed -i '' '/profile/d' rust-toolchain.toml
+
+    - name: Remove `profile` line on non-MacOS
+      shell: bash
+      if: runner.os != 'macOS'
+      run: sed -i '/profile/d' rust-toolchain.toml
+
+    - name: Set minimal
+      shell: bash
+      run: rustup set profile minimal
+
+    - name: Add Clippy
+      shell: bash
+      if: ${{ inputs.clippy == 'true' }}
+      run: rustup component add clippy
+
+    - name: Add Rustfmt
+      shell: bash
+      if: ${{ inputs.fmt == 'true' }}
+      run: rustup component add rustfmt
+
+    - name: Add docs
+      shell: bash
+      if: ${{ inputs.docs == 'true' }}
+      run: rustup component add rust-docs
+
+    - name: Install
+      shell: bash
+      run: rustup show
+
+    - name: Cache on ${{ github.ref_name }}
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: ${{ inputs.shared-key }}
+        save-if: ${{ inputs.save-cache == 'true' }}
