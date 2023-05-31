@@ -4,11 +4,8 @@ use once_cell::sync::Lazy;
 static TOKIO_RT: Lazy<tokio::runtime::Runtime> = Lazy::new(init_tokio_runtime);
 
 fn init_tokio_runtime() -> tokio::runtime::Runtime {
-  //
   tokio::runtime::Builder::new_multi_thread()
-    // See https://github.com/web-infra-dev/rspack/pull/183
-    // 6mb+
-    .thread_stack_size(6777216)
+    .enable_all()
     .build()
     .expect("should initial tokio runtime without error")
 }
