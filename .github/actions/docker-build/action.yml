@@ -9,6 +9,10 @@ inputs:
   image:
     required: true
     type: string
+  profile:
+    default: 'release'
+    required: false
+    type: string
   pre:
     required: false
     default: ""
@@ -38,5 +42,5 @@ runs:
           ${{ inputs.pre }}
           rustup target add ${{ inputs.target }}
           corepack enable
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
           ${{ inputs.post }}

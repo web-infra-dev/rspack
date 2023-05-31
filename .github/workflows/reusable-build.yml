@@ -26,6 +26,10 @@ on:
       target:
         required: true
         type: string
+      profile: # Rust profile, "debug" or "release"
+        default: 'release'
+        required: false
+        type: string
 
 jobs:
   select:
@@ -85,6 +89,7 @@ jobs:
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
           pre: unset CC_x86_64_unknown_linux_gnu && unset CC # for jemallocator to compile
 
       - name: Build aarch64-unknown-linux-gnu in Docker
@@ -93,6 +98,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+          profile: ${{ inputs.profile }}
           pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
 
       - name: Build x86_64-unknown-linux-musl in Docker
@@ -101,6 +107,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          profile: ${{ inputs.profile }}
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -108,6 +115,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          profile: ${{ inputs.profile }}
           pre: |
             export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
 
@@ -115,15 +123,15 @@ jobs:
 
       - name: Build i686-pc-windows-msvc
         if: ${{ inputs.target == 'i686-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build x86_64-pc-windows-msvc
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-pc-windows-msvc
         if: ${{ inputs.target == 'aarch64-pc-windows-msvc' }}
-        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+        run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Mac
       - uses: goto-bus-stop/setup-zig@v2
@@ -134,7 +142,7 @@ jobs:
       - name: Build x86_64-apple-darwin
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: |
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Build aarch64-apple-darwin
         if: ${{ inputs.target == 'aarch64-apple-darwin' }}
@@ -144,7 +152,7 @@ jobs:
           export CXX=$(xcrun -f clang++);
           SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
           export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
-          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -233,7 +241,7 @@ jobs:
       ### Note that, We can't merge this script, because this script only runs on main branch
       - name: Update main branch test compatibility metric
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' }}
-        run: node ./webpack-test/scripts/generate.js ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}  
+        run: node ./webpack-test/scripts/generate.js ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
 
       # ### update metric diff against main branch when pull request change
       - name: Update
