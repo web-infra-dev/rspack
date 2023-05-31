@@ -6,7 +6,7 @@
   "main": "./dist/index.d.ts",
   "scripts": {
     "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail",
-    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest configTestCases --logHeapUsage --runInBand --bail --json | node scripts/test-metric.js",
+    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --json | node scripts/test-metric.js",
     "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --json"
   },
   "files": [
@@ -30,7 +30,9 @@
     "chokidar": "3.5.3",
     "coffee-loader": "^4.0.0",
     "copy-webpack-plugin": "5",
+    "csv-to-markdown-table": "^1.3.0",
     "file-loader": "^6.2.0",
+    "is-ci": "3.0.1",
     "jest-serializer-path": "^0.1.15",
     "less": "4.1.3",
     "less-loader": "^11.1.0",

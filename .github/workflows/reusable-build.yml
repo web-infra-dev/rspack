@@ -225,3 +225,16 @@ jobs:
       - name: Test x86_64-pc-windows-msvc
         if: ${{  inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
+
+      ### write the latest metric into branch gh-pages
+      ### Note that, We can't merge this script, because this script only runs on main branch
+      - name: Update main branch test compatibility metric
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' }}
+        run: node ./webpack-test/scripts/generate.js ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}  
+      ### update metric diff against main branch when pull request change
+      - name: Update 
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.event_name == 'pull_request' && matrix.node == '18' }}
+        uses: ./.github/actions/webpack-test-metric-diff
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          sha: ${{ github.sha }}

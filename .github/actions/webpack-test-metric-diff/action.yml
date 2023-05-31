@@ -1,0 +1,56 @@
+name: Webpack test metric diff
+
+inputs:
+  github-token:
+    required: true
+    type: string
+  sha:
+    required: true
+    type: boolean
+
+runs:
+  using: composite
+  steps:
+    - name: diff
+      id: pr-diff
+      shell: bash
+      run: |
+        echo "## Test Compatibility Diff" > output.md
+        node ./webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ inputs.sha }}
+
+        echo "comment=$comment" >> $GITHUB_OUTPUT
+
+    - name: Get the PR number
+      if: github.event_name == 'pull_request'
+      id: pr-number
+      uses: kkak10/pr-number-action@v1.3
+
+    - name: Find Previous Comment
+      if: github.event_name == 'pull_request'
+      uses: peter-evans/find-comment@v1.3.0
+      id: previous-comment
+      with:
+        issue-number: ${{ steps.pr-number.outputs.pr }}
+        body-includes: Test Compatibility Diff 
+
+    - name: Update existing comment
+      if: github.event_name == 'pull_request' && steps.previous-comment.outputs.comment-id
+      uses: peter-evans/create-or-update-comment@v3
+      continue-on-error: true
+      with:
+        comment-id: ${{ steps.previous-comment.outputs.comment-id }}
+        
+        body-path: 'output.md'
+        # body: |
+        #   ${{ steps.pr-diff.outputs.comment }}
+        edit-mode: replace
+
+    - name: Write a new comment
+      if: github.event_name == 'pull_request' && !steps.previous-comment.outputs.comment-id
+      uses: peter-evans/create-or-update-comment@v3
+      continue-on-error: true
+      with:
+        issue-number: ${{ steps.pr-number.outputs.pr }}
+
+        body-path: 'output.md'
+            
