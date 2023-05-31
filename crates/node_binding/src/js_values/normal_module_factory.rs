@@ -62,8 +62,8 @@ impl From<ResourceData> for JsResolveForSchemeInput {
 impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
   fn from(value: NormalModuleBeforeResolveArgs) -> Self {
     Self {
-      context: value.context.to_owned(),
-      request: value.request.to_string(),
+      context: value.context,
+      request: value.request,
     }
   }
 }

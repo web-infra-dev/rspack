@@ -148,7 +148,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
     if self.is_hook_disabled(&Hook::BeforeResolve) {
       return Ok(None);
     }
-    dbg!(&args);
     match self
       .before_resolve
       .call(args.clone().into(), ThreadsafeFunctionCallMode::NonBlocking)
@@ -157,7 +156,6 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
     {
       Ok((ret, resolve_data)) => {
-        println!("{:?}", ret);
         args.request = resolve_data.request;
         args.context = resolve_data.context;
         Ok(ret)
