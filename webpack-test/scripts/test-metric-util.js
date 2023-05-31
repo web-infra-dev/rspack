@@ -10,7 +10,7 @@ function extractTestMetric(jsonObj) {
 		"Total tests": jsonObj.numTotalTests,
 		"Total passedTestSuites": jsonObj.numPassedTestSuites,
 		"Total passedTests": jsonObj.numPassedTests,
-		"Total willNotSupportTest": jsonObj.numPassedTests,
+		"Total willNotSupportTest": willNotSupportTestCount,
 		"Tests Compatibility": `${(
 			((jsonObj.numPassedTests + willNotSupportTestCount) /
 				jsonObj.numTotalTests) *
@@ -35,7 +35,7 @@ function getTestSuiteWillNotSupportTestCount(suite) {
 		}
 		const titles = item.ancestorTitles;
 		const lastPartOfTitle = titles[titles.length - 1];
-		return lastPartOfTitle.startsWith("WillNotSupport");
+		return lastPartOfTitle?.startsWith("WillNotSupport");
 	}).length;
 }
 
