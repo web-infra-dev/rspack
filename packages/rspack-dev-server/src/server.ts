@@ -77,6 +77,7 @@ export class RspackDevServer extends WebpackDevServer {
 		// @ts-expect-error
 		const isWebTarget = WebpackDevServer.isWebTarget(compiler);
 		// inject runtime first, avoid other additional entry after transfrom depend on it
+		const clientPath = require.resolve("webpack-dev-server/client/index.js");
 		if (this.options.hot) {
 			if (compiler.options.builtins.react?.refresh) {
 				const reactRefreshEntryPath = require.resolve(
@@ -84,7 +85,10 @@ export class RspackDevServer extends WebpackDevServer {
 				);
 				additionalEntries.push(reactRefreshEntryPath);
 			}
-			const hotUpdateEntryPath = require.resolve("webpack/hot/dev-server");
+			// #3356 make sure resolve webpack/hot/dev-server from webpack-dev-server
+			const hotUpdateEntryPath = require.resolve("webpack/hot/dev-server", {
+				paths: [clientPath]
+			});
 			additionalEntries.push(hotUpdateEntryPath);
 		}
 		if (this.options.client && isWebTarget) {
@@ -230,11 +234,7 @@ export class RspackDevServer extends WebpackDevServer {
 				webSocketURLStr = searchParams.toString();
 			}
 
-			additionalEntries.push(
-				`${require.resolve(
-					"webpack-dev-server/client/index.js"
-				)}?${webSocketURLStr}`
-			);
+			additionalEntries.push(`${clientPath}?${webSocketURLStr}`);
 		}
 
 		for (const key in compiler.options.entry) {
