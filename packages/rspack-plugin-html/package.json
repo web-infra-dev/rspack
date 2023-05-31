@@ -3,7 +3,7 @@
   "version": "0.1.12",
   "license": "MIT",
   "description": "HTML plugin for rspack",
-  "main": "dist/index.js",
+  "main": "index.cjs",
   "typings": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build --force",
