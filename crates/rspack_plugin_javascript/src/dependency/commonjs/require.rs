@@ -100,7 +100,7 @@ impl CodeGeneratable for CommonJSRequireDependency {
               }) = n.args.first_mut() && tpl.exprs.is_empty() {
                 let module_id = serde_json::to_string(&module_id).expect("invalid module_id");
                 let s = tpl.quasis.first_mut().expect("should have one quasis");
-                s.raw = Atom::from(module_id.as_str());
+                s.raw = Atom::from(module_id.as_str().trim_matches('\"'));
 
 
               }
