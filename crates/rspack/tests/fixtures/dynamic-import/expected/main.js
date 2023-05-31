@@ -35,4 +35,4 @@ __webpack_require__("./child Lazy  recursive ^\\.\\/.*\\.js$")("./child/".concat
 var __webpack_require__ = require('./runtime.js');
 __webpack_require__.C(exports)
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__('./index.js'));
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
