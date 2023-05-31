@@ -10,6 +10,10 @@
     "dev": "tsc -w",
     "test": "jest --runInBand --verbose"
   },
+  "files": [
+    "index.cjs",
+    "dist"
+  ],
   "keywords": [
     "rspack",
     "html"
