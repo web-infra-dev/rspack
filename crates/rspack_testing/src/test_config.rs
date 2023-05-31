@@ -584,6 +584,8 @@ impl TestConfig {
     );
     if self.optimization.module_ids == "named" {
       plugins.push(rspack_ids::NamedModuleIdsPlugin::default().boxed());
+    } else if self.optimization.module_ids == "window" {
+      plugins.push(rspack_ids::WindowPathIdsPlugin::default().boxed());
     } else {
       plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed());
     }

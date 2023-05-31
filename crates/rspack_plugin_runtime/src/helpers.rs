@@ -189,7 +189,12 @@ pub fn generate_entry_startup(
 
   let module_ids_code = &module_ids
     .iter()
-    .map(|id| format!("__webpack_exec__('{id}')"))
+    .map(|id| {
+      format!(
+        "__webpack_exec__({})",
+        serde_json::to_string(id).expect("should render module id")
+      )
+    })
     .collect::<Vec<_>>()
     .join(", ");
   if chunks_ids.is_empty() {

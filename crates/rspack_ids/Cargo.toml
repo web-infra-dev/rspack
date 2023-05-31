@@ -16,3 +16,6 @@ rspack_core  = { path = "../rspack_core" }
 rspack_error = { path = "../rspack_error" }
 rspack_util  = { path = "../rspack_util" }
 rustc-hash   = { workspace = true }
+
+[features]
+test = []

@@ -1,0 +1,5 @@
+{
+  "optimization": {
+    "moduleIds": "window"
+  }
+}

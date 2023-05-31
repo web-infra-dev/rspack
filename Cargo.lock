@@ -2721,6 +2721,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_plugin_javascript",
  "rustc-hash",
+ "serde_json",
 ]
 
 [[package]]
