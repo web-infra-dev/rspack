@@ -85,10 +85,10 @@ describe("Stats", () => {
 			      "assets": [
 			        {
 			          "name": "entryA.js",
-			          "size": 215,
+			          "size": 230,
 			        },
 			      ],
-			      "assetsSize": 215,
+			      "assetsSize": 230,
 			      "chunks": [
 			        "entryA",
 			      ],
@@ -98,10 +98,10 @@ describe("Stats", () => {
 			      "assets": [
 			        {
 			          "name": "entryB.js",
-			          "size": 227,
+			          "size": 242,
 			        },
 			      ],
-			      "assetsSize": 227,
+			      "assetsSize": 242,
 			      "chunks": [
 			        "entryB",
 			      ],
@@ -146,10 +146,10 @@ describe("Stats", () => {
 			      "assets": [
 			        {
 			          "name": "entryA.js",
-			          "size": 3627,
+			          "size": 230,
 			        },
 			      ],
-			      "assetsSize": 3627,
+			      "assetsSize": 230,
 			      "chunks": [
 			        "entryA",
 			      ],
@@ -159,10 +159,10 @@ describe("Stats", () => {
 			      "assets": [
 			        {
 			          "name": "entryB.js",
-			          "size": 4837,
+			          "size": 4414,
 			        },
 			      ],
-			      "assetsSize": 4837,
+			      "assetsSize": 4414,
 			      "chunks": [
 			        "entryB",
 			      ],
@@ -202,7 +202,7 @@ describe("Stats", () => {
 			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryB.js",
-			      "size": 4837,
+			      "size": 4414,
 			      "type": "asset",
 			    },
 			    {
@@ -218,7 +218,7 @@ describe("Stats", () => {
 			        "hotModuleReplacement": false,
 			      },
 			      "name": "entryA.js",
-			      "size": 3627,
+			      "size": 230,
 			      "type": "asset",
 			    },
 			    {

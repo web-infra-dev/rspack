@@ -555,13 +555,12 @@ impl TestConfig {
     }
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
+    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if options.dev_server.hot {
       plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
     }
-    plugins.push(rspack_plugin_runtime::BasicRuntimeRequirementPlugin {}.boxed());
     if options.experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }

@@ -198,7 +198,16 @@ pub struct AdditionalChunkRuntimeRequirementsArgs<'a> {
   pub compilation: &'a mut Compilation,
   pub chunk: &'a ChunkUkey,
   pub runtime_requirements: &'a mut RuntimeGlobals,
-  // TODO context
+}
+
+impl<'me> AdditionalChunkRuntimeRequirementsArgs<'me> {
+  pub fn chunk(&self) -> &Chunk {
+    self
+      .compilation
+      .chunk_by_ukey
+      .get(self.chunk)
+      .expect("chunk should exist in chunk_by_ukey")
+  }
 }
 
 #[derive(Debug)]

@@ -1,29 +1,55 @@
+use std::hash::Hash;
+
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, RuntimeGlobals, RuntimeModuleExt, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, JsChunkHashArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  RuntimeGlobals, RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
 
 use crate::runtime_module::{
-  CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
-  CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, GetChunkFilenameRuntimeModule,
-  GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule, GetMainFilenameRuntimeModule,
-  GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule, HasOwnPropertyRuntimeModule,
-  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
-  NormalRuntimeModule, OnChunkLoadedRuntimeModule, PublicPathRuntimeModule,
+  AsyncRuntimeModule, CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
+  CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
+  GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
+  GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
+  HasOwnPropertyRuntimeModule, LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule,
+  MakeNamespaceObjectRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
+  PublicPathRuntimeModule,
 };
 
 #[derive(Debug)]
-pub struct BasicRuntimeRequirementPlugin;
+pub struct RuntimePlugin;
 
 #[async_trait]
-impl Plugin for BasicRuntimeRequirementPlugin {
+impl Plugin for RuntimePlugin {
   fn name(&self) -> &'static str {
-    "BasicRuntimeRequirementPlugin"
+    "RuntimePlugin"
   }
 
   fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+    Ok(())
+  }
+
+  fn additional_tree_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    let compilation = &args.compilation;
+    let chunk = args.chunk();
+    if !chunk
+      .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+      .is_empty()
+      || args
+        .runtime_requirements
+        .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+    {
+      args
+        .runtime_requirements
+        .insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    }
+
     Ok(())
   }
 
@@ -99,11 +125,14 @@ impl Plugin for BasicRuntimeRequirementPlugin {
       runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     }
 
-    let mut sorted_runtime_requirement = runtime_requirements.iter().collect::<Vec<_>>();
-    // TODO: we don't need sort since iter is deterministic for BitFlags
-    sorted_runtime_requirement.sort_unstable_by_key(|r| r.name());
-    for runtime_requirement in sorted_runtime_requirement {
+    for runtime_requirement in runtime_requirements.iter() {
       match runtime_requirement {
+        RuntimeGlobals::ASYNC_MODULE => {
+          compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
+        }
+        RuntimeGlobals::ENSURE_CHUNK => {
+          compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());
+        }
         RuntimeGlobals::PUBLIC_PATH => {
           compilation.add_runtime_module(chunk, PublicPathRuntimeModule::default().boxed())
         }
@@ -187,6 +216,27 @@ impl Plugin for BasicRuntimeRequirementPlugin {
       }
     }
 
+    Ok(())
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    for identifier in args
+      .compilation
+      .chunk_graph
+      .get_chunk_runtime_modules_iterable(args.chunk_ukey)
+    {
+      if let Some((hash, _)) = args
+        .compilation
+        .runtime_module_code_generation_results
+        .get(identifier)
+      {
+        hash.hash(&mut args.hasher);
+      }
+    }
     Ok(())
   }
 }

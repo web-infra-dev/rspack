@@ -160,7 +160,11 @@ where
         .output
         .enabled_library_types
         .as_ref()
-        .map(|types| types.iter().any(|item| item == "module"))
+        .map(|types| {
+          types
+            .iter()
+            .any(|item| item == "module" || item == "commonjs-static")
+        })
         .unwrap_or(false)
     {
       let (analyze_result, diagnostics) = self

@@ -1,25 +1,12 @@
 #![feature(get_mut_unchecked)]
-
-use std::hash::Hash;
-
-use async_trait::async_trait;
-use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, JsChunkHashArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
-  RuntimeGlobals, RuntimeModuleExt,
-};
-use rspack_error::Result;
-use runtime_module::AsyncRuntimeModule;
-
-use crate::runtime_module::EnsureChunkRuntimeModule;
 mod helpers;
 pub use helpers::*;
 mod lazy_compilation;
 pub use lazy_compilation::LazyCompilationPlugin;
-mod basic_runtime_requirements;
 mod common_js_chunk_format;
-pub use basic_runtime_requirements::BasicRuntimeRequirementPlugin;
 pub use common_js_chunk_format::CommonJsChunkFormatPlugin;
+mod runtime_plugin;
+pub use runtime_plugin::RuntimePlugin;
 mod hot_module_replacement;
 pub use hot_module_replacement::HotModuleReplacementPlugin;
 mod css_modules;
@@ -49,7 +36,10 @@ impl Plugin for RuntimePlugin {
     "RuntimePlugin"
   }
 
-  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+  fn apply(
+    &mut self,
+    _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
+  ) -> Result<()> {
     Ok(())
   }
 
