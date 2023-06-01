@@ -47,6 +47,7 @@ const [, , token, commit_sha] = process.argv;
 			let lastestMainCommit = indexList[indexList.length - 1];
 
 			let latestMainCommitData = historyData[lastestMainCommit];
+			console.log(latestMainCommitData)
 
 			let currentCompatibility = currentData["Tests Compatibility"];
 			let lastestMainCommitCompatibility =
