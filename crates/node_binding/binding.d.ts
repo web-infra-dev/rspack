@@ -113,6 +113,12 @@ export interface JsAsset {
   info: JsAssetInfo
 }
 
+export interface JsAssetEmittedArgs {
+  filename: string
+  outputPath: string
+  targetPath: string
+}
+
 export interface JsAssetInfo {
   /** if the asset can be long term cached forever (contains a hash) */
   immutable: boolean
@@ -178,6 +184,7 @@ export interface JsHooks {
   compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
+  assetEmitted: (...args: any[]) => any
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any

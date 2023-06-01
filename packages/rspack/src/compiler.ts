@@ -122,6 +122,7 @@ class Compiler {
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 		emit: tapable.AsyncSeriesHook<[Compilation]>;
+		assetEmitted: tapable.AsyncSeriesHook<[string, any]>;
 		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
 		shutdown: tapable.AsyncSeriesHook<[]>;
@@ -203,6 +204,7 @@ class Compiler {
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
 			emit: new tapable.AsyncSeriesHook(["compilation"]),
+			assetEmitted: new tapable.AsyncSeriesHook(["file", "info"]),
 			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
 			thisCompilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
 				"compilation",
@@ -284,6 +286,7 @@ class Compiler {
 					afterCompile: this.#afterCompile.bind(this),
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
+					assetEmitted: this.#assetEmitted.bind(this),
 					afterEmit: this.#afterEmit.bind(this),
 					processAssetsStageAdditional: this.#processAssets.bind(
 						this,
@@ -563,6 +566,7 @@ class Compiler {
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
 			emit: this.hooks.emit,
+			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
 			processAssetsStageAdditional:
 				this.compilation.__internal_getProcessAssetsHookByStage(
@@ -717,6 +721,22 @@ class Compiler {
 	}
 	async #emit() {
 		await this.hooks.emit.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+	async #assetEmitted(args: binding.JsAssetEmittedArgs) {
+		const filename = args.filename;
+		const info = {
+			compilation: this.compilation,
+			outputPath: args.outputPath,
+			targetPath: args.targetPath,
+			get source() {
+				return this.compilation.getAsset(args.filename)?.source;
+			},
+			get content() {
+				return this.source?.buffer();
+			}
+		};
+		await this.hooks.assetEmitted.promise(filename, info);
 		this.#updateDisabledHooks();
 	}
 

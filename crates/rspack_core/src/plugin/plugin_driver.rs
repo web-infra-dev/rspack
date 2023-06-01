@@ -10,10 +10,10 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
-  Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs,
-  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module,
-  ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, BoxLoader,
+  BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
+  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
@@ -562,6 +562,14 @@ impl PluginDriver {
   pub async fn emit(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
       plugin.emit(compilation).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:asset_emitted", skip_all)]
+  pub async fn asset_emitted(&self, args: &AssetEmittedArgs<'_>) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.asset_emitted(args).await?;
     }
     Ok(())
   }
