@@ -272,6 +272,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             remove_original_source: false,
           })
           .boxed();
+          dbg!(&source);
           Ok(source)
         } else {
           Ok(RawSource::from(code).boxed())

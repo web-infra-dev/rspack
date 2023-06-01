@@ -10,5 +10,6 @@
 				"type": "css"
 			}
 		]
-	}
+	},
+  "devtool": "source-map"
 }

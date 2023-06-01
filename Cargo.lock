@@ -2431,6 +2431,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_loader_swc"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "indexmap",
+ "itertools",
+ "once_cell",
+ "regex",
+ "rspack_core",
+ "rspack_error",
+ "rspack_loader_runner",
+ "rspack_testing",
+ "sass-embedded",
+ "serde",
+ "str_indices",
+ "swc_core",
+ "tokio",
+]
+
+[[package]]
 name = "rspack_napi_shared"
 version = "0.1.0"
 dependencies = [
