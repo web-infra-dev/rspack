@@ -238,6 +238,7 @@ pub struct RawModuleRule {
   pub scheme: Option<RawRuleSetCondition>,
   pub mimetype: Option<RawRuleSetCondition>,
   pub one_of: Option<Vec<RawModuleRule>>,
+  pub rules: Option<Vec<RawModuleRule>>,
   /// Specifies the category of the loader. No value means normal loader.
   #[napi(ts_type = "'pre' | 'post'")]
   pub enforce: Option<String>,
@@ -360,6 +361,16 @@ impl RawOptionsApply for RawModuleRule {
       })
       .transpose()?;
 
+    let rules = self
+      .rules
+      .map(|rule| {
+        rule
+          .into_iter()
+          .map(|raw| raw.apply(_plugins, loader_runner))
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
+
     let description_data = self
       .description_data
       .map(|data| {
@@ -404,6 +415,7 @@ impl RawOptionsApply for RawModuleRule {
       scheme: self.scheme.map(|raw| raw.try_into()).transpose()?,
       mimetype: self.mimetype.map(|raw| raw.try_into()).transpose()?,
       one_of,
+      rules,
       enforce,
     })
   }
