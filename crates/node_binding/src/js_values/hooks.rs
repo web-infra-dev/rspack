@@ -13,6 +13,7 @@ pub struct JsHooks {
   pub compilation: JsFunction,
   pub this_compilation: JsFunction,
   pub emit: JsFunction,
+  pub asset_emitted: JsFunction,
   pub after_emit: JsFunction,
   pub make: JsFunction,
   pub optimize_modules: JsFunction,

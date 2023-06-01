@@ -17,7 +17,10 @@ use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
-use crate::{cache::Cache, fast_set, CompilerOptions, Plugin, PluginDriver, SharedPluginDriver};
+use crate::{
+  cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Plugin, PluginDriver,
+  SharedPluginDriver,
+};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -242,7 +245,7 @@ where
       .emit(&mut self.compilation)
       .await?;
 
-    let _ = self
+    let results = self
       .compilation
       .assets()
       .iter()
@@ -255,6 +258,10 @@ where
         Some(self.emit_asset(&self.options.output.path, filename, asset))
       })
       .collect::<FuturesResults<_>>();
+    // return first error
+    for item in results.into_inner() {
+      item?;
+    }
 
     self
       .plugin_driver
@@ -296,6 +303,20 @@ where
       }
 
       self.compilation.emitted_assets.insert(filename.to_string());
+
+      let asset_emitted_args = AssetEmittedArgs {
+        filename,
+        output_path,
+        source: source.clone(),
+        target_path: file_path.as_path(),
+        compilation: &self.compilation,
+      };
+      self
+        .plugin_driver
+        .read()
+        .await
+        .asset_emitted(&asset_emitted_args)
+        .await?;
     }
     Ok(())
   }

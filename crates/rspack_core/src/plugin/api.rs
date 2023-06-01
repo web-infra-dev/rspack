@@ -7,9 +7,9 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
-  ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
-  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, BoxLoader, BoxModule,
+  ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
@@ -363,6 +363,10 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn emit(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  async fn asset_emitted(&self, _args: &AssetEmittedArgs) -> Result<()> {
     Ok(())
   }
 

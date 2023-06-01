@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHash;
@@ -23,6 +23,15 @@ use crate::{
 #[derive(Debug)]
 pub struct ProcessAssetsArgs<'me> {
   pub compilation: &'me mut Compilation,
+}
+
+#[derive(Debug)]
+pub struct AssetEmittedArgs<'me> {
+  pub filename: &'me str,
+  pub source: BoxSource,
+  pub output_path: &'me Path,
+  pub compilation: &'me Compilation,
+  pub target_path: &'me Path,
 }
 
 #[derive(Debug)]
