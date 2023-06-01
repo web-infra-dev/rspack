@@ -1763,22 +1763,16 @@ impl SideEffects {
       .data()
       .raw()
       .get("sideEffects")
-      .and_then(|value| {
-        if let Some(b) = value.as_bool() {
-          Some(SideEffects::Bool(b))
-        } else if let Some(s) = value.as_str() {
-          Some(SideEffects::String(s.to_owned()))
-        } else if let Some(vec) = value.as_array() {
-          let mut ans = vec![];
-          for value in vec {
-            if let Some(str) = value.as_str() {
-              ans.push(str.to_string());
-            } else {
-              return None;
-            }
-          }
-          Some(SideEffects::Array(ans))
-        } else {
+      .and_then(|value| match value {
+        serde_json::Value::String(s) => Some(SideEffects::String(s.to_owned())),
+        serde_json::Value::Bool(b) => Some(SideEffects::Bool(*b)),
+        serde_json::Value::Array(arr) => Some(SideEffects::Array(
+          arr
+            .iter()
+            .filter_map(|item| item.as_str().map(|s| s.to_string()))
+            .collect::<Vec<_>>(),
+        )),
+        serde_json::Value::Null | serde_json::Value::Number(_) | serde_json::Value::Object(_) => {
           None
         }
       })
