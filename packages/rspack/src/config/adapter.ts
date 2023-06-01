@@ -272,7 +272,7 @@ function getRawModule(
 		!isNil(module.defaultRules),
 		"module.defaultRules should not be nil after defaults"
 	);
-	// "..." in defaultRules will be flatten in `applyModuleDefaults`, and "..." rules is empty, so it's safe to use `as RuleSetRule[]` at here
+	// "..." in defaultRules will be flatten in `applyModuleDefaults`, and "..." in rules is empty, so it's safe to use `as RuleSetRule[]` at here
 	const ruleSet = [
 		{ rules: module.defaultRules as RuleSetRule[] },
 		{ rules: module.rules as RuleSetRule[] }
