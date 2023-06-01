@@ -14,6 +14,8 @@ import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
 import { RawFallbackCacheGroupOptions } from "@rspack/binding";
+import type { Options as RspackOptions } from "./zod/_rewrite";
+export type { RspackOptions };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
@@ -25,7 +27,7 @@ export type {
 
 export type Configuration = RspackOptions;
 
-export interface RspackOptions {
+export interface LegacyRspackOptions {
 	name?: Name;
 	dependencies?: Dependencies;
 	context?: Context;
