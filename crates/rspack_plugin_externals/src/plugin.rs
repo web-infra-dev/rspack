@@ -1,4 +1,4 @@
-use std::{fmt::Debug, path::PathBuf};
+use std::fmt::Debug;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
