@@ -29,12 +29,29 @@ const config = {
 			},
 			{
 				test: /\.less$/,
-				use: ["style-loader", "css-loader", "less-loader"],
+				use: [
+					{
+						loader: "style-loader",
+						options: {
+							esModule: false
+						}
+					},
+					"css-loader",
+					"less-loader"
+				],
 				type: "javascript/auto"
 			},
 			{
 				test: /\.css$/,
-				use: ["style-loader", "css-loader"],
+				use: [
+					{
+						loader: "style-loader",
+						options: {
+							esModule: false
+						}
+					},
+					"css-loader"
+				],
 				type: "javascript/auto"
 			},
 			{
@@ -42,6 +59,9 @@ const config = {
 				type: "asset/resource"
 			}
 		]
+	},
+	experiments: {
+		css: false
 	}
 };
 module.exports = config;
