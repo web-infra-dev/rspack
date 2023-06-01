@@ -1,5 +1,5 @@
 {
-  "name": "example-vue",
+  "name": "example-vue3-vanilla",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -9,7 +9,7 @@
     "build": "rspack build"
   },
   "dependencies": {
-    "vue": "3.2.47"
+    "vue": "3.2.47" 
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
