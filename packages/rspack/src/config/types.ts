@@ -330,6 +330,7 @@ export interface RuleSetRule {
 		[k: string]: RuleSetCondition;
 	};
 	oneOf?: RuleSetRule[];
+	rules?: RuleSetRule[];
 	type?: string;
 	loader?: RuleSetLoader;
 	options?: RuleSetLoaderOptions;

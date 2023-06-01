@@ -195,6 +195,7 @@ export type LoaderDefinition<
 
 export function createRawModuleRuleUses(
 	uses: RuleSetUse,
+	path: string,
 	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
 	const normalizeRuleSetUseItem = (
@@ -204,19 +205,19 @@ export function createRawModuleRuleUses(
 	const allUses = Array.isArray(uses)
 		? [...uses].map(normalizeRuleSetUseItem)
 		: [normalizeRuleSetUseItem(uses)];
-	return createRawModuleRuleUsesImpl(allUses, options, allUses);
+	return createRawModuleRuleUsesImpl(allUses, path, options);
 }
 
 function createRawModuleRuleUsesImpl(
 	uses: RuleSetLoaderWithOptions[],
-	options: ComposeJsUseOptions,
-	allUses: RuleSetLoaderWithOptions[]
+	path: string,
+	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
 	if (!uses.length) {
 		return [];
 	}
 
-	return uses.map(use => {
+	return uses.map((use, index) => {
 		if (
 			typeof use.loader === "string" &&
 			use.loader.startsWith(BUILTIN_LOADER_PREFIX)
@@ -225,7 +226,11 @@ function createRawModuleRuleUsesImpl(
 		}
 		return {
 			jsLoader: {
-				identifier: resolveStringifyLoaders(use, options.compiler)
+				identifier: resolveStringifyLoaders(
+					use,
+					`${path}[${index}]`,
+					options.compiler
+				)
 			}
 		};
 	});
@@ -233,6 +238,7 @@ function createRawModuleRuleUsesImpl(
 
 function resolveStringifyLoaders(
 	use: RuleSetLoaderWithOptions,
+	path: string,
 	compiler: Compiler
 ) {
 	const obj = parsePathQueryFragment(use.loader);
@@ -247,8 +253,7 @@ function resolveStringifyLoaders(
 	else if (use.ident) obj.query = "??" + (ident = use.ident);
 	else if (typeof use.options === "object" && use.options.ident)
 		obj.query = "??" + (ident = use.options.ident);
-	else if (typeof use.options === "object")
-		obj.query = "??" + (ident = generateRandomString(10));
+	else if (typeof use.options === "object") obj.query = "??" + (ident = path);
 	else obj.query = "?" + JSON.stringify(use.options);
 
 	if (ident) {
@@ -258,17 +263,6 @@ function resolveStringifyLoaders(
 	}
 
 	return obj.path + obj.query + obj.fragment;
-}
-
-function generateRandomString(length: number) {
-	let result = "";
-	const characters =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	const charactersLength = characters.length;
-	for (let i = 0; i < length; i++) {
-		result += characters.charAt(Math.floor(Math.random() * charactersLength));
-	}
-	return result;
 }
 
 function createBuiltinUse(use: RuleSetLoaderWithOptions): RawModuleRuleUse {

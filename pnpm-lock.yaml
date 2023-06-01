@@ -1087,9 +1087,11 @@ importers:
       chokidar: 3.5.3
       coffee-loader: ^4.0.0
       copy-webpack-plugin: '5'
+      csv-to-markdown-table: ^1.3.0
       enhanced-resolve: 5.12.0
       file-loader: ^6.2.0
       graceful-fs: 4.2.10
+      is-ci: 3.0.1
       jest-serializer-path: ^0.1.15
       less: 4.1.3
       less-loader: ^11.1.0
@@ -1144,7 +1146,9 @@ importers:
       chokidar: 3.5.3
       coffee-loader: 4.0.0
       copy-webpack-plugin: 5.1.2
+      csv-to-markdown-table: 1.3.0
       file-loader: 6.2.0
+      is-ci: 3.0.1
       jest-serializer-path: 0.1.15
       less: 4.1.3
       less-loader: 11.1.0_less@4.1.3
@@ -14364,6 +14368,10 @@ packages:
 
   /csstype/3.1.1:
     resolution: {integrity: sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==}
+
+  /csv-to-markdown-table/1.3.0:
+    resolution: {integrity: sha512-Vu9egsDU4kgfWy2mcw6q+2jJKsY4hB8XdbtyivEaWUvejhGtmUwSyLBbzb1nTi2o7Um+vhhRU4DBZr+ByCwLgQ==}
+    dev: true
 
   /custom-event/1.0.1:
     resolution: {integrity: sha512-GAj5FOq0Hd+RsCGVJxZuKaIDXDf3h6GQoNEjFgbLLI/trgtavwUbSnZ5pVfg27DVCaWjIohryS0JFwIJyT2cMg==}

@@ -146,6 +146,7 @@ pub struct ModuleRule {
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub one_of: Option<Vec<ModuleRule>>,
+  pub rules: Option<Vec<ModuleRule>>,
   pub enforce: ModuleRuleEnforce,
 }
 

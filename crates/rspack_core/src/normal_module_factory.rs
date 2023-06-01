@@ -12,7 +12,7 @@ use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache, module_rule_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  cache::Cache, module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   AssetGeneratorOptions, AssetParserOptions, BoxLoader, CompilerOptions, Dependency,
   DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
@@ -551,18 +551,14 @@ impl NormalModuleFactory {
     dependency: &DependencyCategory,
   ) -> Result<Vec<&ModuleRule>> {
     let mut rules = Vec::new();
-    for rule in &self.context.options.module.rules {
-      if let Some(rule) = module_rule_matcher(
-        rule,
-        resource_data,
-        self.context.issuer.as_deref(),
-        dependency,
-      )
-      .await?
-      {
-        rules.push(rule);
-      }
-    }
+    module_rules_matcher(
+      &self.context.options.module.rules,
+      resource_data,
+      self.context.issuer.as_deref(),
+      dependency,
+      &mut rules,
+    )
+    .await?;
     Ok(rules)
   }
 

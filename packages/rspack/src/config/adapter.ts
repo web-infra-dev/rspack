@@ -272,10 +272,14 @@ function getRawModule(
 		!isNil(module.defaultRules),
 		"module.defaultRules should not be nil after defaults"
 	);
-	// TODO: workaround for module.defaultRules
-	const rules = (
-		[...module.defaultRules, ...module.rules] as RuleSetRule[]
-	).map<RawModuleRule>(i => getRawModuleRule(i, options));
+	// "..." in defaultRules will be flatten in `applyModuleDefaults`, and "..." in rules is empty, so it's safe to use `as RuleSetRule[]` at here
+	const ruleSet = [
+		{ rules: module.defaultRules as RuleSetRule[] },
+		{ rules: module.rules as RuleSetRule[] }
+	];
+	const rules = ruleSet.map((rule, index) =>
+		getRawModuleRule(rule, `ruleSet[${index}]`, options)
+	);
 	return {
 		rules,
 		parser: module.parser
@@ -284,6 +288,7 @@ function getRawModule(
 
 const getRawModuleRule = (
 	rule: RuleSetRule,
+	path: string,
 	options: ComposeJsUseOptions
 ): RawModuleRule => {
 	// Rule.loader is a shortcut to Rule.use: [ { loader } ].
@@ -323,13 +328,20 @@ const getRawModuleRule = (
 		scheme: rule.scheme ? getRawRuleSetCondition(rule.scheme) : undefined,
 		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
-		use: createRawModuleRuleUses(rule.use ?? [], options),
+		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
 		parser: rule.parser,
 		generator: rule.generator,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
-			? rule.oneOf.map(i => getRawModuleRule(i, options))
+			? rule.oneOf.map((rule, index) =>
+					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
+			  )
+			: undefined,
+		rules: rule.rules
+			? rule.rules.map((rule, index) =>
+					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
+			  )
 			: undefined,
 		enforce: rule.enforce
 	};
