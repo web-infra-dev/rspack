@@ -329,9 +329,9 @@ class Compiler {
 					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
-					optimizeModules: this.#optimize_modules.bind(this),
-					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
-					finishModules: this.#finish_modules.bind(this),
+					optimizeModules: this.#optimizeModules.bind(this),
+					optimizeChunkModule: this.#optimizeChunkModules.bind(this),
+					finishModules: this.#finishModules.bind(this),
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this),
 					chunkAsset: this.#chunkAsset.bind(this),
@@ -624,12 +624,6 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #finishModules() {
-		await this.compilation.hooks.finishModules.promise(
-			this.compilation.getModules()
-		);
-		this.#updateDisabledHooks();
-	}
 	async #processAssets(stage: number) {
 		await this.compilation
 			.__internal_getProcessAssetsHookByStage(stage)
@@ -689,14 +683,14 @@ class Compiler {
 		};
 	}
 
-	async #optimize_chunk_modules() {
+	async #optimizeChunkModules() {
 		await this.compilation.hooks.optimizeChunkModules.promise(
 			this.compilation.getChunks(),
 			this.compilation.getModules()
 		);
 		this.#updateDisabledHooks();
 	}
-	async #optimize_modules() {
+	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
 			this.compilation.getModules()
 		);
@@ -708,7 +702,7 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #finish_modules() {
+	async #finishModules() {
 		await this.compilation.hooks.finishModules.promise(
 			this.compilation.getModules()
 		);
