@@ -71,8 +71,7 @@ ${lastestMainCommitCompatibility},${currentCompatibility},${`${icon} ${diff.toFi
 				);
 				fs.appendFileSync(path.resolve(rootDir, "output.md"), markdown);
 			} else {
-				// remove `output.md` to avoid write a comment when there is no metric
-				// diff
+				// remove `output.md` to
 				fs.rmSync(path.resolve(rootDir, "output.md"), markdown);
 			}
 

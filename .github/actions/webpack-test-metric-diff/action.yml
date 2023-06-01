@@ -18,7 +18,6 @@ runs:
         echo "## Test Compatibility Diff" > output.md
         node ./webpack-test/scripts/pr-diff.js ${{ inputs.github-token }} ${{ inputs.sha }}
 
-        echo "comment=$comment" >> $GITHUB_OUTPUT
 
     - name: Get the PR number
       if: github.event_name == 'pull_request'
@@ -41,8 +40,6 @@ runs:
         comment-id: ${{ steps.previous-comment.outputs.comment-id }}
         
         body-path: 'output.md'
-        # body: |
-        #   ${{ steps.pr-diff.outputs.comment }}
         edit-mode: replace
 
     - name: Write a new comment
