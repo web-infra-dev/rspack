@@ -1,4 +1,4 @@
-use std::{fmt::Debug, path::PathBuf};
+use std::fmt::Debug;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -121,7 +121,7 @@ impl Plugin for ExternalPlugin {
           let context = args
             .context
             .as_ref()
-            .expect(&format!("{request} should have context"))
+            .unwrap_or_else(|| panic!("{request} should have context"))
             .to_string();
           let result = f(ExternalItemFnCtx {
             context,
