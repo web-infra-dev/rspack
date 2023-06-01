@@ -47,7 +47,7 @@ const [, , token, commit_sha] = process.argv;
 			let lastestMainCommit = indexList[indexList.length - 1];
 
 			let latestMainCommitData = historyData[lastestMainCommit];
-			console.log(latestMainCommitData)
+			console.log(latestMainCommitData);
 
 			let currentCompatibility = currentData["Tests Compatibility"];
 			let lastestMainCommitCompatibility =
@@ -71,6 +71,8 @@ ${lastestMainCommitCompatibility},${currentCompatibility},${`${icon} ${diff.toFi
 					true,
 				);
 				fs.appendFileSync(path.resolve(rootDir, "output.md"), markdown);
+			} else {
+				fs.rmSync(path.resolve(rootDir, "output.md"));
 			}
 
 			break;
