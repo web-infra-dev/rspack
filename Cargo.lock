@@ -2206,6 +2206,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_ids",
  "rspack_loader_sass",
+ "rspack_loader_swc",
  "rspack_napi_shared",
  "rspack_plugin_asset",
  "rspack_plugin_banner",

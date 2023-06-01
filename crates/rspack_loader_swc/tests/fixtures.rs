@@ -10,9 +10,11 @@ use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
   SideEffectOption,
 };
-use rspack_loader_swc::SwcLoader;
+use rspack_loader_swc::{SwcLoader, SwcOptions};
 use rspack_testing::{fixture, test_fixture};
 use sass_embedded::Url;
+use swc_core::base::config::{Config, JscConfig};
+use swc_core::ecma::ast::EsVersion;
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
 async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
@@ -22,7 +24,13 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
 
   let url = Url::from_file_path(actual_path.to_string_lossy().to_string()).expect("TODO:");
   let (result, _) = run_loaders(
-    &[Arc::new(SwcLoader::new(Default::default())) as Arc<dyn Loader<LoaderRunnerContext>>],
+    &[Arc::new(SwcLoader::new(Config {
+      jsc: JscConfig {
+        target: Some(EsVersion::Es3),
+        ..Default::default()
+      },
+      ..Default::default()
+    })) as Arc<dyn Loader<LoaderRunnerContext>>],
     &ResourceData::new(
       actual_path.to_string_lossy().to_string(),
       url.to_file_path().expect("bad url file path"),

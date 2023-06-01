@@ -1,5 +1,1 @@
-require('./a');
-
-console.log('a'
-
-
+class a {}

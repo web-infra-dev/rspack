@@ -108,6 +108,7 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             None,
             handler,
             &Options {
+              config: self.options.clone(),
               source_maps: Some(SourceMapsConfig::Bool(true)),
               ..Default::default()
             },
