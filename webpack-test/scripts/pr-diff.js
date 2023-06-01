@@ -73,7 +73,7 @@ ${lastestMainCommitCompatibility},${currentCompatibility},${`${icon} ${diff.toFi
 			} else {
 				// remove `output.md` to avoid write a comment when there is no metric
 				// diff
-				fs.rmSync(path.resolve(rootDir, "output.md"), markdown);
+				fs.rmSync(path.resolve(rootDir, "output.md"));
 			}
 
 			break;
@@ -85,4 +85,3 @@ ${lastestMainCommitCompatibility},${currentCompatibility},${`${icon} ${diff.toFi
 		}
 	}
 })();
-
