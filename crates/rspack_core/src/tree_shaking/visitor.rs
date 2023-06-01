@@ -245,10 +245,10 @@ impl<'a> ModuleRefAnalyze<'a> {
     if matches!(&to, IdOrMemExpr::Id(to_id) if to_id == from.id()) && !force_insert {
       return;
     }
-    if self.state.contains(AnalyzeState::IN_PURE) {
-      println!("pure");
-      return;
-    }
+    // if self.state.contains(AnalyzeState::IN_PURE) {
+    //   println!("pure");
+    //   return;
+    // }
     // TODO: refactor this to use intersects
     if self
       .state
@@ -1665,7 +1665,7 @@ fn is_pure_decl<'a, 'b>(
   match stmt {
     Decl::Class(class) => is_pure_class(&class.class, unresolved_ctxt, comments),
     Decl::Fn(_) => true,
-    Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt),
+    Decl::Var(var) => is_pure_var_decl(var, unresolved_ctxt, comments),
     Decl::Using(_) => false,
     Decl::TsInterface(_) => unreachable!(),
     Decl::TsTypeAlias(_) => unreachable!(),
