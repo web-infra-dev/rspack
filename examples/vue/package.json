@@ -5,8 +5,7 @@
   "private": true,
   "main": "index.js",
   "scripts": {
-    "dev": "rspack serve",
-    "build": ""
+    "dev": "rspack serve"
   },
   "dependencies": {
     "vue": "3.2.47"
