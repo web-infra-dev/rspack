@@ -27,35 +27,6 @@ export type {
 
 export type Configuration = RspackOptions;
 
-export interface LegacyRspackOptions {
-	name?: Name;
-	dependencies?: Dependencies;
-	context?: Context;
-	mode?: Mode;
-	entry?: Entry;
-	output?: Output;
-	resolve?: Resolve;
-	module?: ModuleOptions;
-	target?: Target;
-	externals?: Externals;
-	externalsType?: ExternalsType;
-	externalsPresets?: ExternalsPresets;
-	infrastructureLogging?: InfrastructureLogging;
-	devtool?: DevTool;
-	node?: Node;
-	snapshot?: SnapshotOptions;
-	cache?: CacheOptions;
-	stats?: StatsValue;
-	optimization?: Optimization;
-	plugins?: Plugins;
-	experiments?: Experiments;
-	watch?: Watch;
-	watchOptions?: WatchOptions;
-	devServer?: DevServer;
-	builtins?: Builtins;
-	ignoreWarnings?: IgnoreWarningsPattern;
-}
-
 export interface RspackOptionsNormalized {
 	name?: Name;
 	dependencies?: Dependencies;
