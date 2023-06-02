@@ -210,3 +210,6 @@ justfile
 /webpack-examples/**/dist
 
 smoke-example
+
+
+/npm

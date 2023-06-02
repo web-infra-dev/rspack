@@ -28,9 +28,17 @@ use plugins::*;
 use rspack_binding_options::*;
 use utils::*;
 
-#[cfg(all(not(all(target_os = "linux", target_env = "musl"))))]
+#[cfg(not(target_os = "linux"))]
 #[global_allocator]
-static ALLOC: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
+static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
+
+#[cfg(all(
+  target_os = "linux",
+  target_env = "gnu",
+  any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 // **Note** that Node's main thread and the worker thread share the same binding context. Using `Mutex<HashMap>` would cause deadlocks if multiple compilers exist.
 struct SingleThreadedHashMap<K, V>(DashMap<K, V>);

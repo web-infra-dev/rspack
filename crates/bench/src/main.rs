@@ -2,7 +2,6 @@ mod termcolorful;
 use std::str::FromStr;
 use std::{path::PathBuf, time::Instant};
 
-use mimalloc_rust::GlobalMiMalloc;
 use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::apply_from_fixture;
@@ -10,9 +9,17 @@ use rspack_testing::apply_from_fixture;
 use rspack_tracing::{enable_tracing_by_env, enable_tracing_by_env_with_chrome_layer};
 use termcolorful::println_string_with_fg_color;
 
-#[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
+#[cfg(not(target_os = "linux"))]
 #[global_allocator]
-static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
+static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
+
+#[cfg(all(
+  target_os = "linux",
+  target_env = "gnu",
+  any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 #[derive(Default, Clone, Copy)]
 enum Layer {
