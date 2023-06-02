@@ -5,7 +5,6 @@ dist/
 packages/rspack/src/config/schema.check.js
 
 # Ignore example fixtures
-examples/**/*
 
 # Ignore test related
 packages/rspack/tests/fixtures/**/*
@@ -14,3 +13,10 @@ packages/rspack/tests/configCases/errors/**/*
 packages/rspack/tests/hotCases/**/*
 packages/rspack/tests/js/**/*
 packages/rspack/tests/copyPlugin/build/**/*
+
+benchcases/**/*
+crates/**/*
+target/**/*
+
+webpack-test/**/*
+webpack-examples/**/*

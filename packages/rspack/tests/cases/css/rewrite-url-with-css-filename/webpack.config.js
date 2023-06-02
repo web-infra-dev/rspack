@@ -1,5 +1,6 @@
 module.exports = {
 	output: {
+		publicPath: "/",
 		cssFilename: "css/[name].css"
 	},
 	resolve: {

@@ -1,16 +1,19 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, path::Path};
 
 use rspack_error::Result;
+use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, BoxModule, ChunkUkey, Compilation, CompilationArgs,
-  ContentHashArgs, DoneArgs, FactorizeArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, BoxLoader, BoxModule,
+  ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, SourceType, ThisCompilationArgs,
+  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -22,7 +25,11 @@ pub type PluginProcessAssetsHookOutput = Result<()>;
 pub type PluginReadResourceOutput = Result<Option<Content>>;
 pub type PluginFactorizeHookOutput = Result<Option<ModuleFactoryResult>>;
 pub type PluginModuleHookOutput = Result<Option<BoxModule>>;
-pub type PluginContentHashHookOutput = Result<Option<(SourceType, String)>>;
+pub type PluginNormalModuleFactoryResolveForSchemeOutput = Result<(ResourceData, bool)>;
+pub type PluginNormalModuleFactoryBeforeResolveOutput = Result<Option<bool>>;
+pub type PluginNormalModuleFactoryAfterResolveOutput = Result<Option<bool>>;
+pub type PluginContentHashHookOutput = Result<Option<(SourceType, RspackHashDigest)>>;
+pub type PluginChunkHashHookOutput = Result<()>;
 pub type PluginRenderManifestHookOutput = Result<Vec<RenderManifestEntry>>;
 pub type PluginRenderChunkHookOutput = Result<Option<BoxSource>>;
 pub type PluginProcessAssetsOutput = Result<()>;
@@ -31,6 +38,7 @@ pub type PluginAdditionalChunkRuntimeRequirementsOutput = Result<()>;
 pub type PluginRenderModuleContentOutput = Result<Option<BoxSource>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
+pub type PluginJsChunkHashHookOutput = Result<()>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -83,8 +91,40 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(None)
   }
 
+  async fn before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    Ok(None)
+  }
+
+  async fn after_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &NormalModuleAfterResolveArgs,
+  ) -> PluginNormalModuleFactoryAfterResolveOutput {
+    Ok(None)
+  }
+
+  async fn context_module_before_resolve(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut NormalModuleBeforeResolveArgs,
+  ) -> PluginNormalModuleFactoryBeforeResolveOutput {
+    Ok(None)
+  }
+
   async fn module(&self, _ctx: PluginContext, _args: &ModuleArgs) -> PluginModuleHookOutput {
     Ok(None)
+  }
+
+  async fn normal_module_factory_resolve_for_scheme(
+    &self,
+    _ctx: PluginContext,
+    args: ResourceData,
+  ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
+    Ok((args, false))
   }
 
   async fn content_hash(
@@ -93,6 +133,14 @@ pub trait Plugin: Debug + Send + Sync {
     _args: &ContentHashArgs<'_>,
   ) -> PluginContentHashHookOutput {
     Ok(None)
+  }
+
+  async fn chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut ChunkHashArgs<'_>,
+  ) -> PluginChunkHashHookOutput {
+    Ok(())
   }
 
   async fn render_manifest(
@@ -110,6 +158,11 @@ pub trait Plugin: Debug + Send + Sync {
     _args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
     Ok(None)
+  }
+
+  /// webpack `compilation.hooks.chunkAsset`
+  async fn chunk_asset(&mut self, _args: &ChunkAssetArgs) -> Result<()> {
+    Ok(())
   }
 
   // JavascriptModulesPlugin hook
@@ -133,6 +186,15 @@ pub trait Plugin: Debug + Send + Sync {
     _args: &RenderModuleContentArgs,
   ) -> PluginRenderModuleContentOutput {
     Ok(None)
+  }
+
+  // JavascriptModulesPlugin hook
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    _args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    Ok(())
   }
 
   fn additional_chunk_runtime_requirements(
@@ -160,6 +222,14 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_additional(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
+  async fn process_assets_stage_additions(
     &mut self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
@@ -215,6 +285,14 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn process_assets_stage_optimize_hash(
+    &mut self,
+    _ctx: PluginContext,
+    _args: ProcessAssetsArgs<'_>,
+  ) -> PluginProcessAssetsOutput {
+    Ok(())
+  }
+
   async fn process_assets_stage_report(
     &mut self,
     _ctx: PluginContext,
@@ -223,15 +301,48 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: PluginContext,
-    _args: OptimizeChunksArgs,
+    _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     Ok(())
   }
 
+  async fn optimize_modules(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
   async fn optimize_chunk_modules(&mut self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
+    Ok(())
+  }
+
+  async fn before_compile(&mut self) -> Result<()> {
+    Ok(())
+  }
+
+  async fn after_compile(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  async fn finish_modules(&mut self, _modules: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  /// Webpack resolves loaders in `NormalModuleFactory`,
+  /// Rspack resolves it when normalizing configuration.
+  /// So this hook is used to resolve inline loader (inline loader requests).
+  async fn resolve_loader(
+    &self,
+    _compiler_options: &CompilerOptions,
+    _context: &Path,
+    _resolver: &Resolver,
+    _loader_request: &str,
+  ) -> Result<Option<BoxLoader>> {
+    Ok(None)
+  }
+
+  async fn before_loaders(&self, _module: &mut NormalModule) -> Result<()> {
     Ok(())
   }
 
@@ -252,6 +363,10 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn emit(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  async fn asset_emitted(&self, _args: &AssetEmittedArgs) -> Result<()> {
     Ok(())
   }
 
@@ -280,27 +395,21 @@ impl<T: Plugin + 'static> PluginExt for T {
 // }
 
 #[derive(Debug, Clone)]
-pub struct PathData {
-  pub chunk_ukey: ChunkUkey,
-}
-
-#[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
   pub(crate) source: BoxSource,
   filename: String,
-  pub(crate) path_options: PathData,
-  // info?: AssetInfo;
+  pub(crate) info: AssetInfo,
   // pub identifier: String,
   // hash?: string;
   // auxiliary?: boolean;
 }
 
 impl RenderManifestEntry {
-  pub fn new(source: BoxSource, filename: String, path_options: PathData) -> Self {
+  pub fn new(source: BoxSource, filename: String, info: AssetInfo) -> Self {
     Self {
       source,
       filename,
-      path_options,
+      info,
     }
   }
 

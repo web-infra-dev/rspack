@@ -1,0 +1,5 @@
+---
+source: crates/rspack_error/tests/fixtures.rs
+expression: should_not_warn_when_src_format_is_umd
+---
+

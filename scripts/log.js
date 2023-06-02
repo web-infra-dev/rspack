@@ -1,4 +1,5 @@
-const PREFIX = "[x] ";
+// @ts-nocheck
+const PREFIX = "";
 
 const COLOR = {
 	RESET: "\x1b[0m",
@@ -8,7 +9,7 @@ const COLOR = {
 	YELLOW: "\x1b[33m"
 };
 
-const log = {
+export const log = {
 	info(message) {
 		console.log(PREFIX + COLOR.GREEN + message + COLOR.RESET);
 	},
@@ -16,5 +17,3 @@ const log = {
 		console.log(PREFIX + COLOR.RED + message + COLOR.RESET);
 	}
 };
-
-module.exports = log;

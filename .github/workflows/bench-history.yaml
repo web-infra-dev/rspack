@@ -13,21 +13,29 @@ jobs:
   benchmark:
     name: Run Criterion.rs benchmark
     runs-on: [self-hosted, rspack-bench]
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
-      - name: Install protoc
-        uses: arduino/setup-protoc@v1
+      - name: Setup Node16
+        uses: actions/setup-node@v3
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 16
+
       - name: Install toolchain
         run: rustup show
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
       - name: Run benchmark
         run: |
-          set -o pipefail 
+          set -o pipefail
           cargo bench --bench main -- --output-format bencher | tee output.txt
+
+      - name: Run Hmr benchmark
+        run: |
+          corepack enable
           pnpm i
-          ./x build cli:release
+          pnpm -w build:cli:release
           export ROOT_DIR=$(pwd) && cd benchcases/react-refresh && pnpm dev
 
       - name: Store benchmark result

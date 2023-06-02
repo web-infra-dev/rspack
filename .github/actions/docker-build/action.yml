@@ -1,0 +1,42 @@
+name: Single Docker build
+
+description: Docker build for a single target
+
+inputs:
+  target:
+    required: true
+    type: string
+  image:
+    required: true
+    type: string
+  pre:
+    required: false
+    default: ""
+    type: string
+  post:
+    required: false
+    default: ""
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Docker Build ${{ inputs.target }}
+      uses: addnab/docker-run-action@v3
+      with:
+        image: ${{ inputs.image }}
+        options: >
+          --privileged
+          --user 0:0
+          -v ${{ github.workspace }}/.cargo/git/db:/usr/local/cargo/git/db
+          -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache
+          -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index
+          -v ${{ github.workspace }}:/build
+          -w /build
+        run: |
+          set -e
+          ${{ inputs.pre }}
+          rustup target add ${{ inputs.target }}
+          corepack enable
+          RUST_TARGET=${{ inputs.target }} pnpm build:binding:release
+          ${{ inputs.post }}

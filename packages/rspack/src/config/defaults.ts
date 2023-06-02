@@ -8,16 +8,22 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import path from "path";
+import assert from "assert";
 import fs from "fs";
+import path from "path";
+import { isNil } from "../util";
+import { cleverMerge } from "../util/cleverMerge";
+import * as oldBuiltins from "./builtins";
 import {
 	getDefaultTarget,
 	getTargetProperties,
 	getTargetsProperties
 } from "./target";
 import type {
+	AvailableTarget,
 	Context,
 	Experiments,
+	ExternalsPresets,
 	InfrastructureLogging,
 	Mode,
 	ModuleOptions,
@@ -29,20 +35,16 @@ import type {
 	RuleSetRules,
 	SnapshotOptions
 } from "./types";
-import * as oldBuiltins from "./builtins";
-import { cleverMerge } from "../util/cleverMerge";
-import assert from "assert";
-import { isNil } from "../util";
 
 export const applyRspackOptionsDefaults = (
 	options: RspackOptionsNormalized
 ) => {
 	F(options, "context", () => process.cwd());
 	F(options, "target", () => {
-		return getDefaultTarget(options.context!);
+		return getDefaultTarget(options.context!) as AvailableTarget;
 	});
 
-	const { mode, name, target } = options;
+	const { mode, target } = options;
 	assert(!isNil(target));
 
 	let targetProperties =
@@ -70,10 +72,24 @@ export const applyRspackOptionsDefaults = (
 
 	applySnapshotDefaults(options.snapshot, { production });
 
-	applyModuleDefaults(options.module);
+	applyModuleDefaults(options.module, {
+		// syncWebAssembly: options.experiments.syncWebAssembly,
+		asyncWebAssembly: options.experiments.asyncWebAssembly!,
+		css: options.experiments.css!
+	});
 
 	applyOutputDefaults(options.output, {
 		context: options.context!,
+		targetProperties,
+		isAffectedByBrowserslist:
+			target === undefined ||
+			(typeof target === "string" && target.startsWith("browserslist")) ||
+			(Array.isArray(target) &&
+				target.some(target => target.startsWith("browserslist"))),
+		outputModule: options.experiments.outputModule
+	});
+
+	applyExternalsPresetsDefaults(options.externalsPresets, {
 		targetProperties
 	});
 
@@ -128,6 +144,9 @@ const applyInfrastructureLoggingDefaults = (
 const applyExperimentsDefaults = (experiments: Experiments) => {
 	D(experiments, "incrementalRebuild", true);
 	D(experiments, "lazyCompilation", false);
+	D(experiments, "asyncWebAssembly", false);
+	D(experiments, "newSplitChunks", true);
+	D(experiments, "css", true); // we not align with webpack about the default value for better DX
 };
 
 const applySnapshotDefaults = (
@@ -146,7 +165,10 @@ const applySnapshotDefaults = (
 	);
 };
 
-const applyModuleDefaults = (module: ModuleOptions) => {
+const applyModuleDefaults = (
+	module: ModuleOptions,
+	{ asyncWebAssembly, css }: { asyncWebAssembly: boolean; css: boolean }
+) => {
 	F(module.parser!, "asset", () => ({}));
 	F(module.parser!.asset!, "dataUrlCondition", () => ({}));
 	if (typeof module.parser!.asset!.dataUrlCondition === "object") {
@@ -155,15 +177,29 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 
 	A(module, "defaultRules", () => {
 		const esm = {
-			type: "javascript/esm"
+			type: "javascript/esm",
+			resolve: {
+				byDependency: {
+					esm: {
+						fullySpecified: true
+					}
+				}
+			}
 		};
 		const commonjs = {
-			// TODO: this is "javascript/dynamic" in webpack
-			type: "javascript/auto"
+			type: "javascript/dynamic"
 		};
 		const rules: RuleSetRules = [
 			{
+				mimetype: "application/node",
+				type: "javascript/auto"
+			},
+			{
 				test: /\.json$/i,
+				type: "json"
+			},
+			{
+				mimetype: "application/json",
 				type: "json"
 			},
 			{
@@ -172,10 +208,9 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 			},
 			{
 				test: /\.js$/i,
-				// TODO:
-				// descriptionData: {
-				// 	type: "module"
-				// },
+				descriptionData: {
+					type: "module"
+				},
 				...esm
 			},
 			{
@@ -184,19 +219,16 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 			},
 			{
 				test: /\.js$/i,
-				// TODO:
-				// descriptionData: {
-				// 	type: "commonjs"
-				// },
+				descriptionData: {
+					type: "commonjs"
+				},
 				...commonjs
 			},
 			{
-				test: /\.js$/i,
-				// TODO:
-				// descriptionData: {
-				// 	type: "commonjs"
-				// },
-				...commonjs
+				mimetype: {
+					or: ["text/javascript", "application/javascript"]
+				},
+				...esm
 			},
 			{
 				test: /\.jsx$/i,
@@ -211,34 +243,97 @@ const applyModuleDefaults = (module: ModuleOptions) => {
 				type: "tsx"
 			}
 		];
-		const cssRule = {
-			type: "css",
-			resolve: {
-				preferRelative: true
-			}
-		};
-		const cssModulesRule = {
-			type: "css/module"
-		};
+
+		if (asyncWebAssembly) {
+			const wasm = {
+				type: "webassembly/async",
+				rules: [
+					{
+						descriptionData: {
+							type: "module"
+						},
+						resolve: {
+							fullySpecified: true
+						}
+					}
+				]
+			};
+			rules.push({
+				test: /\.wasm$/i,
+				...wasm
+			});
+			rules.push({
+				mimetype: "application/wasm",
+				...wasm
+			});
+		}
+
+		if (css) {
+			const cssRule = {
+				type: "css",
+				resolve: {
+					fullySpecified: true,
+					preferRelative: true
+				}
+			};
+			const cssModulesRule = {
+				type: "css/module",
+				resolve: {
+					fullySpecified: true
+				}
+			};
+			rules.push({
+				test: /\.css$/i,
+				oneOf: [
+					{
+						test: /\.module\.css$/i,
+						...cssModulesRule
+					},
+					{
+						...cssRule
+					}
+				]
+			});
+			rules.push({
+				mimetype: "text/css+module",
+				...cssModulesRule
+			});
+			rules.push({
+				mimetype: "text/css",
+				...cssRule
+			});
+		}
+
 		rules.push({
-			test: /\.css$/i,
+			dependency: "url",
 			oneOf: [
 				{
-					test: /\.module\.css$/i,
-					...cssModulesRule
+					scheme: /^data$/,
+					type: "asset/inline"
 				},
 				{
-					...cssRule
+					type: "asset/resource"
 				}
 			]
 		});
+
 		return rules;
 	});
 };
 
 const applyOutputDefaults = (
 	output: OutputNormalized,
-	{ context, targetProperties: tp }: { context: Context; targetProperties: any }
+	{
+		context,
+		outputModule,
+		targetProperties: tp,
+		isAffectedByBrowserslist
+	}: {
+		context: Context;
+		outputModule?: boolean;
+		targetProperties: any;
+		isAffectedByBrowserslist: boolean;
+	}
 ) => {
 	F(output, "uniqueName", () => {
 		const pkgPath = path.resolve(context, "package.json");
@@ -254,7 +349,11 @@ const applyOutputDefaults = (
 		}
 	});
 
-	D(output, "filename", "[name].js");
+	F(output, "chunkLoadingGlobal", () => "webpackChunk" + output.uniqueName);
+	F(output, "module", () => !!outputModule);
+	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
+	F(output, "iife", () => !output.module);
+
 	F(output, "chunkFilename", () => {
 		const filename = output.filename!;
 		if (typeof filename !== "function") {
@@ -283,17 +382,110 @@ const applyOutputDefaults = (
 		}
 		return "[id].css";
 	});
+	D(
+		output,
+		"hotUpdateChunkFilename",
+		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
+	);
+	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
 	D(output, "assetModuleFilename", "[hash][ext][query]");
+	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
 	F(output, "path", () => path.join(process.cwd(), "dist"));
 	D(
 		output,
 		"publicPath",
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
+	D(output, "hashFunction", "xxhash64");
+	D(output, "hashDigest", "hex");
+	D(output, "hashDigestLength", 16);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));
 	}
+	F(output, "chunkFormat", () => {
+		if (tp) {
+			const helpMessage = isAffectedByBrowserslist
+				? "Make sure that your 'browserslist' includes only platforms that support these features or select an appropriate 'target' to allow selecting a chunk format by default. Alternatively specify the 'output.chunkFormat' directly."
+				: "Select an appropriate 'target' to allow selecting one by default, or specify the 'output.chunkFormat' directly.";
+			if (output.module) {
+				if (tp.dynamicImport) return "module";
+				if (tp.document) return "array-push";
+				throw new Error(
+					"For the selected environment is no default ESM chunk format available:\n" +
+						"ESM exports can be chosen when 'import()' is available.\n" +
+						"JSONP Array push can be chosen when 'document' is available.\n" +
+						helpMessage
+				);
+			} else {
+				if (tp.document) return "array-push";
+				if (tp.require) return "commonjs";
+				if (tp.nodeBuiltins) return "commonjs";
+				if (tp.importScripts) return "array-push";
+				throw new Error(
+					"For the selected environment is no default script chunk format available:\n" +
+						"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
+						"CommonJs exports can be chosen when 'require' or node builtins are available.\n" +
+						helpMessage
+				);
+			}
+		}
+		throw new Error(
+			"Chunk format can't be selected by default when no target is specified"
+		);
+	});
+	F(output, "chunkLoading", () => {
+		if (tp) {
+			switch (output.chunkFormat) {
+				case "array-push":
+					if (tp.document) return "jsonp";
+					if (tp.importScripts) return "import-scripts";
+					break;
+				case "commonjs":
+					if (tp.require) return "require";
+					if (tp.nodeBuiltins) return "async-node";
+					break;
+				case "module":
+					if (tp.dynamicImport) return "import";
+					break;
+			}
+			if (
+				tp.require === null ||
+				tp.nodeBuiltins === null ||
+				tp.document === null ||
+				tp.importScripts === null
+			) {
+				return "universal";
+			}
+		}
+		return false;
+	});
+	A(output, "enabledChunkLoadingTypes", () => {
+		const enabledChunkLoadingTypes = new Set<string>();
+		if (output.chunkLoading) {
+			enabledChunkLoadingTypes.add(output.chunkLoading);
+		}
+		// if (output.workerChunkLoading) {
+		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
+		// }
+		// forEachEntry(desc => {
+		// 	if (desc.chunkLoading) {
+		// 		enabledChunkLoadingTypes.add(desc.chunkLoading);
+		// 	}
+		// });
+		return Array.from(enabledChunkLoadingTypes);
+	});
+	F(output, "wasmLoading", () => {
+		if (tp) {
+			if (tp.fetchWasm) return "fetch";
+			if (tp.nodeBuiltins)
+				return output.module ? "async-node-module" : "async-node";
+			if (tp.nodeBuiltins === null || tp.fetchWasm === null) {
+				return "universal";
+			}
+		}
+		return false;
+	});
 	A(output, "enabledLibraryTypes", () => {
 		const enabledLibraryTypes = [];
 		if (output.library) {
@@ -310,17 +502,63 @@ const applyOutputDefaults = (
 		return "self";
 	});
 	D(output, "importFunctionName", "import");
+	F(output, "clean", () => !!output.clean);
+
+	A(output, "enabledWasmLoadingTypes", () => {
+		const enabledWasmLoadingTypes = new Set<string>();
+		if (output.wasmLoading) {
+			enabledWasmLoadingTypes.add(output.wasmLoading);
+		}
+		// if (output.workerWasmLoading) {
+		// 	enabledWasmLoadingTypes.add(output.workerWasmLoading);
+		// }
+		// forEachEntry(desc => {
+		// 	if (desc.wasmLoading) {
+		// 		enabledWasmLoadingTypes.add(desc.wasmLoading);
+		// 	}
+		// });
+		return Array.from(enabledWasmLoadingTypes);
+	});
+
+	D(output, "crossOriginLoading", false);
+
+	const { trustedTypes } = output;
+	if (trustedTypes) {
+		F(
+			trustedTypes,
+			"policyName",
+			() =>
+				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
+		);
+	}
+	F(output, "sourceMapFilename", () => {
+		return "[file].map";
+	});
+};
+
+const applyExternalsPresetsDefaults = (
+	externalsPresets: ExternalsPresets,
+	{ targetProperties }: { targetProperties: any }
+) => {
+	D(externalsPresets, "web", targetProperties && targetProperties.web);
+	D(externalsPresets, "node", targetProperties && targetProperties.node);
 };
 
 const applyNodeDefaults = (
 	node: Node,
 	{ targetProperties }: { targetProperties: any }
 ) => {
+	if (node === false) return;
+
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
 		return "warn";
 	});
 	F(node, "__dirname", () => {
+		if (targetProperties && targetProperties.node) return "eval-only";
+		return "warn-mock";
+	});
+	F(node, "__filename", () => {
 		if (targetProperties && targetProperties.node) return "eval-only";
 		return "warn-mock";
 	});
@@ -331,12 +569,14 @@ const applyOptimizationDefaults = (
 	{ production, development }: { production: boolean; development: boolean }
 ) => {
 	D(optimization, "removeAvailableModules", true);
+	D(optimization, "removeEmptyChunks", true);
 	F(optimization, "moduleIds", () => {
 		if (production) return "deterministic";
 		return "named";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
 	D(optimization, "runtimeChunk", false);
+	D(optimization, "realContentHash", production);
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => []);
 	const { splitChunks } = optimization;
@@ -390,23 +630,50 @@ const getResolveDefaults = ({
 		if (targetProperties.electron) conditions.push("electron");
 		if (targetProperties.nwjs) conditions.push("nwjs");
 	}
-
-	const jsExtensions = [".tsx", ".jsx", ".ts", ".js", ".json", ".d.ts"];
+	const jsExtensions = [".js", ".json", ".wasm", ".tsx", ".ts", ".jsx"];
 
 	const tp = targetProperties;
 	const browserField =
 		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
 
+	const cjsDeps = () => ({
+		browserField,
+		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
+		conditionNames: ["require", "module", "..."],
+		extensions: [...jsExtensions]
+	});
+	const esmDeps = () => ({
+		browserField,
+		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
+		conditionNames: ["import", "module", "..."],
+		extensions: [...jsExtensions]
+	});
+
 	const resolveOptions: ResolveOptions = {
 		modules: ["node_modules"],
-		// TODO: align with webpack, we need resolve.byDependency!
-		// conditionNames: undefined,
+		conditionNames: conditions,
 		mainFiles: ["index"],
-		// TODO: align with webpack
-		extensions: [...jsExtensions],
+		extensions: [],
 		browserField,
-		// TODO: align with webpack, we need resolve.byDependency!
-		mainFields: [browserField && "browser", "module", "main"].filter(Boolean)
+		mainFields: ["main"].filter(Boolean),
+		exportsFields: ["exports"],
+		byDependency: {
+			wasm: esmDeps(),
+			esm: esmDeps(),
+			url: {
+				preferRelative: true
+			},
+			// worker: {
+			// 	...esmDeps(),
+			// 	preferRelative: true
+			// },
+			commonjs: cjsDeps(),
+			// amd: cjsDeps(),
+			// for backward-compat: loadModule
+			// loader: cjsDeps(),
+			// for backward-compat: Custom Dependency and getResolve without dependencyType
+			unknown: cjsDeps()
+		}
 	};
 
 	return resolveOptions;

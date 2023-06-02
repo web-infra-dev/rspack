@@ -17,9 +17,9 @@ const answer = 103330;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _libJs = __webpack_require__("./lib.js");
+var _lib = __webpack_require__("./lib.js");
 setTimeout(()=>{
-    console.log(_libJs.myanswer);
+    console.log(_lib.myanswer);
 }, 1000);
 if (module.hot?.accept) module.hot.accept((module1)=>{
     console.log("xxx:", module1);
@@ -30,7 +30,7 @@ if (module.hot?.accept) module.hot.accept((module1)=>{
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _appJs = __webpack_require__.ir(__webpack_require__("./app.js"));
+__webpack_require__("./app.js");
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -43,12 +43,13 @@ Object.defineProperty(exports, "myanswer", {
         return myanswer;
     }
 });
-var _answerJs = __webpack_require__("./answer.js");
-const myanswer = _answerJs.answer;
+var _answer = __webpack_require__("./answer.js");
+const myanswer = _answer.answer;
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

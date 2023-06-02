@@ -1,12 +1,8 @@
-use rspack_core::ast::javascript::Context;
 use rspack_core::BuildInfo;
-use swc_core::ecma::ast::{Expr, ExprStmt, Lit, ModuleItem, Stmt, Str};
+use swc_core::ecma::ast::{Expr, ExprStmt, Lit, Stmt, Str};
 use swc_core::ecma::visit::{as_folder, noop_visit_mut_type, Fold, VisitMut};
 
-pub fn strict_mode<'a>(build_info: &'a mut BuildInfo, context: &'a Context) -> impl Fold + 'a {
-  if context.is_esm {
-    build_info.strict = true;
-  }
+pub fn strict_mode(build_info: &mut BuildInfo) -> impl Fold + '_ {
   as_folder(StrictModeVisitor { build_info })
 }
 
@@ -17,13 +13,12 @@ struct StrictModeVisitor<'a> {
 impl<'a> VisitMut for StrictModeVisitor<'a> {
   noop_visit_mut_type!();
 
-  fn visit_mut_module_item(&mut self, module_item: &mut ModuleItem) {
-    if let ModuleItem::Stmt(Stmt::Expr(ExprStmt { expr, .. })) = module_item {
-      if let Expr::Lit(Lit::Str(Str { ref value, .. })) = **expr {
-        if value == "use strict" {
-          self.build_info.strict = true;
-        }
-      }
+  fn visit_mut_stmt(&mut self, stmt: &mut Stmt) {
+    if self.build_info.strict {
+      return;
     }
+    if let Stmt::Expr(ExprStmt { box expr, .. }) = stmt && let Expr::Lit(Lit::Str(Str { ref value, .. })) = expr && value == "use strict" {
+       self.build_info.strict = true;
+      }
   }
 }

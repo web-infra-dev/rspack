@@ -49,14 +49,15 @@ const b = 'foo';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _cJs = __webpack_require__("./c.js");
-_cJs.a;
-_cJs.b;
-_cJs.c;
+var _c = __webpack_require__("./c.js");
+_c.a;
+_c.b;
+_c.c;
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

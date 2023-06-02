@@ -1,7 +1,6 @@
 #![feature(let_chains)]
 #![feature(iter_intersperse)]
 #![feature(box_patterns)]
-#![feature(box_syntax)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 use std::{fmt, sync::Arc};
@@ -20,15 +19,17 @@ pub mod module;
 pub mod parser_and_generator;
 pub use module::*;
 pub use parser_and_generator::*;
-pub mod runtime_globals;
+mod runtime_globals;
 pub use normal_module::*;
+pub use runtime_globals::RuntimeGlobals;
 mod plugin;
 pub use plugin::*;
 mod context_module;
 pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
-
+mod init_fragment;
+pub use init_fragment::*;
 mod module_factory;
 pub use module_factory::*;
 mod normal_module_factory;
@@ -52,7 +53,9 @@ mod build_chunk_graph;
 mod stats;
 pub use stats::*;
 mod runtime;
+mod runtime_module;
 pub use runtime::*;
+pub use runtime_module::*;
 mod code_generation_results;
 pub use code_generation_results::*;
 mod entrypoint;
@@ -65,15 +68,18 @@ mod chunk_group;
 pub use chunk_group::*;
 mod ukey;
 pub use ukey::*;
-
+mod module_graph_module;
+pub use module_graph_module::*;
 pub mod tree_shaking;
 
+pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme};
 pub use rspack_sources;
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceType {
   JavaScript,
   Css,
+  Wasm,
   Asset,
   #[default]
   Unknown,
@@ -92,6 +98,8 @@ pub enum ModuleType {
   JsxEsm,
   Tsx,
   Ts,
+  WasmSync,
+  WasmAsync,
   AssetInline,
   AssetResource,
   AssetSource,
@@ -122,6 +130,31 @@ impl ModuleType {
       ModuleType::Tsx | ModuleType::Jsx | ModuleType::JsxEsm | ModuleType::JsxDynamic
     )
   }
+
+  pub fn is_wasm_like(&self) -> bool {
+    matches!(self, ModuleType::WasmSync | ModuleType::WasmAsync)
+  }
+
+  pub fn is_js_auto(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx
+    )
+  }
+
+  pub fn is_js_esm(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::JsEsm | ModuleType::JsxEsm | ModuleType::Ts | ModuleType::Tsx
+    )
+  }
+
+  pub fn is_js_dynamic(&self) -> bool {
+    matches!(
+      self,
+      ModuleType::JsDynamic | ModuleType::JsxDynamic | ModuleType::Ts | ModuleType::Tsx
+    )
+  }
 }
 
 impl fmt::Display for ModuleType {
@@ -145,6 +178,9 @@ impl fmt::Display for ModuleType {
         ModuleType::CssModule => "css/module",
 
         ModuleType::Json => "json",
+
+        ModuleType::WasmSync => "webassembly/sync",
+        ModuleType::WasmAsync => "webassembly/async",
 
         ModuleType::Asset => "asset",
         ModuleType::AssetSource => "asset/source",
@@ -178,6 +214,9 @@ impl TryFrom<&str> for ModuleType {
 
       "json" => Ok(Self::Json),
 
+      "webassembly/sync" => Ok(Self::WasmSync),
+      "webassembly/async" => Ok(Self::WasmAsync),
+
       "asset" => Ok(Self::Asset),
       "asset/resource" => Ok(Self::AssetResource),
       "asset/source" => Ok(Self::AssetSource),
@@ -190,9 +229,6 @@ impl TryFrom<&str> for ModuleType {
     }
   }
 }
-
-// TODO: use module identifier only later, (ModuleIdentifier, DependencyCategory, Specifier)
-// pub(crate) type VisitedModuleIdentity = HashSet<(ModuleIdentifier, DependencyCategory, String)>;
 
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;

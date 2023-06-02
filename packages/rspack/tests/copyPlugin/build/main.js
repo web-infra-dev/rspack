@@ -14,15 +14,13 @@ function __webpack_require__(moduleId) {
       }
       // Create a new module (and put it into the cache)
       var module = (__webpack_module_cache__[moduleId] = {
-      // no module.loaded needed
-          exports: {}
-        });
-        // Execute the module function
+       exports: {}
+      });
+      // Execute the module function
       __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 // Return the exports of the module
  return module.exports;
 
 }
-var __webpack_exports__ = __webpack_require__('../helpers/enter.js');
-
-})();
+var __webpack_exports__ = __webpack_require__("../helpers/enter.js");
+})()

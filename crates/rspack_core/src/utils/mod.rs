@@ -1,12 +1,14 @@
 use itertools::Itertools;
 use rustc_hash::FxHashMap as HashMap;
-use rustc_hash::FxHashSet as HashSet;
 
 mod hooks;
 pub use hooks::*;
 
 mod identifier;
 pub use identifier::*;
+
+mod comment;
+pub use comment::*;
 
 mod source;
 pub use source::*;
@@ -23,13 +25,8 @@ pub use fast_actions::*;
 mod queue;
 pub use queue::*;
 
-mod ext;
-pub use ext::*;
-
 mod find_graph_roots;
 pub use find_graph_roots::*;
-
-use crate::{ModuleGraph, ModuleIdentifier};
 
 pub fn parse_to_url(url: &str) -> url::Url {
   if !url.contains(':') {
@@ -77,84 +74,11 @@ pub fn join_string_component(mut components: Vec<String>) -> String {
   }
 }
 
-pub fn find_module_graph_roots(
-  modules: Vec<ModuleIdentifier>,
-  module_graph: &ModuleGraph,
-) -> Vec<ModuleIdentifier> {
-  // early exit when there is only a single item
-  if modules.len() <= 1 {
-    return modules;
-  }
-  let mut roots = vec![];
-  let mut graph = petgraph::graphmap::DiGraphMap::new();
-  let mut queue = modules;
-  let mut visited = HashSet::default();
-  // First, we build a graph of all the modules
-  while let Some(module) = queue.pop() {
-    let module = module_graph
-      .module_by_identifier(&module)
-      .expect("module not found");
-    if visited.contains(&module.identifier()) {
-      continue;
-    } else {
-      visited.insert(module.identifier())
-    };
-    let connections = module_graph.get_outgoing_connections(module);
-    for connection in connections {
-      if let Some(from) = &connection.original_module_identifier {
-        graph.add_edge(from, &connection.module_identifier, ());
-      } else {
-        graph.add_node(&connection.module_identifier);
-      }
-      queue.push(connection.module_identifier);
-    }
-  }
-
-  graph
-    .nodes()
-    .into_iter()
-    .filter(|from| {
-      graph
-        .neighbors_directed(*from, petgraph::Direction::Incoming)
-        .count()
-        == 0
-    })
-    .for_each(|from| {
-      roots.push(*from);
-    });
-  roots
-}
-
 pub fn stringify_map(map: &HashMap<String, String>) -> String {
   format!(
     r#"{{{}}}"#,
     map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#""{}": "{}","#,
-          cur,
-          map.get(cur).expect("get key from map")
-        )
-        .as_str()
+      prev + format!(r#""{}": {},"#, cur, map.get(cur).expect("get key from map")).as_str()
     })
   )
-}
-
-pub fn stringify_value_vec_map(map: &HashMap<String, Vec<String>>) -> String {
-  format!(
-    r#"{{{}}}"#,
-    map.keys().sorted().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#""{}": {},"#,
-          cur,
-          stringify_vec(map.get(cur).expect("get key from map"))
-        )
-        .as_str()
-    })
-  )
-}
-
-pub fn stringify_vec(vec: &[String]) -> String {
-  format!("[{}]", vec.iter().map(|s| format!("'{s}'")).join(",  "))
 }

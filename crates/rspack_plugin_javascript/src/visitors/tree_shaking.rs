@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use rspack_core::tree_shaking::visitor::SymbolRef;
 use rspack_core::{
-  CodeGeneratableDeclMappings, DependencyCategory, DependencyType, ModuleGraph, ModuleIdentifier,
+  CodeGeneratableDeclMappings, CompilerOptions, DependencyCategory, DependencyType, ModuleGraph,
+  ModuleIdentifier,
 };
 use rspack_identifier::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_symbol::{BetterId, IndirectTopLevelSymbol, Symbol, SymbolType};
@@ -16,24 +19,30 @@ pub fn tree_shaking_visitor<'a>(
   module_graph: &'a ModuleGraph,
   module_id: Identifier,
   used_symbol_set: &'a HashSet<SymbolRef>,
-  top_level_mark: Mark,
   side_effects_free_modules: &'a IdentifierSet,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
-  helper_mark: Mark,
+  extra_mark: MarkInfo,
+  include_module_ids: &'a IdentifierSet,
+  _options: Arc<CompilerOptions>,
 ) -> impl Fold + 'a {
   TreeShaker {
     module_graph,
     decl_mappings,
     module_identifier: module_id,
     used_symbol_set,
-    top_level_mark,
     module_item_index: 0,
     insert_item_tuple_list: Vec::new(),
     side_effects_free_modules,
     last_module_item_index: 0,
     module_item_map,
-    helper_mark,
+    extra_mark,
+    include_module_ids,
   }
+}
+
+pub struct MarkInfo {
+  pub top_level_mark: Mark,
+  pub helper_mark: Mark,
 }
 
 /// The basic idea of shaking the tree is pretty easy,
@@ -52,14 +61,14 @@ struct TreeShaker<'a> {
   decl_mappings: &'a CodeGeneratableDeclMappings,
   module_identifier: Identifier,
   used_symbol_set: &'a HashSet<SymbolRef>,
-  top_level_mark: Mark,
   /// First element of tuple is the position of body you want to insert with, the second element is the item you want to insert
   insert_item_tuple_list: Vec<(usize, ModuleItem)>,
   module_item_index: usize,
   side_effects_free_modules: &'a IdentifierSet,
   last_module_item_index: usize,
   module_item_map: &'a IdentifierMap<Vec<ModuleItem>>,
-  helper_mark: Mark,
+  extra_mark: MarkInfo,
+  include_module_ids: &'a IdentifierSet,
 }
 
 impl<'a> Fold for TreeShaker<'a> {
@@ -121,7 +130,9 @@ impl<'a> Fold for TreeShaker<'a> {
 impl<'a> TreeShaker<'a> {
   fn crate_virtual_default_symbol(&self) -> Symbol {
     let mut default_ident = quote_ident!("default");
-    default_ident.span = default_ident.span.apply_mark(self.top_level_mark);
+    default_ident.span = default_ident
+      .span
+      .apply_mark(self.extra_mark.top_level_mark);
     Symbol::new(
       self.module_identifier,
       default_ident.to_id().into(),
@@ -148,7 +159,8 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
-    if !mgm.used {
+
+    if !self.include_module_ids.contains(&mgm.module_identifier) {
       return Self::create_empty_stmt_module_item();
     }
     // return ModuleItem::ModuleDecl(ModuleDecl::Import(import));
@@ -167,7 +179,7 @@ impl<'a> TreeShaker<'a> {
             true
           }
           ImportSpecifier::Default(default) => {
-            if default.local.to_id().1.outer() == self.helper_mark {
+            if default.local.to_id().1.outer() == self.extra_mark.helper_mark {
               return true;
             }
             let symbol = SymbolRef::Indirect(IndirectTopLevelSymbol {
@@ -230,6 +242,10 @@ impl<'a> TreeShaker<'a> {
             decl: Decl::Class(class),
           }))
         }
+      }
+      Decl::Using(_) => {
+        // TODO(hyf0): swc bump
+        unimplemented!()
       }
       Decl::Fn(mut func) => {
         let id = func.ident.to_id();
@@ -337,7 +353,7 @@ impl<'a> TreeShaker<'a> {
       .module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .expect("TODO:");
-    if !mgm.used {
+    if !self.include_module_ids.contains(&mgm.module_identifier) {
       Self::create_empty_stmt_module_item()
     } else {
       ModuleItem::ModuleDecl(ModuleDecl::ExportAll(export_all))
@@ -346,7 +362,7 @@ impl<'a> TreeShaker<'a> {
 
   fn custom_fold_named_export(&mut self, mut named: NamedExport) -> ModuleItem {
     if let Some(ref src) = named.src {
-      let before_legnth = named.specifiers.len();
+      let before_length = named.specifiers.len();
       let module_identifier = self
         .resolve_module_identifier(src.value.to_string())
         .expect("TODO:");
@@ -354,7 +370,7 @@ impl<'a> TreeShaker<'a> {
         .module_graph
         .module_graph_module_by_identifier(&module_identifier)
         .expect("TODO:");
-      if !mgm.used {
+      if !self.include_module_ids.contains(&mgm.module_identifier) {
         return Self::create_empty_stmt_module_item();
       }
       let specifiers = named
@@ -393,14 +409,14 @@ impl<'a> TreeShaker<'a> {
       if specifiers.is_empty() && self.side_effects_free_modules.contains(&module_identifier) {
         return Self::create_empty_stmt_module_item();
       }
-      let is_all_used = before_legnth == specifiers.len();
+      let is_all_used = before_length == specifiers.len();
       named.specifiers = specifiers;
       if !is_all_used {
         named.span = DUMMY_SP;
       }
       ModuleItem::ModuleDecl(ModuleDecl::ExportNamed(named))
     } else {
-      let before_legnth = named.specifiers.len();
+      let before_length = named.specifiers.len();
       let specifiers = named
         .specifiers
         .into_iter()
@@ -427,7 +443,7 @@ impl<'a> TreeShaker<'a> {
           },
         })
         .collect::<Vec<_>>();
-      let is_all_used = before_legnth == specifiers.len();
+      let is_all_used = before_length == specifiers.len();
       named.specifiers = specifiers;
       if !is_all_used {
         named.span = DUMMY_SP;
@@ -448,13 +464,11 @@ impl<'a> TreeShaker<'a> {
     } else {
       let decl = match decl.decl {
         DefaultDecl::Class(class) => {
-          let ident = if let Some(ident) = class.ident {
-            ident
-          } else {
+          let ident = class.ident.unwrap_or_else(|| {
             let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
             named.span = named.span.with_ctxt(ctxt);
             named
-          };
+          });
           Decl::Class(ClassDecl {
             ident,
             declare: false,
@@ -462,13 +476,11 @@ impl<'a> TreeShaker<'a> {
           })
         }
         DefaultDecl::Fn(func) => {
-          let ident = if let Some(ident) = func.ident {
-            ident
-          } else {
+          let ident = func.ident.unwrap_or_else(|| {
             let mut named = quote_ident!("__RSPACK_DEFAULT_EXPORT__");
             named.span = named.span.with_ctxt(ctxt);
             named
-          };
+          });
           Decl::Fn(FnDecl {
             ident,
             declare: false,

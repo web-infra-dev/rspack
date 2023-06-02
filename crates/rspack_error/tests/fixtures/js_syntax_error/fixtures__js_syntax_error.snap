@@ -3,12 +3,6 @@ source: crates/rspack_error/tests/fixtures.rs
 expression: js_syntax_error
 ---
 error[javascript]: JavaScript parsing error
-  ┌─ tests/fixtures/js_syntax_error/index.js:2:8
-  │
-2 │ const  D {
-  │        ^ 'const' declarations must be initialized
-
-error[javascript]: JavaScript parsing error
   ┌─ tests/fixtures/js_syntax_error/index.js:2:10
   │
 2 │ const  D {

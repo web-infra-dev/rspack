@@ -1,12 +1,17 @@
 use std::collections::hash_map::Entry;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
+use std::ops::{Deref, DerefMut};
 
+use anymap::CloneAny;
 use rspack_error::{internal_error, Result};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_identifier::IdentifierMap;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use xxhash_rust::xxh3::Xxh3;
+use rustc_hash::FxHashMap as HashMap;
 
-use crate::{AstOrSource, ModuleIdentifier, RuntimeSpec, RuntimeSpecMap, SourceType};
+use crate::{
+  AssetInfo, AstOrSource, ChunkInitFragments, ModuleIdentifier, RuntimeGlobals, RuntimeSpec,
+  RuntimeSpecMap, SourceType,
+};
 
 #[derive(Debug, Clone)]
 pub struct GenerationResult {
@@ -19,12 +24,78 @@ impl From<AstOrSource> for GenerationResult {
   }
 }
 
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataUrl {
+  inner: String,
+}
+
+impl CodeGenerationDataUrl {
+  pub fn new(inner: String) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &str {
+    &self.inner
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataFilename {
+  inner: String,
+}
+
+impl CodeGenerationDataFilename {
+  pub fn new(inner: String) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &str {
+    &self.inner
+  }
+}
+
+#[derive(Clone, Debug)]
+pub struct CodeGenerationDataAssetInfo {
+  inner: AssetInfo,
+}
+
+impl CodeGenerationDataAssetInfo {
+  pub fn new(inner: AssetInfo) -> Self {
+    Self { inner }
+  }
+
+  pub fn inner(&self) -> &AssetInfo {
+    &self.inner
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CodeGenerationData {
+  inner: anymap::Map<dyn CloneAny + Send + Sync>,
+}
+
+impl Deref for CodeGenerationData {
+  type Target = anymap::Map<dyn CloneAny + Send + Sync>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.inner
+  }
+}
+
+impl DerefMut for CodeGenerationData {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.inner
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
   inner: HashMap<SourceType, GenerationResult>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
-  pub data: HashMap<String, String>,
-  pub runtime_requirements: HashSet<&'static str>,
+  pub data: CodeGenerationData,
+  pub chunk_init_fragments: ChunkInitFragments,
+  pub runtime_requirements: RuntimeGlobals,
+  pub hash: Option<RspackHashDigest>,
 }
 
 impl CodeGenerationResult {
@@ -58,6 +129,26 @@ impl CodeGenerationResult {
   pub fn add(&mut self, source_type: SourceType, generation_result: impl Into<GenerationResult>) {
     let result = self.inner.insert(source_type, generation_result.into());
     debug_assert!(result.is_none());
+  }
+
+  pub fn set_hash(
+    &mut self,
+    hash_function: &HashFunction,
+    hash_digest: &HashDigest,
+    hash_salt: &HashSalt,
+  ) {
+    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+    for (source_type, generation_result) in &self.inner {
+      source_type.hash(&mut hasher);
+      if let Some(source) = generation_result.ast_or_source.as_source() {
+        source.hash(&mut hasher);
+      }
+    }
+    for (k, v) in &self.chunk_init_fragments {
+      k.hash(&mut hasher);
+      v.hash(&mut hasher);
+    }
+    self.hash = Some(hasher.digest(hash_digest));
   }
 }
 
@@ -141,31 +232,26 @@ impl CodeGenerationResults {
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> HashSet<&'static str> {
+  ) -> RuntimeGlobals {
     match self.get(module_identifier, runtime) {
-      Ok(result) => result.runtime_requirements.clone(),
+      Ok(result) => result.runtime_requirements,
       Err(_) => {
         eprint!("Failed to get runtime requirements for {module_identifier}");
-        HashSet::default()
+        Default::default()
       }
     }
   }
 
+  #[allow(clippy::unwrap_in_result)]
   pub fn get_hash(
     &self,
     module_identifier: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-  ) -> u64 {
+  ) -> Option<&RspackHashDigest> {
     let code_generation_result = self
       .get(module_identifier, runtime)
       .expect("should have code generation result");
-    let mut hash = Xxh3::default();
-    for (source_type, generation_result) in code_generation_result.inner() {
-      source_type.hash(&mut hash);
-      if let Some(source) = generation_result.ast_or_source.as_source() {
-        source.hash(&mut hash);
-      }
-    }
-    hash.finish()
+
+    code_generation_result.hash.as_ref()
   }
 }

@@ -4,7 +4,7 @@ use rspack_error::{
   },
   Result,
 };
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   BoxModule, Chunk, ChunkGroupUkey, Compilation, ModuleIdentifier, ModuleType, SourceType,
@@ -30,7 +30,7 @@ impl<'compilation> Stats<'compilation> {
     let mut displayer = StringDiagnosticDisplay::default().with_sorted(sorted);
     let warnings = displayer.emit_batch_diagnostic(self.compilation.get_warnings())?;
     let errors = displayer.emit_batch_diagnostic(self.compilation.get_errors())?;
-    Ok(warnings + &errors)
+    Ok(format!("{warnings}{errors}"))
   }
 }
 
@@ -44,27 +44,32 @@ impl Stats<'_> {
       }
     }
 
-    let mut assets: HashMap<&String, StatsAsset> =
-      HashMap::from_iter(self.compilation.assets.iter().filter_map(|(name, asset)| {
-        asset.get_source().map(|source| {
-          (
-            name,
-            StatsAsset {
-              r#type: "asset",
-              name: name.clone(),
-              size: source.size() as f64,
-              chunks: Vec::new(),
-              chunk_names: Vec::new(),
-              info: StatsAssetInfo {
-                development: asset.info.development,
-                hot_module_replacement: asset.info.hot_module_replacement,
+    let mut assets: HashMap<&String, StatsAsset> = HashMap::from_iter(
+      self
+        .compilation
+        .assets()
+        .iter()
+        .filter_map(|(name, asset)| {
+          asset.get_source().map(|source| {
+            (
+              name,
+              StatsAsset {
+                r#type: "asset",
+                name: name.clone(),
+                size: source.size() as f64,
+                chunks: Vec::new(),
+                chunk_names: Vec::new(),
+                info: StatsAssetInfo {
+                  development: asset.info.development,
+                  hot_module_replacement: asset.info.hot_module_replacement,
+                },
+                emitted: self.compilation.emitted_assets.contains(name),
               },
-              emitted: self.compilation.emitted_assets.contains(name),
-            },
-          )
-        })
-      }));
-    for asset in self.compilation.assets.values() {
+            )
+          })
+        }),
+    );
+    for asset in self.compilation.assets().values() {
       if let Some(source_map) = &asset.get_info().related.source_map {
         assets.remove(source_map);
       }
@@ -84,7 +89,15 @@ impl Stats<'_> {
       }
     }
     let mut assets: Vec<StatsAsset> = assets.into_values().collect();
-    assets.sort_unstable_by(|a, b| b.size.partial_cmp(&a.size).expect("size should not be NAN"));
+    assets.sort_unstable_by(|a, b| {
+      if b.size == a.size {
+        // a to z
+        a.name.cmp(&b.name)
+      } else {
+        // big to small
+        b.size.total_cmp(&a.size)
+      }
+    });
 
     let mut assets_by_chunk_name: HashMap<String, Vec<String>> = HashMap::default();
     for (file, chunks) in compilation_file_to_chunks {
@@ -109,116 +122,60 @@ impl Stats<'_> {
     (assets, assets_by_chunk_name)
   }
 
-  pub fn get_modules(&self, show_reasons: bool) -> Result<Vec<StatsModule>> {
+  pub fn get_modules(
+    &self,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+  ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
-      .map(|module| {
-        let identifier = module.identifier();
-        let mgm = self
-          .compilation
-          .module_graph
-          .module_graph_module_by_identifier(&identifier)
-          .unwrap_or_else(|| {
-            panic!("Could not find ModuleGraphModule by identifier: {identifier:?}")
-          });
-
-        let issuer = self.compilation.module_graph.get_issuer(module);
-        let (issuer_name, issuer_id) = issuer
-          .map(|i| get_stats_module_name_and_id(i, self.compilation))
-          .unzip();
-        let mut issuer_path = Vec::new();
-        let mut current_issuer = issuer;
-        while let Some(i) = current_issuer {
-          let (name, id) = get_stats_module_name_and_id(i, self.compilation);
-          issuer_path.push(StatsModuleIssuer {
-            identifier: i.identifier().to_string(),
-            name,
-            id,
-          });
-          current_issuer = self.compilation.module_graph.get_issuer(i);
-        }
-        issuer_path.reverse();
-
-        let reasons = show_reasons
-          .then(|| -> Result<_> {
-            let mut reasons: Vec<StatsModuleReason> = mgm
-              .incoming_connections_unordered(&self.compilation.module_graph)?
-              .map(|connection| {
-                let (module_name, module_id) = connection
-                  .original_module_identifier
-                  .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
-                  .map(|m| get_stats_module_name_and_id(m, self.compilation))
-                  .unzip();
-                StatsModuleReason {
-                  module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
-                  module_name,
-                  module_id,
-                }
-              })
-              .collect();
-            reasons.sort_unstable_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
-            Ok(reasons)
-          })
-          .transpose()?;
-
-        let mut chunks: Vec<String> = self
-          .compilation
-          .chunk_graph
-          .get_chunk_graph_module(mgm.module_identifier)
-          .chunks
-          .iter()
-          .map(|k| {
-            self
-              .compilation
-              .chunk_by_ukey
-              .get(k)
-              .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
-              .expect_id()
-              .to_string()
-          })
-          .collect();
-        chunks.sort_unstable();
-
-        Ok(StatsModule {
-          r#type: "module",
-          module_type: *module.module_type(),
-          identifier,
-          name: module
-            .readable_identifier(&self.compilation.options.context)
-            .into(),
-          id: mgm.id(&self.compilation.chunk_graph).to_string(),
-          chunks,
-          size: module.size(&SourceType::JavaScript),
-          issuer: issuer.map(|i| i.identifier().to_string()),
-          issuer_name,
-          issuer_id,
-          issuer_path,
-          reasons,
-        })
-      })
+      .values()
+      .map(|module| self.get_module(module, reasons, module_assets, nested_modules))
       .collect::<Result<_>>()?;
-    modules.sort_unstable_by(|a, b| {
-      if a.name.len() != b.name.len() {
-        a.name.len().cmp(&b.name.len())
-      } else {
-        a.name.cmp(&b.name)
-      }
-    }); // TODO: sort by module.depth
+    Self::sort_modules(&mut modules);
     Ok(modules)
   }
 
-  pub fn get_chunks(&self) -> Vec<StatsChunk> {
+  pub fn get_chunks(
+    &self,
+    chunk_modules: bool,
+    chunk_relations: bool,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+  ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
       .chunk_by_ukey
       .values()
-      .into_iter()
-      .map(|c| {
+      .map(|c| -> Result<_> {
         let mut files = Vec::from_iter(c.files.iter().cloned());
         files.sort_unstable();
-        StatsChunk {
+        let chunk_modules = if chunk_modules {
+          let chunk_modules = self
+            .compilation
+            .chunk_graph
+            .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
+          let mut chunk_modules = chunk_modules
+            .into_iter()
+            .map(|m| self.get_module(m, reasons, module_assets, nested_modules))
+            .collect::<Result<Vec<_>>>()?;
+          Self::sort_modules(&mut chunk_modules);
+          Some(chunk_modules)
+        } else {
+          None
+        };
+        let (parents, children, siblings) = if let Some((parents, children, siblings)) =
+          chunk_relations.then(|| self.get_chunk_relations(c))
+        {
+          (Some(parents), Some(children), Some(siblings))
+        } else {
+          (None, None, None)
+        };
+        Ok(StatsChunk {
           r#type: "chunk",
           files,
           id: c.expect_id().to_string(),
@@ -229,11 +186,15 @@ impl Stats<'_> {
             .compilation
             .chunk_graph
             .get_chunk_modules_size(&c.ukey, &self.compilation.module_graph),
-        }
+          modules: chunk_modules,
+          parents,
+          children,
+          siblings,
+        })
       })
-      .collect();
+      .collect::<Result<_>>()?;
     chunks.sort_by_cached_key(|v| v.id.to_string());
-    chunks
+    Ok(chunks)
   }
 
   fn get_chunk_group(&self, name: &str, ukey: &ChunkGroupUkey) -> StatsChunkGroup {
@@ -242,7 +203,7 @@ impl Stats<'_> {
       .chunk_group_by_ukey
       .get(ukey)
       .expect("compilation.chunk_group_by_ukey should have ukey from entrypoint");
-    let mut chunks: Vec<String> = cg
+    let chunks: Vec<String> = cg
       .chunks
       .iter()
       .map(|c| {
@@ -254,8 +215,7 @@ impl Stats<'_> {
       })
       .map(|c| c.expect_id().to_string())
       .collect();
-    chunks.sort_unstable();
-    let mut assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
+    let assets = cg.chunks.iter().fold(Vec::new(), |mut acc, c| {
       let chunk = self
         .compilation
         .chunk_by_ukey
@@ -275,7 +235,6 @@ impl Stats<'_> {
       }
       acc
     });
-    assets.sort_by_cached_key(|v| v.name.to_string());
     StatsChunkGroup {
       name: name.to_string(),
       chunks,
@@ -285,14 +244,12 @@ impl Stats<'_> {
   }
 
   pub fn get_entrypoints(&self) -> Vec<StatsChunkGroup> {
-    let mut entrypoints: Vec<StatsChunkGroup> = self
+    self
       .compilation
       .entrypoints
       .iter()
       .map(|(name, ukey)| self.get_chunk_group(name, ukey))
-      .collect();
-    entrypoints.sort_by_cached_key(|e| e.name.to_string());
-    entrypoints
+      .collect()
   }
 
   pub fn get_named_chunk_groups(&self) -> Vec<StatsChunkGroup> {
@@ -312,6 +269,7 @@ impl Stats<'_> {
       .compilation
       .get_errors()
       .map(|d| StatsError {
+        title: d.title.clone(),
         message: d.message.clone(),
         formatted: diagnostic_displayer.emit_diagnostic(d).expect("TODO:"),
       })
@@ -330,28 +288,199 @@ impl Stats<'_> {
       .collect()
   }
 
-  pub fn get_hash(&self) -> String {
-    self.compilation.hash.to_owned()
+  pub fn get_hash(&self) -> Option<&str> {
+    self.compilation.get_hash()
+  }
+
+  fn sort_modules(modules: &mut [StatsModule]) {
+    // TODO: sort by module.depth
+    modules.sort_unstable_by(|a, b| {
+      if a.name.len() != b.name.len() {
+        a.name.len().cmp(&b.name.len())
+      } else {
+        a.name.cmp(&b.name)
+      }
+    });
+  }
+
+  fn get_module(
+    &self,
+    module: &BoxModule,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+  ) -> Result<StatsModule> {
+    let identifier = module.identifier();
+    let mgm = self
+      .compilation
+      .module_graph
+      .module_graph_module_by_identifier(&identifier)
+      .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
+
+    let issuer = self.compilation.module_graph.get_issuer(module);
+    let (issuer_name, issuer_id) = issuer
+      .map(|i| get_stats_module_name_and_id(i, self.compilation))
+      .unzip();
+    let mut issuer_path = Vec::new();
+    let mut current_issuer = issuer;
+    while let Some(i) = current_issuer {
+      let (name, id) = get_stats_module_name_and_id(i, self.compilation);
+      issuer_path.push(StatsModuleIssuer {
+        identifier: i.identifier().to_string(),
+        name,
+        id,
+      });
+      current_issuer = self.compilation.module_graph.get_issuer(i);
+    }
+    issuer_path.reverse();
+
+    let reasons = reasons
+      .then(|| -> Result<_> {
+        let mut reasons: Vec<StatsModuleReason> = mgm
+          .incoming_connections_unordered(&self.compilation.module_graph)?
+          .map(|connection| {
+            let (module_name, module_id) = connection
+              .original_module_identifier
+              .and_then(|i| self.compilation.module_graph.module_by_identifier(&i))
+              .map(|m| get_stats_module_name_and_id(m, self.compilation))
+              .unzip();
+            let dependency = self
+              .compilation
+              .module_graph
+              .dependency_by_id(&connection.dependency_id);
+
+            let r#type = dependency.map(|d| d.dependency_type().to_string());
+
+            let user_request = dependency.map(|d| d.user_request().to_string());
+            StatsModuleReason {
+              module_identifier: connection.original_module_identifier.map(|i| i.to_string()),
+              module_name,
+              module_id: module_id.and_then(|i| i),
+              r#type,
+              user_request,
+            }
+          })
+          .collect();
+        reasons.sort_unstable_by(|a, b| a.module_identifier.cmp(&b.module_identifier));
+        Ok(reasons)
+      })
+      .transpose()?;
+
+    let mut chunks: Vec<String> = self
+      .compilation
+      .chunk_graph
+      .get_chunk_graph_module(mgm.module_identifier)
+      .chunks
+      .iter()
+      .map(|k| {
+        self
+          .compilation
+          .chunk_by_ukey
+          .get(k)
+          .unwrap_or_else(|| panic!("Could not find chunk by ukey: {k:?}"))
+          .expect_id()
+          .to_string()
+      })
+      .collect();
+    chunks.sort_unstable();
+
+    let assets = module_assets.then(|| {
+      let mut assets: Vec<_> = mgm
+        .build_info
+        .as_ref()
+        .map(|info| info.asset_filenames.iter().map(|i| i.to_string()).collect())
+        .unwrap_or_default();
+      assets.sort();
+      assets
+    });
+
+    // TODO: a placeholder for concatenation modules
+    let modules = nested_modules.then(Vec::new);
+
+    Ok(StatsModule {
+      r#type: "module",
+      module_type: *module.module_type(),
+      identifier,
+      name: module
+        .readable_identifier(&self.compilation.options.context)
+        .into(),
+      id: self
+        .compilation
+        .chunk_graph
+        .get_module_id(identifier)
+        .clone(),
+      chunks,
+      size: module.size(&SourceType::JavaScript),
+      issuer: issuer.map(|i| i.identifier().to_string()),
+      issuer_name,
+      issuer_id: issuer_id.and_then(|i| i),
+      issuer_path,
+      reasons,
+      assets,
+      modules,
+    })
+  }
+
+  fn get_chunk_relations(&self, chunk: &Chunk) -> (Vec<String>, Vec<String>, Vec<String>) {
+    let mut parents = HashSet::default();
+    let mut children = HashSet::default();
+    let mut siblings = HashSet::default();
+    for cg in &chunk.groups {
+      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
+        for p in &cg.parents {
+          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
+            for c in &pg.chunks {
+              if let Some(c) = self.compilation.chunk_by_ukey.get(c) && let Some(id) = &c.id {
+                parents.insert(id.to_string());
+              }
+            }
+          }
+        }
+      }
+      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
+        for p in &cg.children {
+          if let Some(pg) = self.compilation.chunk_group_by_ukey.get(p) {
+            for c in &pg.chunks {
+              if let Some(c) = self.compilation.chunk_by_ukey.get(c) && let Some(id) = &c.id {
+                children.insert(id.to_string());
+              }
+            }
+          }
+        }
+      }
+      if let Some(cg) = self.compilation.chunk_group_by_ukey.get(cg) {
+        for c in &cg.chunks {
+          if let Some(c) = self.compilation.chunk_by_ukey.get(c) && c.id != chunk.id && let Some(id) = &c.id  {
+            siblings.insert(id.to_string());
+          }
+        }
+      }
+    }
+    let mut parents = Vec::from_iter(parents.into_iter());
+    let mut children = Vec::from_iter(children.into_iter());
+    let mut siblings = Vec::from_iter(siblings.into_iter());
+    parents.sort();
+    children.sort();
+    siblings.sort();
+    (parents, children, siblings)
   }
 }
 
-fn get_stats_module_name_and_id(module: &BoxModule, compilation: &Compilation) -> (String, String) {
+fn get_stats_module_name_and_id(
+  module: &BoxModule,
+  compilation: &Compilation,
+) -> (String, Option<String>) {
   let identifier = module.identifier();
-  let mgm = compilation
-    .module_graph
-    .module_graph_module_by_identifier(&identifier)
-    .unwrap_or_else(|| {
-      panic!("module_graph.module_graph_module_by_identifier({identifier:?}) failed")
-    });
   let name = module.readable_identifier(&compilation.options.context);
-  let id = mgm.id(&compilation.chunk_graph);
-  (name.to_string(), id.to_string())
+  let id = compilation.chunk_graph.get_module_id(identifier).to_owned();
+  (name.to_string(), id)
 }
 
 #[derive(Debug)]
 pub struct StatsError {
   pub message: String,
   pub formatted: String,
+  pub title: String,
 }
 
 #[derive(Debug)]
@@ -389,7 +518,7 @@ pub struct StatsModule {
   pub module_type: ModuleType,
   pub identifier: ModuleIdentifier,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
   pub chunks: Vec<String>,
   pub size: f64,
   pub issuer: Option<String>,
@@ -397,6 +526,8 @@ pub struct StatsModule {
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<StatsModuleIssuer>,
   pub reasons: Option<Vec<StatsModuleReason>>,
+  pub assets: Option<Vec<String>>,
+  pub modules: Option<Vec<StatsModule>>,
 }
 
 #[derive(Debug)]
@@ -408,6 +539,10 @@ pub struct StatsChunk {
   pub initial: bool,
   pub names: Vec<String>,
   pub size: f64,
+  pub modules: Option<Vec<StatsModule>>,
+  pub parents: Option<Vec<String>>,
+  pub children: Option<Vec<String>>,
+  pub siblings: Option<Vec<String>>,
 }
 
 #[derive(Debug)]
@@ -428,7 +563,7 @@ pub struct StatsChunkGroup {
 pub struct StatsModuleIssuer {
   pub identifier: String,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
 }
 
 #[derive(Debug)]
@@ -436,4 +571,6 @@ pub struct StatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub r#type: Option<String>,
+  pub user_request: Option<String>,
 }

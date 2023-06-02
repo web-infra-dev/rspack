@@ -1,4 +1,5 @@
 use std::{
+  cell::RefCell,
   future::Future,
   pin::Pin,
   task::{Context, Poll},
@@ -42,19 +43,26 @@ pub mod PanicStrategy {
 
 #[inline]
 fn panic_hook_handler<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> R {
-  let prev_hook = if S::is_suppressed() {
-    let prev = Some(std::panic::take_hook());
-    std::panic::set_hook(Box::new(|_| {}));
-    prev
-  } else {
-    None
-  };
+  let prev = std::panic::take_hook();
+  std::panic::set_hook(Box::new(move |info| {
+    PANIC_INFO_AND_BACKTRACE.with(|bt| {
+      *bt.borrow_mut() = Some((
+        info.to_string(),
+        std::backtrace::Backtrace::force_capture().to_string(),
+      ));
+    });
+    if !S::is_suppressed() {
+      prev(info);
+    }
+  }));
   let result = f();
-  if let Some(prev_hook) = prev_hook {
-    std::panic::set_hook(prev_hook);
-  }
+  let _ = std::panic::take_hook();
 
   result
+}
+
+thread_local! {
+  static PANIC_INFO_AND_BACKTRACE: RefCell<Option<(String, String)>> = RefCell::new(None);
 }
 
 pub fn catch_unwind<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> Result<R> {
@@ -62,13 +70,25 @@ pub fn catch_unwind<S: PanicStrategy::S, R>(f: impl FnOnce() -> R) -> Result<R> 
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
   }) {
     Ok(res) => Ok(res),
-    Err(cause) => match cause.downcast_ref::<&'static str>() {
-      None => match cause.downcast_ref::<String>() {
-        None => Err(internal_error!("Unknown panic message")),
-        Some(message) => Err(internal_error!("{message}")),
-      },
-      Some(message) => Err(internal_error!("{message}")),
-    },
+    Err(cause) => {
+      let (info, backtrace) = PANIC_INFO_AND_BACKTRACE
+        .with(|b| b.borrow_mut().take())
+        .unwrap_or_default();
+
+      match cause.downcast_ref::<&'static str>() {
+        None => match cause.downcast_ref::<String>() {
+          None => Err(internal_error!(
+            "Unknown fatal error.\nRaw: {info}\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
+          )),
+          Some(message) => Err(internal_error!(
+            "{message}.\nRaw: {info}\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
+          )),
+        },
+        Some(message) => Err(internal_error!(
+          "{message}.\nRaw: {info}\n{GENERIC_FATAL_MESSAGE}\n\n{backtrace}"
+        )),
+      }
+    }
   }
 }
 
@@ -95,3 +115,6 @@ impl<F: Future + Send + 'static> Future for CatchUnwindFuture<F> {
     }
   }
 }
+
+const GENERIC_FATAL_MESSAGE: &str =
+  "This is not expected, please file an issue at https://github.com/web-infra-dev/rspack/issues.";

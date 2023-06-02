@@ -10,6 +10,7 @@ use std::{
 };
 
 use colored::Colorize;
+use derive_builder::Builder;
 use glob::glob;
 use serde::{Deserialize, Serialize};
 use serde_json;
@@ -20,16 +21,11 @@ use crate::{
   terminal_inline::diff_and_print,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub enum Mode {
   Strict,
+  #[default]
   Partial,
-}
-
-impl Default for Mode {
-  fn default() -> Self {
-    Mode::Partial
-  }
 }
 
 #[derive(Debug, Default)]
@@ -630,7 +626,7 @@ pub fn assert(p: PathBuf) {
 //     };
 
 //     /*
-//      * there is a misssing in the actual dir
+//      * there is a missing in the actual dir
 //      */
 //     let mut p = cwd;
 //     p.push("fixtures/diff/missing");

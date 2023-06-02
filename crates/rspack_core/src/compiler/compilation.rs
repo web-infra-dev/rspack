@@ -1,34 +1,30 @@
 use std::{
   fmt::Debug,
-  hash::{BuildHasherDefault, Hash, Hasher},
+  hash::{BuildHasherDefault, Hash},
   path::PathBuf,
   sync::{
     atomic::{AtomicBool, Ordering},
-    // time::Instant,
     Arc,
   },
 };
 
 use dashmap::DashSet;
-use indexmap::IndexSet;
-use rayon::prelude::{
-  IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge, ParallelIterator,
-};
+use indexmap::{IndexMap, IndexSet};
+use itertools::Itertools;
+use rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_database::Database;
 use rspack_error::{
   internal_error, CatchUnwindFuture, Diagnostic, Result, Severity, TWithDiagnosticArray,
 };
 use rspack_futures::FuturesResults;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{BoxSource, CachedSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
-use xxhash_rust::xxh3::Xxh3;
 
-#[cfg(debug_assertions)]
-use crate::tree_shaking::visitor::TreeShakingResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -36,15 +32,17 @@ use crate::{
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   utils::fast_drop,
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
-  BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkGraph,
-  ChunkGroup, ChunkGroupUkey, ChunkKind, ChunkUkey, CleanQueue, CleanTask, CleanTaskResult,
-  CodeGenerationResult, CodeGenerationResults, CompilerOptions, ContentHashArgs, DependencyId,
-  EntryDependency, EntryItem, EntryOptions, Entrypoint, FactorizeQueue, FactorizeTask,
-  FactorizeTaskResult, LoaderRunnerRunner, Module, ModuleGraph, ModuleIdentifier, ModuleType,
-  NormalModuleAstOrSource, ProcessAssetsArgs, ProcessDependenciesQueue, ProcessDependenciesResult,
-  ProcessDependenciesTask, RenderManifestArgs, Resolve, RuntimeModule, SharedPluginDriver, Stats,
+  BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
+  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
+  ContentHashArgs, DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, NormalModuleAstOrSource, PathData, ProcessAssetsArgs,
+  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
+  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats,
   TaskResult, WorkerTask,
 };
+use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
 #[derive(Debug)]
 pub struct EntryData {
@@ -53,10 +51,15 @@ pub struct EntryData {
   pub options: EntryOptions,
 }
 
+pub type BuildDependency = (
+  DependencyId,
+  Option<ModuleIdentifier>, /* parent module */
+);
+
 #[derive(Debug)]
 pub enum SetupMakeParam {
   ModifiedFiles(HashSet<PathBuf>),
-  ForceBuildDeps(HashSet<DependencyId>),
+  ForceBuildDeps(HashSet<BuildDependency>),
 }
 
 #[derive(Debug)]
@@ -65,19 +68,20 @@ pub struct Compilation {
   entries: BundleEntries,
   pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
   pub module_graph: ModuleGraph,
-  pub make_failed_dependencies: HashSet<DependencyId>,
+  pub make_failed_dependencies: HashSet<BuildDependency>,
+  pub make_failed_module: HashSet<ModuleIdentifier>,
   pub has_module_import_export_change: bool,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
-  pub runtime_module_hashes: IdentifierMap<u64>,
+  pub runtime_module_code_generation_results: IdentifierMap<(RspackHashDigest, BoxSource)>,
   pub chunk_graph: ChunkGraph,
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
-  pub entrypoints: HashMap<String, ChunkGroupUkey>,
-  pub assets: CompilationAssets,
+  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
   pub plugin_driver: SharedPluginDriver,
-  pub(crate) loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub entry_module_identifiers: IdentifierSet,
@@ -85,17 +89,17 @@ pub struct Compilation {
   pub used_symbol_ref: HashSet<SymbolRef>,
   /// Collecting all module that need to skip in tree-shaking ast modification phase
   pub bailout_module_identifiers: IdentifierMap<BailoutFlag>,
-  #[cfg(debug_assertions)]
-  pub tree_shaking_result: IdentifierMap<TreeShakingResult>,
+  pub optimize_analyze_result_map: IdentifierMap<OptimizeAnalyzeResult>,
 
   pub code_generation_results: CodeGenerationResults,
   pub code_generated_modules: IdentifierSet,
   pub cache: Arc<Cache>,
   pub code_splitting_cache: CodeSplittingCache,
-  pub hash: String,
+  pub hash: Option<RspackHashDigest>,
   // lazy compilation visit module
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub used_chunk_ids: HashSet<String>,
+  pub include_module_ids: IdentifierSet,
 
   pub file_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
   pub context_dependencies: IndexSet<PathBuf, BuildHasherDefault<FxHasher>>,
@@ -112,16 +116,17 @@ impl Compilation {
     entries: BundleEntries,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
-    loader_runner_runner: Arc<LoaderRunnerRunner>,
+    resolver_factory: Arc<ResolverFactory>,
     cache: Arc<Cache>,
   ) -> Self {
     Self {
       options,
       module_graph,
       make_failed_dependencies: HashSet::default(),
+      make_failed_module: HashSet::default(),
       has_module_import_export_change: true,
       runtime_modules: Default::default(),
-      runtime_module_hashes: Default::default(),
+      runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
       entry_dependencies: Default::default(),
@@ -132,13 +137,12 @@ impl Compilation {
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
       plugin_driver,
-      loader_runner_runner,
+      resolver_factory,
       named_chunks: Default::default(),
       named_chunk_groups: Default::default(),
       entry_module_identifiers: IdentifierSet::default(),
       used_symbol_ref: HashSet::default(),
-      #[cfg(debug_assertions)]
-      tree_shaking_result: IdentifierMap::default(),
+      optimize_analyze_result_map: IdentifierMap::default(),
       bailout_module_identifiers: IdentifierMap::default(),
 
       code_generation_results: Default::default(),
@@ -146,7 +150,7 @@ impl Compilation {
 
       cache,
       code_splitting_cache: Default::default(),
-      hash: Default::default(),
+      hash: None,
       lazy_visit_modules: Default::default(),
       used_chunk_ids: Default::default(),
 
@@ -156,6 +160,7 @@ impl Compilation {
       build_dependencies: Default::default(),
       side_effects_free_modules: IdentifierSet::default(),
       module_item_map: IdentifierMap::default(),
+      include_module_ids: IdentifierSet::default(),
     }
   }
 
@@ -166,20 +171,30 @@ impl Compilation {
   pub fn update_asset(
     &mut self,
     filename: &str,
-    updater: impl FnOnce(&mut BoxSource, &mut AssetInfo) -> Result<()>,
+    updater: impl FnOnce(BoxSource, AssetInfo) -> Result<(BoxSource, AssetInfo)>,
   ) -> Result<()> {
     // Safety: we don't move anything from compilation
     let assets = &mut self.assets;
 
-    match assets.get_mut(filename) {
+    let (new_source, new_info) = match assets.remove(filename) {
       Some(CompilationAsset {
         source: Some(source),
         info,
-      }) => updater(source, info),
-      _ => Err(internal_error!(
-        "Called Compilation.updateAsset for not existing filename {filename}"
-      )),
-    }
+      }) => updater(source, info)?,
+      _ => {
+        return Err(internal_error!(
+          "Called Compilation.updateAsset for not existing filename {filename}"
+        ))
+      }
+    };
+    self.emit_asset(
+      filename.to_owned(),
+      CompilationAsset {
+        source: Some(new_source),
+        info: new_info,
+      },
+    );
+    Ok(())
   }
 
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
@@ -224,11 +239,26 @@ impl Compilation {
     }
   }
 
+  pub fn rename_asset(&mut self, filename: &str, new_name: String) {
+    if let Some(asset) = self.assets.remove(filename) {
+      self.assets.insert(new_name.clone(), asset);
+      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
+        if chunk.files.remove(filename) {
+          chunk.files.insert(new_name.clone());
+        }
+      });
+    }
+  }
+
   pub fn assets(&self) -> &CompilationAssets {
     &self.assets
   }
 
-  pub fn entrypoints(&self) -> &HashMap<String, ChunkGroupUkey> {
+  pub fn assets_mut(&mut self) -> &mut CompilationAssets {
+    &mut self.assets
+  }
+
+  pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
     &self.entrypoints
   }
 
@@ -285,7 +315,7 @@ impl Compilation {
   }
 
   #[instrument(name = "entry_data", skip(self))]
-  pub fn entry_data(&self) -> HashMap<String, EntryData> {
+  pub fn entry_data(&self) -> IndexMap<String, EntryData> {
     self
       .entries
       .iter()
@@ -344,7 +374,7 @@ impl Compilation {
     fast_drop(
       self
         .module_graph
-        .module_identifier_to_module
+        .modules_mut()
         .values_mut()
         .map(|module| {
           if let Some(m) = module.as_normal_module_mut() {
@@ -361,25 +391,22 @@ impl Compilation {
         .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
     );
 
-    let mut force_build_module = HashSet::default();
+    let mut force_build_module = std::mem::take(&mut self.make_failed_module);
     let mut force_build_deps = std::mem::take(&mut self.make_failed_dependencies);
     let mut origin_module_deps = HashMap::default();
     // handle setup params
     if let SetupMakeParam::ModifiedFiles(files) = &params {
-      force_build_module.extend(
-        self
+      force_build_module.extend(self.module_graph.modules().values().filter_map(|module| {
+        // check has dependencies modified
+        if self
           .module_graph
-          .module_identifier_to_module
-          .values()
-          .filter_map(|module| {
-            // check has dependencies modified
-            if module.has_dependencies(files) {
-              Some(module.identifier())
-            } else {
-              None
-            }
-          }),
-      );
+          .has_dependencies(&module.identifier(), files)
+        {
+          Some(module.identifier())
+        } else {
+          None
+        }
+      }));
       // collect origin_module_deps
       for module_id in &force_build_module {
         let mgm = self
@@ -399,7 +426,7 @@ impl Compilation {
     }
 
     // move deps bindings module to force_build_module
-    for dependency_id in &force_build_deps {
+    for (dependency_id, _) in &force_build_deps {
       if let Some(mid) = self
         .module_graph
         .module_identifier_by_dependency_id(dependency_id)
@@ -429,7 +456,8 @@ impl Compilation {
     let mut add_queue = AddQueue::new();
     let mut build_queue = BuildQueue::new();
     let mut process_dependencies_queue = ProcessDependenciesQueue::new();
-    let mut make_failed_dependencies: HashSet<DependencyId> = HashSet::default();
+    let mut make_failed_dependencies: HashSet<BuildDependency> = HashSet::default();
+    let mut make_failed_module = HashSet::default();
     let mut errored = None;
 
     force_build_deps.extend(
@@ -438,38 +466,35 @@ impl Compilation {
         .flat_map(|id| self.module_graph.revoke_module(id)),
     );
 
-    force_build_deps.iter().for_each(|id| {
-      let dependency = self
-        .module_graph
-        .dependency_by_id(id)
-        .expect("dependency not found");
-      let parent_module_identifier = dependency.parent_module_identifier().cloned();
-      let parent_module =
-        parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
-      if parent_module_identifier.is_some() && parent_module.is_none() {
-        return;
-      }
+    force_build_deps
+      .into_iter()
+      .for_each(|(id, parent_module_identifier)| {
+        let dependency = self
+          .module_graph
+          .dependency_by_id(&id)
+          .expect("dependency not found");
+        let parent_module =
+          parent_module_identifier.and_then(|id| self.module_graph.module_by_identifier(&id));
+        if parent_module_identifier.is_some() && parent_module.is_none() {
+          return;
+        }
 
-      self.handle_module_creation(
-        &mut factorize_queue,
-        parent_module_identifier,
-        {
+        self.handle_module_creation(
+          &mut factorize_queue,
+          parent_module_identifier,
+          parent_module.and_then(|m| m.get_context()).cloned(),
+          vec![dependency.clone()],
+          parent_module_identifier.is_none(),
+          None,
+          None,
+          parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
+          self.lazy_visit_modules.clone(),
           parent_module
             .and_then(|m| m.as_normal_module())
-            .map(|module| module.resource_resolved_data().resource_path.clone())
-        },
-        vec![dependency.clone()],
-        parent_module_identifier.is_none(),
-        None,
-        None,
-        parent_module.and_then(|module| module.get_resolve_options().map(ToOwned::to_owned)),
-        self.lazy_visit_modules.clone(),
-        parent_module
-          .and_then(|m| m.as_normal_module())
-          .and_then(|module| module.name_for_condition())
-          .map(|issuer| issuer.to_string()),
-      );
-    });
+            .and_then(|module| module.name_for_condition())
+            .map(|issuer| issuer.to_string()),
+        );
+      });
 
     tokio::task::block_in_place(|| loop {
       while let Some(task) = factorize_queue.get_task() {
@@ -553,11 +578,7 @@ impl Compilation {
           self.handle_module_creation(
             &mut factorize_queue,
             Some(task.original_module_identifier),
-            {
-              module
-                .as_normal_module()
-                .map(|module| module.resource_resolved_data().resource_path.clone())
-            },
+            module.get_context().cloned(),
             vec![dependency.clone()],
             false,
             None,
@@ -588,16 +609,19 @@ impl Compilation {
                 is_entry,
                 original_module_identifier,
                 factory_result,
-                module_graph_module,
+                mut module_graph_module,
                 diagnostics,
                 dependencies,
               } = task_result;
+              let module_identifier = factory_result.module.identifier();
 
-              tracing::trace!("Module created: {}", factory_result.module.identifier());
+              tracing::trace!("Module created: {}", &module_identifier);
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert(dependencies[0]);
+                make_failed_dependencies.insert((dependencies[0], original_module_identifier));
               }
 
+              module_graph_module.set_issuer_if_unset(original_module_identifier);
+              module_graph_module.factory_meta = Some(factory_result.factory_meta);
               self.push_batch_diagnostic(diagnostics);
 
               self
@@ -619,15 +643,11 @@ impl Compilation {
               });
             }
             Ok(TaskResult::Add(task_result)) => match task_result {
-              AddTaskResult::ModuleAdded {
-                module,
-                dependencies,
-              } => {
+              AddTaskResult::ModuleAdded { module } => {
                 tracing::trace!("Module added: {}", module.identifier());
                 build_queue.add_task(BuildTask {
                   module,
-                  dependencies,
-                  loader_runner_runner: self.loader_runner_runner.clone(),
+                  resolver_factory: self.resolver_factory.clone(),
                   compiler_options: self.options.clone(),
                   plugin_driver: self.plugin_driver.clone(),
                   cache: self.cache.clone(),
@@ -640,13 +660,12 @@ impl Compilation {
             Ok(TaskResult::Build(task_result)) => {
               let BuildTaskResult {
                 module,
-                dependencies,
                 build_result,
                 diagnostics,
               } = task_result;
 
               if !diagnostics.is_empty() {
-                make_failed_dependencies.insert(dependencies[0]);
+                make_failed_module.insert(module.identifier());
               }
 
               tracing::trace!("Module built: {}", module.identifier());
@@ -654,16 +673,16 @@ impl Compilation {
 
               self
                 .file_dependencies
-                .extend(build_result.file_dependencies);
+                .extend(build_result.build_info.file_dependencies.clone());
               self
                 .context_dependencies
-                .extend(build_result.context_dependencies);
+                .extend(build_result.build_info.context_dependencies.clone());
               self
                 .missing_dependencies
-                .extend(build_result.missing_dependencies);
+                .extend(build_result.build_info.missing_dependencies.clone());
               self
                 .build_dependencies
-                .extend(build_result.build_dependencies);
+                .extend(build_result.build_info.build_dependencies.clone());
 
               let mut dep_ids = vec![];
               for dependency in build_result.dependencies {
@@ -683,9 +702,11 @@ impl Compilation {
                 original_module_identifier: module.identifier(),
                 resolve_options: module.get_resolve_options().map(ToOwned::to_owned),
               });
-              self
-                .module_graph
-                .set_module_hash(&module.identifier(), build_result.hash);
+              self.module_graph.set_module_build_info_and_meta(
+                &module.identifier(),
+                build_result.build_info,
+                build_result.build_meta,
+              );
               self.module_graph.add_module(module);
             }
             Ok(TaskResult::ProcessDependencies(task_result)) => {
@@ -718,6 +739,7 @@ impl Compilation {
     });
 
     self.make_failed_dependencies = make_failed_dependencies;
+    self.make_failed_module = make_failed_module;
     tracing::debug!("All task is finished");
 
     // clean isolated module
@@ -772,10 +794,11 @@ impl Compilation {
     };
 
     // add context module and context element module to bailout_module_identifiers
-    if self.options.builtins.tree_shaking {
+    if self.options.builtins.tree_shaking.enable() {
       self.bailout_module_identifiers = self
         .module_graph
         .modules()
+        .values()
         .par_bridge()
         .filter_map(|module| {
           if module.as_context_module().is_some() {
@@ -815,7 +838,7 @@ impl Compilation {
     &self,
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
-    original_resource_path: Option<PathBuf>,
+    original_module_context: Option<Context>,
     dependencies: Vec<BoxModuleDependency>,
     is_entry: bool,
     module_type: Option<ModuleType>,
@@ -827,13 +850,14 @@ impl Compilation {
     queue.add_task(FactorizeTask {
       original_module_identifier,
       issuer,
-      original_resource_path,
+      original_module_context,
       dependencies,
       is_entry,
       module_type,
       side_effects,
       resolve_options,
       lazy_visit_modules,
+      resolver_factory: self.resolver_factory.clone(),
       options: self.options.clone(),
       plugin_driver: self.plugin_driver.clone(),
       cache: self.cache.clone(),
@@ -848,9 +872,15 @@ impl Compilation {
     ) -> Result<()> {
       let results = compilation
         .module_graph
-        .module_identifier_to_module
+        .modules()
         .par_iter()
         .filter(filter_op)
+        .filter(|(module_identifier, _)| {
+          let runtimes = compilation
+            .chunk_graph
+            .get_module_runtimes(**module_identifier, &compilation.chunk_by_ukey);
+          !runtimes.is_empty()
+        })
         .map(|(module_identifier, module)| {
           compilation
             .cache
@@ -919,33 +949,37 @@ impl Compilation {
       })
       .collect::<FuturesResults<_>>();
 
-    let chunk_ukey_and_manifest = results
-      .into_inner()
-      .into_iter()
-      .collect::<std::result::Result<Vec<_>, _>>()
-      .expect("Failed to resolve render_manifest results");
+    let chunk_ukey_and_manifest = results.into_inner();
 
-    chunk_ukey_and_manifest
-      .into_iter()
-      .for_each(|(chunk_ukey, manifest)| {
-        manifest
-          .expect("TODO: we should return this error rathen expect")
-          .into_iter()
-          .for_each(|file_manifest| {
-            let current_chunk = self
-              .chunk_by_ukey
-              .get_mut(&chunk_ukey)
-              .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
-            current_chunk
-              .files
-              .insert(file_manifest.filename().to_string());
+    for (chunk_ukey, manifest) in chunk_ukey_and_manifest.into_iter() {
+      for file_manifest in manifest.expect("We should return this error rathen expect") {
+        let filename = file_manifest.filename().to_string();
 
-            self.emit_asset(
-              file_manifest.filename().to_string(),
-              CompilationAsset::with_source(CachedSource::new(file_manifest.source).boxed()),
-            );
-          });
-      })
+        let current_chunk = self
+          .chunk_by_ukey
+          .get_mut(&chunk_ukey)
+          .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+        current_chunk.files.insert(filename.clone());
+
+        self.emit_asset(
+          filename.clone(),
+          CompilationAsset::new(
+            Some(CachedSource::new(file_manifest.source).boxed()),
+            file_manifest.info,
+          ),
+        );
+
+        _ = self
+          .chunk_asset(chunk_ukey, filename, plugin_driver.clone())
+          .await;
+      }
+      //
+      // .into_iter()
+      // .for_each(|file_manifest| {
+      // });
+    }
+    // .for_each(|(chunk_ukey, manifest)| {
+    // })
   }
   #[instrument(name = "compilation:process_asssets", skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
@@ -954,6 +988,25 @@ impl Compilation {
       .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
+  }
+
+  #[instrument(name = "compilation:chunk_asset", skip_all)]
+  async fn chunk_asset(
+    &mut self,
+    chunk_ukey: ChunkUkey,
+    filename: String,
+    plugin_driver: SharedPluginDriver,
+  ) -> Result<()> {
+    let current_chunk = self
+      .chunk_by_ukey
+      .get(&chunk_ukey)
+      .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
+    _ = plugin_driver
+      .write()
+      .await
+      .chunk_asset(current_chunk, filename)
+      .await;
+    Ok(())
   }
 
   pub async fn optimize_dependency(
@@ -979,11 +1032,27 @@ impl Compilation {
       .get(ukey)
       .expect("entrypoint not found by ukey")
   }
+
+  #[instrument(name = "compilation:finish", skip_all)]
+  pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
+    plugin_driver.write().await.finish_modules(self).await?;
+    Ok(())
+  }
+
   #[instrument(name = "compilation:seal", skip_all)]
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
-      plugin_driver.write().await.optimize_chunks(compilation)?;
+      plugin_driver
+        .write()
+        .await
+        .optimize_modules(compilation)
+        .await?;
+      plugin_driver
+        .write()
+        .await
+        .optimize_chunks(compilation)
+        .await?;
       Ok(compilation)
     })
     .await?;
@@ -1028,7 +1097,7 @@ impl Compilation {
   ) -> Result<()> {
     let mut module_runtime_requirements = self
       .module_graph
-      .module_identifier_to_module
+      .modules()
       .par_iter()
       .filter_map(|(_, module)| {
         if self
@@ -1036,8 +1105,7 @@ impl Compilation {
           .get_number_of_module_chunks(module.identifier())
           > 0
         {
-          let mut module_runtime_requirements: Vec<(HashSet<String>, HashSet<&'static str>)> =
-            vec![];
+          let mut module_runtime_requirements: Vec<(RuntimeSpec, RuntimeGlobals)> = vec![];
           for runtime in self
             .chunk_graph
             .get_module_runtimes(module.identifier(), &self.chunk_by_ukey)
@@ -1067,16 +1135,16 @@ impl Compilation {
 
     let mut chunk_requirements = HashMap::default();
     for (chunk_ukey, chunk) in self.chunk_by_ukey.iter() {
-      let mut set = HashSet::default();
+      let mut set = RuntimeGlobals::default();
       for module in self
         .chunk_graph
         .get_chunk_modules(chunk_ukey, &self.module_graph)
       {
         if let Some(runtime_requirements) = self
           .chunk_graph
-          .get_module_runtime_requirements(module.module_identifier, &chunk.runtime)
+          .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
         {
-          set.extend(runtime_requirements);
+          set.add(*runtime_requirements);
         }
       }
       chunk_requirements.insert(*chunk_ukey, set);
@@ -1103,14 +1171,14 @@ impl Compilation {
         .get(entry_ukey)
         .expect("chunk not found by ukey");
 
-      let mut set = HashSet::default();
+      let mut set = RuntimeGlobals::default();
 
       for chunk_ukey in entry
         .get_all_referenced_chunks(&self.chunk_group_by_ukey)
         .iter()
       {
         let runtime_requirements = self.chunk_graph.get_chunk_runtime_requirements(chunk_ukey);
-        set.extend(runtime_requirements.clone());
+        set.add(*runtime_requirements);
       }
 
       plugin_driver
@@ -1140,96 +1208,90 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_hash", skip_all)]
   pub async fn create_hash(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    // move to make, only hash changed module at hmr.
-    // self.create_module_hash();
-
-    let mut compilation_hasher = Xxh3::new();
-    let mut chunks = self.chunk_by_ukey.values_mut().collect::<Vec<_>>();
-    chunks.sort_unstable_by_key(|chunk| chunk.ukey);
-    chunks
-      .par_iter_mut()
-      .flat_map_iter(|chunk| {
-        self
-          .chunk_graph
-          .get_ordered_chunk_modules(&chunk.ukey, &self.module_graph)
-          .into_iter()
-          .filter_map(|mgm| self.module_graph.get_module_hash(&mgm.module_identifier))
-          .inspect(|hash| hash.hash(&mut chunk.hash))
-      })
-      .collect::<Vec<_>>()
-      .iter()
-      .for_each(|hash| {
-        hash.hash(&mut compilation_hasher);
-      });
-
-    tracing::trace!("hash chunks");
-
+    let mut compilation_hasher = RspackHash::from(&self.options.output);
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
-    // runtime chunks should be hashed after all other chunks
-    let content_hash_chunks = self
-      .chunk_by_ukey
-      .keys()
-      .filter(|key| !runtime_chunk_ukeys.contains(key))
-      .copied()
-      .chain(runtime_chunk_ukeys.clone())
-      .collect::<Vec<_>>();
 
-    let hash_results = content_hash_chunks
-      .iter()
-      .map(|chunk_ukey| async {
-        let hashs = plugin_driver
-          .read()
-          .await
-          .content_hash(&ContentHashArgs {
-            chunk_ukey: *chunk_ukey,
-            compilation: self,
-          })
-          .await;
-        (*chunk_ukey, hashs)
-      })
-      .collect::<FuturesResults<_>>()
-      .into_inner();
-
-    for item in hash_results {
-      let (chunk_ukey, hashs) = item.expect("Failed to resolve content_hash results");
-      hashs?.into_iter().for_each(|hash| {
-        if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) && let Some((source_type, hash)) = hash {
-          chunk.content_hash.insert(source_type, hash);
-        }
-      });
+    let other_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
+      self
+        .chunk_by_ukey
+        .keys()
+        .filter(|key| !runtime_chunk_ukeys.contains(key))
+        .map(|chunk| async {
+          let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
+          Ok((*chunk, hash_result))
+        })
+        .collect::<FuturesResults<_>>()
+        .into_inner();
+    for hash_result in other_chunk_hash_results {
+      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
+      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
+        chunk.hash = Some(chunk_hash);
+        chunk.content_hash = content_hash;
+      }
     }
 
-    tracing::trace!("calculate chunks content hash");
-
+    // runtime chunks should be hashed after all other chunks
     self.create_runtime_module_hash();
 
-    tracing::trace!("hash runtime chunks");
+    let runtime_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
+      runtime_chunk_ukeys
+        .iter()
+        .map(|chunk| async {
+          let hash_result = self.process_chunk_hash(*chunk, &plugin_driver).await?;
+          Ok((*chunk, hash_result))
+        })
+        .collect::<FuturesResults<_>>()
+        .into_inner();
+    for hash_result in runtime_chunk_hash_results {
+      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
+      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
+        chunk.hash = Some(chunk_hash);
+        chunk.content_hash = content_hash;
+      }
+    }
 
-    let mut entry_chunks = self
+    self
       .chunk_by_ukey
-      .values_mut()
-      .filter(|chunk| runtime_chunk_ukeys.contains(&chunk.ukey))
-      .collect::<Vec<_>>();
-    entry_chunks.sort_unstable_by_key(|chunk| chunk.ukey);
-    entry_chunks
-      .par_iter_mut()
-      .flat_map_iter(|chunk| {
-        self
-          .chunk_graph
-          .get_chunk_runtime_modules_in_order(&chunk.ukey)
-          .iter()
-          .filter_map(|identifier| self.runtime_module_hashes.get(identifier))
-          .inspect(|hash| hash.hash(&mut chunk.hash))
-      })
-      .collect::<Vec<_>>()
-      .iter()
+      .values()
+      .sorted_unstable_by_key(|chunk| chunk.ukey)
+      .filter_map(|chunk| chunk.hash.as_ref())
       .for_each(|hash| {
         hash.hash(&mut compilation_hasher);
       });
-
-    self.hash = format!("{:x}", compilation_hasher.finish());
-    tracing::trace!("compilation hash");
+    self.hash = Some(compilation_hasher.digest(&self.options.output.hash_digest));
     Ok(())
+  }
+
+  async fn process_chunk_hash(
+    &self,
+    chunk_ukey: ChunkUkey,
+    plugin_driver: &SharedPluginDriver,
+  ) -> Result<(RspackHashDigest, ChunkContentHash)> {
+    let mut hasher = RspackHash::from(&self.options.output);
+    if let Some(chunk) = self.chunk_by_ukey.get(&chunk_ukey) {
+      chunk.update_hash(&mut hasher, self);
+    }
+    plugin_driver
+      .read()
+      .await
+      .chunk_hash(&mut ChunkHashArgs {
+        chunk_ukey,
+        compilation: self,
+        hasher: &mut hasher,
+      })
+      .await?;
+    let chunk_hash = hasher.digest(&self.options.output.hash_digest);
+
+    let content_hash = plugin_driver
+      .read()
+      .await
+      .content_hash(&ContentHashArgs {
+        chunk_ukey,
+        compilation: self,
+      })
+      .await?;
+
+    Ok((chunk_hash, content_hash))
   }
 
   // #[instrument(name = "compilation:create_module_hash", skip_all)]
@@ -1239,7 +1301,7 @@ impl Compilation {
   //     .module_identifier_to_module
   //     .par_iter()
   //     .map(|(identifier, module)| {
-  //       let mut hasher = Xxh3::new();
+  //       let mut hasher = RspackHash::new();
   //       module.hash(&mut hasher);
   //       (*identifier, hasher.finish())
   //     })
@@ -1260,25 +1322,30 @@ impl Compilation {
 
   #[instrument(name = "compilation:create_runtime_module_hash", skip_all)]
   pub fn create_runtime_module_hash(&mut self) {
-    self.runtime_module_hashes = self
+    self.runtime_module_code_generation_results = self
       .runtime_modules
       .par_iter()
       .map(|(identifier, module)| {
-        let mut hasher = Xxh3::new();
-        module.hash(self, &mut hasher);
-        (*identifier, hasher.finish())
+        let source = module.generate(self);
+        let mut hasher = RspackHash::from(&self.options.output);
+        module.identifier().hash(&mut hasher);
+        source.source().hash(&mut hasher);
+        (
+          *identifier,
+          (hasher.digest(&self.options.output.hash_digest), source),
+        )
       })
       .collect();
   }
 
   pub fn add_runtime_module(&mut self, chunk_ukey: &ChunkUkey, mut module: Box<dyn RuntimeModule>) {
-    // add chunk runtime to perfix module identifier to avoid multiple entry runtime modules conflict
+    // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
     let chunk = self
       .chunk_by_ukey
       .get(chunk_ukey)
       .expect("chunk not found by ukey");
-    let runtime_module_identifier = format!("{:?}/{}", chunk.runtime, module.identifier());
-    let runtime_module_identifier = ModuleIdentifier::from(runtime_module_identifier);
+    let runtime_module_identifier =
+      ModuleIdentifier::from(format!("{:?}/{}", chunk.runtime, module.identifier()));
     module.attach(*chunk_ukey);
     self.chunk_graph.add_module(runtime_module_identifier);
     self
@@ -1291,6 +1358,47 @@ impl Compilation {
       .runtime_modules
       .insert(runtime_module_identifier, module);
   }
+
+  pub fn get_hash(&self) -> Option<&str> {
+    self
+      .hash
+      .as_ref()
+      .map(|hash| hash.rendered(self.options.output.hash_digest_length))
+  }
+
+  pub fn get_path<'b, 'a: 'b>(&'a self, filename: &Filename, mut data: PathData<'b>) -> String {
+    if data.hash.is_none() {
+      data.hash = self.get_hash();
+    }
+    filename.render(data, None)
+  }
+
+  pub fn get_path_with_info<'b, 'a: 'b>(
+    &'a self,
+    filename: &Filename,
+    mut data: PathData<'b>,
+  ) -> (String, AssetInfo) {
+    let mut info = AssetInfo::default();
+    if data.hash.is_none() {
+      data.hash = self.get_hash();
+    }
+    let path = filename.render(data, Some(&mut info));
+    (path, info)
+  }
+
+  pub fn get_asset_path(&self, filename: &Filename, data: PathData) -> String {
+    filename.render(data, None)
+  }
+
+  pub fn get_asset_path_with_info(
+    &self,
+    filename: &Filename,
+    data: PathData,
+  ) -> (String, AssetInfo) {
+    let mut info = AssetInfo::default();
+    let path = filename.render(data, Some(&mut info));
+    (path, info)
+  }
 }
 
 pub type CompilationAssets = HashMap<String, CompilationAsset>;
@@ -1301,16 +1409,15 @@ pub struct CompilationAsset {
   pub info: AssetInfo,
 }
 
+impl From<BoxSource> for CompilationAsset {
+  fn from(value: BoxSource) -> Self {
+    Self::new(Some(value), Default::default())
+  }
+}
+
 impl CompilationAsset {
   pub fn new(source: Option<BoxSource>, info: AssetInfo) -> Self {
     Self { source, info }
-  }
-
-  pub fn with_source(source: BoxSource) -> Self {
-    Self {
-      source: Some(source),
-      info: Default::default(),
-    }
   }
 
   pub fn get_source(&self) -> Option<&BoxSource> {
@@ -1341,7 +1448,7 @@ impl CompilationAsset {
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfo {
   /// if the asset can be long term cached forever (contains a hash)
-  // pub immutable: bool,
+  pub immutable: bool,
   /// whether the asset is minimized
   pub minimized: bool,
   /// the value(s) of the full hash used for this asset
@@ -1351,7 +1458,7 @@ pub struct AssetInfo {
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
-  // pub content_hash:
+  pub content_hash: HashSet<String>,
   /// when asset was created from a source file (potentially transformed), the original filename relative to compilation context
   // pub source_filename:
   /// size in bytes, only set after asset has been emitted
@@ -1364,6 +1471,9 @@ pub struct AssetInfo {
   // pub javascript_module:
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: AssetInfoRelated,
+  /// the asset version, emit can be skipped when both filename and version are the same
+  /// An empty string means no version, it will always emit
+  pub version: String,
 }
 
 impl AssetInfo {
@@ -1385,6 +1495,24 @@ impl AssetInfo {
   pub fn with_related(mut self, v: AssetInfoRelated) -> Self {
     self.related = v;
     self
+  }
+
+  pub fn with_content_hashes(mut self, v: HashSet<String>) -> Self {
+    self.content_hash = v;
+    self
+  }
+
+  pub fn with_version(mut self, v: String) -> Self {
+    self.version = v;
+    self
+  }
+
+  pub fn set_content_hash(&mut self, v: String) {
+    self.content_hash.insert(v);
+  }
+
+  pub fn set_immutable(&mut self, v: bool) {
+    self.immutable = v;
   }
 }
 

@@ -1,12 +1,26 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/tree/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/stats
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 import * as binding from "@rspack/binding";
 import { Compilation } from ".";
 import { StatsValue, StatsOptions } from "./config";
 import { LogType } from "./logging/Logger";
 
 export type StatsCompilation = {
+	version?: string;
+	rspackVersion?: string;
 	name?: string;
 	hash?: string;
+	time?: number;
+	builtAt?: number;
 	publicPath?: string;
+	outputPath?: string;
 	assets?: binding.JsStatsAsset[];
 	assetsByChunkName?: Record<string, string[]>;
 	chunks?: binding.JsStatsChunk[];
@@ -52,8 +66,17 @@ export class Stats {
 		if (options.hash) {
 			obj.hash = this.#inner.getHash();
 		}
+		if (options.timings) {
+			obj.time = this.compilation.endTime! - this.compilation.startTime!;
+		}
+		if (options.builtAt) {
+			obj.builtAt = this.compilation.endTime;
+		}
 		if (options.publicPath) {
 			obj.publicPath = this.compilation.outputOptions.publicPath;
+		}
+		if (options.outputPath) {
+			obj.outputPath = this.compilation.outputOptions.path;
 		}
 		if (options.assets) {
 			const { assets, assetsByChunkName } = this.#inner.getAssets();
@@ -66,10 +89,20 @@ export class Stats {
 			}, {});
 		}
 		if (options.chunks) {
-			obj.chunks = this.#inner.getChunks();
+			obj.chunks = this.#inner.getChunks(
+				options.chunkModules!,
+				options.chunkRelations!,
+				options.reasons!,
+				options.moduleAssets!,
+				options.nestedModules!
+			);
 		}
 		if (options.modules) {
-			obj.modules = this.#inner.getModules(options.reasons ?? false);
+			obj.modules = this.#inner.getModules(
+				options.reasons!,
+				options.moduleAssets!,
+				options.nestedModules!
+			);
 		}
 		if (options.entrypoints) {
 			obj.entrypoints = this.#inner

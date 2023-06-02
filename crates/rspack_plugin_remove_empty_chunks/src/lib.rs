@@ -14,7 +14,7 @@ impl RemoveEmptyChunksPlugin {
       .filter(|chunk| {
         chunk_graph.get_number_of_chunk_modules(&chunk.ukey) == 0
           && !chunk.has_runtime(&compilation.chunk_group_by_ukey)
-          && chunk_graph.get_number_of_chunk_modules(&chunk.ukey) == 0
+          && chunk_graph.get_number_of_entry_modules(&chunk.ukey) == 0
       })
       .collect::<Vec<_>>();
 
@@ -31,12 +31,12 @@ impl RemoveEmptyChunksPlugin {
     })
   }
 }
-
+#[async_trait::async_trait]
 impl Plugin for RemoveEmptyChunksPlugin {
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
-    args: rspack_core::OptimizeChunksArgs,
+    args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
     let compilation = args.compilation;
     self.remove_empty_chunks(compilation);

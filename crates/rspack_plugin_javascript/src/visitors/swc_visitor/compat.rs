@@ -9,7 +9,7 @@ use swc_core::ecma::visit::Fold;
 
 fn compat_by_preset_env(
   preset_env_config: Option<PresetEnv>,
-  top_level_mark: Mark,
+  unresolved_mark: Mark,
   assumptions: Assumptions,
   comments: Option<&SingleThreadedComments>,
 ) -> impl Fold + '_ {
@@ -21,7 +21,7 @@ fn compat_by_preset_env(
     };
 
     Either::Left(swc_ecma_preset_env::preset_env(
-      top_level_mark,
+      unresolved_mark, // here should be unresolved_mark, swc not update function signature
       comments,
       swc_ecma_preset_env::Config {
         mode: mode.map(Into::into),
@@ -53,6 +53,10 @@ fn compat_by_es_version(
   if let Some(es_version) = es_version {
     Either::Left(chain!(
       Optional::new(
+        compat::class_fields_use_set::class_fields_use_set(assumptions.pure_getters),
+        assumptions.set_public_class_fields,
+      ),
+      Optional::new(
         compat::es2022::es2022(
           comments,
           compat::es2022::Config {
@@ -60,7 +64,8 @@ fn compat_by_es_version(
               private_as_properties: assumptions.private_fields_as_properties,
               constant_super: assumptions.constant_super,
               set_public_fields: assumptions.set_public_class_fields,
-              no_document_all: assumptions.no_document_all
+              no_document_all: assumptions.no_document_all,
+              static_blocks_mark: Mark::new()
             }
           }
         ),
@@ -95,7 +100,7 @@ fn compat_by_es_version(
           compat::es2017::Config {
             async_to_generator: compat::es2017::async_to_generator::Config {
               ignore_function_name: assumptions.ignore_function_name,
-              ignore_function_length: assumptions.ignore_function_length
+              ignore_function_length: assumptions.ignore_function_length,
             },
           },
           comments,
@@ -146,13 +151,13 @@ pub fn compat(
   preset_env_config: Option<PresetEnv>,
   es_version: Option<EsVersion>,
   assumptions: Assumptions,
-  top_level_mark: Mark,
+  _top_level_mark: Mark,
   unresolved_mark: Mark,
   comments: Option<&SingleThreadedComments>,
   is_typescript: bool,
 ) -> impl Fold + '_ {
   chain!(
-    compat_by_preset_env(preset_env_config, top_level_mark, assumptions, comments),
+    compat_by_preset_env(preset_env_config, unresolved_mark, assumptions, comments),
     compat_by_es_version(
       es_version,
       unresolved_mark,

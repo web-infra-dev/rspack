@@ -25,7 +25,7 @@ pub async fn test_fixture<F: FnOnce(&Stats, Settings) -> rspack_error::Result<()
   f(&stats, settings)
 }
 
-#[fixture("tests/fixtures/*")]
+#[fixture("tests/fixtures/*", exclude("export_star_error"))]
 fn custom(fixture_path: PathBuf) {
   enable_tracing_by_env();
   test_fixture(&fixture_path, |stats, settings| {
@@ -40,7 +40,7 @@ fn custom(fixture_path: PathBuf) {
     settings.bind(|| {
       insta::assert_snapshot!(
         dirname.as_str(),
-        stats.emit_diagnostics_string(false).expect("TODO:"),
+        stats.emit_diagnostics_string(true).expect("TODO:"),
         dirname.as_str()
       );
     });

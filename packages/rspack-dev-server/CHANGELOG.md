@@ -1,5 +1,111 @@
 # rspack-dev-server
 
+## 0.1.12
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.12
+- @rspack/dev-server@0.1.12
+- @rspack/dev-client@0.1.12
+
+## 0.1.11
+
+### Patch Changes
+
+- cafa227d: fix cannot reading noEmitAssets by always getting the first compiler's noEmitAssets
+- Updated dependencies [cafa227d]
+  - @rspack/dev-server@0.1.11
+  - @rspack/dev-middleware@0.1.11
+  - @rspack/dev-client@0.1.11
+
+## 0.1.9
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.9
+- @rspack/dev-server@0.1.9
+- @rspack/dev-client@0.1.9
+
+## 0.1.8
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.8
+- @rspack/dev-server@0.1.8
+- @rspack/dev-client@0.1.8
+
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [fff64ea]
+  - @rspack/dev-client@0.1.7
+  - @rspack/dev-middleware@0.1.7
+  - @rspack/dev-server@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- 3607f25: Remove custom dev client and use webpack-dev-server/client direclty
+- Updated dependencies [3607f25]
+  - @rspack/dev-client@0.1.6
+  - @rspack/dev-server@0.1.6
+  - @rspack/dev-middleware@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.5
+- @rspack/dev-server@0.1.5
+- @rspack/dev-client@0.1.5
+
+## 0.1.4
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.4
+- @rspack/dev-server@0.1.4
+- @rspack/dev-client@0.1.4
+
+## 0.1.3
+
+### Patch Changes
+
+- @rspack/dev-middleware@0.1.3
+- @rspack/dev-server@0.1.3
+- @rspack/dev-client@0.1.3
+
+## 0.1.2
+
+### Patch Changes
+
+- d63e3fd: upgrade webpack-dev-server & webpack-dev-middleware
+- bfb1738: fix: react refresh runtime injection
+- d63e3fd: upgrade webpack-dev-server
+- bb4e6a6: use super isWebTarget in dev-server
+- Updated dependencies [d63e3fd]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [deaca70]
+- Updated dependencies [bfb1738]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [bb4e6a6]
+  - @rspack/dev-middleware@0.1.2
+  - @rspack/dev-server@0.1.2
+  - @rspack/dev-client@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- Updated dependencies [f5f661a2]
+- Updated dependencies [a004765a]
+  - @rspack/dev-middleware@0.1.1
+  - @rspack/dev-client@0.1.1
+  - @rspack/dev-server@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

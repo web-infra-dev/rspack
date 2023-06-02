@@ -10,11 +10,11 @@ Object.defineProperty(exports, "a", {
         return a;
     }
 });
-var _bJs = __webpack_require__("./b.js");
+var _b = __webpack_require__("./b.js");
 class Test {
-    static c = (0, _bJs.bb)();
+    static c = (0, _b.bb)();
     static test() {
-        _bJs.bb;
+        _b.bb;
     }
 }
 const a = 3;
@@ -37,12 +37,13 @@ const bb = 2;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _aJs = __webpack_require__("./a.js");
-_aJs.a;
+var _a = __webpack_require__("./a.js");
+_a.a;
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

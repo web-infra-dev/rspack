@@ -3,22 +3,18 @@ use swc_core::ecma::ast::Expr;
 
 use crate::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  Dependency, JsAstPath, ModuleIdentifier,
+  Dependency, JsAstPath, RuntimeGlobals,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub struct ConstDependency {
   pub expression: Expr,
-  pub runtime_requirements: Option<&'static str>,
+  pub runtime_requirements: Option<RuntimeGlobals>,
   #[allow(unused)]
   pub ast_path: JsAstPath,
 }
 
-impl Dependency for ConstDependency {
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    None
-  }
-}
+impl Dependency for ConstDependency {}
 
 impl CodeGeneratable for ConstDependency {
   fn generate(
@@ -47,7 +43,7 @@ impl CodeGeneratable for ConstDependency {
 impl ConstDependency {
   pub fn new(
     expression: Expr,
-    runtime_requirements: Option<&'static str>,
+    runtime_requirements: Option<RuntimeGlobals>,
     ast_path: JsAstPath,
   ) -> Self {
     Self {

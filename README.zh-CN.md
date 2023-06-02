@@ -1,11 +1,14 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610-dark.png">
-  <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/rjhwzy/ljhwZthlaukjlkulzlp/rspack-banner-1610.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610-dark.png">
+  <img alt="Rspack Banner" src="https://lf3-static.bytednsdoc.com/obj/eden-cn/dhozeh7vhpebvog/rspack-banner-1610.png">
 </picture>
 
 <h2 align="center">基于 Rust 的高性能模块打包工具</h2>
 
 <p align="center">
+  <a href="https://discord.gg/79ZZ66GH9E">
+    <img src="https://img.shields.io/discord/977448667919286283?logo=discord&label=discord&colorB=EDED91" alt="discord channel" />
+  </a>
   <a href="https://www.npmjs.com/package/@rspack/core?activeTab=versions">
    <img src="https://img.shields.io/npm/v/@rspack/core?style=flat-square&colorA=564341&colorB=EDED91" alt="npm version" />
   </a>
@@ -36,13 +39,13 @@
 
 ## 参与贡献
 
-> **Rspack 项目目前仍在积极开发中，仍然缺失了很多的 webpack 的插件 Hook 以及一些 API 目前可能不够稳定,我们正在努力补齐这些 API，并不断地提升 Rspack 的稳定性，如果您有任何建议或意见，欢迎随时提交 PR 或 Issue，我们将不胜感激。**
+> **Rspack 项目目前仍在积极开发中，仍然缺失了很多的 webpack 的插件 Hook 以及一些 API 目前可能不够稳定，我们正在努力补齐这些 API，并不断地提升 Rspack 的稳定性，如果您有任何建议或意见，欢迎随时提交 PR 或 Issue，我们将不胜感激。**
 
-请阅读 [贡献指南](./CONTRIBUTING.md) 来共同参与 Rspack 的建设。
+请阅读[贡献指南](./CONTRIBUTING.md)来共同参与 Rspack 的建设。
 
 ### 行为准则
 
-本仓库采纳了字节跳动的开源项目行为准册。 请点击[行为准则](./CODE_OF_CONDUCT.md)查看更多的信息。
+本仓库采纳了字节跳动的开源项目行为准则。请点击[行为准则](./CODE_OF_CONDUCT.md)查看更多的信息。
 
 ## 链接
 
@@ -57,18 +60,24 @@
 
 感谢:
 
-- [webpack 团队和社区](https://webpack.js.org/) 创建了一个优秀的打包工具和丰富的生态。
+- [webpack 团队和社区](https://webpack.js.org/)创建了一个优秀的打包工具和丰富的生态。
 - [@sokra](https://github.com/sokra) 在 [webpack](https://github.com/webpack/webpack) 项目上的出色工作。
 - [@ScriptedAlchemy](https://github.com/ScriptedAlchemy) 创造了模块联邦，并帮助 Rspack 与社区建立联系。
-- [SWC](https://swc.rs/) 项目（由 [@kdy1](https://github.com/kdy1) 创建）, 为 Rspack 的代码解析、转换和压缩提供了支持。
-- [esbuild](https://github.com/evanw/esbuild) 项目（由 [@evanw](https://github.com/evanw) 创建）, 它启发了 Rspack 的并发架构。
+- [SWC](https://swc.rs/) 项目（由 [@kdy1](https://github.com/kdy1) 创建），为 Rspack 的代码解析、转换和压缩提供了支持。
+- [esbuild](https://github.com/evanw/esbuild) 项目（由 [@evanw](https://github.com/evanw) 创建），它启发了 Rspack 的并发架构。
 - [NAPI-RS](https://github.com/napi-rs/napi-rs) 项目（由 [@Brooooooklyn](https://github.com/Brooooooklyn) 创建），为 Rspack 的 node-binding 实现提供了支持。
-- [Parcel](https://github.com/parcel-bundler/parcel) 项目(由 [@devongovett](https://github.com/devongovett)创建), 它是 Rust Bundler 的先行探索者并启发了 Rspack 的增量构建架构.
+- [Parcel](https://github.com/parcel-bundler/parcel) 项目（由 [@devongovett](https://github.com/devongovett)创建），它是 Rust Bundler 的先行探索者并启发了 Rspack 的增量构建架构。
 - [Vite](https://github.com/vitejs/vite) 由[尤雨溪](https://github.com/yyx990803)创建，它和 rollup 社区的兼容性设计启发了 Rspack 和 Webpack 社区的兼容设计。
-- [Rolldown](https://github.com/rolldown-rs/rolldown) 项目(由 [Rolldown 团队](https://github.com/sponsors/rolldown-rs)创建)，它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
-- [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建）, Rspack 的 `@rspack/html-plugin` 是 [[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 的一个 fork 来避免使用在 Rspack 中尚未支持的 webpack API。
+- [Rolldown](https://github.com/rolldown-rs/rolldown) 项目（由 [Rolldown 团队](https://github.com/rolldown-rs)创建），它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
+- [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建），Rspack 的 `@rspack/html-plugin` 是 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 的一个 fork 来避免使用在 Rspack 中尚未支持的 webpack API。
 - [Turbopack](https://github.com/vercel/turbo) 项目，它启发了 Rspack 里基于 AST 的路径重写逻辑。
 
 ## License
 
 Rspack 项目基于 [MIT 协议](https://github.com/web-infra-dev/rspack/blob/main/LICENSE)，请自由地享受和参与开源。
+
+## Community
+
+- Rspack 飞书交流群
+
+<img alt="飞书群" src="https://user-images.githubusercontent.com/8898718/226320091-e817106f-4a22-4e89-bdcd-f67e93bb960c.png" width="360" >

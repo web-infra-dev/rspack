@@ -1,466 +1,86 @@
-name: Release
+name: Release Full
 
 on:
   workflow_dispatch:
     inputs:
-      version:
+      tag:
         type: choice
-        description: "Release Version(canary, alpha, beta, latest)"
+        description: "Release Npm Tag"
         required: true
-        default: "canary"
+        default: "latest"
         options:
           - canary
-          - alpha
-          - beta
+          - nightly
           - latest
-  issue_comment:
-    types: [created]
-
+      dry_run:
+        type: boolean
+        description: "DryRun release"
+        required: true
+        default: false
+      push_tags:
+        type: boolean
+        description: "push tags to github"
+        required: true
+        default: true
 jobs:
-  issue_commentd:
-    name: Release with commentd
-    if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
-    runs-on: [self-hosted, rspack-common, macOS, ARM64, release]
+  build:
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+          - i686-pc-windows-msvc
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: ${{ matrix.target }}
+
+  release:
+    name: Release
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
-          ref: refs/pull/${{ github.event.issue.number }}/head
-      - name: Install rus toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2022-08-06
-          profile: default
-          components: rustfmt, clippy, cargo
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-          architecture: "arm64"
-      - name: Install node_modules
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm -v
-          pnpm install
-      - name: Build
-        run: ./x build cli:release:all
-      - name: Release
-        uses: modern-js-dev/actions@v2
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: "canary"
-          type: "release"
-          branch: ""
-          tools: "changeset"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
-          COMMENT: ${{ toJson(github.event.comment) }}
-  artifact:
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    steps:
-      - name: Poor kids' remove old artifacts
-        uses: actions/github-script@v6
-        id: artifact
-        with:
-          script: |
-            const res = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            })
 
-            res.data.artifacts
-              .forEach(({ id }) => {
-                github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: id,
-                })
-              })
-  build:
-    needs:
-      - artifact
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-            build: |
-              set -e
-              sudo apt-get -y install protobuf-compiler
-              RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
-              strip crates/node_binding/*.node
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-            build: |
-              sudo apt-get -y install protobuf-compiler
-              RUST_TARGET=aarch64-unknown-linux-gnu pnpm build:binding:release
-              aarch64-unknown-linux-gnu-strip crates/node_binding/*.node
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: |
-              apk add --no-cache protoc
-              RUST_TARGET=x86_64-unknown-linux-musl pnpm build:binding:release
-              strip crates/node_binding/*.node
-          - host: ubuntu-latest
-            target: aarch64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: |
-              apk add --no-cache protoc
-              export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-              RUST_TARGET=aarch64-unknown-linux-musl pnpm build:binding:release
-              /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip crates/node_binding/*.node
-          - host: windows-latest
-            target: i686-pc-windows-msvc
-            build: |
-              RUST_TARGET=i686-pc-windows-msvc pnpm build:binding:release
-          - host: windows-latest
-            target: x86_64-pc-windows-msvc
-            build: |
-              RUST_TARGET=x86_64-pc-windows-msvc pnpm build:binding:release
-          - host: windows-latest
-            target: aarch64-pc-windows-msvc
-            build: |
-              RUST_TARGET=aarch64-pc-windows-msvc pnpm build:binding:release
-          - host: macos-latest
-            target: x86_64-apple-darwin
-            build: |
-              RUST_TARGET=x86_64-apple-darwin pnpm build:binding:release
-              strip -x crates/node_binding/*.node
-          - host: macos-latest
-            target: aarch64-apple-darwin
-            build: |
-              sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*;
-              export CC=$(xcrun -f clang);
-              export CXX=$(xcrun -f clang++);
-              SYSROOT=$(xcrun --sdk macosx --show-sdk-path);
-              export CFLAGS="-isysroot $SYSROOT -isystem $SYSROOT";
-              RUST_TARGET=aarch64-apple-darwin pnpm build:binding:release
-              strip -x crates/node_binding/*.node
-          # - host: ubuntu-latest
-          #   target: x86_64-apple-darwin
-          #   build: |
-          #     USE_ZIG=1 RUST_TARGET=x86_64-apple-darwin pnpm build:binding:release
-          # - host: ubuntu-latest
-          #   target: aarch64-apple-darwin
-          #   build: |
-          #     USE_ZIG=1 RUST_TARGET=aarch64-apple-darwin pnpm build:binding:release
-          # - host: ubuntu-latest
-          #   target: armv7-unknown-linux-gnueabihf
-          #   setup: |
-          #     sudo apt-get update
-          #     sudo apt-get install gcc-arm-linux-gnueabihf -y
-          #   build: |
-          #     yarn build --target armv7-unknown-linux-gnueabihf
-          #     arm-linux-gnueabihf-strip *.node
-          # - host: ubuntu-latest
-          #   target: aarch64-linux-android
-          #   build: |
-          #     yarn build --target aarch64-linux-android
-          #     ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip *.node
-          # - host: ubuntu-latest
-          #   target: armv7-linux-androideabi
-          #   build: |
-          #     yarn build --target armv7-linux-androideabi
-          #     ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip *.node
-    name: build-${{ matrix.settings.target }}
-    runs-on: ${{ matrix.settings.host }}
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Setup node dependencies
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm install
-      - name: Install Rust
-        if: ${{ !matrix.settings.docker }}
-        run: rustup show
-      - name: Setup rust target
-        if: ${{ !matrix.settings.docker }}
-        run: rustup target add ${{ matrix.settings.target }}
-      - uses: Swatinem/rust-cache@v2
-      - name: Install Protoc
-        if: ${{ !matrix.settings.docker }}
-        uses: arduino/setup-protoc@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: goto-bus-stop/setup-zig@v2
-        if: ${{ matrix.settings.target == 'armv7-unknown-linux-gnueabihf' || contains(matrix.settings.target, 'apple') }}
-        with:
-          version: 0.10.1
-      - name: Setup toolchain
-        run: ${{ matrix.settings.setup }}
-        if: ${{ matrix.settings.setup }}
-        shell: bash
-      # - name: Setup node x86
-      #   if: matrix.settings.target == 'i686-pc-windows-msvc'
-      #   run: yarn config set supportedArchitectures.cpu "ia32"
-      #   shell: bash
-      # - name: Setup node x86
-      #   uses: actions/setup-node@v3
-      #   if: matrix.settings.target == 'i686-pc-windows-msvc'
-      #   with:
-      #     node-version: 18
-      #     check-latest: true
-      #     cache: yarn
-      #     architecture: x86
-      - name: Build in docker
-        uses: addnab/docker-run-action@v3
-        if: ${{ matrix.settings.docker }}
-        with:
-          image: ${{ matrix.settings.docker }}
-          options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build"
-          run: |
-            set -e
-            rustup target add ${{ matrix.settings.target }}
-            npm install -g pnpm@7.25.0 --force
-            ${{ matrix.settings.build }}
-      - name: Build
-        run: ${{ matrix.settings.build }}
-        if: ${{ !matrix.settings.docker }}
-        shell: bash
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: bindings-${{ matrix.settings.target }}
-          path: crates/node_binding/*.node
-          if-no-files-found: error
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
 
-  test-x86_64-unknown-linux-gnu:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          - "16"
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-x86_64-unknown-linux-gnu
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:${{ matrix.node }}-slim
-          options: -v ${{ github.workspace }}:/build -w /build
-          run: |
-            set -e
-            npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
-            pnpm run build:js
-
-            pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
-  test-aarch64-unknown-linux-gnu:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          # - "16"
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-aarch64-unknown-linux-gnu
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - name: Run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:${{ matrix.node }}-slim
-          options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
-          run: |
-            set -e
-            npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
-            pnpm run build:js
-
-            pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
-  test-x86_64-unknown-linux-musl:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          - "16"
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-x86_64-unknown-linux-musl
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:${{ matrix.node }}-alpine
-          options: -v ${{ github.workspace }}:/build -w /build
-          run: |
-            set -e
-            npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
-            pnpm run build:js
-
-            pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
-  test-aarch64-unknown-linux-musl:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          - "16"
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-aarch64-unknown-linux-musl
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: arm64
-      - run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-      - name: Run tests
-        uses: addnab/docker-run-action@v3
-        with:
-          image: node:${{ matrix.node }}-alpine
-          options: --platform linux/arm64 -v ${{ github.workspace }}:/build -w /build
-          run: |
-            set -e
-            npm install -g pnpm@7.25.0
-            PUPPETEER_SKIP_DOWNLOAD=true pnpm install
-            pnpm run build:js
-
-            pnpm --filter @rspack/core run test
-            # pnpm --filter @rspack/dev-server run test
-            pnpm --filter @rspack/plugin-html run test
-  test-x86_64-apple-darwin:
-    strategy:
-      fail-fast: false
-      matrix:
-        node:
-          - "14"
-          - "16"
-    runs-on: macos-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node }}
-      - name: Download bindings
-        uses: actions/download-artifact@v3
-        with:
-          name: bindings-x86_64-apple-darwin
-          path: crates/node_binding/
-      - name: Show restored binding
-        run: ls -lah crates/node_binding/*.node
-      - name: Run tests
-        run: |
-          set -e
-          npm install -g pnpm@7.25.0
-          pnpm install
-          pnpm run build:js
-
-          pnpm --filter @rspack/core run test
-          # pnpm --filter @rspack/dev-server run test
-          pnpm --filter @rspack/plugin-html run test
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs:
-      - test-x86_64-unknown-linux-gnu
-      - test-aarch64-unknown-linux-gnu
-      - test-x86_64-unknown-linux-musl
-      - test-aarch64-unknown-linux-musl
-      - test-x86_64-apple-darwin
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@master
-        with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Setup node dependencies
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm install
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
           path: artifacts
+
       - name: Build node packages
         run: pnpm run build:js
+
       - name: Move artifacts
-        run: node scripts/build-npm.js
+        run: node scripts/build-npm.cjs
+
       - name: Show binding packages
         run: ls -R npm
+
       - name: Link optional dependencies
         run: pnpm install --no-frozen-lockfile
-      - name: Release
-        uses: web-infra-dev/actions@v2
-        with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
-          type: "release"
-          branch: ${{ github.ref_name }}
-          tools: "changeset"
+
+      - name: Release Full
+        run: |
+          ./x publish stable --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
+          ONLY_RELEASE_TAG: true

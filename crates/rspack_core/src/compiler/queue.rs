@@ -1,13 +1,13 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 
 use crate::{
-  cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerOptions,
-  ContextModuleFactory, DependencyId, DependencyType, LoaderRunnerRunner, Module, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, SharedPluginDriver,
-  WorkerQueue,
+  cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerContext,
+  CompilerOptions, Context, ContextModuleFactory, DependencyId, DependencyType, Module,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
+  ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -25,13 +25,14 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
+  pub original_module_context: Option<Context>,
   pub issuer: Option<String>,
-  pub original_resource_path: Option<PathBuf>,
   pub dependencies: Vec<BoxModuleDependency>,
   pub is_entry: bool,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub resolve_options: Option<Resolve>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub options: Arc<CompilerOptions>,
   pub lazy_visit_modules: std::collections::HashSet<String>,
   pub plugin_driver: SharedPluginDriver,
@@ -54,23 +55,18 @@ impl WorkerTask for FactorizeTask {
     let dependencies = self
       .dependencies
       .iter()
-      .map(|d| *d.id().expect("should have dependency"))
+      .map(|d| d.id().expect("should have dependency"))
       .collect::<Vec<_>>();
     let dependency = &self.dependencies[0];
 
-    let context = if let Some(context) = dependency.get_context().map(|x| x.to_string()) {
-      Some(context)
-    } else if let Some(importer) = &self.original_resource_path {
-      Some(
-        importer
-          .parent()
-          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
-          .to_string_lossy()
-          .to_string(),
-      )
+    let context = if let Some(context) = dependency.get_context() {
+      context
+    } else if let Some(context) = &self.original_module_context {
+      context
     } else {
-      Some(self.options.context.to_string_lossy().to_string())
-    };
+      &self.options.context
+    }
+    .clone();
 
     let (result, diagnostics) = match *dependency.dependency_type() {
       DependencyType::ImportContext
@@ -89,13 +85,14 @@ impl WorkerTask for FactorizeTask {
       _ => {
         let factory = NormalModuleFactory::new(
           NormalModuleFactoryContext {
-            original_resource_path: self.original_resource_path,
+            original_module_identifier: self.original_module_identifier,
             module_type: self.module_type,
             side_effects: self.side_effects,
             options: self.options.clone(),
             lazy_visit_modules: self.lazy_visit_modules,
             issuer: self.issuer,
           },
+          self.resolver_factory,
           self.plugin_driver,
           self.cache,
         );
@@ -110,15 +107,7 @@ impl WorkerTask for FactorizeTask {
       }
     };
 
-    let mut mgm = ModuleGraphModule::new(
-      result.module.identifier(),
-      *result.module.module_type(),
-      // 1. if `tree_shaking` is false, then whatever `side_effects` is, all the module should be used by default.
-      // 2. if `tree_shaking` is true, then only `side_effects` is false, `module.used` should be true.
-      !self.options.builtins.tree_shaking || !self.options.optimization.side_effects.is_enable(),
-    );
-
-    mgm.set_issuer_if_unset(self.original_module_identifier);
+    let mgm = ModuleGraphModule::new(result.module.identifier(), *result.module.module_type());
 
     Ok(TaskResult::Factorize(FactorizeTaskResult {
       is_entry: self.is_entry,
@@ -143,14 +132,8 @@ pub struct AddTask {
 
 #[derive(Debug)]
 pub enum AddTaskResult {
-  ModuleReused {
-    module: Box<dyn Module>,
-    dependencies: Vec<DependencyId>,
-  },
-  ModuleAdded {
-    module: Box<dyn Module>,
-    dependencies: Vec<DependencyId>,
-  },
+  ModuleReused { module: Box<dyn Module> },
+  ModuleAdded { module: Box<dyn Module> },
 }
 
 impl AddTask {
@@ -171,7 +154,6 @@ impl AddTask {
 
       return Ok(TaskResult::Add(AddTaskResult::ModuleReused {
         module: self.module,
-        dependencies: self.dependencies,
       }));
     }
 
@@ -194,7 +176,6 @@ impl AddTask {
 
     Ok(TaskResult::Add(AddTaskResult::ModuleAdded {
       module: self.module,
-      dependencies: self.dependencies,
     }))
   }
 }
@@ -221,8 +202,7 @@ pub type AddQueue = WorkerQueue<AddTask>;
 
 pub struct BuildTask {
   pub module: Box<dyn Module>,
-  pub dependencies: Vec<DependencyId>,
-  pub loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
   pub plugin_driver: SharedPluginDriver,
   pub cache: Arc<Cache>,
@@ -231,7 +211,6 @@ pub struct BuildTask {
 #[derive(Debug)]
 pub struct BuildTaskResult {
   pub module: Box<dyn Module>,
-  pub dependencies: Vec<DependencyId>,
   pub build_result: Box<BuildResult>,
   pub diagnostics: Vec<Diagnostic>,
 }
@@ -241,7 +220,7 @@ impl WorkerTask for BuildTask {
   async fn run(self) -> Result<TaskResult> {
     let mut module = self.module;
     let compiler_options = self.compiler_options;
-    let loader_runner_runner = self.loader_runner_runner;
+    let resolver_factory = self.resolver_factory;
     let cache = self.cache;
     let plugin_driver = self.plugin_driver;
 
@@ -256,12 +235,16 @@ impl WorkerTask for BuildTask {
 
         let result = module
           .build(BuildContext {
-            loader_runner_runner: &loader_runner_runner,
+            compiler_context: CompilerContext {
+              options: compiler_options.clone(),
+              resolver_factory: resolver_factory.clone(),
+            },
+            plugin_driver: plugin_driver.clone(),
             compiler_options: &compiler_options,
           })
           .await;
 
-        plugin_driver.read().await.succeed_module(module).await?;
+        plugin_driver.read().await.succeed_module(&**module).await?;
 
         result
       })
@@ -269,9 +252,9 @@ impl WorkerTask for BuildTask {
 
     build_result.map(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();
+
       TaskResult::Build(BuildTaskResult {
         module,
-        dependencies: self.dependencies,
         build_result: Box::new(build_result),
         diagnostics,
       })

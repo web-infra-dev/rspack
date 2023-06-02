@@ -3,13 +3,13 @@ import type { RspackCLI } from "../rspack-cli";
 import { RspackCommand } from "../types";
 import { commonOptions } from "../utils/options";
 import { Stats } from "@rspack/core/src/stats";
-import { Compiler } from "@rspack/core";
+import { Compiler, MultiCompiler } from "@rspack/core";
 import MultiStats from "@rspack/core/src/multiStats";
 
 export class BuildCommand implements RspackCommand {
 	async apply(cli: RspackCLI): Promise<void> {
 		cli.program.command(
-			["build [entry..]", "$0", "bundle", "b"],
+			["build", "$0", "bundle", "b"],
 			"run the rspack build",
 			yargs =>
 				commonOptions(yargs).options({
@@ -27,7 +27,7 @@ export class BuildCommand implements RspackCommand {
 				let createJsonStringifyStream;
 				if (options.json) {
 					const jsonExt = await import("@discoveryjs/json-ext");
-					createJsonStringifyStream = jsonExt.stringifyStream;
+					createJsonStringifyStream = jsonExt.default.stringifyStream;
 				}
 
 				const callback = (error, stats: Stats | MultiStats) => {
@@ -83,14 +83,24 @@ export class BuildCommand implements RspackCommand {
 						}
 					}
 				};
-				console.time("build");
+
 				let rspackOptions = { ...options, argv: { ...options } };
 
-				const compiler = await cli.createCompiler(rspackOptions, "production");
-				compiler.run((err, Stats) => {
+				const errorHandler = (err, Stats) => {
 					callback(err, Stats);
-					console.timeEnd("build");
-				});
+				};
+
+				const compiler = await cli.createCompiler(
+					rspackOptions,
+					"build",
+					errorHandler
+				);
+
+				if (cli.isWatch(compiler)) {
+					return;
+				} else {
+					compiler.run(errorHandler);
+				}
 			}
 		);
 	}

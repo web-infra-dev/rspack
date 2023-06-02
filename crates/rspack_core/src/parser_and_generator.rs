@@ -3,11 +3,11 @@ use std::fmt::Debug;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, Compilation, CompilerOptions,
-  Dependency, GenerationResult, Module, ModuleDependency, ModuleIdentifier, ModuleType, SourceType,
+  AssetGeneratorOptions, AssetParserOptions, AstOrSource, BuildInfo, BuildMeta, CodeGenerationData,
+  CodeReplaceSourceDependency, Compilation, CompilerOptions, Dependency, GenerationResult, Module,
+  ModuleDependency, ModuleIdentifier, ModuleType, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -21,12 +21,14 @@ pub struct ParseContext<'a> {
   pub additional_data: Option<String>,
   pub code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub build_info: &'a mut BuildInfo,
+  pub build_meta: &'a mut BuildMeta,
 }
 
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: Vec<Box<dyn Dependency>>,
+  pub code_replace_source_dependencies: Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub ast_or_source: AstOrSource,
 }
 
@@ -34,8 +36,8 @@ pub struct ParseResult {
 pub struct GenerateContext<'a> {
   pub compilation: &'a Compilation,
   pub module_generator_options: Option<&'a AssetGeneratorOptions>,
-  pub runtime_requirements: &'a mut HashSet<&'static str>,
-  pub data: &'a mut HashMap<String, String>,
+  pub runtime_requirements: &'a mut RuntimeGlobals,
+  pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
 }
 

@@ -8,22 +8,18 @@ version    = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rspack = { path = "../rspack" }
-rspack_core = { path = "../rspack_core" }
-rspack_error = { path = "../rspack_error" }
-rspack_fs = { path = "../rspack_fs", features = ["async"] }
+rspack_core    = { path = "../rspack_core" }
+rspack_fs      = { path = "../rspack_fs", features = ["async"] }
 rspack_testing = { path = "../rspack_testing" }
-tokio = { version = "1.21.0", features = [
-  "rt",
-  "rt-multi-thread",
-  "macros",
-  "test-util",
-  "parking_lot",
-] }
-
-[target.'cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))'.dependencies]
-mimalloc-rust  = { version = "0.2" }
 rspack_tracing = { path = "../rspack_tracing" }
+tokio          = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+mimalloc-rust = { workspace = true }
+
+[target.'cfg(all(target_os = "linux", target_env = "gnu", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
+tikv-jemallocator = { workspace = true }
+
 [features]
 hmr     = []
 tracing = []

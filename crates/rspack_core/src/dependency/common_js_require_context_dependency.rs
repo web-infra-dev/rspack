@@ -1,4 +1,4 @@
-use rspack_error::Result;
+use rspack_error::{internal_error, Result};
 use swc_core::{
   common::DUMMY_SP,
   ecma::{
@@ -8,15 +8,13 @@ use swc_core::{
 };
 
 use crate::{
-  create_javascript_visitor, normalize_context, runtime_globals, CodeGeneratable,
-  CodeGeneratableResult, ContextOptions, Dependency, DependencyId, ErrorSpan, JsAstPath,
-  ModuleDependency, ModuleIdentifier,
+  create_javascript_visitor, normalize_context, CodeGeneratable, CodeGeneratableResult,
+  ContextOptions, Dependency, DependencyId, ErrorSpan, JsAstPath, ModuleDependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CommonJsRequireContextDependency {
   pub id: Option<DependencyId>,
-  pub parent_module_identifier: Option<ModuleIdentifier>,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
   #[allow(unused)]
@@ -26,7 +24,6 @@ pub struct CommonJsRequireContextDependency {
 impl CommonJsRequireContextDependency {
   pub fn new(options: ContextOptions, span: Option<ErrorSpan>, ast_path: JsAstPath) -> Self {
     Self {
-      parent_module_identifier: None,
       options,
       span,
       ast_path,
@@ -36,8 +33,8 @@ impl CommonJsRequireContextDependency {
 }
 
 impl Dependency for CommonJsRequireContextDependency {
-  fn id(&self) -> Option<&DependencyId> {
-    self.id.as_ref()
+  fn id(&self) -> Option<DependencyId> {
+    self.id
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
@@ -48,14 +45,6 @@ impl Dependency for CommonJsRequireContextDependency {
 
   fn dependency_type(&self) -> &crate::DependencyType {
     &crate::DependencyType::CommonJSRequireContext
-  }
-
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    self.parent_module_identifier.as_ref()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    self.parent_module_identifier = module_identifier;
   }
 }
 
@@ -75,6 +64,10 @@ impl ModuleDependency for CommonJsRequireContextDependency {
   fn options(&self) -> Option<&ContextOptions> {
     Some(&self.options)
   }
+
+  fn set_request(&mut self, request: String) {
+    self.options.request = request;
+  }
 }
 
 impl CodeGeneratable for CommonJsRequireContextDependency {
@@ -84,16 +77,17 @@ impl CodeGeneratable for CommonJsRequireContextDependency {
     if let Some(id) = self.id() {
       if let Some(module_id) = compilation
         .module_graph
-        .module_graph_module_by_dependency_id(id)
-        .map(|m| m.id(&compilation.chunk_graph).to_string())
+        .module_graph_module_by_dependency_id(&id)
+        .map(|m| m.id(&compilation.chunk_graph))
       {
-        let module_id = format!("'{module_id}'");
+        let module_id =
+          serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?;
         let context = normalize_context(&self.options.request);
         code_gen.visitors.push(
           create_javascript_visitor!(exact &self.ast_path, visit_mut_call_expr(n: &mut CallExpr) {
             n.callee = Expr::Call(CallExpr {
               span: DUMMY_SP,
-              callee: quote_ident!(DUMMY_SP, runtime_globals::REQUIRE).as_callee(),
+              callee: quote_ident!(DUMMY_SP, RuntimeGlobals::REQUIRE).as_callee(),
               args: vec![quote_ident!(DUMMY_SP, *module_id).as_arg()],
               type_args: None,
             }).as_callee();

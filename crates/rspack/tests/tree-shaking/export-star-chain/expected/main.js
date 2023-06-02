@@ -73,9 +73,9 @@ __webpack_require__.es(__webpack_require__("./Layout.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _exportJs = __webpack_require__("./export.js");
-_exportJs.Colors;
-_exportJs.Something;
+var _export = __webpack_require__("./export.js");
+_export.Colors;
+_export.Something;
 },
 "./something/Something.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -99,15 +99,16 @@ Object.defineProperty(exports, "__esModule", {
 Object.defineProperty(exports, "Colors", {
     enumerable: true,
     get: function() {
-        return _indexJs;
+        return _index;
     }
 });
-var _indexJs = __webpack_require__.ir(__webpack_require__("./colors/index.js"));
+var _index = __webpack_require__.ir(__webpack_require__("./colors/index.js"));
 __webpack_require__.es(__webpack_require__("./something/Something.js"), exports);
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

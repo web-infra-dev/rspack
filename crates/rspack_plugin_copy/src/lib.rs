@@ -1,22 +1,23 @@
 #![feature(let_chains)]
 use std::{
   fs,
+  hash::Hash,
   path::{Path, PathBuf, MAIN_SEPARATOR},
   sync::Arc,
 };
 
 use async_trait::async_trait;
 use dashmap::DashSet;
-use glob::{GlobError, MatchOptions};
+use glob::MatchOptions;
 use regex::Regex;
 use rspack_core::{
-  rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, Filename, FromType, Pattern,
-  Plugin, ToType,
+  rspack_sources::RawSource, AssetInfo, Compilation, CompilationAsset, Filename, FromType,
+  PathData, Pattern, Plugin, ToType,
 };
 use rspack_error::Diagnostic;
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use sugar_path::{AsPath, SugarPath};
 use tracing::Level;
-use xxhash_rust::xxh3::Xxh3;
 
 #[derive(Debug)]
 struct Logger(&'static str);
@@ -59,37 +60,43 @@ impl CopyPlugin {
     Self { patterns }
   }
 
-  fn get_content_hash(source: &RawSource) -> u64 {
-    let mut hasher = Xxh3::default();
+  fn get_content_hash(
+    source: &RawSource,
+    function: &HashFunction,
+    digest: &HashDigest,
+    salt: &HashSalt,
+  ) -> RspackHashDigest {
+    let mut hasher = RspackHash::with_salt(function, salt);
     match &source {
       RawSource::Buffer(buffer) => {
-        hasher.update(buffer);
+        buffer.hash(&mut hasher);
       }
       RawSource::Source(source) => {
-        hasher.update(source.as_bytes());
+        source.hash(&mut hasher);
       }
     }
-    hasher.digest()
+    hasher.digest(digest)
   }
 
+  #[allow(clippy::too_many_arguments)]
   async fn analyze_every_entry(
-    entry: Result<PathBuf, GlobError>,
+    entry: PathBuf,
     pattern: &Pattern,
     context: &Path,
     output_path: &Path,
     from_type: FromType,
     file_dependencies: &DashSet<PathBuf>,
     diagnostics: &DashSet<Diagnostic>,
+    compilation: &Compilation,
   ) -> Option<RunPatternResult> {
-    if entry.is_err() {
-      return None;
-    }
-
-    let entry = entry.expect("UNREACHABLE");
-
     // Exclude directories
     if entry.is_dir() {
       return None;
+    }
+    if let Some(ignore) = &pattern.glob_options.ignore && ignore.iter().any(|ignore| {
+      ignore.matches(&entry.to_string_lossy())
+    }) {
+      return None
     }
 
     let from = entry.as_path().to_path_buf();
@@ -122,7 +129,7 @@ impl CopyPlugin {
       ToType::File
     };
 
-    LOGGER.log(&format!("'to' option '{to}' determinated as '{to_type}'"));
+    LOGGER.log(&format!("'to' option '{to}' determined as '{to_type}'"));
 
     let relative = pathdiff::diff_paths(&absolute_filename, context);
     let filename = if matches!(to_type, ToType::Dir) {
@@ -186,26 +193,19 @@ impl CopyPlugin {
         source_filename.display()
       ));
 
-      let content_hash = Self::get_content_hash(&source);
-      let ext = source_filename.extension();
-      let base = source_filename.file_name();
-      let name = &base.and_then(|base| {
-        base
-          .to_str()?
-          .strip_suffix(ext.and_then(|ext| ext.to_str())?)
-      });
-
-      let template_str = Filename::from(filename.to_string_lossy().to_string()).render(
-        rspack_core::FilenameRenderOptions {
-          name: name.map(Into::into),
-          path: None,
-          extension: ext.map(|ext| ext.to_string_lossy().to_string()),
-          id: Some(source_filename.to_string_lossy().to_string()),
-          contenthash: Some(content_hash.to_string()),
-          chunkhash: None,
-          hash: Some(content_hash.to_string()),
-          query: None,
-        },
+      let content_hash = Self::get_content_hash(
+        &source,
+        &compilation.options.output.hash_function,
+        &compilation.options.output.hash_digest,
+        &compilation.options.output.hash_salt,
+      );
+      let content_hash = content_hash.rendered(compilation.options.output.hash_digest_length);
+      let template_str = compilation.get_asset_path(
+        &Filename::from(filename.to_string_lossy().to_string()),
+        PathData::default()
+          .filename(&source_filename.to_string_lossy())
+          .content_hash(content_hash)
+          .hash_optional(compilation.get_hash()),
       );
 
       LOGGER.log(&format!(
@@ -251,7 +251,7 @@ impl CopyPlugin {
     ));
 
     let abs_from = if normalized_orig_from.is_absolute() {
-      normalized_orig_from.clone()
+      normalized_orig_from
     } else {
       context.join(&normalized_orig_from)
     };
@@ -342,11 +342,27 @@ impl CopyPlugin {
 
     match glob_entries {
       Ok(entries) => {
-        let entries: Vec<_> = entries.collect();
+        let entries: Vec<_> = entries
+          .filter_map(|entry| {
+            let entry = entry.ok()?;
+
+            let filters = pattern.glob_options.ignore.as_ref();
+
+            if let Some(filters) = filters {
+              // If filters length is 0, exist is true by default
+              let exist = filters
+                .iter()
+                .all(|filter| !filter.matches(&entry.to_string_lossy()));
+              exist.then_some(entry)
+            } else {
+              Some(entry)
+            }
+          })
+          .collect();
 
         if need_add_context_to_dependency &&
         let Some(common_dir) = get_closest_common_parent_dir(
-          &entries.iter().flatten().map(|it| it.as_path()).collect(),
+          &entries.iter().map(|it| it.as_path()).collect(),
         ) {
           context_dependencies.insert(common_dir);
         }
@@ -380,6 +396,7 @@ impl CopyPlugin {
               from_type,
               file_dependencies,
               diagnostics,
+              compilation,
             )
             .await
           })
@@ -400,19 +417,13 @@ impl CopyPlugin {
           return None;
         }
 
-        Some(
-          copied_result
-            .into_inner()
-            .into_iter()
-            .flat_map(|it| it.ok())
-            .collect::<Vec<_>>(),
-        )
+        Some(copied_result.into_inner())
       }
       Err(e) => {
         if pattern.no_error_on_missing {
           LOGGER.log(&format!(
             "finished to process a pattern from '{}' using '{}' context to '{:?}'",
-            normalized_orig_from.display(),
+            PathBuf::from(orig_from).display(),
             context.display(),
             pattern.to
           ));
@@ -457,7 +468,7 @@ impl Plugin for CopyPlugin {
         if pattern.context.is_none() {
           pattern.context = Some(args.compilation.options.context.as_path().into());
         } else if let Some(ctx) = pattern.context.clone() && !ctx.is_absolute() {
-          pattern.context = Some(args.compilation.options.context.join(ctx))
+          pattern.context = Some(args.compilation.options.context.as_path().join(ctx))
         };
 
         Self::run_patter(
@@ -490,7 +501,7 @@ impl Plugin for CopyPlugin {
 
     copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
     copied_result.into_iter().for_each(|(_priority, result)| {
-      if let Some(exist_asset) = args.compilation.assets.get_mut(&result.filename) {
+      if let Some(exist_asset) = args.compilation.assets_mut().get_mut(&result.filename) {
         if !result.force {
           return;
         }

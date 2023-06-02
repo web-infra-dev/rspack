@@ -1,21 +1,24 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  runtime_globals, ChunkUkey, Compilation, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
-use rustc_hash::FxHashSet as HashSet;
+use rspack_identifier::Identifier;
 
 use super::utils::chunk_has_js;
+use crate::impl_runtime_module;
 use crate::runtime_module::utils::{get_initial_chunk_ids, stringify_chunks};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Eq)]
 pub struct JsonpChunkLoadingRuntimeModule {
+  id: Identifier,
   chunk: Option<ChunkUkey>,
-  runtime_requirements: HashSet<&'static str>,
+  runtime_requirements: RuntimeGlobals,
 }
 
 impl JsonpChunkLoadingRuntimeModule {
-  pub fn new(runtime_requirements: HashSet<&'static str>) -> Self {
+  pub fn new(runtime_requirements: RuntimeGlobals) -> Self {
     Self {
+      id: Identifier::from("webpack/runtime/jsonp_chunk_loading"),
       chunk: None,
       runtime_requirements,
     }
@@ -23,8 +26,8 @@ impl JsonpChunkLoadingRuntimeModule {
 }
 
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/jsonp_chunk_loading".to_string()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -37,6 +40,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     // );
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
     let mut source = ConcatSource::default();
+
+    if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+      source.add(RawSource::from(format!(
+        "{} = document.baseURI || self.location.href;\n",
+        RuntimeGlobals::BASE_URI
+      )))
+    }
+
     // object to store loaded and loading chunks
     // undefined = chunk not loaded, null = chunk preloaded/prefetched
     // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
@@ -47,7 +58,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     let with_loading = self
       .runtime_requirements
-      .contains(runtime_globals::ENSURE_CHUNK_HANDLERS);
+      .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    let with_on_chunk_load = self
+      .runtime_requirements
+      .contains(RuntimeGlobals::ON_CHUNKS_LOADED);
 
     if with_loading {
       source.add(RawSource::from(
@@ -59,10 +73,11 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if self
       .runtime_requirements
-      .contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     {
       source.add(RawSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_hmr.js").to_string(),
+        include_str!("runtime/jsonp_chunk_loading_with_hmr.js")
+          .replace("$globalObject$", &compilation.options.output.global_object),
       ));
       source.add(RawSource::from(
         include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
@@ -71,29 +86,38 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if self
       .runtime_requirements
-      .contains(runtime_globals::HMR_DOWNLOAD_MANIFEST)
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
     {
-      source.add(RawSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_hmr_manifest.js").to_string(),
-      ));
+      source.add(RawSource::from(include_str!(
+        "runtime/jsonp_chunk_loading_with_hmr_manifest.js"
+      )));
+    }
+
+    if with_on_chunk_load {
+      source.add(RawSource::from(include_str!(
+        "runtime/jsonp_chunk_loading_with_on_chunk_load.js"
+      )));
     }
 
     if self
       .runtime_requirements
-      .contains(runtime_globals::ON_CHUNKS_LOADED)
-    {
-      source.add(RawSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_on_chunk_load.js").to_string(),
-      ));
-    }
-
-    if self
-      .runtime_requirements
-      .contains(runtime_globals::CHUNK_CALLBACK)
+      .contains(RuntimeGlobals::CHUNK_CALLBACK)
       || with_loading
     {
+      let chunk_loading_global_expr = format!(
+        "{}['{}']",
+        &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
+      );
       source.add(RawSource::from(
-        include_str!("runtime/jsonp_chunk_loading_with_callback.js").to_string(),
+        include_str!("runtime/jsonp_chunk_loading_with_callback.js")
+          .replace("$CHUNK_LOADING_GLOBAL_EXPR$", &chunk_loading_global_expr)
+          .replace(
+            "$withOnChunkLoad$",
+            match with_on_chunk_load {
+              true => "return __webpack_require__.O(result);",
+              false => "",
+            },
+          ),
       ));
     }
 
@@ -108,3 +132,5 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     RUNTIME_MODULE_STAGE_ATTACH
   }
 }
+
+impl_runtime_module!(JsonpChunkLoadingRuntimeModule);

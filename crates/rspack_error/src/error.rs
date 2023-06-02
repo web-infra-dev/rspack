@@ -12,6 +12,13 @@ pub struct InternalError {
 }
 
 impl InternalError {
+  pub fn new(error_message: String, severity: Severity) -> Self {
+    Self {
+      error_message,
+      severity,
+    }
+  }
+
   pub fn with_severity(mut self, severity: Severity) -> Self {
     self.severity = severity;
     self
@@ -226,7 +233,7 @@ pub enum DiagnosticKind {
 }
 
 /// About the manually implementation,
-/// dispaly string should be snake, for consistency.
+/// display string should be snake, for consistency.
 impl std::fmt::Display for DiagnosticKind {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {

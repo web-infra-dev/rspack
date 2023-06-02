@@ -1,4 +1,5 @@
 var inProgress = {};
+
 // var dataWebpackPrefix = "webpack:";
 // loadScript function to load a script via script tag
 __webpack_require__.l = function loadScript(url, done, key, chunkId) {
@@ -28,7 +29,11 @@ __webpack_require__.l = function loadScript(url, done, key, chunkId) {
 		script.charset = "utf-8";
 		script.timeout = 120;
 		// script.setAttribute("data-webpack", dataWebpackPrefix + key);
-		script.src = url;
+		script.src = $URL$;
+
+		if (__CROSS_ORIGIN_LOADING_PLACEHOLDER__ && script.src.indexOf(window.location.origin + '/') !== 0) {
+			script.crossOrigin = __CROSS_ORIGIN_LOADING_PLACEHOLDER__;
+		}
 	}
 	inProgress[url] = [done];
 	var onScriptComplete = function (prev, event) {

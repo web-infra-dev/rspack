@@ -1,17 +1,33 @@
 import {
 	RawCacheGroupOptions,
+	RawExternalItem,
+	RawExternalItemValue,
 	RawModuleRule,
+	RawOptions,
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions,
-	RawOptions
+	RawBannerConditions,
+	RawBannerCondition
 } from "@rspack/binding";
 import assert from "assert";
+import { Compiler } from "../compiler";
 import { normalizeStatsPreset } from "../stats";
 import { isNil } from "../util";
 import {
+	ComposeJsUseOptions,
+	LoaderContext,
+	createRawModuleRuleUses
+} from "./adapter-rule-use";
+import {
+	BannerConditions,
+	BannerCondition,
+	CrossOriginLoading,
 	EntryNormalized,
 	Experiments,
+	ExternalItem,
+	ExternalItemValue,
 	Externals,
+	ExternalsPresets,
 	LibraryOptions,
 	ModuleOptionsNormalized,
 	Node,
@@ -24,25 +40,28 @@ import {
 	RuleSetLogicalConditions,
 	RuleSetRule,
 	SnapshotOptions,
+	StatsValue,
 	Target
 } from "./types";
-import {
-	ComposeJsUseOptions,
-	createRawModuleRuleUses
-} from "./adapter-rule-use";
-import { Compiler } from "../compiler";
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
-	compiler: Compiler
+	compiler: Compiler,
+	processResource: (
+		loaderContext: LoaderContext,
+		resourcePath: string,
+		callback: any
+	) => void
 ): RawOptions => {
 	assert(
 		!isNil(options.context) && !isNil(options.devtool) && !isNil(options.cache),
 		"context, devtool, cache should not be nil after defaults"
 	);
 	const devtool = options.devtool === false ? "" : options.devtool;
+	let rawEntry = getRawEntry(options.entry);
 	return {
-		entry: getRawEntry(options.entry),
+		entry: rawEntry,
+		entryOrder: Object.keys(rawEntry),
 		mode: options.mode,
 		target: getRawTarget(options.target),
 		context: options.context,
@@ -53,12 +72,15 @@ export const getRawOptions = (
 			devtool,
 			context: options.context
 		}),
-		externals: options.externals ? getRawExternals(options.externals) : {},
+		externals: options.externals
+			? getRawExternals(options.externals)
+			: undefined,
 		externalsType:
 			options.externalsType === undefined ? "" : options.externalsType,
+		externalsPresets: getRawExternalsPresets(options.externalsPresets),
 		devtool,
 		optimization: getRawOptimization(options.optimization),
-		stats: { colors: normalizeStatsPreset(options.stats).colors ?? false },
+		stats: getRawStats(options.stats),
 		devServer: {
 			hot: options.devServer?.hot ?? false
 		},
@@ -117,44 +139,82 @@ function getRawAlias(
 	return Object.fromEntries(entires);
 }
 
+function getRawResolveByDependency(
+	byDependency: Resolve["byDependency"]
+): RawOptions["resolve"]["byDependency"] {
+	if (byDependency === undefined) return byDependency;
+	return Object.fromEntries(
+		Object.entries(byDependency).map(([k, v]) => [k, getRawResolve(v)])
+	);
+}
+
 function getRawResolve(resolve: Resolve): RawOptions["resolve"] {
 	return {
 		...resolve,
 		alias: getRawAlias(resolve.alias),
-		fallback: getRawAlias(resolve.fallback)
+		fallback: getRawAlias(resolve.fallback),
+		extensionAlias: getRawAlias(resolve.extensionAlias) as Record<
+			string,
+			Array<string>
+		>,
+		byDependency: getRawResolveByDependency(resolve.byDependency)
 	};
 }
 
+function getRawCrossOriginLoading(
+	crossOriginLoading: CrossOriginLoading
+): RawOptions["output"]["crossOriginLoading"] {
+	if (typeof crossOriginLoading === "boolean") {
+		return { type: "bool", boolPayload: crossOriginLoading };
+	}
+	return { type: "string", stringPayload: crossOriginLoading };
+}
+
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
-	assert(
-		!isNil(output.path) &&
-			!isNil(output.publicPath) &&
-			!isNil(output.assetModuleFilename) &&
-			!isNil(output.filename) &&
-			!isNil(output.chunkFilename) &&
-			!isNil(output.cssFilename) &&
-			!isNil(output.cssChunkFilename) &&
-			!isNil(output.uniqueName) &&
-			!isNil(output.enabledLibraryTypes) &&
-			!isNil(output.strictModuleErrorHandling) &&
-			!isNil(output.globalObject) &&
-			!isNil(output.importFunctionName),
-		"fields should not be nil after defaults"
-	);
+	const wasmLoading = output.wasmLoading!;
 	return {
-		path: output.path,
-		publicPath: output.publicPath,
-		assetModuleFilename: output.assetModuleFilename,
-		filename: output.filename,
-		chunkFilename: output.chunkFilename,
-		cssFilename: output.cssFilename,
-		cssChunkFilename: output.cssChunkFilename,
-		uniqueName: output.uniqueName,
+		path: output.path!,
+		publicPath: output.publicPath!,
+		clean: output.clean!,
+		assetModuleFilename: output.assetModuleFilename!,
+		filename: output.filename!,
+		chunkFormat: output.chunkFormat === false ? undefined : output.chunkFormat!,
+		chunkFilename: output.chunkFilename!,
+		chunkLoading:
+			output.chunkLoading === false ? undefined : output.chunkLoading!,
+		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
+		cssFilename: output.cssFilename!,
+		cssChunkFilename: output.cssChunkFilename!,
+		hotUpdateChunkFilename: output.hotUpdateChunkFilename!,
+		hotUpdateMainFilename: output.hotUpdateMainFilename!,
+		uniqueName: output.uniqueName!,
+		chunkLoadingGlobal: output.chunkLoadingGlobal!,
 		enabledLibraryTypes: output.enabledLibraryTypes,
 		library: output.library && getRawLibrary(output.library),
-		strictModuleErrorHandling: output.strictModuleErrorHandling,
-		globalObject: output.globalObject,
-		importFunctionName: output.importFunctionName
+		strictModuleErrorHandling: output.strictModuleErrorHandling!,
+		globalObject: output.globalObject!,
+		importFunctionName: output.importFunctionName!,
+		iife: output.iife!,
+		module: output.module!,
+		wasmLoading: wasmLoading === false ? "false" : wasmLoading,
+		enabledWasmLoadingTypes: output.enabledWasmLoadingTypes!,
+		enabledChunkLoadingTypes: output.enabledChunkLoadingTypes!,
+		webassemblyModuleFilename: output.webassemblyModuleFilename!,
+		trustedTypes: output.trustedTypes!,
+		sourceMapFilename: output.sourceMapFilename!,
+		hashFunction: output.hashFunction!,
+		hashDigest: output.hashDigest!,
+		hashDigestLength: output.hashDigestLength!,
+		hashSalt: output.hashSalt!
+	};
+}
+
+function getRawExternalsPresets(
+	presets: ExternalsPresets
+): RawOptions["externalsPresets"] {
+	return {
+		web: presets.web ?? false,
+		node: presets.node ?? false
 	};
 }
 
@@ -212,10 +272,14 @@ function getRawModule(
 		!isNil(module.defaultRules),
 		"module.defaultRules should not be nil after defaults"
 	);
-	// TODO: workaround for module.defaultRules
-	const rules = (
-		[...module.defaultRules, ...module.rules] as RuleSetRule[]
-	).map<RawModuleRule>(i => getRawModuleRule(i, options));
+	// "..." in defaultRules will be flatten in `applyModuleDefaults`, and "..." in rules is empty, so it's safe to use `as RuleSetRule[]` at here
+	const ruleSet = [
+		{ rules: module.defaultRules as RuleSetRule[] },
+		{ rules: module.rules as RuleSetRule[] }
+	];
+	const rules = ruleSet.map((rule, index) =>
+		getRawModuleRule(rule, `ruleSet[${index}]`, options)
+	);
 	return {
 		rules,
 		parser: module.parser
@@ -224,26 +288,62 @@ function getRawModule(
 
 const getRawModuleRule = (
 	rule: RuleSetRule,
+	path: string,
 	options: ComposeJsUseOptions
 ): RawModuleRule => {
+	// Rule.loader is a shortcut to Rule.use: [ { loader } ].
+	// See: https://webpack.js.org/configuration/module/#ruleloader
+	if (rule.loader) {
+		rule.use = [
+			{
+				loader: rule.loader,
+				options: rule.options
+			}
+		];
+	}
+
 	return {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
 		include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
 		exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
+		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
+		dependency: rule.dependency
+			? getRawRuleSetCondition(rule.dependency)
+			: undefined,
+		descriptionData: rule.descriptionData
+			? Object.fromEntries(
+					Object.entries(rule.descriptionData).map(([k, v]) => [
+						k,
+						getRawRuleSetCondition(v)
+					])
+			  )
+			: undefined,
 		resource: rule.resource ? getRawRuleSetCondition(rule.resource) : undefined,
 		resourceQuery: rule.resourceQuery
 			? getRawRuleSetCondition(rule.resourceQuery)
 			: undefined,
+		resourceFragment: rule.resourceFragment
+			? getRawRuleSetCondition(rule.resourceFragment)
+			: undefined,
+		scheme: rule.scheme ? getRawRuleSetCondition(rule.scheme) : undefined,
+		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
-		use: createRawModuleRuleUses(rule.use ?? [], options),
+		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
 		parser: rule.parser,
 		generator: rule.generator,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
-		issuer: rule.issuer ? getRawRuleSetCondition(rule.issuer) : undefined,
 		oneOf: rule.oneOf
-			? rule.oneOf.map(i => getRawModuleRule(i, options))
-			: undefined
+			? rule.oneOf.map((rule, index) =>
+					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
+			  )
+			: undefined,
+		rules: rule.rules
+			? rule.rules.map((rule, index) =>
+					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
+			  )
+			: undefined,
+		enforce: rule.enforce
 	};
 };
 
@@ -262,13 +362,19 @@ function getRawRuleSetCondition(
 			regexpMatcher: condition.source
 		};
 	}
+	if (typeof condition === "function") {
+		return {
+			type: "function",
+			funcMatcher: condition
+		};
+	}
 	if (Array.isArray(condition)) {
 		return {
 			type: "array",
 			arrayMatcher: condition.map(i => getRawRuleSetCondition(i))
 		};
 	}
-	if (condition instanceof Object && condition !== null) {
+	if (typeof condition === "object" && condition !== null) {
 		return {
 			type: "logical",
 			logicalMatcher: [getRawRuleSetLogicalConditions(condition)]
@@ -277,6 +383,39 @@ function getRawRuleSetCondition(
 	throw new Error(
 		"unreachable: condition should be one of string, RegExp, Array, Object"
 	);
+}
+
+export function getBannerCondition(
+	condition: BannerCondition
+): RawBannerCondition {
+	if (typeof condition === "string") {
+		return {
+			type: "string",
+			stringMatcher: condition
+		};
+	}
+	if (condition instanceof RegExp) {
+		return {
+			type: "regexp",
+			regexpMatcher: condition.source
+		};
+	}
+	throw new Error("unreachable: condition should be one of string, RegExp");
+}
+
+export function getBannerConditions(
+	condition?: BannerConditions
+): RawBannerConditions | undefined {
+	if (!condition) return undefined;
+
+	if (Array.isArray(condition)) {
+		return {
+			type: "array",
+			arrayMatcher: condition.map(i => getBannerCondition(i))
+		};
+	}
+
+	return getBannerCondition(condition);
 }
 
 function getRawRuleSetLogicalConditions(
@@ -292,12 +431,67 @@ function getRawRuleSetLogicalConditions(
 }
 
 function getRawExternals(externals: Externals): RawOptions["externals"] {
-	if (typeof externals === "string") {
+	function getRawExternalItem(item: ExternalItem): RawExternalItem {
+		if (typeof item === "string") {
+			return { type: "string", stringPayload: item };
+		} else if (item instanceof RegExp) {
+			return { type: "regexp", regexpPayload: item.source };
+		} else if (typeof item === "function") {
+			return {
+				type: "function",
+				fnPayload: async ctx => {
+					return await new Promise((resolve, reject) => {
+						const promise = item(ctx, (err, result, type) => {
+							if (err) reject(err);
+							resolve({
+								result: getRawExternalItemValueFormFnResult(result),
+								external_type: type
+							});
+						});
+						if (promise && promise.then) {
+							promise.then(
+								result =>
+									resolve({
+										result: getRawExternalItemValueFormFnResult(result),
+										external_type: undefined
+									}),
+								e => reject(e)
+							);
+						}
+					});
+				}
+			};
+		}
 		return {
-			[externals]: externals
+			type: "object",
+			objectPayload: Object.fromEntries(
+				Object.entries(item).map(([k, v]) => [k, getRawExternalItemValue(v)])
+			)
 		};
 	}
-	return externals;
+	function getRawExternalItemValueFormFnResult(result?: ExternalItemValue) {
+		return result === undefined ? result : getRawExternalItemValue(result);
+	}
+	function getRawExternalItemValue(
+		value: ExternalItemValue
+	): RawExternalItemValue {
+		if (typeof value === "string") {
+			return { type: "string", stringPayload: value };
+		} else if (typeof value === "boolean") {
+			return { type: "bool", boolPayload: value };
+		} else if (Array.isArray(value)) {
+			return {
+				type: "array",
+				arrayPayload: value
+			};
+		}
+		throw new Error("unreachable");
+	}
+
+	if (Array.isArray(externals)) {
+		return externals.map(i => getRawExternalItem(i));
+	}
+	return [getRawExternalItem(externals)];
 }
 
 function getRawOptimization(
@@ -306,8 +500,10 @@ function getRawOptimization(
 	assert(
 		!isNil(optimization.moduleIds) &&
 			!isNil(optimization.removeAvailableModules) &&
-			!isNil(optimization.sideEffects),
-		"optimization.moduleIds, optimization.removeAvailableModules, optimization.sideEffects should not be nil after defaults"
+			!isNil(optimization.removeEmptyChunks) &&
+			!isNil(optimization.sideEffects) &&
+			!isNil(optimization.realContentHash),
+		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
 		splitChunks: optimization.splitChunks
@@ -315,7 +511,9 @@ function getRawOptimization(
 			: undefined,
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
-		sideEffects: String(optimization.sideEffects)
+		removeEmptyChunks: optimization.removeEmptyChunks,
+		sideEffects: String(optimization.sideEffects),
+		realContentHash: optimization.realContentHash
 	};
 }
 
@@ -323,15 +521,22 @@ function getRawSplitChunksOptions(
 	sc: OptimizationSplitChunksOptions
 ): RawOptions["optimization"]["splitChunks"] {
 	return {
+		name: sc.name === false ? undefined : sc.name,
 		cacheGroups: sc.cacheGroups
 			? Object.fromEntries(
 					Object.entries(sc.cacheGroups).map(([key, group]) => {
 						let normalizedGroup: RawCacheGroupOptions = {
 							test: group.test ? group.test.source : undefined,
-							name: group.name,
+							name: group.name === false ? undefined : group.name,
 							priority: group.priority,
 							minChunks: group.minChunks,
-							chunks: group.chunks
+							chunks: group.chunks,
+							reuseExistingChunk: group.reuseExistingChunk,
+							minSize: group.minSize,
+							maxAsyncSize: group.maxAsyncSize,
+							maxInitialSize: group.maxInitialSize,
+							maxSize: group.maxSize,
+							enforce: group.enforce
 						};
 						return [key, normalizedGroup];
 					})
@@ -343,7 +548,11 @@ function getRawSplitChunksOptions(
 		minChunks: sc.minChunks,
 		minSize: sc.minSize,
 		enforceSizeThreshold: sc.enforceSizeThreshold,
-		minRemainingSize: sc.minRemainingSize
+		minRemainingSize: sc.minRemainingSize,
+		maxSize: sc.maxSize,
+		maxAsyncSize: sc.maxAsyncSize,
+		maxInitialSize: sc.maxInitialSize,
+		fallbackCacheGroup: sc.fallbackCacheGroup
 	};
 }
 
@@ -375,18 +584,46 @@ function getRawSnapshotOptions(
 function getRawExperiments(
 	experiments: Experiments
 ): RawOptions["experiments"] {
-	const { lazyCompilation, incrementalRebuild } = experiments;
-	assert(!isNil(lazyCompilation) && !isNil(incrementalRebuild));
+	const {
+		lazyCompilation,
+		incrementalRebuild,
+		asyncWebAssembly,
+		newSplitChunks,
+		css
+	} = experiments;
+	assert(
+		!isNil(lazyCompilation) &&
+			!isNil(incrementalRebuild) &&
+			!isNil(asyncWebAssembly) &&
+			!isNil(newSplitChunks) &&
+			!isNil(css)
+	);
 	return {
 		lazyCompilation,
-		incrementalRebuild
+		incrementalRebuild,
+		asyncWebAssembly,
+		newSplitChunks,
+		css
 	};
 }
 
 function getRawNode(node: Node): RawOptions["node"] {
-	assert(!isNil(node.__dirname) && !isNil(node.global));
+	if (node === false) {
+		return undefined;
+	}
+	assert(
+		!isNil(node.__dirname) && !isNil(node.global) && !isNil(node.__filename)
+	);
 	return {
 		dirname: String(node.__dirname),
+		filename: String(node.__filename),
 		global: String(node.global)
+	};
+}
+
+function getRawStats(stats: StatsValue): RawOptions["stats"] {
+	const statsOptions = normalizeStatsPreset(stats);
+	return {
+		colors: statsOptions.colors ?? false
 	};
 }

@@ -6,7 +6,7 @@ on:
 
 # cancel previous job runs for the same workflow + pr
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -19,8 +19,7 @@ jobs:
   bench:
     name: Bench
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!bench')
-    runs-on: [self-hosted, rspack-bench]
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
 
     steps:
       - name: Get PR SHA
@@ -48,6 +47,9 @@ jobs:
 
       - name: Install critcmp
         run: cargo install critcmp
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
 
       - name: Run Bench on PR Branch
         run: cargo bench --bench main -- --save-baseline pr

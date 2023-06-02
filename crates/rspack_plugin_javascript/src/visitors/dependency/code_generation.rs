@@ -1,3 +1,11 @@
+/**
+ * Some code is modified based on
+ * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/crates/turbopack-ecmascript/src/path_visitor.rs
+ * MPL-2.0 Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c)
+ * https://github.com/vercel/turbo/blob/a1947f64443fb98e5c3e10bca6ef9eafd278bd21/LICENSE#L1
+ */
 use std::borrow::Cow;
 
 use rspack_core::{
@@ -258,6 +266,7 @@ impl<'a, 'b> VisitMutAstPath for DependencyVisitor<'a, 'b> {
   impl_ast_node_interceptor!(module_decl, ModuleDecl);
   impl_ast_node_interceptor!(module_item, ModuleItem);
   impl_ast_node_interceptor!(call_expr, CallExpr);
+  impl_ast_node_interceptor!(new_expr, NewExpr);
   impl_ast_node_interceptor!(lit, Lit);
   impl_ast_node_interceptor!(str, Str);
 }

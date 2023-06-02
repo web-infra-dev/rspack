@@ -34,18 +34,22 @@ pub fn get_used_module_ids_and_modules(
   //     }
   //   }
 
-  compilation.module_graph.modules().for_each(|module| {
-    let module_id = chunk_graph.get_module_id(module.identifier());
-    if let Some(module_id) = module_id {
-      used_ids.insert(module_id.clone());
-    } else {
-      if filter.as_ref().map_or(true, |f| (f)(module))
-        && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
-      {
-        modules.push(module.identifier());
+  compilation
+    .module_graph
+    .modules()
+    .values()
+    .for_each(|module| {
+      let module_id = chunk_graph.get_module_id(module.identifier());
+      if let Some(module_id) = module_id {
+        used_ids.insert(module_id.clone());
+      } else {
+        if filter.as_ref().map_or(true, |f| (f)(module))
+          && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+        {
+          modules.push(module.identifier());
+        }
       }
-    }
-  });
+    });
   (used_ids, modules)
 }
 
@@ -151,12 +155,12 @@ pub fn compare_modules_by_identifier(a: &BoxModule, b: &BoxModule) -> std::cmp::
 //       items.sort_unstable_by(&comparator);
 //       let mut i = 0;
 //       for item in items {
-//         let formated_name = format!("{name}{i}");
-//         while name_to_items2_keys.contains(&formated_name) && used_ids.contains(&formated_name) {
+//         let formatted_name = format!("{name}{i}");
+//         while name_to_items2_keys.contains(&formatted_name) && used_ids.contains(&formatted_name) {
 //           i += 1;
 //         }
-//         assign_name(item, formated_name.clone());
-//         used_ids.insert(formated_name);
+//         assign_name(item, formatted_name.clone());
+//         used_ids.insert(formatted_name);
 //         i += 1;
 //       }
 //     }
@@ -225,12 +229,12 @@ pub fn assign_names_par<T: Copy + Send>(
       items.sort_unstable_by(&comparator);
       let mut i = 0;
       for item in items {
-        let formated_name = format!("{name}{i}");
-        while name_to_items_keys.contains(&formated_name) && used_ids.contains(&formated_name) {
+        let formatted_name = format!("{name}{i}");
+        while name_to_items_keys.contains(&formatted_name) && used_ids.contains(&formatted_name) {
           i += 1;
         }
-        assign_name(item, formated_name.clone());
-        used_ids.insert(formated_name);
+        assign_name(item, formatted_name.clone());
+        used_ids.insert(formatted_name);
         i += 1;
       }
     }

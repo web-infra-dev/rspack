@@ -1,3 +1,2 @@
-import { IRspackCLI } from "./types";
 export * from "./types";
-export { RspackCLI } from "./rspack-cli";
+export { RspackCLI, defineConfig, definePlugin } from "./rspack-cli";

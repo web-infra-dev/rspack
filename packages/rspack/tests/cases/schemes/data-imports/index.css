@@ -1,0 +1,9 @@
+@import url("data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ=="); /* .b{color: green} */
+@import url("./a.css");
+
+.class {
+  a: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+  b: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+  c: url('data:image/svg;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==');
+  d: url('data:image/svg;base64,    PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==');
+}

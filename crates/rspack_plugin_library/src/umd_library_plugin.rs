@@ -1,13 +1,15 @@
-use std::borrow::Cow;
+use std::hash::Hash;
 
-use once_cell::sync::Lazy;
-use regex::Regex;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, Compilation, ExternalModule, Filename, LibraryAuxiliaryComment, Plugin, PluginContext,
-  PluginRenderHookOutput, RenderArgs, SourceType,
+  AdditionalChunkRuntimeRequirementsArgs, Chunk, Compilation, ExternalModule, Filename,
+  JsChunkHashArgs, LibraryAuxiliaryComment, PathData, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRenderHookOutput, RenderArgs, RuntimeGlobals, SourceType,
 };
-use rspack_identifier::Identifiable;
+
+use super::utils::{external_arguments, external_dep_array};
+
 #[derive(Debug)]
 pub struct UmdLibraryPlugin {
   _optional_amd_external_as_global: bool,
@@ -24,6 +26,17 @@ impl UmdLibraryPlugin {
 impl Plugin for UmdLibraryPlugin {
   fn name(&self) -> &'static str {
     "UmdLibraryPlugin"
+  }
+
+  fn additional_chunk_runtime_requirements(
+    &self,
+    _ctx: PluginContext,
+    args: &mut AdditionalChunkRuntimeRequirementsArgs,
+  ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
+    args
+      .runtime_requirements
+      .insert(RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME);
+    Ok(())
   }
 
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
@@ -87,8 +100,10 @@ impl Plugin for UmdLibraryPlugin {
         get_auxiliary_comment("commonjs", auxiliary_comment),
         &commonjs
           .clone()
-          .map(|commonjs| library_name(&[commonjs], chunk))
-          .or_else(|| root.clone().map(|root| library_name(&root, chunk)))
+          .map(|commonjs| library_name(&[commonjs], chunk, compilation))
+          .or_else(|| root
+            .clone()
+            .map(|root| library_name(&root, chunk, compilation)))
           .unwrap_or_default(),
         externals_require_array("commonjs", &externals),
       );
@@ -104,7 +119,8 @@ impl Plugin for UmdLibraryPlugin {
               .or_else(|| commonjs.clone().map(|commonjs| vec![commonjs]))
               .unwrap_or_default(),
           ),
-          chunk
+          chunk,
+          compilation,
         ),
         external_root_array(&externals)
       );
@@ -151,8 +167,7 @@ impl Plugin for UmdLibraryPlugin {
             {define}
             {factory}
         }})({}, function({}) {{
-            return 
-        ",
+            return ",
       get_auxiliary_comment("amd", auxiliary_comment),
       compilation.options.output.global_object,
       external_arguments(&externals, compilation)
@@ -161,15 +176,39 @@ impl Plugin for UmdLibraryPlugin {
     source.add(RawSource::from("\n});"));
     Ok(Some(source.boxed()))
   }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args
+      .compilation
+      .options
+      .output
+      .library
+      .hash(&mut args.hasher);
+    Ok(())
+  }
 }
 
-fn library_name(v: &[String], chunk: &Chunk) -> String {
-  let value = format!("'{}'", v.last().expect("should have last"));
-  replace_keys(value, chunk)
+fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> String {
+  let value =
+    serde_json::to_string(v.last().expect("should have last")).expect("invalid module_id");
+  replace_keys(value, chunk, compilation)
 }
 
-fn replace_keys(v: String, chunk: &Chunk) -> String {
-  Filename::from(v).render_with_chunk(chunk, ".js", &SourceType::JavaScript)
+fn replace_keys(v: String, chunk: &Chunk, compilation: &Compilation) -> String {
+  compilation.get_path(
+    &Filename::from(v),
+    PathData::default().chunk(chunk).content_hash_optional(
+      chunk
+        .content_hash
+        .get(&SourceType::JavaScript)
+        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+    ),
+  )
 }
 
 fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {
@@ -178,45 +217,10 @@ fn externals_require_array(_t: &str, externals: &[&ExternalModule]) -> String {
     .map(|m| {
       let request = &m.request;
       // TODO: check if external module is optional
-      format!("require('{request}')")
+      format!("require('{}')", request.as_str())
     })
     .collect::<Vec<_>>()
     .join(", ")
-}
-
-fn external_dep_array(modules: &[&ExternalModule]) -> String {
-  let value = modules
-    .iter()
-    .map(|m| format!("'{}'", m.request))
-    .collect::<Vec<_>>()
-    .join(", ");
-  format!("[{value}]")
-}
-
-fn external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> String {
-  modules
-    .iter()
-    .map(|m| {
-      format!(
-        "__WEBPACK_EXTERNAL_MODULE_{}__",
-        to_identifier(
-          compilation
-            .module_graph
-            .module_graph_module_by_identifier(&m.identifier())
-            .expect("Module not found")
-            .id(&compilation.chunk_graph)
-        )
-      )
-    })
-    .collect::<Vec<_>>()
-    .join(", ")
-}
-
-static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("TODO:"));
-
-#[inline]
-fn to_identifier(v: &str) -> Cow<'_, str> {
-  IDENTIFIER_REGEXP.replace_all(v, "_")
 }
 
 fn external_root_array(modules: &[&ExternalModule]) -> String {
@@ -224,7 +228,10 @@ fn external_root_array(modules: &[&ExternalModule]) -> String {
     .iter()
     .map(|m| {
       let request = &m.request;
-      format!("root{}", accessor_to_object_access(&[request.to_owned()]))
+      format!(
+        "root{}",
+        accessor_to_object_access(&[request.as_str().to_owned()])
+      )
     })
     .collect::<Vec<_>>()
     .join(", ")

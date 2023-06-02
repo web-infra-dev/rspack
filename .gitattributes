@@ -1,2 +1,11 @@
-benchcases/** linguist-generated=true
-fixtures/** linguist-generated=true
+benchcases/**/*.js linguist-detectable=false
+webpack-examples/**/*.js linguist-detectable=false
+webpack-test/**/*.js linguist-detectable=false
+**/tests/**/*.js linguist-detectable=false
+examples/** eol=lf
+**/tests/** eol=lf
+*.css eol=lf
+*.js eol=lf
+*.ts eol=lf
+
+* text=auto

@@ -1,3 +1,4 @@
+#![feature(iter_intersperse)]
 mod deterministic_module_ids_plugin;
 pub use deterministic_module_ids_plugin::*;
 mod named_module_ids_plugin;

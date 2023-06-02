@@ -1,17 +1,23 @@
+use std::hash::Hash;
+
 use anyhow::anyhow;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::{ConcatSource, RawSource, SourceExt};
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, FilenameRenderOptions, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginRenderChunkHookOutput,
-  RenderChunkArgs, RenderStartupArgs,
+  AdditionalChunkRuntimeRequirementsArgs, JsChunkHashArgs, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
+  PluginRenderChunkHookOutput, RenderChunkArgs, RenderStartupArgs, RuntimeGlobals,
 };
 use rspack_error::Result;
-use rspack_plugin_javascript::runtime::{
-  generate_chunk_entry_code, render_chunk_modules, render_chunk_runtime_modules,
+use rspack_plugin_javascript::runtime::render_chunk_runtime_modules;
+
+use crate::{
+  generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
+  update_hash_for_entry_startup,
 };
+
 #[derive(Debug)]
-pub struct CommonJsChunkFormatPlugin {}
+pub struct CommonJsChunkFormatPlugin;
 
 #[async_trait]
 impl Plugin for CommonJsChunkFormatPlugin {
@@ -48,9 +54,37 @@ impl Plugin for CommonJsChunkFormatPlugin {
       .get_number_of_entry_modules(chunk_ukey)
       > 0
     {
-      runtime_requirements.insert(runtime_globals::REQUIRE);
-      runtime_requirements.insert(runtime_globals::EXTERNAL_INSTALL_CHUNK);
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE);
+      runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+      runtime_requirements.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     }
+
+    Ok(())
+  }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    if args
+      .chunk()
+      .has_runtime(&args.compilation.chunk_group_by_ukey)
+    {
+      return Ok(());
+    }
+
+    self.name().hash(&mut args.hasher);
+
+    update_hash_for_entry_startup(
+      args.hasher,
+      args.compilation,
+      args
+        .compilation
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey),
+      args.chunk_ukey,
+    );
 
     Ok(())
   }
@@ -61,13 +95,14 @@ impl Plugin for CommonJsChunkFormatPlugin {
     args: &RenderChunkArgs,
   ) -> PluginRenderChunkHookOutput {
     let chunk = args.chunk();
+    let base_chunk_output_name = get_chunk_output_name(chunk, args.compilation);
     let mut sources = ConcatSource::default();
     sources.add(RawSource::from(format!(
       "exports.ids = ['{}'];\n",
       &chunk.expect_id().to_string()
     )));
     sources.add(RawSource::from("exports.modules = "));
-    sources.add(render_chunk_modules(args.compilation, args.chunk_ukey)?);
+    sources.add(args.module_source.clone());
     sources.add(RawSource::from(";\n"));
     if !args
       .compilation
@@ -84,58 +119,27 @@ impl Plugin for CommonJsChunkFormatPlugin {
     }
 
     if chunk.has_entry_module(&args.compilation.chunk_graph) {
-      let entry_point = {
-        let entry_points = args
-          .compilation
-          .chunk_graph
-          .get_chunk_entry_modules_with_chunk_group(&chunk.ukey);
-
-        let entry_point_ukey = entry_points
-          .iter()
-          .next()
-          .ok_or_else(|| anyhow!("should has entry point ukey"))?;
-
-        args
-          .compilation
-          .chunk_group_by_ukey
-          .get(entry_point_ukey)
-          .ok_or_else(|| anyhow!("should has entry point"))?
-      };
-
-      let runtime_chunk_filename = {
-        let runtime_chunk = args
-          .compilation
-          .chunk_by_ukey
-          .get(&entry_point.get_runtime_chunk())
-          .ok_or_else(|| anyhow!("should has runtime chunk"))?;
-
-        let hash = Some(runtime_chunk.get_render_hash());
-        args
-          .compilation
-          .options
-          .output
-          .chunk_filename
-          .render(FilenameRenderOptions {
-            name: runtime_chunk.name_for_filename_template(),
-            extension: Some(".js".to_string()),
-            id: runtime_chunk.id.clone(),
-            contenthash: hash.clone(),
-            chunkhash: hash.clone(),
-            hash,
-            ..Default::default()
-          })
-      };
-
+      let runtime_chunk_output_name = get_runtime_chunk_output_name(args)?;
       sources.add(RawSource::from(format!(
-        "\nvar {} = require('./{}')",
-        runtime_globals::REQUIRE,
-        runtime_chunk_filename
+        "var {} = require('{}');\n",
+        RuntimeGlobals::REQUIRE,
+        get_relative_path(&base_chunk_output_name, &runtime_chunk_output_name)
       )));
       sources.add(RawSource::from(format!(
-        "\n{}(exports)\n",
-        runtime_globals::EXTERNAL_INSTALL_CHUNK,
+        "{}(exports)\n",
+        RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
       )));
-      sources.add(generate_chunk_entry_code(args.compilation, args.chunk_ukey));
+
+      let entries = args
+        .compilation
+        .chunk_graph
+        .get_chunk_entry_modules_with_chunk_group_iterable(args.chunk_ukey);
+      let start_up_source =
+        generate_entry_startup(args.compilation, args.chunk_ukey, entries, false);
+      let last_entry_module = entries
+        .keys()
+        .last()
+        .expect("should have last entry module");
       if let Some(s) =
         args
           .compilation
@@ -145,6 +149,8 @@ impl Plugin for CommonJsChunkFormatPlugin {
           .render_startup(RenderStartupArgs {
             compilation: args.compilation,
             chunk: &chunk.ukey,
+            module: *last_entry_module,
+            source: start_up_source,
           })?
       {
         sources.add(s);

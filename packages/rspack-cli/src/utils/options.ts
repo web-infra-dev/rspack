@@ -1,37 +1,78 @@
 import yargs from "yargs";
 export const commonOptions = (yargs: yargs.Argv<{}>) => {
-	return yargs
-		.positional("entry", {
+	return yargs.options({
+		config: {
+			g: true,
 			type: "string",
-			array: true,
-			describe: "entry"
+			describe: "config file",
+			alias: "c"
+		},
+		entry: {
+			type: "array",
+			string: true,
+			describe: "entry file"
+		},
+		mode: { type: "string", describe: "mode" },
+		watch: {
+			type: "boolean",
+			default: false,
+			describe: "watch"
+		},
+		env: {
+			type: "array",
+			string: true,
+			describe: "env passed to config function"
+		},
+		"node-env": {
+			string: true,
+			describe: "sets process.env.NODE_ENV to be specified value"
+		},
+		devtool: {
+			type: "boolean",
+			default: false,
+			describe: "devtool"
+		},
+		configName: {
+			type: "array",
+			string: true,
+			describe: "Name of the configuration to use."
+		}
+	});
+};
+
+export const previewOptions = (yargs: yargs.Argv<{}>) => {
+	return yargs
+		.positional("dir", {
+			type: "string",
+			describe: "directory want to preview"
 		})
 		.options({
+			publicPath: {
+				type: "string",
+				describe: "static resource server path"
+			},
 			config: {
 				g: true,
 				type: "string",
 				describe: "config file",
 				alias: "c"
 			},
-			mode: { type: "string", describe: "mode" },
-			watch: {
+			port: {
+				type: "number",
+				describe: "preview server port"
+			},
+			host: {
+				type: "string",
+				describe: "preview server host"
+			},
+			open: {
 				type: "boolean",
-				default: false,
-				describe: "watch"
+				describe: "open browser"
 			},
-			env: {
-				type: "array",
-				string: true,
-				describe: "env passed to config function"
-			},
-			"node-env": {
-				string: true,
-				describe: "sets process.env.NODE_ENV to be specified value"
-			},
-			devtool: {
-				type: "boolean",
-				default: false,
-				describe: "devtool"
+			// same as devServer.server
+			server: {
+				type: "string",
+				describe: "Configuration items for the server."
 			},
 			configName: {
 				type: "array",

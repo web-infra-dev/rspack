@@ -17,6 +17,13 @@
         "$ref": "#/definitions/EntryItem"
       }
     },
+    "experiments": {
+      "$ref": "#/definitions/Experiments"
+    },
+    "mode": {
+      "default": "",
+      "type": "string"
+    },
     "module": {
       "$ref": "#/definitions/Module"
     },
@@ -42,6 +49,16 @@
     "Builtins": {
       "type": "object",
       "properties": {
+        "codeGeneration": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CodeGeneration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "css": {
           "$ref": "#/definitions/Css"
         },
@@ -51,6 +68,10 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "devFriendlySplitChunks": {
+          "default": false,
+          "type": "boolean"
         },
         "html": {
           "type": "array",
@@ -72,22 +93,39 @@
           "$ref": "#/definitions/Postcss"
         },
         "presetEnv": {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "type": "string",
-              "enum": ["usage", "entry"]
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PresetEnv"
             },
-            "targets": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provide": {
+          "default": {},
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           }
         },
         "treeShaking": {
           "default": false,
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "CodeGeneration": {
+      "type": "object",
+      "required": [
+        "keepComments"
+      ],
+      "properties": {
+        "keepComments": {
           "type": "boolean"
         }
       },
@@ -120,6 +158,16 @@
             "string",
             "null"
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "Experiments": {
+      "type": "object",
+      "properties": {
+        "asyncWebAssembly": {
+          "default": true,
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -217,6 +265,12 @@
             "null"
           ]
         },
+        "templateContent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "templateParameters": {
           "type": [
             "object",
@@ -258,12 +312,46 @@
         "sha512"
       ]
     },
+    "LibraryOptions": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "export": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "string"
+        },
+        "umdNamedDefine": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "Minification": {
       "type": "object",
       "properties": {
         "dropConsole": {
           "default": false,
           "type": "boolean"
+        },
+        "extractComments": {
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "passes": {
           "default": 0,
@@ -377,6 +465,10 @@
           "default": "[name][ext]",
           "type": "string"
         },
+        "clean": {
+          "default": false,
+          "type": "boolean"
+        },
         "cssChunkFilename": {
           "default": "[name][ext]",
           "type": "string"
@@ -389,8 +481,22 @@
           "default": "[name][ext]",
           "type": "string"
         },
+        "library": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LibraryOptions"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "publicPath": {
           "default": "auto",
+          "type": "string"
+        },
+        "sourceMapFilename": {
+          "default": "[name][ext]",
           "type": "string"
         }
       },
@@ -408,6 +514,33 @@
               "type": "null"
             }
           ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "PresetEnv": {
+      "type": "object",
+      "required": [
+        "targets"
+      ],
+      "properties": {
+        "coreJs": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "additionalProperties": false

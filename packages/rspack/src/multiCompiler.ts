@@ -66,8 +66,6 @@ export class MultiCompiler {
 	// @ts-expect-error
 	context: string;
 	compilers: Compiler[];
-	// @ts-expect-error
-	compilation: Compilation;
 	dependencies: WeakMap<Compiler, string[]>;
 	hooks: {
 		done: SyncHook<MultiStats>;
@@ -96,11 +94,9 @@ export class MultiCompiler {
 		options?: MultiCompilerOptions
 	) {
 		if (!Array.isArray(compilers)) {
-			compilers = Object.keys(compilers).map(name => {
-				// @ts-expect-error
-				compilers[name].name = name;
-				// @ts-expect-error
-				return compilers[name];
+			compilers = Object.entries(compilers).map(([name, compiler]) => {
+				compiler.name = name;
+				return compiler;
 			});
 		}
 
@@ -243,8 +239,7 @@ export class MultiCompiler {
 	validateDependencies(callback: Callback<Error, MultiStats>): boolean {
 		const edges = new Set<{ source: Compiler; target: Compiler }>();
 		const missing: string[] = [];
-		// @ts-expect-error
-		const targetFound = compiler => {
+		const targetFound = (compiler: Compiler) => {
 			for (const edge of edges) {
 				if (edge.target === compiler) {
 					return true;

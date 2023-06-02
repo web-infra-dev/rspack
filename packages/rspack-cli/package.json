@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "description": "CLI for rspack",
   "bin": {
@@ -12,7 +12,7 @@
     "build": "rimraf dist/ && tsc -b --force",
     "clean": "rimraf dist/ && tsc -b --clean",
     "dev": "tsc -b -w",
-    "test": "jest --verbose"
+    "test": "jest --runInBand"
   },
   "files": [
     "bin",
@@ -20,7 +20,11 @@
   ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-cli"
+  },
   "devDependencies": {
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
@@ -29,12 +33,21 @@
     "source-map-support": "^0.5.19",
     "ts-node": "10.9.1"
   },
+  "peerDependencies": {
+    "ts-node": ">= 10"
+  },
+  "peerDependenciesMeta": {
+    "ts-node": {
+      "optional": true
+    }
+  },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
+    "semver": "6.3.0",
     "webpack-bundle-analyzer": "4.6.1",
-    "yargs": "17.5.1"
+    "yargs": "17.6.2"
   }
 }

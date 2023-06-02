@@ -163,12 +163,13 @@ dist
 
 !packages/rspack/tests/configCases/target
 packages/rspack/tests/js
-packages/rspack-dev-server/.test-temp
+packages/rspack/tests/fixtures/temp-*
+packages/playground/temp
 
 # Ignore local integrate debug file
 packages/rspack/tests/*.debug.[tj]s
 
-# Benchmark 
+# Benchmark
 /github/
 /benchcases/three
 
@@ -192,5 +193,28 @@ artifacts
 # Node Addons
 npm/**/*.node
 
+# Npm packages. Include packages for local releases.
+/npm/*
+!npm/darwin-arm64/
+!npm/darwin-x64/
+!npm/linux-x64-gnu/
+!npm/win32-x64-msvc/
+
 # Precompiled config schema
 packages/rspack/src/config/schema.check.js
+justfile
+
+## Angular Incremental Build Cache
+**/.angular/
+# align to webpack
+/webpack-test/js
+/webpack-test/browsertest/js
+/webpack-test/fixtures/temp-*
+/webpack-test/temp
+/webpack-test/ChangesAndRemovals
+/webpack-test/**/dev-defaults.webpack.lock
+
+/webpack-examples/**/dist
+
+smoke-example
+

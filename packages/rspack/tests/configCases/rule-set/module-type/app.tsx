@@ -4,4 +4,7 @@ const React = {
 function Component<T>() {
 	return <div></div>;
 }
-export const App = () => <Component<any>></Component>;
+
+export function App() {
+	return <Component<any>></Component>;
+}

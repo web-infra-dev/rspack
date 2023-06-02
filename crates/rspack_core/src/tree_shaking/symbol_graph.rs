@@ -5,7 +5,7 @@ use petgraph::{
 use rspack_symbol::{IndirectTopLevelSymbol, StarSymbol, Symbol};
 use rustc_hash::FxHashMap;
 
-use super::{visitor::SymbolRef, ConvertModulePath};
+use super::{utils::ConvertModulePath, visitor::SymbolRef};
 use crate::{contextify, ModuleGraph};
 
 #[derive(Default, Clone)]
@@ -79,7 +79,6 @@ impl SymbolGraph {
     let edges_list = self
       .graph
       .edge_indices()
-      .into_iter()
       .map(|edge_index| {
         self
           .graph

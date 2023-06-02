@@ -5,14 +5,17 @@ on:
     inputs:
       version:
         type: choice
-        description: "Release Type(next, beta, alpha, latest)"
+        description: "Release Version(major|minor|patch|snapshot)"
         required: true
-        default: "latest"
+        default: "patch"
         options:
-          - canary
-          - alpha
-          - beta
-          - latest
+          - major
+          - minor
+          - patch
+          - snapshot
+  schedule:
+    # 08:00 AM Beijing Time on every Tuesday
+    - cron: "0 0 * * 2"
 
 jobs:
   release:
@@ -20,27 +23,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@master
+      - name: Checkout Main Branch
+        uses: actions/checkout@v3
         with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "16"
-      - name: Install node_modules
-        run: |
-          npm install -g pnpm@7.25.0
-          pnpm -v
-          pnpm install
+          fetch-depth: 0
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
       - name: Create Release Pull Request
-        uses: web-infra-dev/actions@v2
+        uses: hardfist/rspack-action@rspack
         with:
-          # this expects you to have a script called release which does a build for your packages and calls changeset publish
-          version: ${{ github.event.inputs.version }}
-          versionNumber: "auto"
-          type: "pull request"
-          tools: "changeset"
+          version: node ./x version ${{inputs.version || 'patch'}}
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

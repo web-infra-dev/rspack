@@ -13,7 +13,7 @@ it("basic", () => {
 		path.resolve(__dirname, "../index.scss"),
 		"utf-8"
 	);
-	expect(map.sources).toEqual(["index.scss"]);
+	expect(map.sources).toEqual(["./index.scss"]);
 	expect(map.sourcesContent).toEqual([scss]);
 	expect(map.file).toEqual("main.css");
 });

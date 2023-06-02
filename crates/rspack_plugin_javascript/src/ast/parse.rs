@@ -3,15 +3,25 @@ use std::sync::Arc;
 
 use rspack_core::{ast::javascript::Ast, ModuleType};
 use rspack_error::Error;
-use swc_core::base::config::IsModule;
 use swc_core::common::comments::Comments;
 use swc_core::common::{FileName, SourceFile};
 use swc_core::ecma::ast::{self, EsVersion, Program};
 use swc_core::ecma::parser::{
   self, parse_file_as_module, parse_file_as_program, parse_file_as_script, Syntax,
 };
+use swc_node_comments::SwcComments;
 
 use crate::utils::{ecma_parse_error_to_rspack_error, syntax_by_module_type};
+use crate::IsModule;
+
+fn module_type_to_is_module(value: &ModuleType) -> IsModule {
+  // parser options align with webpack
+  match value {
+    ModuleType::JsEsm | ModuleType::JsxEsm => IsModule::Bool(true),
+    ModuleType::JsDynamic | ModuleType::JsxDynamic => IsModule::Bool(false),
+    _ => IsModule::Unknown,
+  }
+}
 
 /// Why this helper function design like this?
 /// 1. `swc_ecma_parser` could return ast with some errors which are recoverable
@@ -68,16 +78,16 @@ pub fn parse(
 
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(FileName::Custom(filename.to_string()), source_code);
+  let comments = SwcComments::default();
 
   match parse_js(
     fm.clone(),
     ast::EsVersion::Es2022,
     syntax,
-    // TODO: Is this correct to think the code is module by default?
-    IsModule::Bool(true),
-    None,
+    module_type_to_is_module(module_type),
+    Some(&comments),
   ) {
-    Ok(program) => Ok(Ast::new(program, cm)),
+    Ok(program) => Ok(Ast::new(program, cm, Some(comments))),
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()
@@ -97,8 +107,7 @@ pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Progra
     fm.clone(),
     ast::EsVersion::Es2022,
     syntax,
-    // TODO: Is this correct to think the code is module by default?
-    IsModule::Bool(true),
+    module_type_to_is_module(module_type),
     None,
   ) {
     Ok(program) => Ok(program),

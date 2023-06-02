@@ -4,11 +4,11 @@ use std::hash::Hash;
 use async_trait::async_trait;
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
-  runtime_globals, ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs,
-  ModuleType, Plugin, PluginContext, PluginModuleHookOutput, SourceType,
+  ApplyContext, AstOrSource, Compilation, DependencyType, Module, ModuleArgs, ModuleType, Plugin,
+  PluginContext, PluginModuleHookOutput, RuntimeGlobals, SourceType,
 };
-use rspack_core::{BuildContext, BuildResult, CodeGenerationResult, Context, ModuleIdentifier};
-use rspack_error::{IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
+use rspack_core::{CodeGenerationResult, Context, ModuleIdentifier};
+use rspack_error::Result;
 use rspack_identifier::Identifiable;
 
 #[derive(Debug)]
@@ -16,7 +16,6 @@ pub struct LazyCompilationProxyModule {
   pub module_identifier: ModuleIdentifier,
 }
 
-#[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
   fn module_type(&self) -> &ModuleType {
     &ModuleType::Js
@@ -38,26 +37,9 @@ impl Module for LazyCompilationProxyModule {
     200.0
   }
 
-  async fn build(
-    &mut self,
-    _build_context: BuildContext<'_>,
-  ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    Ok(
-      BuildResult {
-        hash: Default::default(),
-        cacheable: true,
-        dependencies: vec![],
-        file_dependencies: Default::default(),
-        context_dependencies: Default::default(),
-        missing_dependencies: Default::default(),
-        build_dependencies: Default::default(),
-      }
-      .with_empty_diagnostic(),
-    )
-  }
-
-  fn code_generation(&self, _compilation: &Compilation) -> Result<CodeGenerationResult> {
+  fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
+    cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
     cgr.add(
       SourceType::JavaScript,
       AstOrSource::Source(
@@ -70,9 +52,11 @@ impl Module for LazyCompilationProxyModule {
         .boxed(),
       ),
     );
-    cgr
-      .runtime_requirements
-      .insert(runtime_globals::LOAD_SCRIPT);
+    cgr.set_hash(
+      &compilation.options.output.hash_function,
+      &compilation.options.output.hash_digest,
+      &compilation.options.output.hash_salt,
+    );
     Ok(cgr)
   }
 }
@@ -99,7 +83,7 @@ impl PartialEq for LazyCompilationProxyModule {
 impl Eq for LazyCompilationProxyModule {}
 
 #[derive(Debug)]
-pub struct LazyCompilationPlugin {}
+pub struct LazyCompilationPlugin;
 
 #[async_trait]
 impl Plugin for LazyCompilationPlugin {

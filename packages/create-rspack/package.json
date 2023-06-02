@@ -1,16 +1,20 @@
 {
   "name": "create-rspack",
-  "version": "0.1.0",
-  "license": "Create a new rspack project",
+  "version": "0.2.0",
+  "license": "MIT",
   "main": "index.js",
   "bin": {
     "create-rspack": "index.js"
   },
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/create-rspack"
+  },
   "dependencies": {
-    "yargs": "17.6.2",
-    "prompts": "2.4.2"
+    "prompts": "2.4.2",
+    "yargs": "17.6.2"
   }
 }

@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use rspack_core::{
-  runtime_globals, AdditionalChunkRuntimeRequirementsArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeModuleExt,
+  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 
 use crate::runtime_module::CssLoadingRuntimeModule;
 
 #[derive(Debug)]
-pub struct CssModulesPlugin {}
+pub struct CssModulesPlugin;
 
 #[async_trait]
 impl Plugin for CssModulesPlugin {
@@ -32,16 +32,16 @@ impl Plugin for CssModulesPlugin {
     let chunk = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
 
-    if runtime_requirements.contains(runtime_globals::ENSURE_CHUNK_HANDLERS)
-      || runtime_requirements.contains(runtime_globals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     {
-      runtime_requirements.insert(runtime_globals::PUBLIC_PATH);
-      runtime_requirements.insert(runtime_globals::GET_CHUNK_CSS_FILENAME);
-      runtime_requirements.insert(runtime_globals::HAS_OWN_PROPERTY);
-      runtime_requirements.insert(runtime_globals::MODULE_FACTORIES_ADD_ONLY);
+      runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
+      runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
+      runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
+      runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       compilation.add_runtime_module(
         chunk,
-        CssLoadingRuntimeModule::new(runtime_requirements.clone()).boxed(),
+        CssLoadingRuntimeModule::new(**runtime_requirements).boxed(),
       );
     }
 

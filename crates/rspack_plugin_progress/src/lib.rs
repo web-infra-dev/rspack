@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering::SeqCst;
 use std::{cmp, sync::atomic::AtomicU32};
 
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_core::{
   Compilation, DoneArgs, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
   PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
@@ -26,16 +26,10 @@ pub struct ProgressPlugin {
 
 impl ProgressPlugin {
   pub fn new(options: ProgressPluginConfig) -> Self {
-    let progress_bar = ProgressBar::new(100);
+    let progress_bar = ProgressBar::with_draw_target(Some(100), ProgressDrawTarget::stdout());
     progress_bar.set_style(
-      ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {precent} {wide_msg}")
+      ProgressStyle::with_template("{prefix} {bar:40.cyan/blue} {percent}% {wide_msg}")
         .expect("TODO:"),
-    );
-    progress_bar.set_prefix(
-      options
-        .prefix
-        .clone()
-        .unwrap_or_else(|| "Rspack".to_string()),
     );
     Self {
       options,
@@ -55,6 +49,13 @@ impl Plugin for ProgressPlugin {
 
   async fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
     self.progress_bar.reset();
+    self.progress_bar.set_prefix(
+      self
+        .options
+        .prefix
+        .clone()
+        .unwrap_or_else(|| "Rspack".to_string()),
+    );
     self.modules_count.store(0, SeqCst);
     self.modules_done.store(0, SeqCst);
     self.progress_bar.set_message("make");
@@ -88,13 +89,13 @@ impl Plugin for ProgressPlugin {
     Ok(())
   }
 
-  fn optimize_chunks(
+  async fn optimize_chunks(
     &mut self,
     _ctx: PluginContext,
-    _args: OptimizeChunksArgs,
+    _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     self.progress_bar.set_position(80);
-    self.progress_bar.set_message("optimizing");
+    self.progress_bar.set_message("optimizing chunks");
     Ok(())
   }
 

@@ -2,6 +2,7 @@ import * as path from "path";
 
 import type {
 	RawBuiltins,
+	RawBannerConfig,
 	RawHtmlPluginConfig,
 	RawDecoratorOptions,
 	RawMinification,
@@ -13,9 +14,11 @@ import type {
 	RawPresetEnv,
 	RawPluginImportConfig,
 	RawCssModulesConfig,
-	RawRelayConfig
+	RawRelayConfig,
+	RawCodeGeneration
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
+import { getBannerConditions } from "./adapter";
 import { Optimization } from "..";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
@@ -43,24 +46,34 @@ export type CssPluginConfig = {
 	modules?: Partial<RawCssModulesConfig>;
 };
 
+export type MinificationConfig = {
+	passes?: number;
+	dropConsole?: boolean;
+	pureFuncs?: Array<string>;
+	extractComments?: boolean | RegExp;
+};
+
 export interface Builtins {
 	css?: CssPluginConfig;
 	postcss?: RawPostCssConfig;
-	treeShaking?: boolean;
+	treeShaking?: boolean | "module";
 	progress?: boolean | RawProgressPluginConfig;
 	react?: RawReactOptions;
 	noEmitAssets?: boolean;
 	define?: Record<string, string | boolean | undefined>;
+	provide?: Record<string, string | string[]>;
 	html?: Array<BuiltinsHtmlPluginConfig>;
 	decorator?: boolean | Partial<RawDecoratorOptions>;
-	minifyOptions?: Partial<RawMinification>;
+	minifyOptions?: MinificationConfig;
 	emotion?: EmotionConfig;
 	presetEnv?: Partial<RawBuiltins["presetEnv"]>;
 	polyfill?: boolean;
 	devFriendlySplitChunks?: boolean;
 	copy?: CopyConfig;
+	banner?: BannerConfigs;
 	pluginImport?: PluginImportConfig[];
 	relay?: RelayConfig;
+	codeGeneration?: Partial<RawCodeGeneration>;
 }
 
 export type PluginImportConfig = {
@@ -77,12 +90,31 @@ export type PluginImportConfig = {
 };
 
 export type CopyConfig = {
-	patterns:
-		| string[]
+	patterns: (
+		| string
 		| ({
 				from: string;
-		  } & Partial<RawPattern>)[];
+		  } & Partial<RawPattern>)
+	)[];
 };
+
+export type BannerCondition = string | RegExp;
+
+export type BannerConditions = BannerCondition | BannerCondition[];
+
+type BannerConfig =
+	| string
+	| {
+			banner: string;
+			entryOnly?: boolean;
+			footer?: boolean;
+			raw?: boolean;
+			test?: BannerConditions;
+			exclude?: BannerConditions;
+			include?: BannerConditions;
+	  };
+
+export type BannerConfigs = BannerConfig | BannerConfig[];
 
 export type RelayConfig = boolean | RawRelayConfig;
 
@@ -139,6 +171,29 @@ function resolveDefine(define: Builtins["define"]): RawBuiltins["define"] {
 	const entries = Object.entries(define).map(([key, value]) => {
 		if (typeof value !== "string") {
 			value = value === undefined ? "undefined" : JSON.stringify(value);
+		}
+		return [key, value];
+	});
+	return Object.fromEntries(entries);
+}
+
+function resolveTreeShaking(
+	treeShaking: Builtins["treeShaking"],
+	production: boolean
+): RawBuiltins["treeShaking"] {
+	return treeShaking !== undefined
+		? treeShaking.toString()
+		: production
+		? "true"
+		: "false";
+}
+
+function resolveProvide(
+	provide: Builtins["provide"] = {}
+): RawBuiltins["provide"] {
+	const entries = Object.entries(provide).map(([key, value]) => {
+		if (typeof value === "string") {
+			value = [value];
 		}
 		return [key, value];
 	});
@@ -322,10 +377,11 @@ export function resolveBuiltinsOptions(
 			}
 		},
 		postcss: { pxtorem: undefined, ...builtins.postcss },
-		treeShaking: builtins.treeShaking ?? !!production,
+		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
 		react: builtins.react ?? {},
 		noEmitAssets: builtins.noEmitAssets ?? false,
 		define: resolveDefine(builtins.define || {}),
+		provide: resolveProvide(builtins.provide),
 		html: resolveHtml(builtins.html || []),
 		presetEnv,
 		progress: resolveProgress(builtins.progress),
@@ -334,11 +390,42 @@ export function resolveBuiltinsOptions(
 		emotion: resolveEmotion(builtins.emotion, production),
 		devFriendlySplitChunks: builtins.devFriendlySplitChunks ?? false,
 		copy: resolveCopy(builtins.copy),
+		banner: resolveBanner(builtins.banner),
 		pluginImport: resolvePluginImport(builtins.pluginImport),
 		relay: builtins.relay
 			? resolveRelay(builtins.relay, contextPath)
-			: undefined
+			: undefined,
+		codeGeneration: resolveCodeGeneration(builtins)
 	};
+}
+
+function resolveBannerConfig(bannerConfig: BannerConfig): RawBannerConfig {
+	if (typeof bannerConfig === "string") {
+		return {
+			banner: bannerConfig
+		};
+	}
+
+	return {
+		...bannerConfig,
+		test: getBannerConditions(bannerConfig.test),
+		include: getBannerConditions(bannerConfig.include),
+		exclude: getBannerConditions(bannerConfig.exclude)
+	};
+}
+
+function resolveBanner(
+	bannerConfigs?: BannerConfigs
+): RawBannerConfig[] | undefined {
+	if (!bannerConfigs) {
+		return undefined;
+	}
+
+	if (Array.isArray(bannerConfigs)) {
+		return bannerConfigs.map(resolveBannerConfig);
+	}
+
+	return [resolveBannerConfig(bannerConfigs)];
 }
 
 export function resolveMinifyOptions(
@@ -353,10 +440,25 @@ export function resolveMinifyOptions(
 		return undefined;
 	}
 
+	let extractComments = builtins.minifyOptions?.extractComments
+		? String(builtins.minifyOptions.extractComments)
+		: undefined;
+
 	return {
 		passes: 1,
 		dropConsole: false,
 		pureFuncs: [],
-		...builtins.minifyOptions
+		...builtins.minifyOptions,
+		extractComments
+	};
+}
+
+export function resolveCodeGeneration(builtins: Builtins): RawCodeGeneration {
+	if (!builtins.codeGeneration) {
+		return { keepComments: Boolean(builtins.minifyOptions?.extractComments) };
+	}
+	return {
+		keepComments: false,
+		...builtins.codeGeneration
 	};
 }

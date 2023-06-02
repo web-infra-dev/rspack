@@ -26,12 +26,13 @@ exports.test = 30;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__.ir(__webpack_require__("./foo.js"));
-(0, _fooJs.default)();
+var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
+(0, _foo.default)();
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

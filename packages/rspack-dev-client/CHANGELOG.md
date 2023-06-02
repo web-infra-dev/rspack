@@ -1,5 +1,43 @@
 # @rspack/dev-client
 
+## 0.1.12
+
+## 0.1.11
+
+## 0.1.9
+
+## 0.1.8
+
+## 0.1.7
+
+### Patch Changes
+
+- fff64ea: react refresh with context
+
+## 0.1.6
+
+### Patch Changes
+
+- 3607f25: Remove custom dev client and use webpack-dev-server/client direclty
+
+## 0.1.5
+
+## 0.1.4
+
+## 0.1.3
+
+## 0.1.2
+
+### Patch Changes
+
+- bfb1738: fix: react refresh runtime injection
+
+## 0.1.1
+
+### Patch Changes
+
+- a004765a: Avoid reporting warning the export when src module format is none esm
+
 ## 0.1.0
 
 ### Minor Changes

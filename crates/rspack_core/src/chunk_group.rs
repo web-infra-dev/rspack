@@ -1,9 +1,11 @@
+use itertools::Itertools;
 use rspack_database::DatabaseItem;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, ModuleIdentifier, RuntimeSpec,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
+  RuntimeSpec,
 };
 
 impl DatabaseItem for ChunkGroup {
@@ -16,6 +18,7 @@ impl DatabaseItem for ChunkGroup {
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
+  pub options: ChunkGroupOptions,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
@@ -26,16 +29,16 @@ pub struct ChunkGroup {
   pub(crate) next_post_order_index: usize,
   pub(crate) runtime: RuntimeSpec,
   // Entrypoint
-  // pub(crate) name: Option<String>,
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entry_point_chunk: Option<ChunkUkey>,
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, _name: Option<String>) -> Self {
+  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, name: Option<String>) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
+      options: ChunkGroupOptions { name },
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
@@ -48,6 +51,10 @@ impl ChunkGroup {
       runtime_chunk: None,
       entry_point_chunk: None,
     }
+  }
+
+  pub fn parents_iterable(&self) -> impl Iterator<Item = &ChunkGroupUkey> {
+    self.parents.iter()
   }
 
   pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
@@ -83,7 +90,7 @@ impl ChunkGroup {
     chunk.add_group(self.ukey);
   }
 
-  pub(crate) fn is_initial(&self) -> bool {
+  pub fn is_initial(&self) -> bool {
     matches!(self.kind, ChunkGroupKind::Entrypoint)
   }
 
@@ -114,17 +121,25 @@ impl ChunkGroup {
   }
 
   pub fn ancestors(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> HashSet<ChunkGroupUkey> {
-    self
-      .parents
-      .iter()
-      .filter_map(|ukey| chunk_group_by_ukey.get(ukey))
-      .flat_map(|group| {
-        group
-          .ancestors(chunk_group_by_ukey)
-          .into_iter()
-          .chain([group.ukey])
-      })
-      .collect()
+    let mut queue = vec![];
+    let mut ancestors = HashSet::default();
+
+    queue.extend(self.parents.iter().copied());
+
+    while let Some(chunk_group_ukey) = queue.pop() {
+      if ancestors.contains(&chunk_group_ukey) {
+        continue;
+      }
+      ancestors.insert(chunk_group_ukey);
+      let chunk_group = chunk_group_by_ukey
+        .get(&chunk_group_ukey)
+        .expect("should have chunk group");
+      for parent in &chunk_group.parents {
+        queue.push(*parent);
+      }
+    }
+
+    ancestors
   }
 
   pub fn insert_chunk(&mut self, chunk: ChunkUkey, before: ChunkUkey) -> bool {
@@ -155,10 +170,28 @@ impl ChunkGroup {
 
     false
   }
+
+  pub fn id(&self, compilation: &Compilation) -> String {
+    self
+      .chunks
+      .iter()
+      .filter_map(|chunk| {
+        compilation
+          .chunk_by_ukey
+          .get(chunk)
+          .and_then(|chunk| chunk.id.as_ref())
+      })
+      .join("+")
+  }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChunkGroupKind {
   Entrypoint,
   Normal,
+}
+
+#[derive(Debug, Clone)]
+pub struct ChunkGroupOptions {
+  pub name: Option<String>,
 }

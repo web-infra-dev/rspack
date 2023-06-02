@@ -1,4 +1,5 @@
 use futures::Future;
+use indexmap::IndexMap;
 use rspack_database::Database;
 use rspack_error::Result;
 use rustc_hash::FxHashMap as HashMap;
@@ -11,7 +12,7 @@ pub struct CodeSplittingCache {
   chunk_by_ukey: Database<Chunk>,
   chunk_graph: ChunkGraph,
   chunk_group_by_ukey: Database<ChunkGroup>,
-  entrypoints: HashMap<String, ChunkGroupUkey>,
+  entrypoints: IndexMap<String, ChunkGroupUkey>,
   named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   named_chunks: HashMap<String, ChunkUkey>,
 }

@@ -8,4 +8,3 @@ const rdm: typeof wdm = (compiler, options) => {
 };
 
 export default rdm;
-export * from "./middleware";

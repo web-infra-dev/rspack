@@ -1,0 +1,43 @@
+name: Single Docker Test
+
+description: Docker Test for a single node version
+
+inputs:
+  node:
+    required: true
+    type: string
+  image:
+    default: 'slim' # slim or alpine
+    required: false
+    type: string
+  options:
+    default: ''
+    required: false
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Docker Test on Node ${{ inputs.node }}
+      uses: addnab/docker-run-action@v3
+      with:
+        image: node:${{ inputs.node }}-${{ inputs.image }}
+        options: >
+          ${{ inputs.options }}
+          -e PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD='true'
+          -e PUPPETEER_SKIP_DOWNLOAD='true'
+          --privileged
+          --user 0:0
+          -v ${{ github.workspace }}:/build:cached
+          -w /build
+        run: |
+          set -e
+
+          # used for e2e tets
+          # e2e is disabled because this does not run on some targets
+          # apt-get update
+          # apt-get install -y gstreamer1.0-libav libnss3-tools libatk-bridge2.0-0 libcups2-dev libxkbcommon-x11-0 libxcomposite-dev libxrandr2 libgbm-dev libgtk-3-0
+
+          corepack enable
+          pnpm install
+          pnpm run test:ci

@@ -5,3 +5,10 @@ pub fn normalize_custom_filename(source: &str) -> &str {
     source
   }
 }
+
+#[test]
+fn test_normalize_custom_filename() {
+  let input = "<custom_filename>";
+  let expected_output = "custom_filename";
+  assert_eq!(normalize_custom_filename(input), expected_output);
+}

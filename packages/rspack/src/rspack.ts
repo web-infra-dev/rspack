@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 import {
 	getNormalizedRspackOptions,
 	RspackOptions,
@@ -20,9 +29,10 @@ import { Callback } from "tapable";
 import MultiStats from "./multiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
-import rspackOptionsCheck from "./config/schema.check.js";
-import type { DefinedError } from "ajv";
 import InvalidateConfigurationError from "./error/InvalidateConfiguration";
+import { validate, ValidationError } from "schema-utils";
+import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { configSchema } from "./config/zod";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -68,6 +78,10 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 		}
 	}
 
+	if (options.ignoreWarnings !== undefined) {
+		new IgnoreWarningsPlugin(options.ignoreWarnings).apply(compiler);
+	}
+
 	applyRspackOptionsDefaults(compiler.options);
 	logger.debug(
 		"NormalizedOptions:",
@@ -84,6 +98,24 @@ function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
 	return Array.isArray(o);
 }
 
+function revalidateWithStrategy(options: RspackOptions | MultiRspackOptions) {
+	try {
+		validate(require("./config/schema.js"), options);
+	} catch (e) {
+		if (!(e instanceof ValidationError)) {
+			throw e;
+		}
+		// 'strict', 'loose', 'loose-silent'
+		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+		if (strategy === "loose-silent") return;
+		if (strategy === "loose") {
+			console.error(e.message);
+			return;
+		}
+		throw new InvalidateConfigurationError(e.message);
+	}
+}
+
 function rspack(
 	options: MultiRspackOptions,
 	callback?: Callback<Error, MultiStats>
@@ -94,15 +126,26 @@ function rspack(
 ): Compiler;
 function rspack(
 	options: MultiRspackOptions | RspackOptions,
+	callback?: Callback<Error, MultiStats | Stats>
+): MultiCompiler | Compiler;
+function rspack(
+	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
-	if (!asArray(options as any).every(i => rspackOptionsCheck(i))) {
-		// TODO: more readable error message
-		const msg = (rspackOptionsCheck as any).errors
-			.map((e: DefinedError) => `\n  ${e.instancePath}: ${e.message}`)
-			.join("");
-		throw new InvalidateConfigurationError(msg);
-	}
+	asArray(options).every(opts => {
+		try {
+			configSchema().parse(opts);
+		} catch (e: any) {
+			// 'strict', 'loose', 'loose-silent'
+			const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+			if (strategy === "loose-silent") return;
+			if (strategy === "loose") {
+				console.error(e.message);
+				return;
+			}
+			throw new InvalidateConfigurationError(e.message);
+		}
+	});
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);

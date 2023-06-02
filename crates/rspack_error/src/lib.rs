@@ -1,3 +1,4 @@
+#![feature(let_chains)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
 mod catch_unwind;
@@ -33,9 +34,8 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
     self.inner
   }
 
-  pub fn split_into_parts(mut self) -> (T, Vec<Diagnostic>) {
-    let diagnostic = std::mem::take(&mut self.diagnostic);
-    (self.inner, diagnostic)
+  pub fn split_into_parts(self) -> (T, Vec<Diagnostic>) {
+    (self.inner, self.diagnostic)
   }
 }
 
@@ -48,7 +48,7 @@ impl<T: Clone + std::fmt::Debug> Clone for TWithDiagnosticArray<T> {
   }
 }
 
-// Helper trait to make `TWithDiagnosticArray` convertion more easily.
+// Helper trait to make `TWithDiagnosticArray` conversion more easily.
 pub trait IntoTWithDiagnosticArray {
   fn with_diagnostic(self, diagnostic: Vec<Diagnostic>) -> TWithDiagnosticArray<Self>
   where

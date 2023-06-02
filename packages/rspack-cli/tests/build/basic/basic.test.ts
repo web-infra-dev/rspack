@@ -1,4 +1,6 @@
-import { run } from "../../utils/test-utils";
+import { readFile, run } from "../../utils/test-utils";
+import { resolve } from "path";
+
 describe("build command", () => {
 	it("it should work ", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, []);
@@ -16,51 +18,46 @@ describe("build command", () => {
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
 	});
-	it("should work with multiple entries syntax without command (default command)", async () => {
+	it("should work with configuration return function", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [
-			"./src/index.js",
-			"./src/other.js"
+			"--config",
+			"./entry.function.js"
 		]);
-
 		expect(exitCode).toBe(0);
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
 	});
-
-	it("should work with multiple entries syntax without command with options (default command)", async () => {
+	it("should work with configuration return promise", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [
-			"./src/index.js",
-			"./src/other.js",
-			"--mode",
-			"development"
+			"--config",
+			"./entry.promise.js"
 		]);
-
 		expect(exitCode).toBe(0);
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
 	});
-	it("should work with multiple entries syntax without command with options #3 (default command)", async () => {
+	it("should work with mjs configuration ", async () => {
 		const { exitCode, stderr, stdout } = await run(__dirname, [
-			"./src/index.js",
-			"./src/other.js",
+			"--config",
+			"./entry.config.mjs"
+		]);
+		expect(exitCode).toBe(0);
+		expect(stderr).toBeFalsy();
+		expect(stdout).toBeTruthy();
+	});
+	it("entry option should have higher priority than config", async () => {
+		const { exitCode, stderr, stdout } = await run(__dirname, [
 			"--entry",
-			"./src/again.js"
-		]);
-
-		expect(exitCode).toBe(0);
-		expect(stderr).toBeFalsy();
-		expect(stdout).toBeTruthy();
-	});
-
-	it("should work with and override entries from the configuration", async () => {
-		const { exitCode, stderr, stdout } = await run(__dirname, [
-			"./src/index.js",
 			"./src/other.js",
 			"--config",
 			"./entry.config.js"
 		]);
+		const mainJs = await readFile(resolve(__dirname, "dist/main.js"), "utf-8");
+
 		expect(exitCode).toBe(0);
 		expect(stderr).toBeFalsy();
 		expect(stdout).toBeTruthy();
+		expect(mainJs).toContain("other");
+		expect(mainJs).not.toContain("CONFIG");
 	});
 });

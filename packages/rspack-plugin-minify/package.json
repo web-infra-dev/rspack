@@ -1,20 +1,24 @@
 {
   "name": "@rspack/plugin-minify",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "description": "Minify plugin for rspack",
   "main": "src/index.js",
   "scripts": {},
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": "web-infra-dev/rspack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-plugin-minify"
+  },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "esbuild": "0.16.3",
-    "terser": "5.16.1",
     "jest-worker": "29.3.1",
+    "terser": "5.16.1",
     "webpack-sources": "3.2.3"
   }
 }

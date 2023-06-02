@@ -21,14 +21,18 @@ use std::path::{Path, PathBuf};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{RelayConfig, RelayLanguageConfig};
-use swc_core::ecma::{
-  ast::*,
-  atoms::JsWord,
-  utils::{quote_ident, ExprFactory},
-  visit::{Fold, FoldWith},
+use swc_core::{
+  common::{Mark, DUMMY_SP},
+  ecma::{
+    ast::*,
+    atoms::JsWord,
+    utils::ExprFactory,
+    visit::{Fold, FoldWith},
+  },
 };
 
 struct Relay<'a> {
+  unresolved_mark: Mark,
   root_dir: PathBuf,
   file_name: &'a Path,
   config: &'a RelayConfig,
@@ -47,10 +51,10 @@ fn pull_first_operation_name_from_tpl(tpl: &TaggedTpl) -> Option<String> {
   })
 }
 
-fn build_require_expr_from_path(path: &str) -> Expr {
+fn build_require_expr_from_path(path: &str, unresolved_mark: Mark) -> Expr {
   Expr::Call(CallExpr {
     span: Default::default(),
-    callee: quote_ident!("require").as_callee(),
+    callee: create_require(unresolved_mark).as_callee(),
     args: vec![Lit::Str(Str {
       span: Default::default(),
       value: JsWord::from(path),
@@ -59,6 +63,14 @@ fn build_require_expr_from_path(path: &str) -> Expr {
     .as_arg()],
     type_args: None,
   })
+}
+
+fn create_require(unresolved_mark: Mark) -> Ident {
+  Ident {
+    span: DUMMY_SP.apply_mark(unresolved_mark),
+    sym: "require".into(),
+    optional: false,
+  }
 }
 
 impl<'a> Fold for Relay<'a> {
@@ -79,6 +91,7 @@ impl<'a> Fold for Relay<'a> {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum BuildRequirePathError {
   FileNameNotReal,
 }
@@ -128,7 +141,10 @@ impl<'a> Relay<'a> {
     match operation_name {
       None => None,
       Some(operation_name) => match self.build_require_path(operation_name.as_str()) {
-        Ok(final_path) => Some(build_require_expr_from_path(final_path.to_str()?)),
+        Ok(final_path) => Some(build_require_expr_from_path(
+          final_path.to_str()?,
+          self.unresolved_mark,
+        )),
         Err(_err) => {
           // let base_error = "Could not transform GraphQL template to a Relay import.";
           // let error_message = match err {
@@ -155,10 +171,12 @@ pub fn relay<'a>(
   config: &'a RelayConfig,
   file_name: &'a Path,
   root_dir: PathBuf,
+  unresolved_mark: Mark,
 ) -> impl Fold + 'a {
   Relay {
     root_dir,
     file_name,
     config,
+    unresolved_mark,
   }
 }

@@ -13,13 +13,5 @@
   },
   "keywords": [],
   "author": "",
-  "license": "MIT",
-  "rspack": {
-    "manualChunks": {
-      "vendor": [
-        "manual",
-        "common"
-      ]
-    }
-  }
+  "license": "MIT"
 }

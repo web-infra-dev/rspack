@@ -24,13 +24,16 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{common::SyntaxContext, ecma::atoms::JsWord};
 
 use super::{
+  analyzer::OptimizeAnalyzer,
+  asset_module::AssetModule,
+  js_module::JsModule,
   symbol_graph::SymbolGraph,
-  visitor::{ModuleRefAnalyze, SymbolRef, TreeShakingResult},
-  BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffect,
+  visitor::{OptimizeAnalyzeResult, SymbolRef},
+  BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::ConvertModulePath, Compilation, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -38,6 +41,11 @@ pub struct CodeSizeOptimizer<'a> {
   bailout_modules: IdentifierMap<BailoutFlag>,
   side_effects_free_modules: IdentifierSet,
   symbol_graph: SymbolGraph,
+}
+
+enum EntryLikeType {
+  Entry,
+  Bailout,
 }
 
 impl<'a> CodeSizeOptimizer<'a> {
@@ -51,7 +59,25 @@ impl<'a> CodeSizeOptimizer<'a> {
   }
 
   pub async fn run(&mut self) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let mut analyze_result_map = par_analyze_module(self.compilation).await;
+    let is_incremental_rebuild = self.compilation.options.is_incremental_rebuild();
+    let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
+    let analyze_result_map = par_analyze_module(self.compilation).await;
+    let mut finalized_result_map = if is_incremental_rebuild {
+      if is_first_time_analyze {
+        analyze_result_map
+      } else {
+        for (ident, result) in analyze_result_map.into_iter() {
+          self
+            .compilation
+            .optimize_analyze_result_map
+            .insert(ident, result);
+        }
+        // Merge new analyze result with previous in incremental_rebuild mode
+        std::mem::take(&mut self.compilation.optimize_analyze_result_map)
+      }
+    } else {
+      analyze_result_map
+    };
 
     let mut evaluated_used_symbol_ref: HashSet<SymbolRef> = HashSet::default();
     let mut evaluated_module_identifiers = IdentifierSet::default();
@@ -61,8 +87,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       .optimization
       .side_effects
       .is_enable();
-    let mut side_effect_map: IdentifierMap<SideEffect> = IdentifierMap::default();
-    for analyze_result in analyze_result_map.values() {
+    let mut side_effect_map: IdentifierMap<SideEffectType> = IdentifierMap::default();
+    for analyze_result in finalized_result_map.values() {
       side_effect_map.insert(
         analyze_result.module_identifier,
         analyze_result.side_effects,
@@ -77,7 +103,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       if forced_side_effects
         || !matches!(
           analyze_result.side_effects,
-          SideEffect::Configuration(false)
+          SideEffectType::Configuration(false)
         )
       {
         evaluated_module_identifiers.insert(analyze_result.module_identifier);
@@ -91,7 +117,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
-    let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut analyze_result_map);
+    let inherit_export_ref_graph = get_inherit_export_ref_graph(&mut finalized_result_map);
     let mut errors = vec![];
     let mut used_symbol_ref = HashSet::default();
     let mut used_export_module_identifiers: IdentifierMap<ModuleUsedType> =
@@ -103,7 +129,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     let mut visited_symbol_ref: HashSet<SymbolRef> = HashSet::default();
 
     self.mark_used_symbol_with(
-      &analyze_result_map,
+      &finalized_result_map,
       VecDeque::from_iter(evaluated_used_symbol_ref.into_iter()),
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
@@ -115,7 +141,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     // We considering all export symbol in each entry module as used for now
     self.mark_entry_symbol(
-      &analyze_result_map,
+      &finalized_result_map,
       &mut evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       &inherit_export_ref_graph,
@@ -128,7 +154,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     // Its export symbol will be marked as used
     // let mut bailout_entry_module_identifiers = IdentifierSet::default();
     self.mark_bailout_module(
-      &analyze_result_map,
+      &finalized_result_map,
       evaluated_module_identifiers,
       &mut used_export_module_identifiers,
       inherit_export_ref_graph,
@@ -147,9 +173,9 @@ impl<'a> CodeSizeOptimizer<'a> {
 
     let dead_nodes_index = HashSet::default();
     // dependency_replacement();
-    self.finalize_symbol(
+    let include_module_ids = self.finalize_symbol(
       side_effects_options,
-      &analyze_result_map,
+      &finalized_result_map,
       used_export_module_identifiers,
       &mut used_symbol_ref,
       visited_symbol_ref,
@@ -158,10 +184,11 @@ impl<'a> CodeSizeOptimizer<'a> {
     Ok(
       OptimizeDependencyResult {
         used_symbol_ref,
-        analyze_results: analyze_result_map,
+        analyze_results: finalized_result_map,
         bail_out_module_identifiers: std::mem::take(&mut self.bailout_modules),
         side_effects_free_modules: std::mem::take(&mut self.side_effects_free_modules),
         module_item_map: IdentifierMap::default(),
+        include_module_ids,
       }
       .with_diagnostic(errors_to_diagnostics(errors)),
     )
@@ -242,7 +269,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_bailout_module(
     &mut self,
-    analyze_result_map: &IdentifierMap<TreeShakingResult>,
+    analyze_result_map: &IdentifierMap<OptimizeAnalyzeResult>,
     mut evaluated_module_identifiers: IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: GraphMap<Identifier, (), Directed>,
@@ -250,27 +277,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
-    let bailout_entry_modules = self
-      .bailout_modules
-      .iter()
-      .filter_map(|(module_id, reason)| {
-        if reason
-          .intersection(
-            BailoutFlag::DYNAMIC_IMPORT
-              | BailoutFlag::HELPER
-              | BailoutFlag::COMMONJS_REQUIRE
-              | BailoutFlag::CONTEXT_MODULE,
-          )
-          .bits()
-          .count_ones()
-          >= 1
-        {
-          Some(*module_id)
-        } else {
-          None
-        }
-      })
-      .collect::<Vec<_>>();
+    let bailout_entry_modules = self.bailout_modules.keys().copied().collect::<Vec<_>>();
     for module_id in bailout_entry_modules {
       self.collect_from_entry_like(
         analyze_result_map,
@@ -279,7 +286,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         used_export_module_identifiers,
         &inherit_export_ref_graph,
         &mut traced_tuple,
-        false,
+        EntryLikeType::Bailout,
         visited_symbol_ref,
         errors,
       );
@@ -289,7 +296,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_entry_symbol(
     &mut self,
-    analyze_result_map: &IdentifierMap<TreeShakingResult>,
+    analyze_result_map: &IdentifierMap<OptimizeAnalyzeResult>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_export_ref_graph: &GraphMap<Identifier, (), Directed>,
@@ -305,7 +312,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         used_export_module_identifiers,
         inherit_export_ref_graph,
         traced_tuple,
-        true,
+        EntryLikeType::Entry,
         visited_symbol_ref,
         errors,
       );
@@ -315,12 +322,13 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn finalize_symbol(
     &mut self,
     side_effects_analyze: bool,
-    analyze_results: &IdentifierMap<TreeShakingResult>,
+    analyze_results: &IdentifierMap<OptimizeAnalyzeResult>,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
     visited_symbol_ref: HashSet<SymbolRef>,
     dead_node_index: &HashSet<NodeIndex>,
-  ) {
+  ) -> IdentifierSet {
+    let mut include_module_ids = IdentifierSet::default();
     if side_effects_analyze {
       let symbol_graph = &self.symbol_graph;
       let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
@@ -338,21 +346,10 @@ impl<'a> CodeSizeOptimizer<'a> {
       // pruning
       let mut visited_symbol_node_index: HashSet<NodeIndex> = HashSet::default();
       let mut visited = IdentifierSet::default();
-      let context_entry_modules = self.bailout_modules.iter().filter_map(|(k, v)| {
-        if v.contains(BailoutFlag::CONTEXT_MODULE) {
-          Some(*k)
-        } else {
-          None
-        }
-      });
       let mut q = VecDeque::from_iter(
-        self
-          .compilation
-          .entry_modules()
-          .chain(context_entry_modules)
-          .map(|module_id| (module_id, true)),
+        self.compilation.entry_modules(), //
       );
-      while let Some((module_identifier, _is_entry)) = q.pop_front() {
+      while let Some(module_identifier) = q.pop_front() {
         if visited.contains(&module_identifier) {
           continue;
         } else {
@@ -362,16 +359,8 @@ impl<'a> CodeSizeOptimizer<'a> {
         let analyze_result = match result {
           Some(result) => result,
           None => {
-            // These are none js like module, we need to keep it.
-            // TODO: remove none js module that has no side_effects
-            let mgm = self
-              .compilation
-              .module_graph
-              .module_graph_module_by_identifier_mut(&module_identifier)
-              .unwrap_or_else(|| {
-                panic!("Failed to get mgm by module identifier {module_identifier}")
-              });
-            mgm.used = true;
+            // These are js module without analyze result, like external module
+            include_module_ids.insert(module_identifier);
             continue;
           }
         };
@@ -398,13 +387,14 @@ impl<'a> CodeSizeOptimizer<'a> {
           .module_graph
           .module_graph_module_by_identifier_mut(&module_identifier)
           .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {module_identifier}"));
-        mgm.used = true;
+        include_module_ids.insert(mgm.module_identifier);
         if let Some(symbol_ref_list) = module_visited_symbol_ref.get(&module_identifier) {
           for symbol_ref in symbol_ref_list {
             update_reachable_dependency(
-              &symbol_ref,
+              symbol_ref,
               &mut reachable_dependency_identifier,
               symbol_graph,
+              &self.bailout_modules,
             );
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
@@ -426,11 +416,11 @@ impl<'a> CodeSizeOptimizer<'a> {
             panic!("Failed to get ModuleGraphModule by module identifier {module_identifier}")
           });
         // reachable_dependency_identifier.extend(analyze_result.inherit_export_maps.keys());
-        for dep in mgm.dependencies.iter() {
-          let module_ident = match self
+        for dependency_id in mgm.dependencies.iter() {
+          let module_identifier = match self
             .compilation
             .module_graph
-            .module_identifier_by_dependency_id(dep)
+            .module_identifier_by_dependency_id(dependency_id)
           {
             Some(module_identifier) => module_identifier,
             None => {
@@ -441,13 +431,12 @@ impl<'a> CodeSizeOptimizer<'a> {
                 .and_then(|module| module.as_normal_module())
                 .map(|normal_module| normal_module.ast_or_source())
               {
-                Some(ast_or_source) => {
-                  if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
-                    // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-                    continue;
-                  } else {
-                    panic!("Failed to resolve {dep:?}")
-                  }
+                Some(NormalModuleAstOrSource::BuiltFailed(_)) => {
+                  // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+                  continue;
+                }
+                Some(_) => {
+                  panic!("Failed to ast of {dependency_id:?}")
                 }
                 None => {
                   panic!("Failed to get normal module of {module_identifier}");
@@ -455,16 +444,62 @@ impl<'a> CodeSizeOptimizer<'a> {
               };
             }
           };
-          if self.side_effects_free_modules.contains(module_ident)
-            && !reachable_dependency_identifier.contains(module_ident)
-            && !self.bailout_modules.contains_key(module_ident)
+          let dependency = match self
+            .compilation
+            .module_graph
+            .dependency_by_id(dependency_id)
+          {
+            Some(dep) => dep,
+            None => {
+              // It means this dependency has been removed before
+              continue;
+            }
+          };
+          let need_bailout = matches!(
+            dependency.dependency_type(),
+            DependencyType::CommonJSRequireContext
+              | DependencyType::RequireContext
+              | DependencyType::DynamicImport
+              | DependencyType::CjsRequire
+              | DependencyType::ImportContext
+          );
+
+          if self.side_effects_free_modules.contains(module_identifier)
+            && !reachable_dependency_identifier.contains(module_identifier)
+            && !need_bailout
           {
             continue;
           }
-          q.push_back((*module_ident, false));
+
+          // we need to push either dependencies of context module instead of only its self, context module doesn't have ast,
+          // which imply it will be treated as a external module in analyze phase
+          if matches!(
+            dependency.dependency_type(),
+            DependencyType::CommonJSRequireContext
+              | DependencyType::RequireContext
+              | DependencyType::ImportContext
+          ) {
+            let deps_module_id_of_context_module = self
+              .compilation
+              .module_graph
+              .dependencies_by_module_identifier(module_identifier)
+              .map(|deps| {
+                deps
+                  .iter()
+                  .filter_map(|dep| {
+                    self
+                      .compilation
+                      .module_graph
+                      .module_identifier_by_dependency_id(dep)
+                      .cloned()
+                  })
+                  .collect::<Vec<_>>()
+              })
+              .unwrap_or_default();
+            q.extend(deps_module_id_of_context_module);
+          }
+          q.push_back(*module_identifier);
         }
-        // dbg!(&module_identifier);
-        // dbg!(&reachable_dependency_identifier);
       }
 
       for node_index in visited_symbol_node_index {
@@ -479,11 +514,12 @@ impl<'a> CodeSizeOptimizer<'a> {
     } else {
       *used_symbol_ref = visited_symbol_ref;
     }
+    include_module_ids
   }
 
   fn get_side_effects_free_modules(
     &self,
-    mut side_effect_map: IdentifierMap<SideEffect>,
+    mut side_effect_map: IdentifierMap<SideEffectType>,
   ) -> IdentifierSet {
     // normalize side_effects, there are two kinds of `side_effects` one from configuration and another from analyze ast
     for entry_module_ident in self.compilation.entry_module_identifiers.iter() {
@@ -499,8 +535,8 @@ impl<'a> CodeSizeOptimizer<'a> {
       .iter()
       .filter_map(|(k, v)| {
         let side_effect = match v {
-          SideEffect::Configuration(value) => value,
-          SideEffect::Analyze(value) => value,
+          SideEffectType::Configuration(value) => value,
+          SideEffectType::Analyze(value) => value,
         };
         if !side_effect {
           Some(*k)
@@ -516,7 +552,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     cur: Identifier,
     module_graph: &ModuleGraph,
     visited_module: &mut IdentifierSet,
-    side_effects_map: &mut IdentifierMap<SideEffect>,
+    side_effects_map: &mut IdentifierMap<SideEffectType>,
   ) {
     if visited_module.contains(&cur) {
       return;
@@ -527,26 +563,17 @@ impl<'a> CodeSizeOptimizer<'a> {
       .unwrap_or_else(|| panic!("Failed to get mgm by module identifier {cur}"));
     let mut module_ident_list = vec![];
     for dep in mgm.dependencies.iter() {
-      let module_ident = match module_graph.module_identifier_by_dependency_id(dep) {
-        Some(module_identifier) => *module_identifier,
-        None => {
-          match module_graph
-            .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| module.as_normal_module())
-            .map(|normal_module| normal_module.ast_or_source())
-          {
-            Some(ast_or_source) => {
-              if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
-                // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
-                continue;
-              } else {
-                panic!("Failed to resolve {dep:?}")
-              }
-            }
-            None => {
-              panic!("Failed to get normal module of {}", mgm.module_identifier);
-            }
-          };
+      let Some(&module_ident) = module_graph.module_identifier_by_dependency_id(dep) else {
+        let ast_or_source = module_graph
+          .module_by_identifier(&mgm.module_identifier)
+          .and_then(|module| module.as_normal_module())
+          .map(|normal_module| normal_module.ast_or_source())
+          .unwrap_or_else(|| panic!("Failed to get normal module of {}", mgm.module_identifier));
+        if matches!(ast_or_source, NormalModuleAstOrSource::BuiltFailed(_)) {
+          // We know that the build output can't run, so it is alright to generate a wrong tree-shaking result.
+          continue;
+        } else {
+          panic!("Failed to resolve {dep:?}")
         }
       };
       module_ident_list.push(module_ident);
@@ -554,31 +581,28 @@ impl<'a> CodeSizeOptimizer<'a> {
     }
     // visited_module.remove(&cur);
 
-    let side_effect_list = match side_effects_map.entry(cur) {
-      Entry::Occupied(mut occ) => match occ.get_mut() {
-        SideEffect::Configuration(_) => vec![],
-        SideEffect::Analyze(value) => {
-          if *value {
-            vec![]
-          } else {
-            module_ident_list
-              .into_iter()
-              .filter(|ident| {
-                matches!(
-                  side_effects_map.get(ident),
-                  Some(SideEffect::Analyze(true)) | Some(SideEffect::Configuration(true))
-                )
-              })
-              .collect::<Vec<_>>()
-          }
-        }
-      },
-      Entry::Vacant(_) => vec![],
+    let need_change_to_side_effects_true = match side_effects_map.get(&cur) {
+      // skip no deps or user already specified side effect in package.json
+      Some(SideEffectType::Configuration(_)) | None => false,
+      // already marked as side-effectful
+      Some(SideEffectType::Analyze(true)) => false,
+      Some(SideEffectType::Analyze(false)) => {
+        let mut side_effect_list = module_ident_list.into_iter().filter(|ident| {
+          matches!(
+            side_effects_map.get(ident),
+            Some(SideEffectType::Analyze(true)) | Some(SideEffectType::Configuration(true))
+          )
+        });
+        side_effect_list.next().is_some()
+        // uncomment below for debugging side_effect_list
+        // let side_effect_list = side_effect_list.collect::<Vec<_>>();
+        // side_effect_list.is_empty()
+      }
     };
 
-    if !side_effect_list.is_empty() {
+    if need_change_to_side_effects_true {
       if let Some(cur) = side_effects_map.get_mut(&cur) {
-        *cur = SideEffect::Analyze(true);
+        *cur = SideEffectType::Analyze(true);
       }
     }
   }
@@ -586,7 +610,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn mark_used_symbol_with(
     &mut self,
-    analyze_map: &IdentifierMap<TreeShakingResult>,
+    analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
     mut init_queue: VecDeque<SymbolRef>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
@@ -614,7 +638,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn mark_symbol(
     &mut self,
     current_symbol_ref: SymbolRef,
-    analyze_map: &IdentifierMap<TreeShakingResult>,
+    analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
     symbol_queue: &mut VecDeque<SymbolRef>,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
@@ -868,27 +892,31 @@ impl<'a> CodeSizeOptimizer<'a> {
                   current_symbol_ref.module_identifier(),
                   ModuleUsedType::INDIRECT,
                 );
-                // match bailout_module_identifiers.get(&module_result.module_identifier) {
-                //   Some(flag)
-                //     if flag.contains(BailoutFlog::COMMONJS_EXPORTS)
-                //       // && indirect_symbol.indirect_id() == "default"
-                //       =>
-                //   {
-                //     graph.add_edge(&current_symbol_ref, &current_symbol_ref);
-                //   }
-                //   _ => {}
-                // }
-                if !is_bailout_module_identifier && !has_bailout_module_identifiers {
+
+                // Only report diagnostic when following conditions are satisfied:
+                // 1. src module is not a bailout module and src module using ESM syntax to export some symbols.
+                // 2. src module has no reexport or any reexport src module is not bailouted
+                let should_diagnostic = !is_bailout_module_identifier
+                  && module_result.module_syntax == ModuleSyntax::ESM
+                  && (module_result.inherit_export_maps.is_empty()
+                    || !has_bailout_module_identifiers);
+                if should_diagnostic {
                   let module_path = self
                     .compilation
                     .module_graph
                     .normal_module_source_path_by_identifier(&module_result.module_identifier);
-                  if let Some(module_path) = module_path {
+                  let importer_module_path = self
+                    .compilation
+                    .module_graph
+                    .normal_module_source_path_by_identifier(&indirect_symbol.importer());
+                  if let (Some(module_path), Some(importer_module_path)) =
+                    (module_path, importer_module_path)
+                  {
                     let error_message = format!(
                       "{} did not export `{}`, imported by {}",
-                      module_path,
+                      contextify(&self.compilation.options.context, &module_path),
                       indirect_symbol.indirect_id(),
-                      indirect_symbol.importer()
+                      contextify(&self.compilation.options.context, &importer_module_path),
                     );
                     errors.push(Error::InternalError(InternalError {
                       error_message,
@@ -947,7 +975,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         // all
         // ```
         // then, all the exports in `test.js` including
-        // export defined in `test.js` and all realted
+        // export defined in `test.js` and all related
         // reexport should be marked as used
         let include_default_export = match star_symbol.ty() {
           StarSymbolKind::ReExportAllAs => false,
@@ -1047,13 +1075,13 @@ impl<'a> CodeSizeOptimizer<'a> {
   #[allow(clippy::too_many_arguments)]
   fn collect_from_entry_like(
     &mut self,
-    analyze_map: &IdentifierMap<TreeShakingResult>,
+    analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
     entry_identifier: ModuleIdentifier,
     evaluated_module_identifiers: &mut IdentifierSet,
     used_export_module_identifiers: &mut IdentifierMap<ModuleUsedType>,
     inherit_extend_graph: &GraphMap<ModuleIdentifier, (), Directed>,
     traced_tuple: &mut HashMap<(ModuleIdentifier, ModuleIdentifier), Vec<(SymbolRef, SymbolRef)>>,
-    is_entry: bool,
+    entry_type: EntryLikeType,
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
@@ -1068,10 +1096,11 @@ impl<'a> CodeSizeOptimizer<'a> {
     };
 
     // by default webpack will not mark the `export *` as used in entry module
-    if !is_entry {
+    if matches!(entry_type, EntryLikeType::Bailout) {
       let inherit_export_symbols = get_inherit_export_symbol_ref(entry_module_result);
 
       q.extend(inherit_export_symbols);
+      q.extend(entry_module_result.used_symbol_refs.iter().cloned());
     }
 
     for item in entry_module_result.export_map.values() {
@@ -1088,9 +1117,9 @@ impl<'a> CodeSizeOptimizer<'a> {
       );
     }
 
-    while let Some(sym_ref) = q.pop_front() {
+    while let Some(symbol_ref) = q.pop_front() {
       self.mark_symbol(
-        sym_ref,
+        symbol_ref,
         analyze_map,
         &mut q,
         evaluated_module_identifiers,
@@ -1138,7 +1167,7 @@ impl<'a> CodeSizeOptimizer<'a> {
 fn get_inherit_export_ref_graph(
   analyze_result_map: &mut std::collections::HashMap<
     Identifier,
-    TreeShakingResult,
+    OptimizeAnalyzeResult,
     std::hash::BuildHasherDefault<ustr::IdentityHasher>,
   >,
 ) -> GraphMap<Identifier, (), Directed> {
@@ -1151,27 +1180,41 @@ fn get_inherit_export_ref_graph(
   for (module_id, inherit_export_module_id) in map_of_inherit_map.iter() {
     // This is just a work around for rustc checker, because we have immutable and mutable borrow at the same time.
     let mut inherit_export_maps = {
-      let main_module = analyze_result_map.get_mut(module_id).expect("TODO:");
+      let main_module = if let Some(result) = analyze_result_map.get_mut(module_id) {
+        result
+      } else {
+        tracing::warn!("Can't get analyze result of {}", module_id);
+        continue;
+      };
       std::mem::take(&mut main_module.inherit_export_maps)
     };
     for inherit_export_module_identifier in inherit_export_module_id {
-      let export_module = analyze_result_map
+      let inherit_export_map = if let Some(inherit_export_map) = analyze_result_map
         .get(inherit_export_module_identifier)
-        .unwrap_or_else(|| {
-          panic!("inherit_export_module_identifier not found: {inherit_export_module_identifier:?}")
-        })
-        .export_map
-        .iter()
-        .filter_map(|(k, v)| {
-          // export * should not reexport default export
-          if k == "default" {
-            None
-          } else {
-            Some((k.clone(), v.clone()))
-          }
-        })
-        .collect::<HashMap<JsWord, SymbolRef>>();
-      inherit_export_maps.insert(*inherit_export_module_identifier, export_module);
+        .map(|analyze_result| {
+          analyze_result
+            .export_map
+            .iter()
+            .filter_map(|(k, v)| {
+              // export * should not reexport default export
+              if k == "default" {
+                None
+              } else {
+                Some((k.clone(), v.clone()))
+              }
+            })
+            .collect::<HashMap<JsWord, SymbolRef>>()
+        }) {
+        inherit_export_map
+      } else {
+        tracing::warn!(
+          "Can't get analyze result of {}",
+          inherit_export_module_identifier
+        );
+        HashMap::default()
+      };
+
+      inherit_export_maps.insert(*inherit_export_module_identifier, inherit_export_map);
     }
     analyze_result_map
       .get_mut(module_id)
@@ -1181,22 +1224,14 @@ fn get_inherit_export_ref_graph(
   inherit_export_ref_graph
 }
 
-async fn par_analyze_module(
-  compilation: &mut Compilation,
-) -> std::collections::HashMap<
-  Identifier,
-  TreeShakingResult,
-  std::hash::BuildHasherDefault<ustr::IdentityHasher>,
-> {
+async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<OptimizeAnalyzeResult> {
   let analyze_results = {
-    let resolver_factory = &compilation.plugin_driver.read().await.resolver_factory;
     compilation
       .module_graph
-      .module_identifier_to_module_graph_module
+      .module_graph_modules()
       .par_iter()
       .filter_map(|(module_identifier, mgm)| {
-        let uri_key = *module_identifier;
-        let ast = if mgm.module_type.is_js_like() {
+        let optimize_analyze_result = if mgm.module_type.is_js_like() {
           match compilation
             .module_graph
             .module_by_identifier(&mgm.module_identifier)
@@ -1204,62 +1239,58 @@ async fn par_analyze_module(
             // A module can missing its AST if the module is failed to build
             .and_then(|ast| ast.as_javascript())
           {
-            Some(ast) => ast,
+            Some(ast) => JsModule::new(ast, *module_identifier).analyze(compilation),
             None => {
-              // FIXME: this could be none if you enable both hmr and tree-shaking, should investigate why
               return None;
             }
           }
         } else {
-          // Ignore analyzing other module for now
-          // Of course this is unsafe, but if we can't get a ast of a javascript module, then panic is ideal.
-          return None;
+          AssetModule::new(*module_identifier).analyze(compilation)
         };
-        let analyzer = ast.visit(|program, context| {
-          let top_level_mark = context.top_level_mark;
-          let unresolved_mark = context.unresolved_mark;
-          let helper_mark = context.helpers.mark();
 
-          let mut analyzer = ModuleRefAnalyze::new(
-            top_level_mark,
-            unresolved_mark,
-            helper_mark,
-            uri_key,
-            &compilation.module_graph,
-            resolver_factory,
-            &compilation.options,
-          );
-          program.visit_with(&mut analyzer);
-          analyzer
-        });
+        // dbg_matches!(
+        //   module_identifier.as_str(),
+        //   &optimize_analyze_result.export_map,
+        //   &optimize_analyze_result.import_map,
+        //   &optimize_analyze_result.reachable_import_of_export,
+        //   &optimize_analyze_result.used_symbol_refs
+        // );
 
-        // Keep this debug info until we stabilize the tree-shaking
-        // if debug_care_module_id(&uri_key.as_str()) {
-        //   dbg!(
-        //     &uri_key,
-        //     // &analyzer.export_all_list,
-        //     &analyzer.export_map,
-        //     &analyzer.import_map,
-        //     &analyzer.maybe_lazy_reference_map,
-        //     &analyzer.immediate_evaluate_reference_map,
-        //     &analyzer.reachable_import_and_export,
-        //     &analyzer.used_symbol_ref
-        //   );
-        // }
-
-        Some((uri_key, analyzer.into()))
+        Some((*module_identifier, optimize_analyze_result))
       })
-      .collect::<IdentifierMap<TreeShakingResult>>()
+      .collect::<IdentifierMap<OptimizeAnalyzeResult>>()
   };
   analyze_results
 }
 
 fn update_reachable_dependency(
-  symbol_ref: &&SymbolRef,
+  symbol_ref: &SymbolRef,
   reachable_dependency_identifier: &mut IdentifierSet,
   symbol_graph: &SymbolGraph,
+  bailout_modules: &IdentifierMap<BailoutFlag>,
 ) {
   let root_module_identifier = symbol_ref.importer();
+  // FIXME: currently we don't analyze export info of bailout module like commonjs,
+  // it may cause we don't include bailout module in such scenario:
+  // ```js
+  // //index.js
+  // import * as all from './lib.js'
+  // all
+  // // lib.js
+  // exports['a'] = 1000;
+  // ```
+  // This code would let lib.js be unreachable when it is marked as sideEffects false.
+  // Currently we use such a workaround make bailout module reachable.
+  if matches!(
+    symbol_ref,
+    SymbolRef::Star(StarSymbol {
+      ty: StarSymbolKind::ImportAllAs,
+      ..
+    })
+  ) && bailout_modules.contains_key(&symbol_ref.module_identifier())
+  {
+    reachable_dependency_identifier.insert(symbol_ref.module_identifier());
+  }
   let node_index = *symbol_graph
     .get_node_index(symbol_ref)
     .unwrap_or_else(|| panic!("Can't get NodeIndex of {symbol_ref:?}"));
@@ -1353,7 +1384,7 @@ fn get_reachable(
 }
 
 fn create_inherit_graph(
-  analyze_map: &IdentifierMap<TreeShakingResult>,
+  analyze_map: &IdentifierMap<OptimizeAnalyzeResult>,
 ) -> GraphMap<ModuleIdentifier, (), petgraph::Directed> {
   let mut g = DiGraphMap::new();
   for (module_id, result) in analyze_map.iter() {
@@ -1379,7 +1410,7 @@ pub fn merge_used_export_type(
   }
 }
 
-fn get_inherit_export_symbol_ref(entry_module_result: &TreeShakingResult) -> Vec<SymbolRef> {
+fn get_inherit_export_symbol_ref(entry_module_result: &OptimizeAnalyzeResult) -> Vec<SymbolRef> {
   let mut export_atom = HashSet::default();
   let mut inherit_export_symbols = vec![];
   // All the reexport star symbol should be included in the bundle

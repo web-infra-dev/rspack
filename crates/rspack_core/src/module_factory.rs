@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use rspack_error::{Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{BoxModule, BoxModuleDependency, Resolve};
+use crate::{BoxModule, BoxModuleDependency, Context, FactoryMeta, Resolve};
 
 #[derive(Debug)]
 pub struct ModuleFactoryCreateData {
   pub resolve_options: Option<Resolve>,
-  pub context: Option<String>,
+  pub context: Context,
   pub dependency: BoxModuleDependency,
 }
 
@@ -18,6 +18,7 @@ pub struct ModuleFactoryResult {
   pub file_dependencies: HashSet<PathBuf>,
   pub context_dependencies: HashSet<PathBuf>,
   pub missing_dependencies: HashSet<PathBuf>,
+  pub factory_meta: FactoryMeta,
 }
 
 impl ModuleFactoryResult {
@@ -27,6 +28,7 @@ impl ModuleFactoryResult {
       file_dependencies: Default::default(),
       context_dependencies: Default::default(),
       missing_dependencies: Default::default(),
+      factory_meta: Default::default(),
     }
   }
 
@@ -55,8 +57,13 @@ impl ModuleFactoryResult {
     self
   }
 
-  pub fn missing_dependencies(mut self, missings: impl IntoIterator<Item = PathBuf>) -> Self {
-    self.missing_dependencies.extend(missings);
+  pub fn missing_dependencies(mut self, missing: impl IntoIterator<Item = PathBuf>) -> Self {
+    self.missing_dependencies.extend(missing);
+    self
+  }
+
+  pub fn factory_meta(mut self, factory_meta: FactoryMeta) -> Self {
+    self.factory_meta = factory_meta;
     self
   }
 }

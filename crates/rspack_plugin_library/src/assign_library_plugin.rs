@@ -1,21 +1,26 @@
+use std::hash::Hash;
+
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, Compilation, Filename, LibraryOptions, Plugin, PluginContext, PluginRenderHookOutput,
-  PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
+  Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin, PluginContext,
+  PluginJsChunkHashHookOutput, PluginRenderHookOutput, PluginRenderStartupHookOutput, RenderArgs,
+  RenderStartupArgs, SourceType,
 };
+
+use crate::utils::property_access;
 
 #[derive(Debug)]
 pub enum Unnamed {
   Error,
   Static,
   Copy,
-  Assgin,
+  Assign,
 }
 
 #[derive(Debug)]
 pub enum Named {
   Copy,
-  Assgin,
+  Assign,
 }
 
 #[derive(Debug)]
@@ -46,7 +51,15 @@ impl AssignLibraryPlugin {
             root
               .iter()
               .map(|v| {
-                Filename::from(v.clone()).render_with_chunk(chunk, ".js", &SourceType::JavaScript)
+                compilation.get_path(
+                  &Filename::from(v.to_owned()),
+                  PathData::default().chunk(chunk).content_hash_optional(
+                    chunk
+                      .content_hash
+                      .get(&SourceType::JavaScript)
+                      .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+                  ),
+                )
               })
               .collect::<Vec<_>>(),
           );
@@ -80,6 +93,7 @@ impl Plugin for AssignLibraryPlugin {
     args: &RenderStartupArgs,
   ) -> PluginRenderStartupHookOutput {
     let mut source = ConcatSource::default();
+    source.add(args.source.clone());
     // TODO: respect entryOptions.library
     let library = &args.compilation.options.output.library;
     let is_copy = if let Some(library) = library {
@@ -125,6 +139,21 @@ impl Plugin for AssignLibraryPlugin {
 
     Ok(Some(source.boxed()))
   }
+
+  fn js_chunk_hash(
+    &self,
+    _ctx: PluginContext,
+    args: &mut JsChunkHashArgs,
+  ) -> PluginJsChunkHashHookOutput {
+    self.name().hash(&mut args.hasher);
+    args
+      .compilation
+      .options
+      .output
+      .library
+      .hash(&mut args.hasher);
+    Ok(())
+  }
 }
 
 #[inline]
@@ -135,14 +164,6 @@ fn property_library(library: &Option<LibraryOptions>) -> String {
     }
   }
   String::default()
-}
-
-fn property_access(o: &Vec<String>) -> String {
-  let mut str = String::default();
-  for property in o {
-    str.push_str(format!(r#"["{property}"]"#).as_str());
-  }
-  str
 }
 
 fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: bool) -> String {

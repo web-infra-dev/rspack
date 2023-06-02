@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use rspack_error::Result;
-use rspack_identifier::IdentifierSet;
+use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
@@ -14,6 +16,7 @@ pub(super) struct CodeSplitter<'me> {
   queue_delayed: Vec<QueueItem>,
   split_point_modules: IdentifierSet,
   pub(super) remove_parent_modules_context: RemoveParentModulesContext,
+  depended_modules_cache: IdentifierMap<Vec<ModuleIdentifier>>,
 }
 
 impl<'me> CodeSplitter<'me> {
@@ -26,6 +29,7 @@ impl<'me> CodeSplitter<'me> {
       queue_delayed: Default::default(),
       split_point_modules: Default::default(),
       remove_parent_modules_context: Default::default(),
+      depended_modules_cache: Default::default(),
     }
   }
 
@@ -60,18 +64,11 @@ impl<'me> CodeSplitter<'me> {
 
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
-      for module_identifier in module_identifiers.iter() {
-        // Entry modules are always split point modules
-        self.split_point_modules.insert(**module_identifier);
-        compilation
-          .chunk_graph
-          .split_point_module_identifier_to_chunk_ukey
-          .insert(**module_identifier, chunk.ukey);
-      }
-
       let mut entrypoint = ChunkGroup::new(
         ChunkGroupKind::Entrypoint,
-        HashSet::from_iter([name.to_string()]),
+        HashSet::from_iter([Arc::from(
+          options.runtime.clone().unwrap_or_else(|| name.to_string()),
+        )]),
         Some(name.to_string()),
       );
       if options.runtime.is_none() {
@@ -79,7 +76,6 @@ impl<'me> CodeSplitter<'me> {
       }
       entrypoint.set_entry_point_chunk(chunk.ukey);
       entrypoint.connect_chunk(chunk);
-      // compilation.chunk_graph.con
 
       compilation
         .named_chunk_groups
@@ -213,6 +209,11 @@ impl<'me> CodeSplitter<'me> {
       self.remove_parent_modules();
     }
 
+    // make sure all module (weak dependency particularly) has a mgm
+    for module_identifier in self.compilation.module_graph.modules().keys() {
+      self.compilation.chunk_graph.add_module(*module_identifier)
+    }
+
     Ok(())
   }
 
@@ -322,26 +323,34 @@ impl<'me> CodeSplitter<'me> {
 
   fn process_module(&mut self, item: &QueueItem) {
     tracing::trace!("process_module {:?}", item);
+
     let mgm = self
       .compilation
       .module_graph
       .module_graph_module_by_identifier(&item.module_identifier)
       .unwrap_or_else(|| panic!("no module found: {:?}", &item.module_identifier));
 
-    for module_identifier in mgm
-      .depended_modules(&self.compilation.module_graph)
-      .into_iter()
-      .rev()
-    {
-      self.queue.push(QueueItem {
+    let queue_items = self
+      .depended_modules_cache
+      .entry(item.module_identifier)
+      .or_insert_with(|| {
+        mgm
+          .depended_modules(&self.compilation.module_graph)
+          .into_iter()
+          .rev()
+          .copied()
+          .collect::<Vec<_>>()
+      })
+      .iter()
+      .map(|module_identifier| QueueItem {
         action: QueueAction::AddAndEnter,
         chunk: item.chunk,
         chunk_group: item.chunk_group,
         module_identifier: *module_identifier,
       });
-    }
+    self.queue.extend(queue_items.into_iter());
 
-    for module_identifier in mgm
+    for (module_identifier, chunk_name) in mgm
       .dynamic_depended_modules(&self.compilation.module_graph)
       .into_iter()
       .rev()
@@ -349,21 +358,48 @@ impl<'me> CodeSplitter<'me> {
       let is_already_split_module = self.split_point_modules.contains(module_identifier);
 
       if is_already_split_module {
-        let chunk = self
+        let chunk_ukey = self
           .compilation
           .chunk_graph
           .split_point_module_identifier_to_chunk_ukey
           .get(module_identifier)
           .expect("split point module not found");
+        let chunk = self
+          .compilation
+          .chunk_by_ukey
+          .get(chunk_ukey)
+          .expect("chunk not found");
         self
           .remove_parent_modules_context
-          .add_chunk_relation(item.chunk, *chunk);
+          .add_chunk_relation(item.chunk, *chunk_ukey);
+        let item_chunk_group = self
+          .compilation
+          .chunk_group_by_ukey
+          .get_mut(&item.chunk_group)
+          .expect("chunk group not found");
+        item_chunk_group.children.extend(chunk.groups.clone());
+        for chunk_group_ukey in chunk.groups.iter() {
+          let chunk_group = self
+            .compilation
+            .chunk_group_by_ukey
+            .get_mut(chunk_group_ukey)
+            .expect("chunk group not found");
+          chunk_group.parents.insert(item.chunk_group);
+        }
         continue;
       } else {
         self.split_point_modules.insert(*module_identifier);
       }
 
-      let chunk = Compilation::add_chunk(&mut self.compilation.chunk_by_ukey);
+      let chunk = if let Some(chunk_name) = chunk_name {
+        Compilation::add_named_chunk(
+          chunk_name.to_string(),
+          &mut self.compilation.chunk_by_ukey,
+          &mut self.compilation.named_chunks,
+        )
+      } else {
+        Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
+      };
       chunk
         .chunk_reasons
         .push(format!("DynamicImport({module_identifier})"));
@@ -386,8 +422,14 @@ impl<'me> CodeSplitter<'me> {
       let mut chunk_group = ChunkGroup::new(
         ChunkGroupKind::Normal,
         item_chunk_group.runtime.clone(),
-        None,
+        chunk_name.map(|i| i.to_owned()),
       );
+      if let Some(name) = &chunk_group.options.name {
+        self
+          .compilation
+          .named_chunk_groups
+          .insert(name.to_owned(), chunk_group.ukey);
+      }
 
       self
         .compilation

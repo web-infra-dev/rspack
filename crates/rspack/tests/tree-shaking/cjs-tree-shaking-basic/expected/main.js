@@ -20,19 +20,19 @@ Object.defineProperty(exports, "__esModule", {
 Object.defineProperty(exports, "myanswer", {
     enumerable: true,
     get: function() {
-        return _libJs.myanswer;
+        return _lib.myanswer;
     }
 });
-var _libJs = __webpack_require__("./lib.js");
+var _lib = __webpack_require__("./lib.js");
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _appJs = __webpack_require__("./app.js");
+var _app = __webpack_require__("./app.js");
 __webpack_require__("./answer.js");
-(0, _appJs.myanswer)();
+(0, _app.myanswer)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -49,7 +49,8 @@ const myanswer = 'anyser';
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

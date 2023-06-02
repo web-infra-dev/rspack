@@ -292,7 +292,7 @@ export function describeCases(config: {
 												const code =
 													"(function(require, module, exports, __dirname, __filename, it, beforeEach, afterEach, expect, jest, self, window, fetch, document, importScripts, Worker, EventSource, NEXT, STATS) {" +
 													"global.expect = expect;" +
-													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }' +
+													'function nsObj(m) { Object.defineProperty(m, Symbol.toStringTag, { value: "Module" }); return m; }\n' +
 													fs.readFileSync(p, "utf-8") +
 													"\n})";
 												const fn = vm.runInThisContext(code, p);
@@ -329,7 +329,11 @@ export function describeCases(config: {
 									}
 									let promise = Promise.resolve();
 									const info = stats.toJson({});
-									if (config.target === "web") {
+									// here it is diffrent from webpack, because we add hotCases/chunk/multi-chunk-single-runtime
+									if (
+										config.target === "web" ||
+										config.target === "webworker"
+									) {
 										for (const file of info.entrypoints!.main.assets) {
 											if (file.name.endsWith(".js")) {
 												_require(`./${file.name}`);
@@ -344,7 +348,9 @@ export function describeCases(config: {
 											}
 										}
 									} else {
-										const assets = info.entrypoints!.main.assets;
+										const assets = info.entrypoints!.main.assets.filter(s =>
+											s.name.endsWith(".js")
+										);
 										const result = _require(
 											`./${assets[assets.length - 1].name}`
 										);
@@ -429,7 +435,7 @@ function getOptions(
 		options.module.rules = [];
 	}
 	options.module.rules.push({
-		test: /\.(js|css)/,
+		test: /\.(js|css|json)/,
 		use: [
 			{
 				loader: path.join(__dirname, "hotCases", "fake-update-loader.js"),

@@ -1,27 +1,32 @@
 use rspack_core::{
   get_css_chunk_filename_template, get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  stringify_map, ChunkUkey, Compilation, FilenameRenderOptions, RuntimeModule, SourceType,
+  stringify_map, ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule, SourceType,
 };
+use rspack_identifier::Identifier;
 use rustc_hash::FxHashMap as HashMap;
 
-#[derive(Debug)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Eq)]
 pub struct GetChunkFilenameRuntimeModule {
+  id: Identifier,
   chunk: Option<ChunkUkey>,
-  content_type: String,
+  content_type: &'static str,
   source_type: SourceType,
-  global: String,
+  global: RuntimeGlobals,
   all_chunks: bool,
 }
 
 impl GetChunkFilenameRuntimeModule {
   pub fn new(
-    content_type: String,
+    content_type: &'static str,
     source_type: SourceType,
-    global: String,
+    global: RuntimeGlobals,
     all_chunks: bool,
   ) -> Self {
     Self {
+      id: Identifier::from(format!("webpack/runtime/get_chunk_filename/{global}")),
       chunk: None,
       content_type,
       source_type,
@@ -32,8 +37,12 @@ impl GetChunkFilenameRuntimeModule {
 }
 
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn identifier(&self) -> String {
-    format!("webpack/runtime/get_chunk_filename/{}", self.global)
+  fn name(&self) -> Identifier {
+    self.id
+  }
+
+  fn cacheable(&self) -> bool {
+    false
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -42,7 +51,26 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         Some(chunk) => {
           let chunks = match self.all_chunks {
             true => chunk.get_all_referenced_chunks(&compilation.chunk_group_by_ukey),
-            false => chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey),
+            false => {
+              let mut chunks = chunk.get_all_async_chunks(&compilation.chunk_group_by_ukey);
+              if compilation
+                .chunk_graph
+                .get_tree_runtime_requirements(&chunk.ukey)
+                .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+              {
+                for c in compilation
+                  .chunk_graph
+                  .get_chunk_entry_dependent_chunks_iterable(
+                    &chunk.ukey,
+                    &compilation.chunk_by_ukey,
+                    &compilation.chunk_group_by_ukey,
+                  )
+                {
+                  chunks.insert(c);
+                }
+              }
+              chunks
+            }
           };
 
           let mut chunks_map = HashMap::default();
@@ -61,19 +89,19 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 ),
                 _ => unreachable!(),
               };
-              let hash = Some(chunk.get_render_hash());
-              chunks_map.insert(
-                chunk.expect_id().to_string(),
-                filename_template.render(FilenameRenderOptions {
-                  name: chunk.name_for_filename_template(),
-                  extension: Some(format!(".{}", self.content_type)),
-                  id: chunk.id.clone(),
-                  contenthash: chunk.content_hash.get(&self.source_type).cloned(),
-                  chunkhash: hash.clone(),
-                  hash,
-                  ..Default::default()
-                }),
+              let filename = compilation.get_path(
+                filename_template,
+                PathData::default()
+                  .chunk(chunk)
+                  .content_hash_optional(
+                    chunk
+                      .content_hash
+                      .get(&self.source_type)
+                      .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+                  )
+                  .hash_optional(compilation.get_hash()),
               );
+              chunks_map.insert(chunk.expect_id().to_string(), format!("\"{filename}\""));
             }
           }
           match chunks_map.is_empty() {
@@ -103,3 +131,5 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     self.chunk = Some(chunk);
   }
 }
+
+impl_runtime_module!(GetChunkFilenameRuntimeModule);

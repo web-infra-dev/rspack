@@ -1,28 +1,32 @@
 use rspack_core::{
   get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  runtime_globals::PUBLIC_PATH,
-  ChunkUkey, Compilation, OutputOptions, PublicPath, RuntimeModule, SourceType,
+  ChunkUkey, Compilation, OutputOptions, PathData, PublicPath, RuntimeGlobals, RuntimeModule,
+  SourceType,
 };
+use rspack_identifier::Identifier;
 
 use super::utils::get_undo_path;
+use crate::impl_runtime_module;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Eq)]
 pub struct PublicPathRuntimeModule {
+  id: Identifier,
   chunk: Option<ChunkUkey>,
 }
 
-impl PublicPathRuntimeModule {
-  pub fn new() -> Self {
+impl Default for PublicPathRuntimeModule {
+  fn default() -> Self {
     Self {
-      chunk: Default::default(),
+      id: Identifier::from("webpack/runtime/public_path"),
+      chunk: None,
     }
   }
 }
 
 impl RuntimeModule for PublicPathRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/public_path".to_string()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn attach(&mut self, chunk: ChunkUkey) {
@@ -45,7 +49,15 @@ impl RuntimeModule for PublicPathRuntimeModule {
           &compilation.options.output,
           &compilation.chunk_group_by_ukey,
         );
-        let filename = filename.render_with_chunk(chunk, ".js", &SourceType::JavaScript);
+        let filename = compilation.get_path(
+          filename,
+          PathData::default().chunk(chunk).content_hash_optional(
+            chunk
+              .content_hash
+              .get(&SourceType::JavaScript)
+              .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+          ),
+        );
         RawSource::from(auto_public_path_template(
           &filename,
           &compilation.options.output,
@@ -63,9 +75,12 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
   let output_path = output.path.display().to_string();
   let undo_path = get_undo_path(filename, output_path, false);
   let assign = if undo_path.is_empty() {
-    format!("{PUBLIC_PATH} = scriptUrl")
+    format!("{} = scriptUrl", RuntimeGlobals::PUBLIC_PATH)
   } else {
-    format!("{PUBLIC_PATH} = scriptUrl + '{undo_path}'")
+    format!(
+      "{} = scriptUrl + '{undo_path}'",
+      RuntimeGlobals::PUBLIC_PATH
+    )
   };
   format!(
     r#"
@@ -88,11 +103,4 @@ fn auto_public_path_template(filename: &str, output: &OutputOptions) -> String {
   )
 }
 
-#[test]
-fn test_get_undo_path() {
-  assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
-  assert_eq!(
-    get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
-    "../../"
-  );
-}
+impl_runtime_module!(PublicPathRuntimeModule);

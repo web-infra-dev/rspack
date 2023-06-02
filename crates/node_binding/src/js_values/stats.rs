@@ -8,6 +8,7 @@ use super::JsCompilation;
 pub struct JsStatsError {
   pub message: String,
   pub formatted: String,
+  pub title: String,
 }
 
 impl From<rspack_core::StatsError> for JsStatsError {
@@ -15,6 +16,7 @@ impl From<rspack_core::StatsError> for JsStatsError {
     Self {
       message: stats.message,
       formatted: stats.formatted,
+      title: stats.title,
     }
   }
 }
@@ -80,7 +82,7 @@ pub struct JsStatsModule {
   pub module_type: String,
   pub identifier: String,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
   pub chunks: Vec<String>,
   pub size: f64,
   pub issuer: Option<String>,
@@ -88,6 +90,7 @@ pub struct JsStatsModule {
   pub issuer_id: Option<String>,
   pub issuer_path: Vec<JsStatsModuleIssuer>,
   pub reasons: Option<Vec<JsStatsModuleReason>>,
+  pub assets: Option<Vec<String>>,
 }
 
 impl From<rspack_core::StatsModule> for JsStatsModule {
@@ -107,6 +110,7 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
       reasons: stats
         .reasons
         .map(|i| i.into_iter().map(Into::into).collect()),
+      assets: stats.assets,
     }
   }
 }
@@ -115,7 +119,7 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
 pub struct JsStatsModuleIssuer {
   pub identifier: String,
   pub name: String,
-  pub id: String,
+  pub id: Option<String>,
 }
 
 impl From<rspack_core::StatsModuleIssuer> for JsStatsModuleIssuer {
@@ -133,6 +137,8 @@ pub struct JsStatsModuleReason {
   pub module_identifier: Option<String>,
   pub module_name: Option<String>,
   pub module_id: Option<String>,
+  pub r#type: Option<String>,
+  pub user_request: Option<String>,
 }
 
 impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
@@ -141,6 +147,8 @@ impl From<rspack_core::StatsModuleReason> for JsStatsModuleReason {
       module_identifier: stats.module_identifier,
       module_name: stats.module_name,
       module_id: stats.module_id,
+      r#type: stats.r#type,
+      user_request: stats.user_request,
     }
   }
 }
@@ -154,6 +162,10 @@ pub struct JsStatsChunk {
   pub initial: bool,
   pub names: Vec<String>,
   pub size: f64,
+  pub modules: Option<Vec<JsStatsModule>>,
+  pub parents: Option<Vec<String>>,
+  pub children: Option<Vec<String>>,
+  pub siblings: Option<Vec<String>>,
 }
 
 impl From<rspack_core::StatsChunk> for JsStatsChunk {
@@ -166,6 +178,12 @@ impl From<rspack_core::StatsChunk> for JsStatsChunk {
       initial: stats.initial,
       names: stats.names,
       size: stats.size,
+      modules: stats
+        .modules
+        .map(|i| i.into_iter().map(Into::into).collect()),
+      parents: stats.parents,
+      children: stats.children,
+      siblings: stats.siblings,
     }
   }
 }
@@ -250,10 +268,15 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_modules(&self, show_reasons: bool) -> Vec<JsStatsModule> {
+  pub fn get_modules(
+    &self,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+  ) -> Vec<JsStatsModule> {
     self
       .inner
-      .get_modules(show_reasons)
+      .get_modules(reasons, module_assets, nested_modules)
       .expect("Failed to get modules")
       .into_iter()
       .map(Into::into)
@@ -261,10 +284,24 @@ impl JsStats {
   }
 
   #[napi]
-  pub fn get_chunks(&self) -> Vec<JsStatsChunk> {
+  pub fn get_chunks(
+    &self,
+    chunk_modules: bool,
+    chunks_relations: bool,
+    reasons: bool,
+    module_assets: bool,
+    nested_modules: bool,
+  ) -> Vec<JsStatsChunk> {
     self
       .inner
-      .get_chunks()
+      .get_chunks(
+        chunk_modules,
+        chunks_relations,
+        reasons,
+        module_assets,
+        nested_modules,
+      )
+      .expect("Failed to get chunks")
       .into_iter()
       .map(Into::into)
       .collect()
@@ -312,6 +349,10 @@ impl JsStats {
 
   #[napi]
   pub fn get_hash(&self) -> String {
-    self.inner.get_hash()
+    self
+      .inner
+      .get_hash()
+      .expect("should have hash in stats::get_hash")
+      .to_string()
   }
 }

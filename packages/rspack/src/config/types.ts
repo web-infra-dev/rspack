@@ -12,37 +12,20 @@ import watchpack from "watchpack";
 import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
+import { Compilation } from "..";
+import { RawFallbackCacheGroupOptions } from "@rspack/binding";
+import type { Options as RspackOptions } from "./zod/_rewrite";
+export type { RspackOptions };
 
-export type { LoaderContext } from "./adapter-rule-use";
+export type { BannerConditions, BannerCondition } from "./builtins";
+
+export type {
+	LoaderContext,
+	LoaderDefinitionFunction,
+	LoaderDefinition
+} from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
-
-export interface RspackOptions {
-	name?: Name;
-	dependencies?: Dependencies;
-	context?: Context;
-	mode?: Mode;
-	entry?: Entry;
-	output?: Output;
-	resolve?: Resolve;
-	module?: ModuleOptions;
-	target?: Target;
-	externals?: Externals;
-	externalsType?: ExternalsType;
-	infrastructureLogging?: InfrastructureLogging;
-	devtool?: DevTool;
-	node?: Node;
-	snapshot?: SnapshotOptions;
-	cache?: CacheOptions;
-	stats?: StatsValue;
-	optimization?: Optimization;
-	plugins?: Plugins;
-	experiments?: Experiments;
-	watch?: Watch;
-	watchOptions?: WatchOptions;
-	devServer?: DevServer;
-	builtins?: Builtins;
-}
 
 export interface RspackOptionsNormalized {
 	name?: Name;
@@ -56,6 +39,7 @@ export interface RspackOptionsNormalized {
 	target?: Target;
 	externals?: Externals;
 	externalsType?: ExternalsType;
+	externalsPresets: ExternalsPresets;
 	infrastructureLogging: InfrastructureLogging;
 	devtool?: DevTool;
 	node: Node;
@@ -69,6 +53,7 @@ export interface RspackOptionsNormalized {
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
 	builtins: Builtins;
+	ignoreWarnings?: IgnoreWarningsNormalized;
 }
 
 ///// Name /////
@@ -89,6 +74,14 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
+export type IgnoreWarningsPattern = (
+	| RegExp
+	| ((warning: Error, compilation: Compilation) => boolean)
+)[];
+export type IgnoreWarningsNormalized = ((
+	warning: Error,
+	compilation: Compilation
+) => boolean)[];
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }
@@ -110,12 +103,17 @@ export interface EntryDescriptionNormalized {
 export interface Output {
 	path?: Path;
 	publicPath?: PublicPath;
+	clean?: Clean;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
+	crossOriginLoading?: CrossOriginLoading;
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
+	hotUpdateMainFilename?: HotUpdateMainFilename;
+	hotUpdateChunkFilename?: HotUpdateChunkFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	libraryExport?: LibraryExport;
 	libraryTarget?: LibraryType;
@@ -126,20 +124,41 @@ export interface Output {
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	iife?: Iife;
+	wasmLoading?: WasmLoading;
+	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	webassemblyModuleFilename?: WebassemblyModuleFilename;
+	chunkFormat?: string | false;
+	chunkLoading?: string | false;
+	enabledChunkLoadingTypes?: string[];
+	trustedTypes?: true | string | TrustedTypes;
+	sourceMapFilename?: SourceMapFilename;
+	hashDigest?: HashDigest;
+	hashDigestLength?: HashDigestLength;
+	hashFunction?: HashFunction;
+	hashSalt?: HashSalt;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
 export type RawPublicPath = string;
 export type AssetModuleFilename = string;
+export type WebassemblyModuleFilename = string;
 export type Filename = FilenameTemplate;
 export type ChunkFilename = FilenameTemplate;
+export type CrossOriginLoading = false | "anonymous" | "use-credentials";
 export type CssFilename = FilenameTemplate;
 export type CssChunkFilename = FilenameTemplate;
+export type HotUpdateChunkFilename = FilenameTemplate;
+export type HotUpdateMainFilename = FilenameTemplate;
 export type FilenameTemplate = string;
 export type UniqueName = string;
+export type ChunkLoadingGlobal = string;
 export type Library = LibraryName | LibraryOptions;
 export type StrictModuleErrorHandling = boolean;
 export type OutputModule = boolean;
+export type SourceMapFilename = FilenameTemplate;
+export type Iife = boolean;
+export type Clean = boolean;
 export interface LibraryCustomUmdCommentObject {
 	amd?: string;
 	commonjs?: string;
@@ -187,21 +206,51 @@ export type UmdNamedDefine = boolean;
 export type EnabledLibraryTypes = LibraryType[];
 export type GlobalObject = string;
 export type ImportFunctionName = string;
+export type WasmLoading = false | WasmLoadingType;
+export type WasmLoadingType =
+	| ("fetch-streaming" | "fetch" | "async-node")
+	| string;
+export type EnabledWasmLoadingTypes = WasmLoadingType[];
+export interface TrustedTypes {
+	policyName?: string;
+}
+export type HashDigest = string;
+export type HashDigestLength = number;
+export type HashFunction = string;
+export type HashSalt = string;
 export interface OutputNormalized {
 	path?: Path;
+	clean?: Clean;
 	publicPath?: PublicPath;
 	filename?: Filename;
 	chunkFilename?: ChunkFilename;
+	crossOriginLoading?: CrossOriginLoading;
 	cssFilename?: CssFilename;
 	cssChunkFilename?: CssChunkFilename;
+	hotUpdateMainFilename?: HotUpdateMainFilename;
+	hotUpdateChunkFilename?: HotUpdateChunkFilename;
 	assetModuleFilename?: AssetModuleFilename;
 	uniqueName?: UniqueName;
+	chunkLoadingGlobal?: ChunkLoadingGlobal;
 	enabledLibraryTypes?: EnabledLibraryTypes;
 	library?: LibraryOptions;
 	module?: OutputModule;
 	strictModuleErrorHandling?: StrictModuleErrorHandling;
 	globalObject?: GlobalObject;
 	importFunctionName?: ImportFunctionName;
+	iife?: Iife;
+	wasmLoading?: WasmLoading;
+	enabledWasmLoadingTypes?: EnabledWasmLoadingTypes;
+	webassemblyModuleFilename?: WebassemblyModuleFilename;
+	chunkFormat?: string | false;
+	chunkLoading?: string | false;
+	enabledChunkLoadingTypes?: string[];
+	trustedTypes?: TrustedTypes;
+	sourceMapFilename?: SourceMapFilename;
+	hashDigest?: HashDigest;
+	hashDigestLength?: HashDigestLength;
+	hashFunction?: HashFunction;
+	hashSalt?: HashSalt;
 }
 
 ///// Resolve /////
@@ -221,6 +270,12 @@ export interface ResolveOptions {
 	modules?: string[];
 	preferRelative?: boolean;
 	tsConfigPath?: string;
+	fullySpecified?: boolean;
+	exportsFields?: string[];
+	extensionAlias?: Record<string, string | string[]>;
+	byDependency?: {
+		[k: string]: ResolveOptions;
+	};
 }
 export type ResolveAlias = {
 	[k: string]: false | string | Array<string | false>;
@@ -238,11 +293,20 @@ export interface RuleSetRule {
 	exclude?: RuleSetCondition;
 	include?: RuleSetCondition;
 	issuer?: RuleSetCondition;
+	dependency?: RuleSetCondition;
 	resource?: RuleSetCondition;
 	resourceFragment?: RuleSetCondition;
 	resourceQuery?: RuleSetCondition;
+	scheme?: RuleSetCondition;
+	mimetype?: RuleSetCondition;
+	descriptionData?: {
+		[k: string]: RuleSetCondition;
+	};
 	oneOf?: RuleSetRule[];
+	rules?: RuleSetRule[];
 	type?: string;
+	loader?: RuleSetLoader;
+	options?: RuleSetLoaderOptions;
 	use?: RuleSetUse;
 	parser?: {
 		[k: string]: any;
@@ -252,12 +316,17 @@ export interface RuleSetRule {
 	};
 	resolve?: ResolveOptions;
 	sideEffects?: boolean;
+	/**
+	 * Specifies the category of the loader. No value means normal loader.
+	 */
+	enforce?: "pre" | "post";
 }
 export type RuleSetCondition =
 	| RegExp
 	| string
 	| RuleSetConditions
-	| RuleSetLogicalConditions;
+	| RuleSetLogicalConditions
+	| ((value: string) => boolean);
 export type RuleSetConditions = RuleSetCondition[];
 export interface RuleSetLogicalConditions {
 	and?: RuleSetConditions;
@@ -268,7 +337,7 @@ export type RuleSetUse = RuleSetUseItem[] | RuleSetUseItem;
 export type RuleSetUseItem = RuleSetLoaderWithOptions | RuleSetLoader;
 export type RuleSetLoader = string;
 export type RuleSetLoaderWithOptions = {
-	// ident?: string;
+	ident?: string;
 	loader: RuleSetLoader;
 	options?: RuleSetLoaderOptions;
 };
@@ -294,16 +363,77 @@ export interface ModuleOptionsNormalized {
 	parser: ParserOptionsByModuleType;
 }
 
+export type AvailableTarget =
+	| "node"
+	| "web"
+	| "webworker"
+	| "es3"
+	| "es5"
+	| "es2015"
+	| "es2016"
+	| "es2017"
+	| "es2018"
+	| "es2019"
+	| "es2020"
+	| "es2021"
+	| "es2022"
+	| "browserslist";
+
 ///// Target /////
-export type Target = false | string[] | string;
+export type Target = false | AvailableTarget[] | AvailableTarget;
 
 ///// Externals /////
-export type Externals = ExternalItem;
-export type ExternalItem = string | ExternalItemObjectUnknown;
+export type Externals = ExternalItem[] | ExternalItem;
+export type ExternalItem =
+	| string
+	| RegExp
+	| ExternalItemObjectUnknown
+	| (
+			| ((
+					data: ExternalItemFunctionData,
+					callback: (
+						err?: Error,
+						result?: ExternalItemValue,
+						type?: ExternalsType
+					) => void
+			  ) => void)
+			| ((data: ExternalItemFunctionData) => Promise<ExternalItemValue>)
+	  );
+
+export interface ExternalItemFunctionData {
+	/**
+	 * The directory in which the request is placed.
+	 */
+	context?: string;
+	/**
+	 * Contextual information.
+	 */
+	// contextInfo?: import("../lib/ModuleFactory").ModuleFactoryCreateDataContextInfo;
+	/**
+	 * The category of the referencing dependencies.
+	 */
+	dependencyType?: string;
+	/**
+	 * Get a resolve function with the current resolver options.
+	 */
+	// getResolve?: (
+	// 	options?: ResolveOptions
+	// ) =>
+	// 	| ((
+	// 		context: string,
+	// 		request: string,
+	// 		callback: (err?: Error, result?: string) => void
+	// 	) => void)
+	// 	| ((context: string, request: string) => Promise<string>);
+	/**
+	 * The request as written by the user in the require/import expression/statement.
+	 */
+	request?: string;
+}
 export interface ExternalItemObjectUnknown {
 	[k: string]: ExternalItemValue;
 }
-export type ExternalItemValue = string;
+export type ExternalItemValue = string | boolean;
 
 ///// ExternalsType /////
 export type ExternalsType =
@@ -328,6 +458,12 @@ export type ExternalsType =
 	| "import"
 	| "script"
 	| "node-commonjs";
+
+///// ExternalsPresets /////
+export interface ExternalsPresets {
+	node?: boolean;
+	web?: boolean;
+}
 
 ///// InfrastructureLogging /////
 export interface InfrastructureLogging {
@@ -369,11 +505,11 @@ export type DevTool =
 	| "eval-nosources-source-map";
 
 ///// Node /////
-export type Node = NodeOptions;
-// TODO: align with webpack
-// | false;
+export type Node = false | NodeOptions;
+
 export interface NodeOptions {
 	__dirname?: false | true | "warn-mock" | "mock" | "eval-only";
+	__filename?: false | true | "warn-mock" | "mock" | "eval-only";
 	global?: boolean | "warn";
 }
 
@@ -414,6 +550,13 @@ export interface StatsOptions {
 	hash?: boolean;
 	reasons?: boolean;
 	publicPath?: boolean;
+	outputPath?: boolean;
+	chunkModules?: boolean;
+	chunkRelations?: boolean;
+	timings?: boolean;
+	builtAt?: boolean;
+	moduleAssets?: boolean;
+	nestedModules?: boolean;
 }
 
 ///// Optimization /////
@@ -424,7 +567,12 @@ export interface Optimization {
 	splitChunks?: OptimizationSplitChunksOptions | false;
 	runtimeChunk?: OptimizationRuntimeChunk;
 	removeAvailableModules?: boolean;
+	/**
+	 * Remove chunks which are empty.
+	 */
+	removeEmptyChunks?: boolean;
 	sideEffects?: "flag" | boolean;
+	realContentHash?: boolean;
 }
 export interface OptimizationSplitChunksOptions {
 	cacheGroups?: {
@@ -437,14 +585,24 @@ export interface OptimizationSplitChunksOptions {
 	minSize?: OptimizationSplitChunksSizes;
 	enforceSizeThreshold?: OptimizationSplitChunksSizes;
 	minRemainingSize?: OptimizationSplitChunksSizes;
+	name?: string | false;
+	maxSize?: number;
+	maxAsyncSize?: number;
+	maxInitialSize?: number;
+	fallbackCacheGroup?: RawFallbackCacheGroupOptions;
 }
 export interface OptimizationSplitChunksCacheGroup {
 	chunks?: "initial" | "async" | "all";
 	minChunks?: number;
-	name?: string;
+	name?: string | false;
 	priority?: number;
 	reuseExistingChunk?: boolean;
 	test?: RegExp;
+	minSize?: number;
+	maxSize?: number;
+	maxAsyncSize?: number;
+	maxInitialSize?: number;
+	enforce?: boolean;
 }
 export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =
@@ -471,6 +629,10 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 export interface Experiments {
 	lazyCompilation?: boolean;
 	incrementalRebuild?: boolean;
+	asyncWebAssembly?: boolean;
+	outputModule?: boolean;
+	newSplitChunks?: boolean;
+	css?: boolean;
 }
 
 ///// Watch /////

@@ -1,4 +1,6 @@
-use rspack_core::{ChunkUkey, Compilation, SourceType};
+use rspack_core::{
+  get_js_chunk_filename_template, Chunk, ChunkUkey, Compilation, PathData, SourceType,
+};
 use rustc_hash::FxHashSet as HashSet;
 
 // pub fn condition_map_to_string(map: &HashMap<String, bool>, _value: String) -> String {
@@ -63,27 +65,6 @@ pub fn stringify_chunks(chunks: &HashSet<String>, value: u8) -> String {
   )
 }
 
-pub fn stringify_chunks_to_array(chunks: &HashSet<String>) -> String {
-  let mut v = Vec::from_iter(chunks.iter());
-  v.sort_unstable();
-
-  format!(
-    r#"[{}]"#,
-    v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
-  )
-}
-
-pub fn stringify_array(vec: &[String]) -> String {
-  format!(
-    r#"[{}]"#,
-    vec.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
-  )
-}
-
 pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   if compilation
     .chunk_graph
@@ -139,4 +120,35 @@ pub fn get_undo_path(filename: &str, p: String, enforce_relative: bool) -> Strin
   } else {
     append
   }
+}
+
+pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative: bool) -> String {
+  let filename = get_js_chunk_filename_template(
+    chunk,
+    &compilation.options.output,
+    &compilation.chunk_group_by_ukey,
+  );
+  let output_dir = compilation.get_path(
+    filename,
+    PathData::default().chunk(chunk).content_hash_optional(
+      chunk
+        .content_hash
+        .get(&SourceType::JavaScript)
+        .map(|i| i.rendered(compilation.options.output.hash_digest_length)),
+    ),
+  );
+  get_undo_path(
+    output_dir.as_str(),
+    compilation.options.output.path.display().to_string(),
+    enforce_relative,
+  )
+}
+
+#[test]
+fn test_get_undo_path() {
+  assert_eq!(get_undo_path("a", "/a/b/c".to_string(), true), "./");
+  assert_eq!(
+    get_undo_path("static/js/a.js", "/a/b/c".to_string(), false),
+    "../../"
+  );
 }

@@ -1,9 +1,7 @@
 use std::{
   borrow::Cow,
   fmt::Debug,
-  hash::BuildHasherDefault,
-  hash::{Hash, Hasher},
-  path::PathBuf,
+  hash::{BuildHasherDefault, Hash},
   sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -12,31 +10,34 @@ use std::{
 
 use bitflags::bitflags;
 use dashmap::DashMap;
+use derivative::Derivative;
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray,
 };
+use rspack_hash::RspackHash;
 use rspack_identifier::Identifiable;
-use rspack_loader_runner::{Content, ResourceData};
+use rspack_loader_runner::{run_loaders, Content, ResourceData};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawSource, Source, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::FxHasher;
 use serde_json::json;
-use xxhash_rust::xxh3::Xxh3;
 
 use crate::{
-  contextify, is_async_dependency, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
-  BuildContext, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, CompilerOptions,
-  Context, Dependency, DependencyId, GenerateContext, LibIdentOptions, Module, ModuleAst,
-  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, Resolve, SourceType,
+  contextify, get_context, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
+  CodeReplaceSourceDependency, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
+  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  Resolve, SourceType,
 };
 
 bitflags! {
+  #[derive(Default)]
   pub struct ModuleSyntax: u8 {
     const COMMONJS = 1 << 0;
-    const DYNAMIC_IMPORT = 1 << 1;
+    const ESM = 1 << 1;
   }
 }
 
@@ -68,160 +69,6 @@ impl ModuleIssuer {
     } else {
       None
     }
-  }
-}
-
-#[derive(Debug)]
-pub struct ModuleGraphModule {
-  // edges from module to module
-  pub outgoing_connections: HashSet<usize>,
-  pub incoming_connections: HashSet<usize>,
-
-  issuer: ModuleIssuer,
-
-  // pub exec_order: usize,
-  pub module_identifier: ModuleIdentifier,
-  // TODO remove this since its included in module
-  pub module_type: ModuleType,
-  pub dependencies: Vec<DependencyId>,
-  pub(crate) pre_order_index: Option<usize>,
-  pub post_order_index: Option<usize>,
-  pub module_syntax: ModuleSyntax,
-  pub used: bool,
-  pub hash: Option<u64>,
-}
-
-impl ModuleGraphModule {
-  pub fn new(
-    module_identifier: ModuleIdentifier,
-    module_type: ModuleType,
-    default_used: bool,
-  ) -> Self {
-    Self {
-      outgoing_connections: Default::default(),
-      incoming_connections: Default::default(),
-
-      issuer: ModuleIssuer::Unset,
-      // exec_order: usize::MAX,
-      module_identifier,
-      dependencies: Default::default(),
-      module_type,
-      pre_order_index: None,
-      post_order_index: None,
-      module_syntax: ModuleSyntax::empty(),
-      used: default_used,
-      hash: None,
-    }
-  }
-
-  pub fn id<'chunk_graph>(&self, chunk_graph: &'chunk_graph ChunkGraph) -> &'chunk_graph str {
-    let c = chunk_graph.get_module_id(self.module_identifier).as_ref();
-    c.expect("module id not found").as_str()
-  }
-
-  pub fn add_incoming_connection(&mut self, connection_id: usize) {
-    self.incoming_connections.insert(connection_id);
-  }
-
-  pub fn add_outgoing_connection(&mut self, connection_id: usize) {
-    self.outgoing_connections.insert(connection_id);
-  }
-
-  pub fn incoming_connections_unordered<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
-    let result = self
-      .incoming_connections
-      .iter()
-      .map(|connection_id| {
-        module_graph
-          .connection_by_connection_id(*connection_id)
-          .ok_or_else(|| {
-            internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id}"
-            )
-          })
-      })
-      .collect::<Result<Vec<_>>>()?
-      .into_iter();
-
-    Ok(result)
-  }
-
-  pub fn outgoing_connections_unordered<'m>(
-    &self,
-    module_graph: &'m ModuleGraph,
-  ) -> Result<impl Iterator<Item = &'m ModuleGraphConnection>> {
-    let result = self
-      .outgoing_connections
-      .iter()
-      .map(|connection_id| {
-        module_graph
-          .connection_by_connection_id(*connection_id)
-          .ok_or_else(|| {
-            internal_error!(
-              "connection_id_to_connection does not have connection_id: {connection_id}"
-            )
-          })
-      })
-      .collect::<Result<Vec<_>>>()?
-      .into_iter();
-
-    Ok(result)
-  }
-
-  // pub fn dependencies(&mut self) -> Vec<&ModuleDependency> {
-  //   self
-  //     .outgoing_connections_unordered()
-  //     .map(|conn| &conn.dependency)
-  //     .collect()
-  // }
-
-  pub fn depended_modules<'a>(&self, module_graph: &'a ModuleGraph) -> Vec<&'a ModuleIdentifier> {
-    self
-      .dependencies
-      .iter()
-      .filter(|id| !is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-      .collect()
-  }
-
-  pub fn dynamic_depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleIdentifier> {
-    self
-      .dependencies
-      .iter()
-      .filter(|id| is_async_dependency(module_graph.dependency_by_id(id).expect("should have id")))
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-      .collect()
-  }
-
-  pub fn all_depended_modules<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> Vec<&'a ModuleIdentifier> {
-    self
-      .dependencies
-      .iter()
-      .filter_map(|id| module_graph.module_identifier_by_dependency_id(id))
-      .collect()
-  }
-
-  pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {
-    if matches!(self.issuer, ModuleIssuer::Unset) {
-      self.issuer = ModuleIssuer::from_identifier(issuer);
-    }
-  }
-
-  pub fn set_issuer(&mut self, issuer: ModuleIssuer) {
-    self.issuer = issuer;
-  }
-
-  pub fn get_issuer(&self) -> &ModuleIssuer {
-    &self.issuer
   }
 }
 
@@ -294,18 +141,12 @@ impl From<BoxSource> for AstOrSource {
   }
 }
 
-#[derive(Debug, Default)]
-pub struct BuildInfo {
-  pub strict: bool,
-  pub file_dependencies: HashSet<PathBuf>,
-  pub context_dependencies: HashSet<PathBuf>,
-  pub missing_dependencies: HashSet<PathBuf>,
-  pub build_dependencies: HashSet<PathBuf>,
-}
-
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct NormalModule {
   id: ModuleIdentifier,
+  /// Context of this module
+  context: Context,
   /// Request with loaders from config
   request: String,
   /// Request intended by user (without loaders from config)
@@ -316,9 +157,12 @@ pub struct NormalModule {
   module_type: ModuleType,
   /// Affiliated parser and generator to the module type
   parser_and_generator: Box<dyn ParserAndGenerator>,
+  /// Resource matched with inline match resource, (`!=!` syntax)
+  match_resource: Option<ResourceData>,
   /// Resource data (path, query, fragment etc.)
   resource_data: ResourceData,
   /// Loaders for the module
+  #[derivative(Debug = "ignore")]
   loaders: Vec<BoxLoader>,
 
   /// Original content of this module, will be available after module build
@@ -340,7 +184,7 @@ pub struct NormalModule {
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
   presentational_dependencies: Option<Vec<Box<dyn Dependency>>>,
-  pub build_info: BuildInfo,
+  code_replace_source_dependencies: Option<Vec<Box<dyn CodeReplaceSourceDependency>>>,
 }
 
 #[derive(Debug)]
@@ -379,14 +223,21 @@ impl NormalModule {
     parser_and_generator: Box<dyn ParserAndGenerator>,
     parser_options: Option<AssetParserOptions>,
     generator_options: Option<AssetGeneratorOptions>,
+    match_resource: Option<ResourceData>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
     loaders: Vec<BoxLoader>,
     options: Arc<CompilerOptions>,
   ) -> Self {
     let module_type = module_type.into();
+    let identifier = if module_type == ModuleType::Js {
+      request.to_string()
+    } else {
+      format!("{module_type}|{request}")
+    };
     Self {
-      id: ModuleIdentifier::from(format!("{module_type}|{request}")),
+      id: ModuleIdentifier::from(identifier),
+      context: get_context(&resource_data),
       request,
       user_request,
       raw_request,
@@ -394,6 +245,7 @@ impl NormalModule {
       parser_and_generator,
       parser_options,
       generator_options,
+      match_resource,
       resource_data,
       resolve_options,
       loaders,
@@ -405,8 +257,12 @@ impl NormalModule {
       cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      build_info: Default::default(),
+      code_replace_source_dependencies: None,
     }
+  }
+
+  pub fn match_resource(&self) -> Option<&ResourceData> {
+    self.match_resource.as_ref()
   }
 
   pub fn resource_resolved_data(&self) -> &ResourceData {
@@ -447,6 +303,10 @@ impl NormalModule {
 
   pub fn ast_or_source_mut(&mut self) -> &mut NormalModuleAstOrSource {
     &mut self.ast_or_source
+  }
+
+  pub fn loaders_mut_vec(&mut self) -> &mut Vec<BoxLoader> {
+    &mut self.loaders
   }
 }
 
@@ -489,22 +349,44 @@ impl Module for NormalModule {
     &mut self,
     build_context: BuildContext<'_>,
   ) -> Result<TWithDiagnosticArray<BuildResult>> {
-    // clear build_info
-    self.build_info = Default::default();
-
+    let mut build_info = BuildInfo::default();
+    let mut build_meta = BuildMeta::default();
     let mut diagnostics = Vec::new();
-    let loader_result = build_context
-      .loader_runner_runner
-      .run(
-        self.resource_data.clone(),
-        self.loaders.iter().map(|i| i.as_ref()).collect::<Vec<_>>(),
+
+    build_context
+      .plugin_driver
+      .read()
+      .await
+      .before_loaders(self)
+      .await?;
+
+    let loader_result = {
+      run_loaders(
+        &self.loaders,
+        &self.resource_data,
+        &[Box::new(LoaderRunnerPluginProcessResource {
+          plugin_driver: build_context.plugin_driver.clone(),
+        })],
+        build_context.compiler_context,
       )
-      .await;
+      .await
+    };
     let (loader_result, ds) = match loader_result {
       Ok(r) => r.split_into_parts(),
       Err(e) => {
         self.ast_or_source = NormalModuleAstOrSource::BuiltFailed(e.to_string());
-        return Ok(BuildResult::default().with_diagnostic(e.into()));
+        let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+        self.update_hash(&mut hasher);
+        build_meta.hash(&mut hasher);
+        build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+        return Ok(
+          BuildResult {
+            build_info,
+            build_meta: Default::default(),
+            dependencies: Vec::new(),
+          }
+          .with_diagnostic(e.into()),
+        );
       }
     };
     diagnostics.extend(ds);
@@ -517,6 +399,7 @@ impl Module for NormalModule {
         ast_or_source,
         dependencies,
         presentational_dependencies,
+        code_replace_source_dependencies,
       },
       ds,
     ) = self
@@ -530,52 +413,36 @@ impl Module for NormalModule {
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,
         code_generation_dependencies: &mut code_generation_dependencies,
-        build_info: &mut self.build_info,
+        build_info: &mut build_info,
+        build_meta: &mut build_meta,
       })?
       .split_into_parts();
     diagnostics.extend(ds);
 
+    // Only side effects used in code_generate can stay here
+    // Other side effects should be set outside use_cache
     self.original_source = Some(original_source);
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
-    self.code_generation_dependencies = Some(
-      code_generation_dependencies
-        .into_iter()
-        .map(|mut d| {
-          d.set_parent_module_identifier(Some(self.identifier()));
-          d
-        })
-        .collect::<Vec<_>>(),
-    );
+    self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
+    self.code_replace_source_dependencies = Some(code_replace_source_dependencies);
 
-    self
-      .build_info
-      .file_dependencies
-      .extend(loader_result.file_dependencies);
-    self
-      .build_info
-      .context_dependencies
-      .extend(loader_result.context_dependencies);
-    self
-      .build_info
-      .missing_dependencies
-      .extend(loader_result.missing_dependencies);
-    self
-      .build_info
-      .build_dependencies
-      .extend(loader_result.build_dependencies);
+    let mut hasher = RspackHash::from(&build_context.compiler_options.output);
+    self.update_hash(&mut hasher);
+    build_meta.hash(&mut hasher);
 
-    let mut hasher = Xxh3::new();
-    self.hash(&mut hasher);
+    build_info.hash = Some(hasher.digest(&build_context.compiler_options.output.hash_digest));
+    build_info.cacheable = loader_result.cacheable;
+    build_info.file_dependencies = loader_result.file_dependencies;
+    build_info.context_dependencies = loader_result.context_dependencies;
+    build_info.missing_dependencies = loader_result.missing_dependencies;
+    build_info.build_dependencies = loader_result.build_dependencies;
+    build_info.asset_filenames = loader_result.asset_filenames;
 
     Ok(
       BuildResult {
-        hash: hasher.finish(),
-        cacheable: loader_result.cacheable,
-        file_dependencies: self.build_info.file_dependencies.clone(),
-        context_dependencies: self.build_info.context_dependencies.clone(),
-        missing_dependencies: self.build_info.missing_dependencies.clone(),
-        build_dependencies: self.build_info.build_dependencies.clone(),
+        build_info,
+        build_meta,
         dependencies,
       }
       .with_diagnostic(diagnostics),
@@ -585,8 +452,6 @@ impl Module for NormalModule {
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     if let NormalModuleAstOrSource::BuiltSucceed(ast_or_source) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
-      let mut data = HashMap::default();
-      let mut runtime_requirements = HashSet::default();
       for source_type in self.source_types() {
         let mut generation_result = self.parser_and_generator.generate(
           ast_or_source,
@@ -594,8 +459,8 @@ impl Module for NormalModule {
           &mut GenerateContext {
             compilation,
             module_generator_options: self.generator_options.as_ref(),
-            runtime_requirements: &mut runtime_requirements,
-            data: &mut data,
+            runtime_requirements: &mut code_generation_result.runtime_requirements,
+            data: &mut code_generation_result.data,
             requested_source_type: *source_type,
           },
         )?;
@@ -604,10 +469,11 @@ impl Module for NormalModule {
           .map(|i| i, |s| CachedSource::new(s).boxed());
         code_generation_result.add(*source_type, generation_result);
       }
-      code_generation_result.data.extend(data);
-      code_generation_result
-        .runtime_requirements
-        .extend(runtime_requirements);
+      code_generation_result.set_hash(
+        &compilation.options.output.hash_function,
+        &compilation.options.output.hash_digest,
+        &compilation.options.output.hash_salt,
+      );
       Ok(code_generation_result)
     } else if let NormalModuleAstOrSource::BuiltFailed(error_message) = self.ast_or_source() {
       let mut code_generation_result = CodeGenerationResult::default();
@@ -622,6 +488,11 @@ impl Module for NormalModule {
           ),
         );
       }
+      code_generation_result.set_hash(
+        &compilation.options.output.hash_function,
+        &compilation.options.output.hash_digest,
+        &compilation.options.output.hash_salt,
+      );
       Ok(code_generation_result)
     } else {
       Err(internal_error!(
@@ -667,17 +538,18 @@ impl Module for NormalModule {
     }
   }
 
-  fn has_dependencies(&self, files: &HashSet<PathBuf>) -> bool {
-    for item in files {
-      if self.build_info.file_dependencies.contains(item)
-        || self.build_info.build_dependencies.contains(item)
-        || self.build_info.context_dependencies.contains(item)
-        || self.build_info.missing_dependencies.contains(item)
-      {
-        return true;
-      }
+  fn get_string_replace_generation_dependencies(
+    &self,
+  ) -> Option<&[Box<dyn CodeReplaceSourceDependency>]> {
+    if let Some(deps) = self.code_replace_source_dependencies.as_deref() && !deps.is_empty() {
+      Some(deps)
+    } else {
+      None
     }
-    false
+  }
+
+  fn get_context(&self) -> Option<&Context> {
+    Some(&self.context)
   }
 }
 

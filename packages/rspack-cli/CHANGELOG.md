@@ -1,5 +1,207 @@
 # @rspack/cli
 
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies [ab318de0]
+  - @rspack/core@0.1.12
+  - @rspack/dev-server@0.1.12
+
+## 0.1.11
+
+### Patch Changes
+
+- d7bcdeb1: add --entry flags
+- Updated dependencies [5d4333f]
+- Updated dependencies [2bb2bcd6]
+- Updated dependencies [1d76fec]
+- Updated dependencies [8d0cba49]
+- Updated dependencies [fdaad48]
+- Updated dependencies [b452de5]
+- Updated dependencies [488071c]
+- Updated dependencies [bce8523]
+- Updated dependencies [5b33c94d]
+- Updated dependencies [1c83bbd]
+- Updated dependencies [4e25fafa]
+- Updated dependencies [bc52026]
+- Updated dependencies [04daf09]
+- Updated dependencies [3abb2fc]
+- Updated dependencies [c567571]
+- Updated dependencies [cafa227d]
+- Updated dependencies [f4c1f8d]
+- Updated dependencies [6ec9e1c]
+  - @rspack/core@0.1.11
+  - @rspack/dev-server@0.1.11
+
+## 0.1.9
+
+### Patch Changes
+
+- bc65893: feat: add moduleAssets for stats
+- a14278e: provide a preview command, help user preview the build output.
+- Updated dependencies [7c26a2d]
+- Updated dependencies [820c029]
+- Updated dependencies [bc65893]
+- Updated dependencies [6cc3076]
+- Updated dependencies [7342a47]
+- Updated dependencies [c1720f9]
+- Updated dependencies [0f1d3be]
+- Updated dependencies [e2647bb]
+- Updated dependencies [057829b]
+- Updated dependencies [ef7d3c5]
+- Updated dependencies [c162cb6]
+- Updated dependencies [b77b706]
+  - @rspack/core@0.1.9
+  - @rspack/dev-server@0.1.9
+
+## 0.1.8
+
+### Patch Changes
+
+- c1df742: check cli command and options
+- Updated dependencies [a72daa0]
+- Updated dependencies [ef030d4]
+- Updated dependencies [f54621d]
+- Updated dependencies [fdc5fd9]
+  - @rspack/core@0.1.8
+  - @rspack/dev-server@0.1.8
+
+## 0.1.7
+
+### Patch Changes
+
+- 9f9c280: support rspack.config.mjs as default config file
+- e649469: fix builtins.html does replace [hash] and [name] in builtins.html.filename
+- Updated dependencies [5bc1f55]
+- Updated dependencies [723a229]
+- Updated dependencies [e649469]
+- Updated dependencies [45aa2fe]
+- Updated dependencies [83f309a]
+- Updated dependencies [55d3ea4]
+- Updated dependencies [84851dc]
+- Updated dependencies [905cacf]
+- Updated dependencies [8872af5]
+- Updated dependencies [f4eb7c7]
+- Updated dependencies [32f822b]
+  - @rspack/core@0.1.7
+  - @rspack/dev-server@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- aa7910b: fix semver dep missing
+- Updated dependencies [3607f25]
+  - @rspack/dev-server@0.1.6
+  - @rspack/core@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- 7bfcc7b: fix windows path is considered scheme incorrectly
+- 18ba959: fixes json not write to disk when set --json
+- Updated dependencies [125bb94]
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [92ee3c1]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+  - @rspack/core@0.1.5
+  - @rspack/dev-server@0.1.5
+
+## 0.1.4
+
+### Patch Changes
+
+- fbaeb41: fix: duplicate \_\_webpack_require\_\_.a in async module
+- Updated dependencies [85e47e2]
+- Updated dependencies [fbaeb41]
+  - @rspack/core@0.1.4
+  - @rspack/dev-server@0.1.4
+
+## 0.1.3
+
+### Patch Changes
+
+- 3380893: add definePlugin helper
+- d80430c: - auto set "mode" by NODE_ENV, remove the hardcoded config
+  - extract "buildConfig" method
+- b323220: add async-wasm & js-async-module support
+- a75cb28: Fix path resolution on Windows OS
+- 28b9757: feat: resolve.byDependency
+- d04485d: feat: stats for timings and builtAt
+- Updated dependencies [62bad72]
+- Updated dependencies [9cb8c7e]
+- Updated dependencies [4471853]
+- Updated dependencies [54cb3fa]
+- Updated dependencies [1aadf05]
+- Updated dependencies [b323220]
+- Updated dependencies [28b9757]
+- Updated dependencies [b0cffba]
+- Updated dependencies [9c71512]
+- Updated dependencies [c49c03c]
+- Updated dependencies [d04485d]
+  - @rspack/core@0.1.3
+  - @rspack/dev-server@0.1.3
+
+## 0.1.2
+
+### Patch Changes
+
+- 38d5e01: fix(cli): set stats default to errors-warning to avoid server info flushhed by module stats
+- f2e5d92: support mjs config
+- 8f8e025: align optimizeChunkModules
+- a08d5d6: add defineConfig helper
+- a0994a8: fix(cli): rspack build --watch not work ([#2280](https://github.com/web-infra-dev/rspack/issues/2280))
+- Updated dependencies [68c4df8]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [2486b2a]
+- Updated dependencies [f562fa9]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [eb7051f]
+- Updated dependencies [cd011c1]
+- Updated dependencies [7431442]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [bfb1738]
+- Updated dependencies [2934f8f]
+- Updated dependencies [a0994a8]
+- Updated dependencies [2e9d331]
+- Updated dependencies [d63e3fd]
+- Updated dependencies [bb4e6a6]
+  - @rspack/core@0.1.2
+  - @rspack/dev-server@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- 7b3167ca: feat: externalsPresets.node
+- c4c20d66: Support TypeScript as configuration file.
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- 0909f15f: support config return promise
+- 3d459261: make ts-node as an optional peer dependency
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [d2072dd4]
+- Updated dependencies [706207a4]
+- Updated dependencies [62fca585]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [e463ebf0]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [98854e36]
+- Updated dependencies [a004765a]
+- Updated dependencies [a004268f]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [cdf6a52a]
+  - @rspack/core@0.1.1
+  - @rspack/dev-server@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

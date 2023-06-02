@@ -6,17 +6,19 @@ mod resolver;
 use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
+use dashmap::DashMap;
 pub use queue::*;
 pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
+use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
 use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
-  cache::Cache, fast_set, CompilerOptions, LoaderRunnerRunner, Plugin, PluginDriver,
+  cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Plugin, PluginDriver,
   SharedPluginDriver,
 };
 
@@ -29,8 +31,11 @@ where
   pub output_filesystem: T,
   pub compilation: Compilation,
   pub plugin_driver: SharedPluginDriver,
-  pub loader_runner_runner: Arc<LoaderRunnerRunner>,
+  pub resolver_factory: Arc<ResolverFactory>,
   pub cache: Arc<Cache>,
+  /// emitted asset versions
+  /// the key of DashMap is filename, the value of DashMap is version
+  pub emitted_asset_versions: DashMap<String, String>,
 }
 
 impl<T> Compiler<T>
@@ -51,11 +56,6 @@ where
       plugins,
       resolver_factory.clone(),
     )));
-    let loader_runner_runner = Arc::new(LoaderRunnerRunner::new(
-      options.clone(),
-      resolver_factory,
-      plugin_driver.clone(),
-    ));
     let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
@@ -65,13 +65,14 @@ where
         Default::default(),
         Default::default(),
         plugin_driver.clone(),
-        loader_runner_runner.clone(),
+        resolver_factory.clone(),
         cache.clone(),
       ),
       output_filesystem,
       plugin_driver,
-      loader_runner_runner,
+      resolver_factory,
       cache,
+      emitted_asset_versions: Default::default(),
     }
   }
 
@@ -83,7 +84,7 @@ where
   #[instrument(name = "build", skip_all)]
   pub async fn build(&mut self) -> Result<()> {
     self.cache.end_idle();
-    // TODO: clear the outdate cache entires in resolver,
+    // TODO: clear the outdate cache entries in resolver,
     // TODO: maybe it's better to use external entries.
     self
       .plugin_driver
@@ -100,10 +101,12 @@ where
         self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
-        self.loader_runner_runner.clone(),
+        self.resolver_factory.clone(),
         self.cache.clone(),
       ),
     );
+
+    self.plugin_driver.write().await.before_compile().await?;
 
     // Fake this compilation as *currently* rebuilding does not create a new compilation
     self
@@ -126,7 +129,13 @@ where
       .compilation
       .entry_dependencies
       .iter()
-      .flat_map(|(_, deps)| deps.clone())
+      .flat_map(|(_, deps)| {
+        deps
+          .clone()
+          .into_iter()
+          .map(|d| (d, None))
+          .collect::<Vec<_>>()
+      })
       .collect::<HashSet<_>>();
     self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
     self.cache.begin_idle();
@@ -138,7 +147,23 @@ where
   async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
-    if option.builtins.tree_shaking {
+    self.compilation.finish(self.plugin_driver.clone()).await?;
+    // by default include all module in final chunk
+    self.compilation.include_module_ids = self
+      .compilation
+      .module_graph
+      .modules()
+      .keys()
+      .cloned()
+      .collect::<IdentifierSet>();
+    if option.builtins.tree_shaking.enable()
+      || option
+        .output
+        .enabled_library_types
+        .as_ref()
+        .map(|types| types.iter().any(|item| item == "module"))
+        .unwrap_or(false)
+    {
       let (analyze_result, diagnostics) = self
         .compilation
         .optimize_dependency()
@@ -151,14 +176,21 @@ where
       self.compilation.bailout_module_identifiers = analyze_result.bail_out_module_identifiers;
       self.compilation.side_effects_free_modules = analyze_result.side_effects_free_modules;
       self.compilation.module_item_map = analyze_result.module_item_map;
-
-      // This is only used when testing
-      #[cfg(debug_assertions)]
+      if self.options.builtins.tree_shaking.enable()
+        && self.options.optimization.side_effects.is_enable()
       {
-        self.compilation.tree_shaking_result = analyze_result.analyze_results;
+        self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
+      self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
+
+    self
+      .plugin_driver
+      .write()
+      .await
+      .after_compile(&mut self.compilation)
+      .await?;
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
@@ -181,6 +213,31 @@ where
 
   #[instrument(name = "emit_assets", skip_all)]
   pub async fn emit_assets(&mut self) -> Result<()> {
+    if self.options.output.clean {
+      if self.emitted_asset_versions.is_empty() {
+        self
+          .output_filesystem
+          .remove_dir_all(&self.options.output.path)
+          .await?;
+      } else {
+        // clean unused file
+        let assets = self.compilation.assets();
+        let _ = self
+          .emitted_asset_versions
+          .iter()
+          .filter_map(|item| {
+            let filename = item.key();
+            if !assets.contains_key(filename) {
+              self.emitted_asset_versions.remove(filename);
+              Some(self.output_filesystem.remove_file(filename))
+            } else {
+              None
+            }
+          })
+          .collect::<FuturesResults<_>>();
+      }
+    }
+
     self
       .plugin_driver
       .write()
@@ -188,14 +245,23 @@ where
       .emit(&mut self.compilation)
       .await?;
 
-    let output_path = &self.options.output.path;
-
-    let _ = self
+    let results = self
       .compilation
       .assets()
       .iter()
-      .map(|(filename, asset)| self.emit_asset(output_path, filename, asset))
+      .filter_map(|(filename, asset)| {
+        if let Some(old_version) = self.emitted_asset_versions.get(filename) {
+          if old_version.as_str() == asset.info.version {
+            return None;
+          }
+        }
+        Some(self.emit_asset(&self.options.output.path, filename, asset))
+      })
       .collect::<FuturesResults<_>>();
+    // return first error
+    for item in results.into_inner() {
+      item?;
+    }
 
     self
       .plugin_driver
@@ -212,6 +278,10 @@ where
     asset: &CompilationAsset,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
+      let filename = filename
+        .split_once('?')
+        .map(|(filename, _query)| filename)
+        .unwrap_or(filename);
       let file_path = Path::new(&output_path).join(filename);
       self
         .output_filesystem
@@ -226,14 +296,27 @@ where
         .write(&file_path, source.buffer())
         .await?;
 
-      // let file = File::create(file_path).map_err(rspack_error::Error::from)?;
-      // let mut writer = BufWriter::new(file);
-      // source
-      //   .as_ref()
-      //   .to_writer(&mut writer)
-      //   .map_err(rspack_error::Error::from)?;
+      if !asset.info.version.is_empty() {
+        self
+          .emitted_asset_versions
+          .insert(filename.to_string(), asset.info.version.clone());
+      }
 
       self.compilation.emitted_assets.insert(filename.to_string());
+
+      let asset_emitted_args = AssetEmittedArgs {
+        filename,
+        output_path,
+        source: source.clone(),
+        target_path: file_path.as_path(),
+        compilation: &self.compilation,
+      };
+      self
+        .plugin_driver
+        .read()
+        .await
+        .asset_emitted(&asset_emitted_args)
+        .await?;
     }
     Ok(())
   }

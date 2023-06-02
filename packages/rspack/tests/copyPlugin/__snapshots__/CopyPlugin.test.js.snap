@@ -23,23 +23,27 @@ exports[`CopyPlugin basic should work with multi compiler mode: assets 2`] = `
 exports[`CopyPlugin basic should work with multi compiler mode: errors 1`] = `
 {
   "push": [Function],
+  Symbol(Symbol.iterator): [Function],
 }
 `;
 
 exports[`CopyPlugin basic should work with multi compiler mode: errors 2`] = `
 {
   "push": [Function],
+  Symbol(Symbol.iterator): [Function],
 }
 `;
 
 exports[`CopyPlugin basic should work with multi compiler mode: warnings 1`] = `
 {
   "push": [Function],
+  Symbol(Symbol.iterator): [Function],
 }
 `;
 
 exports[`CopyPlugin basic should work with multi compiler mode: warnings 2`] = `
 {
   "push": [Function],
+  Symbol(Symbol.iterator): [Function],
 }
 `;

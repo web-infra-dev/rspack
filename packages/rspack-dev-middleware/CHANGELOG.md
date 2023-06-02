@@ -1,5 +1,169 @@
 # @rspack/dev-middleware
 
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies [ab318de0]
+  - @rspack/core@0.1.12
+
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [5d4333f]
+- Updated dependencies [2bb2bcd6]
+- Updated dependencies [1d76fec]
+- Updated dependencies [8d0cba49]
+- Updated dependencies [fdaad48]
+- Updated dependencies [b452de5]
+- Updated dependencies [488071c]
+- Updated dependencies [bce8523]
+- Updated dependencies [5b33c94d]
+- Updated dependencies [1c83bbd]
+- Updated dependencies [4e25fafa]
+- Updated dependencies [bc52026]
+- Updated dependencies [04daf09]
+- Updated dependencies [3abb2fc]
+- Updated dependencies [c567571]
+- Updated dependencies [f4c1f8d]
+- Updated dependencies [6ec9e1c]
+  - @rspack/core@0.1.11
+
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [7c26a2d]
+- Updated dependencies [820c029]
+- Updated dependencies [bc65893]
+- Updated dependencies [6cc3076]
+- Updated dependencies [7342a47]
+- Updated dependencies [c1720f9]
+- Updated dependencies [0f1d3be]
+- Updated dependencies [e2647bb]
+- Updated dependencies [057829b]
+- Updated dependencies [ef7d3c5]
+- Updated dependencies [c162cb6]
+- Updated dependencies [b77b706]
+  - @rspack/core@0.1.9
+
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [a72daa0]
+- Updated dependencies [ef030d4]
+- Updated dependencies [f54621d]
+- Updated dependencies [fdc5fd9]
+  - @rspack/core@0.1.8
+
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [5bc1f55]
+- Updated dependencies [723a229]
+- Updated dependencies [e649469]
+- Updated dependencies [45aa2fe]
+- Updated dependencies [83f309a]
+- Updated dependencies [55d3ea4]
+- Updated dependencies [84851dc]
+- Updated dependencies [905cacf]
+- Updated dependencies [8872af5]
+- Updated dependencies [f4eb7c7]
+- Updated dependencies [32f822b]
+  - @rspack/core@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- @rspack/core@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [125bb94]
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [92ee3c1]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+  - @rspack/core@0.1.5
+
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [85e47e2]
+- Updated dependencies [fbaeb41]
+  - @rspack/core@0.1.4
+
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [62bad72]
+- Updated dependencies [9cb8c7e]
+- Updated dependencies [4471853]
+- Updated dependencies [54cb3fa]
+- Updated dependencies [1aadf05]
+- Updated dependencies [b323220]
+- Updated dependencies [28b9757]
+- Updated dependencies [b0cffba]
+- Updated dependencies [9c71512]
+- Updated dependencies [c49c03c]
+- Updated dependencies [d04485d]
+  - @rspack/core@0.1.3
+
+## 0.1.2
+
+### Patch Changes
+
+- d63e3fd: upgrade webpack-dev-server & webpack-dev-middleware
+- a6ac7da: feat: function type RuleSetCondition
+- deaca70: fix: css hmr memory middleware
+- bfb1738: fix: react refresh runtime injection
+- Updated dependencies [68c4df8]
+- Updated dependencies [2486b2a]
+- Updated dependencies [f562fa9]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [eb7051f]
+- Updated dependencies [cd011c1]
+- Updated dependencies [7431442]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [2934f8f]
+- Updated dependencies [a0994a8]
+- Updated dependencies [2e9d331]
+  - @rspack/core@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- f5f661a2: Use native Node compatible methods in middleware
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [d2072dd4]
+- Updated dependencies [706207a4]
+- Updated dependencies [62fca585]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [e463ebf0]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [98854e36]
+- Updated dependencies [a004765a]
+- Updated dependencies [a004268f]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [cdf6a52a]
+  - @rspack/core@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

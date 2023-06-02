@@ -2,15 +2,22 @@
 use std::{hint::black_box, path::PathBuf};
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use mimalloc_rust::GlobalMiMalloc;
 use rspack_core::Compiler;
 use rspack_fs::AsyncNativeFileSystem;
 use rspack_testing::apply_from_fixture;
 use xshell::{cmd, Shell};
 
-#[cfg(all(not(all(target_os = "linux", target_arch = "aarch64", target_env = "musl"))))]
+#[cfg(not(target_os = "linux"))]
 #[global_allocator]
-static GLOBAL: GlobalMiMalloc = GlobalMiMalloc;
+static GLOBAL: mimalloc_rust::GlobalMiMalloc = mimalloc_rust::GlobalMiMalloc;
+
+#[cfg(all(
+  target_os = "linux",
+  target_env = "gnu",
+  any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 async fn bench(cur_dir: &PathBuf) {
   let (options, plugins) = apply_from_fixture(cur_dir);
@@ -28,12 +35,14 @@ fn criterion_benchmark(c: &mut Criterion) {
   let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
-  cmd!(sh, "cargo xtask copy_three").run().expect("TODO:");
+  cmd!(sh, "node ./scripts/bench/make-threejs10x.js")
+    .run()
+    .expect("TODO:");
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
     .expect("TODO:");
-  generate_bench!(ten_copy_of_threejs, "three", group, rt);
+  generate_bench!(ten_copy_of_threejs, "threejs10x", group, rt);
   group.finish();
 
   // High cost benchmark
@@ -43,14 +52,17 @@ fn criterion_benchmark(c: &mut Criterion) {
   let sh = Shell::new().expect("TODO:");
   println!("{:?}", sh.current_dir());
   sh.change_dir(PathBuf::from(env!("CARGO_WORKSPACE_DIR")));
-  cmd!(sh, "cargo xtask three_production_config")
-    .run()
-    .expect("TODO:");
+  cmd!(
+    sh,
+    "node ./scripts/bench/make-threejs10x-production-config.js"
+  )
+  .run()
+  .expect("TODO:");
   let rt = tokio::runtime::Builder::new_multi_thread()
     .enable_all()
     .build()
     .expect("TODO:");
-  generate_bench!(ten_copy_of_threejs_production, "three", group, rt);
+  generate_bench!(ten_copy_of_threejs_production, "threejs10x", group, rt);
   group.finish()
 }
 

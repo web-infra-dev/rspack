@@ -1,9 +1,14 @@
-import type { RspackOptions } from "@rspack/core";
+import { RspackOptions, rspack } from "@rspack/core";
 import { RspackDevServer, Configuration } from "@rspack/dev-server";
 import { createCompiler } from "@rspack/core";
 import serializer from "jest-serializer-path";
-
 expect.addSnapshotSerializer(serializer);
+
+// The aims of use a cutstom value rather than
+// default is to avoid stack overflow trigged
+// by `webpack/schemas/WebpackOption.check.js` in debug mode
+const ENTRY = "./placeholder.js";
+const ENTRY1 = "./placeholder1.js";
 
 describe("normalize options snapshot", () => {
 	it("no options", async () => {
@@ -43,6 +48,7 @@ describe("normalize options snapshot", () => {
 
 	it("react.development and react.refresh should be true by default when hot enabled", async () => {
 		const compiler = createCompiler({
+			entry: ENTRY,
 			stats: "none"
 		});
 		const server = new RspackDevServer(
@@ -59,6 +65,7 @@ describe("normalize options snapshot", () => {
 
 	it("hot should be true by default", async () => {
 		const compiler = createCompiler({
+			entry: ENTRY,
 			stats: "none"
 		});
 		const server = new RspackDevServer({}, compiler);
@@ -67,16 +74,32 @@ describe("normalize options snapshot", () => {
 		expect(server.options.hot).toBe(true);
 		await server.stop();
 	});
+
+	it("should support multi-compiler", async () => {
+		const compiler = rspack([
+			{
+				entry: ENTRY,
+				stats: "none"
+			},
+			{
+				entry: ENTRY1,
+				stats: "none"
+			}
+		]);
+		const server = new RspackDevServer({}, compiler);
+		await server.start();
+		await server.stop();
+	});
 });
 
 async function match(config: RspackOptions) {
 	const compiler = createCompiler({
 		...config,
+		entry: ENTRY,
 		stats: "none",
 		infrastructureLogging: {
 			level: "info",
 			stream: {
-				// @ts-expect-error
 				write: () => {}
 			}
 		}
@@ -86,6 +109,9 @@ async function match(config: RspackOptions) {
 		compiler
 	);
 	await server.start();
+	// it will break ci
+	//@ts-ignore
+	delete server.options.port;
 	expect(server.options).toMatchSnapshot();
 	await server.stop();
 }
@@ -97,13 +123,14 @@ async function matchAdditionEntries(
 	const compiler = createCompiler({
 		...config,
 		stats: "none",
+		entry: ENTRY,
 		infrastructureLogging: {
 			stream: {
-				// @ts-expect-error
 				write: () => {}
 			}
 		}
 	});
+
 	const server = new RspackDevServer(serverConfig, compiler);
 	await server.start();
 	const entires = Object.entries(compiler.options.entry);
@@ -111,7 +138,10 @@ async function matchAdditionEntries(
 	const value = Object.fromEntries(
 		entires.map(([key, item]) => {
 			const replaced = item.import?.map(entry => {
-				const array = entry.replace(/\\/g, "/").split("/");
+				const array = entry
+					.replace(/\\/g, "/")
+					.replace(/port=\d+/g, "")
+					.split("/");
 				return "<prefix>" + "/" + array.slice(-3).join("/");
 			});
 			return [key, replaced];

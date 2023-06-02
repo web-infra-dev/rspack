@@ -1,6 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
-use rspack_core::Compilation;
+use rspack_core::{Compilation, PublicPath};
 #[cfg(feature = "testing")]
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -67,6 +67,7 @@ pub struct HtmlPluginConfig {
   pub filename: String,
   /// template html file
   pub template: Option<String>,
+  pub template_content: Option<String>,
   pub template_parameters: Option<HashMap<String, String>>,
   /// `head`, `body` or None
   pub inject: Option<HtmlPluginConfigInject>,
@@ -94,10 +95,6 @@ fn default_filename() -> String {
   String::from("index.html")
 }
 
-fn default_template() -> String {
-  String::from("index.html")
-}
-
 fn default_script_loading() -> HtmlPluginConfigScriptLoading {
   HtmlPluginConfigScriptLoading::Defer
 }
@@ -107,6 +104,7 @@ impl Default for HtmlPluginConfig {
     HtmlPluginConfig {
       filename: default_filename(),
       template: None,
+      template_content: None,
       template_parameters: None,
       inject: None,
       public_path: None,
@@ -124,18 +122,13 @@ impl Default for HtmlPluginConfig {
 
 impl HtmlPluginConfig {
   pub fn get_public_path(&self, compilation: &Compilation, filename: &str) -> String {
-    let public_path = match &self.public_path {
-      Some(p) => p.clone(),
+    match &self.public_path {
+      Some(p) => PublicPath::ensure_ends_with_slash(p.clone()),
       None => compilation
         .options
         .output
         .public_path
         .render(compilation, filename),
-    };
-    if !public_path.ends_with('/') {
-      public_path + "/"
-    } else {
-      public_path
     }
   }
 }

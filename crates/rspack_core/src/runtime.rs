@@ -1,11 +1,8 @@
-use std::{fmt::Debug, hash::Hash};
+use std::{fmt::Debug, sync::Arc};
 
-use rspack_sources::{BoxSource, RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use crate::{ChunkUkey, Compilation};
-
-pub type RuntimeSpec = HashSet<String>;
+pub type RuntimeSpec = HashSet<Arc<str>>;
 pub type RuntimeKey = String;
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -21,8 +18,8 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
     return false;
   }
 
-  let mut a: Vec<String> = Vec::from_iter(a.iter().cloned());
-  let mut b: Vec<String> = Vec::from_iter(b.iter().cloned());
+  let mut a: Vec<Arc<str>> = Vec::from_iter(a.iter().cloned());
+  let mut b: Vec<Arc<str>> = Vec::from_iter(b.iter().cloned());
 
   a.sort_unstable();
   b.sort_unstable();
@@ -31,7 +28,7 @@ pub fn is_runtime_equal(a: &RuntimeSpec, b: &RuntimeSpec) -> bool {
 }
 
 pub fn get_runtime_key(runtime: RuntimeSpec) -> String {
-  let mut runtime: Vec<String> = Vec::from_iter(runtime.into_iter());
+  let mut runtime: Vec<Arc<str>> = Vec::from_iter(runtime.into_iter());
   runtime.sort_unstable();
   runtime.join("\n")
 }
@@ -139,57 +136,12 @@ impl RuntimeSpecSet {
   pub fn values(&self) -> Vec<&RuntimeSpec> {
     self.map.values().collect()
   }
-}
 
-pub trait RuntimeModule: Debug + Send + Sync {
-  fn identifier(&self) -> String;
-  fn generate(&self, compilation: &Compilation) -> BoxSource;
-  fn attach(&mut self, _chunk: ChunkUkey) {}
-  fn hash(&self, compilation: &Compilation, mut state: &mut dyn std::hash::Hasher) {
-    self.identifier().hash(&mut state);
-    self.generate(compilation).source().hash(&mut state);
-  }
-  fn stage(&self) -> u8 {
-    0
-  }
-}
-
-/**
- * Runtime modules which attach to handlers of other runtime modules
- */
-pub const RUNTIME_MODULE_STAGE_ATTACH: u8 = 10;
-
-pub trait RuntimeModuleExt {
-  fn boxed(self) -> Box<dyn RuntimeModule>;
-}
-
-impl<T: RuntimeModule + 'static> RuntimeModuleExt for T {
-  fn boxed(self) -> Box<dyn RuntimeModule> {
-    Box::new(self)
-  }
-}
-
-#[derive(Debug)]
-pub struct NormalRuntimeModule {
-  pub identifier: String,
-  pub sources: RawSource,
-}
-
-impl NormalRuntimeModule {
-  pub fn new(identifier: String, sources: String) -> Self {
-    Self {
-      identifier: format!("rspack/runtime/{identifier}"),
-      sources: RawSource::from(sources),
-    }
-  }
-}
-
-impl RuntimeModule for NormalRuntimeModule {
-  fn identifier(&self) -> String {
-    self.identifier.clone()
+  pub fn len(&self) -> usize {
+    self.map.len()
   }
 
-  fn generate(&self, _compilation: &Compilation) -> BoxSource {
-    self.sources.clone().boxed()
+  pub fn is_empty(&self) -> bool {
+    self.len() == 0
   }
 }

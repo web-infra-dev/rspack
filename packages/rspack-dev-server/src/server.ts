@@ -1,11 +1,21 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/lib/Server.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack-dev-server/blob/b0f15ace0123c125d5870609ef4691c141a6d187/LICENSE
+ */
 import { Compiler, MultiCompiler } from "@rspack/core";
 import type { Socket } from "net";
 import type { FSWatcher } from "chokidar";
-import rdm, { getRspackMemoryAssets } from "@rspack/dev-middleware";
+import rdm from "@rspack/dev-middleware";
 import type { Server } from "http";
 import fs from "fs";
 import WebpackDevServer from "webpack-dev-server";
 import type { ResolvedDevServer, DevServer } from "./config";
+import { getRspackMemoryAssets } from "./middleware";
 
 export class RspackDevServer extends WebpackDevServer {
 	/**
@@ -20,12 +30,68 @@ export class RspackDevServer extends WebpackDevServer {
 	webSocketServer: WebpackDevServer.WebSocketServerImplementation | undefined;
 
 	constructor(options: DevServer, compiler: Compiler | MultiCompiler) {
-		super(options, compiler as any);
+		super(
+			{
+				...options,
+				setupMiddlewares: (middlewares, devServer) => {
+					const webpackDevMiddlewareIndex = middlewares.findIndex(
+						mid => mid.name === "webpack-dev-middleware"
+					);
+					const compilers =
+						compiler instanceof MultiCompiler ? compiler.compilers : [compiler];
+					if (compilers[0].options.builtins.noEmitAssets) {
+						if (Array.isArray(this.options.static)) {
+							const memoryAssetsMiddlewares = this.options.static.flatMap(
+								staticOptions => {
+									return staticOptions.publicPath.flatMap(publicPath => {
+										return compilers.map(compiler => {
+											return {
+												name: "rspack-memory-assets",
+												path: publicPath,
+												middleware: getRspackMemoryAssets(
+													compiler,
+													this.middleware
+												)
+											};
+										});
+									});
+								}
+							);
+							middlewares.splice(
+								webpackDevMiddlewareIndex,
+								0,
+								...memoryAssetsMiddlewares
+							);
+						}
+					}
+
+					options.setupMiddlewares?.call(this, middlewares, devServer);
+					return middlewares;
+				}
+			},
+			compiler as any
+		);
 	}
 
-	addAdditionEntires(compiler: Compiler) {
+	addAdditionalEntries(compiler: Compiler) {
 		const additionalEntries: string[] = [];
-		const isWebTarget = isWebTarget2(compiler);
+		// @ts-expect-error
+		const isWebTarget = WebpackDevServer.isWebTarget(compiler);
+		// inject runtime first, avoid other additional entry after transfrom depend on it
+		const clientPath = require.resolve("webpack-dev-server/client/index.js");
+		if (this.options.hot) {
+			if (compiler.options.builtins.react?.refresh) {
+				const reactRefreshEntryPath = require.resolve(
+					"@rspack/dev-client/react-refresh"
+				);
+				additionalEntries.push(reactRefreshEntryPath);
+			}
+			// #3356 make sure resolve webpack/hot/dev-server from webpack-dev-server
+			const hotUpdateEntryPath = require.resolve("webpack/hot/dev-server", {
+				paths: [clientPath]
+			});
+			additionalEntries.push(hotUpdateEntryPath);
+		}
 		if (this.options.client && isWebTarget) {
 			let webSocketURLStr = "";
 
@@ -169,26 +235,7 @@ export class RspackDevServer extends WebpackDevServer {
 				webSocketURLStr = searchParams.toString();
 			}
 
-			// TODO: should use providerPlugin
-			additionalEntries.push(this.getClientTransport());
-
-			additionalEntries.push(
-				`${require.resolve("@rspack/dev-client")}?${webSocketURLStr}`
-			);
-		}
-
-		if (this.options.hot) {
-			const hotUpdateEntryPath = require.resolve(
-				"@rspack/dev-client/devServer"
-			);
-			additionalEntries.push(hotUpdateEntryPath);
-
-			if (compiler.options.builtins.react?.refresh) {
-				const reactRefreshEntryPath = require.resolve(
-					"@rspack/dev-client/react-refresh"
-				);
-				additionalEntries.push(reactRefreshEntryPath);
-			}
+			additionalEntries.push(`${clientPath}?${webSocketURLStr}`);
 		}
 
 		for (const key in compiler.options.entry) {
@@ -199,7 +246,6 @@ export class RspackDevServer extends WebpackDevServer {
 	getClientTransport(): string {
 		// WARNING: we can't use `super.getClientTransport`,
 		// because we doesn't had same directory structure.
-		// and TODO: we need impelement `webpack.providerPlugin`
 		let clientImplementation: string | undefined;
 		let clientImplementationFound = true;
 		const isKnownWebSocketServerImplementation =
@@ -211,14 +257,10 @@ export class RspackDevServer extends WebpackDevServer {
 		let clientTransport: string | undefined;
 
 		if (this.options.client) {
-			if (
-				// @ts-ignore
-				typeof this.options.client.webSocketTransport !== "undefined"
-			) {
-				// @ts-ignore
+			if (typeof this.options.client.webSocketTransport !== "undefined") {
 				clientTransport = this.options.client.webSocketTransport;
 			} else if (isKnownWebSocketServerImplementation) {
-				// @ts-ignore
+				// @ts-expect-error: TS cannot infer webSocketServer is narrowed
 				clientTransport = this.options.webSocketServer.type;
 			} else {
 				clientTransport = "ws";
@@ -232,11 +274,11 @@ export class RspackDevServer extends WebpackDevServer {
 				// could be 'sockjs', 'ws', or a path that should be required
 				if (clientTransport === "sockjs") {
 					clientImplementation = require.resolve(
-						"@rspack/dev-client/clients/SockJSClient"
+						"webpack-dev-server/client/clients/SockJSClient"
 					);
 				} else if (clientTransport === "ws") {
 					clientImplementation = require.resolve(
-						"@rspack/dev-client/clients/WebSocketClient"
+						"webpack-dev-server/client/clients/WebSocketClient"
 					);
 				} else {
 					try {
@@ -270,22 +312,41 @@ export class RspackDevServer extends WebpackDevServer {
 				: [this.compiler];
 
 		compilers.forEach(compiler => {
+			const mode = compiler.options.mode || process.env.NODE_ENV;
 			if (this.options.hot) {
+				if (mode === "production") {
+					this.logger.warn(
+						"Hot Module Replacement (HMR) is enabled for the production build. \n" +
+							"Make sure to disable HMR for production by setting `devServer.hot` to `false` in the configuration."
+					);
+				}
 				compiler.options.devServer ??= {};
 				compiler.options.devServer.hot = true;
 				compiler.options.builtins.react ??= {};
 				compiler.options.builtins.react.refresh ??= true;
 				compiler.options.builtins.react.development ??= true;
 			} else if (compiler.options.builtins.react.refresh) {
-				this.logger.warn(
-					"builtins.react.refresh needs builtins.react.development and devServer.hot enabled"
-				);
+				if (mode === "production") {
+					this.logger.warn(
+						"React Refresh runtime should not be included in the production bundle.\n" +
+							"Make sure to disable React Refresh for production by setting `builtins.react.refresh` to `false` in the configuration."
+					);
+				} else {
+					this.logger.warn(
+						"The `builtins.react.refresh` needs `builtins.react.development` and `devServer.hot` enabled"
+					);
+				}
 			}
 		});
 
 		if (this.options.webSocketServer) {
 			compilers.forEach(compiler => {
-				this.addAdditionEntires(compiler);
+				this.addAdditionalEntries(compiler);
+
+				compiler.options.builtins.provide = {
+					...compiler.options.builtins.provide,
+					__webpack_dev_server_client__: [this.getClientTransport()]
+				};
 			});
 		}
 
@@ -350,7 +411,7 @@ export class RspackDevServer extends WebpackDevServer {
 	}
 
 	private setupDevMiddleware() {
-		// @ts-ignored
+		// @ts-expect-error
 		this.middleware = rdm(this.compiler, this.options.devMiddleware);
 	}
 
@@ -361,21 +422,21 @@ export class RspackDevServer extends WebpackDevServer {
 				? this.compiler.compilers
 				: [this.compiler];
 
-		if (Array.isArray(this.options.static)) {
-			this.options.static.forEach(staticOptions => {
-				staticOptions.publicPath.forEach(publicPath => {
-					compilers.forEach(compiler => {
-						if (compiler.options.builtins.noEmitAssets) {
-							middlewares.push({
-								name: "rspack-memory-assets",
-								path: publicPath,
-								middleware: getRspackMemoryAssets(compiler, this.middleware)
-							});
-						}
-					});
-				});
-			});
-		}
+		// if (Array.isArray(this.options.static)) {
+		// 	this.options.static.forEach(staticOptions => {
+		// 		staticOptions.publicPath.forEach(publicPath => {
+		// 			compilers.forEach(compiler => {
+		// 				if (compiler.options.builtins.noEmitAssets) {
+		// 					middlewares.push({
+		// 						name: "rspack-memory-assets",
+		// 						path: publicPath,
+		// 						middleware: getRspackMemoryAssets(compiler, this.middleware)
+		// 					});
+		// 				}
+		// 			});
+		// 		});
+		// 	});
+		// }
 
 		compilers.forEach(compiler => {
 			if (compiler.options.experiments.lazyCompilation) {
@@ -412,31 +473,4 @@ export class RspackDevServer extends WebpackDevServer {
 		// @ts-expect-error
 		super.setupMiddlewares();
 	}
-}
-
-// TODO: use WebpackDevServer.isWebTarget instead of this once the webpack-dev-server release a new version
-function isWebTarget2(compiler: Compiler): boolean {
-	if (
-		compiler.options.resolve.conditionNames &&
-		compiler.options.resolve.conditionNames.includes("browser")
-	) {
-		return true;
-	}
-	const target = compiler.options.target;
-	const webTargets = [
-		"web",
-		"webworker",
-		"electron-preload",
-		"electron-renderer",
-		"node-webkit",
-		undefined,
-		null
-	];
-	if (Array.isArray(target)) {
-		return target.some(r => webTargets.includes(r));
-	}
-	if (typeof target === "string") {
-		return webTargets.includes(target);
-	}
-	return false;
 }

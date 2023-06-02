@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use napi_derive::napi;
-use rspack_core::{Alias, AliasMap, Resolve};
+use rspack_core::{Alias, AliasMap, ByDependency, DependencyCategory, Resolve};
 use serde::Deserialize;
 
 pub type AliasValue = serde_json::Value;
@@ -26,6 +26,12 @@ pub struct RawResolveOptions {
   pub symlinks: Option<bool>,
   pub ts_config_path: Option<String>,
   pub modules: Option<Vec<String>>,
+  pub by_dependency: Option<HashMap<String, RawResolveOptions>>,
+  pub fully_specified: Option<bool>,
+  pub exports_fields: Option<Vec<String>>,
+  #[serde(serialize_with = "ordered_map")]
+  #[napi(ts_type = "Record<string, Array<string>>")]
+  pub extension_alias: Option<HashMap<String, Vec<String>>>,
 }
 
 fn normalize_alias(alias: Option<RawAliasOption>) -> anyhow::Result<Option<Alias>> {
@@ -72,10 +78,26 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let main_fields = value.main_fields;
     let condition_names = value.condition_names;
     let symlinks = value.symlinks;
+    let fully_specified = value.fully_specified;
     let alias = normalize_alias(value.alias)?;
     let fallback = normalize_alias(value.fallback)?;
     let modules = value.modules;
     let tsconfig = value.ts_config_path.map(std::path::PathBuf::from);
+    let by_dependency = value
+      .by_dependency
+      .map(|i| {
+        i.into_iter()
+          .map(|(k, v)| {
+            let v = v.try_into()?;
+            Ok((DependencyCategory::from(k.as_str()), v))
+          })
+          .collect::<Result<ByDependency, Self::Error>>()
+      })
+      .transpose()?;
+    let exports_field = value
+      .exports_fields
+      .map(|v| v.into_iter().map(|s| vec![s]).collect());
+    let extension_alias = value.extension_alias.map(|v| v.into_iter().collect());
     Ok(Resolve {
       modules,
       prefer_relative,
@@ -88,6 +110,10 @@ impl TryFrom<RawResolveOptions> for Resolve {
       symlinks,
       tsconfig,
       fallback,
+      by_dependency,
+      fully_specified,
+      exports_field,
+      extension_alias,
     })
   }
 }

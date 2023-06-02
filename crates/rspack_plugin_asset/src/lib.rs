@@ -1,47 +1,37 @@
+#![feature(let_chains)]
+
 use std::{
   collections::hash_map::DefaultHasher,
-  ffi::OsStr,
-  hash::BuildHasherDefault,
   hash::{Hash, Hasher},
-  path::Path,
-  sync::Arc,
 };
 
 use async_trait::async_trait;
-use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_core::{
-  get_contenthash,
-  rspack_sources::{RawSource, SourceExt},
-  runtime_globals, AssetParserDataUrlOption, AssetParserOptions, AstOrSource,
-  FilenameRenderOptions, GenerateContext, GenerationResult, Module, ModuleIdentifier, ParseContext,
-  ParserAndGenerator, PathData, Plugin, PluginContext, PluginRenderManifestHookOutput,
-  RenderManifestArgs, RenderManifestEntry, SourceType,
+  rspack_sources::{BoxSource, RawSource, SourceExt},
+  AssetParserDataUrlOption, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
+  BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationDataUrl, Compilation, GenerateContext, GenerationResult, Module, NormalModule,
+  ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
+  PluginRenderManifestHookOutput, RenderManifestArgs, RenderManifestEntry, ResourceData,
+  RuntimeGlobals, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result};
-use rspack_identifier::IdentifierHasher;
-use sugar_path::SugarPath;
+use rspack_util::identifier::make_paths_relative;
 
 #[derive(Debug)]
 pub struct AssetConfig {
   pub parse_options: Option<AssetParserOptions>,
 }
 
-pub type ModuleIdToFileName =
-  Arc<DashMap<ModuleIdentifier, String, BuildHasherDefault<IdentifierHasher>>>;
-
 #[derive(Debug)]
 pub struct AssetPlugin {
   config: AssetConfig,
-  module_id_to_filename_without_ext: ModuleIdToFileName,
 }
 
 impl AssetPlugin {
   pub fn new(config: AssetConfig) -> AssetPlugin {
-    AssetPlugin {
-      config,
-      module_id_to_filename_without_ext: Default::default(),
-    }
+    AssetPlugin { config }
   }
 }
 
@@ -49,6 +39,8 @@ static ASSET_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::Asset, SourceType::JavaScript];
 
 static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::JavaScript];
+
+const DEFAULT_ENCODING: &str = "base64";
 
 #[derive(Debug)]
 enum DataUrlOption {
@@ -86,7 +78,6 @@ impl CanonicalizedDataUrlOption {
 pub struct AssetParserAndGenerator {
   data_url: DataUrlOption,
   parsed_asset_config: Option<CanonicalizedDataUrlOption>,
-  module_id_to_filename: ModuleIdToFileName,
 }
 
 impl AssetParserAndGenerator {
@@ -94,7 +85,6 @@ impl AssetParserAndGenerator {
     Self {
       data_url: DataUrlOption::Auto(option),
       parsed_asset_config: None,
-      module_id_to_filename: Default::default(),
     }
   }
 
@@ -102,7 +92,6 @@ impl AssetParserAndGenerator {
     Self {
       data_url: DataUrlOption::Inline(true),
       parsed_asset_config: None,
-      module_id_to_filename: Default::default(),
     }
   }
 
@@ -110,7 +99,6 @@ impl AssetParserAndGenerator {
     Self {
       data_url: DataUrlOption::Inline(false),
       parsed_asset_config: None,
-      module_id_to_filename: Default::default(),
     }
   }
 
@@ -118,16 +106,7 @@ impl AssetParserAndGenerator {
     Self {
       data_url: DataUrlOption::Source,
       parsed_asset_config: None,
-      module_id_to_filename: Default::default(),
     }
-  }
-
-  pub(crate) fn into_with_module_id_to_filename_without_ext(
-    mut self,
-    module_id_to_filename_without_ext: ModuleIdToFileName,
-  ) -> Self {
-    self.module_id_to_filename = module_id_to_filename_without_ext;
-    self
   }
 
   fn hash_for_ast_or_source(&self, ast_or_source: &AstOrSource) -> u64 {
@@ -143,12 +122,67 @@ impl AssetParserAndGenerator {
   ) -> Result<String> {
     generate_context
       .runtime_requirements
-      .insert(runtime_globals::PUBLIC_PATH);
+      .insert(RuntimeGlobals::PUBLIC_PATH);
     Ok(format!(
       r#"{} + "{}""#,
-      runtime_globals::PUBLIC_PATH,
+      RuntimeGlobals::PUBLIC_PATH,
       filename
     ))
+  }
+
+  fn get_mimetype(&self, resource_data: &ResourceData) -> Result<String> {
+    if let Some(mimetype) = &resource_data.mimetype && let Some(parameters) = &resource_data.parameters {
+      return Ok(format!("{mimetype}{parameters}"));
+    }
+    mime_guess::MimeGuess::from_path(&resource_data.resource_path)
+      .first_raw()
+      .map(ToOwned::to_owned)
+      .ok_or_else(|| {
+        internal_error!(
+          "failed to guess mime type of {:?}",
+          resource_data.resource_path
+        )
+      })
+  }
+
+  fn get_encoding(&self, resource_data: &ResourceData) -> String {
+    if let Some(encoding) = &resource_data.encoding {
+      return encoding.to_owned();
+    }
+    String::from(DEFAULT_ENCODING)
+  }
+
+  fn get_encoded_content(
+    &self,
+    resource_data: &ResourceData,
+    encoding: &str,
+    source: &BoxSource,
+  ) -> Result<String> {
+    if let Some(encoded_content) = &resource_data.encoded_content {
+      return Ok(encoded_content.to_owned());
+    }
+    if encoding.is_empty() {
+      // to_lossy_string
+      return Ok(urlencoding::encode_binary(&source.buffer()).into_owned());
+    }
+    if encoding == DEFAULT_ENCODING {
+      return Ok(rspack_base64::encode_to_string(source.buffer()));
+    }
+    Err(internal_error!("Unsupported encoding {encoding}"))
+  }
+
+  fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
+    let relative = make_paths_relative(
+      compilation.options.context.as_ref(),
+      &module
+        .match_resource()
+        .unwrap_or(module.resource_resolved_data())
+        .resource,
+    );
+    if let Some(stripped) = relative.strip_prefix("./") {
+      return stripped.to_owned();
+    }
+    relative
   }
 }
 
@@ -214,9 +248,14 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     parse_context: rspack_core::ParseContext,
   ) -> Result<rspack_error::TWithDiagnosticArray<rspack_core::ParseResult>> {
     let ParseContext {
-      source, build_info, ..
+      source,
+      build_meta,
+      build_info,
+      ..
     } = parse_context;
     build_info.strict = true;
+    build_meta.exports_type = BuildMetaExportsType::Default;
+    build_meta.default_object = BuildMetaDefaultObject::False;
     let size = source.size();
 
     self.parsed_asset_config = match &self.data_url {
@@ -240,6 +279,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         dependencies: vec![],
         ast_or_source: source.into(),
         presentational_dependencies: vec![],
+        code_replace_source_dependencies: vec![],
       }
       .with_empty_diagnostic(),
     )
@@ -266,67 +306,57 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           .output
           .asset_module_filename,
       );
-    let hash = hash_value_to_string(self.hash_for_ast_or_source(ast_or_source));
-
-    let asset_filename = asset_filename_template.render(FilenameRenderOptions {
-      name: module.as_normal_module().and_then(|m| {
-        let p = Path::new(&m.resource_resolved_data().resource_path);
-        p.file_stem().map(|s| s.to_string_lossy().to_string())
-      }),
-      path: module.as_normal_module().map(|m| {
-        Path::new(&m.resource_resolved_data().resource_path)
-          .relative(&generate_context.compilation.options.context)
-          .to_string_lossy()
-          .to_string()
-      }),
-      extension: module.as_normal_module().and_then(|m| {
-        Path::new(&m.resource_resolved_data().resource_path)
-          .extension()
-          .and_then(OsStr::to_str)
-          .map(|str| format!("{}{}", ".", str))
-      }),
-      id: None,
-      contenthash: Some(hash.clone()),
-      chunkhash: Some(hash.clone()),
-      hash: Some(hash),
-      query: Some("".to_string()),
-    });
-
-    self
-      .module_id_to_filename
-      .insert(module.identifier(), asset_filename.clone());
+    let contenthash = hash_value_to_string(self.hash_for_ast_or_source(ast_or_source));
+    let normal_module = module
+      .as_normal_module()
+      .expect("module should be a NormalModule in AssetParserAndGenerator");
+    let source_file_name = self.get_source_file_name(normal_module, generate_context.compilation);
+    let (asset_filename, asset_info) = generate_context.compilation.get_asset_path_with_info(
+      asset_filename_template,
+      PathData::default()
+        .module(module)
+        .chunk_graph(&generate_context.compilation.chunk_graph)
+        .content_hash(&contenthash)
+        .hash(&contenthash)
+        .filename(&source_file_name),
+    );
 
     let result = match generate_context.requested_source_type {
       SourceType::JavaScript => {
         let module = module.try_as_normal_module()?;
-        let resource_path = &module.resource_resolved_data().resource_path;
 
         let exported_content = if parsed_asset_config.is_inline() {
+          let resource_data = module.resource_resolved_data();
+          let mimetype = self.get_mimetype(resource_data)?;
+          let encoding = self.get_encoding(resource_data);
+          let encoded_content = self.get_encoded_content(
+            resource_data,
+            &encoding,
+            ast_or_source
+              .as_source()
+              .expect("Expected source for asset generator, please file an issue."),
+          )?;
           let encoded_source = format!(
-            r#"data:{};base64,{}"#,
-            mime_guess::MimeGuess::from_path(Path::new(resource_path))
-              .first()
-              .ok_or_else(|| anyhow::format_err!(
-                "failed to guess mime type of {}",
-                resource_path.display()
-              ))?,
-            rspack_base64::encode_to_string(
-              ast_or_source
-                .as_source()
-                .expect("Expected source for asset generator, please file an issue.")
-                .buffer()
-            )
+            r#"data:{mimetype}{},{encoded_content}"#,
+            if encoding.is_empty() {
+              String::new()
+            } else {
+              format!(";{encoding}")
+            }
           );
 
           generate_context
             .data
-            .insert("url".to_string(), encoded_source.clone());
+            .insert(CodeGenerationDataUrl::new(encoded_source.clone()));
 
-          format!("\"{encoded_source}\"")
+          serde_json::to_string(&encoded_source).map_err(|e| internal_error!(e.to_string()))?
         } else {
           generate_context
             .data
-            .insert("filename".to_string(), asset_filename.clone());
+            .insert(CodeGenerationDataFilename::new(asset_filename.clone()));
+          generate_context
+            .data
+            .insert(CodeGenerationDataAssetInfo::new(asset_info));
 
           if parsed_asset_config.is_external() {
             self.generate_external_content(generate_context, asset_filename)?
@@ -394,52 +424,26 @@ impl Plugin for AssetPlugin {
       .as_ref()
       .and_then(|x| x.data_url_condition.clone());
 
-    {
-      let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
-      ctx.context.register_parser_and_generator_builder(
-        rspack_core::ModuleType::Asset,
-        Box::new(move || {
-          Box::new(
-            AssetParserAndGenerator::with_auto(data_url_condition.clone())
-              .into_with_module_id_to_filename_without_ext(
-                module_id_to_filename_without_ext.clone(),
-              ),
-          )
-        }),
-      );
-    }
-
+    ctx.context.register_parser_and_generator_builder(
+      rspack_core::ModuleType::Asset,
+      Box::new(move || {
+        Box::new(AssetParserAndGenerator::with_auto(
+          data_url_condition.clone(),
+        ))
+      }),
+    );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetInline,
       Box::new(|| Box::new(AssetParserAndGenerator::with_inline())),
     );
-
-    {
-      let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
-      ctx.context.register_parser_and_generator_builder(
-        rspack_core::ModuleType::AssetResource,
-        Box::new(move || {
-          Box::new(
-            AssetParserAndGenerator::with_resource().into_with_module_id_to_filename_without_ext(
-              module_id_to_filename_without_ext.clone(),
-            ),
-          )
-        }),
-      );
-    }
-    {
-      let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
-      ctx.context.register_parser_and_generator_builder(
-        rspack_core::ModuleType::AssetSource,
-        Box::new(move || {
-          Box::new(
-            AssetParserAndGenerator::with_source().into_with_module_id_to_filename_without_ext(
-              module_id_to_filename_without_ext.clone(),
-            ),
-          )
-        }),
-      );
-    }
+    ctx.context.register_parser_and_generator_builder(
+      rspack_core::ModuleType::AssetResource,
+      Box::new(move || Box::new(AssetParserAndGenerator::with_resource())),
+    );
+    ctx.context.register_parser_and_generator_builder(
+      rspack_core::ModuleType::AssetSource,
+      Box::new(move || Box::new(AssetParserAndGenerator::with_source())),
+    );
 
     Ok(())
   }
@@ -459,76 +463,39 @@ impl Plugin for AssetPlugin {
 
     let assets = ordered_modules
       .par_iter()
-      .filter(|mgm| {
+      .filter(|m| {
         let module = compilation
           .module_graph
-          .module_by_identifier(&mgm.module_identifier)
+          .module_by_identifier(&m.identifier())
           .ok_or_else(|| internal_error!("Failed to get module".to_owned()))
           // FIXME: use result
           .expect("Failed to get module");
         module.source_types().contains(&SourceType::Asset)
+          && compilation
+            .include_module_ids
+            .contains(&module.identifier())
       })
-      .map(|mgm| {
+      .map(|m| {
         let code_gen_result = compilation
           .code_generation_results
-          .get(&mgm.module_identifier, Some(&chunk.runtime))?;
-
-        let module = compilation
-          .module_graph
-          .module_by_identifier(&mgm.module_identifier)
-          .ok_or_else(|| internal_error!("Failed to get module".to_owned()))
-          .expect("Failed to get module")
-          .as_normal_module()
-          .expect("Normal module expected");
+          .get(&m.identifier(), Some(&chunk.runtime))?;
 
         let result = code_gen_result
           .get(&SourceType::Asset)
           .map(|result| result.ast_or_source.clone().try_into_source())
           .transpose()?
           .map(|source| {
-            let asset_filename = self
-              .module_id_to_filename_without_ext
-              .get(&mgm.module_identifier)
-              .map(|s| s.clone());
-            let contenthash = Some(get_contenthash(&source).to_string());
-            let chunkhash = None;
-
-            let hash = None;
-
-            let path = Path::new(&module.resource_resolved_data().resource_path)
-              .relative(&compilation.options.context);
-            RenderManifestEntry::new(
-              source,
-              asset_filename.unwrap_or_else(|| {
-                args
-                  .compilation
-                  .options
-                  .output
-                  .asset_module_filename
-                  .render(FilenameRenderOptions {
-                    name: Some(
-                      path
-                        .file_stem()
-                        .map(|s| s.to_string_lossy())
-                        .expect("TODO:")
-                        .to_string(),
-                    ),
-                    path: path.parent().map(|p| p.to_string_lossy().to_string() + "/"),
-                    extension: path
-                      .extension()
-                      .and_then(OsStr::to_str)
-                      .map(|str| format!("{}{}", ".", str)),
-                    id: None,
-                    contenthash,
-                    chunkhash,
-                    hash,
-                    query: Some("".to_string()),
-                  })
-              }),
-              PathData {
-                chunk_ukey: args.chunk_ukey,
-              },
-            )
+            let asset_filename = code_gen_result
+              .data
+              .get::<CodeGenerationDataFilename>()
+              .expect("should have filename for asset module")
+              .inner();
+            let asset_info = code_gen_result
+              .data
+              .get::<CodeGenerationDataAssetInfo>()
+              .expect("should have asset_info")
+              .inner();
+            RenderManifestEntry::new(source, asset_filename.to_owned(), asset_info.to_owned())
           });
 
         Ok(result)

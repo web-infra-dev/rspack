@@ -1,4 +1,9 @@
-use std::{fs, path::Path};
+use std::{
+  collections::hash_map::DefaultHasher,
+  fs,
+  hash::{Hash, Hasher},
+  path::Path,
+};
 
 use anyhow::Context;
 use async_trait::async_trait;
@@ -7,7 +12,7 @@ use rayon::prelude::{IntoParallelRefMutIterator, ParallelIterator};
 use rspack_core::{
   parse_to_url,
   rspack_sources::{RawSource, SourceExt},
-  CompilationAsset, Plugin,
+  CompilationAsset, Filename, PathData, Plugin,
 };
 use serde::Deserialize;
 use swc_html::visit::VisitMutWith;
@@ -16,7 +21,6 @@ use crate::{
   config::{HtmlPluginConfig, HtmlPluginConfigInject},
   parser::HtmlCompiler,
   sri::{add_sri, create_digest_from_asset},
-  utils::resolve_from_context,
   visitors::asset::{AssetWriter, HTMLPluginTag},
 };
 
@@ -41,6 +45,7 @@ fn default_template() -> &'static str {
   </body>
 </html>"#
 }
+
 #[async_trait]
 impl Plugin for HtmlPlugin {
   fn name(&self) -> &'static str {
@@ -56,21 +61,27 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
 
     let parser = HtmlCompiler::new(config);
-    let (content, url) = match &config.template {
-      Some(_template) => {
-        let url = parse_to_url(_template);
-        let resolved_template = resolve_from_context(&compilation.options.context, url.path());
-        let content = fs::read_to_string(&resolved_template).context(format!(
-          "failed to read `{}` from `{}`",
-          url.path(),
-          &compilation.options.context.display()
-        ))?;
-        (content, resolved_template.to_string_lossy().to_string())
-      }
-      None => (
+    let (content, url) = if let Some(content) = &config.template_content {
+      (
+        content.clone(),
+        parse_to_url("template_content.html").path().to_string(),
+      )
+    } else if let Some(template) = &config.template {
+      // TODO: support loader query form
+      let resolved_template =
+        AsRef::<Path>::as_ref(&compilation.options.context).join(template.as_str());
+
+      let content = fs::read_to_string(&resolved_template).context(format!(
+        "failed to read `{}` from `{}`",
+        resolved_template.display(),
+        &compilation.options.context
+      ))?;
+      (content, resolved_template.to_string_lossy().to_string())
+    } else {
+      (
         default_template().to_owned(),
         parse_to_url("default.html").path().to_string(),
-      ),
+      )
     };
 
     // process with template parameters
@@ -94,7 +105,6 @@ impl Plugin for HtmlPlugin {
     let included_assets = compilation
       .entrypoints
       .keys()
-      .into_iter()
       .filter(|&entry_name| {
         let mut included = true;
         if let Some(included_chunks) = &config.chunks {
@@ -110,7 +120,7 @@ impl Plugin for HtmlPlugin {
       .map(|asset_name| {
         (
           asset_name.clone(),
-          compilation.assets.get(&asset_name).expect("TODO:"),
+          compilation.assets().get(&asset_name).expect("TODO:"),
         )
       })
       .collect::<Vec<_>>();
@@ -118,7 +128,10 @@ impl Plugin for HtmlPlugin {
     let mut tags = vec![];
     for (asset_name, asset) in included_assets {
       if let Some(extension) = Path::new(&asset_name).extension() {
-        let asset_uri = config.get_public_path(compilation, &asset_name) + &asset_name;
+        let asset_uri = format!(
+          "{}{asset_name}",
+          config.get_public_path(compilation, &self.config.filename),
+        );
         let mut tag: Option<HTMLPluginTag> = None;
         if extension.eq_ignore_ascii_case("css") {
           tag = Some(HTMLPluginTag::create_style(
@@ -135,7 +148,7 @@ impl Plugin for HtmlPlugin {
             Some(if let Some(inject) = &config.inject {
               *inject
             } else {
-              HtmlPluginConfigInject::Body
+              HtmlPluginConfigInject::Head
             }),
             &config.script_loading,
           ))
@@ -164,25 +177,37 @@ impl Plugin for HtmlPlugin {
     current_ast.visit_mut_with(&mut visitor);
 
     let source = parser.codegen(&mut current_ast)?;
+    let hash = hash_for_ast_or_source(&source);
+    let html_file_name = Filename::from(config.filename.clone());
+    let (output_path, asset_info) = compilation.get_path_with_info(
+      &html_file_name,
+      PathData::default().filename(&url).content_hash(&hash),
+    );
     compilation.emit_asset(
-      config.filename.clone(),
-      CompilationAsset::with_source(RawSource::from(source).boxed()),
+      output_path,
+      CompilationAsset::new(Some(RawSource::from(source).boxed()), asset_info),
     );
 
     if let Some(favicon) = &self.config.favicon {
       let url = parse_to_url(favicon);
-      let resolved_favicon = resolve_from_context(&compilation.options.context, url.path());
+      let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
       let content = fs::read(resolved_favicon).context(format!(
         "failed to read `{}` from `{}`",
         url.path(),
-        &compilation.options.context.display()
+        &compilation.options.context
       ))?;
       compilation.emit_asset(
         favicon.clone(),
-        CompilationAsset::with_source(RawSource::from(content).boxed()),
+        CompilationAsset::from(RawSource::from(content).boxed()),
       );
     }
 
     Ok(())
   }
+}
+
+fn hash_for_ast_or_source(ast_or_source: &str) -> String {
+  let mut hasher = DefaultHasher::new();
+  ast_or_source.hash(&mut hasher);
+  format!("{:016x}", hasher.finish())
 }

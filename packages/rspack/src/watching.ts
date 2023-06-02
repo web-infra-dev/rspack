@@ -1,8 +1,18 @@
+/**
+ * The following code is modified based on
+ * https://github.com/webpack/webpack/blob/4b4ca3b/lib/Watching.js
+ *
+ * MIT Licensed
+ * Author Tobias Koppers @sokra
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/webpack/webpack/blob/main/LICENSE
+ */
 import { Callback } from "tapable";
 import type { Compilation, Compiler } from ".";
 import { Stats } from ".";
 import { WatchOptions } from "./config";
 import { FileSystemInfoEntry, Watcher } from "./util/fs";
+import assert from "assert";
 
 class Watching {
 	watcher?: Watcher;
@@ -19,12 +29,14 @@ class Watching {
 	onChange?: () => void;
 	onInvalid?: () => void;
 	invalid: boolean;
+	startTime?: number;
 	#invalidReported: boolean;
 	#closeCallbacks?: ((err?: Error) => void)[];
 	#initial: boolean;
 	#closed: boolean;
 	#collectedChangedFiles?: Set<string>;
 	#collectedRemovedFiles?: Set<string>;
+	suspended: boolean;
 
 	constructor(
 		compiler: Compiler,
@@ -44,10 +56,10 @@ class Watching {
 		this.#closed = false;
 		this.watchOptions = watchOptions;
 		this.handler = handler;
+		this.suspended = false;
 
 		process.nextTick(() => {
 			if (this.#initial) this.#invalidate();
-			this.#initial = false;
 		});
 	}
 
@@ -56,8 +68,7 @@ class Watching {
 		dirs: Iterable<string>,
 		missing: Iterable<string>
 	) {
-		// @ts-expect-error
-		this.pausedWatcher = null;
+		this.pausedWatcher = undefined;
 		this.watcher = this.compiler.watchFileSystem.watch(
 			files,
 			dirs,
@@ -104,7 +115,7 @@ class Watching {
 			return;
 		}
 
-		const finalCallback = (err?: Error) => {
+		const finalCallback = (err: Error | null) => {
 			this.running = false;
 			this.compiler.running = false;
 			this.compiler.watching = undefined;
@@ -159,7 +170,7 @@ class Watching {
 
 			this._done = finalCallback;
 		} else {
-			finalCallback();
+			finalCallback(null);
 		}
 	}
 
@@ -185,7 +196,7 @@ class Watching {
 		// @ts-expect-error
 		this.#mergeWithCollected(changedFiles, removedFiles);
 		// @ts-expect-error
-		if (this.isBlocked() && (this.blocked = true)) {
+		if (this.suspended || (this.isBlocked() && (this.blocked = true))) {
 			return;
 		}
 
@@ -193,55 +204,56 @@ class Watching {
 			this.invalid = true;
 			return;
 		}
+
 		this.#go(changedFiles, removedFiles);
 	}
 
 	#go(changedFiles?: ReadonlySet<string>, removedFiles?: ReadonlySet<string>) {
+		if (this.startTime === undefined) this.startTime = Date.now();
 		this.running = true;
-		const logger = this.compiler.getInfrastructureLogger("watcher");
 		if (this.watcher) {
 			this.pausedWatcher = this.watcher;
 			this.lastWatcherStartTime = Date.now();
 			this.watcher.pause();
-			// @ts-expect-error
-			this.watcher = null;
+			this.watcher = undefined;
 		} else if (!this.lastWatcherStartTime) {
 			this.lastWatcherStartTime = Date.now();
 		}
+
+		if (changedFiles && removedFiles) {
+			this.#mergeWithCollected(changedFiles, removedFiles);
+		} else if (this.pausedWatcher) {
+			const { changes, removals } = this.pausedWatcher.getInfo();
+			this.#mergeWithCollected(changes, removals);
+		}
+
 		const modifiedFiles = (this.compiler.modifiedFiles =
 			this.#collectedChangedFiles);
 		const deleteFiles = (this.compiler.removedFiles =
 			this.#collectedRemovedFiles);
 		this.#collectedChangedFiles = undefined;
 		this.#collectedRemovedFiles = undefined;
-		const begin = Date.now();
 		this.invalid = false;
 		this.#invalidReported = false;
 		this.compiler.hooks.watchRun.callAsync(this.compiler, err => {
-			if (err) return this._done(err);
+			if (err) return this._done(err, null);
 
-			const isRebuild = this.compiler.options.devServer && !this.#initial;
-			const print = isRebuild
-				? () =>
-						console.log("rebuild success, time cost", Date.now() - begin, "ms")
-				: () =>
-						console.log("build success, time cost", Date.now() - begin, "ms");
+			const canRebuild =
+				this.compiler.options.devServer &&
+				!this.#initial &&
+				(modifiedFiles?.size || deleteFiles?.size);
 
-			const onBuild = (err: Error) => {
-				if (err) return this._done(err);
+			const onBuild = (err?: Error) => {
+				if (err) return this._done(err, null);
 				// if (this.invalid) return this._done(null);
-				// @ts-expect-error
-				this._done(null);
-				if (!err && !this.#closed && !this.invalid) {
-					print();
-				}
+				this._done(null, this.compiler.compilation);
 			};
 
-			if (isRebuild) {
+			if (canRebuild) {
 				this.compiler.rebuild(modifiedFiles, deleteFiles, onBuild as any);
 			} else {
-				// @ts-expect-error
 				this.compiler.build(onBuild);
+				this.#initial = false;
 			}
 		});
 	}
@@ -250,31 +262,38 @@ class Watching {
 	 * The reason why this is _done instead of #done, is that in Webpack,
 	 * it will rewrite this function to another function
 	 */
-	private _done(error?: Error) {
+	private _done(error: Error, compilation: null): void;
+	private _done(error: null, compilation: Compilation): void;
+	private _done(error: Error | null, compilation: Compilation | null) {
 		this.running = false;
-		let stats: Stats | null = null;
-		const handleError = (err?: Error, cbs?: Callback<Error, void>[]) => {
-			// @ts-expect-error
+		let stats: undefined | Stats = undefined;
+
+		const handleError = (err: Error, cbs?: Callback<Error, void>[]) => {
 			this.compiler.hooks.failed.call(err);
 			// this.compiler.cache.beginIdle();
 			// this.compiler.idle = true;
-			// @ts-expect-error
 			this.handler(err, stats);
 			if (!cbs) {
 				cbs = this.callbacks;
 				this.callbacks = [];
 			}
-			// @ts-expect-error
 			for (const cb of cbs) cb(err);
 		};
 
+		const cbs = this.callbacks;
+		this.callbacks = [];
+		const startTime = this.startTime; // store last startTime for compilation
+		// reset startTime for next compilation, before throwing error
+		this.startTime = undefined;
 		if (error) {
 			return handleError(error);
 		}
-		const cbs = this.callbacks;
-		this.callbacks = [];
+		assert(compilation);
 
-		stats = new Stats(this.compiler.compilation);
+		compilation.startTime = startTime;
+		compilation.endTime = Date.now();
+		stats = new Stats(compilation);
+
 		this.compiler.hooks.done.callAsync(stats, err => {
 			if (err) return handleError(err, cbs);
 			// @ts-expect-error
@@ -283,15 +302,14 @@ class Watching {
 			process.nextTick(() => {
 				if (!this.#closed) {
 					this.watch(
-						this.compiler.compilation.fileDependencies,
-						this.compiler.compilation.contextDependencies,
-						this.compiler.compilation.missingDependencies
+						compilation.fileDependencies,
+						compilation.contextDependencies,
+						compilation.missingDependencies
 					);
 				}
 			});
 			for (const cb of cbs) cb(null);
-			// @ts-expect-error
-			this.compiler.hooks.afterDone.call(stats);
+			this.compiler.hooks.afterDone.call(stats!);
 		});
 	}
 
@@ -314,6 +332,17 @@ class Watching {
 				// @ts-expect-error
 				this.#collectedRemovedFiles.add(file);
 			}
+		}
+	}
+
+	suspend() {
+		this.suspended = true;
+	}
+
+	resume() {
+		if (this.suspended) {
+			this.suspended = false;
+			this.#invalidate();
 		}
 	}
 }

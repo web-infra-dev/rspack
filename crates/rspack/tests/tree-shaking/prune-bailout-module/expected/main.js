@@ -17,8 +17,8 @@ var _default = 300;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _libJs = __webpack_require__("./lib.js");
-_libJs.a;
+var _lib = __webpack_require__("./lib.js");
+_lib.a;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -28,14 +28,15 @@ Object.defineProperty(exports, "__esModule", {
 Object.defineProperty(exports, "a", {
     enumerable: true,
     get: function() {
-        return _aJs.default;
+        return _a.default;
     }
 });
-var _aJs = __webpack_require__.ir(__webpack_require__("./a.js"));
+var _a = __webpack_require__.ir(__webpack_require__("./a.js"));
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

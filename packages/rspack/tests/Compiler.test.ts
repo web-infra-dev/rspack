@@ -51,7 +51,6 @@ describe("Compiler", () => {
 		// 	}
 		// };
 		c.hooks.compilation.tap("CompilerTest", compilation => {
-			// @ts-ignore
 			compilation.bail = true;
 		});
 		c.run((err, stats) => {
@@ -1257,6 +1256,48 @@ describe("Compiler", () => {
 					"error[internal]: Conflict: Multiple assets emit different content to the same filename main.js\n"
 				);
 				done();
+			});
+		});
+
+		it("should call optimizeModules hook correctly", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						compilation.hooks.optimizeModules.tap("MyPlugin", modules => {
+							expect(modules.length).toEqual(1);
+							expect(modules[0].resource.includes("d.js")).toBeTruthy();
+						});
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(err => {
+				done(err);
+			});
+		});
+
+		it("should call getCache function correctly", done => {
+			class MyPlugin {
+				apply(compiler: Compiler) {
+					compiler.hooks.compilation.tap("MyPlugin", compilation => {
+						let cache = compilation.getCache("MyPlugin");
+						expect(cache).not.toBeNull();
+					});
+				}
+			}
+			const compiler = rspack({
+				entry: "./d",
+				context: path.join(__dirname, "fixtures"),
+				plugins: [new MyPlugin()]
+			});
+
+			compiler.build(err => {
+				done(err);
 			});
 		});
 	});

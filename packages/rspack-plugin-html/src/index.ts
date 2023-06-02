@@ -1,3 +1,12 @@
+/**
+ * The following code is modified based on
+ * https://github.com/jantimon/html-webpack-plugin/blob/d5ce5a8f2d12a2450a65ec51c285dd54e36cd921/index.js
+ *
+ * MIT Licensed
+ * Author Jan Nicklas
+ * Copyright (c) JS Foundation and other contributors
+ * https://github.com/jantimon/html-webpack-plugin/blob/d5ce5a8f2d12a2450a65ec51c285dd54e36cd921/LICENSE
+ */
 import type { Compiler, Compilation, RspackPluginInstance } from "@rspack/core";
 import type { Options as MinifyOptions } from "html-minifier-terser";
 import assert from "assert";
@@ -13,7 +22,7 @@ import {
 } from "./html-tags";
 
 export type { HtmlRspackPluginHooks } from "./hooks";
-export { defaultTemplateCompiler } from "./template";
+import { defaultTemplateCompiler } from "./template";
 
 export interface Options {
 	/**
@@ -249,7 +258,7 @@ export default class HtmlRspackPlugin implements RspackPluginInstance {
 	constructor(options?: Options) {
 		this.userOptions = options || {};
 	}
-
+	static defaultTemplateCompiler = defaultTemplateCompiler;
 	static getHooks = getHtmlRspackPluginHooks;
 
 	static createHtmlTagObject = createHtmlTagObject;

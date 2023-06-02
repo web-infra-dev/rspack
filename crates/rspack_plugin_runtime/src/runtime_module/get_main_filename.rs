@@ -1,16 +1,33 @@
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeModule, RuntimeSpec,
+  ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModule,
 };
+use rspack_identifier::Identifier;
 
-#[derive(Debug, Default)]
+use crate::impl_runtime_module;
+
+#[derive(Debug, Eq)]
 pub struct GetMainFilenameRuntimeModule {
   chunk: Option<ChunkUkey>,
+  id: Identifier,
+  global: RuntimeGlobals,
+  filename: String,
+}
+
+impl GetMainFilenameRuntimeModule {
+  pub fn new(global: RuntimeGlobals, filename: String) -> Self {
+    Self {
+      chunk: None,
+      id: Identifier::from(format!("webpack/runtime/get_main_filename/{global}")),
+      global,
+      filename,
+    }
+  }
 }
 
 impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn identifier(&self) -> String {
-    "webpack/runtime/get_main_filename".to_string()
+  fn name(&self) -> Identifier {
+    self.id
   }
 
   fn generate(&self, compilation: &Compilation) -> BoxSource {
@@ -19,10 +36,20 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
         .chunk_by_ukey
         .get(&chunk_ukey)
         .expect("Chunk not found");
-      RawSource::from(
-        include_str!("runtime/get_update_manifest_filename.js")
-          .replace("$CHUNK_ID$", &stringify_runtime(&chunk.runtime)),
-      )
+      let filename = compilation.get_path(
+        &self.filename.clone().into(),
+        PathData::default()
+          .chunk(chunk)
+          .hash(format!("' + {}() + '", RuntimeGlobals::GET_FULL_HASH).as_str())
+          .runtime(&chunk.runtime),
+      );
+      RawSource::from(format!(
+        "{} = function () {{
+            return '{}';
+         }};
+        ",
+        self.global, filename
+      ))
       .boxed()
     } else {
       unreachable!("should attach chunk for get_main_filename")
@@ -34,7 +61,4 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
   }
 }
 
-#[inline]
-fn stringify_runtime(runtime: &RuntimeSpec) -> String {
-  Vec::from_iter(runtime.iter().map(|s| s.as_str())).join("_")
-}
+impl_runtime_module!(GetMainFilenameRuntimeModule);

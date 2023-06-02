@@ -1,8 +1,8 @@
 use rspack_error::Result;
 
 use crate::{
-  CodeGeneratable, CodeGeneratableResult, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ModuleDependency,
+  CodeGeneratable, CodeGeneratableResult, Context, ContextMode, ContextOptions, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -13,20 +13,16 @@ pub struct ContextElementDependency {
   pub request: String,
   pub user_request: String,
   pub category: DependencyCategory,
-  pub context: String,
+  pub context: Context,
 }
 
 impl Dependency for ContextElementDependency {
-  fn id(&self) -> Option<&DependencyId> {
-    self.id.as_ref()
+  fn id(&self) -> Option<DependencyId> {
+    self.id
   }
 
   fn set_id(&mut self, id: Option<DependencyId>) {
     self.id = id;
-  }
-
-  fn parent_module_identifier(&self) -> Option<&crate::ModuleIdentifier> {
-    None
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -37,7 +33,7 @@ impl Dependency for ContextElementDependency {
     &DependencyType::ContextElement
   }
 
-  fn get_context(&self) -> Option<&str> {
+  fn get_context(&self) -> Option<&Context> {
     Some(&self.context)
   }
 }
@@ -55,8 +51,19 @@ impl ModuleDependency for ContextElementDependency {
     None
   }
 
+  fn weak(&self) -> bool {
+    matches!(
+      self.options.mode,
+      ContextMode::AsyncWeak | ContextMode::Weak
+    )
+  }
+
   fn options(&self) -> Option<&ContextOptions> {
     Some(&self.options)
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request;
   }
 }
 

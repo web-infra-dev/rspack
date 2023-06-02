@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _libJs = __webpack_require__.ir(__webpack_require__("./lib.js"));
+var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
 const lib = __webpack_require__("./lib.js");
 const { DO_NOT_CONVERTED9  } = __webpack_require__("./lib.js");
 equal(true, true);
@@ -203,8 +203,8 @@ assert.deepStrictEqual(USELESS, {
 });
 assert.deepStrictEqual({}.DO_NOT_CONVERTED5, undefined);
 assert.deepStrictEqual({}.DO_NOT_CONVERTED6, undefined);
-assert.deepStrictEqual(_libJs.DO_NOT_CONVERTED7, 402);
-assert.deepStrictEqual(_libJs.default, 401);
+assert.deepStrictEqual(_lib.DO_NOT_CONVERTED7, 402);
+assert.deepStrictEqual(_lib.default, 401);
 assert.deepStrictEqual(DO_NOT_CONVERTED9, 403);
 assert.deepStrictEqual(lib.DO_NOT_CONVERTED9, 403);
 try {
@@ -257,7 +257,8 @@ var _default = 401;
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

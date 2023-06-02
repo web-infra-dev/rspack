@@ -23,8 +23,8 @@ _export(exports, {
         return test;
     }
 });
-var _indexJs = __webpack_require__("./package/index.js");
-var _default = _indexJs.a;
+var _index = __webpack_require__("./package/index.js");
+var _default = _index.a;
 function test() {}
 },
 "./package/index.js": function (module, exports, __webpack_require__) {
@@ -44,7 +44,8 @@ function a() {
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

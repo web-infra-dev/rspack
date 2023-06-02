@@ -22,6 +22,18 @@ export const getNormalizedRspackOptions = (
 	config: RspackOptions
 ): RspackOptionsNormalized => {
 	return {
+		ignoreWarnings:
+			config.ignoreWarnings !== undefined
+				? config.ignoreWarnings.map(ignore => {
+						if (typeof ignore === "function") {
+							return ignore as (...args: any[]) => boolean;
+						} else {
+							return warning => {
+								return ignore.test(warning.message);
+							};
+						}
+				  })
+				: undefined,
 		name: config.name,
 		dependencies: config.dependencies,
 		context: config.context,
@@ -44,20 +56,65 @@ export const getNormalizedRspackOptions = (
 							name: libraryAsName
 					  } as LibraryOptions)
 					: undefined;
+			// DEPRECATE: remove this in after version
+			{
+				const yellow = (content: string) =>
+					`\u001b[1m\u001b[33m${content}\u001b[39m\u001b[22m`;
+				const ext = "[ext]";
+				const filenames = [
+					"filename",
+					"chunkFilename",
+					"cssFilename",
+					"cssChunkFilename"
+				] as const;
+				const checkFilename = (prop: typeof filenames[number]) => {
+					const oldFilename = output[prop];
+					if (typeof oldFilename === "string" && oldFilename.endsWith(ext)) {
+						const newFilename =
+							oldFilename.slice(0, -ext.length) +
+							(prop.includes("css") ? ".css" : ".js");
+						console.warn(
+							yellow(
+								`Deprecated: output.${prop} ends with [ext] is now deprecated, please use ${newFilename} instead.`
+							)
+						);
+						output[prop] = newFilename;
+					}
+				};
+				filenames.forEach(checkFilename);
+			}
 			return {
 				path: output.path,
 				publicPath: output.publicPath,
 				filename: output.filename,
+				clean: output.clean,
+				chunkFormat: output.chunkFormat,
+				chunkLoading: output.chunkLoading,
 				chunkFilename: output.chunkFilename,
+				crossOriginLoading: output.crossOriginLoading,
 				cssFilename: output.cssFilename,
 				cssChunkFilename: output.cssChunkFilename,
+				hotUpdateMainFilename: output.hotUpdateMainFilename,
+				hotUpdateChunkFilename: output.hotUpdateChunkFilename,
 				assetModuleFilename: output.assetModuleFilename,
+				wasmLoading: output.wasmLoading,
+				enabledChunkLoadingTypes: output.enabledChunkLoadingTypes
+					? [...output.enabledChunkLoadingTypes]
+					: ["..."],
+				enabledWasmLoadingTypes: output.enabledWasmLoadingTypes
+					? [...output.enabledWasmLoadingTypes]
+					: ["..."],
+				webassemblyModuleFilename: output.webassemblyModuleFilename,
 				uniqueName: output.uniqueName,
+				chunkLoadingGlobal: output.chunkLoadingGlobal,
 				enabledLibraryTypes: output.enabledLibraryTypes
 					? [...output.enabledLibraryTypes]
 					: ["..."],
 				globalObject: output.globalObject,
 				importFunctionName: output.importFunctionName,
+				iife: output.iife,
+				module: output.module,
+				sourceMapFilename: output.sourceMapFilename,
 				library: libraryBase && {
 					type:
 						output.libraryTarget !== undefined
@@ -76,7 +133,20 @@ export const getNormalizedRspackOptions = (
 						output.umdNamedDefine !== undefined
 							? output.umdNamedDefine
 							: libraryBase.umdNamedDefine
-				}
+				},
+				trustedTypes: optionalNestedConfig(
+					output.trustedTypes,
+					trustedTypes => {
+						if (trustedTypes === true) return {};
+						if (typeof trustedTypes === "string")
+							return { policyName: trustedTypes };
+						return { ...trustedTypes };
+					}
+				),
+				hashDigest: output.hashDigest,
+				hashDigestLength: output.hashDigestLength,
+				hashFunction: output.hashFunction,
+				hashSalt: output.hashSalt
 			};
 		}),
 		resolve: nestedConfig(config.resolve, resolve => ({
@@ -94,6 +164,7 @@ export const getNormalizedRspackOptions = (
 		target: config.target,
 		externals: config.externals,
 		externalsType: config.externalsType,
+		externalsPresets: cloneObject(config.externalsPresets),
 		infrastructureLogging: cloneObject(config.infrastructureLogging),
 		devtool: config.devtool,
 		node: nestedConfig(

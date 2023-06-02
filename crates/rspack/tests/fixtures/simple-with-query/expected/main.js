@@ -17,10 +17,10 @@ const a = 3;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _bJsx = __webpack_require__("./b.jsx");
-var _bJsX = __webpack_require__("./b.js?x");
-_bJsX.a;
-_bJsx.a;
+var _bjsx = __webpack_require__("./b.jsx");
+var _bjsx1 = __webpack_require__("./b.js?x");
+_bjsx1.a;
+_bjsx.a;
 console.log("hello, world");
 },
 "./b.jsx": function (module, exports, __webpack_require__) {
@@ -38,7 +38,8 @@ const a = 3;
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

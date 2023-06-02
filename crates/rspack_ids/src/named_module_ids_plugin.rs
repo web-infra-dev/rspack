@@ -7,7 +7,7 @@ use crate::id_helpers::{
 };
 
 #[derive(Debug, Default)]
-pub struct NamedModuleIdsPlugin {}
+pub struct NamedModuleIdsPlugin;
 
 impl Plugin for NamedModuleIdsPlugin {
   fn name(&self) -> &'static str {
@@ -16,7 +16,7 @@ impl Plugin for NamedModuleIdsPlugin {
 
   fn module_ids(&mut self, compilation: &mut rspack_core::Compilation) -> Result<()> {
     // Align with https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/ids/NamedModuleIdsPlugin.js
-    let context: &str = &compilation.options.context.to_string_lossy();
+    let context: &str = compilation.options.context.as_ref();
     let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
     let modules = modules
       .into_iter()

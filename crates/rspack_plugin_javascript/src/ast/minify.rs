@@ -1,25 +1,24 @@
-use std::sync::Arc;
+use std::{
+  collections::HashMap,
+  sync::{mpsc, Arc, Mutex},
+};
 
-use rspack_core::ModuleType;
+use regex::Regex;
+use rspack_core::{
+  rspack_sources::{RawSource, SourceExt},
+  ModuleType,
+};
 use rspack_error::{internal_error, DiagnosticKind, Error, Result, TraceableError};
 use swc_core::{
-  base::{
-    config::{IsModule, JsMinifyCommentOption, JsMinifyOptions, SourceMapsConfig},
-    BoolOr, TransformOutput,
-  },
   common::{
     collections::AHashMap,
-    comments::{Comment, Comments, SingleThreadedComments},
+    comments::{CommentKind, Comments, SingleThreadedComments},
     errors::{Emitter, Handler, HANDLER},
     BytePos, FileName, Mark, SourceMap, GLOBALS,
   },
   ecma::{
     ast::Ident,
     atoms::JsWord,
-    minifier::{
-      self,
-      option::{MinifyOptions, TopLevelOptions},
-    },
     parser::{EsConfig, Syntax},
     transforms::base::{
       fixer::fixer,
@@ -30,12 +29,25 @@ use swc_core::{
     visit::{noop_visit_type, FoldWith, Visit, VisitMutWith, VisitWith},
   },
 };
+use swc_ecma_minifier::{
+  self,
+  option::{MinifyOptions, TopLevelOptions},
+};
 
-use super::stringify::print;
-use super::{parse::parse_js, stringify::SourceMapConfig};
-use crate::utils::ecma_parse_error_to_rspack_error;
+use super::parse::parse_js;
+use super::stringify::{print, SourceMapConfig};
+use crate::{
+  utils::ecma_parse_error_to_rspack_error, ExtractedCommentsInfo, IsModule, JsMinifyOptions,
+  SourceMapsConfig, TransformOutput,
+};
 
-pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<TransformOutput> {
+pub fn minify(
+  opts: &JsMinifyOptions,
+  input: String,
+  filename: &str,
+  all_extract_comments: &Mutex<HashMap<String, ExtractedCommentsInfo>>,
+  extract_comments: &Option<String>,
+) -> Result<TransformOutput> {
   let cm: Arc<SourceMap> = Default::default();
   GLOBALS.set(&Default::default(), || -> Result<TransformOutput> {
     with_rspack_error_handler(
@@ -105,7 +117,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
 
         let comments = SingleThreadedComments::default();
 
-        let module = parse_js(
+        let program = parse_js(
           fm.clone(),
           target,
           Syntax::Es(EsConfig {
@@ -115,7 +127,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
             import_assertions: true,
             ..Default::default()
           }),
-          IsModule::Bool(true),
+          IsModule::Bool(false),
           Some(&comments),
         )
         .map_err(|errs| {
@@ -132,7 +144,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
             names: Default::default(),
           };
 
-          module.visit_with(&mut v);
+          program.visit_with(&mut v);
 
           v.names
         } else {
@@ -144,39 +156,89 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
 
         let is_mangler_enabled = min_opts.mangle.is_some();
 
-        let module = helpers::HELPERS.set(&Helpers::new(false), || {
+        let program = helpers::HELPERS.set(&Helpers::new(false), || {
           HANDLER.set(handler, || {
-            let module = module.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
+            let program = program.fold_with(&mut resolver(unresolved_mark, top_level_mark, false));
 
-            let mut module = minifier::optimize(
-              module,
+            let mut program = swc_ecma_minifier::optimize(
+              program,
               cm.clone(),
               Some(&comments),
               None,
               &min_opts,
-              &minifier::option::ExtraOptions {
+              &swc_ecma_minifier::option::ExtraOptions {
                 unresolved_mark,
                 top_level_mark,
               },
             );
 
             if !is_mangler_enabled {
-              module.visit_mut_with(&mut hygiene())
+              program.visit_mut_with(&mut hygiene())
             }
-            module.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
+            program.fold_with(&mut fixer(Some(&comments as &dyn Comments)))
           })
         });
 
-        let preserve_comments = opts
-          .format
-          .comments
-          .clone()
-          .into_inner()
-          .unwrap_or(BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments));
-        minify_file_comments(&comments, preserve_comments);
+        if let Some(extract_comments) = extract_comments {
+          let comments_file_name = filename.to_string() + ".LICENSE.txt";
+          let reg = if extract_comments.eq("true") {
+            // copied from terser-webpack-plugin
+            Regex::new(r"@preserve|@lic|@cc_on|^\**!")
+          } else {
+            Regex::new(&extract_comments[1..extract_comments.len() - 2])
+          }
+          .expect("Invalid extractComments");
+          let mut extracted_comments = vec![];
+          // add all matched comments to source
+
+          let (leading_trivial, trailing_trivial) = comments.borrow_all();
+
+          leading_trivial.iter().for_each(|(_, comments)| {
+            comments.iter().for_each(|c| {
+              if reg.is_match(&c.text) {
+                extracted_comments.push(match c.kind {
+                  CommentKind::Line => {
+                    format!("// {}", c.text)
+                  }
+                  CommentKind::Block => {
+                    format!("/*{}*/", c.text)
+                  }
+                });
+              }
+            });
+          });
+          trailing_trivial.iter().for_each(|(_, comments)| {
+            comments.iter().for_each(|c| {
+              if reg.is_match(&c.text) {
+                extracted_comments.push(match c.kind {
+                  CommentKind::Line => {
+                    format!("// {}", c.text)
+                  }
+                  CommentKind::Block => {
+                    format!("/*{}*/", c.text)
+                  }
+                });
+              }
+            });
+          });
+
+          // if not matched comments, we don't need to emit .License.txt file
+          if !extracted_comments.is_empty() {
+            all_extract_comments
+              .lock()
+              .expect("all_extract_comments lock failed")
+              .insert(
+                filename.to_string(),
+                ExtractedCommentsInfo {
+                  source: RawSource::Source(extracted_comments.join("\n\n")).boxed(),
+                  comments_file_name,
+                },
+              );
+          }
+        }
 
         print(
-          &module,
+          &program,
           cm.clone(),
           target,
           SourceMapConfig {
@@ -186,7 +248,7 @@ pub fn minify(opts: &JsMinifyOptions, input: String, filename: &str) -> Result<T
             names: source_map_names,
           },
           true,
-          Some(&comments),
+          None,
           opts.format.ascii_only,
         )
       },
@@ -206,36 +268,9 @@ impl Visit for IdentCollector {
   }
 }
 
-fn minify_file_comments(
-  comments: &SingleThreadedComments,
-  preserve_comments: BoolOr<JsMinifyCommentOption>,
-) {
-  match preserve_comments {
-    BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => {}
-
-    BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
-      let preserve_excl = |_: &BytePos, vc: &mut Vec<Comment>| -> bool {
-        // Preserve license comments.
-        vc.retain(|c: &Comment| c.text.contains("@license") || c.text.starts_with('!'));
-        !vc.is_empty()
-      };
-      let (mut l, mut t) = comments.borrow_all_mut();
-
-      l.retain(preserve_excl);
-      t.retain(preserve_excl);
-    }
-
-    BoolOr::Bool(false) => {
-      let (mut l, mut t) = comments.borrow_all_mut();
-      l.clear();
-      t.clear();
-    }
-  }
-}
-
 // keep this private to make sure with_rspack_error_handler is safety
 struct RspackErrorEmitter {
-  tx: crossbeam_channel::Sender<rspack_error::Error>,
+  tx: mpsc::Sender<rspack_error::Error>,
   source_map: Arc<SourceMap>,
   title: String,
   kind: DiagnosticKind,
@@ -279,7 +314,7 @@ pub fn with_rspack_error_handler<F, Ret>(
 where
   F: FnOnce(&Handler) -> Result<Ret>,
 {
-  let (tx, rx) = crossbeam_channel::unbounded();
+  let (tx, rx) = mpsc::channel();
   let emitter = RspackErrorEmitter {
     title,
     kind,

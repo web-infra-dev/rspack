@@ -7,10 +7,10 @@ Object.defineProperty(exports, "__esModule", {
 Object.defineProperty(exports, "b", {
     enumerable: true,
     get: function() {
-        return _bJs.default;
+        return _b.default;
     }
 });
-var _bJs = __webpack_require__.ir(__webpack_require__("./b.js"));
+var _b = __webpack_require__.ir(__webpack_require__("./b.js"));
 },
 "./b.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -23,8 +23,8 @@ Object.defineProperty(exports, "default", {
         return _default;
     }
 });
-var _cJs = __webpack_require__.ir(__webpack_require__("./c.js"));
-var _default = 2000 + _cJs.default;
+var _c = __webpack_require__.ir(__webpack_require__("./c.js"));
+var _default = 2000 + _c.default;
 },
 "./c.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -44,12 +44,13 @@ var _default = 10;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _aJs = __webpack_require__("./a.js");
-_aJs.b;
+var _a = __webpack_require__("./a.js");
+_a.b;
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

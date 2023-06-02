@@ -13,15 +13,14 @@ async function build() {
 			"--platform",
 			"--dts",
 			"binding.d.ts",
-			"--js",
-			"false"
+			"--no-js"
 		];
 		if (release) {
 			args.push("--release");
 		}
 
 		if (process.env.USE_ZIG) {
-			args.push("--zig");
+			args.push("--cross-compile");
 		}
 
 		if (process.env.RUST_TARGET) {

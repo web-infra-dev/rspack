@@ -1,6 +1,14 @@
-use std::fmt::Debug;
+use std::{
+  fmt::{self, Debug},
+  future::Future,
+};
 
+use async_recursion::async_recursion;
+use derivative::Derivative;
+use futures::future::BoxFuture;
+use rspack_error::Result;
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{BoxLoader, Filename, ModuleType, Resolve};
 
@@ -23,21 +31,40 @@ pub struct AssetGeneratorOptions {
   pub filename: Option<Filename>,
 }
 
-#[derive(Debug)]
+pub type DescriptionData = HashMap<String, RuleSetCondition>;
+
+pub type RuleSetConditionFnMatcher =
+  Box<dyn Fn(&str) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
 pub enum RuleSetCondition {
   String(String),
   Regexp(RspackRegex),
   Logical(Box<RuleSetLogicalConditions>),
   Array(Vec<RuleSetCondition>),
+  Func(RuleSetConditionFnMatcher),
+}
+
+impl fmt::Debug for RuleSetCondition {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::String(i) => i.fmt(f),
+      Self::Regexp(i) => i.fmt(f),
+      Self::Logical(i) => i.fmt(f),
+      Self::Array(i) => i.fmt(f),
+      Self::Func(_) => "Func(...)".fmt(f),
+    }
+  }
 }
 
 impl RuleSetCondition {
-  pub fn is_match(&self, data: &str) -> bool {
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> Result<bool> {
     match self {
-      Self::String(s) => data.starts_with(s),
-      Self::Regexp(r) => r.test(data),
-      Self::Logical(g) => g.is_match(data),
-      Self::Array(l) => l.iter().any(|i| i.is_match(data)),
+      Self::String(s) => Ok(data.starts_with(s)),
+      Self::Regexp(r) => Ok(r.test(data)),
+      Self::Logical(g) => g.try_match(data).await,
+      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
+      Self::Func(f) => f(data).await,
     }
   }
 }
@@ -50,21 +77,51 @@ pub struct RuleSetLogicalConditions {
 }
 
 impl RuleSetLogicalConditions {
-  pub fn is_match(&self, data: &str) -> bool {
-    if let Some(and) = &self.and && and.iter().any(|i| !i.is_match(data)) {
-      return false
+  #[async_recursion]
+  pub async fn try_match(&self, data: &str) -> Result<bool> {
+    if let Some(and) = &self.and && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
+      return Ok(false)
     }
-    if let Some(or) = &self.or && or.iter().all(|i| !i.is_match(data)) {
-      return false
+    if let Some(or) = &self.or && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await? {
+      return Ok(false)
     }
-    if let Some(not) = &self.not && not.is_match(data) {
-      return false
+    if let Some(not) = &self.not && not.try_match(data).await? {
+      return Ok(false)
     }
-    true
+    Ok(true)
   }
 }
 
-#[derive(Default)]
+pub async fn try_any<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
+where
+  Fut: Future<Output = Result<bool>>,
+  F: Fn(T) -> Fut,
+{
+  let it = it.into_iter();
+  for i in it {
+    if f(i).await? {
+      return Ok(true);
+    }
+  }
+  Ok(false)
+}
+
+async fn try_all<T, Fut, F>(it: impl IntoIterator<Item = T>, f: F) -> Result<bool>
+where
+  Fut: Future<Output = Result<bool>>,
+  F: Fn(T) -> Fut,
+{
+  let it = it.into_iter();
+  for i in it {
+    if !(f(i).await?) {
+      return Ok(false);
+    }
+  }
+  Ok(true)
+}
+
+#[derive(Derivative, Default)]
+#[derivative(Debug)]
 pub struct ModuleRule {
   /// A condition matcher matching an absolute path.
   pub test: Option<RuleSetCondition>,
@@ -74,35 +131,46 @@ pub struct ModuleRule {
   pub resource: Option<RuleSetCondition>,
   /// A condition matcher against the resource query.
   pub resource_query: Option<RuleSetCondition>,
+  pub resource_fragment: Option<RuleSetCondition>,
+  pub dependency: Option<RuleSetCondition>,
+  pub issuer: Option<RuleSetCondition>,
+  pub scheme: Option<RuleSetCondition>,
+  pub mimetype: Option<RuleSetCondition>,
+  pub description_data: Option<DescriptionData>,
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
+  #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: Vec<BoxLoader>,
   pub parser: Option<AssetParserOptions>,
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,
-  pub issuer: Option<RuleSetCondition>,
   pub one_of: Option<Vec<ModuleRule>>,
+  pub rules: Option<Vec<ModuleRule>>,
+  pub enforce: ModuleRuleEnforce,
 }
 
-impl Debug for ModuleRule {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("ModuleRule")
-      .field("test", &self.test)
-      .field("include", &self.include)
-      .field("exclude", &self.exclude)
-      .field("resource", &self.resource)
-      .field("resource_query", &self.resource_query)
-      .field("type", &self.r#type)
-      .field("resolve", &self.resolve)
-      .field("parser", &self.parser)
-      .field("generator", &self.generator)
-      .field("use", &self.r#use)
-      .field("side_effects", &self.side_effects)
-      .field("issuer", &self.issuer)
-      .field("one_of", &self.one_of)
-      .finish()
-  }
+fn fmt_use(
+  r#use: &[BoxLoader],
+  f: &mut std::fmt::Formatter,
+) -> std::result::Result<(), std::fmt::Error> {
+  write!(
+    f,
+    "{}",
+    r#use
+      .iter()
+      .map(|l| l.identifier().to_string())
+      .collect::<Vec<_>>()
+      .join("!")
+  )
+}
+
+#[derive(Debug, Default)]
+pub enum ModuleRuleEnforce {
+  Post,
+  #[default]
+  Normal,
+  Pre,
 }
 
 #[derive(Debug, Default)]

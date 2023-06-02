@@ -62,6 +62,46 @@ module.exports = {
 				}
 			]
 		},
+		ChunkFormat: {
+			description:
+				"The format of chunks (formats included by default are 'array-push' (web/WebWorker), 'commonjs' (node.js), 'module' (ESM), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: ["array-push", "commonjs", "module", false]
+				},
+				{
+					type: "string"
+				}
+			]
+		},
+		ChunkLoading: {
+			description:
+				"The method of loading chunks (methods included by default are 'jsonp' (web), 'import' (ESM), 'importScripts' (WebWorker), 'require' (sync node.js), 'async-node' (async node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: [false]
+				},
+				{
+					$ref: "#/definitions/ChunkLoadingType"
+				}
+			]
+		},
+		ChunkLoadingType: {
+			description:
+				"The method of loading chunks (methods included by default are 'jsonp' (web), 'import' (ESM), 'importScripts' (WebWorker), 'require' (sync node.js), 'async-node' (async node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: ["jsonp", "import-scripts", "require", "async-node", "import"]
+				},
+				{
+					type: "string"
+				}
+			]
+		},
+		CrossOriginLoading: {
+			description: "This option enables cross-origin loading of chunks.",
+			enum: [false, "anonymous", "use-credentials"]
+		},
 		Context: {
 			description:
 				"The base directory (absolute path!) for resolving the `entry` option. If `output.pathinfo` is set, the included pathinfo is shortened to this directory.",
@@ -82,6 +122,90 @@ module.exports = {
 			oneOf: [
 				{
 					$ref: "#/definitions/FilenameTemplate"
+				}
+			]
+		},
+		HotUpdateChunkFilename: {
+			description:
+				"The filename of the Hot Update Chunks. They are inside the output.path directory.",
+			type: "string",
+			absolutePath: false
+		},
+		HotUpdateMainFilename: {
+			description:
+				"The filename of the Hot Update Main File. It is inside the 'output.path' directory.",
+			type: "string",
+			absolutePath: false
+		},
+		HashDigest: {
+			description: "Digest type used for the hash.",
+			type: "string"
+		},
+		HashDigestLength: {
+			description: "Number of chars which are used for the hash.",
+			type: "number",
+			minimum: 1
+		},
+		HashFunction: {
+			description:
+				"Algorithm used for generation the hash (see node.js crypto package).",
+			anyOf: [
+				{
+					type: "string",
+					minLength: 1
+				},
+				{
+					instanceof: "Function"
+				}
+			]
+		},
+		HashSalt: {
+			description: "Any string which is added to the hash to salt it.",
+			type: "string",
+			minLength: 1
+		},
+		WebassemblyModuleFilename: {
+			description:
+				"The filename of WebAssembly modules as relative path inside the 'output.path' directory.",
+			type: "string"
+		},
+		EnabledWasmLoadingTypes: {
+			description:
+				"List of wasm loading types enabled for use by entry points.",
+			type: "array",
+			items: {
+				$ref: "#/definitions/WasmLoadingType"
+			}
+		},
+		EnabledChunkLoadingTypes: {
+			description:
+				"List of chunk loading types enabled for use by entry points.",
+			type: "array",
+			items: {
+				$ref: "#/definitions/ChunkLoadingType"
+			}
+		},
+		WasmLoading: {
+			description:
+				"The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: [false]
+				},
+				{
+					$ref: "#/definitions/WasmLoadingType"
+				}
+			]
+		},
+		WasmLoadingType: {
+			description:
+				"The method of loading WebAssembly Modules (methods included by default are 'fetch' (web/WebWorker), 'async-node' (node.js), but others might be added by plugins).",
+			anyOf: [
+				{
+					enum: ["fetch-streaming", "fetch", "async-node"]
+				},
+				{
+					type: "string"
 				}
 			]
 		},
@@ -129,14 +253,16 @@ module.exports = {
 		EntryDescription: {
 			description: "An object with entry point description.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				import: {
 					$ref: "#/definitions/EntryItem"
 				},
 				runtime: {
 					$ref: "#/definitions/EntryRuntime"
+				},
+				wasmLoading: {
+					$ref: "#/definitions/WasmLoading"
 				}
 			},
 			required: ["import"]
@@ -228,6 +354,10 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				asyncWebAssembly: {
+					description: "Support WebAssembly as asynchronous EcmaScript Module.",
+					type: "boolean"
+				},
 				incrementalRebuild: {
 					description: "Rebuild incrementally",
 					type: "boolean"
@@ -240,6 +370,18 @@ module.exports = {
 							type: "boolean"
 						}
 					]
+				},
+				outputModule: {
+					description: "Allow output javascript files as module source type.",
+					type: "boolean"
+				},
+				newSplitChunks: {
+					description: "Enable new SplitChunksPlugin",
+					type: "boolean"
+				},
+				css: {
+					description: "Enable native css support.",
+					type: "boolean"
 				}
 			}
 		},
@@ -247,6 +389,10 @@ module.exports = {
 			description:
 				"Specify dependency that shouldn't be resolved by rspack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
 			anyOf: [
+				{
+					description: "Every matched dependency becomes external.",
+					instanceof: "RegExp"
+				},
 				{
 					description:
 						"An exact matched dependency becomes external. The same string is used as external dependency.",
@@ -259,6 +405,11 @@ module.exports = {
 					additionalProperties: {
 						$ref: "#/definitions/ExternalItemValue"
 					}
+				},
+				{
+					description:
+						"The function is called on each dependency (`function(context, request, callback(err, result))`).",
+					instanceof: "Function"
 				}
 			]
 		},
@@ -266,8 +417,21 @@ module.exports = {
 			description: "The dependency used for the external.",
 			anyOf: [
 				{
+					type: "array",
+					items: {
+						description: "A part of the target of the external.",
+						type: "string",
+						minLength: 1
+					}
+				},
+				{
 					description: "The target of the external.",
 					type: "string"
+				},
+				{
+					description:
+						"`true`: The dependency name is used as target of the external.",
+					type: "boolean"
 				}
 			]
 		},
@@ -276,9 +440,27 @@ module.exports = {
 				"Specify dependencies that shouldn't be resolved by rspack, but should become dependencies of the resulting bundle. The kind of the dependency depends on `output.libraryTarget`.",
 			anyOf: [
 				{
+					type: "array",
+					items: {
+						$ref: "#/definitions/ExternalItem"
+					}
+				},
+				{
 					$ref: "#/definitions/ExternalItem"
 				}
 			]
+		},
+		ExternalsPresets: {
+			description: "Enable presets of externals for specific targets.",
+			type: "object",
+			additionalProperties: false,
+			properties: {
+				node: {
+					description:
+						"Treat node.js built-in modules like fs, path or vm as external and load them via require() when used.",
+					type: "boolean"
+				}
+			}
 		},
 		ExternalsType: {
 			description:
@@ -308,6 +490,15 @@ module.exports = {
 			]
 		},
 		Filename: {
+			description:
+				"Specifies the filename of output files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.",
+			oneOf: [
+				{
+					$ref: "#/definitions/FilenameTemplate"
+				}
+			]
+		},
+		SourceMapFilename: {
 			description:
 				"Specifies the filename of output files on disk. You must **not** specify an absolute path here, but the path may contain folders separated by '/'! The specified path is joined with the value of the 'output.path' option to determine the location on disk.",
 			oneOf: [
@@ -586,6 +777,20 @@ module.exports = {
 			description: "Enable production optimizations or development hints.",
 			enum: ["development", "production", "none"]
 		},
+		IgnoreWarnings: {
+			description: "ignore warnings based on pattern",
+			type: "array",
+			items: {
+				anyOf: [
+					{
+						instanceof: "RegExp"
+					},
+					{
+						instanceof: "Function"
+					}
+				]
+			}
+		},
 		ModuleOptions: {
 			description:
 				"Options affecting the normal modules (`NormalModuleFactory`).",
@@ -638,6 +843,10 @@ module.exports = {
 					description: "Include a polyfill for the '__dirname' variable.",
 					enum: [false, true, "warn-mock", "mock", "eval-only"]
 				},
+				__filename: {
+					description: "Include a polyfill for the '__filename' variable.",
+					enum: [false, true, "warn-mock", "mock", "eval-only"]
+				},
 				global: {
 					description: "Include a polyfill for the 'global' variable.",
 					enum: [false, true, "warn"]
@@ -647,8 +856,7 @@ module.exports = {
 		Optimization: {
 			description: "Enables/Disables integrated optimizations.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				chunkIds: {
 					description:
@@ -688,6 +896,10 @@ module.exports = {
 						"Removes modules from chunks when these modules are already included in all parents.",
 					type: "boolean"
 				},
+				removeEmptyChunks: {
+					description: "Remove chunks which are empty.",
+					type: "boolean"
+				},
 				runtimeChunk: {
 					$ref: "#/definitions/OptimizationRuntimeChunk"
 				},
@@ -714,6 +926,11 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksOptions"
 						}
 					]
+				},
+				realContentHash: {
+					description:
+						"Use real [contenthash] based on final content of the assets.",
+					type: "boolean"
 				}
 			}
 		},
@@ -750,8 +967,7 @@ module.exports = {
 			description:
 				"Options object for describing behavior of a cache group selecting modules that should be cached together.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				chunks: {
 					description:
@@ -795,11 +1011,30 @@ module.exports = {
 						"Try to reuse existing chunk (with name) when it has matching modules.",
 					type: "boolean"
 				},
+				enforce: {
+					description:
+						"ignore splitChunks.minSize, splitChunks.minChunks, splitChunks.maxAsyncRequests and splitChunks.maxInitialRequests options and always create chunks for this cache group.",
+					type: "boolean"
+				},
+				hidePathInfo: {
+					type: "boolean"
+				},
+				maxSize: {
+					type: "number"
+				},
 				test: {
 					description: "Assign modules to a cache group by module name.",
 					anyOf: [
 						{
 							instanceof: "RegExp"
+						}
+					]
+				},
+				minSize: {
+					description: "Minimal size for the created chunks.",
+					oneOf: [
+						{
+							$ref: "#/definitions/OptimizationSplitChunksSizes"
 						}
 					]
 				}
@@ -808,9 +1043,36 @@ module.exports = {
 		OptimizationSplitChunksOptions: {
 			description: "Options object for splitting chunks into smaller chunks.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
+				fallbackCacheGroup: {
+					type: "object",
+					properties: {
+						maxSize: {
+							type: "number"
+						},
+						maxInitialSize: {
+							type: "number"
+						},
+						maxAsyncSize: {
+							type: "number"
+						},
+						minSize: {
+							type: "number"
+						}
+					}
+				},
+				hidePathInfo: {
+					type: "boolean"
+				},
+				name: {
+					description: "The name or name for chunks.",
+					anyOf: [
+						{
+							type: "string"
+						}
+					]
+				},
 				cacheGroups: {
 					description:
 						"Assign modules to a cache group (modules from different cache groups are tried to keep in separate chunks, default categories: 'default', 'defaultVendors').",
@@ -876,6 +1138,20 @@ module.exports = {
 							$ref: "#/definitions/OptimizationSplitChunksSizes"
 						}
 					]
+				},
+				maxSize: {
+					type: "number"
+				},
+				maxInitialSize: {
+					type: "number"
+				},
+				maxAsyncSize: {
+					type: "number"
+				},
+				reuseExistingChunk: {
+					description:
+						"If the current chunk contains modules already split out from the main bundle, it will be reused instead of a new one being generated. This can affect the resulting file name of the chunk.",
+					type: "boolean"
 				}
 			}
 		},
@@ -889,13 +1165,27 @@ module.exports = {
 				}
 			]
 		},
+		Iife: {
+			description:
+				"Wrap javascript code into IIFE's to avoid leaking into global scope.",
+			type: "boolean"
+		},
+		Clean: {
+			description: "Clears the output build directory",
+			type: "boolean"
+		},
 		Output: {
 			description:
 				"Options affecting the output of the compilation. `output` options tell rspack how to write the compiled files to disk.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
+				iife: {
+					$ref: "#/definitions/Iife"
+				},
+				clean: {
+					$ref: "#/definitions/Clean"
+				},
 				assetModuleFilename: {
 					$ref: "#/definitions/AssetModuleFilename"
 				},
@@ -906,14 +1196,41 @@ module.exports = {
 						}
 					]
 				},
+				chunkFormat: {
+					$ref: "#/definitions/ChunkFormat"
+				},
+				chunkLoading: {
+					$ref: "#/definitions/ChunkLoading"
+				},
+				enabledChunkLoadingTypes: {
+					$ref: "#/definitions/EnabledChunkLoadingTypes"
+				},
 				chunkFilename: {
 					$ref: "#/definitions/ChunkFilename"
+				},
+				crossOriginLoading: {
+					$ref: "#/definitions/CrossOriginLoading"
 				},
 				cssChunkFilename: {
 					$ref: "#/definitions/CssChunkFilename"
 				},
 				cssFilename: {
 					$ref: "#/definitions/CssFilename"
+				},
+				hotUpdateChunkFilename: {
+					$ref: "#/definitions/HotUpdateChunkFilename"
+				},
+				hotUpdateMainFilename: {
+					$ref: "#/definitions/HotUpdateMainFilename"
+				},
+				enabledWasmLoadingTypes: {
+					$ref: "#/definitions/EnabledWasmLoadingTypes"
+				},
+				wasmLoading: {
+					$ref: "#/definitions/WasmLoading"
+				},
+				webassemblyModuleFilename: {
+					$ref: "#/definitions/WebassemblyModuleFilename"
 				},
 				enabledLibraryTypes: {
 					$ref: "#/definitions/EnabledLibraryTypes"
@@ -965,6 +1282,42 @@ module.exports = {
 				},
 				uniqueName: {
 					$ref: "#/definitions/UniqueName"
+				},
+				chunkLoadingGlobal: {
+					$ref: "#/definitions/ChunkLoadingGlobal"
+				},
+				trustedTypes: {
+					description:
+						"Use a Trusted Types policy to create urls for chunks. 'output.uniqueName' is used a default policy name. Passing a string sets a custom policy name.",
+					anyOf: [
+						{
+							enum: [true]
+						},
+						{
+							description:
+								"The name of the Trusted Types policy created by webpack to serve bundle chunks.",
+							type: "string",
+							minLength: 1
+						},
+						{
+							$ref: "#/definitions/TrustedTypes"
+						}
+					]
+				},
+				sourceMapFilename: {
+					$ref: "#/definitions/SourceMapFilename"
+				},
+				hashDigest: {
+					$ref: "#/definitions/HashDigest"
+				},
+				hashDigestLength: {
+					$ref: "#/definitions/HashDigestLength"
+				},
+				hashFunction: {
+					$ref: "#/definitions/HashFunction"
+				},
+				hashSalt: {
+					$ref: "#/definitions/HashSalt"
 				}
 			}
 		},
@@ -1068,8 +1421,7 @@ module.exports = {
 		ResolveOptions: {
 			description: "Options object for resolving requests.",
 			type: "object",
-			// TODO: change to false once all properties is aligned with webpack
-			additionalProperties: true,
+			additionalProperties: false,
 			properties: {
 				alias: {
 					$ref: "#/definitions/ResolveAlias"
@@ -1085,6 +1437,29 @@ module.exports = {
 					items: {
 						description: "Condition names for exports field entry point.",
 						type: "string"
+					}
+				},
+				extensionAlias: {
+					description: "An object which maps extension to extension aliases.",
+					type: "object",
+					additionalProperties: {
+						description: "Extension alias.",
+						anyOf: [
+							{
+								description: "Multiple extensions.",
+								type: "array",
+								items: {
+									description: "Aliased extension.",
+									type: "string",
+									minLength: 1
+								}
+							},
+							{
+								description: "Aliased extension.",
+								type: "string",
+								minLength: 1
+							}
+						]
 					}
 				},
 				extensions: {
@@ -1104,6 +1479,11 @@ module.exports = {
 							$ref: "#/definitions/ResolveAlias"
 						}
 					]
+				},
+				fullySpecified: {
+					description:
+						"Treats the request specified by the user as fully specified, meaning no extensions are added and the mainFiles in directories are not resolved (This doesn't affect requests from mainFields, aliasFields or aliases).",
+					type: "boolean"
 				},
 				mainFields: {
 					description:
@@ -1154,9 +1534,32 @@ module.exports = {
 						"Prefer to resolve module requests as relative request and fallback to resolving as module.",
 					type: "boolean"
 				},
+				byDependency: {
+					description:
+						'Extra resolve options per dependency category. Typical categories are "commonjs", "amd", "esm".',
+					type: "object",
+					additionalProperties: {
+						description: "Options object for resolving requests.",
+						oneOf: [
+							{
+								$ref: "#/definitions/ResolveOptions"
+							}
+						]
+					}
+				},
 				tsConfigPath: {
 					description: "Path to tsconfig.json",
 					type: "string"
+				},
+				exportsFields: {
+					description:
+						"Fields in the description file (usually package.json) which are used to redirect requests inside the module.",
+					type: "array",
+					items: {
+						description:
+							"Field name from the description file (package.json) which are used to find the default entry point.",
+						type: "string"
+					}
 				}
 			}
 		},
@@ -1168,6 +1571,9 @@ module.exports = {
 				},
 				{
 					type: "string"
+				},
+				{
+					instanceof: "Function"
 				},
 				{
 					$ref: "#/definitions/RuleSetLogicalConditions"
@@ -1253,6 +1659,10 @@ module.exports = {
 			type: "object",
 			additionalProperties: false,
 			properties: {
+				enforce: {
+					description: "Enforce this rule as pre or post step.",
+					enum: ["pre", "post"]
+				},
 				exclude: {
 					description: "Shortcut for resource.exclude.",
 					oneOf: [
@@ -1281,6 +1691,22 @@ module.exports = {
 							$ref: "#/definitions/RuleSetConditionOrConditions"
 						}
 					]
+				},
+				dependency: {
+					description: "Match dependency type.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetConditionOrConditions"
+						}
+					]
+				},
+				descriptionData: {
+					description:
+						"Match values of properties in the description file (usually package.json).",
+					type: "object",
+					additionalProperties: {
+						$ref: "#/definitions/RuleSetConditionOrConditions"
+					}
 				},
 				oneOf: {
 					description: "Only execute the first matching rule in this array.",
@@ -1326,6 +1752,38 @@ module.exports = {
 				},
 				resourceQuery: {
 					description: "Match the resource query of the module.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetConditionOrConditions"
+						}
+					]
+				},
+				mimetype: {
+					description: "Match module mimetype when load from Data URI.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetConditionOrConditions"
+						}
+					]
+				},
+				loader: {
+					description: "Shortcut for use.loader.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetLoader"
+						}
+					]
+				},
+				options: {
+					description: "Shortcut for use.options.",
+					oneOf: [
+						{
+							$ref: "#/definitions/RuleSetLoaderOptions"
+						}
+					]
+				},
+				scheme: {
+					description: "Match module scheme.",
 					oneOf: [
 						{
 							$ref: "#/definitions/RuleSetConditionOrConditions"
@@ -1561,6 +2019,32 @@ module.exports = {
 				warningsCount: {
 					description: "Add warnings count.",
 					type: "boolean"
+				},
+				outputPath: {
+					description: "Add output path information.",
+					type: "boolean"
+				},
+				chunkModules: {
+					description: "Add built modules information to chunk information.",
+					type: "boolean"
+				},
+				chunkRelations: {
+					description:
+						"Add information about parent, children and sibling chunks to chunk information.",
+					type: "boolean"
+				},
+				timings: {
+					description: "Add timing information.",
+					type: "boolean"
+				},
+				builtAt: {
+					description: "Add built at time information.",
+					type: "boolean"
+				},
+				nestedModules: {
+					description:
+						"Add information about modules nested in other modules (like with module concatenation).",
+					type: "boolean"
 				}
 			}
 		},
@@ -1605,6 +2089,19 @@ module.exports = {
 				}
 			]
 		},
+		TrustedTypes: {
+			description: "Use a Trusted Types policy to create urls for chunks.",
+			type: "object",
+			additionalProperties: false,
+			properties: {
+				policyName: {
+					description:
+						"The name of the Trusted Types policy created by webpack to serve bundle chunks.",
+					type: "string",
+					minLength: 1
+				}
+			}
+		},
 		UmdNamedDefine: {
 			description:
 				"If `output.libraryTarget` is set to umd and `output.library` is set, setting this to true will name the AMD module.",
@@ -1613,6 +2110,11 @@ module.exports = {
 		UniqueName: {
 			description:
 				"A unique name of the rspack build to avoid multiple rspack runtimes to conflict when using globals.",
+			type: "string",
+			minLength: 1
+		},
+		ChunkLoadingGlobal: {
+			description: "The global variable used by rspack for loading of chunks.",
 			type: "string",
 			minLength: 1
 		},
@@ -1698,8 +2200,7 @@ module.exports = {
 	title: "RspackOptions",
 	description: "Options object as provided by the user.",
 	type: "object",
-	// TODO: change to false once all properties is aligned with webpack
-	additionalProperties: true,
+	additionalProperties: false,
 	properties: {
 		cache: {
 			$ref: "#/definitions/CacheOptions"
@@ -1727,6 +2228,9 @@ module.exports = {
 		},
 		externalsType: {
 			$ref: "#/definitions/ExternalsType"
+		},
+		externalsPresets: {
+			$ref: "#/definitions/ExternalsPresets"
 		},
 		infrastructureLogging: {
 			$ref: "#/definitions/InfrastructureLogging"
@@ -1774,6 +2278,9 @@ module.exports = {
 			description: "Builtins features in rspack",
 			type: "object",
 			additionalProperties: true
+		},
+		ignoreWarnings: {
+			$ref: "#/definitions/IgnoreWarnings"
 		}
 	}
 };

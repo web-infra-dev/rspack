@@ -1,12 +1,12 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use once_cell::sync::Lazy;
-use rspack_core::{contextify, ModuleType, ReactOptions};
+use rspack_core::{ModuleType, ReactOptions};
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
-use swc_core::ecma::ast::{CallExpr, Callee, Expr, Module, Program};
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Ident, ModuleItem, Program, Script};
 use swc_core::ecma::transforms::react::RefreshOptions;
 use swc_core::ecma::transforms::react::{react as swc_react, Options};
-use swc_core::ecma::visit::{Fold, Visit, VisitWith};
+use swc_core::ecma::visit::{noop_visit_type, Fold, Visit, VisitWith};
 
 use crate::ast::parse_js_code;
 
@@ -15,6 +15,7 @@ pub fn react<'a>(
   comments: Option<&'a SingleThreadedComments>,
   cm: &Arc<SourceMap>,
   options: &ReactOptions,
+  unresolved_mark: Mark,
 ) -> impl Fold + 'a {
   swc_react(
     cm.clone(),
@@ -33,88 +34,89 @@ pub fn react<'a>(
       pragma_frag: options.pragma_frag.clone(),
       throw_if_namespace: options.throw_if_namespace,
       development: options.development,
-      use_builtins: options.use_builtins,
-      use_spread: options.use_spread,
       ..Default::default()
     },
     top_level_mark,
+    unresolved_mark,
   )
 }
 
-pub fn fold_react_refresh(context: &Path, uri: &str) -> impl Fold {
-  ReactHmrFolder {
-    id: contextify(context, uri),
-  }
+pub fn fold_react_refresh() -> impl Fold {
+  ReactHmrFolder {}
 }
 
-pub struct FoundReactRefreshVisitor {
-  pub is_refresh_boundary: bool,
+#[derive(Default)]
+struct ReactRefreshUsageFinder {
+  pub is_founded: bool,
 }
 
-impl Visit for FoundReactRefreshVisitor {
-  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
-    if let Callee::Expr(expr) = &call_expr.callee {
-      if let Expr::Ident(ident) = &**expr {
-        if "$RefreshReg$".eq(&ident.sym) {
-          self.is_refresh_boundary = true;
-        }
+impl Visit for ReactRefreshUsageFinder {
+  noop_visit_type!();
+
+  fn visit_module_items(&mut self, items: &[ModuleItem]) {
+    for item in items {
+      item.visit_children_with(self);
+      if self.is_founded {
+        return;
       }
     }
+  }
+
+  fn visit_call_expr(&mut self, call_expr: &CallExpr) {
+    if self.is_founded {
+      return;
+    }
+
+    self.is_founded = matches!(call_expr, CallExpr {
+      callee: Callee::Expr(box Expr::Ident(Ident { sym, .. })),
+      ..
+    } if sym == "$RefreshReg$" || sym == "$RefreshSig$");
+
+    if self.is_founded {
+      return;
+    }
+
+    call_expr.visit_children_with(self);
   }
 }
 
 // __webpack_require__.$ReactRefreshRuntime$ is injected by the react-refresh additional entry
-static HMR_HEADER: &str = r#"var RefreshRuntime = __webpack_require__.m.$ReactRefreshRuntime$;
-var prevRefreshReg;
-var prevRefreshSig;
-prevRefreshReg = globalThis.$RefreshReg$;
-prevRefreshSig = globalThis.$RefreshSig$;
-globalThis.$RefreshReg$ = (type, id) => {
-  RefreshRuntime.register(type, "__SOURCE__" + "_" + id);
-};
-globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;"#;
-
-static HMR_FOOTER: &str = r#"var RefreshRuntime = __webpack_require__.m.$ReactRefreshRuntime$;
-globalThis.$RefreshReg$ = prevRefreshReg;
-globalThis.$RefreshSig$ = prevRefreshSig;
-module.hot.accept();
-RefreshRuntime.queueUpdate();
+// See https://github.com/web-infra-dev/rspack/pull/2714 why we have a promise here
+static RUNTIME_CODE: &str = r#"
+function $RefreshReg$(type, id) {
+  __webpack_modules__.$ReactRefreshRuntime$.register(type, __webpack_module__.id+ "_" + id);
+}
+Promise.resolve().then(function(){
+  __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
+})
 "#;
 
-static HMR_FOOTER_AST: Lazy<Program> =
-  Lazy::new(|| parse_js_code(HMR_FOOTER.to_string(), &ModuleType::Js).expect("TODO:"));
+static RUNTIME_CODE_AST: Lazy<Script> = Lazy::new(|| {
+  parse_js_code(RUNTIME_CODE.to_string(), &ModuleType::Js)
+    .expect("TODO:")
+    .expect_script()
+});
 
-pub struct ReactHmrFolder {
-  pub id: String,
-}
+pub struct ReactHmrFolder;
 
 impl Fold for ReactHmrFolder {
-  fn fold_module(&mut self, mut module: Module) -> Module {
-    let mut f = FoundReactRefreshVisitor {
-      is_refresh_boundary: false,
+  fn fold_program(&mut self, mut program: Program) -> Program {
+    let mut f = ReactRefreshUsageFinder::default();
+
+    program.visit_with(&mut f);
+    if !f.is_founded {
+      return program;
+    }
+
+    let rumtime_stmts = RUNTIME_CODE_AST.body.clone();
+
+    match program {
+      Program::Module(ref mut m) => m
+        .body
+        .extend(rumtime_stmts.into_iter().map(ModuleItem::Stmt)),
+      Program::Script(ref mut s) => s.body.extend(rumtime_stmts),
     };
 
-    module.visit_with(&mut f);
-    if !f.is_refresh_boundary {
-      return module;
-    }
-    // TODO: cache the ast
-    let hmr_header_ast = parse_js_code(
-      HMR_HEADER.replace("__SOURCE__", self.id.as_str()),
-      &ModuleType::Js,
-    )
-    .expect("TODO:");
-
-    let mut body = vec![];
-    body.append(&mut match hmr_header_ast {
-      Program::Module(m) => m.body,
-      _ => vec![],
-    });
-    body.append(&mut module.body);
-    if let Some(m) = HMR_FOOTER_AST.as_module() {
-      body.append(&mut m.body.clone());
-    }
-
-    Module { body, ..module }
+    program
   }
 }

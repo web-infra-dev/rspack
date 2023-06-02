@@ -1,28 +1,37 @@
+import semver from "semver";
 import { hideBin } from "yargs/helpers";
 import yargs from "yargs";
 import util from "util";
-import path from "path";
-import fs from "fs";
-import { RspackCLIColors, RspackCLILogger, RspackCLIOptions } from "./types";
+import {
+	RspackBuildCLIOptions,
+	RspackCLIColors,
+	RspackCLILogger,
+	RspackCLIOptions
+} from "./types";
 import { BuildCommand } from "./commands/build";
 import { ServeCommand } from "./commands/serve";
+import { PreviewCommand } from "./commands/preview";
 import {
 	RspackOptions,
-	MultiCompilerOptions,
-	createMultiCompiler,
-	createCompiler,
 	MultiCompiler,
 	Compiler,
 	rspack,
-	MultiRspackOptions
+	MultiRspackOptions,
+	Stats,
+	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
+import {
+	loadRspackConfig,
+	findFileWithSupportedExtensions
+} from "./utils/loadConfig";
 import { Mode } from "@rspack/core/src/config";
+import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
+import path from "path";
 
-const defaultConfig = "rspack.config.js";
-const defaultEntry = "src/index.js";
-type Callback<T> = <T>(err: Error, res?: T) => void;
-type RspackEnv = "development" | "production";
+type Command = "serve" | "build";
+
+const defaultEntry = "src/index";
 export class RspackCLI {
 	colors: RspackCLIColors;
 	program: yargs.Argv<{}>;
@@ -31,19 +40,27 @@ export class RspackCLI {
 		this.program = yargs();
 	}
 	async createCompiler(
-		options: RspackCLIOptions,
-		rspackEnv: RspackEnv
+		options: RspackBuildCLIOptions,
+		rspackCommand: Command,
+		callback?: (e: Error, res?: Stats | MultiStats) => void
 	): Promise<Compiler | MultiCompiler> {
+		process.env.RSPACK_CONFIG_VALIDATE = "loose";
 		let nodeEnv = process?.env?.NODE_ENV;
+		let rspackCommandDefaultEnv =
+			rspackCommand === "build" ? "production" : "development";
 		if (typeof options.nodeEnv === "string") {
 			process.env.NODE_ENV = nodeEnv || options.nodeEnv;
 		} else {
-			process.env.NODE_ENV = nodeEnv || rspackEnv;
+			process.env.NODE_ENV = nodeEnv || rspackCommandDefaultEnv;
 		}
 		let config = await this.loadConfig(options);
-		config = await this.buildConfig(config, options, rspackEnv);
-		// @ts-ignore
-		const compiler = rspack(config);
+		config = await this.buildConfig(config, options, rspackCommand);
+
+		const isWatch = Array.isArray(config)
+			? (config as MultiRspackOptions).some(i => i.watch)
+			: (config as RspackOptions).watch;
+
+		const compiler = rspack(config, isWatch ? callback : undefined);
 		return compiler;
 	}
 	createColors(useColor?: boolean): RspackCLIColors {
@@ -74,27 +91,52 @@ export class RspackCLI {
 		};
 	}
 	async run(argv: string[]) {
+		if (semver.lt(semver.clean(process.version), "14.0.0")) {
+			this.getLogger().warn(
+				`Minimum recommended Node.js version is 14.0.0, current version is ${process.version}`
+			);
+		}
+
 		this.program.usage("[options]");
 		this.program.scriptName("rspack");
+		this.program.strictCommands(true).strict(true);
 		this.program.middleware(normalizeEnv);
 		this.registerCommands();
 		await this.program.parseAsync(hideBin(argv));
 	}
 	async registerCommands() {
-		const builtinCommands = [new BuildCommand(), new ServeCommand()];
+		const builtinCommands = [
+			new BuildCommand(),
+			new ServeCommand(),
+			new PreviewCommand()
+		];
 		for (const command of builtinCommands) {
 			command.apply(this);
 		}
 	}
 	async buildConfig(
 		item: RspackOptions | MultiRspackOptions,
-		options: RspackCLIOptions,
-		rspackEnv: RspackEnv
+		options: RspackBuildCLIOptions,
+		command: Command
 	): Promise<RspackOptions | MultiRspackOptions> {
+		let commandDefaultEnv: "production" | "development" =
+			command === "build" ? "production" : "development";
+		let isBuild = command === "build";
+		let isServe = command === "serve";
 		const internalBuildConfig = async (item: RspackOptions) => {
-			const isEnvProduction = rspackEnv === "production";
-			const isEnvDevelopment = rspackEnv === "development";
-
+			if (options.entry) {
+				item.entry = {
+					main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
+				};
+			} else if (!item.entry) {
+				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
+				const defaultEntryPath =
+					findFileWithSupportedExtensions(defaultEntryBase) ||
+					defaultEntryBase + ".js"; // default entry is js
+				item.entry = {
+					main: defaultEntryPath
+				};
+			}
 			if (options.analyze) {
 				const { BundleAnalyzerPlugin } = await import(
 					"webpack-bundle-analyzer"
@@ -108,9 +150,13 @@ export class RspackCLI {
 					}
 				});
 			}
+			// cli --watch overrides the watch config
+			if (options.watch) {
+				item.watch = options.watch;
+			}
 			// auto set default mode if user config don't set it
 			if (!item.mode) {
-				item.mode = rspackEnv ?? "none";
+				item.mode = commandDefaultEnv ?? "none";
 			}
 			// user parameters always has highest priority than default mode and config mode
 			if (options.mode) {
@@ -119,13 +165,11 @@ export class RspackCLI {
 
 			// false is also a valid value for sourcemap, so don't override it
 			if (typeof item.devtool === "undefined") {
-				item.devtool = isEnvProduction
-					? "source-map"
-					: "cheap-module-source-map";
+				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
 			}
 			item.builtins = item.builtins || {};
-			if (isEnvDevelopment) {
-				item.builtins.progress = true;
+			if (isServe) {
+				item.builtins.progress = item.builtins.progress ?? true;
 			}
 
 			// no emit assets when run dev server, it will use node_binding api get file content
@@ -149,7 +193,7 @@ export class RspackCLI {
 			}
 
 			if (typeof item.stats === "undefined") {
-				item.stats = { preset: "normal" };
+				item.stats = { preset: "errors-warnings", timings: true };
 			} else if (typeof item.stats === "boolean") {
 				item.stats = item.stats ? { preset: "normal" } : { preset: "none" };
 			} else if (typeof item.stats === "string") {
@@ -177,49 +221,15 @@ export class RspackCLI {
 			return internalBuildConfig(item as RspackOptions);
 		}
 	}
+
 	async loadConfig(
 		options: RspackCLIOptions
 	): Promise<RspackOptions | MultiRspackOptions> {
-		let loadedConfig:
-			| undefined
-			| RspackOptions
-			| MultiRspackOptions
-			| ((
-					env: Record<string, any>,
-					argv: Record<string, any>
-			  ) => RspackOptions | MultiRspackOptions);
-		// if we pass config paras
-		if (options.config) {
-			const resolvedConfigPath = path.resolve(process.cwd(), options.config);
-			if (!fs.existsSync(resolvedConfigPath)) {
-				throw new Error(`config file "${resolvedConfigPath}" not exists`);
-			}
-			loadedConfig = require(resolvedConfigPath);
-		} else {
-			let defaultConfigPath = path.resolve(process.cwd(), defaultConfig);
-			if (fs.existsSync(defaultConfigPath)) {
-				loadedConfig = require(defaultConfigPath);
-			} else {
-				let entry: Record<string, string> = {};
-				if (options.entry) {
-					entry = {
-						main: options.entry.map(x => path.resolve(process.cwd(), x))[0] // Fix me when entry supports array
-					};
-				} else {
-					entry = {
-						main: path.resolve(process.cwd(), defaultEntry)
-					};
-				}
-				loadedConfig = {
-					entry
-				};
-			}
-		}
-
+		let loadedConfig = await loadRspackConfig(options);
 		if (options.configName) {
 			const notFoundConfigNames: string[] = [];
 
-			// @ts-ignore
+			// @ts-expect-error
 			loadedConfig = options.configName.map((configName: string) => {
 				let found: RspackOptions | MultiRspackOptions | undefined;
 
@@ -254,6 +264,12 @@ export class RspackCLI {
 
 		if (typeof loadedConfig === "function") {
 			loadedConfig = loadedConfig(options.argv?.env, options.argv);
+			// if return promise we should await its result
+			if (
+				typeof (loadedConfig as unknown as Promise<unknown>).then === "function"
+			) {
+				loadedConfig = await loadedConfig;
+			}
 		}
 		return loadedConfig;
 	}
@@ -263,4 +279,26 @@ export class RspackCLI {
 	): compiler is MultiCompiler {
 		return Boolean((compiler as MultiCompiler).compilers);
 	}
+	isWatch(compiler: Compiler | MultiCompiler): boolean {
+		return Boolean(
+			this.isMultipleCompiler(compiler)
+				? compiler.compilers.some(compiler => compiler.options.watch)
+				: compiler.options.watch
+		);
+	}
+}
+
+export function defineConfig(config: RspackOptions): RspackOptions {
+	return config;
+}
+
+// Note: use union type will make apply function's `compiler` type to be `any`
+export function definePlugin(
+	plugin: RspackPluginFunction
+): RspackPluginFunction;
+export function definePlugin(
+	plugin: RspackPluginInstance
+): RspackPluginInstance;
+export function definePlugin(plugin: any): any {
+	return plugin;
 }

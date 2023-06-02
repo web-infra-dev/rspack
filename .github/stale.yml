@@ -1,0 +1,20 @@
+# It is considered harmful to close issues or PRs, so our stale bot will never close an issue or PR.
+# To remove the stale label, just leave a new comment.
+# Adapted from https://github.com/NixOS/nixpkgs/blob/master/.github/STALE-BOT.md
+
+# Configuration for probot-stale - https://github.com/probot/stale
+staleLabel: "stale"
+daysUntilStale: 60
+daysUntilClose: false
+closeComment: false
+exemptLabels:
+  - "tracking issue"
+issues:
+  markComment: >
+    This issue has been automatically marked as stale because it has not had recent activity.
+    **If this issue is still affecting you, please leave any comment** (for example, "bump").
+    We are sorry that we haven't been able to prioritize it yet. If you have any new additional information, please include it with your comment!
+pulls:
+  markComment: >
+    This pull request has been automatically marked as stale because it has not had recent activity.
+    **If this pull request is still relevant, please leave any comment** (for example, "bump").

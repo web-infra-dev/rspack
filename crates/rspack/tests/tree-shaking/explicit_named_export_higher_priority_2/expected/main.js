@@ -23,10 +23,10 @@ Object.defineProperty(exports, "__esModule", {
 Object.defineProperty(exports, "a", {
     enumerable: true,
     get: function() {
-        return _bazJs.a;
+        return _baz.a;
     }
 });
-var _bazJs = __webpack_require__("./baz.js");
+var _baz = __webpack_require__("./baz.js");
 __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 },
 "./index.js": function (module, exports, __webpack_require__) {
@@ -34,12 +34,13 @@ __webpack_require__.es(__webpack_require__("./bar.js"), exports);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-var _fooJs = __webpack_require__("./foo.js");
-console.log(_fooJs.a);
+var _foo = __webpack_require__("./foo.js");
+console.log(_foo.a);
 },
 
 },function(__webpack_require__) {
-var __webpack_exports__ = __webpack_require__('./index.js');
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__('./index.js'));
 
 }
 ]);

@@ -1,0 +1,23 @@
+{
+  "name": "example-vue2",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "dev": "rspack serve",
+    "build": "rspack build"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "css-loader": "^6.7.4",
+    "less": "4.1.3",
+    "less-loader": "^11.1.0",
+    "vue": "2.7.14",
+    "vue-loader": "^15.10.1",
+    "vue-style-loader": "^4.1.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

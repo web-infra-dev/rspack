@@ -1,0 +1,51 @@
+# Release Canary by commention with "!canary"
+name: Release Canary
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  build:
+    name: Release Canary
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          # This makes Actions fetch only one branch to release
+          fetch-depth: 1
+          ref: refs/pull/${{ github.event.issue.number }}/head
+
+      - name: Pnpm Cache
+        uses: ./.github/actions/pnpm-cache
+
+      - name: Install Rust
+        run: rustup show
+
+      - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.10.1
+
+      - name: Setup target
+        run: |
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+          rustup target add x86_64-unknown-linux-gnu
+
+      - name: Build
+        run: |
+          set -e
+          USE_ZIG=1 pnpm -w build:cli:release:all
+
+      - name: Release
+        run: |
+          ./x version snapshot
+          ./x publish snapshot --tag canary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
+          COMMENT: ${{ toJson(github.event.comment) }}

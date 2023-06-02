@@ -1,6 +1,14 @@
 mod entry;
+mod span;
 pub use entry::*;
+pub use span::SpanExt;
+mod runtime_requirements_dependency;
+use rspack_util::ext::AsAny;
+pub use runtime_requirements_dependency::*;
 mod code_generatable;
+mod runtime_template;
+pub use runtime_template::*;
+mod dependency_macro;
 pub use code_generatable::*;
 mod context_element_dependency;
 pub use context_element_dependency::*;
@@ -10,21 +18,31 @@ mod import_context_dependency;
 pub use common_js_require_context_dependency::*;
 pub use const_dependency::ConstDependency;
 pub use import_context_dependency::*;
+mod dynamic_import;
+mod replace_const_dependency;
+pub use replace_const_dependency::ReplaceConstDependency;
 mod require_context_dependency;
-pub use require_context_dependency::RequireContextDependency;
-mod css;
-use std::{any::Any, fmt::Debug, hash::Hash};
-
-pub use css::*;
-use dyn_clone::{clone_trait_object, DynClone};
-
-use crate::{
-  AsAny, ContextMode, ContextOptions, DynEq, DynHash, ErrorSpan, ModuleGraph, ModuleIdentifier,
+mod require_resolve_dependency;
+use std::{
+  any::Any,
+  borrow::Cow,
+  fmt::{Debug, Display},
+  hash::Hash,
 };
+mod code_generatable_dependency;
+pub use code_generatable_dependency::*;
+use dyn_clone::{clone_trait_object, DynClone};
+pub use dynamic_import::*;
+pub use require_context_dependency::RequireContextDependency;
+pub use require_resolve_dependency::RequireResolveDependency;
+mod static_exports_dependency;
+pub use static_exports_dependency::*;
+
+use crate::{Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
-#[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Default, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum DependencyType {
   #[default]
   Unknown,
@@ -37,6 +55,8 @@ pub enum DependencyType {
   DynamicImport,
   // cjs require
   CjsRequire,
+  // new URL("./foo", import.meta.url)
+  NewUrl,
   // import.meta.webpackHot.accept
   ImportMetaHotAccept,
   // import.meta.webpackHot.decline
@@ -49,6 +69,8 @@ pub enum DependencyType {
   CssUrl,
   // css @import
   CssImport,
+  // css modules compose
+  CssCompose,
   // context element
   ContextElement,
   // import context
@@ -57,6 +79,45 @@ pub enum DependencyType {
   CommonJSRequireContext,
   // require.context
   RequireContext,
+  // require.resolve
+  RequireResolve,
+  /// wasm import
+  WasmImport,
+  /// wasm export import
+  WasmExportImported,
+  /// static exports
+  StaticExports,
+  Custom(Cow<'static, str>),
+}
+
+impl Display for DependencyType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      DependencyType::Unknown => write!(f, "unknown"),
+      DependencyType::Entry => write!(f, "entry"),
+      DependencyType::EsmImport => write!(f, "esm import"),
+      DependencyType::EsmExport => write!(f, "esm export"),
+      DependencyType::DynamicImport => write!(f, "dynamic import"),
+      DependencyType::CjsRequire => write!(f, "cjs require"),
+      DependencyType::NewUrl => write!(f, "new URL()"),
+      DependencyType::ImportMetaHotAccept => write!(f, "import.meta.webpackHot.accept"),
+      DependencyType::ImportMetaHotDecline => write!(f, "import.meta.webpackHot.decline"),
+      DependencyType::ModuleHotAccept => write!(f, "module.hot.accept"),
+      DependencyType::ModuleHotDecline => write!(f, "module.hot.decline"),
+      DependencyType::CssUrl => write!(f, "css url"),
+      DependencyType::CssImport => write!(f, "css import"),
+      DependencyType::CssCompose => write!(f, "css compose"),
+      DependencyType::ContextElement => write!(f, "context element"),
+      DependencyType::ImportContext => write!(f, "import context"),
+      DependencyType::CommonJSRequireContext => write!(f, "commonjs require context"),
+      DependencyType::RequireContext => write!(f, "require.context"),
+      DependencyType::RequireResolve => write!(f, "require.resolve"),
+      DependencyType::WasmImport => write!(f, "wasm import"),
+      DependencyType::WasmExportImported => write!(f, "wasm export imported"),
+      DependencyType::StaticExports => write!(f, "static exports"),
+      DependencyType::Custom(ty) => write!(f, "custom {ty}"),
+    }
+  }
 }
 
 #[derive(Default, Copy, Clone, PartialEq, Eq, Hash, Debug)]
@@ -67,19 +128,43 @@ pub enum DependencyCategory {
   CommonJS,
   Url,
   CssImport,
+  CssCompose,
+  Wasm,
 }
 
-pub trait Dependency:
-  CodeGeneratable + AsAny + DynHash + DynClone + DynEq + Send + Sync + Debug
-{
-  fn id(&self) -> Option<&DependencyId> {
+impl From<&str> for DependencyCategory {
+  fn from(value: &str) -> Self {
+    match value {
+      "esm" => Self::Esm,
+      "commonjs" => Self::CommonJS,
+      "url" => Self::Url,
+      "wasm" => Self::Wasm,
+      "css-import" => Self::CssImport,
+      "css-compose" => Self::CssCompose,
+      _ => Self::Unknown,
+    }
+  }
+}
+
+impl Display for DependencyCategory {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      DependencyCategory::Unknown => write!(f, "unknown"),
+      DependencyCategory::Esm => write!(f, "esm"),
+      DependencyCategory::CommonJS => write!(f, "commonjs"),
+      DependencyCategory::Url => write!(f, "url"),
+      DependencyCategory::CssImport => write!(f, "css-import"),
+      DependencyCategory::CssCompose => write!(f, "css-compose"),
+      DependencyCategory::Wasm => write!(f, "wasm"),
+    }
+  }
+}
+
+pub trait Dependency: CodeGeneratable + AsAny + DynClone + Send + Sync + Debug {
+  fn id(&self) -> Option<DependencyId> {
     None
   }
   fn set_id(&mut self, _id: Option<DependencyId>) {}
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier>;
-  fn set_parent_module_identifier(&mut self, _module_identifier: Option<ModuleIdentifier>) {
-    // noop
-  }
 
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
@@ -89,20 +174,12 @@ pub trait Dependency:
     &DependencyType::Unknown
   }
 
-  fn get_context(&self) -> Option<&str> {
+  fn get_context(&self) -> Option<&Context> {
     None
   }
 }
 
 impl Dependency for Box<dyn Dependency> {
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    (**self).parent_module_identifier()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    (**self).set_parent_module_identifier(module_identifier)
-  }
-
   fn category(&self) -> &DependencyCategory {
     (**self).category()
   }
@@ -132,11 +209,11 @@ impl ModuleDependencyExt for dyn ModuleDependency + '_ {
     (ModuleIdentifier, String, DependencyCategory),
     ModuleIdentifier,
   ) {
-    let parent = self.parent_module_identifier().expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
+    let parent = module_graph.parent_module_by_dependency_id(&self.id().expect("should have dependency id")).expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
     (
-      (*parent, module_id, *self.category()),
+      (parent, module_id, *self.category()),
       *module_graph
-        .module_identifier_by_dependency_id(self.id().expect("should have dependency"))
+        .module_identifier_by_dependency_id(&self.id().expect("should have dependency"))
         .expect("Failed to resolve module graph module"),
     )
   }
@@ -165,20 +242,6 @@ impl CodeGeneratable for Box<dyn Dependency> {
   }
 }
 
-impl PartialEq for dyn Dependency + '_ {
-  fn eq(&self, other: &Self) -> bool {
-    self.dyn_eq(other.as_any())
-  }
-}
-
-impl Eq for dyn Dependency + '_ {}
-
-impl Hash for dyn Dependency + '_ {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
-  }
-}
-
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     None
@@ -195,8 +258,24 @@ pub trait ModuleDependency: Dependency {
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
+  fn weak(&self) -> bool {
+    false
+  }
+  fn set_request(&mut self, request: String);
+
   // TODO should split to `ModuleDependency` and `ContextDependency`
   fn options(&self) -> Option<&ContextOptions> {
+    None
+  }
+  fn get_optional(&self) -> bool {
+    false
+  }
+
+  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
+    None
+  }
+
+  fn chunk_name(&self) -> Option<&str> {
     None
   }
 }
@@ -214,20 +293,28 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
     (**self).span()
   }
 
+  fn weak(&self) -> bool {
+    (**self).weak()
+  }
+
   fn options(&self) -> Option<&ContextOptions> {
     (**self).options()
+  }
+
+  fn get_optional(&self) -> bool {
+    (**self).get_optional()
+  }
+
+  fn chunk_name(&self) -> Option<&str> {
+    (**self).chunk_name()
+  }
+
+  fn set_request(&mut self, request: String) {
+    (**self).set_request(request);
   }
 }
 
 impl Dependency for Box<dyn ModuleDependency> {
-  fn parent_module_identifier(&self) -> Option<&ModuleIdentifier> {
-    (**self).parent_module_identifier()
-  }
-
-  fn set_parent_module_identifier(&mut self, module_identifier: Option<ModuleIdentifier>) {
-    (**self).set_parent_module_identifier(module_identifier)
-  }
-
   fn category(&self) -> &DependencyCategory {
     (**self).category()
   }
@@ -236,11 +323,11 @@ impl Dependency for Box<dyn ModuleDependency> {
     (**self).dependency_type()
   }
 
-  fn get_context(&self) -> Option<&str> {
+  fn get_context(&self) -> Option<&Context> {
     (**self).get_context()
   }
 
-  fn id(&self) -> Option<&DependencyId> {
+  fn id(&self) -> Option<DependencyId> {
     (**self).id()
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
@@ -254,20 +341,6 @@ impl CodeGeneratable for Box<dyn ModuleDependency> {
     code_generatable_context: &mut CodeGeneratableContext,
   ) -> rspack_error::Result<CodeGeneratableResult> {
     (**self).generate(code_generatable_context)
-  }
-}
-
-impl PartialEq for dyn ModuleDependency + '_ {
-  fn eq(&self, other: &Self) -> bool {
-    self.dyn_eq(other.as_any())
-  }
-}
-
-impl Eq for dyn ModuleDependency + '_ {}
-
-impl Hash for dyn ModuleDependency + '_ {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
   }
 }
 
@@ -293,13 +366,25 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
   }
   if matches!(dep.dependency_type(), DependencyType::ContextElement) {
     if let Some(options) = dep.options() {
-      return matches!(
-        options.mode,
-        ContextMode::Lazy | ContextMode::LazyOnce | ContextMode::AsyncWeak
-      );
+      return matches!(options.mode, ContextMode::Lazy | ContextMode::LazyOnce);
     }
   }
   false
 }
 
-pub type DependencyId = usize;
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct DependencyId(usize);
+
+impl std::ops::Deref for DependencyId {
+  type Target = usize;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl From<usize> for DependencyId {
+  fn from(id: usize) -> Self {
+    Self(id)
+  }
+}

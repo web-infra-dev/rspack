@@ -1,5 +1,157 @@
 # rspack-plugin-postcss
 
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies [8164d424]
+  - @rspack/binding@0.1.12
+
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [f609f7a4]
+- Updated dependencies [ada51e2]
+- Updated dependencies [2bb2bcd6]
+- Updated dependencies [ff85ce8]
+- Updated dependencies [e764de62]
+- Updated dependencies [c0e550b]
+- Updated dependencies [088220b3]
+- Updated dependencies [abf788a0]
+- Updated dependencies [2a6a778]
+- Updated dependencies [e5d33eb]
+- Updated dependencies [04daf09]
+- Updated dependencies [3abb2fc]
+- Updated dependencies [2d9e5c2]
+- Updated dependencies [f4c1f8d]
+  - @rspack/binding@0.1.11
+
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [820c029]
+- Updated dependencies [0fd6d7a]
+- Updated dependencies [bc65893]
+- Updated dependencies [61d6e5d]
+- Updated dependencies [aee4fdc]
+- Updated dependencies [c1720f9]
+- Updated dependencies [c951f35]
+- Updated dependencies [e2647bb]
+- Updated dependencies [057829b]
+- Updated dependencies [c162cb6]
+- Updated dependencies [b77b706]
+- Updated dependencies [7f2cf5e]
+  - @rspack/binding@0.1.9
+
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [352e563]
+- Updated dependencies [9822cef]
+- Updated dependencies [27afffc]
+- Updated dependencies [fdc5fd9]
+- Updated dependencies [d28a9d0]
+- Updated dependencies [aa91ce7]
+  - @rspack/binding@0.1.8
+
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [5bc1f55]
+- Updated dependencies [6f23105]
+- Updated dependencies [c2bb73c]
+- Updated dependencies [e649469]
+- Updated dependencies [fff64ea]
+- Updated dependencies [dc10d1f]
+- Updated dependencies [905cacf]
+- Updated dependencies [f4eb7c7]
+- Updated dependencies [32f822b]
+  - @rspack/binding@0.1.7
+
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [18dcca0]
+  - @rspack/binding@0.1.6
+
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [7bfcc7b]
+- Updated dependencies [050e4fb]
+- Updated dependencies [e8db1d7]
+- Updated dependencies [c82529b]
+- Updated dependencies [6c08098]
+- Updated dependencies [60e0aec]
+- Updated dependencies [33e916e]
+  - @rspack/binding@0.1.5
+
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [fbaeb41]
+  - @rspack/binding@0.1.4
+
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [4471853]
+- Updated dependencies [397b0d7]
+- Updated dependencies [b323220]
+- Updated dependencies [28b9757]
+- Updated dependencies [b6ab7b7]
+- Updated dependencies [b0cffba]
+- Updated dependencies [9c71512]
+  - @rspack/binding@0.1.3
+
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [68c4df8]
+- Updated dependencies [a43a849]
+- Updated dependencies [f562fa9]
+- Updated dependencies [97dc0dd]
+- Updated dependencies [b4c5ed5]
+- Updated dependencies [36ffd12]
+- Updated dependencies [a6ac7da]
+- Updated dependencies [48eff5e]
+- Updated dependencies [8f8e025]
+- Updated dependencies [7fde34f]
+- Updated dependencies [2c01586]
+- Updated dependencies [6d9eb8b]
+- Updated dependencies [2e9d331]
+- Updated dependencies [a54179d]
+- Updated dependencies [fbc315d]
+- Updated dependencies [c4c20a3]
+  - @rspack/binding@0.1.2
+
+## 0.1.1
+
+### Patch Changes
+
+- a004765a: Avoid reporting warning the export when src module format is none esm
+- Updated dependencies [6f8706f0]
+- Updated dependencies [0e32353d]
+- Updated dependencies [23048514]
+- Updated dependencies [7b3167ca]
+- Updated dependencies [f204c108]
+- Updated dependencies [bb22416a]
+- Updated dependencies [44dc1e8b]
+- Updated dependencies [a004765a]
+- Updated dependencies [2f7ffb57]
+- Updated dependencies [2d2c9624]
+- Updated dependencies [6bdc0840]
+  - @rspack/binding@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
