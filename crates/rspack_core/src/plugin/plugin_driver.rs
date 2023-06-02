@@ -188,6 +188,17 @@ impl PluginDriver {
 
     Ok(())
   }
+
+  pub async fn finish_make(
+    &mut self,
+    compilation: &mut Compilation,
+  ) -> PluginCompilationHookOutput {
+    for plugin in &mut self.plugins {
+      plugin.finish_make(compilation).await?;
+    }
+
+    Ok(())
+  }
   /// Executed while initializing the compilation, right before emitting the compilation event. This hook is not copied to child compilers.
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation

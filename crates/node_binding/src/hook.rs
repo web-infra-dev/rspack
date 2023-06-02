@@ -4,6 +4,7 @@ use std::sync::{Arc, RwLock};
 #[derive(PartialEq)]
 pub enum Hook {
   Make,
+  FinishMake,
   Compilation,
   ThisCompilation,
   ProcessAssetsStageAdditional,
@@ -33,6 +34,7 @@ impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
       "make" => Hook::Make,
+      "finishMake" => Hook::FinishMake,
       "compilation" => Hook::Compilation,
       "thisCompilation" => Hook::ThisCompilation,
       "processAssetsStageAdditional" => Hook::ProcessAssetsStageAdditional,

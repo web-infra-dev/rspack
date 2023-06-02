@@ -147,6 +147,14 @@ where
   async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
+
+    self
+      .plugin_driver
+      .write()
+      .await
+      .finish_make(&mut self.compilation)
+      .await?;
+
     self.compilation.finish(self.plugin_driver.clone()).await?;
     // by default include all module in final chunk
     self.compilation.include_module_ids = self
