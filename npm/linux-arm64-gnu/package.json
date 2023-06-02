@@ -1,9 +1,9 @@
 {
-  "name": "@rspack/binding-darwin-arm64",
+  "name": "@rspack/binding-linux-arm64-gnu",
   "version": "0.2.0",
   "license": "MIT",
   "description": "Node binding for rspack",
-  "main": "rspack.darwin-arm64.node",
+  "main": "rspack.linux-arm64-gnu.node",
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -15,12 +15,15 @@
     "access": "public"
   },
   "files": [
-    "rspack.darwin-arm64.node"
+    "rspack.linux-arm64-gnu.node"
   ],
   "os": [
-    "darwin"
+    "linux"
   ],
   "cpu": [
     "arm64"
+  ],
+  "libc": [
+    "glibc"
   ]
 }

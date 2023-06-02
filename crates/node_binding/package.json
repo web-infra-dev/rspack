@@ -35,8 +35,13 @@
   },
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
+    "@rspack/binding-win32-arm64-msvc": "workspace:*",
+    "@rspack/binding-linux-arm64-gnu": "workspace:*",
+    "@rspack/binding-linux-arm64-musl": "workspace:*",
+    "@rspack/binding-win32-ia32-msvc": "workspace:*",
     "@rspack/binding-darwin-x64": "workspace:*",
+    "@rspack/binding-win32-x64-msvc": "workspace:*",
     "@rspack/binding-linux-x64-gnu": "workspace:*",
-    "@rspack/binding-win32-x64-msvc": "workspace:*"
+    "@rspack/binding-linux-x64-musl": "workspace:*"
   }
 }
