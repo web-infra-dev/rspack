@@ -136,6 +136,7 @@ class Compiler {
 		beforeCompile: tapable.AsyncSeriesHook<any>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
+		finishMake: tapable.AsyncSeriesHook<[Compilation]>;
 	};
 	options: RspackOptionsNormalized;
 	#disabledHooks: string[];
@@ -234,6 +235,7 @@ class Compiler {
 			make: new tapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
+			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.modifiedFiles = undefined;
@@ -284,6 +286,7 @@ class Compiler {
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
 					afterCompile: this.#afterCompile.bind(this),
+					finishMake: this.#finishMake.bind(this),
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
 					assetEmitted: this.#assetEmitted.bind(this),
@@ -565,6 +568,7 @@ class Compiler {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
+			finishMake: this.hooks.finishMake,
 			emit: this.hooks.emit,
 			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
@@ -621,6 +625,11 @@ class Compiler {
 
 	async #afterCompile() {
 		await this.hooks.afterCompile.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+
+	async #finishMake() {
+		await this.hooks.finishMake.promise(this.compilation);
 		this.#updateDisabledHooks();
 	}
 

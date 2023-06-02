@@ -21,6 +21,7 @@ pub struct JsHooks {
   pub before_compile: JsFunction,
   pub after_compile: JsFunction,
   pub finish_modules: JsFunction,
+  pub finish_make: JsFunction,
   pub before_resolve: JsFunction,
   pub after_resolve: JsFunction,
   pub context_module_before_resolve: JsFunction,
