@@ -68,6 +68,7 @@
     "schema-utils": "^4.0.0",
     "tapable": "2.2.1",
     "watchpack": "^2.4.0",
-    "webpack-sources": "3.2.3"
+    "webpack-sources": "3.2.3",
+    "zod": "^3.21.4"
   }
 }

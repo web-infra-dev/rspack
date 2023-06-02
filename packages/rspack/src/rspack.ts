@@ -29,10 +29,10 @@ import { Callback } from "tapable";
 import MultiStats from "./multiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
-import rspackOptionsCheck from "./config/schema.check.js";
 import InvalidateConfigurationError from "./error/InvalidateConfiguration";
 import { validate, ValidationError } from "schema-utils";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import { configSchema } from "./config/zod";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -132,10 +132,20 @@ function rspack(
 	options: MultiRspackOptions | RspackOptions,
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
-	if (!asArray(options).every(i => rspackOptionsCheck(i))) {
-		// slow path
-		revalidateWithStrategy(options);
-	}
+	asArray(options).every(opts => {
+		try {
+			configSchema().parse(opts);
+		} catch (e: any) {
+			// 'strict', 'loose', 'loose-silent'
+			const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
+			if (strategy === "loose-silent") return;
+			if (strategy === "loose") {
+				console.error(e.message);
+				return;
+			}
+			throw new InvalidateConfigurationError(e.message);
+		}
+	});
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
 			const compiler = createMultiCompiler(options);
