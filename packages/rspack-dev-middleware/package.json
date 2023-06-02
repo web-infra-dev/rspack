@@ -10,7 +10,7 @@
     "dev": "tsc -w"
   },
   "files": [
-    "index.js",
+    "index.cjs",
     "dist"
   ],
   "homepage": "https://rspack.dev",
