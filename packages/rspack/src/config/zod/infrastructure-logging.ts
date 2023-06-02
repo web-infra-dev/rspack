@@ -10,7 +10,7 @@ export function infrastructureLogging() {
 			level: z
 				.enum(["none", "error", "warn", "info", "log", "verbose"])
 				.optional(),
-			stream: z.boolean().optional()
+			stream: z.boolean().or(z.object({})).optional()
 		})
 		.strict();
 }
