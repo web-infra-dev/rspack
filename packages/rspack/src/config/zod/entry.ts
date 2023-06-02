@@ -13,6 +13,7 @@ const entryDescription = z
 		wasmLoading: z
 			.literal(false)
 			.or(z.enum(["fetch-streaming", "fetch", "async-node"]))
+			.optional()
 	})
 	.strict();
 

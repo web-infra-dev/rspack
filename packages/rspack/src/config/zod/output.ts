@@ -7,32 +7,31 @@ function chunkLoadingType() {
 }
 
 function wasmLoadingType() {
-	return z.enum(["fetch-streaming", "fetch", "async-node"]).or(z.string());
+	return z.enum(["...", "fetch-streaming", "fetch", "async-node"]);
 }
 
 function libraryType() {
-	return z
-		.enum([
-			"var",
-			"module",
-			"assign",
-			"assign-properties",
-			"this",
-			"window",
-			"self",
-			"global",
-			"commonjs",
-			"commonjs2",
-			"commonjs-module",
-			"commonjs-static",
-			"amd",
-			"amd-require",
-			"umd",
-			"umd2",
-			"jsonp",
-			"system"
-		])
-		.or(z.string());
+	return z.enum([
+		"...",
+		"var",
+		"module",
+		"assign",
+		"assign-properties",
+		"this",
+		"window",
+		"self",
+		"global",
+		"commonjs",
+		"commonjs2",
+		"commonjs-module",
+		"commonjs-static",
+		"amd",
+		"amd-require",
+		"umd",
+		"umd2",
+		"jsonp",
+		"system"
+	]);
 }
 
 export function output() {
@@ -75,8 +74,8 @@ export function output() {
 			.or(z.enum(["anonymous", "use-credentials"]))
 			.optional(),
 		enabledWasmLoadingTypes: wasmLoadingType().array().optional(),
-		wasmLoading: z.literal(false).or(wasmLoadingType()),
-		enabledLibraryTypes: libraryType().optional(),
+		wasmLoading: z.literal(false).or(wasmLoadingType()).optional(),
+		enabledLibraryTypes: libraryType().or(libraryType().array()).optional(),
 		globalObject: z.string().min(1).optional(),
 		libraryExport: z.string().min(1).or(z.string().min(1).array()).optional(),
 		libraryTarget: libraryType().optional(),

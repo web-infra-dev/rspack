@@ -3,7 +3,7 @@ import { z } from "zod";
 export function externalsPresets() {
 	return z
 		.object({
-			node: z.boolean()
+			node: z.boolean().optional()
 		})
 		.strict();
 }
