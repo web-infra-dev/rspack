@@ -60,6 +60,17 @@ cleanCommand
 // x build
 const buildCommand = program.command("build").alias("b").description("build");
 
+buildCommand
+	.option("-a", "build all")
+	.option("-b", "build rust binding")
+	.option("-j", "build js packages")
+	.option("-r", "release")
+	.action(async function ({ a, b = a, j = a, r }) {
+		let mode = r ? "release" : "debug";
+		b && (await $`pnpm --filter @rspack/binding build:${mode}`);
+		j && (await $`pnpm --filter "@rspack/*" build`);
+	});
+
 // x build binding
 buildCommand
 	.command("binding")
