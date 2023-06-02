@@ -11,14 +11,7 @@ const config = {
 			{
 				template: "./index.html"
 			}
-		],
-		define: {
-			__VUE_OPTIONS_API__: JSON.stringify(true),
-			__VUE_PROD_DEVTOOLS__: JSON.stringify(false)
-		}
-	},
-	devServer: {
-		historyApiFallback: true
+		]
 	},
 	plugins: [new VueLoaderPlugin()],
 	module: {
