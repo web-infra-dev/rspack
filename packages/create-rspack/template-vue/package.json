@@ -1,5 +1,5 @@
 {
-  "name": "example-vue",
+  "name": "rspack-vue-starter",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -8,11 +8,12 @@
     "dev": "rspack serve",
     "build": "rspack build"
   },
+  "dependencies": {
+    "vue": "3.2.45"
+  },
   "devDependencies": {
-    "vue": "3.2.45",
-    "@rspack/cli": "workspace:*",
-    "@vue/compiler-sfc": "3.2.45",
-    "loader-utils": "3.2.1"
+    "@rspack/cli": "latest",
+    "vue-loader": "^17.2.2"
   },
   "keywords": [],
   "author": "",

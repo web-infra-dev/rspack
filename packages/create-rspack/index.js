@@ -4,11 +4,6 @@ const { hideBin } = require("yargs/helpers");
 const fs = require("fs");
 const path = require("path");
 const prompts = require("prompts");
-
-const templateMap = {
-	react: "template-react",
-	vue: "template-vue"
-};
 const { formatTargetDir } = require("./utils");
 
 yargs(hideBin(process.argv))
@@ -50,35 +45,14 @@ yargs(hideBin(process.argv))
 				message: "Project template",
 				choices: [
 					{ title: "react", value: "react" },
-					{ title: "react-ts", value: "react-ts" }
+					{ title: "react-ts", value: "react-ts" },
+					{ title: "vue", value: "vue" }
 				],
 				onState: state => {
 					template = state.value;
 				}
 			}
 		]);
-		const { projectDir } = result;
-		const root = path.resolve(process.cwd(), projectDir);
-		if (fs.existsSync(root)) {
-			throw new Error("project directory already exists");
-		}
-		fs.mkdirSync(root);
-		const { templateName } = await prompts([
-			{
-				type: "select",
-				name: "templateName",
-				choices: Object.keys(templateMap).map(key => ({
-					title: key,
-					value: key
-				})),
-				message: "Project framework"
-			}
-		]);
-		// TODO support more template in the future
-		const templateDir = templateMap[templateName];
-
-		const srcFolder = path.resolve(__dirname, templateDir);
-		copyFolder(srcFolder, projectDir);
 
 		fs.mkdirSync(root, { recursive: true });
 		const srcFolder = path.resolve(__dirname, `template-${template}`);

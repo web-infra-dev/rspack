@@ -1,5 +1,8 @@
-module.exports = {
-	mode: "development",
+const { VueLoaderPlugin } = require("vue-loader");
+
+/** @type {import('@rspack/cli').Configuration} */
+const config = {
+	context: __dirname,
 	entry: {
 		main: "./src/main.js"
 	},
@@ -17,17 +20,15 @@ module.exports = {
 	devServer: {
 		historyApiFallback: true
 	},
+	plugins: [new VueLoaderPlugin()],
 	module: {
 		rules: [
 			{
 				test: /\.vue$/,
-				use: ["./vue-loader.js"]
-			},
-			{
-				test: /\.vue$/,
-				resourceQuery: /type=style/,
-				use: ["./vue-loader.js"],
-				type: "css"
+				loader: "vue-loader",
+				options: {
+					experimentalInlineMatchResource: true
+				}
 			},
 			{
 				test: /\.svg/,
@@ -36,3 +37,4 @@ module.exports = {
 		]
 	}
 };
+module.exports = config;
