@@ -1,6 +1,6 @@
 use async_recursion::async_recursion;
 use rspack_error::Result;
-use rspack_loader_runner::{ResourceData, Scheme};
+use rspack_loader_runner::ResourceData;
 
 use crate::{DependencyCategory, ModuleRule};
 
@@ -81,7 +81,7 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(scheme_condition) = &module_rule.scheme {
     let scheme = resource_data.get_scheme();
-    if scheme == &Scheme::None {
+    if scheme.is_none() {
       return Ok(false);
     }
     if !scheme_condition.try_match(&scheme.to_string()).await? {

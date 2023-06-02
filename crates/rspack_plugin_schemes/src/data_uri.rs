@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
   Content, Plugin, PluginContext, PluginNormalModuleFactoryResolveForSchemeOutput,
-  PluginReadResourceOutput, ResourceData, Scheme,
+  PluginReadResourceOutput, ResourceData,
 };
 use rspack_error::internal_error;
 
@@ -20,7 +20,7 @@ impl Plugin for DataUriPlugin {
     _ctx: PluginContext,
     resource_data: ResourceData,
   ) -> PluginNormalModuleFactoryResolveForSchemeOutput {
-    if let Some(captures) = URI_REGEX.captures(&resource_data.resource) {
+    if resource_data.get_scheme().is_data() && let Some(captures) = URI_REGEX.captures(&resource_data.resource) {
       let mimetype = captures
         .get(1)
         .map(|i| i.as_str())
@@ -54,7 +54,7 @@ impl Plugin for DataUriPlugin {
   }
 
   async fn read_resource(&self, resource_data: &ResourceData) -> PluginReadResourceOutput {
-    if resource_data.get_scheme() == &Scheme::Data && let Some(captures) = URI_REGEX.captures(&resource_data.resource) {
+    if resource_data.get_scheme().is_data() && let Some(captures) = URI_REGEX.captures(&resource_data.resource) {
       let body = captures.get(4).expect("should have data uri body").as_str();
       let is_base64 = captures.get(3).is_some();
       if is_base64 {

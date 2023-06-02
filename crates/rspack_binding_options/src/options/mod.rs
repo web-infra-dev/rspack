@@ -120,6 +120,8 @@ impl RawOptionsApply for RawOptions {
     let builtins = self.builtins.apply(plugins, loader_runner)?;
 
     plugins.push(rspack_plugin_schemes::DataUriPlugin.boxed());
+    plugins.push(rspack_plugin_schemes::FileUriPlugin.boxed());
+
     plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
         parse_options: module.parser.as_ref().and_then(|x| x.asset.clone()),
