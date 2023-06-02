@@ -1,13 +1,7 @@
-<script lang="ts">
+<script>
 import HelloWorld from './components/HelloWorld.vue';
-let title: string = "Rspack + Vue"
 export default {
-  components: { HelloWorld },
-  data() {
-    return {
-      title
-    }
-  }
+  components: { HelloWorld }
 }
 </script>
 
@@ -20,7 +14,7 @@ export default {
       <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
     </a>
   </div>
-  <HelloWorld :msg="title" />
+  <HelloWorld msg="Rspack + Vue" />
 </template>
 
 <style scoped lang="less">
@@ -28,13 +22,13 @@ export default {
   height: 6em;
   padding: 1.5em;
   will-change: filter;
+}
 
-  &:hover {
-    filter: drop-shadow(0 0 2em #eeea8caa);
-  }
+.logo:hover {
+  filter: drop-shadow(0 0 2em #eeea8caa);
+}
 
-  &.vue:hover {
-    filter: drop-shadow(0 0 2em #42b883aa);
-  }
+.logo.vue:hover {
+  filter: drop-shadow(0 0 2em #42b883aa);
 }
 </style>
