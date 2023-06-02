@@ -9,6 +9,20 @@ pub enum Scheme {
   Custom(String),
 }
 
+impl Scheme {
+  pub fn is_file(&self) -> bool {
+    matches!(self, Self::File)
+  }
+
+  pub fn is_data(&self) -> bool {
+    matches!(self, Self::Data)
+  }
+
+  pub fn is_none(&self) -> bool {
+    matches!(self, Self::None)
+  }
+}
+
 impl From<&str> for Scheme {
   fn from(value: &str) -> Self {
     match value {
