@@ -87,7 +87,7 @@ export class Rspack {
 
 export interface AfterResolveData {
   request: string
-  context?: string
+  context: string
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -95,7 +95,7 @@ export interface AfterResolveData {
 
 export interface BeforeResolveData {
   request: string
-  context?: string
+  context: string
 }
 
 /**

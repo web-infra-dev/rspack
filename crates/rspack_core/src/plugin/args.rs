@@ -9,8 +9,8 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, ModuleDependency,
-  ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType, ErrorSpan,
+  ModuleDependency, ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
@@ -85,7 +85,7 @@ impl<'me> RenderManifestArgs<'me> {
 
 #[derive(Debug, Clone)]
 pub struct FactorizeArgs<'me> {
-  pub context: &'me Option<String>,
+  pub context: &'me Context,
   pub dependency: &'me dyn ModuleDependency,
   pub plugin_driver: &'me SharedPluginDriver,
 }
@@ -101,12 +101,12 @@ pub struct ModuleArgs {
 #[derive(Debug, Clone)]
 pub struct NormalModuleBeforeResolveArgs {
   pub request: String,
-  pub context: Option<String>,
+  pub context: String,
 }
 #[derive(Debug, Clone)]
 pub struct NormalModuleAfterResolveArgs<'a> {
   pub request: &'a str,
-  pub context: &'a Option<String>,
+  pub context: &'a str,
   pub file_dependencies: &'a HashSet<PathBuf>,
   pub context_dependencies: &'a HashSet<PathBuf>,
   pub missing_dependencies: &'a HashSet<PathBuf>,
@@ -114,8 +114,8 @@ pub struct NormalModuleAfterResolveArgs<'a> {
 
 #[derive(Debug)]
 pub struct ResolveArgs<'a> {
-  pub importer: Option<&'a PathBuf>,
-  pub context: Option<String>,
+  pub importer: Option<&'a ModuleIdentifier>,
+  pub context: Context,
   pub specifier: &'a str,
   pub dependency_type: &'a DependencyType,
   pub dependency_category: &'a DependencyCategory,

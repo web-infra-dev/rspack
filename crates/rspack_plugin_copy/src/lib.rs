@@ -468,7 +468,7 @@ impl Plugin for CopyPlugin {
         if pattern.context.is_none() {
           pattern.context = Some(args.compilation.options.context.as_path().into());
         } else if let Some(ctx) = pattern.context.clone() && !ctx.is_absolute() {
-          pattern.context = Some(args.compilation.options.context.join(ctx))
+          pattern.context = Some(args.compilation.options.context.as_path().join(ctx))
         };
 
         Self::run_patter(

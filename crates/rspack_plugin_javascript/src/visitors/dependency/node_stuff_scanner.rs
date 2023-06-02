@@ -63,7 +63,7 @@ impl VisitAstPath for NodeStuffScanner<'_> {
                   .resource_path
                   .parent()
                   .expect("TODO:")
-                  .relative(self.compiler_options.context.as_ref())
+                  .relative(&self.compiler_options.context)
                   .to_string_lossy()
                   .to_string(),
               ),
@@ -85,7 +85,7 @@ impl VisitAstPath for NodeStuffScanner<'_> {
                 self
                   .resource_data
                   .resource_path
-                  .relative(self.compiler_options.context.as_ref())
+                  .relative(&self.compiler_options.context)
                   .to_string_lossy()
                   .to_string(),
               ),

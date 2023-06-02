@@ -1,7 +1,7 @@
 use rspack_error::Result;
 
 use crate::{
-  CodeGeneratable, CodeGeneratableResult, ContextMode, ContextOptions, Dependency,
+  CodeGeneratable, CodeGeneratableResult, Context, ContextMode, ContextOptions, Dependency,
   DependencyCategory, DependencyId, DependencyType, ModuleDependency,
 };
 
@@ -13,7 +13,7 @@ pub struct ContextElementDependency {
   pub request: String,
   pub user_request: String,
   pub category: DependencyCategory,
-  pub context: String,
+  pub context: Context,
 }
 
 impl Dependency for ContextElementDependency {
@@ -33,7 +33,7 @@ impl Dependency for ContextElementDependency {
     &DependencyType::ContextElement
   }
 
-  fn get_context(&self) -> Option<&str> {
+  fn get_context(&self) -> Option<&Context> {
     Some(&self.context)
   }
 }

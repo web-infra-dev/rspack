@@ -1,5 +1,6 @@
 mod dependency;
 use std::collections::LinkedList;
+use std::path::{Path, PathBuf};
 
 pub use dependency::*;
 use xxhash_rust::xxh32::xxh32;
@@ -128,7 +129,7 @@ pub fn run_before_pass(
         relay(
           relay_option,
           resource_data.resource_path.as_path(),
-          options.context.to_path_buf(),
+          PathBuf::from(AsRef::<Path>::as_ref(&options.context)),
           unresolved_mark,
         )
       }),

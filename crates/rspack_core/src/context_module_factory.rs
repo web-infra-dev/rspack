@@ -43,7 +43,7 @@ impl ContextModuleFactory {
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     let mut before_resolve_args = NormalModuleBeforeResolveArgs {
       request: data.dependency.request().to_string(),
-      context: data.context.take(),
+      context: data.context.to_string(),
     };
     if let Ok(Some(false)) = self
       .plugin_driver
@@ -53,10 +53,7 @@ impl ContextModuleFactory {
       .await
     {
       let specifier = data.dependency.request();
-      let ident = format!(
-        "{}{specifier}",
-        data.context.as_ref().expect("should have context")
-      );
+      let ident = format!("{}{specifier}", data.context);
 
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
@@ -70,7 +67,7 @@ impl ContextModuleFactory {
         ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
       ));
     }
-    data.context = before_resolve_args.context;
+    data.context = before_resolve_args.context.into();
     data.dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
@@ -120,11 +117,7 @@ impl ContextModuleFactory {
         plugin_driver.read().await.resolver_factory.clone(),
       )) as BoxModule,
       Ok(ResolveResult::Ignored) => {
-        let ident = format!(
-          "{}/{}",
-          data.context.expect("should have context"),
-          specifier
-        );
+        let ident = format!("{}/{}", data.context, specifier);
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
         let raw_module = RawModule::new(
@@ -138,7 +131,7 @@ impl ContextModuleFactory {
         return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
       }
       Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", data.context.expect("should have context"));
+        let ident = format!("{}{specifier}", data.context);
         let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
         let missing_module = MissingModule::new(
