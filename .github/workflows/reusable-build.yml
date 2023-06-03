@@ -93,6 +93,7 @@ jobs:
         with:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+          pre: export JEMALLOC_SYS_WITH_LG_PAGE=16 && export CC_aarch64_unknown_linux_gnu=/usr/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc # for jemallocator to compile
 
       - name: Build x86_64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
