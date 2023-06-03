@@ -163,10 +163,6 @@ export class RspackCLI {
 				item.mode = options.mode as Mode;
 			}
 
-			// false is also a valid value for sourcemap, so don't override it
-			if (typeof item.devtool === "undefined") {
-				item.devtool = isBuild ? "source-map" : "cheap-module-source-map";
-			}
 			item.builtins = item.builtins || {};
 			if (isServe) {
 				item.builtins.progress = item.builtins.progress ?? true;
