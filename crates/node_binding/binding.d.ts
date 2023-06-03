@@ -198,6 +198,8 @@ export interface JsHooks {
   contextModuleBeforeResolve: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
+  succeedModule: (...args: any[]) => any
+  stillValidModule: (...args: any[]) => any
 }
 
 export interface JsLoader {
@@ -355,12 +357,6 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
-}
-
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {

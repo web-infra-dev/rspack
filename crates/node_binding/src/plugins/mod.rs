@@ -16,8 +16,8 @@ use rspack_napi_shared::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunc
 use rspack_napi_shared::NapiResultExt;
 
 use crate::js_values::{
-  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs,
-  JsResolveForSchemeInput, JsResolveForSchemeResult,
+  AfterResolveData, BeforeResolveData, JsAssetEmittedArgs, JsChunkAssetArgs, JsModule,
+  JsResolveForSchemeInput, JsResolveForSchemeResult, ToJsModule,
 };
 use crate::{DisabledHooks, Hook, JsCompilation, JsHooks};
 
@@ -49,6 +49,8 @@ pub struct JsHooksAdapter {
   pub context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>>,
   pub normal_module_factory_resolve_for_scheme:
     ThreadsafeFunction<JsResolveForSchemeInput, JsResolveForSchemeResult>,
+  pub succeed_module_tsfn: ThreadsafeFunction<JsModule, ()>,
+  pub still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()>,
 }
 
 impl Debug for JsHooksAdapter {
@@ -523,6 +525,38 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .await
       .map_err(|err| internal_error!("Failed to call after emit: {err}",))?
   }
+
+  async fn succeed_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::SucceedModule) {
+      return Ok(());
+    }
+
+    self
+      .succeed_module_tsfn
+      .call(
+        args.to_js_module().expect("Convert to js_module failed."),
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call succeed_module hook: {err}"))?
+  }
+
+  async fn still_valid_module(&self, args: &dyn rspack_core::Module) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::StillValidModule) {
+      return Ok(());
+    }
+
+    self
+      .still_valid_module_tsfn
+      .call(
+        args.to_js_module().expect("Convert to js_module failed."),
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call still_valid_module hook: {err}"))?
+  }
 }
 
 impl JsHooksAdapter {
@@ -553,6 +587,8 @@ impl JsHooksAdapter {
       finish_modules,
       finish_make,
       chunk_asset,
+      succeed_module,
+      still_valid_module,
     } = js_hooks;
 
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
@@ -604,6 +640,10 @@ impl JsHooksAdapter {
     > = js_fn_into_theadsafe_fn!(normal_module_factory_resolve_for_scheme, env);
     let chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()> =
       js_fn_into_theadsafe_fn!(chunk_asset, env);
+    let succeed_module_tsfn: ThreadsafeFunction<JsModule, ()> =
+      js_fn_into_theadsafe_fn!(succeed_module, env);
+    let still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()> =
+      js_fn_into_theadsafe_fn!(still_valid_module, env);
 
     Ok(JsHooksAdapter {
       disabled_hooks,
@@ -632,6 +672,8 @@ impl JsHooksAdapter {
       finish_make_tsfn,
       chunk_asset_tsfn,
       after_resolve,
+      succeed_module_tsfn,
+      still_valid_module_tsfn,
     })
   }
 

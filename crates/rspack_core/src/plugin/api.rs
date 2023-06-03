@@ -358,6 +358,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
+    Ok(())
+  }
+
   fn module_ids(&mut self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }

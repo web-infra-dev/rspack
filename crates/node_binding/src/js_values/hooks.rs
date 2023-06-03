@@ -27,4 +27,6 @@ pub struct JsHooks {
   pub context_module_before_resolve: JsFunction,
   pub normal_module_factory_resolve_for_scheme: JsFunction,
   pub chunk_asset: JsFunction,
+  pub succeed_module: JsFunction,
+  pub still_valid_module: JsFunction,
 }
