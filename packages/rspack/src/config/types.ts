@@ -15,7 +15,8 @@ import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
 import { RawFallbackCacheGroupOptions } from "@rspack/binding";
 import type { Options as RspackOptions } from "./zod/_rewrite";
-export type { RspackOptions };
+import type { OptimizationConfig as Optimization } from "./zod/optimization";
+export type { RspackOptions, Optimization };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
@@ -559,21 +560,6 @@ export interface StatsOptions {
 	nestedModules?: boolean;
 }
 
-///// Optimization /////
-export interface Optimization {
-	moduleIds?: "named" | "deterministic";
-	minimize?: boolean;
-	minimizer?: ("..." | RspackPluginInstance)[];
-	splitChunks?: OptimizationSplitChunksOptions | false;
-	runtimeChunk?: OptimizationRuntimeChunk;
-	removeAvailableModules?: boolean;
-	/**
-	 * Remove chunks which are empty.
-	 */
-	removeEmptyChunks?: boolean;
-	sideEffects?: "flag" | boolean;
-	realContentHash?: boolean;
-}
 export interface OptimizationSplitChunksOptions {
 	cacheGroups?: {
 		[k: string]: OptimizationSplitChunksCacheGroup;

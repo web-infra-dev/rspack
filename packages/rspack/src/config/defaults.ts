@@ -570,8 +570,8 @@ const applyOptimizationDefaults = (
 ) => {
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
-	F(optimization, "moduleIds", () => {
-		if (production) return "deterministic";
+	F(optimization, "moduleIds", (): "named" => {
+		// if (production) return "deterministic";
 		return "named";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));
@@ -589,8 +589,8 @@ const applyOptimizationDefaults = (
 		// D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);
 		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
-		F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
-		F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
+		// F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
+		// F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
 		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
 		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
 		// D(splitChunks, "automaticNameDelimiter", "-");
