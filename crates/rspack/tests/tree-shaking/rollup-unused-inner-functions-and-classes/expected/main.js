@@ -21,7 +21,7 @@ console.log(getClass().name);
 "./stuff.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'foo': function() { return foo; }, 'bar': function() { return bar; }, 'bog': function() { return bog; }, 'boo': function() { return boo; }, 'baz': function() { return Baz; }});
+__webpack_require__.d(exports, {});
  function foo() {
     console.log("outer foo");
 }

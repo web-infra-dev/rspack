@@ -1,6 +1,9 @@
+use std::collections::HashSet;
+
 use rspack_core::{
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, InitFragment, InitFragmentStage, RuntimeGlobals,
+  tree_shaking::visitor::SymbolRef, CodeReplaceSourceDependency,
+  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, InitFragment,
+  InitFragmentStage, RuntimeGlobals,
 };
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
@@ -24,7 +27,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
   fn apply(
     &self,
     _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    ctxt: &mut CodeReplaceSourceDependencyContext,
   ) {
     let CodeReplaceSourceDependencyContext {
       runtime_requirements,
@@ -32,7 +35,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
       compilation,
       module,
       ..
-    } = code_generatable_context;
+    } = ctxt;
     let exports_argument = compilation
       .module_graph
       .module_graph_module_by_identifier(&module.identifier())
@@ -41,12 +44,28 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
     runtime_requirements.add(RuntimeGlobals::EXPORTS);
 
     if !self.exports.is_empty() {
+      let module_id = ctxt.module.identifier();
+      // TODO: POC
+      let used_export = if ctxt.compilation.options.builtins.tree_shaking.is_true() {
+        let set = ctxt
+          .compilation
+          .used_symbol_ref
+          .iter()
+          .filter_map(|item| match item {
+            SymbolRef::Direct(d) if d.uri() == module_id => Some(d.id().atom.to_string()),
+            _ => None,
+          })
+          .collect::<HashSet<_>>();
+        Some(set)
+      } else {
+        None
+      };
       runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       init_fragments.push(InitFragment::new(
         format!(
           "{}({exports_argument}, {});\n",
           RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          format_exports(&self.exports)
+          format_exports(&self.exports, used_export)
         ),
         InitFragmentStage::STAGE_HARMONY_EXPORTS,
         None,
@@ -71,12 +90,22 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
   }
 }
 
-pub fn format_exports(exports: &[(String, String)]) -> String {
+pub fn format_exports(
+  exports: &[(String, String)],
+  used_export: Option<HashSet<String>>,
+) -> String {
   format!(
     "{{{}}}",
     exports
       .iter()
-      .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
+      .filter_map(|s| {
+        if let Some(export_map) = &used_export {
+          if !export_map.contains(&s.1) {
+            return None;
+          }
+        }
+        Some(format!("'{}': function() {{ return {}; }}", s.0, s.1))
+      })
       .collect::<Vec<_>>()
       .join(", ")
   )

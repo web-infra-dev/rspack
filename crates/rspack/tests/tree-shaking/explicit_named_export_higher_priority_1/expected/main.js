@@ -2,13 +2,13 @@
 "./bar.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
+__webpack_require__.d(exports, {});
  const a = 'bar';
 },
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
+__webpack_require__.d(exports, {});
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
 __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);
  const a = 'foo';

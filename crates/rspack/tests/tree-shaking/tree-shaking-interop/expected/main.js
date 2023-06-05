@@ -2,7 +2,7 @@
 "./a.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
+__webpack_require__.d(exports, {});
 __webpack_require__.el(/* ./bar */"./bar.js").then(__webpack_require__.bind(__webpack_require__, /* ./bar */"./bar.js")).then(__webpack_require__.ir).then((mod)=>{
     console.log(mod);
 });

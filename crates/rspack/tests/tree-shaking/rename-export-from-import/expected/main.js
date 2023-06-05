@@ -18,7 +18,7 @@ _app__WEBPACK_IMPORTED_MODULE__["q"];
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'answer': function() { return answer; }, 'question': function() { return question; }});
+__webpack_require__.d(exports, {});
  const answer = "1";
  const question = "2";
 },

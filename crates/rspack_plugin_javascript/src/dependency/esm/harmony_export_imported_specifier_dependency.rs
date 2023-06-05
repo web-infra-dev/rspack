@@ -4,8 +4,6 @@ use rspack_core::{
   ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
 
-use super::format_exports;
-
 // Create _webpack_require__.d(__webpack_exports__, {}) for re-exports.
 #[derive(Debug)]
 pub struct HarmonyExportImportedSpecifierDependency {
@@ -210,4 +208,15 @@ pub fn get_mode(
     items: Some(vec![]),
     ..Default::default()
   }
+}
+
+pub fn format_exports(exports: &[(String, String)]) -> String {
+  format!(
+    "{{{}}}",
+    exports
+      .iter()
+      .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
 }

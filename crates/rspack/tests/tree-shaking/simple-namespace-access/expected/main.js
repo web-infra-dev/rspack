@@ -11,7 +11,7 @@ console.log(_maths_js__WEBPACK_IMPORTED_MODULE__['square']);
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE__; }});
-__webpack_require__.d(exports, {'square': function() { return square; }, 'cube': function() { return cube; }});
+__webpack_require__.d(exports, {});
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./test.js */"./test.js");
 // maths.js
 // This function isn't used anywhere, so
@@ -30,7 +30,7 @@ __webpack_require__.d(exports, {'square': function() { return square; }, 'cube':
 "./test.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'test': function() { return test; }, 'ccc': function() { return ccc; }});
+__webpack_require__.d(exports, {});
  function test() {}
  function ccc() {}
 },

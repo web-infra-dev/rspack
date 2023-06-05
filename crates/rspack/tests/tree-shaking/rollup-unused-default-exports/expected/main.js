@@ -2,7 +2,7 @@
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'foo': function() { return foo; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(exports, {});
  var foo = {
     value: 1
 };

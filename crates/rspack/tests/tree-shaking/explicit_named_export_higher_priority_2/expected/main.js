@@ -2,13 +2,13 @@
 "./bar.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
+__webpack_require__.d(exports, {});
  const a = 'bar';
 },
 "./baz.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
+__webpack_require__.d(exports, {});
  const a = 'baz';
 },
 "./foo.js": function (module, exports, __webpack_require__) {

@@ -2,7 +2,7 @@
 "./Layout.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'defaults': function() { return defaults; }});
+__webpack_require__.d(exports, {});
  const defaults = {
     test: 1000
 };
@@ -10,7 +10,7 @@ __webpack_require__.d(exports, {'defaults': function() { return defaults; }});
 "./export.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'callit': function() { return callit; }, 'Sider': function() { return Sider; }, 'Something': function() { return Something; }});
+__webpack_require__.d(exports, {});
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Layout */"./Layout.js");
 
  function callit() {

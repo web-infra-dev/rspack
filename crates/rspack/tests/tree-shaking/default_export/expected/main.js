@@ -2,13 +2,13 @@
 "./answer.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'answer': function() { return answer; }});
+__webpack_require__.d(exports, {});
  const answer = 103330; // export default answer;
 },
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'render': function() { return render; }, 'default': function() { return result; }});
+__webpack_require__.d(exports, {});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
  function render() {
@@ -29,7 +29,7 @@ _app__WEBPACK_IMPORTED_MODULE__["render"](_app__WEBPACK_IMPORTED_MODULE__["defau
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'secret': function() { return secret; }, 'myanswer': function() { return myanswer; }, 'result': function() { return result; }});
+__webpack_require__.d(exports, {});
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./answer */"./answer.js");
 
  const secret = "888";

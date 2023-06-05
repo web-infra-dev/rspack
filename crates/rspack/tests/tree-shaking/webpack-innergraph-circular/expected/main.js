@@ -17,7 +17,7 @@ it("export should be unused when only unused functions use it", ()=>{
 "./inner.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'A': function() { return A; }, 'B': function() { return B; }, 'C': function() { return C; }, 'exportAUsed': function() { return exportAUsed; }, 'exportBUsed': function() { return exportBUsed; }, 'exportCUsed': function() { return exportCUsed; }});
+__webpack_require__.d(exports, {});
  function A(s) {
     return s + "A";
 }
@@ -34,7 +34,7 @@ __webpack_require__.d(exports, {'A': function() { return A; }, 'B': function() {
 "./module.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return x; }, 'y': function() { return y; }});
+__webpack_require__.d(exports, {});
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./inner */"./inner.js");
 
 function x(type) {
