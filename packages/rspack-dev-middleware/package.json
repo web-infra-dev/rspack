@@ -9,6 +9,10 @@
     "build": "tsc",
     "dev": "tsc -w"
   },
+  "files": [
+    "index.cjs",
+    "dist"
+  ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {

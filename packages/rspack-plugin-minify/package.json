@@ -5,6 +5,9 @@
   "description": "Minify plugin for rspack",
   "main": "src/index.js",
   "scripts": {},
+  "files": [
+    "src"
+  ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
