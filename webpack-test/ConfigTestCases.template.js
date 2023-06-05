@@ -691,7 +691,6 @@ const describeCases = config => {
 									.catch(done);
 							};
 							const rspack = require("@rspack/core").rspack;
-							console.log(options);
 							if (config.cache) {
 								try {
 									const compiler = rspack(options);
