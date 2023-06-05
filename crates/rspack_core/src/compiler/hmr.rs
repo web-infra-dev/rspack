@@ -109,19 +109,11 @@ where
       })
       .collect::<HashMap<String, HotUpdateContent>>();
 
-    let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
-    for (ukey, chunk) in old.compilation.chunk_by_ukey.iter() {
-      let modules = old
-        .compilation
-        .chunk_graph
-        .get_chunk_graph_chunk(ukey)
-        .modules
-        .clone();
-      old_chunks.push((
-        chunk.expect_id().to_string(),
-        modules,
-        chunk.runtime.clone(),
-      ));
+    let mut old_chunks: Vec<(String, RuntimeSpec)> = vec![];
+    for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
+      if chunk.kind != ChunkKind::HotUpdate {
+        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime.clone()));
+      }
     }
 
     // build without stats
@@ -280,7 +272,7 @@ where
     // TODO: hash
     // if old.hash == now.hash { return  } else { // xxxx}
 
-    for (chunk_id, _old_chunk_modules, old_runtime) in &old_chunks {
+    for (chunk_id, old_runtime) in &old_chunks {
       let mut new_modules = vec![];
       let mut new_runtime_modules = vec![];
       let mut chunk_id = chunk_id.to_string();
