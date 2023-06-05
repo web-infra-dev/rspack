@@ -427,7 +427,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               // Only used id imported from other module would generate a side effects.
               let id = match ref_id {
                 IdOrMemExpr::Id(ref id) => id,
-                // TODO: inspect namespace access
                 IdOrMemExpr::MemberExpr { object, property } => match self.import_map.get(object) {
                   Some(SymbolRef::Star(uri)) => {
                     return HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
@@ -1569,6 +1568,7 @@ static PURE_COMMENTS: Lazy<regex::Regex> = Lazy::new(|| {
   let reg = regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex");
   reg
 });
+
 fn is_pure_expression<'a, 'b>(
   expr: &'a Expr,
   unresolved_ctxt: SyntaxContext,

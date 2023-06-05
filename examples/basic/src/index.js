@@ -1,6 +1,7 @@
-import { result, } from "./lib.js";
+import test from "./lib.js";
 
-function test(){}
-let a = /*#__PURE__*/ test(result)
+test
+// function test(){}
+// let a = /*#__PURE__*/ test(result)
 
 
