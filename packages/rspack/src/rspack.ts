@@ -12,7 +12,8 @@ import {
 	RspackOptions,
 	applyRspackOptionsBaseDefaults,
 	applyRspackOptionsDefaults,
-	RspackPluginFunction
+	RspackPluginFunction,
+	validateConfig
 } from "./config";
 import { Compiler } from "./compiler";
 import { Stats } from "./stats";
@@ -133,18 +134,7 @@ function rspack(
 	callback?: Callback<Error, MultiStats> | Callback<Error, Stats>
 ) {
 	asArray(options).every(opts => {
-		try {
-			configSchema().parse(opts);
-		} catch (e: any) {
-			// 'strict', 'loose', 'loose-silent'
-			const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
-			if (strategy === "loose-silent") return;
-			if (strategy === "loose") {
-				console.error(e.message);
-				return;
-			}
-			throw new InvalidateConfigurationError(e.message);
-		}
+		validateConfig(opts);
 	});
 	const create = () => {
 		if (isMultiRspackOptions(options)) {
