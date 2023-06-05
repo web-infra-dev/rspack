@@ -110,7 +110,7 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
-rspack-dist
+webpack-dist
 # Gatsby files
 .cache/
 # Comment in the public line in if your project uses Gatsby and not Next.js

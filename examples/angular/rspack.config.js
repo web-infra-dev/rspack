@@ -8,9 +8,11 @@ const {
 } = require("@angular-devkit/build-angular/src/webpack/plugins/occurrences-plugin");
 const path = require("path");
 
+const is_webpack = process.env.IS_WEBPACK
+
 /** @type {import('@rspack/cli').Configuration} */
 module.exports = {
-	mode: "production",
+	mode: "development",
 	devtool: false,
 	target: ["web", "es2015"],
 	entry: {
@@ -24,7 +26,7 @@ module.exports = {
 		uniqueName: "angular",
 		hashFunction: 'xxhash64',
 		clean: true,
-		path: "./dist",
+		path: path.resolve(__dirname, is_webpack ? "webpack-dist" :  "dist"),
 		publicPath: "",
 		filename: "[name].[contenthash:20].js",
 		chunkFilename: "[name].[contenthash:20].js",
@@ -42,9 +44,9 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: false,
-		minimize: true,
+		minimize: false,
 		// moduleIds: 'named',
-		sideEffects: true,
+		sideEffects: false,
 		splitChunks: {
 			// 'maxAsyncRequests': null, // throws error
 			cacheGroups: {
