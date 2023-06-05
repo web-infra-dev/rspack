@@ -133,10 +133,8 @@ describe("snapshots", () => {
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,
 		@@ ... @@
-		-       "enforceSizeThreshold": 30000,
 		-       "maxAsyncRequests": Infinity,
 		-       "maxInitialRequests": Infinity,
-		+       "enforceSizeThreshold": 50000,
 		+       "maxAsyncRequests": 30,
 		+       "maxInitialRequests": 30,
 		@@ ... @@
@@ -184,10 +182,8 @@ describe("snapshots", () => {
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,
 		@@ ... @@
-		-       "enforceSizeThreshold": 30000,
 		-       "maxAsyncRequests": Infinity,
 		-       "maxInitialRequests": Infinity,
-		+       "enforceSizeThreshold": 50000,
 		+       "maxAsyncRequests": 30,
 		+       "maxInitialRequests": 30,
 		@@ ... @@
@@ -212,9 +208,6 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
-		@@ ... @@
-		-       "minRemainingSize": undefined,
-		+       "minRemainingSize": 0,
 		@@ ... @@
 		-       "production",
 		+       "development",
@@ -855,9 +848,6 @@ describe("snapshots", () => {
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
-			@@ ... @@
-			-       "minRemainingSize": undefined,
-			+       "minRemainingSize": 0,
 			@@ ... @@
 			-       "production",
 			+       "development",
