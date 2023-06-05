@@ -144,6 +144,11 @@ export interface JsAssetInfo {
    * related object to other assets, keyed by type of relation (only points from parent to child)
    */
   related: JsAssetInfoRelated
+  /**
+   * the asset version, emit can be skipped when both filename and version are the same
+   * An empty string means no version, it will always emit
+   */
+  version: string
 }
 
 export interface JsAssetInfoRelated {

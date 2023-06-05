@@ -38,6 +38,9 @@ pub struct JsAssetInfo {
   // pub javascript_module:
   /// related object to other assets, keyed by type of relation (only points from parent to child)
   pub related: JsAssetInfoRelated,
+  /// the asset version, emit can be skipped when both filename and version are the same
+  /// An empty string means no version, it will always emit
+  pub version: String,
 }
 
 impl From<JsAssetInfo> for rspack_core::AssetInfo {
@@ -49,7 +52,7 @@ impl From<JsAssetInfo> for rspack_core::AssetInfo {
       hot_module_replacement: i.hot_module_replacement,
       related: i.related.into(),
       content_hash: i.content_hash.into_iter().collect(),
-      version: Default::default(),
+      version: i.version,
     }
   }
 }
@@ -78,6 +81,7 @@ impl From<rspack_core::AssetInfo> for JsAssetInfo {
       hot_module_replacement: info.hot_module_replacement,
       related: info.related.into(),
       content_hash: info.content_hash.into_iter().collect(),
+      version: info.version,
     }
   }
 }
