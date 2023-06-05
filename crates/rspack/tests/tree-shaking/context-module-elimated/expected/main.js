@@ -1,9 +1,11 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-;
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _lib_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib.js */"./lib.js");
+
 function test() {
-    a;
+    _lib_js__WEBPACK_IMPORTED_MODULE__["a"];
 }
 },
 

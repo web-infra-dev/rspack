@@ -1,70 +1,11 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    Provider: function() {
-        return _lib.default;
-    },
-    useSelector: function() {
-        return _selector.default;
-    }
-});
-var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
-var _selector = __webpack_require__.ir(__webpack_require__("./selector.js"));
-},
-"./foo.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-__webpack_require__.es(__webpack_require__("./app.js"), exports);
-},
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _foo = __webpack_require__("./foo.js");
-_foo.Provider;
-_foo.useSelector;
-},
-"./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
-function Provider() {}
-var _default = Provider;
-},
-"./selector.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return useSelector;
-    }
-});
-function useSelector() {
-    return "";
-}
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+
+_foo__WEBPACK_IMPORTED_MODULE__["Provider"];
+_foo__WEBPACK_IMPORTED_MODULE__["useSelector"];
 },
 
 },function(__webpack_require__) {
