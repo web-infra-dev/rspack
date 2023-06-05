@@ -570,8 +570,8 @@ const applyOptimizationDefaults = (
 ) => {
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
-	F(optimization, "moduleIds", (): "named" => {
-		// if (production) return "deterministic";
+	F(optimization, "moduleIds", (): "named" | "deterministic" => {
+		if (production) return "deterministic";
 		return "named";
 	});
 	F(optimization, "sideEffects", () => (production ? true : "flag"));

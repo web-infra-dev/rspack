@@ -8,7 +8,7 @@ const rspackPluginInstance = z.object({
 
 export function optimization() {
 	return z.strictObject({
-		moduleIds: z.enum(["named"]).optional(),
+		moduleIds: z.enum(["named", "deterministic"]).optional(),
 		minimize: z.boolean().optional(),
 		minimizer: z.literal("...").or(rspackPluginInstance).array().optional(),
 		splitChunks: splitChunks().optional(),
