@@ -5,7 +5,6 @@ import type {
 	Resolve,
 	ModuleOptions,
 	Plugins,
-	Optimization,
 	Builtins,
 	DevServer
 } from "../types";
@@ -18,7 +17,6 @@ type Config = z.infer<ReturnType<typeof configSchema>>;
 type Rewritten = {
 	output?: Output;
 	resolve?: Resolve;
-	optimization?: Optimization;
 	module?: ModuleOptions;
 	plugins?: Plugins;
 	builtins?: Builtins;
