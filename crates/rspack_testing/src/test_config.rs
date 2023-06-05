@@ -6,7 +6,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_core::{BoxLoader, BoxPlugin, CompilerOptions, ModuleType, PluginExt, TargetPlatform};
+use rspack_core::{BoxLoader, BoxPlugin, CompilerOptions, ModuleType, PluginExt};
 use rspack_plugin_css::pxtorem::options::PxToRemOptions;
 use rspack_plugin_html::config::HtmlPluginConfig;
 use rspack_regex::RspackRegex;
@@ -546,22 +546,10 @@ impl TestConfig {
       }
     }
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
-    match &options.target.platform {
-      TargetPlatform::Web => {
-        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
-      }
-      TargetPlatform::Node(_) => {
-        plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-        plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
-      }
-      _ => {
-        plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
-      }
-    };
+    plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
+    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
+    plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
+    plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
     if options.dev_server.hot {
       plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
     }

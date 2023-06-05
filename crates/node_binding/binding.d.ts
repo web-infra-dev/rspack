@@ -359,6 +359,12 @@ export interface JsStatsWarning {
   formatted: string
 }
 
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
+
 export interface PathData {
   filename?: string
   hash?: string
@@ -528,6 +534,10 @@ export interface RawExternalItemValue {
 export interface RawExternalsPresets {
   node: boolean
   web: boolean
+  electron: boolean
+  electronMain: boolean
+  electronPreload: boolean
+  electronRenderer: boolean
 }
 
 export interface RawFallbackCacheGroupOptions {

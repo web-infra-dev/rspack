@@ -214,7 +214,11 @@ function getRawExternalsPresets(
 ): RawOptions["externalsPresets"] {
 	return {
 		web: presets.web ?? false,
-		node: presets.node ?? false
+		node: presets.node ?? false,
+		electron: presets.electron ?? false,
+		electronMain: presets.electronMain ?? false,
+		electronPreload: presets.electronPreload ?? false,
+		electronRenderer: presets.electronRenderer ?? false
 	};
 }
 
