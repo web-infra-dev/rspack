@@ -6,5 +6,4 @@ pub mod sri;
 pub mod visitors;
 
 mod plugin;
-mod utils;
 pub use plugin::*;

@@ -79,6 +79,10 @@ impl ModuleDependency for RequireResolveDependency {
   fn get_optional(&self) -> bool {
     self.optional
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request;
+  }
 }
 
 impl CodeGeneratable for RequireResolveDependency {

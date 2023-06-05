@@ -25,7 +25,7 @@ json               = { version = "0.12.4" }
 linked_hash_set    = { version = "0.1.4" }
 mimalloc-rust      = { version = "0.2" }
 mime_guess         = { version = "2.0.4" }
-nodejs-resolver    = { version = "0.0.86" }
+nodejs-resolver    = { version = "0.0.88" }
 once_cell          = { version = "1.17.1" }
 paste              = { version = "1.0" }
 pathdiff           = { version = "0.2.1" }
@@ -62,6 +62,7 @@ swc_html            = { version = "=0.124.16" }
 swc_html_minifier   = { version = "=0.121.16" }
 swc_node_comments   = { version = "=0.18.10" }
 swc_plugin_import   = { version = "=0.1.7" }
+tikv-jemallocator   = { version = "=0.4.3", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]
 debug       = 2

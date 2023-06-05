@@ -14,6 +14,9 @@ import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
 import { RawFallbackCacheGroupOptions } from "@rspack/binding";
+import type { Options as RspackOptions } from "./zod/_rewrite";
+import type { OptimizationConfig as Optimization } from "./zod/optimization";
+export type { RspackOptions, Optimization };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
@@ -24,35 +27,6 @@ export type {
 } from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
-
-export interface RspackOptions {
-	name?: Name;
-	dependencies?: Dependencies;
-	context?: Context;
-	mode?: Mode;
-	entry?: Entry;
-	output?: Output;
-	resolve?: Resolve;
-	module?: ModuleOptions;
-	target?: Target;
-	externals?: Externals;
-	externalsType?: ExternalsType;
-	externalsPresets?: ExternalsPresets;
-	infrastructureLogging?: InfrastructureLogging;
-	devtool?: DevTool;
-	node?: Node;
-	snapshot?: SnapshotOptions;
-	cache?: CacheOptions;
-	stats?: StatsValue;
-	optimization?: Optimization;
-	plugins?: Plugins;
-	experiments?: Experiments;
-	watch?: Watch;
-	watchOptions?: WatchOptions;
-	devServer?: DevServer;
-	builtins?: Builtins;
-	ignoreWarnings?: IgnoreWarningsPattern;
-}
 
 export interface RspackOptionsNormalized {
 	name?: Name;
@@ -330,6 +304,7 @@ export interface RuleSetRule {
 		[k: string]: RuleSetCondition;
 	};
 	oneOf?: RuleSetRule[];
+	rules?: RuleSetRule[];
 	type?: string;
 	loader?: RuleSetLoader;
 	options?: RuleSetLoaderOptions;
@@ -585,21 +560,6 @@ export interface StatsOptions {
 	nestedModules?: boolean;
 }
 
-///// Optimization /////
-export interface Optimization {
-	moduleIds?: "named" | "deterministic";
-	minimize?: boolean;
-	minimizer?: ("..." | RspackPluginInstance)[];
-	splitChunks?: OptimizationSplitChunksOptions | false;
-	runtimeChunk?: OptimizationRuntimeChunk;
-	removeAvailableModules?: boolean;
-	/**
-	 * Remove chunks which are empty.
-	 */
-	removeEmptyChunks?: boolean;
-	sideEffects?: "flag" | boolean;
-	realContentHash?: boolean;
-}
 export interface OptimizationSplitChunksOptions {
 	cacheGroups?: {
 		[k: string]: OptimizationSplitChunksCacheGroup;

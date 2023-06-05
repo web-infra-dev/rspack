@@ -35,7 +35,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
     let context = self
       .context
       .clone()
-      .unwrap_or_else(|| compilation.options.context.to_string_lossy().to_string());
+      .unwrap_or_else(|| compilation.options.context.to_string());
 
     let mut used_code_splitting_chunk_name: FxHashSet<String> = FxHashSet::default();
 

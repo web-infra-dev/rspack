@@ -88,6 +88,8 @@ export class Compilation {
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
+		succeedModule: tapable.SyncHook<[JsModule], undefined>;
+		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -121,7 +123,9 @@ export class Compilation {
 			]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"]),
 			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
-			processWarnings: new tapable.SyncWaterfallHook(["warnings"])
+			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
+			succeedModule: new tapable.SyncHook(["module"]),
+			stillValidModule: new tapable.SyncHook(["module"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;

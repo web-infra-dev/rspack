@@ -173,7 +173,7 @@ impl AssetParserAndGenerator {
 
   fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
     let relative = make_paths_relative(
-      &compilation.options.context.to_string_lossy(),
+      compilation.options.context.as_ref(),
       &module
         .match_resource()
         .unwrap_or(module.resource_resolved_data())

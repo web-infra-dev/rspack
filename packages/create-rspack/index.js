@@ -45,7 +45,8 @@ yargs(hideBin(process.argv))
 				message: "Project template",
 				choices: [
 					{ title: "react", value: "react" },
-					{ title: "react-ts", value: "react-ts" }
+					{ title: "react-ts", value: "react-ts" },
+					{ title: "vue", value: "vue" }
 				],
 				onState: state => {
 					template = state.value;

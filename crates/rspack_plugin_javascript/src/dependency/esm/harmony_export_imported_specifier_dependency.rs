@@ -1,17 +1,30 @@
 use rspack_core::{
-  get_exports_type, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, DependencyId, ExportsType,
+  export_from_import, get_exports_type, get_import_var, CodeReplaceSourceDependency,
+  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, DependencyId,
+  ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
+
+use super::format_exports;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for re-exports.
 #[derive(Debug)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub request: String,
+  pub ids: Vec<(String, Option<String>)>,
+  module_identifier: ModuleIdentifier,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
-  pub fn _new(request: String) -> Self {
-    Self { request }
+  pub fn new(
+    request: String,
+    ids: Vec<(String, Option<String>)>,
+    module_identifier: ModuleIdentifier,
+  ) -> Self {
+    Self {
+      request,
+      ids,
+      module_identifier,
+    }
   }
 }
 
@@ -19,13 +32,68 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
   fn apply(
     &self,
     _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    _code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
-  }
-}
+    let compilation = &code_generatable_context.compilation;
+    let dependency_id = compilation
+      .module_graph
+      .dependencies_by_module_identifier(&self.module_identifier)
+      .expect("should have dependencies")
+      .iter()
+      .map(|id| {
+        compilation
+          .module_graph
+          .dependency_by_id(id)
+          .expect("should have dependency")
+      })
+      .find(|d| d.request() == self.request)
+      .expect("should have dependency")
+      .id()
+      .expect("should have dependency id");
 
-pub fn get_reexport_var<'a>(import_var: &'a str, export: &'a str) -> String {
-  format!("{import_var}.{export}")
+    let import_var = get_import_var(&self.request);
+
+    let mut exports = vec![];
+
+    for id in &self.ids {
+      exports.push((
+        id.0.clone(),
+        export_from_import(
+          code_generatable_context,
+          true,
+          import_var.clone(),
+          id.1.clone().map(|i| vec![i]).unwrap_or_default(),
+          &dependency_id,
+          false,
+        ),
+      ));
+    }
+
+    let CodeReplaceSourceDependencyContext {
+      runtime_requirements,
+      init_fragments,
+      compilation,
+      module,
+      ..
+    } = code_generatable_context;
+
+    let exports_argument = compilation
+      .module_graph
+      .module_graph_module_by_identifier(&module.identifier())
+      .expect("should have mgm")
+      .get_exports_argument();
+    runtime_requirements.add(RuntimeGlobals::EXPORTS);
+    runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    init_fragments.push(InitFragment::new(
+      format!(
+        "{}({exports_argument}, {});\n",
+        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+        format_exports(&exports)
+      ),
+      InitFragmentStage::STAGE_HARMONY_EXPORTS,
+      None,
+    ));
+  }
 }
 
 #[allow(unused)]

@@ -7,9 +7,9 @@ use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AssetInfo, BoxLoader, BoxModule, ChunkAssetArgs,
-  ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs, DoneArgs,
-  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
+  AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, BoxLoader, BoxModule,
+  ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
   NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
@@ -94,7 +94,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn before_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleBeforeResolveArgs,
+    _args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
@@ -110,7 +110,7 @@ pub trait Plugin: Debug + Send + Sync {
   async fn context_module_before_resolve(
     &self,
     _ctx: PluginContext,
-    _args: &NormalModuleBeforeResolveArgs,
+    _args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     Ok(None)
   }
@@ -325,6 +325,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn finish_make(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
   async fn finish_modules(&mut self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
@@ -354,6 +358,10 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
+  async fn still_valid_module(&self, _module: &dyn Module) -> Result<()> {
+    Ok(())
+  }
+
   fn module_ids(&mut self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
@@ -363,6 +371,10 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn emit(&mut self, _compilation: &mut Compilation) -> Result<()> {
+    Ok(())
+  }
+
+  async fn asset_emitted(&self, _args: &AssetEmittedArgs) -> Result<()> {
     Ok(())
   }
 

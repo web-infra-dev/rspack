@@ -141,17 +141,13 @@ impl Debug for SplitChunksPlugin {
 
 #[async_trait::async_trait]
 impl Plugin for SplitChunksPlugin {
+  #[tracing::instrument(name = "SplitChunksPlugin::optimize_chunks", skip_all)]
   async fn optimize_chunks(
     &mut self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {
-    // use std::time::Instant;
-    // let start = Instant::now();
     self.inner_impl(args.compilation).await;
-
-    // let duration = start.elapsed();
-    // tracing::trace!("SplitChunksPlugin is: {:?}", duration);
     Ok(())
   }
 }

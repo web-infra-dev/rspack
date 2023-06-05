@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "rspack serve",
-    "build": "PERFSEE_NO_UPLOAD=true rspack build",
+    "build": "cross-env PERFSEE_NO_UPLOAD=true rspack build",
     "analyze": "PERFSEE_AUDIT=true rspack build"
   },
   "devDependencies": {

@@ -36,7 +36,6 @@ jobs:
 
   test-windows:
     name: Test Windows
-    if: github.ref_name == 'main'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -85,17 +84,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install toolchain
-        run: rustup show
-
       - name: Pnpm Cache # Required by some tests
         uses: ./.github/actions/pnpm-cache
 
-      - name: Rust Cache
-        uses: Swatinem/rust-cache@v2
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
         with:
+          clippy: true
+          fmt: true
+          save-cache: ${{ github.ref_name == 'main' }}
           shared-key: check
-          save-if: ${{ github.ref_name == 'main' }}
 
       - name: Run rustfmt
         uses: actions-rs/cargo@v1

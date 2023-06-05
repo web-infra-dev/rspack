@@ -87,6 +87,7 @@ class Compiler {
 	compilation: Compilation;
 	root: Compiler;
 	running: boolean;
+	idle: boolean;
 	resolverFactory: ResolverFactory;
 	infrastructureLogger: any;
 	watching?: Watching;
@@ -121,6 +122,7 @@ class Compiler {
 		beforeRun: tapable.AsyncSeriesHook<[Compiler]>;
 		run: tapable.AsyncSeriesHook<[Compiler]>;
 		emit: tapable.AsyncSeriesHook<[Compilation]>;
+		assetEmitted: tapable.AsyncSeriesHook<[string, any]>;
 		afterEmit: tapable.AsyncSeriesHook<[Compilation]>;
 		failed: tapable.SyncHook<[Error]>;
 		shutdown: tapable.AsyncSeriesHook<[]>;
@@ -134,6 +136,7 @@ class Compiler {
 		beforeCompile: tapable.AsyncSeriesHook<any>;
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
+		finishMake: tapable.AsyncSeriesHook<[Compilation]>;
 	};
 	options: RspackOptionsNormalized;
 	#disabledHooks: string[];
@@ -190,6 +193,7 @@ class Compiler {
 		this.root = this;
 		this.ruleSet = new RuleSetCompiler();
 		this.running = false;
+		this.idle = false;
 		this.context = context;
 		this.resolverFactory = new ResolverFactory();
 		this.modifiedFiles = undefined;
@@ -201,6 +205,7 @@ class Compiler {
 			beforeRun: new tapable.AsyncSeriesHook(["compiler"]),
 			run: new tapable.AsyncSeriesHook(["compiler"]),
 			emit: new tapable.AsyncSeriesHook(["compilation"]),
+			assetEmitted: new tapable.AsyncSeriesHook(["file", "info"]),
 			afterEmit: new tapable.AsyncSeriesHook(["compilation"]),
 			thisCompilation: new tapable.SyncHook<[Compilation, CompilationParams]>([
 				"compilation",
@@ -230,6 +235,7 @@ class Compiler {
 			make: new tapable.AsyncParallelHook(["compilation"]),
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
+			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"])
 		};
 		this.modifiedFiles = undefined;
@@ -280,8 +286,10 @@ class Compiler {
 				{
 					beforeCompile: this.#beforeCompile.bind(this),
 					afterCompile: this.#afterCompile.bind(this),
+					finishMake: this.#finishMake.bind(this),
 					make: this.#make.bind(this),
 					emit: this.#emit.bind(this),
+					assetEmitted: this.#assetEmitted.bind(this),
 					afterEmit: this.#afterEmit.bind(this),
 					processAssetsStageAdditional: this.#processAssets.bind(
 						this,
@@ -324,16 +332,18 @@ class Compiler {
 					// still it does not matter where the child compiler is created(Rust or Node) as calling the hook `compilation` is a required task.
 					// No matter how it will be implemented, it will be copied to the child compiler.
 					compilation: this.#compilation.bind(this),
-					optimizeModules: this.#optimize_modules.bind(this),
-					optimizeChunkModule: this.#optimize_chunk_modules.bind(this),
-					finishModules: this.#finish_modules.bind(this),
+					optimizeModules: this.#optimizeModules.bind(this),
+					optimizeChunkModule: this.#optimizeChunkModules.bind(this),
+					finishModules: this.#finishModules.bind(this),
 					normalModuleFactoryResolveForScheme:
 						this.#normalModuleFactoryResolveForScheme.bind(this),
 					chunkAsset: this.#chunkAsset.bind(this),
 					beforeResolve: this.#beforeResolve.bind(this),
 					afterResolve: this.#afterResolve.bind(this),
 					contextModuleBeforeResolve:
-						this.#contextModuleBeforeResolve.bind(this)
+						this.#contextModuleBeforeResolve.bind(this),
+					succeedModule: this.#succeedModule.bind(this),
+					stillValidModule: this.#stillValidModule.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 				loaderContext => runLoader(loaderContext, this)
@@ -560,7 +570,9 @@ class Compiler {
 			make: this.hooks.make,
 			beforeCompile: this.hooks.beforeCompile,
 			afterCompile: this.hooks.afterCompile,
+			finishMake: this.hooks.finishMake,
 			emit: this.hooks.emit,
+			assetEmitted: this.hooks.assetEmitted,
 			afterEmit: this.hooks.afterEmit,
 			processAssetsStageAdditional:
 				this.compilation.__internal_getProcessAssetsHookByStage(
@@ -592,7 +604,9 @@ class Compiler {
 			optimizeModules: this.compilation.hooks.optimizeModules,
 			chunkAsset: this.compilation.hooks.chunkAsset,
 			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
-			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve
+			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
+			succeedModule: this.compilation.hooks.succeedModule,
+			stillValidModule: this.compilation.hooks.stillValidModule
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook?.taps.length === 0) {
@@ -618,12 +632,11 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #finishModules() {
-		await this.compilation.hooks.finishModules.promise(
-			this.compilation.getModules()
-		);
+	async #finishMake() {
+		await this.hooks.finishMake.promise(this.compilation);
 		this.#updateDisabledHooks();
 	}
+
 	async #processAssets(stage: number) {
 		await this.compilation
 			.__internal_getProcessAssetsHookByStage(stage)
@@ -632,17 +645,22 @@ class Compiler {
 	}
 
 	async #beforeResolve(resolveData: binding.BeforeResolveData) {
-		let res =
-			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise({
-				request: resolveData.request,
-				context: resolveData.context,
-				fileDependencies: [],
-				missingDependencies: [],
-				contextDependencies: []
-			});
+		const normalizedResolveData = {
+			request: resolveData.request,
+			context: resolveData.context,
+			fileDependencies: [],
+			missingDependencies: [],
+			contextDependencies: []
+		};
+		let ret =
+			await this.compilation.normalModuleFactory?.hooks.beforeResolve.promise(
+				normalizedResolveData
+			);
 
 		this.#updateDisabledHooks();
-		return res;
+		resolveData.request = normalizedResolveData.request;
+		resolveData.context = normalizedResolveData.context;
+		return [ret, resolveData];
 	}
 
 	async #afterResolve(resolveData: binding.AfterResolveData) {
@@ -678,14 +696,14 @@ class Compiler {
 		};
 	}
 
-	async #optimize_chunk_modules() {
+	async #optimizeChunkModules() {
 		await this.compilation.hooks.optimizeChunkModules.promise(
 			this.compilation.getChunks(),
 			this.compilation.getModules()
 		);
 		this.#updateDisabledHooks();
 	}
-	async #optimize_modules() {
+	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
 			this.compilation.getModules()
 		);
@@ -697,7 +715,7 @@ class Compiler {
 		this.#updateDisabledHooks();
 	}
 
-	async #finish_modules() {
+	async #finishModules() {
 		await this.compilation.hooks.finishModules.promise(
 			this.compilation.getModules()
 		);
@@ -712,9 +730,35 @@ class Compiler {
 		await this.hooks.emit.promise(this.compilation);
 		this.#updateDisabledHooks();
 	}
+	async #assetEmitted(args: binding.JsAssetEmittedArgs) {
+		const filename = args.filename;
+		const info = {
+			compilation: this.compilation,
+			outputPath: args.outputPath,
+			targetPath: args.targetPath,
+			get source() {
+				return this.compilation.getAsset(args.filename)?.source;
+			},
+			get content() {
+				return this.source?.buffer();
+			}
+		};
+		await this.hooks.assetEmitted.promise(filename, info);
+		this.#updateDisabledHooks();
+	}
 
 	async #afterEmit() {
 		await this.hooks.afterEmit.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+
+	#succeedModule(module: binding.JsModule) {
+		this.compilation.hooks.succeedModule.call(module);
+		this.#updateDisabledHooks();
+	}
+
+	#stillValidModule(module: binding.JsModule) {
+		this.compilation.hooks.stillValidModule.call(module);
 		this.#updateDisabledHooks();
 	}
 
@@ -753,6 +797,9 @@ class Compiler {
 		const doRun = () => {
 			// @ts-expect-error
 			const finalCallback = (err, stats?) => {
+				this.idle = true;
+				this.cache.beginIdle();
+				this.idle = true;
 				this.running = false;
 				if (err) {
 					this.hooks.failed.call(err);
@@ -789,7 +836,16 @@ class Compiler {
 				});
 			});
 		};
-		doRun();
+		if (this.idle) {
+			this.cache.endIdle(err => {
+				if (err) return callback(err);
+
+				this.idle = false;
+				doRun();
+			});
+		} else {
+			doRun();
+		}
 	}
 	// Safety: This method is only valid to call if the previous build task is finished, or there will be data races.
 	build(cb: (error?: Error) => void) {

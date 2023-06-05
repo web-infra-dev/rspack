@@ -26,7 +26,7 @@ export const getNormalizedRspackOptions = (
 			config.ignoreWarnings !== undefined
 				? config.ignoreWarnings.map(ignore => {
 						if (typeof ignore === "function") {
-							return ignore;
+							return ignore as (...args: any[]) => boolean;
 						} else {
 							return warning => {
 								return ignore.test(warning.message);

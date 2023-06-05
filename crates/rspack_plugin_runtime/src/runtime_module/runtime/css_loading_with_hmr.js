@@ -76,8 +76,6 @@ __webpack_require__.hmrC.css = function (
 							// Object.keys(factories).forEach(function(id) {
 							//     (updatedModulesList.push(id));
 							// });
-							// workaround for loadCssChunkData
-							updatedModulesList.push(url);
 							link.sheet.disabled = true;
 							oldTags.push(oldTag);
 							newTags.push([chunkId, link]);

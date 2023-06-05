@@ -61,6 +61,10 @@ impl ModuleDependency for ModuleHotDeclineDependency {
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for ModuleHotDeclineDependency {
@@ -150,6 +154,10 @@ impl ModuleDependency for NewModuleHotDeclineDependency {
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     Some(Box::new(self.clone()))
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for NewModuleHotDeclineDependency {
@@ -172,7 +180,13 @@ impl CodeReplaceSourceDependency for NewModuleHotDeclineDependency {
     source.replace(
       self.start,
       self.end,
-      module_id(code_generatable_context.compilation, &id, &self.request).as_str(),
+      module_id(
+        code_generatable_context.compilation,
+        &id,
+        &self.request,
+        false,
+      )
+      .as_str(),
       None,
     );
   }

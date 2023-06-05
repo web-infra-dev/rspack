@@ -1,3 +1,5 @@
+mod new_url_dependency;
+pub use new_url_dependency::NewURLDependency;
 use rspack_core::{
   create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
   Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, JsAstPath,
@@ -55,6 +57,10 @@ impl ModuleDependency for URLDependency {
 
   fn span(&self) -> Option<&ErrorSpan> {
     self.span.as_ref()
+  }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
   }
 }
 

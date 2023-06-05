@@ -57,11 +57,13 @@ pub(crate) mod expr_matcher {
   // - `import.meta.xxx` is a MemberExpr
   // - Matching would ignore Span and SyntaxContext
   define_expr_matchers!({
+    is_require: "require",
     is_require_context: "require.context",
     is_require_resolve: "require.resolve",
     is_require_resolve_weak: "require.resolveWeak",
     is_module_hot_accept: "module.hot.accept",
     is_module_hot_decline: "module.hot.decline",
+    is_module_hot: "module.hot",
     is_module_id: "module.id",
     is_module_loaded: "module.loaded",
     is_require_cache: "require.cache",

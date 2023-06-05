@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.1.12",
+  "version": "0.2.0",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
@@ -26,8 +26,8 @@
     "test:example": "pnpm --filter \"example-*\" build",
     "test:unit": "pnpm --filter \"@rspack/*\" test",
     "test:e2e": "pnpm --filter \"@rspack-e2e/*\" test",
-    "test:webpack": "pnpm --filter \"webpack-test\" test",
-    "test:ci": "NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit && pnpm test:webpack"
+    "test:ci": "cross-env NODE_OPTIONS=--max_old_space_size=8192 pnpm run build:js && pnpm run test:example && pnpm run test:unit && pnpm test:webpack",
+    "test:webpack": "pnpm --filter \"webpack-test\" test:metric"
   },
   "lint-staged": {
     "*.rs": "rustfmt --edition 2021",

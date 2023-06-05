@@ -10,10 +10,10 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
-  Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs,
-  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module,
-  ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, BoxLoader,
+  BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
+  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
@@ -188,6 +188,17 @@ impl PluginDriver {
 
     Ok(())
   }
+
+  pub async fn finish_make(
+    &mut self,
+    compilation: &mut Compilation,
+  ) -> PluginCompilationHookOutput {
+    for plugin in &mut self.plugins {
+      plugin.finish_make(compilation).await?;
+    }
+
+    Ok(())
+  }
   /// Executed while initializing the compilation, right before emitting the compilation event. This hook is not copied to child compilers.
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation
@@ -329,11 +340,11 @@ impl PluginDriver {
 
   pub async fn before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs<'_>,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin.before_resolve(PluginContext::new(), &args).await? {
+      tracing::trace!("before resolve {}", plugin.name());
+      if let Some(data) = plugin.before_resolve(PluginContext::new(), args).await? {
         return Ok(Some(data));
       }
     }
@@ -354,12 +365,12 @@ impl PluginDriver {
   }
   pub async fn context_module_before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs<'_>,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
       if let Some(data) = plugin
-        .context_module_before_resolve(PluginContext::new(), &args)
+        .context_module_before_resolve(PluginContext::new(), args)
         .await?
       {
         return Ok(Some(data));
@@ -535,9 +546,18 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:succeed_module", skip_all)]
   pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.succeed_module(module).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:still_valid_module", skip_all)]
+  pub async fn still_valid_module(&self, module: &dyn Module) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.still_valid_module(module).await?;
     }
     Ok(())
   }
@@ -562,6 +582,14 @@ impl PluginDriver {
   pub async fn emit(&mut self, compilation: &mut Compilation) -> Result<()> {
     for plugin in &mut self.plugins {
       plugin.emit(compilation).await?;
+    }
+    Ok(())
+  }
+
+  #[instrument(name = "plugin:asset_emitted", skip_all)]
+  pub async fn asset_emitted(&self, args: &AssetEmittedArgs<'_>) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.asset_emitted(args).await?;
     }
     Ok(())
   }

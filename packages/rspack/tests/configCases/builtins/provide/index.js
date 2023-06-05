@@ -56,6 +56,14 @@ it("should variable coverage", function () {
 	expect(process.a).toBe(123);
 });
 
+it("should not provide for function defined variable", function () {
+	function test(process) {
+		expect(process[0]).toBe(undefined);
+		expect(process.a).toBe(undefined);
+	}
+	test({});
+});
+
 // TODO: Add support for these cases
 // it("should provide a module for a nested var within a IIFE's this", function () {
 // 	(function () {

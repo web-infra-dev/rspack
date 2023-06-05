@@ -87,7 +87,7 @@ export class Rspack {
 
 export interface AfterResolveData {
   request: string
-  context?: string
+  context: string
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
@@ -95,7 +95,7 @@ export interface AfterResolveData {
 
 export interface BeforeResolveData {
   request: string
-  context?: string
+  context: string
 }
 
 /**
@@ -111,6 +111,12 @@ export interface JsAsset {
   name: string
   source?: JsCompatSource
   info: JsAssetInfo
+}
+
+export interface JsAssetEmittedArgs {
+  filename: string
+  outputPath: string
+  targetPath: string
 }
 
 export interface JsAssetInfo {
@@ -138,6 +144,11 @@ export interface JsAssetInfo {
    * related object to other assets, keyed by type of relation (only points from parent to child)
    */
   related: JsAssetInfoRelated
+  /**
+   * the asset version, emit can be skipped when both filename and version are the same
+   * An empty string means no version, it will always emit
+   */
+  version: string
 }
 
 export interface JsAssetInfoRelated {
@@ -178,6 +189,7 @@ export interface JsHooks {
   compilation: (...args: any[]) => any
   thisCompilation: (...args: any[]) => any
   emit: (...args: any[]) => any
+  assetEmitted: (...args: any[]) => any
   afterEmit: (...args: any[]) => any
   make: (...args: any[]) => any
   optimizeModules: (...args: any[]) => any
@@ -185,11 +197,14 @@ export interface JsHooks {
   beforeCompile: (...args: any[]) => any
   afterCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
+  finishMake: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
+  succeedModule: (...args: any[]) => any
+  stillValidModule: (...args: any[]) => any
 }
 
 export interface JsLoader {
@@ -347,12 +362,6 @@ export interface JsStatsModuleReason {
 export interface JsStatsWarning {
   message: string
   formatted: string
-}
-
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
 }
 
 export interface PathData {
@@ -618,6 +627,7 @@ export interface RawModuleRule {
   scheme?: RawRuleSetCondition
   mimetype?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
+  rules?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
 }

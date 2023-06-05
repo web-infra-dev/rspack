@@ -109,7 +109,7 @@ impl Display for ContextModuleOptions {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(
       f,
-      "({}, {:?}, {:?},  {:?})",
+      "{}|{:?}|{:?}|{:?}",
       self.resource, self.resource_query, self.resource_fragment, self.context_options
     )
   }
@@ -442,7 +442,7 @@ impl ContextModule {
                   ),
                   user_request: r.request.to_string(),
                   category: options.context_options.category,
-                  context: options.resource.clone(),
+                  context: options.resource.clone().into(),
                   options: options.context_options.clone(),
                 }));
               }

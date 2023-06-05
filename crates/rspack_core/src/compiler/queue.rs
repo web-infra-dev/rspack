@@ -1,13 +1,13 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 
 use crate::{
   cache::Cache, BoxModuleDependency, BuildContext, BuildResult, Compilation, CompilerContext,
-  CompilerOptions, ContextModuleFactory, DependencyId, DependencyType, Module, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
-  ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve, ResolverFactory,
-  SharedPluginDriver, WorkerQueue,
+  CompilerOptions, Context, ContextModuleFactory, DependencyId, DependencyType, Module,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleGraph, ModuleGraphModule,
+  ModuleIdentifier, ModuleType, NormalModuleFactory, NormalModuleFactoryContext, Resolve,
+  ResolverFactory, SharedPluginDriver, WorkerQueue,
 };
 
 #[derive(Debug)]
@@ -25,8 +25,8 @@ pub trait WorkerTask {
 
 pub struct FactorizeTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
+  pub original_module_context: Option<Context>,
   pub issuer: Option<String>,
-  pub original_resource_path: Option<PathBuf>,
   pub dependencies: Vec<BoxModuleDependency>,
   pub is_entry: bool,
   pub module_type: Option<ModuleType>,
@@ -59,19 +59,14 @@ impl WorkerTask for FactorizeTask {
       .collect::<Vec<_>>();
     let dependency = &self.dependencies[0];
 
-    let context = if let Some(context) = dependency.get_context().map(|x| x.to_string()) {
-      Some(context)
-    } else if let Some(importer) = &self.original_resource_path {
-      Some(
-        importer
-          .parent()
-          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
-          .to_string_lossy()
-          .to_string(),
-      )
+    let context = if let Some(context) = dependency.get_context() {
+      context
+    } else if let Some(context) = &self.original_module_context {
+      context
     } else {
-      Some(self.options.context.to_string_lossy().to_string())
-    };
+      &self.options.context
+    }
+    .clone();
 
     let (result, diagnostics) = match *dependency.dependency_type() {
       DependencyType::ImportContext
@@ -90,7 +85,7 @@ impl WorkerTask for FactorizeTask {
       _ => {
         let factory = NormalModuleFactory::new(
           NormalModuleFactoryContext {
-            original_resource_path: self.original_resource_path,
+            original_module_identifier: self.original_module_identifier,
             module_type: self.module_type,
             side_effects: self.side_effects,
             options: self.options.clone(),
@@ -229,7 +224,7 @@ impl WorkerTask for BuildTask {
     let cache = self.cache;
     let plugin_driver = self.plugin_driver;
 
-    let build_result = cache
+    let (build_result, is_cache_valid) = match cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
         plugin_driver
@@ -253,7 +248,19 @@ impl WorkerTask for BuildTask {
 
         result
       })
-      .await;
+      .await
+    {
+      Ok(result) => result,
+      Err(err) => panic!("build module get error: {}", err),
+    };
+
+    if is_cache_valid {
+      plugin_driver
+        .read()
+        .await
+        .still_valid_module(module.as_ref())
+        .await?;
+    }
 
     build_result.map(|build_result| {
       let (build_result, diagnostics) = build_result.split_into_parts();

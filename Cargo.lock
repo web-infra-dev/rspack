@@ -233,6 +233,7 @@ dependencies = [
  "rspack_fs",
  "rspack_testing",
  "rspack_tracing",
+ "tikv-jemallocator",
  "tokio",
 ]
 
@@ -808,6 +809,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs_extra"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
+
+[[package]]
 name = "futures"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1185,9 +1192,9 @@ checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
 
 [[package]]
 name = "jsonc-parser"
-version = "0.21.0"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a1853e40333206f9a685358046d13ab200169e3ee573019bddf0ede0dc29307"
+checksum = "7b56a20e76235284255a09fcd1f45cf55d3c524ea657ebd3854735925c57743d"
 dependencies = [
  "serde_json",
 ]
@@ -1513,9 +1520,9 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nodejs-resolver"
-version = "0.0.86"
+version = "0.0.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0888a13446f0fdd633445f143c74ff4b377918e190523f5e428a72b6b20c9e39"
+checksum = "7259edee7a18be2bdc9802f3357044a964d6e0624030201849ed734b8901a23b"
 dependencies = [
  "daachorse",
  "dashmap",
@@ -1702,9 +1709,9 @@ checksum = "d01a5bd0424d00070b0098dd17ebca6f961a959dead1dbcbbbc1d1cd8d3deeba"
 
 [[package]]
 name = "path-absolutize"
-version = "3.0.14"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0f1d4993b16f7325d90c18c3c6a3327db7808752db8d208cea0acee0abd52c52"
+checksum = "43eb3595c63a214e1b37b44f44b0a84900ef7ae0b4c5efce59e123d246d7a0de"
 dependencies = [
  "path-dedot",
 ]
@@ -1717,9 +1724,9 @@ checksum = "ecba01bf2678719532c5e3059e0b5f0811273d94b397088b82e3bd0a78c78fdd"
 
 [[package]]
 name = "path-dedot"
-version = "3.0.18"
+version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a81540d94551664b72b72829b12bd167c73c9d25fbac0e04fafa8023f7e4901"
+checksum = "9d55e486337acb9973cdea3ec5638c1b3bcb22e573b2b7b41969e0c744d5a15e"
 dependencies = [
  "once_cell",
 ]
@@ -2161,6 +2168,7 @@ dependencies = [
  "serde",
  "serde_json",
  "testing_macros",
+ "tikv-jemallocator",
  "tokio",
  "ustr",
  "xshell",
@@ -2239,7 +2247,6 @@ dependencies = [
 name = "rspack_build"
 version = "0.1.0"
 dependencies = [
- "mimalloc-rust",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -2463,6 +2470,7 @@ dependencies = [
  "rspack_napi_shared",
  "rspack_tracing",
  "testing_macros",
+ "tikv-jemallocator",
  "tokio",
  "tracing",
 ]
@@ -2733,6 +2741,7 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "url",
  "urlencoding",
 ]
 
@@ -4474,6 +4483,27 @@ checksum = "3fdd6f064ccff2d6567adcb3873ca630700f00b5ad3f060c25b5dcfd9a4ce152"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "tikv-jemalloc-sys"
+version = "0.4.3+5.2.1-patched.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1792ccb507d955b46af42c123ea8863668fae24d03721e40cad6a41773dbb49"
+dependencies = [
+ "cc",
+ "fs_extra",
+ "libc",
+]
+
+[[package]]
+name = "tikv-jemallocator"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5b7bcecfafe4998587d636f9ae9d55eb9d0499877b88757767c346875067098"
+dependencies = [
+ "libc",
+ "tikv-jemalloc-sys",
 ]
 
 [[package]]

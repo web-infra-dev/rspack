@@ -25,7 +25,6 @@ use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 
-use crate::tree_shaking::visitor::OptimizeAnalyzeResult;
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
@@ -43,6 +42,7 @@ use crate::{
   Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats,
   TaskResult, WorkerTask,
 };
+use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
 #[derive(Debug)]
 pub struct EntryData {
@@ -482,11 +482,7 @@ impl Compilation {
         self.handle_module_creation(
           &mut factorize_queue,
           parent_module_identifier,
-          {
-            parent_module
-              .and_then(|m| m.as_normal_module())
-              .map(|module| module.resource_resolved_data().resource_path.clone())
-          },
+          parent_module.and_then(|m| m.get_context()).cloned(),
           vec![dependency.clone()],
           parent_module_identifier.is_none(),
           None,
@@ -582,11 +578,7 @@ impl Compilation {
           self.handle_module_creation(
             &mut factorize_queue,
             Some(task.original_module_identifier),
-            {
-              module
-                .as_normal_module()
-                .map(|module| module.resource_resolved_data().resource_path.clone())
-            },
+            module.get_context().cloned(),
             vec![dependency.clone()],
             false,
             None,
@@ -846,7 +838,7 @@ impl Compilation {
     &self,
     queue: &mut FactorizeQueue,
     original_module_identifier: Option<ModuleIdentifier>,
-    original_resource_path: Option<PathBuf>,
+    original_module_context: Option<Context>,
     dependencies: Vec<BoxModuleDependency>,
     is_entry: bool,
     module_type: Option<ModuleType>,
@@ -858,7 +850,7 @@ impl Compilation {
     queue.add_task(FactorizeTask {
       original_module_identifier,
       issuer,
-      original_resource_path,
+      original_module_context,
       dependencies,
       is_entry,
       module_type,

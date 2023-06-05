@@ -1,7 +1,8 @@
 use rspack_core::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_id, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
+  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
+  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -72,6 +73,10 @@ impl ModuleDependency for CommonJsRequireDependency {
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     Some(Box::new(self.clone()))
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for CommonJsRequireDependency {
@@ -97,12 +102,6 @@ impl CodeReplaceSourceDependency for CommonJsRequireDependency {
 
     let id: DependencyId = self.id().expect("should have dependency id");
 
-    let module_id = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&id)
-      .map(|m| m.id(&compilation.chunk_graph))
-      .expect("should have dependency id");
-
     runtime_requirements.add(RuntimeGlobals::REQUIRE);
     source.replace(
       self.start,
@@ -110,7 +109,7 @@ impl CodeReplaceSourceDependency for CommonJsRequireDependency {
       format!(
         "{}({})",
         RuntimeGlobals::REQUIRE,
-        serde_json::to_string(module_id).expect("should render module id")
+        module_id(compilation, &id, &self.request, false).as_str()
       )
       .as_str(),
       None,

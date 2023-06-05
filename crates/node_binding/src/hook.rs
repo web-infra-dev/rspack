@@ -4,6 +4,7 @@ use std::sync::{Arc, RwLock};
 #[derive(PartialEq)]
 pub enum Hook {
   Make,
+  FinishMake,
   Compilation,
   ThisCompilation,
   ProcessAssetsStageAdditional,
@@ -15,6 +16,7 @@ pub enum Hook {
   ProcessAssetsStageOptimizeHash,
   ProcessAssetsStageReport,
   Emit,
+  AssetEmitted,
   AfterEmit,
   OptimizeChunkModules,
   BeforeCompile,
@@ -26,12 +28,15 @@ pub enum Hook {
   NormalModuleFactoryResolveForScheme,
   AfterResolve,
   BeforeResolve,
+  SucceedModule,
+  StillValidModule,
 }
 
 impl From<String> for Hook {
   fn from(s: String) -> Self {
     match s.as_str() {
       "make" => Hook::Make,
+      "finishMake" => Hook::FinishMake,
       "compilation" => Hook::Compilation,
       "thisCompilation" => Hook::ThisCompilation,
       "processAssetsStageAdditional" => Hook::ProcessAssetsStageAdditional,
@@ -43,6 +48,7 @@ impl From<String> for Hook {
       "processAssetsStageOptimizeHash" => Hook::ProcessAssetsStageOptimizeHash,
       "processAssetsStageReport" => Hook::ProcessAssetsStageReport,
       "emit" => Hook::Emit,
+      "assetEmitted" => Hook::AssetEmitted,
       "afterEmit" => Hook::AfterEmit,
       "optimizeChunkModules" => Hook::OptimizeChunkModules,
       "beforeCompile" => Hook::BeforeCompile,
@@ -53,6 +59,8 @@ impl From<String> for Hook {
       "normalModuleFactoryResolveForScheme" => Hook::NormalModuleFactoryResolveForScheme,
       "afterResolve" => Hook::AfterResolve,
       "beforeResolve" => Hook::BeforeResolve,
+      "succeedModule" => Hook::SucceedModule,
+      "stillValidModule" => Hook::StillValidModule,
       hook_name => panic!("{hook_name} is an invalid hook name"),
     }
   }

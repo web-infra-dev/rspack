@@ -1,15 +1,19 @@
 {
   "name": "@rspack/plugin-html",
-  "version": "0.1.12",
+  "version": "0.2.0",
   "license": "MIT",
   "description": "HTML plugin for rspack",
-  "main": "dist/index.js",
+  "main": "index.cjs",
   "typings": "dist/index.d.ts",
   "scripts": {
     "build": "tsc --build --force",
     "dev": "tsc -w",
     "test": "jest --runInBand --verbose"
   },
+  "files": [
+    "index.cjs",
+    "dist"
+  ],
   "keywords": [
     "rspack",
     "html"

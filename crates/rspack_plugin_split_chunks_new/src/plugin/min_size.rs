@@ -6,6 +6,7 @@ use crate::SplitChunksPlugin;
 
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.minSize`/`splitChunks.cacheGroups.{cacheGroup}.minSize`
+  #[tracing::instrument(skip_all)]
   pub(crate) fn ensure_min_size_fit(
     &self,
     compilation: &Compilation,

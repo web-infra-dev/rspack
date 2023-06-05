@@ -173,7 +173,8 @@ describe("Stats", () => {
 			context: __dirname,
 			entry: "./fixtures/abc"
 		});
-		expect(stats?.toString({ timings: false })).toMatchInlineSnapshot(`
+		expect(stats?.toString({ timings: false }).replace(/\\/g, "/"))
+			.toMatchInlineSnapshot(`
 		"Hash: 639190004e3c864b
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names

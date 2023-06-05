@@ -25,17 +25,15 @@ const config = {
 		rules: [
 			{
 				test: /\.vue$/,
-				use: ["vue-loader"]
+				loader: "vue-loader",
+				options: {
+					experimentalInlineMatchResource: true
+				}
 			},
 			{
 				test: /\.less$/,
-				use: ["style-loader", "css-loader", "less-loader"],
-				type: "javascript/auto"
-			},
-			{
-				test: /\.css$/,
-				use: ["style-loader", "css-loader"],
-				type: "javascript/auto"
+				loader: "less-loader",
+				type: "css"
 			},
 			{
 				test: /\.svg/,
