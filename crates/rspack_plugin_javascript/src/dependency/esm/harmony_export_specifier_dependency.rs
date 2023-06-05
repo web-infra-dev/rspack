@@ -47,6 +47,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
       let module_id = ctxt.module.identifier();
       // TODO: POC
       let used_export = if ctxt.compilation.options.builtins.tree_shaking.is_true() {
+        // dbg!(&ctxt.compilation.used_symbol_ref);
         let set = ctxt
           .compilation
           .used_symbol_ref
@@ -60,6 +61,8 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
       } else {
         None
       };
+      dbg!(&module_id);
+      dbg!(&used_export);
       runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       init_fragments.push(InitFragment::new(
         format!(
