@@ -1,4 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+<<<<<<< HEAD
 "../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -207,25 +208,22 @@ Object.create ? function(o, v) {
     o["default"] = v;
 };
 },
+=======
+>>>>>>> aedc9bf34 (chore: 🤖 update)
 "./index.ts": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "test", {
-    enumerable: true,
-    get: function() {
-        return test;
-    }
-});
-var _async_to_generator = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js");
-var _ts_generator = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_ts_generator.js");
-function test() {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {});
+/* harmony import */var _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* @swc/helpers/_/_ts_generator */"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js");
+/* harmony import */var _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* @swc/helpers/_/_async_to_generator */"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js");
+
+
+ function test() {
     return _test.apply(this, arguments);
 }
 function _test() {
-    _test = _async_to_generator._(function() {
-        return _ts_generator._(this, function(_state) {
+    _test = _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE__["_"](function() {
+        return _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE__["_"](this, function(_state) {
             return [
                 2
             ];

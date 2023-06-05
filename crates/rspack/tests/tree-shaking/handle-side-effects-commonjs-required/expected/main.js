@@ -1,8 +1,9 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-__webpack_require__("./source/index.js");
+__webpack_require__(/* ./source */"./source/index.js");
 console.log('something');
 },
+<<<<<<< HEAD
 "./source/index.js": function (module, exports, __webpack_require__) {
 var _class_call_check = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_class_call_check.js");
 var _create_class = __webpack_require__("../../../../../node_modules/@swc/helpers/esm/_create_class.js");
@@ -88,6 +89,8 @@ function _create_class(Constructor, protoProps, staticProps) {
     return Constructor;
 }
 },
+=======
+>>>>>>> aedc9bf34 (chore: 🤖 update)
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
