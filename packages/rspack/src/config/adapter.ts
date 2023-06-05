@@ -527,7 +527,7 @@ function toRawSplitChunksOptions(
 		name: name === false ? undefined : name,
 		cacheGroups: Object.fromEntries(
 			Object.entries(cacheGroups)
-				.filter(([_key, group]) => !group)
+				.filter(([_key, group]) => group !== false)
 				.map(([key, group]) => {
 					group = group as Exclude<typeof group, false>;
 

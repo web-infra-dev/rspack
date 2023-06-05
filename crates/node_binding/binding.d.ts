@@ -364,6 +364,12 @@ export interface JsStatsWarning {
   formatted: string
 }
 
+export interface NodeFS {
+  writeFile: (...args: any[]) => any
+  mkdir: (...args: any[]) => any
+  mkdirp: (...args: any[]) => any
+}
+
 export interface PathData {
   filename?: string
   hash?: string
