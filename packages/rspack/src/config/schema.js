@@ -459,6 +459,31 @@ module.exports = {
 					description:
 						"Treat node.js built-in modules like fs, path or vm as external and load them via require() when used.",
 					type: "boolean"
+				},
+				web: {
+					description:
+						"Treat references to 'http(s)://...' and 'std:...' as external and load them via import when used (Note that this changes execution order as externals are executed before any other code in the chunk).",
+					type: "boolean"
+				},
+				electron: {
+					description:
+						"Treat common electron built-in modules in main and preload context like 'electron', 'ipc' or 'shell' as external and load them via require() when used.",
+					type: "boolean"
+				},
+				electronMain: {
+					description:
+						"Treat electron built-in modules in the main context like 'app', 'ipc-main' or 'shell' as external and load them via require() when used.",
+					type: "boolean"
+				},
+				electronPreload: {
+					description:
+						"Treat electron built-in modules in the preload context like 'web-frame', 'ipc-renderer' or 'shell' as external and load them via require() when used.",
+					type: "boolean"
+				},
+				electronRenderer: {
+					description:
+						"Treat electron built-in modules in the renderer context like 'web-frame', 'ipc-renderer' or 'shell' as external and load them via require() when used.",
+					type: "boolean"
 				}
 			}
 		},

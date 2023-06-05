@@ -151,6 +151,34 @@ impl RawOptionsApply for RawOptions {
     if self.externals_presets.node {
       plugins.push(rspack_plugin_externals::node_target_plugin());
     }
+    if self.externals_presets.electron_main {
+      rspack_plugin_externals::electron_target_plugin(
+        rspack_plugin_externals::ElectronTargetContext::Main,
+        plugins,
+      );
+    }
+    if self.externals_presets.electron_preload {
+      rspack_plugin_externals::electron_target_plugin(
+        rspack_plugin_externals::ElectronTargetContext::Preload,
+        plugins,
+      );
+    }
+    if self.externals_presets.electron_renderer {
+      rspack_plugin_externals::electron_target_plugin(
+        rspack_plugin_externals::ElectronTargetContext::Renderer,
+        plugins,
+      );
+    }
+    if self.externals_presets.electron
+      && !self.externals_presets.electron_main
+      && !self.externals_presets.electron_preload
+      && !self.externals_presets.electron_renderer
+    {
+      rspack_plugin_externals::electron_target_plugin(
+        rspack_plugin_externals::ElectronTargetContext::None,
+        plugins,
+      );
+    }
     if self.externals_presets.web || (self.externals_presets.node && experiments.css) {
       plugins.push(rspack_plugin_externals::http_url_external_plugin(
         experiments.css,

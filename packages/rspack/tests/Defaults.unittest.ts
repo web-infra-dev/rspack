@@ -635,6 +635,11 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "electron": false,
+		-     "electronMain": false,
+		+     "electron": true,
+		+     "electronMain": true,
+		@@ ... @@
 		-     "node": false,
 		-     "web": true,
 		+     "node": true,
@@ -703,6 +708,12 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-     "electron": false,
+		+     "electron": true,
+		@@ ... @@
+		-     "electronPreload": false,
+		+     "electronPreload": true,
 		@@ ... @@
 		-     "node": false,
 		+     "node": true,

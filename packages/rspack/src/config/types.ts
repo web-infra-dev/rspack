@@ -65,7 +65,7 @@ export type Dependencies = Name[];
 ///// Context /////
 export type Context = string;
 
-///// Mode */////
+///// Mode /////
 export type Mode = "development" | "production" | "none";
 
 ///// Entry /////
@@ -365,18 +365,20 @@ export interface ModuleOptionsNormalized {
 
 export type AvailableTarget =
 	| "node"
+	| `node${number}`
+	| `node${number}.${number}`
+	| "electron-main"
+	| `electron${number}-main`
+	| `electron${number}.${number}-main`
+	| "electron-renderer"
+	| `electron${number}-renderer`
+	| `electron${number}.${number}-renderer`
+	| "electron-preload"
+	| `electron${number}-preload`
+	| `electron${number}.${number}-preload`
 	| "web"
 	| "webworker"
-	| "es3"
-	| "es5"
-	| "es2015"
-	| "es2016"
-	| "es2017"
-	| "es2018"
-	| "es2019"
-	| "es2020"
-	| "es2021"
-	| "es2022"
+	| `es${number}`
 	| "browserslist";
 
 ///// Target /////
@@ -463,6 +465,10 @@ export type ExternalsType =
 export interface ExternalsPresets {
 	node?: boolean;
 	web?: boolean;
+	electron?: boolean;
+	electronMain?: boolean;
+	electronPreload?: boolean;
+	electronRenderer?: boolean;
 }
 
 ///// InfrastructureLogging /////

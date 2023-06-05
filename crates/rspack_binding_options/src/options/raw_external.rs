@@ -173,4 +173,8 @@ impl TryFrom<RawExternalItem> for ExternalItem {
 pub struct RawExternalsPresets {
   pub node: bool,
   pub web: bool,
+  pub electron: bool,
+  pub electron_main: bool,
+  pub electron_preload: bool,
+  pub electron_renderer: bool,
 }

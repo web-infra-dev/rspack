@@ -542,6 +542,32 @@ const applyExternalsPresetsDefaults = (
 ) => {
 	D(externalsPresets, "web", targetProperties && targetProperties.web);
 	D(externalsPresets, "node", targetProperties && targetProperties.node);
+	D(
+		externalsPresets,
+		"electron",
+		targetProperties && targetProperties.electron
+	);
+	D(
+		externalsPresets,
+		"electronMain",
+		targetProperties &&
+			targetProperties.electron &&
+			targetProperties.electronMain
+	);
+	D(
+		externalsPresets,
+		"electronPreload",
+		targetProperties &&
+			targetProperties.electron &&
+			targetProperties.electronPreload
+	);
+	D(
+		externalsPresets,
+		"electronRenderer",
+		targetProperties &&
+			targetProperties.electron &&
+			targetProperties.electronRenderer
+	);
 };
 
 const applyNodeDefaults = (

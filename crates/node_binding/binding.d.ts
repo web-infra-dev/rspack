@@ -539,6 +539,10 @@ export interface RawExternalItemValue {
 export interface RawExternalsPresets {
   node: boolean
   web: boolean
+  electron: boolean
+  electronMain: boolean
+  electronPreload: boolean
+  electronRenderer: boolean
 }
 
 export interface RawFallbackCacheGroupOptions {
