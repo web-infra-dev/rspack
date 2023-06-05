@@ -18,21 +18,19 @@ const sharedCacheGroupConfigPart = {
 	maxInitialSize: z.number().optional()
 };
 
+const cacheGroupOptions = z.strictObject({
+	test: z.instanceof(RegExp).optional(),
+	priority: z.number().optional(),
+	enforce: z.boolean().optional(),
+	reuseExistingChunk: z.boolean().optional(),
+	...sharedCacheGroupConfigPart
+});
+
 export function splitChunks() {
 	return z.literal(false).or(
 		// We use loose object here to prevent breaking change on config
 		z.object({
-			cacheGroups: z
-				.record(
-					z.strictObject({
-						test: z.instanceof(RegExp).optional(),
-						priority: z.number().optional(),
-						enforce: z.boolean().optional(),
-						reuseExistingChunk: z.boolean().optional(),
-						...sharedCacheGroupConfigPart
-					})
-				)
-				.optional(),
+			cacheGroups: z.record(z.literal(false).or(cacheGroupOptions)).optional(),
 			maxAsyncRequests: z.number().optional(),
 			maxInitialRequests: z.number().optional(),
 			fallbackCacheGroup: z
@@ -48,3 +46,6 @@ export function splitChunks() {
 		})
 	);
 }
+
+export type SplitChunksConfig = z.TypeOf<ReturnType<typeof splitChunks>>;
+export type CacheGroupOptionsConfig = z.TypeOf<typeof cacheGroupOptions>;

@@ -13,7 +13,6 @@ import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
-import { RawFallbackCacheGroupOptions } from "@rspack/binding";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
 export type { RspackOptions, Optimization };
@@ -560,37 +559,6 @@ export interface StatsOptions {
 	nestedModules?: boolean;
 }
 
-export interface OptimizationSplitChunksOptions {
-	cacheGroups?: {
-		[k: string]: OptimizationSplitChunksCacheGroup;
-	};
-	chunks?: "initial" | "async" | "all";
-	maxAsyncRequests?: number;
-	maxInitialRequests?: number;
-	minChunks?: number;
-	minSize?: OptimizationSplitChunksSizes;
-	enforceSizeThreshold?: OptimizationSplitChunksSizes;
-	minRemainingSize?: OptimizationSplitChunksSizes;
-	name?: string | false;
-	maxSize?: number;
-	maxAsyncSize?: number;
-	maxInitialSize?: number;
-	fallbackCacheGroup?: RawFallbackCacheGroupOptions;
-}
-export interface OptimizationSplitChunksCacheGroup {
-	chunks?: "initial" | "async" | "all";
-	minChunks?: number;
-	name?: string | false;
-	priority?: number;
-	reuseExistingChunk?: boolean;
-	test?: RegExp;
-	minSize?: number;
-	maxSize?: number;
-	maxAsyncSize?: number;
-	maxInitialSize?: number;
-	enforce?: boolean;
-}
-export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =
 	| ("single" | "multiple")
 	| boolean
