@@ -30,10 +30,7 @@ import { Callback } from "tapable";
 import MultiStats from "./multiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
-import InvalidateConfigurationError from "./error/InvalidateConfiguration";
-import { validate, ValidationError } from "schema-utils";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
-import { configSchema } from "./config/zod";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -97,24 +94,6 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 
 function isMultiRspackOptions(o: unknown): o is MultiRspackOptions {
 	return Array.isArray(o);
-}
-
-function revalidateWithStrategy(options: RspackOptions | MultiRspackOptions) {
-	try {
-		validate(require("./config/schema.js"), options);
-	} catch (e) {
-		if (!(e instanceof ValidationError)) {
-			throw e;
-		}
-		// 'strict', 'loose', 'loose-silent'
-		const strategy = process.env.RSPACK_CONFIG_VALIDATE ?? "strict";
-		if (strategy === "loose-silent") return;
-		if (strategy === "loose") {
-			console.error(e.message);
-			return;
-		}
-		throw new InvalidateConfigurationError(e.message);
-	}
 }
 
 function rspack(
