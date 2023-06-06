@@ -372,20 +372,30 @@ export function resolveBuiltinsOptions(
 	{
 		contextPath,
 		production,
-		optimization
-	}: { contextPath: string; production: boolean; optimization: Optimization }
+		optimization,
+		css
+	}: {
+		contextPath: string;
+		production: boolean;
+		optimization: Optimization;
+		css: boolean;
+	}
 ): RawBuiltins {
 	const presetEnv = resolvePresetEnv(builtins.presetEnv, contextPath);
 	builtins.presetEnv ?? loadConfig({ path: contextPath }) ?? [];
 	return {
-		css: {
-			modules: {
-				localsConvention: "asIs",
-				localIdentName: production ? "[hash]" : "[path][name][ext]__[local]",
-				exportsOnly: false,
-				...builtins.css?.modules
-			}
-		},
+		css: css
+			? {
+					modules: {
+						localsConvention: "asIs",
+						localIdentName: production
+							? "[hash]"
+							: "[path][name][ext]__[local]",
+						exportsOnly: false,
+						...builtins.css?.modules
+					}
+			  }
+			: undefined,
 		postcss: { pxtorem: undefined, ...builtins.postcss },
 		treeShaking: resolveTreeShaking(builtins.treeShaking, production),
 		react: builtins.react ?? {},

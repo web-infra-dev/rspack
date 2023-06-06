@@ -1127,6 +1127,15 @@ describe("snapshots", () => {
 			+ Received
 
 			@@ ... @@
+			-     "css": Object {
+			-       "modules": Object {
+			-         "exportsOnly": false,
+			-         "localIdentName": "[path][name][ext]__[local]",
+			-         "localsConvention": "asIs",
+			-       },
+			-     },
+			+     "css": undefined,
+			@@ ... @@
 			-     "css": true,
 			+     "css": false,
 			+     "futureDefaults": true,
@@ -1137,9 +1146,10 @@ describe("snapshots", () => {
 			-           Object {
 			-             "resolve": Object {
 			-               "fullySpecified": true,
-			-             },
+			@@ ... @@
 			-             "test": /\\.module\\.css$/i,
 			-             "type": "css/module",
+			-           },
 			@@ ... @@
 			-             "resolve": Object {
 			-               "fullySpecified": true,
