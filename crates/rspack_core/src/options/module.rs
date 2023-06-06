@@ -7,6 +7,7 @@ use async_recursion::async_recursion;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
+use rspack_napi_shared::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -142,6 +143,7 @@ pub struct ModuleRule {
   pub r#type: Option<ModuleType>,
   #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: Vec<BoxLoader>,
+  pub use_tsfn: ThreadsafeFunction<u32, Vec<String>>,
   pub parser: Option<AssetParserOptions>,
   pub generator: Option<AssetGeneratorOptions>,
   pub resolve: Option<Resolve>,

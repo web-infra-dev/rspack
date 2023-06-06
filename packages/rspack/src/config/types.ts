@@ -333,7 +333,10 @@ export interface RuleSetLogicalConditions {
 	or?: RuleSetConditions;
 	not?: RuleSetCondition;
 }
-export type RuleSetUse = RuleSetUseItem[] | RuleSetUseItem;
+export type RuleSetUse =
+	| RuleSetUseItem[]
+	| RuleSetUseItem
+	| ((data: any) => RuleSetUseItem[]);
 export type RuleSetUseItem = RuleSetLoaderWithOptions | RuleSetLoader;
 export type RuleSetLoader = string;
 export type RuleSetLoaderWithOptions = {

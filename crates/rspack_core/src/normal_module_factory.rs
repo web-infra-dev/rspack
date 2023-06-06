@@ -379,6 +379,15 @@ impl NormalModuleFactory {
       let mut normal_loaders: Vec<BoxLoader> = vec![];
 
       for rule in &resolved_module_rules {
+        if rule.use_tsfn.is_some() {
+          let data = Data::new(&request, &request, "", None);
+          let loaders = rule.use_tsfn(&data) as String;
+          normal_loaders.extend(
+            loaders
+              .into_iter()
+              .map(|loader| Box::new(loader) as BoxLoader),
+          )
+        }
         match rule.enforce {
           ModuleRuleEnforce::Pre => {
             if !no_pre_auto_loaders && !no_pre_post_auto_loaders {

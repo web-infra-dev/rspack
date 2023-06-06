@@ -227,6 +227,7 @@ pub struct RawModuleRule {
   pub description_data: Option<HashMap<String, RawRuleSetCondition>>,
   pub side_effects: Option<bool>,
   pub r#use: Option<Vec<RawModuleRuleUse>>,
+  pub use_tsfn: Option<JsFunction>,
   pub r#type: Option<String>,
   #[derivative(Debug = "ignore")]
   pub parser: Option<RawModuleRuleParser>,
@@ -349,6 +350,8 @@ impl RawOptionsApply for RawModuleRule {
         .transpose()?
         .unwrap_or_default();
 
+    let use_tsfn = self.use_tsfn.map(|use_fn| ThreadsafeFunction::from(use_fn));
+
     let module_type = self.r#type.map(|t| (&*t).try_into()).transpose()?;
 
     let one_of = self
@@ -405,6 +408,7 @@ impl RawOptionsApply for RawModuleRule {
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
       r#use: uses,
+      use_fn,
       r#type: module_type,
       parser: self.parser.map(|raw| raw.into()),
       generator: self.generator.map(|raw| raw.into()),
