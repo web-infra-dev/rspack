@@ -36,6 +36,7 @@ export function configSchema() {
 			watch: z.boolean().optional(),
 			stats: stats().optional(),
 			snapshot: snapshot().optional(),
+			optimization: optimization().optional(),
 			// TODO(hyf0): what's the usage of this?
 			name: z.string().optional(),
 			// TODO
@@ -43,7 +44,6 @@ export function configSchema() {
 			output: output().optional(),
 			resolve: z.any().optional(),
 			plugins: z.any().optional(),
-			optimization: optimization().optional(),
 			builtins: builtins().optional(),
 			module: z.any().optional()
 		})
