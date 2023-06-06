@@ -1,4 +1,4 @@
-const EslintPlugin = require("eslint-rspack-plugin");
+const EslintPlugin = require("eslint-webpack-plugin");
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	mode: "development",

@@ -291,11 +291,11 @@ importers:
     specifiers:
       '@rspack/cli': workspace:*
       eslint: '8'
-      eslint-rspack-plugin: ^4.0.0-alpha
+      eslint-webpack-plugin: ^4.0.0-alpha
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
       eslint: 8.40.0
-      eslint-rspack-plugin: 4.0.0-alpha_eslint@8.40.0
+      eslint-webpack-plugin: 4.0.1_eslint@8.40.0
 
   examples/extract-license:
     specifiers:
@@ -15560,21 +15560,6 @@ packages:
       source-map: 0.6.1
     dev: true
 
-  /eslint-rspack-plugin/4.0.0-alpha_eslint@8.40.0:
-    resolution: {integrity: sha512-lpnH2SjvWPWOxrU2+wslp0q9VjFSKfbrpHX/WwS+Tp+NAvJ6CRgzuvOwYwC65DweOkJb+Q/quq/3qQGBudVIFg==}
-    engines: {node: '>= 14.15.0'}
-    peerDependencies:
-      eslint: ^8.0.0
-      webpack: ^5.0.0
-    dependencies:
-      '@types/eslint': 8.37.0
-      eslint: 8.40.0
-      jest-worker: 29.5.0
-      micromatch: 4.0.5
-      normalize-path: 3.0.0
-      schema-utils: 4.0.1
-    dev: true
-
   /eslint-scope/5.1.1:
     resolution: {integrity: sha512-2NxwbF/hZ0KpepYN0cNbo+FN6XoK7GaHlQhgx/hIZl6Va0bF45RQOOwhLIy8lQDbuCiadSLCBnH2CFYquit5bw==}
     engines: {node: '>=8.0.0'}
@@ -15593,6 +15578,21 @@ packages:
   /eslint-visitor-keys/3.4.1:
     resolution: {integrity: sha512-pZnmmLwYzf+kWaM/Qgrvpen51upAktaaiI01nsJD/Yr3lMOdNtq0cxkrrg16w64VtisN6okbs7Q8AfGqj4c9fA==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    dev: true
+
+  /eslint-webpack-plugin/4.0.1_eslint@8.40.0:
+    resolution: {integrity: sha512-fUFcXpui/FftGx3NzvWgLZXlLbu+m74sUxGEgxgoxYcUtkIQbS6SdNNZkS99m5ycb23TfoNYrDpp1k/CK5j6Hw==}
+    engines: {node: '>= 14.15.0'}
+    peerDependencies:
+      eslint: ^8.0.0
+      webpack: ^5.0.0
+    dependencies:
+      '@types/eslint': 8.37.0
+      eslint: 8.40.0
+      jest-worker: 29.5.0
+      micromatch: 4.0.5
+      normalize-path: 3.0.0
+      schema-utils: 4.0.1
     dev: true
 
   /eslint/8.40.0:
