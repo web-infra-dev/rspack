@@ -384,6 +384,11 @@ export interface PathWithInfo {
   info: JsAssetInfo
 }
 
+export interface RawAssetGeneratorDataUrl {
+  encoding?: string
+  mimetype?: string
+}
+
 export interface RawAssetParserDataUrlOption {
   maxSize?: number
 }
@@ -644,6 +649,8 @@ export interface RawModuleRule {
 
 export interface RawModuleRuleGenerator {
   filename?: string
+  publicPath?: string
+  dataUrl?: RawAssetGeneratorDataUrl
 }
 
 export interface RawModuleRuleParser {

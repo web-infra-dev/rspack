@@ -335,7 +335,7 @@ const getRawModuleRule = (
 		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
 		parser: rule.parser,
-		generator: rule.generator,
+		generator: getRawModuleRuleGenerator(rule.generator),
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
@@ -389,39 +389,6 @@ function getRawRuleSetCondition(
 	);
 }
 
-export function getBannerCondition(
-	condition: BannerCondition
-): RawBannerCondition {
-	if (typeof condition === "string") {
-		return {
-			type: "string",
-			stringMatcher: condition
-		};
-	}
-	if (condition instanceof RegExp) {
-		return {
-			type: "regexp",
-			regexpMatcher: condition.source
-		};
-	}
-	throw new Error("unreachable: condition should be one of string, RegExp");
-}
-
-export function getBannerConditions(
-	condition?: BannerConditions
-): RawBannerConditions | undefined {
-	if (!condition) return undefined;
-
-	if (Array.isArray(condition)) {
-		return {
-			type: "array",
-			arrayMatcher: condition.map(i => getBannerCondition(i))
-		};
-	}
-
-	return getBannerCondition(condition);
-}
-
 function getRawRuleSetLogicalConditions(
 	logical: RuleSetLogicalConditions
 ): RawRuleSetLogicalConditions {
@@ -432,6 +399,10 @@ function getRawRuleSetLogicalConditions(
 		or: logical.or ? logical.or.map(i => getRawRuleSetCondition(i)) : undefined,
 		not: logical.not ? getRawRuleSetCondition(logical.not) : undefined
 	};
+}
+
+function getRawModuleRuleGenerator(generator: {[k: string]: any}): RawModuleRule["generator"] {
+
 }
 
 function getRawExternals(externals: Externals): RawOptions["externals"] {

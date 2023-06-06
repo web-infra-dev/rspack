@@ -10,7 +10,7 @@ use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{BoxLoader, Filename, ModuleType, Resolve};
+use crate::{BoxLoader, Filename, ModuleType, PublicPath, Resolve};
 
 #[derive(Debug, Clone, Default)]
 pub struct AssetParserDataUrlOption {
@@ -25,10 +25,38 @@ pub struct ParserOptions {
   pub asset: Option<AssetParserOptions>,
 }
 
+pub enum GeneratorOptionsByModuleType {
+  Asset(AssetGeneratorOptions),
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AssetGeneratorOptions {
   /// Same as webpack's Rule.generator.filename, see: [Rule.generator.filename](https://webpack.js.org/configuration/module/#rulegeneratorfilename)
   pub filename: Option<Filename>,
+  pub public_path: Option<PublicPath>,
+  pub data_url: Option<AssetGeneratorOptionsDataUrl>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssetGeneratorOptionsDataUrl {
+  pub encoding: Option<DataUrlEncoding>,
+  pub mimetype: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub enum DataUrlEncoding {
+  None,
+  Base64,
+}
+
+impl From<String> for DataUrlEncoding {
+  fn from(value: String) -> Self {
+    match value.as_str() {
+      "base64" => Self::Base64,
+      "false" => Self::None,
+      _ => unreachable!("DataUrlEncoding should be base64 or false"),
+    }
+  }
 }
 
 pub type DescriptionData = HashMap<String, RuleSetCondition>;
@@ -143,7 +171,7 @@ pub struct ModuleRule {
   #[derivative(Debug(format_with = "fmt_use"))]
   pub r#use: Vec<BoxLoader>,
   pub parser: Option<AssetParserOptions>,
-  pub generator: Option<AssetGeneratorOptions>,
+  pub generator: Option<GeneratorOptionsByModuleType>,
   pub resolve: Option<Resolve>,
   pub one_of: Option<Vec<ModuleRule>>,
   pub rules: Option<Vec<ModuleRule>>,

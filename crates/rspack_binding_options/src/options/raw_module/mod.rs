@@ -8,8 +8,9 @@ pub use js_loader::*;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
-  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, DescriptionData,
-  ModuleOptions, ModuleRule, ModuleRuleEnforce, ParserOptions,
+  AssetGeneratorOptions, AssetGeneratorOptionsDataUrl, AssetParserDataUrlOption,
+  AssetParserOptions, BoxLoader, DescriptionData, ModuleOptions, ModuleRule, ModuleRuleEnforce,
+  ParserOptions,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
@@ -248,13 +249,43 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawModuleRuleGenerator {
-  pub filename: Option<String>,
+  pub asset: Option<RawModuleRuleAssetGenerator>,
 }
 
-impl From<RawModuleRuleGenerator> for AssetGeneratorOptions {
-  fn from(value: RawModuleRuleGenerator) -> Self {
+impl From<RawModuleRuleGenerator> for 
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawModuleRuleAssetGenerator {
+  pub filename: Option<String>,
+  pub public_path: Option<String>,
+  pub data_url: Option<RawAssetGeneratorDataUrl>,
+}
+
+impl From<RawModuleRuleAssetGenerator> for AssetGeneratorOptions {
+  fn from(value: RawModuleRuleAssetGenerator) -> Self {
     Self {
       filename: value.filename.map(|i| i.into()),
+      public_path: value.public_path.map(|i| i.into()),
+      data_url: value.data_url.map(|i| i.into()),
+    }
+  }
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetGeneratorDataUrl {
+  pub encoding: Option<String>,
+  pub mimetype: Option<String>,
+}
+
+impl From<RawAssetGeneratorDataUrl> for AssetGeneratorOptionsDataUrl {
+  fn from(value: RawAssetGeneratorDataUrl) -> Self {
+    Self {
+      encoding: value.encoding.map(|i| i.into()),
+      mimetype: value.mimetype,
     }
   }
 }

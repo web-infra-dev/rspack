@@ -349,7 +349,7 @@ fn hash_len(hash: &str, caps: &Captures) -> usize {
     .min(hash_len)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PublicPath {
   String(String),
   Auto,

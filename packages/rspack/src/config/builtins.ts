@@ -15,10 +15,11 @@ import type {
 	RawPluginImportConfig,
 	RawCssModulesConfig,
 	RawRelayConfig,
-	RawCodeGeneration
+	RawCodeGeneration,
+	RawBannerConditions,
+	RawBannerCondition,
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
-import { getBannerConditions } from "./adapter";
 import { Optimization } from "..";
 
 export type BuiltinsHtmlPluginConfig = Omit<RawHtmlPluginConfig, "meta"> & {
@@ -412,6 +413,39 @@ function resolveBannerConfig(bannerConfig: BannerConfig): RawBannerConfig {
 		include: getBannerConditions(bannerConfig.include),
 		exclude: getBannerConditions(bannerConfig.exclude)
 	};
+}
+
+function getBannerCondition(
+	condition: BannerCondition
+): RawBannerCondition {
+	if (typeof condition === "string") {
+		return {
+			type: "string",
+			stringMatcher: condition
+		};
+	}
+	if (condition instanceof RegExp) {
+		return {
+			type: "regexp",
+			regexpMatcher: condition.source
+		};
+	}
+	throw new Error("unreachable: condition should be one of string, RegExp");
+}
+
+function getBannerConditions(
+	condition?: BannerConditions
+): RawBannerConditions | undefined {
+	if (!condition) return undefined;
+
+	if (Array.isArray(condition)) {
+		return {
+			type: "array",
+			arrayMatcher: condition.map(i => getBannerCondition(i))
+		};
+	}
+
+	return getBannerCondition(condition);
 }
 
 function resolveBanner(
