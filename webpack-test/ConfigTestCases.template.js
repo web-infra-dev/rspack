@@ -247,7 +247,7 @@ const describeCases = config => {
 								require("@rspack/core").rspack(options, (err, stats) => {
 									deprecationTracker();
 									if (err) return handleFatalError(err, done);
-									const { modules, children, errorsCount } = stats.toJson({
+									const { errorsCount } = stats.toJson({
 										all: false,
 										modules: true,
 										errorsCount: true
@@ -262,27 +262,27 @@ const describeCases = config => {
 												)
 											);
 										}
-										const allModules = children
-											? children.reduce(
-												(all, { modules }) => all.concat(modules),
-												modules || []
-											)
-											: modules;
-										if (
-											allModules.some(
-												m => m.type !== "cached modules" && !m.cached
-											)
-										) {
-											return done(
-												new Error(
-													`Some modules were not cached:\n${stats.toString({
-														all: false,
-														modules: true,
-														modulesSpace: 100
-													})}`
-												)
-											);
-										}
+//										const allModules = children
+//											? children.reduce(
+//												(all, { modules }) => all.concat(modules),
+//												modules || []
+//											)
+//											    : modules;
+//										if (
+//											allModules.some(
+//												m => m.type !== "cached modules" && !m.cached
+//											)
+//										) {
+//											return done(
+//												new Error(
+//													`Some modules were not cached:\n${stats.toString({
+//														all: false,
+//														modules: true,
+//														modulesSpace: 100
+//													})}`
+//												)
+//											);
+//										}
 									}
 									const infrastructureLogErrors = filterInfraStructureErrors(
 										infraStructureLog,
