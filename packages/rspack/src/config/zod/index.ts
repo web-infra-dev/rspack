@@ -13,6 +13,7 @@ import { stats } from "./stats";
 import { snapshot } from "./snapshot";
 import { output } from "./output";
 import { devtool } from "./devtool";
+import { optimization } from "./optimization";
 
 export function configSchema() {
 	return z
@@ -35,6 +36,7 @@ export function configSchema() {
 			watch: z.boolean().optional(),
 			stats: stats().optional(),
 			snapshot: snapshot().optional(),
+			optimization: optimization().optional(),
 			// TODO(hyf0): what's the usage of this?
 			name: z.string().optional(),
 			// TODO
@@ -42,7 +44,6 @@ export function configSchema() {
 			output: output().optional(),
 			resolve: z.any().optional(),
 			plugins: z.any().optional(),
-			optimization: z.any().optional(),
 			builtins: builtins().optional(),
 			module: z.any().optional()
 		})
