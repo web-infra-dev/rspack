@@ -17,7 +17,10 @@ export function optimization() {
 			.or(z.boolean())
 			.or(
 				z.strictObject({
-					name: z.string().or(z.function()).optional()
+					name: z
+						.string()
+						.or(z.function().returns(z.string().or(z.undefined())))
+						.optional()
 				})
 			)
 			.optional(),
@@ -29,3 +32,7 @@ export function optimization() {
 }
 
 export type OptimizationConfig = z.TypeOf<ReturnType<typeof optimization>>;
+
+export type OptimizationRuntimeChunkConfig = NonNullable<
+	OptimizationConfig["runtimeChunk"]
+>;

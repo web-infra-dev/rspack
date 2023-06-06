@@ -17,6 +17,7 @@ import type {
 	RspackOptions,
 	RspackOptionsNormalized
 } from "./types";
+import { OptimizationRuntimeChunkConfig } from "./zod/optimization";
 
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
@@ -271,7 +272,7 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 };
 
 const getNormalizedOptimizationRuntimeChunk = (
-	runtimeChunk?: OptimizationRuntimeChunk
+	runtimeChunk?: OptimizationRuntimeChunkConfig
 ): OptimizationRuntimeChunkNormalized | undefined => {
 	if (runtimeChunk === undefined) return undefined;
 	if (runtimeChunk === false) return false;
@@ -286,9 +287,10 @@ const getNormalizedOptimizationRuntimeChunk = (
 		};
 	}
 	const { name } = runtimeChunk;
-	return {
+	const opts: OptimizationRuntimeChunkNormalized = {
 		name: typeof name === "function" ? name : () => name
 	};
+	return opts;
 };
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>
