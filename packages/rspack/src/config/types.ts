@@ -574,7 +574,7 @@ export type OptimizationRuntimeChunk =
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: Function;
+			name: (...args: any[]) => string | undefined;
 	  };
 
 ///// Plugins /////
