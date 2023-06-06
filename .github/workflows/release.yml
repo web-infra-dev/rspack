@@ -84,3 +84,13 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+      - name: Release Nightly(After Full)
+        run: |
+          ./x version snapshot
+          ./x publish snapshot --tag nightly
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REF: ${{ github.ref }}
+          ONLY_RELEASE_TAG: true
