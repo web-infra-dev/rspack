@@ -8,9 +8,8 @@ export * from "./multiStats";
 export * from "./chunk_group";
 export * from "./normalModuleFactory";
 
-// TODO(hyf0): should remove this re-export when we cleanup the exports of `@rspack/core`
 import { Configuration } from "./config";
-
+// TODO(hyf0): should remove this re-export when we cleanup the exports of `@rspack/core`
 export type OptimizationSplitChunksOptions = NonNullable<
 	Configuration["optimization"]
 >["splitChunks"];
