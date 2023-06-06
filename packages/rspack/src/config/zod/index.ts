@@ -13,6 +13,7 @@ import { stats } from "./stats";
 import { snapshot } from "./snapshot";
 import { output } from "./output";
 import { devtool } from "./devtool";
+import { optimization } from "./optimization";
 
 export function configSchema() {
 	return z
@@ -42,7 +43,7 @@ export function configSchema() {
 			output: output().optional(),
 			resolve: z.any().optional(),
 			plugins: z.any().optional(),
-			optimization: z.any().optional(),
+			optimization: optimization().optional(),
 			builtins: builtins().optional(),
 			module: z.any().optional()
 		})
