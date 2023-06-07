@@ -1,4 +1,14 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./foo.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {});
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+__webpack_require__.es(_app__WEBPACK_IMPORTED_MODULE__, exports);
+
+function batch() {}
+
+},
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);

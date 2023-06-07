@@ -1,5 +1,6 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 <<<<<<< HEAD
+<<<<<<< HEAD
 "../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
@@ -19,6 +20,12 @@ _export(exports, {
         return _async_to_generator;
     }
 });
+=======
+"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'_async_to_generator': function() { return _async_to_generator; }, '_': function() { return _async_to_generator; }});
+>>>>>>> b34aeeb84 (fix: add string replace build ast)
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
     try {
         var info = gen[key](arg);
@@ -30,7 +37,11 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
     if (info.done) resolve(value);
     else Promise.resolve(value).then(_next, _throw);
 }
+<<<<<<< HEAD
 function _async_to_generator(fn) {
+=======
+ function _async_to_generator(fn) {
+>>>>>>> b34aeeb84 (fix: add string replace build ast)
     return function() {
         var self = this, args = arguments;
         return new Promise(function(resolve, reject) {
@@ -45,6 +56,7 @@ function _async_to_generator(fn) {
         });
     };
 }
+<<<<<<< HEAD
 },
 "../../../../../node_modules/@swc/helpers/esm/_ts_generator.js": function (module, exports, __webpack_require__) {
 "use strict";
@@ -210,10 +222,21 @@ Object.create ? function(o, v) {
 },
 =======
 >>>>>>> aedc9bf34 (chore: 🤖 update)
+=======
+
+},
+"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'_': function() { return tslib__WEBPACK_IMPORTED_MODULE__["__generator"]; }});
+/* harmony import */var tslib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* tslib */"../../../../../node_modules/tslib/tslib.es6.js");
+
+},
+>>>>>>> b34aeeb84 (fix: add string replace build ast)
 "./index.ts": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
+__webpack_require__.d(exports, {'test': function() { return test; }});
 /* harmony import */var _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* @swc/helpers/_/_ts_generator */"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js");
 /* harmony import */var _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* @swc/helpers/_/_async_to_generator */"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js");
 

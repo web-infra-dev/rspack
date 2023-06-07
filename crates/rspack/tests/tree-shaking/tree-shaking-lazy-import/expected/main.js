@@ -2,7 +2,7 @@
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
+__webpack_require__.d(exports, {'answer': function() { return answer; }});
  const answer = 30;
 },
 "./index.js": function (module, exports, __webpack_require__) {

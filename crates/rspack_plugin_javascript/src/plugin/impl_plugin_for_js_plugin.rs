@@ -29,9 +29,9 @@ impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
     "javascript"
   }
-  fn apply(&self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    let create_parser_and_generator =
-      move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
+  fn apply(&mut self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
+    // let create_parser_and_generator =
+    //   move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
 
     let create_parser_and_generator = move || {
       Box::new(JavaScriptStringReplaceParserAndGenerator::new()) as Box<dyn ParserAndGenerator>

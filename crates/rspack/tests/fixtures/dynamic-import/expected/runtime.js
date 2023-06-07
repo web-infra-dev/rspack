@@ -89,6 +89,7 @@ __webpack_require__.ir = function (obj, nodeInterop) {
 };
 
 })();
+<<<<<<< HEAD
 // webpack/runtime/on_chunk_loaded
 (function() {
 var deferred = [];
@@ -128,6 +129,17 @@ __webpack_require__.O = function (result, chunkIds, fn, priority) {
 	return result;
 };
 
+=======
+// webpack/runtime/define_property_getters
+(function() {
+__webpack_require__.d = function(exports, definition) {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+>>>>>>> b34aeeb84 (fix: add string replace build ast)
 })();
 // webpack/runtime/load_chunk_with_module
 (function() {
@@ -227,9 +239,21 @@ __webpack_require__.o = function (obj, prop) {
 };
 
 })();
+<<<<<<< HEAD
 // webpack/runtime/public_path
 (function() {
 __webpack_require__.p = "/";
+=======
+// webpack/runtime/make_namespace_object
+(function() {
+// define __esModule on exports
+__webpack_require__.r = function(exports) {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+>>>>>>> b34aeeb84 (fix: add string replace build ast)
 
 })();
 // webpack/runtime/get_chunk_filename/__webpack_require__.u

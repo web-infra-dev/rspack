@@ -27,7 +27,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
   fn apply(
     &self,
     _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    ctxt: &mut CodeReplaceSourceDependencyContext,
+    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
     let CodeReplaceSourceDependencyContext {
       runtime_requirements,
@@ -35,7 +35,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
       compilation,
       module,
       ..
-    } = ctxt;
+    } = code_generatable_context;
     let exports_argument = compilation
       .module_graph
       .module_graph_module_by_identifier(&module.identifier())
@@ -44,12 +44,9 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
     runtime_requirements.add(RuntimeGlobals::EXPORTS);
 
     if !self.exports.is_empty() {
-      let module_id = ctxt.module.identifier();
-      // TODO: POC
-      let used_export = if ctxt.compilation.options.builtins.tree_shaking.is_true() {
-        // dbg!(&ctxt.compilation.used_symbol_ref);
-        let set = ctxt
-          .compilation
+      let module_id = module.identifier();
+      let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
+        let set = compilation
           .used_symbol_ref
           .iter()
           .filter_map(|item| match item {
@@ -61,14 +58,23 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
       } else {
         None
       };
-      dbg!(&module_id);
-      dbg!(&used_export);
+      let exports = self
+        .exports
+        .clone()
+        .into_iter()
+        .filter(|s| {
+          if let Some(export_map) = &used_exports {
+            return export_map.contains(&s.1);
+          }
+          true
+        })
+        .collect::<Vec<_>>();
       runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       init_fragments.push(InitFragment::new(
         format!(
           "{}({exports_argument}, {});\n",
           RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-          format_exports(&self.exports, used_export)
+          format_exports(&exports)
         ),
         InitFragmentStage::STAGE_HARMONY_EXPORTS,
         None,
@@ -93,22 +99,12 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
   }
 }
 
-pub fn format_exports(
-  exports: &[(String, String)],
-  used_export: Option<HashSet<String>>,
-) -> String {
+pub fn format_exports(exports: &[(String, String)]) -> String {
   format!(
     "{{{}}}",
     exports
       .iter()
-      .filter_map(|s| {
-        if let Some(export_map) = &used_export {
-          if !export_map.contains(&s.1) {
-            return None;
-          }
-        }
-        Some(format!("'{}': function() {{ return {}; }}", s.0, s.1))
-      })
+      .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
       .collect::<Vec<_>>()
       .join(", ")
   )

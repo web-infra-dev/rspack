@@ -1,8 +1,13 @@
+use std::collections::HashSet;
+
 use rspack_core::{
-  export_from_import, get_exports_type, get_import_var, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, DependencyId,
-  ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
+  export_from_import, get_exports_type, get_import_var, tree_shaking::visitor::SymbolRef,
+  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
+  CodeReplaceSourceDependencyReplaceSource, DependencyId, ExportsType, InitFragment,
+  InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
+
+use super::format_exports;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for re-exports.
 #[derive(Debug)]
@@ -51,20 +56,38 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
 
     let import_var = get_import_var(&self.request);
 
+    let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
+      let set = compilation
+        .used_symbol_ref
+        .iter()
+        .filter_map(|item| match item {
+          SymbolRef::Direct(d) if d.uri() == self.module_identifier => {
+            Some(d.id().atom.to_string())
+          }
+          _ => None,
+        })
+        .collect::<HashSet<_>>();
+      Some(set)
+    } else {
+      None
+    };
+
     let mut exports = vec![];
 
     for id in &self.ids {
-      exports.push((
-        id.0.clone(),
-        export_from_import(
-          code_generatable_context,
-          true,
-          import_var.clone(),
-          id.1.clone().map(|i| vec![i]).unwrap_or_default(),
-          &dependency_id,
-          false,
-        ),
-      ));
+      if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {
+        exports.push((
+          id.0.clone(),
+          export_from_import(
+            code_generatable_context,
+            true,
+            import_var.clone(),
+            id.1.clone().map(|i| vec![i]).unwrap_or_default(),
+            &dependency_id,
+            false,
+          ),
+        ));
+      }
     }
 
     let CodeReplaceSourceDependencyContext {
@@ -208,15 +231,4 @@ pub fn get_mode(
     items: Some(vec![]),
     ..Default::default()
   }
-}
-
-pub fn format_exports(exports: &[(String, String)]) -> String {
-  format!(
-    "{{{}}}",
-    exports
-      .iter()
-      .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
-      .collect::<Vec<_>>()
-      .join(", ")
-  )
 }

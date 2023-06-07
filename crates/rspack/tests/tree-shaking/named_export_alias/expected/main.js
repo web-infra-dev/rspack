@@ -1,4 +1,23 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./Something.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'something': function() { return something; }});
+ function something() {}
+},
+"./export.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return a; }});
+/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./Something.js");
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Layout */"./Layout.js");
+
+
+var a = function test() {
+    _Something__WEBPACK_IMPORTED_MODULE__["something"];
+};
+
+},
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);

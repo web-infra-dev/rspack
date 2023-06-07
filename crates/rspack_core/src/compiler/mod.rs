@@ -181,7 +181,6 @@ where
         self.compilation.include_module_ids = analyze_result.include_module_ids;
       }
       self.compilation.optimize_analyze_result_map = analyze_result.analyze_results;
-      dbg!(&self.compilation.used_symbol_ref);
     }
     self.compilation.seal(self.plugin_driver.clone()).await?;
 

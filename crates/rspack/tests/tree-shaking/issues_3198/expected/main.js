@@ -9,7 +9,7 @@ _test__WEBPACK_IMPORTED_MODULE__["obj"]['test'] = 1;
 "./test.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
+__webpack_require__.d(exports, {'obj': function() { return obj; }});
  const obj = {};
 },
 

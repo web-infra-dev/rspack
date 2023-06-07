@@ -2,7 +2,7 @@
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
+__webpack_require__.d(exports, {'bar': function() { return bar; }});
 var foo = function() {
     return 42;
 };

@@ -15,7 +15,7 @@ __webpack_require__.d(exports, {});
 "./c.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
+__webpack_require__.d(exports, {'a': function() { return a; }});
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
 __webpack_require__.es(_foo__WEBPACK_IMPORTED_MODULE__, exports);

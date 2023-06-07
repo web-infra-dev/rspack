@@ -7,6 +7,9 @@ __webpack_require__.r(exports);
 
 _lib__WEBPACK_IMPORTED_MODULE__;
 },
+"./lib.js": function (module, exports, __webpack_require__) {
+exports['a'] = 100000;
+},
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }

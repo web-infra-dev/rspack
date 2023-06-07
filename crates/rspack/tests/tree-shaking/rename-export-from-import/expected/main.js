@@ -2,8 +2,8 @@
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return _lib__WEBPACK_IMPORTED_MODULE__["answer"]; }});
-__webpack_require__.d(exports, {'q': function() { return _lib__WEBPACK_IMPORTED_MODULE__["question"]; }});
+__webpack_require__.d(exports, {});
+__webpack_require__.d(exports, {});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
 
@@ -18,7 +18,7 @@ _app__WEBPACK_IMPORTED_MODULE__["q"];
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
+__webpack_require__.d(exports, {'question': function() { return question; }});
  const answer = "1";
  const question = "2";
 },

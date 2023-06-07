@@ -1,4 +1,16 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./ b.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'b': function() { return b; }});
+ const b = 3;
+},
+"./a.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return a; }});
+ const a = 3;
+},
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);

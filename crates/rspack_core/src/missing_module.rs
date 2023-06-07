@@ -55,12 +55,15 @@ impl Module for MissingModule {
   }
 
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
-    let mut code_gen = CodeGenerationResult::default().with_javascript(AstOrSource::Source(
-      RawSource::from(format!(
-        "throw new Error({});\n",
-        json!(&self.error_message)
-      ))
-      .boxed(),
+    let mut code_gen = CodeGenerationResult::default().with_javascript(AstOrSource::new(
+      None,
+      Some(
+        RawSource::from(format!(
+          "throw new Error({});\n",
+          json!(&self.error_message)
+        ))
+        .boxed(),
+      ),
     ));
     code_gen.set_hash(
       &compilation.options.output.hash_function,
