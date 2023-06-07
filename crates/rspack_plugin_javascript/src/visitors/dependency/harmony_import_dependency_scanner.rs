@@ -131,15 +131,13 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           self
             .ref_dependencies
             .entry(reference.0.clone())
-            .and_modify(|d| {
-              d.push(HarmonyImportSpecifierDependency::new(
-                true,
-                shorthand.span.real_lo(),
-                shorthand.span.real_hi(),
-                reference.1.clone(),
-              ))
-            })
-            .or_default();
+            .or_insert(vec![])
+            .push(HarmonyImportSpecifierDependency::new(
+              true,
+              shorthand.span.real_lo(),
+              shorthand.span.real_hi(),
+              reference.1.clone(),
+            ));
         }
       }
       _ => n.visit_children_with(self),
