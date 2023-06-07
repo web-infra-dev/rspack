@@ -1,5 +1,5 @@
 import { set as a1Set, get as a1Get } from "./mem-access.wat?1";
-import { set as a2Set, get as a2get }  from "./mem-access.wat?2";
+import { set as a2Set, get as a2get } from "./mem-access.wat?2";
 
 a1Set(42);
 export const x1 = a1Get();

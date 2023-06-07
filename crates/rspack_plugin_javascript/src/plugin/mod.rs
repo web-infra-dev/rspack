@@ -81,7 +81,7 @@ impl JsPlugin {
             "#,
       ),
       false => RawSource::from(
-        "__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);\n",
+        "__webpack_modules__[moduleId](module, module.exports, __webpack_require__);\n",
       ),
     };
 

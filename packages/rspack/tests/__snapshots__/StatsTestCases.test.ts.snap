@@ -16,7 +16,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "main.xxxx.js",
-      "size": 1441,
+      "size": 1426,
       "type": "asset",
     },
     {
@@ -134,10 +134,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 1441,
+          "size": 1426,
         },
       ],
-      "assetsSize": 1441,
+      "assetsSize": 1426,
       "chunks": [
         "main",
       ],
@@ -146,7 +146,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "b5a63bd0532186bd",
+  "hash": "7e8a6b95b6d71f8b",
   "modules": [
     {
       "assets": [],
@@ -204,10 +204,10 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
       "assets": [
         {
           "name": "main.xxxx.js",
-          "size": 1441,
+          "size": 1426,
         },
       ],
-      "assetsSize": 1441,
+      "assetsSize": 1426,
       "chunks": [
         "main",
       ],
@@ -222,9 +222,9 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: b5a63bd0532186bd
+"Hash: 7e8a6b95b6d71f8b
              Asset       Size      Chunks             Chunk Names
-      main.xxxx.js   1.41 KiB        main  [emitted]  main
+      main.xxxx.js   1.39 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  218 bytes  dynamic_js  [emitted]  
 Entrypoint main = main.xxxx.js
 chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
@@ -646,10 +646,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1416,
+          "size": 1401,
         },
       ],
-      "assetsSize": 1416,
+      "assetsSize": 1401,
       "chunks": [
         "main",
       ],
@@ -674,10 +674,10 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 1416,
+          "size": 1401,
         },
       ],
-      "assetsSize": 1416,
+      "assetsSize": 1401,
       "chunks": [
         "main",
       ],
@@ -785,14 +785,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e1~runtime.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e1.js",
           "size": 392,
         },
       ],
-      "assetsSize": 2871,
+      "assetsSize": 2850,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -803,14 +803,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e2~runtime.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e2.js",
           "size": 392,
         },
       ],
-      "assetsSize": 2871,
+      "assetsSize": 2850,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -824,14 +824,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e1~runtime.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e1.js",
           "size": 392,
         },
       ],
-      "assetsSize": 2871,
+      "assetsSize": 2850,
       "chunks": [
         "e1~runtime",
         "e1",
@@ -842,14 +842,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "e2~runtime.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e2.js",
           "size": 392,
         },
       ],
-      "assetsSize": 2871,
+      "assetsSize": 2850,
       "chunks": [
         "e2~runtime",
         "e2",
@@ -930,14 +930,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e1.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -948,14 +948,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e2.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -969,14 +969,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e1.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -987,14 +987,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e2.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -1062,14 +1062,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2476,
+          "size": 2455,
         },
         {
           "name": "e1.js",
           "size": 389,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime",
         "e1",
@@ -1080,14 +1080,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2476,
+          "size": 2455,
         },
         {
           "name": "e2.js",
           "size": 389,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime",
         "e2",
@@ -1101,14 +1101,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2476,
+          "size": 2455,
         },
         {
           "name": "e1.js",
           "size": 389,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime",
         "e1",
@@ -1119,14 +1119,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime.js",
-          "size": 2476,
+          "size": 2455,
         },
         {
           "name": "e2.js",
           "size": 389,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime",
         "e2",
@@ -1206,14 +1206,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e1.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -1224,14 +1224,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e2.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -1245,14 +1245,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e1.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e1.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e1",
         "e1",
@@ -1263,14 +1263,14 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
       "assets": [
         {
           "name": "runtime~e2.js",
-          "size": 2479,
+          "size": 2458,
         },
         {
           "name": "e2.js",
           "size": 386,
         },
       ],
-      "assetsSize": 2865,
+      "assetsSize": 2844,
       "chunks": [
         "runtime~e2",
         "e2",
@@ -1400,7 +1400,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 380,
+      "size": 365,
       "type": "asset",
     },
   ],
@@ -1484,10 +1484,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 380,
+          "size": 365,
         },
       ],
-      "assetsSize": 380,
+      "assetsSize": 365,
       "chunks": [
         "main",
       ],
@@ -1508,7 +1508,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "f2692fddabf4afc4",
+  "hash": "807cbcac3a2a8994",
   "modules": [
     {
       "assets": [],
@@ -1566,10 +1566,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 380,
+          "size": 365,
         },
       ],
-      "assetsSize": 380,
+      "assetsSize": 365,
       "chunks": [
         "main",
       ],
@@ -1584,10 +1584,10 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: f2692fddabf4afc4
+"Hash: 807cbcac3a2a8994
 PublicPath: auto
     Asset       Size  Chunks             Chunk Names
-bundle.js  380 bytes    main  [emitted]  main
+bundle.js  365 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 211 bytes [entry]
  [10] ./index.js 51 bytes {main}
@@ -1624,7 +1624,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 989,
+      "size": 974,
       "type": "asset",
     },
   ],
@@ -1708,10 +1708,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 989,
+          "size": 974,
         },
       ],
-      "assetsSize": 989,
+      "assetsSize": 974,
       "chunks": [
         "main",
       ],
@@ -1727,7 +1727,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "9a31c8efb8256f57",
+  "hash": "2174ea0ee7679161",
   "modules": [
     {
       "assets": [],
@@ -1785,10 +1785,10 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
       "assets": [
         {
           "name": "bundle.js",
-          "size": 989,
+          "size": 974,
         },
       ],
-      "assetsSize": 989,
+      "assetsSize": 974,
       "chunks": [
         "main",
       ],
@@ -1803,9 +1803,9 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: 9a31c8efb8256f57
+"Hash: 2174ea0ee7679161
     Asset       Size  Chunks             Chunk Names
-bundle.js  989 bytes    main  [emitted]  main
+bundle.js  974 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 199 bytes [entry]
  [10] ./index.js 39 bytes {main}
@@ -1837,7 +1837,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         "hotModuleReplacement": false,
       },
       "name": "bundle.js",
-      "size": 334,
+      "size": 319,
       "type": "asset",
     },
   ],
@@ -1890,10 +1890,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 334,
+          "size": 319,
         },
       ],
-      "assetsSize": 334,
+      "assetsSize": 319,
       "chunks": [
         "main",
       ],
@@ -1902,7 +1902,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "eb0ad22b693b5495",
+  "hash": "5dfe02e19becf4c0",
   "modules": [
     {
       "assets": [],
@@ -1929,10 +1929,10 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
       "assets": [
         {
           "name": "bundle.js",
-          "size": 334,
+          "size": 319,
         },
       ],
-      "assetsSize": 334,
+      "assetsSize": 319,
       "chunks": [
         "main",
       ],
@@ -1947,9 +1947,9 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"Hash: eb0ad22b693b5495
+"Hash: 5dfe02e19becf4c0
     Asset       Size  Chunks             Chunk Names
-bundle.js  334 bytes    main  [emitted]  main
+bundle.js  319 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
 chunk {main} bundle.js (main) 26 bytes [entry]
  [10] ./index.js 26 bytes {main}
