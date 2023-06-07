@@ -49,7 +49,7 @@ pub struct AssetParserOptions {
 #[derive(Debug, Clone)]
 pub enum AssetParserDataUrl {
   Options(AssetParserDataUrlOptions),
-  // TOOD: Function
+  // TODO: Function
 }
 
 #[derive(Debug, Clone)]
