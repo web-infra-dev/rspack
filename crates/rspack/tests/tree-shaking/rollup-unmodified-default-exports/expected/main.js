@@ -2,7 +2,6 @@
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 var Foo = function() {
     console.log("side effect");
     this.isFoo = true;

@@ -31,7 +31,6 @@ _antd_index__WEBPACK_IMPORTED_MODULE__["locales"].zh_CN;
 "./locale_zh.ts": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./zh_locale */"./zh_locale.js");
 
 var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE__;

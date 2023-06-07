@@ -1,5 +1,5 @@
 use rspack_core::{
-  get_import_var, CodeReplaceSourceDependency, ModuleDependency, ModuleIdentifier,
+  CodeReplaceSourceDependency, DependencyType, ModuleDependency, ModuleIdentifier,
   ReplaceConstDependency, SpanExt,
 };
 use swc_core::{
@@ -26,7 +26,7 @@ pub struct HarmonyExportDependencyScanner<'a> {
   pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub import_map: &'a mut ImportMap,
   pub exports: Vec<(String, String)>,
-  pub exports_all: Vec<String>,
+  pub exports_all: Vec<(String, DependencyType)>,
   module_identifier: ModuleIdentifier,
 }
 
@@ -166,8 +166,9 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
   }
 
   fn visit_export_all(&mut self, export_all: &'_ ExportAll) {
-    let import_var = get_import_var(&export_all.src.value);
-    self.exports_all.push(import_var);
+    self
+      .exports_all
+      .push((export_all.src.value.to_string(), DependencyType::EsmImport));
     // self
     //   .code_generable_dependencies
     //   .push(Box::new(HarmonyExportImportedSpecifierDependency::new(

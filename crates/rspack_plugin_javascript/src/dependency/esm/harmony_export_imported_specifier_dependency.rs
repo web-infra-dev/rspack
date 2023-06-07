@@ -90,30 +90,32 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
       }
     }
 
-    let CodeReplaceSourceDependencyContext {
-      runtime_requirements,
-      init_fragments,
-      compilation,
-      module,
-      ..
-    } = code_generatable_context;
+    if !exports.is_empty() {
+      let CodeReplaceSourceDependencyContext {
+        runtime_requirements,
+        init_fragments,
+        compilation,
+        module,
+        ..
+      } = code_generatable_context;
 
-    let exports_argument = compilation
-      .module_graph
-      .module_graph_module_by_identifier(&module.identifier())
-      .expect("should have mgm")
-      .get_exports_argument();
-    runtime_requirements.add(RuntimeGlobals::EXPORTS);
-    runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-    init_fragments.push(InitFragment::new(
-      format!(
-        "{}({exports_argument}, {});\n",
-        RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-        format_exports(&exports)
-      ),
-      InitFragmentStage::STAGE_HARMONY_EXPORTS,
-      None,
-    ));
+      let exports_argument = compilation
+        .module_graph
+        .module_graph_module_by_identifier(&module.identifier())
+        .expect("should have mgm")
+        .get_exports_argument();
+      runtime_requirements.add(RuntimeGlobals::EXPORTS);
+      runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+      init_fragments.push(InitFragment::new(
+        format!(
+          "{}({exports_argument}, {});\n",
+          RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
+          format_exports(&exports)
+        ),
+        InitFragmentStage::STAGE_HARMONY_EXPORTS,
+        None,
+      ));
+    }
   }
 }
 

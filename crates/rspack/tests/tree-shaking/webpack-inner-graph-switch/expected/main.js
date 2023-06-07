@@ -23,7 +23,6 @@ it("should generate correct code when pure expressions are in dead branches", ()
 "./module.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 /* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./some-module */"./some-module.js");
 
 function getType(obj) {

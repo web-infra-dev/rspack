@@ -10,7 +10,6 @@ _lib__WEBPACK_IMPORTED_MODULE__["a"];
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'a': function() { return _a_js__WEBPACK_IMPORTED_MODULE__["default"]; }});
-__webpack_require__.d(exports, {});
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.js */"./a.js");
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b.js */"./b.js");
 

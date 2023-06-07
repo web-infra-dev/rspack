@@ -3,7 +3,6 @@
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'cccc': function() { return _c__WEBPACK_IMPORTED_MODULE__["cccc"]; }});
-__webpack_require__.d(exports, {});
 /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./Something.js");
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Layout */"./Layout.js");
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./c */"./c.js");

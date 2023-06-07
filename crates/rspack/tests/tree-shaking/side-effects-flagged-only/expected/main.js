@@ -3,7 +3,6 @@
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'something': function() { return _lib__WEBPACK_IMPORTED_MODULE__["default"]; }});
-__webpack_require__.d(exports, {});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 /* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./src/a */"./src/a.js");
 
@@ -19,7 +18,6 @@ _app__WEBPACK_IMPORTED_MODULE__["something"]();
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
  const secret = "888";
  const result = 20000;
  const something = function() {};
@@ -28,7 +26,6 @@ var __WEBPACK_DEFAULT_EXPORT__ = function() {}
 "./src/a.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 var __WEBPACK_DEFAULT_EXPORT__ = (()=>{
     console.log("");
 });

@@ -2,8 +2,6 @@
 "./bar.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
-__webpack_require__.d(exports, {});
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
 /* harmony import */var _result__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./result */"./result.js");
 __webpack_require__.es(_result__WEBPACK_IMPORTED_MODULE__, exports);
@@ -14,7 +12,6 @@ __webpack_require__.es(_result__WEBPACK_IMPORTED_MODULE__, exports);
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
 /* harmony import */var _result__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./result */"./result.js");
 __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);
@@ -35,7 +32,6 @@ _foo__WEBPACK_IMPORTED_MODULE__["c"]();
 "./result.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
 __webpack_require__.es(_foo__WEBPACK_IMPORTED_MODULE__, exports);

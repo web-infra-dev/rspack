@@ -10,7 +10,6 @@ console.log(_maths_js__WEBPACK_IMPORTED_MODULE__['square']);
 "./maths.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 __webpack_require__.d(exports, {'square': function() { return square; }});
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./test.js */"./test.js");
 // maths.js
@@ -30,7 +29,6 @@ __webpack_require__.d(exports, {'square': function() { return square; }});
 "./test.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
  function test() {}
  function ccc() {}
 },

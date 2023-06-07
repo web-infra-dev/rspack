@@ -46,7 +46,6 @@ var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE__["default"];
 "./package1/script1.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 /* harmony import */var _script2__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./script2 */"./package1/script2.js");
 __webpack_require__.es(_script2__WEBPACK_IMPORTED_MODULE__, exports);
 
@@ -58,7 +57,6 @@ __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'exportDefaultUsed': function() { return exportDefaultUsed; }});
 /* harmony import */var _script3__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./script3 */"./package1/script3.js");
 /* harmony import */var _script3__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./script3 */"./package1/script3.js");
-__webpack_require__.es(_script3__WEBPACK_IMPORTED_MODULE__, exports);
 
 var __WEBPACK_DEFAULT_EXPORT__ = function() {
     return _script3__WEBPACK_IMPORTED_MODULE__["default"];
@@ -81,7 +79,6 @@ var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE__["default"];
 "./package2/script1.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
 var __WEBPACK_DEFAULT_EXPORT__ = 1;
 },
 

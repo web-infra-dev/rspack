@@ -3,7 +3,6 @@
 'use strict';
 __webpack_require__.r(exports);
 /* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./enum-old */"./enum-old.js");
-__webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE__, exports);
 
 },
 "./index.js": function (module, exports, __webpack_require__) {

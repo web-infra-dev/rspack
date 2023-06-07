@@ -2,11 +2,8 @@
 "./a.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {});
-__webpack_require__.d(exports, {});
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b.js */"./b.js");
 /* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./c.js */"./c.js");
-__webpack_require__.es(_c_js__WEBPACK_IMPORTED_MODULE__, exports);
 
 
  const a = 3;

@@ -4,8 +4,6 @@
 __webpack_require__.r(exports);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 /* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./src/a */"./src/a.js");
-__webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE__, exports);
-__webpack_require__.es(_src_a__WEBPACK_IMPORTED_MODULE__, exports);
 
  // export {
  //   result as test
