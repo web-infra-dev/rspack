@@ -81,7 +81,7 @@ impl Plugin for ProgressPlugin {
     let modules_done = previous_modules_done + 1;
     let percent = (modules_done as f32)
       / (cmp::max(
-        self.last_modules_count.read().unwrap().unwrap_or(1),
+        self.last_modules_count.read().expect("TODO:").unwrap_or(1),
         self.modules_count.load(SeqCst),
       ) as f32);
     self
@@ -117,7 +117,7 @@ impl Plugin for ProgressPlugin {
   ) -> PluginBuildEndHookOutput {
     self.progress_bar.set_message("done");
     self.progress_bar.finish();
-    *self.last_modules_count.write().unwrap() = Some(self.modules_count.load(SeqCst));
+    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
     Ok(())
   }
 }
