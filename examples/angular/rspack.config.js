@@ -44,9 +44,9 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: false,
-		minimize: false,
+		minimize: true,
 		// moduleIds: 'named',
-		sideEffects: false,
+		sideEffects: true,
 		splitChunks: {
 			// 'maxAsyncRequests': null, // throws error
 			cacheGroups: {
