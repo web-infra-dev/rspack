@@ -10,12 +10,12 @@ use swc_core::common::Span;
 
 use crate::{
   cache::Cache, module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
-  AssetGeneratorOptions, AssetParserOptions, BoxLoader, CompilerOptions, Dependency,
-  DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
-  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, RawModule, Resolve, ResolveArgs,
-  ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
+  BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
+  FactoryMeta, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule,
+  ModuleRuleEnforce, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
+  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
   ResourceParsedData, SharedPluginDriver,
 };
 
@@ -531,9 +531,9 @@ impl NormalModuleFactory {
   fn calculate_parser_and_generator_options(
     &self,
     module_rules: &[&ModuleRule],
-  ) -> (Option<AssetParserOptions>, Option<AssetGeneratorOptions>) {
-    let mut resolved_parser: Option<AssetParserOptions> = None;
-    let mut resolved_generator: Option<AssetGeneratorOptions> = None;
+  ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
+    let mut resolved_parser = None;
+    let mut resolved_generator = None;
 
     module_rules.iter().for_each(|rule| {
       // TODO: should deep merge

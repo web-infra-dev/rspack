@@ -17,7 +17,7 @@ import type {
 	RawRelayConfig,
 	RawCodeGeneration,
 	RawBannerConditions,
-	RawBannerCondition,
+	RawBannerCondition
 } from "@rspack/binding";
 import { loadConfig } from "browserslist";
 import { Optimization } from "..";
@@ -415,9 +415,7 @@ function resolveBannerConfig(bannerConfig: BannerConfig): RawBannerConfig {
 	};
 }
 
-function getBannerCondition(
-	condition: BannerCondition
-): RawBannerCondition {
+function getBannerCondition(condition: BannerCondition): RawBannerCondition {
 	if (typeof condition === "string") {
 		return {
 			type: "string",

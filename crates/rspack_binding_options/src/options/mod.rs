@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_core::{
   BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
-  OutputOptions, PluginExt,
+  ModuleType, OutputOptions, PluginExt,
 };
 use serde::Deserialize;
 
@@ -124,7 +124,11 @@ impl RawOptionsApply for RawOptions {
 
     plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
-        parse_options: module.parser.as_ref().and_then(|x| x.asset.clone()),
+        parse_options: module
+          .parser
+          .as_ref()
+          .and_then(|x| x.get(&ModuleType::Asset))
+          .and_then(|x| x.get_asset(&ModuleType::Asset).cloned()),
       })
       .boxed(),
     );

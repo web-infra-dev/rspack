@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use rayon::prelude::*;
 use rspack_core::{
   rspack_sources::{BoxSource, RawSource, SourceExt},
-  AssetParserDataUrlOption, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
+  AssetParserDataUrl, AssetParserOptions, AstOrSource, BuildMetaDefaultObject,
   BuildMetaExportsType, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationDataUrl, Compilation, GenerateContext, GenerationResult, Module, NormalModule,
   ParseContext, ParserAndGenerator, PathData, Plugin, PluginContext,
@@ -43,10 +43,10 @@ static ASSET_SOURCE_MODULE_SOURCE_TYPE_LIST: &[SourceType; 1] = &[SourceType::Ja
 const DEFAULT_ENCODING: &str = "base64";
 
 #[derive(Debug)]
-enum DataUrlOption {
+enum DataUrlOptions {
   Inline(bool),
   Source,
-  Auto(Option<AssetParserDataUrlOption>),
+  Auto(Option<AssetParserDataUrl>),
 }
 
 type IsInline = bool;
@@ -76,35 +76,35 @@ impl CanonicalizedDataUrlOption {
 
 #[derive(Debug)]
 pub struct AssetParserAndGenerator {
-  data_url: DataUrlOption,
+  data_url: DataUrlOptions,
   parsed_asset_config: Option<CanonicalizedDataUrlOption>,
 }
 
 impl AssetParserAndGenerator {
-  pub fn with_auto(option: Option<AssetParserDataUrlOption>) -> Self {
+  pub fn with_auto(option: Option<AssetParserDataUrl>) -> Self {
     Self {
-      data_url: DataUrlOption::Auto(option),
+      data_url: DataUrlOptions::Auto(option),
       parsed_asset_config: None,
     }
   }
 
   pub fn with_inline() -> Self {
     Self {
-      data_url: DataUrlOption::Inline(true),
+      data_url: DataUrlOptions::Inline(true),
       parsed_asset_config: None,
     }
   }
 
   pub fn with_resource() -> Self {
     Self {
-      data_url: DataUrlOption::Inline(false),
+      data_url: DataUrlOptions::Inline(false),
       parsed_asset_config: None,
     }
   }
 
   pub fn with_source() -> Self {
     Self {
-      data_url: DataUrlOption::Source,
+      data_url: DataUrlOptions::Source,
       parsed_asset_config: None,
     }
   }
@@ -251,6 +251,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       source,
       build_meta,
       build_info,
+      module_type,
       ..
     } = parse_context;
     build_info.strict = true;
@@ -259,13 +260,23 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let size = source.size();
 
     self.parsed_asset_config = match &self.data_url {
-      DataUrlOption::Source => Some(CanonicalizedDataUrlOption::Source),
-      DataUrlOption::Inline(val) => Some(CanonicalizedDataUrlOption::Asset(*val)),
-      DataUrlOption::Auto(option) => {
+      DataUrlOptions::Source => Some(CanonicalizedDataUrlOption::Source),
+      DataUrlOptions::Inline(val) => Some(CanonicalizedDataUrlOption::Asset(*val)),
+      DataUrlOptions::Auto(option) => {
         let limit_size = parse_context
           .module_parser_options
-          .and_then(|x| x.data_url_condition.as_ref().and_then(|d| d.max_size))
-          .or(option.as_ref().and_then(|x| x.max_size))
+          .and_then(|x| {
+            x.get_asset(module_type)
+              .and_then(|x| x.data_url_condition.as_ref())
+              .and_then(|x| match x {
+                AssetParserDataUrl::Options(x) => x.max_size,
+              })
+          })
+          .or_else(|| {
+            option.as_ref().and_then(|x| match x {
+              AssetParserDataUrl::Options(x) => x.max_size,
+            })
+          })
           .unwrap_or(DEFAULT_MAX_SIZE);
         Some(CanonicalizedDataUrlOption::Asset(
           size <= limit_size as usize,
@@ -298,7 +309,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     // Use [Rule.generator.filename] if it is set, otherwise use [output.assetModuleFilename].
     let asset_filename_template = generate_context
       .module_generator_options
-      .and_then(|o| o.filename.as_ref())
+      .and_then(|x| x.asset_filename(module.module_type()))
       .unwrap_or(
         &generate_context
           .compilation
