@@ -2435,6 +2435,7 @@ dependencies = [
 name = "rspack_loader_swc"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "indexmap",
  "once_cell",
@@ -2853,6 +2854,7 @@ dependencies = [
  "rspack_fs",
  "rspack_ids",
  "rspack_loader_sass",
+ "rspack_loader_swc",
  "rspack_plugin_asset",
  "rspack_plugin_css",
  "rspack_plugin_dev_friendly_split_chunks",

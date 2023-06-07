@@ -12,9 +12,8 @@ use rspack_core::{
 };
 use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
 use rspack_testing::{fixture, test_fixture};
-use swc_core::base::config::{JscConfig, JscExperimental, PluginConfig};
 
-// UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
+// UPDATE=1 cargo test --package rspack_loader_swc -- --nocapture
 async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let tests_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"))).join("tests");
   let expected_path = tests_path.join(expected);
@@ -84,7 +83,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   .split_into_parts();
   let result = result.content.try_into_string().expect("TODO:");
 
-  if env::var("UPDATE_SASS_LOADER_TEST").is_ok() {
+  if env::var("UPDATE").is_ok() {
     fs::write(expected_path, result).expect("TODO:");
   } else {
     let expected = fs::read_to_string(expected_path).expect("TODO:");
@@ -94,5 +93,10 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
 
 #[tokio::test]
 async fn rspack_importer() {
-  loader_test("swc/index.js", "expected/rspack_importer.js").await;
+  loader_test("swc/index.js", "expected/simple.js").await;
+}
+
+#[fixture("tests/fixtures/*")]
+fn swc(fixture_path: PathBuf) {
+  test_fixture(&fixture_path);
 }

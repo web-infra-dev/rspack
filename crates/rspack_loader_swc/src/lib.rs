@@ -168,7 +168,6 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       }
     }
 
-    // dbg!(&swc_option);
     GLOBALS.set(&Default::default(), || {
       match try_with_handler(c.cm.clone(), Default::default(), |handler| {
         c.run(|| {
@@ -177,14 +176,18 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             content.try_into_string()?,
           );
           let comments = SingleThreadedComments::default();
-          let out = match c.process_js_with_custom_pass(
-            fm,
-            None,
-            handler,
-            &options,
-            comments,
-            |_a| noop(),
-            |_a| noop(),
+
+          let out = match anyhow::Context::context(
+            c.process_js_with_custom_pass(
+              fm,
+              None,
+              handler,
+              &options,
+              comments,
+              |_a| noop(),
+              |_a| noop(),
+            ),
+            "failed to process js file",
           ) {
             Ok(out) => Some(out),
             Err(e) => {
