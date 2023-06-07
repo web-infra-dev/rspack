@@ -353,12 +353,7 @@ impl Module for NormalModule {
     let mut build_meta = BuildMeta::default();
     let mut diagnostics = Vec::new();
 
-    build_context
-      .plugin_driver
-      .read()
-      .await
-      .before_loaders(self)
-      .await?;
+    build_context.plugin_driver.before_loaders(self).await?;
 
     let loader_result = {
       run_loaders(

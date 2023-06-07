@@ -14,7 +14,7 @@ pub async fn resolve(
   plugin_driver: &SharedPluginDriver,
   //  _job_context: &mut NormalModuleFactoryContext,
 ) -> Result<ResolveResult, ResolveError> {
-  let plugin_driver = plugin_driver.read().await;
+  let plugin_driver = plugin_driver;
   let importer = args.importer.map(|i| i.to_string());
   let base_dir = args.context.as_ref();
 

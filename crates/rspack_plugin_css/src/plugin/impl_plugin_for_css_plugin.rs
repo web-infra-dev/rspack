@@ -24,10 +24,7 @@ impl Plugin for CssPlugin {
     "css"
   }
 
-  fn apply(
-    &mut self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     let config = self.config.clone();
     let builder = move || {
       Box::new(CssParserAndGenerator {

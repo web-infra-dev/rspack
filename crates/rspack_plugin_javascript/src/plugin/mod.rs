@@ -293,17 +293,14 @@ impl JsPlugin {
         .keys()
         .last()
         .expect("should have last entry module");
-      if let Some(source) =
-        compilation
-          .plugin_driver
-          .read()
-          .await
-          .render_startup(RenderStartupArgs {
-            compilation,
-            chunk: &chunk.ukey,
-            module: *last_entry_module,
-            source: startup,
-          })?
+      if let Some(source) = compilation
+        .plugin_driver
+        .render_startup(RenderStartupArgs {
+          compilation,
+          chunk: &chunk.ukey,
+          module: *last_entry_module,
+          source: startup,
+        })?
       {
         sources.add(source);
       }
@@ -317,7 +314,7 @@ impl JsPlugin {
       sources.boxed()
     };
     final_source = render_chunk_init_fragments(final_source, &mut chunk_init_fragments);
-    if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
+    if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
       source: &final_source,
@@ -338,8 +335,6 @@ impl JsPlugin {
       .compilation
       .plugin_driver
       .clone()
-      .read()
-      .await
       .render_chunk(RenderChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,
@@ -363,8 +358,6 @@ impl JsPlugin {
     compilation
       .plugin_driver
       .clone()
-      .read()
-      .await
       .js_chunk_hash(JsChunkHashArgs {
         compilation,
         chunk_ukey,

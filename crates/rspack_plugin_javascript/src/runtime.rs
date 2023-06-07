@@ -22,10 +22,7 @@ pub fn render_chunk_modules(
     .get(chunk_ukey)
     .expect("chunk not found");
 
-  let plugin_driver = tokio::task::block_in_place(move || {
-    tokio::runtime::Handle::current()
-      .block_on(async move { compilation.plugin_driver.read().await })
-  });
+  let plugin_driver = &compilation.plugin_driver;
 
   let include_module_ids = &compilation.include_module_ids;
 

@@ -14,7 +14,7 @@ impl Plugin for InferAsyncModulesPlugin {
     "InferAsyncModulesPlugin"
   }
 
-  async fn finish_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
+  async fn finish_modules(&self, compilation: &mut Compilation) -> Result<()> {
     // fix: mut for-in
     let mut queue = LinkedHashSet::new();
     let mut uniques = HashSet::new();

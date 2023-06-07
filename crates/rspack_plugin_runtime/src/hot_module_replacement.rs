@@ -16,10 +16,7 @@ impl Plugin for HotModuleReplacementPlugin {
     "HotModuleReplacementPlugin"
   }
 
-  fn apply(
-    &mut self,
-    _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     Ok(())
   }
 

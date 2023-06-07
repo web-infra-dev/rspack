@@ -358,15 +358,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:make", skip_all)]
   pub async fn make(&mut self, params: SetupMakeParam) -> Result<()> {
-    if let Some(e) = self
-      .plugin_driver
-      .clone()
-      .read()
-      .await
-      .make(self)
-      .await
-      .err()
-    {
+    if let Some(e) = self.plugin_driver.clone().make(self).await.err() {
       self.push_batch_diagnostic(e.into());
     }
 
@@ -930,8 +922,6 @@ impl Compilation {
       .values()
       .map(|chunk| async {
         let manifest = plugin_driver
-          .read()
-          .await
           .render_manifest(RenderManifestArgs {
             chunk_ukey: chunk.ukey,
             compilation: self,
@@ -984,8 +974,6 @@ impl Compilation {
   #[instrument(name = "compilation:process_asssets", skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
-      .read()
-      .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
   }
@@ -1001,11 +989,7 @@ impl Compilation {
       .chunk_by_ukey
       .get(&chunk_ukey)
       .unwrap_or_else(|| panic!("chunk({chunk_ukey:?}) should be in chunk_by_ukey",));
-    _ = plugin_driver
-      .write()
-      .await
-      .chunk_asset(current_chunk, filename)
-      .await;
+    _ = plugin_driver.chunk_asset(current_chunk, filename).await;
     Ok(())
   }
 
@@ -1017,7 +1001,7 @@ impl Compilation {
 
   pub async fn done(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     let stats = &mut Stats::new(self);
-    plugin_driver.write().await.done(stats).await?;
+    plugin_driver.done(stats).await?;
     Ok(())
   }
 
@@ -1035,7 +1019,7 @@ impl Compilation {
 
   #[instrument(name = "compilation:finish", skip_all)]
   pub async fn finish(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
-    plugin_driver.write().await.finish_modules(self).await?;
+    plugin_driver.finish_modules(self).await?;
     Ok(())
   }
 
@@ -1043,27 +1027,15 @@ impl Compilation {
   pub async fn seal(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     use_code_splitting_cache(self, |compilation| async {
       build_chunk_graph(compilation)?;
-      plugin_driver
-        .write()
-        .await
-        .optimize_modules(compilation)
-        .await?;
-      plugin_driver
-        .write()
-        .await
-        .optimize_chunks(compilation)
-        .await?;
+      plugin_driver.optimize_modules(compilation).await?;
+      plugin_driver.optimize_chunks(compilation).await?;
       Ok(compilation)
     })
     .await?;
-    plugin_driver
-      .write()
-      .await
-      .optimize_chunk_modules(self)
-      .await?;
+    plugin_driver.optimize_chunk_modules(self).await?;
 
-    plugin_driver.write().await.module_ids(self)?;
-    plugin_driver.write().await.chunk_ids(self)?;
+    plugin_driver.module_ids(self)?;
+    plugin_driver.chunk_ids(self)?;
 
     self.code_generation().await?;
 
@@ -1150,14 +1122,13 @@ impl Compilation {
       chunk_requirements.insert(*chunk_ukey, set);
     }
     for (chunk_ukey, set) in chunk_requirements.iter_mut() {
-      plugin_driver
-        .read()
-        .await
-        .additional_chunk_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
+      plugin_driver.additional_chunk_runtime_requirements(
+        &mut AdditionalChunkRuntimeRequirementsArgs {
           compilation: self,
           chunk: chunk_ukey,
           runtime_requirements: set,
-        })?;
+        },
+      )?;
 
       self
         .chunk_graph
@@ -1181,22 +1152,19 @@ impl Compilation {
         set.add(*runtime_requirements);
       }
 
-      plugin_driver
-        .read()
-        .await
-        .additional_tree_runtime_requirements(&mut AdditionalChunkRuntimeRequirementsArgs {
-          compilation: self,
-          chunk: entry_ukey,
-          runtime_requirements: &mut set,
-        })?;
-
-      plugin_driver.read().await.runtime_requirements_in_tree(
+      plugin_driver.additional_tree_runtime_requirements(
         &mut AdditionalChunkRuntimeRequirementsArgs {
           compilation: self,
           chunk: entry_ukey,
           runtime_requirements: &mut set,
         },
       )?;
+
+      plugin_driver.runtime_requirements_in_tree(&mut AdditionalChunkRuntimeRequirementsArgs {
+        compilation: self,
+        chunk: entry_ukey,
+        runtime_requirements: &mut set,
+      })?;
 
       self
         .chunk_graph
@@ -1272,8 +1240,6 @@ impl Compilation {
       chunk.update_hash(&mut hasher, self);
     }
     plugin_driver
-      .read()
-      .await
       .chunk_hash(&mut ChunkHashArgs {
         chunk_ukey,
         compilation: self,
@@ -1283,8 +1249,6 @@ impl Compilation {
     let chunk_hash = hasher.digest(&self.options.output.hash_digest);
 
     let content_hash = plugin_driver
-      .read()
-      .await
       .content_hash(&ContentHashArgs {
         chunk_ukey,
         compilation: self,

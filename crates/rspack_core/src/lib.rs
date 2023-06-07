@@ -45,7 +45,6 @@ pub use chunk::*;
 mod dependency;
 pub use dependency::*;
 mod utils;
-use tokio::sync::RwLock;
 pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
@@ -232,4 +231,4 @@ impl TryFrom<&str> for ModuleType {
 
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
-pub(crate) type SharedPluginDriver = Arc<RwLock<PluginDriver>>;
+pub(crate) type SharedPluginDriver = Arc<PluginDriver>;

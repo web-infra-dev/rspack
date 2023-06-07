@@ -22,7 +22,7 @@ impl StableNamedChunkIdsPlugin {
 }
 
 impl Plugin for StableNamedChunkIdsPlugin {
-  fn chunk_ids(&mut self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     use rayon::prelude::*;
     // code_splitting_chunk means chunks generated in code splitting
     let code_splitting_chunk_to_root_module = compilation
