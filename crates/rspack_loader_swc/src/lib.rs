@@ -1,72 +1,133 @@
 #![feature(let_chains)]
 
 use std::default::Default;
-use std::{
-  env,
-  iter::Peekable,
-  path::{Path, PathBuf},
-  sync::{mpsc, Arc},
-};
+use std::sync::Arc;
 
-use itertools::Itertools;
 use once_cell::sync::Lazy;
-use regex::Regex;
-use rspack_core::{
-  rspack_sources::SourceMap, DependencyCategory, DependencyType, LoaderRunnerContext, Resolve,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
+use rspack_error::{errors_to_diagnostics, internal_error, Error, Result};
+use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
+use serde::Deserialize;
+use swc_config::config_types::{BoolConfig, MergingOption};
+use swc_config::merge::Merge;
+use swc_core::base::config::{
+  Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
+  SourceMapsConfig, TransformConfig,
 };
-use rspack_error::{
-  errors_to_diagnostics, internal_error, Diagnostic, DiagnosticKind, Error, InternalError, Result,
-  Severity, TraceableError,
-};
-use rspack_loader_runner::{Content, Identifiable, Identifier, Loader, LoaderContext};
-use serde::{Deserialize, Serialize};
-use str_indices::utf16;
-use swc_core::base::config::{Config, Options, SourceMapsConfig};
 use swc_core::base::{try_with_handler, Compiler};
 use swc_core::common::comments::SingleThreadedComments;
 use swc_core::common::{FileName, FilePathMapping, GLOBALS};
 use swc_core::ecma::transforms::base::pass::noop;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
-pub struct SwcLoaderOptions {
-  Swc_options: SwcOptions,
-  // `None` means open or close source map depends on whether in production mode.
-  source_map: Option<bool>,
-  additional_data: Option<String>,
-  rspack_importer: bool,
-}
+pub struct SwcLoaderJsOptions {
+  #[serde(default)]
+  pub source_maps: Option<SourceMapsConfig>,
 
-impl Default for SwcLoaderOptions {
-  fn default() -> Self {
-    Self {
-      rspack_importer: true,
-      source_map: Default::default(),
-      additional_data: Default::default(),
-      Swc_options: Default::default(),
-    }
-  }
+  pub source_map: Option<SourceMapsConfig>,
+  #[serde(default)]
+  pub env: Option<swc_core::ecma::preset_env::Config>,
+
+  #[serde(default)]
+  pub test: Option<FileMatcher>,
+
+  #[serde(default)]
+  pub exclude: Option<FileMatcher>,
+
+  #[serde(default)]
+  pub jsc: JscConfig,
+
+  #[serde(default)]
+  pub module: Option<ModuleConfig>,
+
+  #[serde(default)]
+  pub minify: BoolConfig<false>,
+
+  #[serde(default)]
+  pub input_source_map: Option<InputSourceMap>,
+
+  #[serde(default)]
+  pub inline_sources_content: BoolConfig<true>,
+
+  #[serde(default)]
+  pub emit_source_map_columns: BoolConfig<true>,
+
+  #[serde(default)]
+  pub error: ErrorConfig,
+
+  #[serde(default)]
+  pub is_module: Option<IsModule>,
+
+  #[serde(rename = "$schema")]
+  pub schema: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
-pub struct SwcOptions {
-  indented_syntax: Option<bool>,
-  include_paths: Vec<PathBuf>,
-  charset: Option<bool>,
-  quiet_deps: Option<bool>,
-  verbose: Option<bool>,
+struct SwcLoaderOptions {
+  pub config: Option<Config>,
+  pub source_maps: Option<SourceMapsConfig>,
+}
+
+impl From<SwcLoaderJsOptions> for Options {
+  fn from(value: SwcLoaderJsOptions) -> Self {
+    let SwcLoaderJsOptions {
+      source_maps,
+      source_map,
+      env,
+      test,
+      exclude,
+      jsc,
+      module,
+      minify,
+      input_source_map,
+      inline_sources_content,
+      emit_source_map_columns,
+      error,
+      is_module,
+      schema,
+    } = value;
+    let mut source_maps: Option<SourceMapsConfig> = source_maps;
+    if source_maps.is_none() && source_map.is_some() {
+      source_maps = source_map
+    }
+    if let Some(SourceMapsConfig::Str(str)) = &source_maps {
+      if str == "inline" {
+        source_maps = Some(SourceMapsConfig::Bool(true))
+      }
+    }
+    Options {
+      config: Config {
+        env,
+        test,
+        exclude,
+        jsc,
+        module,
+        minify,
+        input_source_map,
+        source_maps,
+        inline_sources_content,
+        emit_source_map_columns,
+        error,
+        is_module,
+        schema,
+      },
+      ..Default::default()
+    }
+  }
 }
 
 #[derive(Debug)]
 pub struct SwcLoader {
-  options: Config,
+  options: Options,
 }
 
 impl SwcLoader {
-  pub fn new(options: Config) -> Self {
-    Self { options }
+  pub fn new(options: SwcLoaderJsOptions) -> Self {
+    Self {
+      options: Options::from(options),
+    }
   }
 }
 
@@ -83,10 +144,6 @@ pub fn compiler() -> Arc<Compiler> {
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
-    dbg!(&loader_context.content);
-    dbg!(&loader_context.source_map);
-    dbg!(&loader_context.resource_path);
-    dbg!(&loader_context.resource_query);
     let resource_path = loader_context.resource_path;
     let content = loader_context
       .content
@@ -94,7 +151,24 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       .expect("content should available");
     let c = compiler();
     let mut errors: Vec<Error> = Default::default();
+    let default_development = matches!(loader_context.context.options.mode, Mode::Development);
+    let mut options = self.options.clone();
+    if options.config.jsc.transform.as_ref().is_some() {
+      let mut transform = TransformConfig::default();
+      transform.react.development = Some(default_development);
+      options
+        .config
+        .jsc
+        .transform
+        .merge(MergingOption::from(Some(transform)));
+    }
+    if let Some(pre_source_map) = &loader_context.source_map {
+      if let Ok(source_map) = pre_source_map.clone().to_json() {
+        options.config.input_source_map = Some(InputSourceMap::Str(source_map))
+      }
+    }
 
+    // dbg!(&swc_option);
     GLOBALS.set(&Default::default(), || {
       match try_with_handler(c.cm.clone(), Default::default(), |handler| {
         c.run(|| {
@@ -107,14 +181,10 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
             fm,
             None,
             handler,
-            &Options {
-              config: self.options.clone(),
-              source_maps: Some(SourceMapsConfig::Bool(true)),
-              ..Default::default()
-            },
+            &options,
             comments,
-            |a| noop(),
-            |a| noop(),
+            |_a| noop(),
+            |_a| noop(),
           ) {
             Ok(out) => Some(out),
             Err(e) => {

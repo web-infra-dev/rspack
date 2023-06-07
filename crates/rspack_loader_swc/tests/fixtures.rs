@@ -10,33 +10,19 @@ use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
   SideEffectOption,
 };
-use rspack_loader_swc::{SwcLoader, SwcOptions};
+use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
 use rspack_testing::{fixture, test_fixture};
-use sass_embedded::Url;
-use swc_core::base::config::{Config, JscConfig};
-use swc_core::ecma::ast::EsVersion;
+use swc_core::base::config::{JscConfig, JscExperimental, PluginConfig};
 
 // UPDATE_SASS_LOADER_TEST=1 cargo test --package rspack_loader_sass test_fn_name -- --exact --nocapture
 async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let tests_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"))).join("tests");
   let expected_path = tests_path.join(expected);
   let actual_path = tests_path.join(actual);
-
-  let url = Url::from_file_path(actual_path.to_string_lossy().to_string()).expect("TODO:");
   let (result, _) = run_loaders(
-    &[Arc::new(SwcLoader::new(Config {
-      jsc: JscConfig {
-        target: Some(EsVersion::Es3),
-        ..Default::default()
-      },
-      ..Default::default()
-    })) as Arc<dyn Loader<LoaderRunnerContext>>],
-    &ResourceData::new(
-      actual_path.to_string_lossy().to_string(),
-      url.to_file_path().expect("bad url file path"),
-    )
-    .query_optional(url.query().map(|q| q.to_owned()))
-    .fragment_optional(url.fragment().map(|f| f.to_owned())),
+    &[Arc::new(SwcLoader::new(SwcLoaderJsOptions::default()))
+      as Arc<dyn Loader<LoaderRunnerContext>>],
+    &ResourceData::new(actual_path.to_string_lossy().to_string(), actual_path),
     &[],
     CompilerContext {
       options: std::sync::Arc::new(CompilerOptions {

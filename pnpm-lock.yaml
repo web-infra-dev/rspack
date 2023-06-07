@@ -629,6 +629,18 @@ importers:
       react-dom: 15.7.0_react@15.7.0
       url-loader: 4.1.1
 
+  examples/swc-exapmle:
+    specifiers:
+      '@rspack/cli': workspace:*
+      react: 18.2.0
+      react-dom: 18.2.0
+      react-refresh: 0.14.0
+    dependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      react-refresh: 0.14.0
+
   examples/tailwind:
     specifiers:
       '@rspack/cli': workspace:*
@@ -8438,7 +8450,7 @@ packages:
       '@storybook/client-logger': 7.0.0
       '@storybook/components': 7.0.0_sfoxds7t5ydpegc3knd667wn6m
       '@storybook/core-events': 7.0.0
-      '@storybook/csf': 0.0.2-next.11
+      '@storybook/csf': 0.1.1-next.0
       '@storybook/docs-tools': 7.0.0
       '@storybook/global': 5.0.0
       '@storybook/manager-api': 7.0.0_sfoxds7t5ydpegc3knd667wn6m
@@ -8654,7 +8666,7 @@ packages:
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
       '@storybook/client-logger': 7.0.0
-      '@storybook/csf': 0.0.2-next.11
+      '@storybook/csf': 0.1.1-next.0
       '@storybook/global': 5.0.0
       '@storybook/theming': 7.0.0_sfoxds7t5ydpegc3knd667wn6m
       '@storybook/types': 7.0.0
@@ -8834,7 +8846,7 @@ packages:
       '@babel/parser': 7.21.8
       '@babel/traverse': 7.21.5
       '@babel/types': 7.21.5
-      '@storybook/csf': 0.0.2-next.11
+      '@storybook/csf': 0.1.1-next.0
       '@storybook/types': 7.0.0
       fs-extra: 11.1.1
       recast: 0.23.2
@@ -8859,14 +8871,14 @@ packages:
       - supports-color
     dev: true
 
-  /@storybook/csf/0.0.2-next.11:
-    resolution: {integrity: sha512-xGt0YSVxZb43sKmEf1GIQD8xEbo+c+S6khDEL7Qu/pYA0gh5z3WUuhOlovnelYj/YJod+XRsfVvk23AaRfUJ4Q==}
+  /@storybook/csf/0.1.0:
+    resolution: {integrity: sha512-uk+jMXCZ8t38jSTHk2o5btI+aV2Ksbvl6DoOv3r6VaCM1KZqeuMwtwywIQdflkA8/6q/dKT8z8L+g8hC4GC3VQ==}
     dependencies:
       type-fest: 2.19.0
     dev: true
 
-  /@storybook/csf/0.1.0:
-    resolution: {integrity: sha512-uk+jMXCZ8t38jSTHk2o5btI+aV2Ksbvl6DoOv3r6VaCM1KZqeuMwtwywIQdflkA8/6q/dKT8z8L+g8hC4GC3VQ==}
+  /@storybook/csf/0.1.1-next.0:
+    resolution: {integrity: sha512-2M8E4CZOVW77P9lrgZZc2rcwxhNKVVykpzbcAauc3bots7xvDJMG60EasMRB/Y+cfqnSu6aaSUEVmKHTKsVJ3A==}
     dependencies:
       type-fest: 2.19.0
     dev: true
@@ -8926,7 +8938,7 @@ packages:
       '@storybook/channels': 7.0.0
       '@storybook/client-logger': 7.0.0
       '@storybook/core-events': 7.0.0
-      '@storybook/csf': 0.0.2-next.11
+      '@storybook/csf': 0.1.1-next.0
       '@storybook/global': 5.0.0
       '@storybook/router': 7.0.0_sfoxds7t5ydpegc3knd667wn6m
       '@storybook/theming': 7.0.0_sfoxds7t5ydpegc3knd667wn6m
@@ -9022,7 +9034,7 @@ packages:
       '@storybook/channels': 7.0.0
       '@storybook/client-logger': 7.0.0
       '@storybook/core-events': 7.0.0
-      '@storybook/csf': 0.0.2-next.11
+      '@storybook/csf': 0.1.1-next.0
       '@storybook/global': 5.0.0
       '@storybook/types': 7.0.0
       '@types/qs': 6.9.7

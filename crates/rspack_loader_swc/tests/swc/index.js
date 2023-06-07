@@ -1,1 +1,1 @@
-class a {}
+foo === bar;
