@@ -224,7 +224,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_additional(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -241,7 +241,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_pre_process(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -258,7 +258,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_additions(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -275,7 +275,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_none(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -292,7 +292,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_optimize_inline(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -311,7 +311,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_summarize(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -329,7 +329,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_optimize_hash(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -346,7 +346,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_report(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {

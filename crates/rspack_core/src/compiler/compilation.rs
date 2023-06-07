@@ -984,7 +984,7 @@ impl Compilation {
   #[instrument(name = "compilation:process_asssets", skip_all)]
   async fn process_assets(&mut self, plugin_driver: SharedPluginDriver) -> Result<()> {
     plugin_driver
-      .write()
+      .read()
       .await
       .process_assets(ProcessAssetsArgs { compilation: self })
       .await
