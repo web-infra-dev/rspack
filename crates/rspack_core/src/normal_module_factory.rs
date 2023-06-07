@@ -74,8 +74,6 @@ impl NormalModuleFactory {
     };
     if let Ok(Some(false)) = self
       .plugin_driver
-      .read()
-      .await
       .before_resolve(&mut before_resolve_args)
       .await
     {
@@ -107,8 +105,6 @@ impl NormalModuleFactory {
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     if let Ok(Some(false)) = self
       .plugin_driver
-      .read()
-      .await
       .after_resolve(NormalModuleAfterResolveArgs {
         request: data.dependency.request(),
         context: data.context.as_ref(),
@@ -161,8 +157,6 @@ impl NormalModuleFactory {
     {
       // resource with scheme
       plugin_driver
-        .read()
-        .await
         .normal_module_factory_resolve_for_scheme(ResourceData::new(
           request_without_match_resource.to_string(),
           "".into(),
@@ -172,7 +166,7 @@ impl NormalModuleFactory {
     // TODO: resource within scheme, call resolveInScheme hook
     else {
       {
-        let plugin_driver = self.plugin_driver.read().await;
+        let plugin_driver = &self.plugin_driver;
         let context = data.context.as_path();
         request_without_match_resource = {
           let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
@@ -440,8 +434,6 @@ impl NormalModuleFactory {
 
     let resolved_parser_and_generator = self
       .plugin_driver
-      .read()
-      .await
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
@@ -469,8 +461,6 @@ impl NormalModuleFactory {
 
     let module = if let Some(module) = self
       .plugin_driver
-      .read()
-      .await
       .module(ModuleArgs {
         dependency_type: data.dependency.dependency_type().clone(),
         indentfiler: normal_module.identifier(),
@@ -570,8 +560,6 @@ impl NormalModuleFactory {
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let result = self
       .plugin_driver
-      .read()
-      .await
       .factorize(
         FactorizeArgs {
           context: &data.context,

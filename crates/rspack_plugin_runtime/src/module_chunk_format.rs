@@ -26,10 +26,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     "ModuleChunkFormatPlugin"
   }
 
-  fn apply(
-    &mut self,
-    _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     Ok(())
   }
 
@@ -196,8 +193,6 @@ impl Plugin for ModuleChunkFormatPlugin {
         .expect("should have last entry module");
       if let Some(s) = compilation
         .plugin_driver
-        .read()
-        .await
         .render_startup(RenderStartupArgs {
           compilation,
           chunk: &chunk.ukey,

@@ -30,7 +30,7 @@ impl Plugin for AsyncWasmPlugin {
     "AsyncWebAssemblyModulesPlugin"
   }
 
-  fn apply(&mut self, ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(&self, ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
     let module_id_to_filename_without_ext = self.module_id_to_filename_without_ext.clone();
 
     let builder = move || {

@@ -32,7 +32,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
   }
 
   async fn optimize_chunks(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {

@@ -126,12 +126,7 @@ where
       self
         .cache
         .set_modified_files(modified_files.iter().cloned().collect::<Vec<_>>());
-      self
-        .plugin_driver
-        .read()
-        .await
-        .resolver_factory
-        .clear_entries();
+      self.plugin_driver.resolver_factory.clear_entries();
 
       let mut new_compilation = Compilation::new(
         // TODO: use Arc<T> instead
@@ -186,15 +181,11 @@ where
       // Fake this compilation as *currently* rebuilding does not create a new compilation
       self
         .plugin_driver
-        .write()
-        .await
         .this_compilation(&mut self.compilation)
         .await?;
 
       self
         .plugin_driver
-        .write()
-        .await
         .compilation(&mut self.compilation)
         .await?;
 
@@ -388,8 +379,6 @@ where
         let render_manifest = self
           .compilation
           .plugin_driver
-          .read()
-          .await
           .render_manifest(RenderManifestArgs {
             compilation: &self.compilation,
             chunk_ukey: ukey,

@@ -10,7 +10,7 @@ use crate::id_helpers::{
 pub struct DeterministicModuleIdsPlugin;
 
 impl Plugin for DeterministicModuleIdsPlugin {
-  fn module_ids(&mut self, compilation: &mut Compilation) -> Result<()> {
+  fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
     let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
 
     let module_graph = &compilation.module_graph;

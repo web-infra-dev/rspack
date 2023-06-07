@@ -22,10 +22,7 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
     "ArrayPushCallbackChunkFormatPlugin"
   }
 
-  fn apply(
-    &mut self,
-    _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     Ok(())
   }
 
@@ -151,18 +148,15 @@ impl Plugin for ArrayPushCallbackChunkFormatPlugin {
             .keys()
             .last()
             .expect("should have last entry module");
-          if let Some(s) =
-            args
-              .compilation
-              .plugin_driver
-              .read()
-              .await
-              .render_startup(RenderStartupArgs {
-                compilation: args.compilation,
-                chunk: &chunk.ukey,
-                module: *last_entry_module,
-                source: start_up_source,
-              })?
+          if let Some(s) = args
+            .compilation
+            .plugin_driver
+            .render_startup(RenderStartupArgs {
+              compilation: args.compilation,
+              chunk: &chunk.ukey,
+              module: *last_entry_module,
+              source: start_up_source,
+            })?
           {
             source.add(s);
           }
