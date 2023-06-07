@@ -19,7 +19,8 @@ type Rewritten = {
 	resolve?: Resolve;
 	module?: ModuleOptions;
 	plugins?: Plugins;
-	builtins?: Builtins;
+	builtins?: Omit<Builtins, keyof NonNullable<Config["builtins"]>> &
+		NonNullable<Config["builtins"]>;
 	devServer?: DevServer;
 };
 
