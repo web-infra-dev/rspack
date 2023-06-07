@@ -913,7 +913,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
   fn visit_call_expr(&mut self, node: &CallExpr) {
     let is_pure = is_pure_call_expr(node, self.unresolved_ctxt, self.comments);
-    dbg!(&is_pure);
     if is_pure {
       self.state |= AnalyzeState::IN_PURE;
     }
@@ -1638,7 +1637,6 @@ fn is_pure_call_expr<'a, 'b>(
         is_pure_expression(&arg.expr, unresolved_ctxt, comments)
       }
     });
-    dbg!(&res);
     res
   }
 }
