@@ -432,10 +432,10 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:process_assets", skip_all)]
-  pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
+  pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
     macro_rules! run_stage {
       ($stage: ident) => {
-        for plugin in &mut self.plugins {
+        for plugin in &self.plugins {
           plugin
             .$stage(
               PluginContext::new(),

@@ -224,7 +224,7 @@ impl Plugin for JsPlugin {
   }
 
   async fn process_assets_stage_optimize_size(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
