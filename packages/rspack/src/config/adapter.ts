@@ -450,7 +450,9 @@ function getRawParserOptions(
 			asset: getRawAssetParserOptions(parser)
 		};
 	}
-	throw new Error("unreachable: parser type should be one of asset");
+	return {
+		type: "unknown"
+	};
 }
 
 function getRawAssetParserOptions(
@@ -475,7 +477,7 @@ function getRawAssetParserDataUrl(
 		};
 	}
 	throw new Error(
-		"unreachable: dataUrlCondition type should be one of options"
+		`unreachable: AssetParserDataUrl type should be one of "options", but got ${dataUrlCondition}`
 	);
 }
 
@@ -505,9 +507,9 @@ function getRawGeneratorOptions(
 				: undefined
 		};
 	}
-	throw new Error(
-		"unreachable: generator type should be one of asset, asset/inline, asset/resource"
-	);
+	return {
+		type: "unknown"
+	};
 }
 
 function getRawAssetGeneratorOptions(
@@ -551,7 +553,7 @@ function getRawAssetGeneratorDaraUrl(
 		};
 	}
 	throw new Error(
-		"unreachable: AssetGeneratorDataUrl.type should be one of options"
+		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
 	);
 }
 

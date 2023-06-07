@@ -584,7 +584,7 @@ export interface RawFallbackCacheGroupOptions {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource"
+  type: "asset" | "asset/inline" | "asset/resource" | "unknown"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
@@ -776,7 +776,7 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset"
+  type: "asset" | "unknown"
   asset?: RawAssetParserOptions
 }
 

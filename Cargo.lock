@@ -2488,6 +2488,7 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "rspack_hash",
  "rspack_testing",
  "rspack_util",
  "serde_json",

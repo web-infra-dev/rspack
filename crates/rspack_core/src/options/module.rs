@@ -30,12 +30,14 @@ impl ParserOptionsByModuleType {
 #[derive(Debug, Clone)]
 pub enum ParserOptions {
   Asset(AssetParserOptions),
+  Unknown,
 }
 
 impl ParserOptions {
   pub fn get_asset(&self, module_type: &ModuleType) -> Option<&AssetParserOptions> {
     let maybe = match self {
       ParserOptions::Asset(i) => Some(i),
+      _ => None,
     };
     maybe.filter(|_| matches!(module_type, ModuleType::Asset))
   }
@@ -77,6 +79,7 @@ pub enum GeneratorOptions {
   Asset(AssetGeneratorOptions),
   AssetInline(AssetInlineGeneratorOptions),
   AssetResource(AssetResourceGeneratorOptions),
+  Unknown,
 }
 
 impl GeneratorOptions {
@@ -117,6 +120,28 @@ impl GeneratorOptions {
           .and_then(|x| x.filename.as_ref())
       })
   }
+
+  pub fn asset_public_path(&self, module_type: &ModuleType) -> Option<&PublicPath> {
+    self
+      .get_asset(module_type)
+      .and_then(|x| x.public_path.as_ref())
+      .or_else(|| {
+        self
+          .get_asset_resource(module_type)
+          .and_then(|x| x.public_path.as_ref())
+      })
+  }
+
+  pub fn asset_data_url(&self, module_type: &ModuleType) -> Option<&AssetGeneratorDataUrl> {
+    self
+      .get_asset(module_type)
+      .and_then(|x| x.data_url.as_ref())
+      .or_else(|| {
+        self
+          .get_asset_inline(module_type)
+          .and_then(|x| x.data_url.as_ref())
+      })
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +178,15 @@ pub struct AssetGeneratorDataUrlOptions {
 pub enum DataUrlEncoding {
   None,
   Base64,
+}
+
+impl fmt::Display for DataUrlEncoding {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      DataUrlEncoding::None => write!(f, ""),
+      DataUrlEncoding::Base64 => write!(f, "base64"),
+    }
+  }
 }
 
 impl From<String> for DataUrlEncoding {

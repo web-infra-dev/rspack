@@ -351,6 +351,7 @@ fn hash_len(hash: &str, caps: &Captures) -> usize {
 
 #[derive(Debug, Clone)]
 pub enum PublicPath {
+  // TODO: should be RawPublicPath(Filename)
   String(String),
   Auto,
 }

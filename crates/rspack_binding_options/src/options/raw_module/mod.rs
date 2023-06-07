@@ -249,7 +249,7 @@ pub struct RawModuleRule {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawParserOptions {
-  #[napi(ts_type = r#""asset""#)]
+  #[napi(ts_type = r#""asset" | "unknown""#)]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
 }
@@ -263,8 +263,9 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
           .into(),
       ),
+      "unknown" => Self::Unknown,
       _ => panic!(
-        "Failed to resolve the RawParserOptions.type {}. Expected type is `asset`.",
+        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"unknown\".",
         value.r#type
       ),
     }
@@ -332,7 +333,7 @@ impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawGeneratorOptions {
-  #[napi(ts_type = r#""asset" | "asset/inline" | "asset/resource""#)]
+  #[napi(ts_type = r#""asset" | "asset/inline" | "asset/resource" | "unknown""#)]
   pub r#type: String,
   pub asset: Option<RawAssetGeneratorOptions>,
   pub asset_inline: Option<RawAssetInlineGeneratorOptions>,
@@ -364,8 +365,9 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
           )
           .into(),
       ),
+      "unknown" => Self::Unknown,
       _ => panic!(
-        "Failed to resolve the RawGeneratorOptions.type {}. Expected type is `asset`, `asset/inline`, `asset/resource`.",
+        "Failed to resolve the RawGeneratorOptions.type {}. Expected type is \"asset\", \"asset/inline\", \"asset/resource\", \"unknown\".",
         value.r#type
       ),
     }
