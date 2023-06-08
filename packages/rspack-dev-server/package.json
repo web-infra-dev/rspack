@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@rspack/dev-client": "workspace:*",
-    "@rspack/dev-middleware": "workspace:*",
+    "webpack-dev-middleware": "6.0.2",
     "@rspack/dev-server": "workspace:*",
     "chokidar": "3.5.3",
     "connect-history-api-fallback": "2.0.0",
