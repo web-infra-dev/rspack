@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  get_import_var, tree_shaking::visitor::SymbolRef, CodeReplaceSourceDependency,
+  tree_shaking::visitor::SymbolRef, CodeReplaceSourceDependency,
   CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, DependencyType,
   InitFragment, InitFragmentStage, RuntimeGlobals,
 };
@@ -11,15 +11,11 @@ use rspack_core::{
 #[derive(Debug)]
 pub struct HarmonyExportSpecifierDependency {
   exports: Vec<(String, String)>,
-  exports_all: Vec<(String, DependencyType)>,
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(exports: Vec<(String, String)>, exports_all: Vec<(String, DependencyType)>) -> Self {
-    Self {
-      exports,
-      exports_all,
-    }
+  pub fn new(exports: Vec<(String, String)>) -> Self {
+    Self { exports }
   }
 }
 
@@ -79,49 +75,6 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
           InitFragmentStage::STAGE_HARMONY_EXPORTS,
           None,
         ));
-      }
-    }
-
-    // TODO align to webpack
-    if !self.exports_all.is_empty() {
-      runtime_requirements.add(RuntimeGlobals::EXPORT_STAR);
-      let dependencies = {
-        let ids = compilation
-          .module_graph
-          .dependencies_by_module_identifier(&module.identifier())
-          .expect("should have dependencies");
-        ids
-          .iter()
-          .map(|id| {
-            compilation
-              .module_graph
-              .dependency_by_id(id)
-              .expect("should have dependency")
-          })
-          .collect::<Vec<_>>()
-      };
-      for (src, dependency_type) in &self.exports_all {
-        if let Some(dep) = dependencies
-          .iter()
-          .find(|dep| dep.request() == src && dep.dependency_type() == dependency_type)
-        {
-          if let Some(module_identifier) = compilation
-            .module_graph
-            .module_identifier_by_dependency_id(&dep.id().expect("should have dep id"))
-            && compilation.include_module_ids.contains(module_identifier)
-          {
-            let import_var: String = get_import_var(&src);
-            init_fragments.push(InitFragment::new(
-              format!(
-                "{}.{}({import_var}, {exports_argument});\n",
-                RuntimeGlobals::REQUIRE,
-                RuntimeGlobals::EXPORT_STAR,
-              ),
-              InitFragmentStage::STAGE_PROVIDES,
-              None,
-            ));
-          }
-        }
       }
     }
   }

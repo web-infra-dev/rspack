@@ -26,7 +26,6 @@ pub struct HarmonyExportDependencyScanner<'a> {
   pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub import_map: &'a mut ImportMap,
   pub exports: Vec<(String, String)>,
-  pub exports_all: Vec<(String, DependencyType)>,
   module_identifier: ModuleIdentifier,
 }
 
@@ -42,7 +41,6 @@ impl<'a> HarmonyExportDependencyScanner<'a> {
       code_generable_dependencies,
       import_map,
       exports: Default::default(),
-      exports_all: Default::default(),
       module_identifier,
     }
   }
@@ -53,12 +51,11 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_program(&mut self, program: &'_ Program) {
     program.visit_children_with(self);
-    if !self.exports.is_empty() || !self.exports_all.is_empty() {
+    if !self.exports.is_empty() {
       self
         .code_generable_dependencies
         .push(Box::new(HarmonyExportSpecifierDependency::new(
           std::mem::take(&mut self.exports),
-          std::mem::take(&mut self.exports_all),
         )));
     }
   }
@@ -143,6 +140,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           vec![],
           specifiers,
           DependencyType::EsmExport,
+          false,
         )));
     } else {
       named_export
@@ -184,14 +182,6 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
   fn visit_export_all(&mut self, export_all: &'_ ExportAll) {
     self
-      .exports_all
-      .push((export_all.src.value.to_string(), DependencyType::EsmExport));
-    // self
-    //   .code_generable_dependencies
-    //   .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
-    //     export_all.src.value.to_string(),
-    //   )));
-    self
       .dependencies
       .push(Box::new(HarmonyImportDependency::new(
         export_all.src.value.clone(),
@@ -199,6 +189,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         vec![],
         vec![],
         DependencyType::EsmExport,
+        true,
       )));
     self
       .code_generable_dependencies

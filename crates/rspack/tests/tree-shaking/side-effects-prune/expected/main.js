@@ -2,6 +2,7 @@
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE__, exports);
 
  // export {

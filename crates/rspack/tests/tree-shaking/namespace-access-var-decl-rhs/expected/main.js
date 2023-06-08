@@ -24,6 +24,7 @@ __webpack_require__.r(exports);
 "./enum.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./enum-old */"./enum-old.js");
 __webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE__, exports);
 
 },

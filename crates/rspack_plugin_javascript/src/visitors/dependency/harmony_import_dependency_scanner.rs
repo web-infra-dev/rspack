@@ -60,6 +60,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           refs,
           specifiers,
           DependencyType::EsmImport,
+          false,
         )));
     }
   }

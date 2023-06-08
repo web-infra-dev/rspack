@@ -67,6 +67,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = function() {
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'exportDefaultUsed': function() { return exportDefaultUsed; }});
 /* harmony import */var _script1__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./script1 */"./package2/script1.js");
+/* harmony import */var _script1__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./script1 */"./package2/script1.js");
 __webpack_require__.es(_script1__WEBPACK_IMPORTED_MODULE__, exports);
 
 var __WEBPACK_DEFAULT_EXPORT__ = _script1__WEBPACK_IMPORTED_MODULE__["default"];
