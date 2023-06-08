@@ -31,7 +31,6 @@ impl<'a> ProvideBuiltin<'a> {
   }
 
   fn handle_ident(&mut self, ident: &Ident) {
-    dbg!(&ident);
     if ident.span.has_mark(self.unresolved_mark) && self.opts.get(&ident.sym.to_string()).is_some()
     {
       self.current_import_provide.insert(ident.sym.to_string());
