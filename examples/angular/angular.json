@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-webpack:webpack",
           "options": {
-            "webpackConfig": "webpack.config.js",
+            "webpackConfig": "webpack.config.js"
           },
           "configurations": {
             "production": {
