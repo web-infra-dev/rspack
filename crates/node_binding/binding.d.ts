@@ -384,12 +384,42 @@ export interface PathWithInfo {
   info: JsAssetInfo
 }
 
-export interface RawAssetParserDataUrlOption {
+export interface RawAssetGeneratorDataUrl {
+  type: "options"
+  options?: RawAssetGeneratorDataUrlOptions
+}
+
+export interface RawAssetGeneratorDataUrlOptions {
+  encoding?: "base64" | "false" | undefined
+  mimetype?: string
+}
+
+export interface RawAssetGeneratorOptions {
+  filename?: string
+  publicPath?: string
+  dataUrl?: RawAssetGeneratorDataUrl
+}
+
+export interface RawAssetInlineGeneratorOptions {
+  dataUrl?: RawAssetGeneratorDataUrl
+}
+
+export interface RawAssetParserDataUrl {
+  type: "options"
+  options?: RawAssetParserDataUrlOptions
+}
+
+export interface RawAssetParserDataUrlOptions {
   maxSize?: number
 }
 
 export interface RawAssetParserOptions {
-  dataUrlCondition?: RawAssetParserDataUrlOption
+  dataUrlCondition?: RawAssetParserDataUrl
+}
+
+export interface RawAssetResourceGeneratorOptions {
+  filename?: string
+  publicPath?: string
 }
 
 export interface RawBannerCondition {
@@ -553,6 +583,13 @@ export interface RawFallbackCacheGroupOptions {
   maxInitialSize?: number
 }
 
+export interface RawGeneratorOptions {
+  type: "asset" | "asset/inline" | "asset/resource" | "unknown"
+  asset?: RawAssetGeneratorOptions
+  assetInline?: RawAssetInlineGeneratorOptions
+  assetResource?: RawAssetResourceGeneratorOptions
+}
+
 export interface RawGlobOptions {
   caseSensitiveMatch?: boolean
   dot?: boolean
@@ -612,7 +649,8 @@ export interface RawMinification {
 
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
-  parser?: RawParserOptions
+  parser?: Record<string, RawParserOptions>
+  generator?: Record<string, RawGeneratorOptions>
 }
 
 export interface RawModuleRule {
@@ -629,8 +667,8 @@ export interface RawModuleRule {
   sideEffects?: boolean
   use?: Array<RawModuleRuleUse>
   type?: string
-  parser?: RawModuleRuleParser
-  generator?: RawModuleRuleGenerator
+  parser?: RawParserOptions
+  generator?: RawGeneratorOptions
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
@@ -640,14 +678,6 @@ export interface RawModuleRule {
   rules?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
-}
-
-export interface RawModuleRuleGenerator {
-  filename?: string
-}
-
-export interface RawModuleRuleParser {
-  dataUrlCondition?: RawAssetParserDataUrlOption
 }
 
 /**
@@ -746,6 +776,7 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
+  type: "asset" | "unknown"
   asset?: RawAssetParserOptions
 }
 

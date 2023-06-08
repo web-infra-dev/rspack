@@ -25,11 +25,11 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  contextify, get_context, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
-  CodeReplaceSourceDependency, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
-  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerOptions, Context,
+  Dependency, GenerateContext, GeneratorOptions, LibIdentOptions,
+  LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
   Resolve, SourceType,
 };
 
@@ -173,9 +173,9 @@ pub struct NormalModule {
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Resolve>,
   /// Parser options derived from [Rule.parser]
-  parser_options: Option<AssetParserOptions>,
+  parser_options: Option<ParserOptions>,
   /// Generator options derived from [Rule.generator]
-  generator_options: Option<AssetGeneratorOptions>,
+  generator_options: Option<GeneratorOptions>,
 
   options: Arc<CompilerOptions>,
   #[allow(unused)]
@@ -221,8 +221,8 @@ impl NormalModule {
     raw_request: String,
     module_type: impl Into<ModuleType>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
-    parser_options: Option<AssetParserOptions>,
-    generator_options: Option<AssetGeneratorOptions>,
+    parser_options: Option<ParserOptions>,
+    generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
