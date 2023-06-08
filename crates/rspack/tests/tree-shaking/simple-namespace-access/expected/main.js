@@ -29,6 +29,7 @@ __webpack_require__.d(exports, {'square': function() { return square; }});
 "./test.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'test': function() { return test; }, 'ccc': function() { return ccc; }});
  function test() {}
  function ccc() {}
 },

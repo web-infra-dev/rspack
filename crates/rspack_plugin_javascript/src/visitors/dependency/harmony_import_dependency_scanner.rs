@@ -1,4 +1,6 @@
-use rspack_core::{CodeReplaceSourceDependency, ModuleDependency, ReplaceConstDependency, SpanExt};
+use rspack_core::{
+  CodeReplaceSourceDependency, DependencyType, ModuleDependency, ReplaceConstDependency, SpanExt,
+};
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::{Span, SyntaxContext},
@@ -56,6 +58,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           request,
           Some(span.into()),
           refs,
+          DependencyType::EsmImport,
         )));
     }
   }

@@ -126,6 +126,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           src.value.clone(),
           Some(named_export.span.into()),
           vec![],
+          DependencyType::EsmExport,
         )));
     } else {
       named_export
@@ -168,7 +169,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
   fn visit_export_all(&mut self, export_all: &'_ ExportAll) {
     self
       .exports_all
-      .push((export_all.src.value.to_string(), DependencyType::EsmImport));
+      .push((export_all.src.value.to_string(), DependencyType::EsmExport));
     // self
     //   .code_generable_dependencies
     //   .push(Box::new(HarmonyExportImportedSpecifierDependency::new(
@@ -180,6 +181,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         export_all.src.value.clone(),
         Some(export_all.span.into()),
         vec![],
+        DependencyType::EsmExport,
       )));
     self
       .code_generable_dependencies

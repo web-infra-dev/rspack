@@ -1,8 +1,20 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./app.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'Provider': function() { return _lib__WEBPACK_IMPORTED_MODULE__["default"]; }});
+__webpack_require__.d(exports, {'useSelector': function() { return _selector_js__WEBPACK_IMPORTED_MODULE__["default"]; }});
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
+/* harmony import */var _selector_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./selector.js */"./selector.js");
+
+
+
+},
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+__webpack_require__.es(_app__WEBPACK_IMPORTED_MODULE__, exports);
 
 function batch() {}
 
@@ -14,6 +26,19 @@ __webpack_require__.r(exports);
 
 _foo__WEBPACK_IMPORTED_MODULE__["Provider"];
 _foo__WEBPACK_IMPORTED_MODULE__["useSelector"];
+},
+"./lib.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+function Provider() {}
+var __WEBPACK_DEFAULT_EXPORT__ = Provider;
+},
+"./selector.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+function useSelector() {
+    return "";
+}
 },
 
 },function(__webpack_require__) {

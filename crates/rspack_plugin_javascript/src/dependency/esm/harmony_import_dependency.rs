@@ -16,6 +16,7 @@ pub struct HarmonyImportDependency {
   pub id: Option<DependencyId>,
   pub span: Option<ErrorSpan>,
   pub refs: Vec<HarmonyImportSpecifierDependency>,
+  pub dependency_type: DependencyType,
 }
 
 impl HarmonyImportDependency {
@@ -23,12 +24,14 @@ impl HarmonyImportDependency {
     request: JsWord,
     span: Option<ErrorSpan>,
     refs: Vec<HarmonyImportSpecifierDependency>,
+    dependency_type: DependencyType,
   ) -> Self {
     Self {
       request,
       span,
       id: None,
       refs,
+      dependency_type,
     }
   }
 }
@@ -102,7 +105,7 @@ impl Dependency for HarmonyImportDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::EsmImport
+    &self.dependency_type
   }
 }
 

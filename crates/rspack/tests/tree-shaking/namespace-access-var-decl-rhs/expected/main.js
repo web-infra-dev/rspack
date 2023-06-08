@@ -1,8 +1,33 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
+"./a.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return a; }});
+ const a = {
+    a: ''
+};
+},
+"./b.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'b': function() { return b; }});
+ const b = {
+    b: ""
+};
+},
+"./enum-old.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"./a.js");
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"./b.js");
+
+
+},
 "./enum.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
 /* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./enum-old */"./enum-old.js");
+__webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE__, exports);
 
 },
 "./index.js": function (module, exports, __webpack_require__) {

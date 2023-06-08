@@ -7,6 +7,7 @@ __webpack_require__.r(exports);
 "./baz.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return a; }});
  const a = 'baz';
 },
 "./foo.js": function (module, exports, __webpack_require__) {

@@ -10,7 +10,6 @@ __webpack_require__.d(exports, {'answer': function() { return answer; }});
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'myanswer': function() { return _lib__WEBPACK_IMPORTED_MODULE__["myanswer"]; }});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
 },
@@ -21,6 +20,12 @@ __webpack_require__.r(exports);
 
 __webpack_require__(/* ./answer */"./answer.js");
 _app__WEBPACK_IMPORTED_MODULE__["myanswer"]();
+},
+"./lib.js": function (module, exports, __webpack_require__) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'myanswer': function() { return myanswer; }});
+ const myanswer = 'anyser';
 },
 
 },function(__webpack_require__) {
