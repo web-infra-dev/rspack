@@ -62,7 +62,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     let is_incremental_rebuild = self.compilation.options.is_make_use_incremental_rebuild();
     let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
     let analyze_result_map = par_analyze_module(self.compilation).await;
-    dbg!(&analyze_result_map.len());
     let mut finalized_result_map = if is_incremental_rebuild {
       if is_first_time_analyze {
         analyze_result_map
@@ -1248,12 +1247,7 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           match compilation
             .module_graph
             .module_by_identifier(&mgm.module_identifier)
-            .and_then(|module| {
-              module.as_normal_module().and_then(|m| {
-                dbg!(&m.ast().is_some());
-                m.ast()
-              })
-            })
+            .and_then(|module| module.as_normal_module().and_then(|m| m.ast()))
             // A module can missing its AST if the module is failed to build
             .and_then(|ast| ast.as_javascript())
           {

@@ -18,6 +18,8 @@ __webpack_require__.d(exports, {'b': function() { return b; }});
 "./enum-old.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"./a.js");
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"./b.js");
 
 
 },
@@ -38,16 +40,15 @@ console.log(_lib__WEBPACK_IMPORTED_MODULE__["getDocPermissionTextSendMe"]);
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }});
-/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./enum.js */"./enum.js");
 
 function Record() {}
  const code2CreateChatDocPermission = {
-    1: _enum_js__WEBPACK_IMPORTED_MODULE__.a.a
+    1: ENUM.a.a
 };
  function getDocPermissionTextSendMe() {}
  class Doc extends Record({}) {
     isSheet() {
-        return this.type === _enum_js__WEBPACK_IMPORTED_MODULE__.b.b;
+        return this.type === ENUM.b.b;
     }
 }
 Doc.fromJS = (data)=>new Doc(data);

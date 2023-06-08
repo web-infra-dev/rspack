@@ -11,8 +11,9 @@ __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE__, exports);
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
 
-something(); // a;
+_app__WEBPACK_IMPORTED_MODULE__["something"](); // a;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

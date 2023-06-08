@@ -23,19 +23,20 @@ it("should generate correct code when pure expressions are in dead branches", ()
 "./module.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./some-module */"./some-module.js");
 
 function getType(obj) {
     return obj.type;
 }
 // Local functions
 function doSomethingWithBlock(obj) {
-    return Block.doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE__["Block"].doSomething(obj);
 }
 function doSomethingWithInline(obj) {
-    return Inline.doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE__["Inline"].doSomething(obj);
 }
 function doSomethingWithDocument(obj) {
-    return Document.doSomething(obj);
+    return _some_module__WEBPACK_IMPORTED_MODULE__["Document"].doSomething(obj);
 }
 // Exported functions
 function doSomething(obj) {

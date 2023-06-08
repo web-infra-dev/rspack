@@ -10,8 +10,9 @@ __webpack_require__.r(exports);
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
 
-something();
+_app__WEBPACK_IMPORTED_MODULE__["something"]();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

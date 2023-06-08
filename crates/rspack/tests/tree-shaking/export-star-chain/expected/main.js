@@ -49,9 +49,10 @@ __webpack_require__.es(_Layout__WEBPACK_IMPORTED_MODULE__, exports);
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
 
-Colors;
-Something;
+_export__WEBPACK_IMPORTED_MODULE__["Colors"];
+_export__WEBPACK_IMPORTED_MODULE__["Something"];
 },
 "./something/Something.js": function (module, exports, __webpack_require__) {
 'use strict';
@@ -64,7 +65,6 @@ __webpack_require__.d(exports, {'Something': function() { return Something; }});
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'Colors': function() { return _colors_index__WEBPACK_IMPORTED_MODULE__; }});
-/* harmony import */var _colors_index__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../colors/index */"./colors/index.js");
 __webpack_require__.es(_Something__WEBPACK_IMPORTED_MODULE__, exports);
 
 

@@ -21,9 +21,10 @@ function batch() {}
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
 
-Provider;
-useSelector;
+_foo__WEBPACK_IMPORTED_MODULE__["Provider"];
+_foo__WEBPACK_IMPORTED_MODULE__["useSelector"];
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

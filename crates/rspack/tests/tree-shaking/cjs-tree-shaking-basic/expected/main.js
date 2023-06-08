@@ -9,14 +9,16 @@ __webpack_require__.d(exports, {'answer': function() { return answer; }});
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
 
 __webpack_require__(/* ./answer */"./answer.js");
-myanswer();
+_app__WEBPACK_IMPORTED_MODULE__["myanswer"]();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

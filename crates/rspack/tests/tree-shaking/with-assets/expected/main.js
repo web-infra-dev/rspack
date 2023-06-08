@@ -8,10 +8,11 @@ __webpack_require__.d(exports, {'a': function() { return a; }});
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.js */"./a.js");
 /* harmony import */var _a_svg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.svg */"./a.svg");
 
 
-a;
+_a_js__WEBPACK_IMPORTED_MODULE__["a"];
 _a_svg__WEBPACK_IMPORTED_MODULE__;
 },
 "./a.svg": function (module, exports, __webpack_require__) {

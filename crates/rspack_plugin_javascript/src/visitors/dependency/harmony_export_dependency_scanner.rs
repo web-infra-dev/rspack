@@ -97,7 +97,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           ExportSpecifier::Namespace(n) => {
             if let ModuleExportName::Ident(export) = &n.name {
               ids.push((export.sym.to_string(), None));
-              specifiers.push((export.sym.clone(), None))
+              specifiers.push((export.sym.clone(), Some("namespace".into())));
             }
           }
           ExportSpecifier::Default(_) => unreachable!(),
@@ -108,8 +108,22 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 None => orig.sym.clone(),
                 _ => unreachable!(),
               };
-              ids.push((exported.to_string(), Some(orig.sym.to_string())));
-              specifiers.push((orig.sym.clone(), Some(exported)))
+              ids.push((
+                exported.to_string(),
+                Some(match &named.exported {
+                  Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
+                  None => orig.sym.to_string(),
+                  _ => unreachable!(),
+                }),
+              ));
+              specifiers.push((
+                orig.sym.clone(),
+                match &named.exported {
+                  Some(ModuleExportName::Ident(export)) => Some(export.sym.clone()),
+                  None => None,
+                  _ => unreachable!(),
+                },
+              ))
             }
           }
         });

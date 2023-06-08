@@ -17,8 +17,9 @@ __webpack_require__.d(exports, {'Sider': function() { return _Something__WEBPACK
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
 
-Sider();
+_export__WEBPACK_IMPORTED_MODULE__["Sider"]();
 },
 
 },function(__webpack_require__) {

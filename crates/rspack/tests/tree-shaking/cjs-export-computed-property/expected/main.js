@@ -23,8 +23,9 @@ const locales = {
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'test': function() { return test; }});
+/* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./antd/index */"./antd/index.ts");
 
-locales.zh_CN;
+_antd_index__WEBPACK_IMPORTED_MODULE__["locales"].zh_CN;
  function test() {}
 },
 "./locale_zh.ts": function (module, exports, __webpack_require__) {

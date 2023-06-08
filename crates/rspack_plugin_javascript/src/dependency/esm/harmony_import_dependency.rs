@@ -70,7 +70,7 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
           return true;
         }
         match imported {
-          None => true,
+          None => true, // namespace
           Some(s) => {
             let symbol = if s == "default" {
               SymbolRef::Indirect(IndirectTopLevelSymbol {

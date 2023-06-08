@@ -74,9 +74,21 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         };
         self.import_map.insert(
           (n.local.sym.clone(), n.local.span.ctxt),
-          Some((import_decl.src.value.clone(), Some(imported.to_string()))),
+          Some((
+            import_decl.src.value.clone(),
+            Some(match &n.imported {
+              Some(ModuleExportName::Ident(ident)) => ident.sym.to_string(),
+              _ => n.local.sym.to_string(),
+            }),
+          )),
         );
-        specifiers.push((n.local.sym.clone(), Some(imported)));
+        specifiers.push((
+          n.local.sym.clone(),
+          match &n.imported {
+            Some(ModuleExportName::Ident(ident)) => Some(ident.sym.clone()),
+            _ => None,
+          },
+        ));
       }
       ImportSpecifier::Default(d) => {
         self.import_map.insert(
@@ -90,7 +102,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           (n.local.sym.clone(), n.local.span.ctxt),
           Some((import_decl.src.value.clone(), None)),
         );
-        specifiers.push((n.local.sym.clone(), None));
+        specifiers.push((n.local.sym.clone(), Some("namespace".into())));
       }
     });
 
