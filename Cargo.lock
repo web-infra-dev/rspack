@@ -2444,7 +2444,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "bytes",
  "indexmap",
  "once_cell",
  "rspack_core",
