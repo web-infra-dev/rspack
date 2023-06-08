@@ -1,21 +1,18 @@
 #![feature(let_chains)]
 
 use std::default::Default;
-use std::env;
 use std::sync::Arc;
-use std::thread;
 
 use once_cell::sync::Lazy;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
 use rspack_error::{errors_to_diagnostics, internal_error, Error, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use serde::Deserialize;
-use serde_json::json;
 use swc_config::config_types::{BoolConfig, MergingOption};
 use swc_config::merge::Merge;
 use swc_core::base::config::{
-  Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, JscExperimental,
-  ModuleConfig, Options, PluginConfig, SourceMapsConfig, TransformConfig,
+  Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
+  SourceMapsConfig, TransformConfig,
 };
 use swc_core::base::{try_with_handler, Compiler};
 use swc_core::common::comments::SingleThreadedComments;
@@ -170,95 +167,59 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         options.config.input_source_map = Some(InputSourceMap::Str(source_map))
       }
     }
+
     GLOBALS.set(&Default::default(), || {
-      try_with_handler(c.cm.clone(), Default::default(), |handler| {
-        let fm = c.cm.new_source_file(FileName::Anon, "foo === bar;".into());
-        let cm = c.cm.clone();
-        let file = fm.clone();
-        let comments = SingleThreadedComments::default();
-        dbg!(env::current_dir());
-        let current = env::current_dir().unwrap();
-        let plugin_path = current.join("my_first_plugin.wasm");
-        dbg!(plugin_path.to_string_lossy().to_string());
+      match try_with_handler(c.cm.clone(), Default::default(), |handler| {
+        c.run(|| {
+          let fm = c.cm.new_source_file(
+            FileName::Real(resource_path.clone().into()),
+            content.try_into_string()?,
+          );
+          let comments = SingleThreadedComments::default();
 
-        let out = c.process_js_file(
-          fm,
-          handler,
-          &Options {
-            config: Config {
-              jsc: JscConfig {
-                experimental: JscExperimental {
-                  plugins: Some(vec![PluginConfig(
-                    plugin_path.to_string_lossy().to_string(),
-                    json!(null),
-                  )]),
-                  ..Default::default()
-                },
-                ..Default::default()
-              },
-              ..Default::default()
-            },
-            ..Default::default()
-          },
-        )?;
-        dbg!(&out.code);
-        Ok(())
-      })
-      .expect("TODO:")
+          let out = match anyhow::Context::context(
+            c.process_js_with_custom_pass(
+              fm,
+              None,
+              handler,
+              &options,
+              comments,
+              |_a| noop(),
+              |_a| noop(),
+            ),
+            "failed to process js file",
+          ) {
+            Ok(out) => Some(out),
+            Err(e) => {
+              errors.push(Error::Anyhow { source: e });
+              None
+            }
+          };
+          if let Some(out) = out {
+            loader_context.content = Some(out.code.into());
+            loader_context.source_map = if let Some(map) = out.map {
+              match SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string())) {
+                Ok(map) => Some(map),
+                Err(e) => {
+                  errors.push(e);
+                  None
+                }
+              }
+            } else {
+              None
+            };
+          }
+
+          Ok(())
+        })
+      }) {
+        Ok(_) => {}
+        Err(e) => errors.push(Error::Anyhow { source: e }),
+      }
     });
-
-    // GLOBALS.set(&Default::default(), || {
-    //   match try_with_handler(c.cm.clone(), Default::default(), |handler| {
-    //     c.run(|| {
-    //       let fm = c.cm.new_source_file(
-    //         FileName::Real(resource_path.clone().into()),
-    //         content.try_into_string()?,
-    //       );
-    //       let comments = SingleThreadedComments::default();
-
-    //       let out = match anyhow::Context::context(
-    //         c.process_js_with_custom_pass(
-    //           fm,
-    //           None,
-    //           handler,
-    //           &options,
-    //           comments,
-    //           |_a| noop(),
-    //           |_a| noop(),
-    //         ),
-    //         "failed to process js file",
-    //       ) {
-    //         Ok(out) => Some(out),
-    //         Err(e) => {
-    //           errors.push(Error::Anyhow { source: e });
-    //           None
-    //         }
-    //       };
-    //       if let Some(out) = out {
-    //         loader_context.content = Some(out.code.into());
-    //         loader_context.source_map = if let Some(map) = out.map {
-    //           match SourceMap::from_json(&map).map_err(|e| internal_error!(e.to_string())) {
-    //             Ok(map) => Some(map),
-    //             Err(e) => {
-    //               errors.push(e);
-    //               None
-    //             }
-    //           }
-    //         } else {
-    //           None
-    //         };
-    //       }
-
-    //       Ok(())
-    //     })
-    //   }) {
-    //     Ok(_) => {}
-    //     Err(e) => errors.push(Error::Anyhow { source: e }),
-    //   }
-    // });
-    // loader_context
-    //   .diagnostic
-    //   .append(&mut errors_to_diagnostics(errors));
+    loader_context
+      .diagnostic
+      .append(&mut errors_to_diagnostics(errors));
     Ok(())
   }
 }

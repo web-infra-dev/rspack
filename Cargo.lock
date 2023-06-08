@@ -3050,7 +3050,6 @@ dependencies = [
  "str_indices",
  "swc_config",
  "swc_core",
- "swc_plugin_runner",
  "tokio",
 ]
 

@@ -12,6 +12,8 @@ use rspack_core::{
 };
 use rspack_loader_swc::{SwcLoader, SwcLoaderJsOptions};
 use rspack_testing::{fixture, test_fixture};
+use serde_json::json;
+use swc_core::base::config::PluginConfig;
 
 // UPDATE=1 cargo test --package rspack_loader_swc -- --nocapture
 async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
@@ -20,10 +22,13 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let actual_path = tests_path.join(actual);
   let current = env::current_dir().unwrap();
   let plugin_path = current.join("my_first_plugin.wasm");
-  dbg!(&plugin_path);
+  let mut options = SwcLoaderJsOptions::default();
+  options.jsc.experimental.plugins = Some(vec![PluginConfig(
+    plugin_path.to_string_lossy().to_string(),
+    json!(null),
+  )]);
   let (result, _) = run_loaders(
-    &[Arc::new(SwcLoader::new(SwcLoaderJsOptions::default()))
-      as Arc<dyn Loader<LoaderRunnerContext>>],
+    &[Arc::new(SwcLoader::new(options)) as Arc<dyn Loader<LoaderRunnerContext>>],
     &ResourceData::new(actual_path.to_string_lossy().to_string(), actual_path),
     &[],
     CompilerContext {
@@ -96,10 +101,10 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
 
 #[tokio::test]
 async fn rspack_importer() {
-  loader_test("swc/index.js", "expected/simple.js").await;
+  loader_test("swc-plugin/index.js", "swc-plugin/expected/index.js").await;
 }
 
-// #[fixture("tests/fixtures/*")]
-// fn swc(fixture_path: PathBuf) {
-//   test_fixture(&fixture_path);
-// }
+#[fixture("tests/fixtures/*")]
+fn swc(fixture_path: PathBuf) {
+  test_fixture(&fixture_path);
+}
