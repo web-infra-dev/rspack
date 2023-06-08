@@ -54,7 +54,8 @@ jobs:
       - name: Resolve dependencies for bindings
         run: pnpm install --no-frozen-lockfile
 
-      - name: Release
+      - name: Publish
+        id: publish
         run: |
           ./x version snapshot
           ./x publish snapshot --tag nightly
@@ -64,6 +65,32 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+    outputs:
+      version: ${{ steps.publish.outputs.version }}
+
+  trigger-ecosystem-ci:
+    name: Trigger Ecosystem CI if successed
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: ${{ always() && !contains(needs.*.result, 'failure') }}
+    steps:
+      - uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.ECOSYSTEM_CI_ACCESS_TOKEN }}
+          script: |
+            const result = await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: 'rspack-ecosystem-ci',
+              workflow_id: 'ecosystem-ci-selected.yml',
+              ref: 'main',
+              inputs: {
+                refType: 'release',
+                ref: '${{ needs.release.outputs.version }}',
+                repo: 'web-infra-dev/rspack',
+                suite: '-'
+              }
+            });
+            console.log(result);
 
   notify:
     name: Notify if failed
