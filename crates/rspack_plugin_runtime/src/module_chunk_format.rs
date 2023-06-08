@@ -177,8 +177,11 @@ impl Plugin for ModuleChunkFormatPlugin {
             RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
           ));
         }
+
+        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+
         startup_source.push(format!(
-          "{}__webpack_exec__('{module_id}');",
+          "{}__webpack_exec__({module_id_expr});",
           if i + 1 == entries.len() {
             "var __webpack_exports__ = "
           } else {

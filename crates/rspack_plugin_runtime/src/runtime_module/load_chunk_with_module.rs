@@ -62,7 +62,11 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
           .module_graph
           .module_graph_module_by_identifier(identifier)
           .expect("no module found");
-        (module.id(&compilation.chunk_graph).to_string(), chunk_ids)
+
+        let module_id = module.id(&compilation.chunk_graph);
+        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+
+        (module_id_expr, chunk_ids)
       })
       .collect::<HashMap<String, Vec<String>>>();
 
@@ -99,7 +103,7 @@ fn stringify_map(map: &HashMap<String, Vec<String>>) -> String {
     map.keys().sorted().fold(String::new(), |prev, cur| {
       prev
         + format!(
-          r#""{}": {},"#,
+          r#"{}: {},"#,
           cur,
           stringify_array(map.get(cur).expect("get key from map"))
         )
