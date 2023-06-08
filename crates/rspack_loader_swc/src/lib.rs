@@ -170,46 +170,42 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         options.config.input_source_map = Some(InputSourceMap::Str(source_map))
       }
     }
-    thread::spawn(move || {
-      GLOBALS.set(&Default::default(), || {
-        try_with_handler(c.cm.clone(), Default::default(), |handler| {
-          let fm = c.cm.new_source_file(FileName::Anon, "foo === bar;".into());
-          let cm = c.cm.clone();
-          let file = fm.clone();
-          let comments = SingleThreadedComments::default();
-          dbg!(env::current_dir());
-          let current = env::current_dir().unwrap();
-          let plugin_path = current.join("my_first_plugin.wasm");
-          dbg!(plugin_path.to_string_lossy().to_string());
+    GLOBALS.set(&Default::default(), || {
+      try_with_handler(c.cm.clone(), Default::default(), |handler| {
+        let fm = c.cm.new_source_file(FileName::Anon, "foo === bar;".into());
+        let cm = c.cm.clone();
+        let file = fm.clone();
+        let comments = SingleThreadedComments::default();
+        dbg!(env::current_dir());
+        let current = env::current_dir().unwrap();
+        let plugin_path = current.join("my_first_plugin.wasm");
+        dbg!(plugin_path.to_string_lossy().to_string());
 
-          let out = c.process_js_file(
-            fm,
-            handler,
-            &Options {
-              config: Config {
-                jsc: JscConfig {
-                  experimental: JscExperimental {
-                    plugins: Some(vec![PluginConfig(
-                      plugin_path.to_string_lossy().to_string(),
-                      json!(null),
-                    )]),
-                    ..Default::default()
-                  },
+        let out = c.process_js_file(
+          fm,
+          handler,
+          &Options {
+            config: Config {
+              jsc: JscConfig {
+                experimental: JscExperimental {
+                  plugins: Some(vec![PluginConfig(
+                    plugin_path.to_string_lossy().to_string(),
+                    json!(null),
+                  )]),
                   ..Default::default()
                 },
                 ..Default::default()
               },
               ..Default::default()
             },
-          )?;
-          dbg!(out.code);
-          Ok(())
-        })
-        .expect("TODO:")
-      });
-    })
-    .join()
-    .expect("Thread panicked");
+            ..Default::default()
+          },
+        )?;
+        dbg!(&out.code);
+        Ok(())
+      })
+      .expect("TODO:")
+    });
 
     // GLOBALS.set(&Default::default(), || {
     //   match try_with_handler(c.cm.clone(), Default::default(), |handler| {

@@ -27,6 +27,7 @@ swc_core = { workspace = true, features = [
   "plugin_transform_host_native_filesystem_cache",
   "plugin_transform_host_native",
 ] }
+swc_plugin_runner = "0.95.15"
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 
 [dev-dependencies]

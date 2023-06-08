@@ -3050,6 +3050,7 @@ dependencies = [
  "str_indices",
  "swc_config",
  "swc_core",
+ "swc_plugin_runner",
  "tokio",
 ]
 
@@ -4180,9 +4181,9 @@ dependencies = [
 
 [[package]]
 name = "swc_common"
-version = "0.31.10"
+version = "0.31.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b6e3021cd5a356db738aebb678a571615cb70d3dac4e4179401dbdca66fa5f7"
+checksum = "19c774005489d2907fb67909cf42af926e72edee1366512777c605ba2ef19c94"
 dependencies = [
  "ahash 0.7.6",
  "anyhow",
@@ -4425,9 +4426,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_ast"
-version = "0.104.3"
+version = "0.104.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fee855d082369cbc8acaf367d7e53bcb88bdc3fb10fca4ee6b426969291db2a3"
+checksum = "b5cf9dd351d0c285dcd36535267953a18995d4dda0cbe34ac9d1df61aa415b26"
 dependencies = [
  "bitflags 2.1.0",
  "bytecheck",
@@ -5107,9 +5108,9 @@ dependencies = [
 
 [[package]]
 name = "swc_plugin_proxy"
-version = "0.33.3"
+version = "0.33.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3665e6685cf9486693655a0664aafd1ca00d860ed80051ea22f025724fa6b4e"
+checksum = "6fd90309939333beb2cc4fc338b5f7f1aa588173e6452161d5edecfa8210e649"
 dependencies = [
  "better_scoped_tls",
  "rkyv",
@@ -5121,9 +5122,9 @@ dependencies = [
 
 [[package]]
 name = "swc_plugin_runner"
-version = "0.95.12"
+version = "0.95.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e73dd7cec3d4a7cfb8ac935ed89f5e41da6f58014abfd8e9065276420728e9b7"
+checksum = "c9d8dc9624bfd27ec09d4dcf56d9e0ed5faaef056629f5d190fc69fde46ec489"
 dependencies = [
  "anyhow",
  "enumset",
@@ -5163,9 +5164,9 @@ dependencies = [
 
 [[package]]
 name = "swc_visit"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1d5999f23421c8e21a0f2bc53a0b9e8244f3b421de89471561af2fbe40b9cca"
+checksum = "5f412dd4fbc58f509a04e64f5c8038333142fc139e8232f01b883db0094b3b51"
 dependencies = [
  "either",
  "swc_visit_macros",
@@ -5173,9 +5174,9 @@ dependencies = [
 
 [[package]]
 name = "swc_visit_macros"
-version = "0.5.6"
+version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebeed7eb0f545f48ad30f5aab314e5208b735bcea1d1464f26e20f06db904989"
+checksum = "4cfc226380ba54a5feed2c12f3ccd33f1ae8e959160290e5d2d9b4e918b6472a"
 dependencies = [
  "Inflector",
  "pmutil",
