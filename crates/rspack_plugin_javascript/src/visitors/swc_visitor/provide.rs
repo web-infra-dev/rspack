@@ -5,7 +5,7 @@ use swc_core::common::Span;
 use swc_core::common::{Mark, DUMMY_SP};
 use swc_core::ecma::ast::{
   BindingIdent, CallExpr, Callee, ComputedPropName, Expr, ExprOrSpread, Ident, Lit, MemberExpr,
-  MemberProp, ModuleItem, Stmt, Str, VarDecl, VarDeclarator,
+  MemberProp, ModuleItem, PropOrSpread, Stmt, Str, VarDecl, VarDeclarator,
 };
 use swc_core::ecma::visit::{as_folder, Fold, VisitMut, VisitMutWith};
 
@@ -30,7 +30,8 @@ impl<'a> ProvideBuiltin<'a> {
     }
   }
 
-  fn handle_ident(&mut self, ident: &mut Ident) {
+  fn handle_ident(&mut self, ident: &Ident) {
+    dbg!(&ident);
     if ident.span.has_mark(self.unresolved_mark) && self.opts.get(&ident.sym.to_string()).is_some()
     {
       self.current_import_provide.insert(ident.sym.to_string());
@@ -143,6 +144,15 @@ impl VisitMut for ProvideBuiltin<'_> {
       Expr::Member(member_expr) => {
         if let Some(ident) = self.handle_member_expr(member_expr) {
           *expr = Expr::Ident(ident);
+        }
+      }
+      Expr::Object(object_lit) => {
+        for prop in object_lit.props.iter_mut() {
+          if let PropOrSpread::Prop(prop) = prop {
+            if let Some(shorthand) = prop.as_shorthand() {
+              self.handle_ident(shorthand);
+            }
+          }
         }
       }
       _ => {}
