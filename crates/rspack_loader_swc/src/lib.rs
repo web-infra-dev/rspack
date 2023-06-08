@@ -132,14 +132,14 @@ impl SwcLoader {
 }
 
 /// Get global sourcemap
-pub fn compiler() -> Arc<Compiler> {
-  static C: Lazy<Arc<Compiler>> = Lazy::new(|| {
-    let cm = Arc::new(swc_core::common::SourceMap::new(FilePathMapping::empty()));
-    Arc::new(Compiler::new(cm))
-  });
-
-  C.clone()
-}
+// pub fn compiler() -> Arc<Compiler> {
+//   static C: Lazy<Arc<Compiler>> = Lazy::new(|| {
+//     let cm = Arc::new(swc_core::common::SourceMap::new(FilePathMapping::empty()));
+//     Arc::new(Compiler::new(cm))
+//   });
+//
+//   C.clone()
+// }
 
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
@@ -149,7 +149,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       .content
       .to_owned()
       .expect("content should available");
-    let c = compiler();
+    let c = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
+      FilePathMapping::empty(),
+    )));
     let mut errors: Vec<Error> = Default::default();
     let default_development = matches!(loader_context.context.options.mode, Mode::Development);
     let mut options = self.options.clone();
