@@ -18,6 +18,8 @@ use swc_core::common::comments::SingleThreadedComments;
 use swc_core::common::{FileName, FilePathMapping, GLOBALS};
 use swc_core::ecma::transforms::base::pass::noop;
 
+pub const SOURCE_MAP_INLINE: &str = "inline";
+
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct SwcLoaderJsOptions {
@@ -92,7 +94,7 @@ impl From<SwcLoaderJsOptions> for Options {
       source_maps = source_map
     }
     if let Some(SourceMapsConfig::Str(str)) = &source_maps {
-      if str == "inline" {
+      if str == SOURCE_MAP_INLINE {
         source_maps = Some(SourceMapsConfig::Bool(true))
       }
     }

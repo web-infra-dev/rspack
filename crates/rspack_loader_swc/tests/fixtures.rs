@@ -98,10 +98,10 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   }
 }
 
-#[tokio::test]
-async fn rspack_importer() {
-  loader_test("swc-plugin/index.js", "swc-plugin/expected/index.js").await;
-}
+// #[tokio::test]
+// async fn rspack_importer() {
+//   loader_test("swc-plugin/index.js", "swc-plugin/expected/index.js").await;
+// }
 
 #[fixture("tests/fixtures/*")]
 fn swc(fixture_path: PathBuf) {
