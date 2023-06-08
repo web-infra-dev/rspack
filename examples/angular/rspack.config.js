@@ -1,5 +1,7 @@
 const { AngularWebpackPlugin } = require("@ngtools/webpack");
-const {DedupeModuleResolvePlugin} = require('@angular-devkit/build-angular/src/webpack/plugins/dedupe-module-resolve-plugin');
+const {
+	DedupeModuleResolvePlugin
+} = require("@angular-devkit/build-angular/src/webpack/plugins/dedupe-module-resolve-plugin");
 const {
 	NamedChunksPlugin
 } = require("@angular-devkit/build-angular/src/webpack/plugins/named-chunks-plugin");
@@ -22,9 +24,9 @@ module.exports = {
 	},
 	output: {
 		uniqueName: "angular",
-		hashFunction: 'xxhash64',
+		hashFunction: "xxhash64",
 		clean: true,
-		path: "./dist",
+		path: path.resolve(__dirname, "./dist"),
 		publicPath: "",
 		filename: "[name].[contenthash:20].js",
 		chunkFilename: "[name].[contenthash:20].js",
@@ -42,7 +44,7 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: false,
-		minimize:true,
+		minimize: true,
 		splitChunks: {
 			// 'maxAsyncRequests': null, // throws error
 			cacheGroups: {
@@ -160,6 +162,17 @@ module.exports = {
 		]
 	},
 	plugins: [
+		{
+			apply(compiler) {
+				compiler.hooks.done.tap("stat", stats => {
+					const result = stats.toJson({ all: true });
+					require("fs").writeFileSync(
+						path.resolve(__dirname, "./webpack-stats.json"),
+						JSON.stringify(result)
+					);
+				});
+			}
+		},
 		new DedupeModuleResolvePlugin(),
 		new NamedChunksPlugin(),
 		new OccurrencesPlugin({
