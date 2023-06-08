@@ -616,7 +616,7 @@ export class Compilation {
 	}
 
 	get modules() {
-		return this.getModules().map(item => {
+		return this.getModules().map((item: any) => {
 			return {
 				identifier: () => item.moduleIdentifier,
 				...item
@@ -693,6 +693,9 @@ export class Compilation {
 	}
 
 	getModules(): JsModule[] {
+		const modules = this.#inner.getModules();
+		console.log({ modules });
+		process.exit(0);
 		return this.#inner.getModules();
 	}
 	getChunks(): JsChunk[] {

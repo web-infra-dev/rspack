@@ -4,9 +4,8 @@ use rspack_identifier::Identifiable;
 
 use super::{JsCompatSource, ToJsCompatSource};
 
-#[napi(object)]
+#[napi]
 pub struct JsModule {
-  pub original_source: Option<JsCompatSource>,
   pub resource: String,
   pub module_identifier: String,
 }
@@ -23,8 +22,6 @@ impl ToJsModule for dyn Module + '_ {
     self
       .try_as_normal_module()
       .map(|normal_module| JsModule {
-        original_source,
-
         resource: normal_module
           .resource_resolved_data()
           .resource_path

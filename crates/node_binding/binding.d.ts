@@ -37,6 +37,11 @@ export class JsCompilation {
   addBuildDependencies(deps: Array<string>): void
 }
 
+export class JsModule {
+  resource: string
+  moduleIdentifier: string
+}
+
 export class JsStats {
   getAssets(): JsStatsGetAssets
   getModules(reasons: boolean, moduleAssets: boolean, nestedModules: boolean): Array<JsStatsModule>
@@ -243,12 +248,6 @@ export interface JsLoaderResult {
   cacheable: boolean
   /** Used to instruct how rust loaders should execute */
   isPitching: boolean
-}
-
-export interface JsModule {
-  originalSource?: JsCompatSource
-  resource: string
-  moduleIdentifier: string
 }
 
 export interface JsResolveForSchemeInput {
