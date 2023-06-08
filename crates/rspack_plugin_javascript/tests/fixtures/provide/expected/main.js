@@ -1,10 +1,29 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
 var process = __webpack_require__("./process.js");
+__webpack_require__("./name.js");
 console.log(process.env);
 (function(process) {
     console.log(process, process[0], process.env);
 })({});
+},
+"./name.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: function() {
+        return _default;
+    }
+});
+const lib = {
+    get: ()=>{
+        return "my-name";
+    }
+};
+var _default = lib;
 },
 "./process.js": function (module, exports, __webpack_require__) {
 var process = module.exports = {};
