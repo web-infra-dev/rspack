@@ -2,7 +2,6 @@ import { z } from "zod";
 import { configSchema } from "./index";
 import type {
 	Output,
-	Resolve,
 	ModuleOptions,
 	Plugins,
 	Builtins,
@@ -16,7 +15,6 @@ type Config = z.infer<ReturnType<typeof configSchema>>;
 
 type Rewritten = {
 	output?: Output;
-	resolve?: Resolve;
 	module?: ModuleOptions;
 	plugins?: Plugins;
 	builtins?: Omit<Builtins, keyof NonNullable<Config["builtins"]>> &
