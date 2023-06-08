@@ -266,6 +266,7 @@ dependencies = [
  "rspack_fs",
  "rspack_testing",
  "rspack_tracing",
+ "tikv-jemallocator",
  "tokio",
 ]
 
@@ -2762,6 +2763,7 @@ dependencies = [
  "serde",
  "serde_json",
  "testing_macros",
+ "tikv-jemallocator",
  "tokio",
  "ustr",
  "xshell",
@@ -2841,7 +2843,6 @@ dependencies = [
 name = "rspack_build"
 version = "0.1.0"
 dependencies = [
- "mimalloc-rust",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -3086,6 +3087,7 @@ dependencies = [
  "rspack_napi_shared",
  "rspack_tracing",
  "testing_macros",
+ "tikv-jemallocator",
  "tokio",
  "tracing",
 ]
@@ -3356,6 +3358,7 @@ dependencies = [
  "rspack_base64",
  "rspack_core",
  "rspack_error",
+ "url",
  "urlencoding",
 ]
 
@@ -5322,6 +5325,27 @@ checksum = "3fdd6f064ccff2d6567adcb3873ca630700f00b5ad3f060c25b5dcfd9a4ce152"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "tikv-jemalloc-sys"
+version = "0.4.3+5.2.1-patched.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1792ccb507d955b46af42c123ea8863668fae24d03721e40cad6a41773dbb49"
+dependencies = [
+ "cc",
+ "fs_extra",
+ "libc",
+]
+
+[[package]]
+name = "tikv-jemallocator"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5b7bcecfafe4998587d636f9ae9d55eb9d0499877b88757767c346875067098"
+dependencies = [
+ "libc",
+ "tikv-jemalloc-sys",
 ]
 
 [[package]]
