@@ -38,7 +38,7 @@ pub use require_resolve_dependency::RequireResolveDependency;
 mod static_exports_dependency;
 pub use static_exports_dependency::*;
 
-use crate::{ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier};
+use crate::{Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -174,7 +174,7 @@ pub trait Dependency: CodeGeneratable + AsAny + DynClone + Send + Sync + Debug {
     &DependencyType::Unknown
   }
 
-  fn get_context(&self) -> Option<&str> {
+  fn get_context(&self) -> Option<&Context> {
     None
   }
 }
@@ -261,6 +261,8 @@ pub trait ModuleDependency: Dependency {
   fn weak(&self) -> bool {
     false
   }
+  fn set_request(&mut self, request: String);
+
   // TODO should split to `ModuleDependency` and `ContextDependency`
   fn options(&self) -> Option<&ContextOptions> {
     None
@@ -306,6 +308,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
   fn chunk_name(&self) -> Option<&str> {
     (**self).chunk_name()
   }
+
+  fn set_request(&mut self, request: String) {
+    (**self).set_request(request);
+  }
 }
 
 impl Dependency for Box<dyn ModuleDependency> {
@@ -317,7 +323,7 @@ impl Dependency for Box<dyn ModuleDependency> {
     (**self).dependency_type()
   }
 
-  fn get_context(&self) -> Option<&str> {
+  fn get_context(&self) -> Option<&Context> {
     (**self).get_context()
   }
 

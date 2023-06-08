@@ -617,7 +617,7 @@ impl Plugin for SplitChunksPlugin {
   #[allow(clippy::collapsible_else_if)]
   #[allow(unused)]
   async fn optimize_chunks(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {

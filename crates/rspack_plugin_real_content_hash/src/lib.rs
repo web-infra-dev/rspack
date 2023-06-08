@@ -27,7 +27,7 @@ pub struct RealContentHashPlugin;
 #[async_trait::async_trait]
 impl Plugin for RealContentHashPlugin {
   async fn process_assets_stage_optimize_hash(
-    &mut self,
+    &self,
     ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -37,7 +37,7 @@ impl Plugin for RealContentHashPlugin {
 
 impl RealContentHashPlugin {
   async fn inner_impl(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {

@@ -194,6 +194,10 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
   fn get_resolve_options(&self) -> Option<&Resolve> {
     None
   }
+
+  fn get_context(&self) -> Option<&Context> {
+    None
+  }
 }
 
 pub trait ModuleExt {

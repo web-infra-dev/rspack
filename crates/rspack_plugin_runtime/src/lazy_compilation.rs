@@ -91,7 +91,7 @@ impl Plugin for LazyCompilationPlugin {
     "LazyCompilationPlugin"
   }
 
-  fn apply(&mut self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
     Ok(())
   }
 

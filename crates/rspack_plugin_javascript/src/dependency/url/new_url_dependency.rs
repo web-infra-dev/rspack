@@ -60,6 +60,10 @@ impl ModuleDependency for NewURLDependency {
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     Some(Box::new(self.clone()))
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for NewURLDependency {

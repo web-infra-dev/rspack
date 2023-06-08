@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use futures::Future;
+use rspack_identifier::Identifier;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
@@ -44,8 +45,8 @@ impl ResolveModuleOccasion {
       args.context,
       args
         .importer
-        .map(|i| i.display().to_string())
-        .unwrap_or_else(|| "".to_owned()),
+        .copied()
+        .unwrap_or_else(|| Identifier::from("")),
       args.specifier,
       args.dependency_type
     ));

@@ -173,7 +173,7 @@ impl AssetParserAndGenerator {
 
   fn get_source_file_name(&self, module: &NormalModule, compilation: &Compilation) -> String {
     let relative = make_paths_relative(
-      &compilation.options.context.to_string_lossy(),
+      compilation.options.context.as_ref(),
       &module
         .match_resource()
         .unwrap_or(module.resource_resolved_data())
@@ -414,10 +414,7 @@ impl Plugin for AssetPlugin {
     "asset"
   }
 
-  fn apply(
-    &mut self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     let data_url_condition = self
       .config
       .parse_options

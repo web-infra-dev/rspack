@@ -10,6 +10,7 @@ pub struct CompilerOptions {
   pub context: Context,
   pub dev_server: DevServerOptions,
   pub output: OutputOptions,
+  // TODO(swc-loader): target should not exist on compiler options
   pub target: Target,
   pub mode: Mode,
   pub resolve: Resolve,

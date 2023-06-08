@@ -20,9 +20,9 @@ impl ModuleFactory for ContextModuleFactory {
   #[instrument(name = "context_module_factory:create", skip_all)]
   async fn create(
     mut self,
-    data: ModuleFactoryCreateData,
+    mut data: ModuleFactoryCreateData,
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
-    if let Ok(Some(before_resolve_result)) = self.before_resolve(&data).await {
+    if let Ok(Some(before_resolve_result)) = self.before_resolve(&mut data).await {
       return Ok(before_resolve_result);
     }
     Ok(self.resolve(data).await?)
@@ -39,23 +39,19 @@ impl ContextModuleFactory {
 
   pub async fn before_resolve(
     &mut self,
-    data: &ModuleFactoryCreateData,
+    data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
+    let mut before_resolve_args = NormalModuleBeforeResolveArgs {
+      request: data.dependency.request().to_string(),
+      context: data.context.to_string(),
+    };
     if let Ok(Some(false)) = self
       .plugin_driver
-      .read()
-      .await
-      .context_module_before_resolve(NormalModuleBeforeResolveArgs {
-        request: data.dependency.request(),
-        context: &data.context,
-      })
+      .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
       let specifier = data.dependency.request();
-      let ident = format!(
-        "{}{specifier}",
-        data.context.as_ref().expect("should have context")
-      );
+      let ident = format!("{}{specifier}", data.context);
 
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
@@ -69,6 +65,8 @@ impl ContextModuleFactory {
         ModuleFactoryResult::new(missing_module).with_empty_diagnostic(),
       ));
     }
+    data.context = before_resolve_args.context.into();
+    data.dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
 
@@ -114,14 +112,10 @@ impl ContextModuleFactory {
             .expect("should has options")
             .clone(),
         },
-        plugin_driver.read().await.resolver_factory.clone(),
+        plugin_driver.resolver_factory.clone(),
       )) as BoxModule,
       Ok(ResolveResult::Ignored) => {
-        let ident = format!(
-          "{}/{}",
-          data.context.expect("should have context"),
-          specifier
-        );
+        let ident = format!("{}/{}", data.context, specifier);
         let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
         let raw_module = RawModule::new(
@@ -135,7 +129,7 @@ impl ContextModuleFactory {
         return Ok(ModuleFactoryResult::new(raw_module).with_empty_diagnostic());
       }
       Err(ResolveError(runtime_error, internal_error)) => {
-        let ident = format!("{}{specifier}", data.context.expect("should have context"));
+        let ident = format!("{}{specifier}", data.context);
         let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
         let missing_module = MissingModule::new(

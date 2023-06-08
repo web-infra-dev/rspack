@@ -13,7 +13,9 @@ import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
-import { RawFallbackCacheGroupOptions } from "@rspack/binding";
+import type { Options as RspackOptions } from "./zod/_rewrite";
+import type { OptimizationConfig as Optimization } from "./zod/optimization";
+export type { RspackOptions, Optimization };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
@@ -24,35 +26,6 @@ export type {
 } from "./adapter-rule-use";
 
 export type Configuration = RspackOptions;
-
-export interface RspackOptions {
-	name?: Name;
-	dependencies?: Dependencies;
-	context?: Context;
-	mode?: Mode;
-	entry?: Entry;
-	output?: Output;
-	resolve?: Resolve;
-	module?: ModuleOptions;
-	target?: Target;
-	externals?: Externals;
-	externalsType?: ExternalsType;
-	externalsPresets?: ExternalsPresets;
-	infrastructureLogging?: InfrastructureLogging;
-	devtool?: DevTool;
-	node?: Node;
-	snapshot?: SnapshotOptions;
-	cache?: CacheOptions;
-	stats?: StatsValue;
-	optimization?: Optimization;
-	plugins?: Plugins;
-	experiments?: Experiments;
-	watch?: Watch;
-	watchOptions?: WatchOptions;
-	devServer?: DevServer;
-	builtins?: Builtins;
-	ignoreWarnings?: IgnoreWarningsPattern;
-}
 
 export interface RspackOptionsNormalized {
 	name?: Name;
@@ -92,7 +65,7 @@ export type Dependencies = Name[];
 ///// Context /////
 export type Context = string;
 
-///// Mode */////
+///// Mode /////
 export type Mode = "development" | "production" | "none";
 
 ///// Entry /////
@@ -330,6 +303,7 @@ export interface RuleSetRule {
 		[k: string]: RuleSetCondition;
 	};
 	oneOf?: RuleSetRule[];
+	rules?: RuleSetRule[];
 	type?: string;
 	loader?: RuleSetLoader;
 	options?: RuleSetLoaderOptions;
@@ -391,18 +365,20 @@ export interface ModuleOptionsNormalized {
 
 export type AvailableTarget =
 	| "node"
+	| `node${number}`
+	| `node${number}.${number}`
+	| "electron-main"
+	| `electron${number}-main`
+	| `electron${number}.${number}-main`
+	| "electron-renderer"
+	| `electron${number}-renderer`
+	| `electron${number}.${number}-renderer`
+	| "electron-preload"
+	| `electron${number}-preload`
+	| `electron${number}.${number}-preload`
 	| "web"
 	| "webworker"
-	| "es3"
-	| "es5"
-	| "es2015"
-	| "es2016"
-	| "es2017"
-	| "es2018"
-	| "es2019"
-	| "es2020"
-	| "es2021"
-	| "es2022"
+	| `es${number}`
 	| "browserslist";
 
 ///// Target /////
@@ -489,6 +465,10 @@ export type ExternalsType =
 export interface ExternalsPresets {
 	node?: boolean;
 	web?: boolean;
+	electron?: boolean;
+	electronMain?: boolean;
+	electronPreload?: boolean;
+	electronRenderer?: boolean;
 }
 
 ///// InfrastructureLogging /////
@@ -585,52 +565,6 @@ export interface StatsOptions {
 	nestedModules?: boolean;
 }
 
-///// Optimization /////
-export interface Optimization {
-	moduleIds?: "named" | "deterministic";
-	minimize?: boolean;
-	minimizer?: ("..." | RspackPluginInstance)[];
-	splitChunks?: OptimizationSplitChunksOptions | false;
-	runtimeChunk?: OptimizationRuntimeChunk;
-	removeAvailableModules?: boolean;
-	/**
-	 * Remove chunks which are empty.
-	 */
-	removeEmptyChunks?: boolean;
-	sideEffects?: "flag" | boolean;
-	realContentHash?: boolean;
-}
-export interface OptimizationSplitChunksOptions {
-	cacheGroups?: {
-		[k: string]: OptimizationSplitChunksCacheGroup;
-	};
-	chunks?: "initial" | "async" | "all";
-	maxAsyncRequests?: number;
-	maxInitialRequests?: number;
-	minChunks?: number;
-	minSize?: OptimizationSplitChunksSizes;
-	enforceSizeThreshold?: OptimizationSplitChunksSizes;
-	minRemainingSize?: OptimizationSplitChunksSizes;
-	name?: string | false;
-	maxSize?: number;
-	maxAsyncSize?: number;
-	maxInitialSize?: number;
-	fallbackCacheGroup?: RawFallbackCacheGroupOptions;
-}
-export interface OptimizationSplitChunksCacheGroup {
-	chunks?: "initial" | "async" | "all";
-	minChunks?: number;
-	name?: string | false;
-	priority?: number;
-	reuseExistingChunk?: boolean;
-	test?: RegExp;
-	minSize?: number;
-	maxSize?: number;
-	maxAsyncSize?: number;
-	maxInitialSize?: number;
-	enforce?: boolean;
-}
-export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =
 	| ("single" | "multiple")
 	| boolean
@@ -640,7 +574,7 @@ export type OptimizationRuntimeChunk =
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: Function;
+			name: (...args: any[]) => string | undefined;
 	  };
 
 ///// Plugins /////

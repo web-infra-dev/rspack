@@ -22,7 +22,7 @@ impl StableNamedChunkIdsPlugin {
 }
 
 impl Plugin for StableNamedChunkIdsPlugin {
-  fn chunk_ids(&mut self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     use rayon::prelude::*;
     // code_splitting_chunk means chunks generated in code splitting
     let code_splitting_chunk_to_root_module = compilation
@@ -35,7 +35,7 @@ impl Plugin for StableNamedChunkIdsPlugin {
     let context = self
       .context
       .clone()
-      .unwrap_or_else(|| compilation.options.context.to_string_lossy().to_string());
+      .unwrap_or_else(|| compilation.options.context.to_string());
 
     let mut used_code_splitting_chunk_name: FxHashSet<String> = FxHashSet::default();
 

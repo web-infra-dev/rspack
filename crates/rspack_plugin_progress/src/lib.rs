@@ -1,4 +1,5 @@
 use std::sync::atomic::Ordering::SeqCst;
+use std::sync::RwLock;
 use std::{cmp, sync::atomic::AtomicU32};
 
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
@@ -21,7 +22,7 @@ pub struct ProgressPlugin {
   pub progress_bar: ProgressBar,
   pub modules_count: AtomicU32,
   pub modules_done: AtomicU32,
-  pub last_modules_count: Option<u32>,
+  pub last_modules_count: RwLock<Option<u32>>,
 }
 
 impl ProgressPlugin {
@@ -36,7 +37,7 @@ impl ProgressPlugin {
       progress_bar,
       modules_count: AtomicU32::new(0),
       modules_done: AtomicU32::new(0),
-      last_modules_count: None,
+      last_modules_count: RwLock::new(None),
     }
   }
 }
@@ -80,7 +81,7 @@ impl Plugin for ProgressPlugin {
     let modules_done = previous_modules_done + 1;
     let percent = (modules_done as f32)
       / (cmp::max(
-        self.last_modules_count.unwrap_or(1),
+        self.last_modules_count.read().expect("TODO:").unwrap_or(1),
         self.modules_count.load(SeqCst),
       ) as f32);
     self
@@ -90,7 +91,7 @@ impl Plugin for ProgressPlugin {
   }
 
   async fn optimize_chunks(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
@@ -100,7 +101,7 @@ impl Plugin for ProgressPlugin {
   }
 
   async fn process_assets_stage_additional(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -110,13 +111,13 @@ impl Plugin for ProgressPlugin {
   }
 
   async fn done<'s, 'c>(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
     self.progress_bar.set_message("done");
     self.progress_bar.finish();
-    self.last_modules_count = Some(self.modules_count.load(SeqCst));
+    *self.last_modules_count.write().expect("TODO:") = Some(self.modules_count.load(SeqCst));
     Ok(())
   }
 }

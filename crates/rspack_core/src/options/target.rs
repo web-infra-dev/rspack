@@ -1,23 +1,7 @@
 use anyhow::anyhow;
 pub use swc_core::ecma::ast::EsVersion;
 
-#[derive(Debug, Clone)]
-pub enum TargetPlatform {
-  Web,
-  WebWorker,
-  Node(String),
-  None,
-}
-
-impl TargetPlatform {
-  pub fn is_none(&self) -> bool {
-    matches!(self, TargetPlatform::None)
-  }
-  pub fn is_web(&self) -> bool {
-    matches!(self, TargetPlatform::Web)
-  }
-}
-
+// TODO(swc-loader): Target still coupled with javascript downgrade, it should only affect runtime
 #[derive(Debug, Clone)]
 pub enum TargetEsVersion {
   Esx(EsVersion),
@@ -36,13 +20,11 @@ impl TargetEsVersion {
 
 #[derive(Debug, Clone)]
 pub struct Target {
-  pub platform: TargetPlatform,
   pub es_version: TargetEsVersion,
 }
 
 impl Target {
   pub fn new(args: &Vec<String>) -> anyhow::Result<Target> {
-    let mut platform = TargetPlatform::None;
     let mut es_version = TargetEsVersion::None;
 
     for item in args {
@@ -71,24 +53,8 @@ impl Target {
         es_version = version;
         continue;
       }
-
-      // platform
-      if !platform.is_none() {
-        return Err(anyhow!("Target platform conflict"));
-      }
-      platform = match item {
-        "web" => TargetPlatform::Web,
-        "webworker" => TargetPlatform::WebWorker,
-        "node" => TargetPlatform::Node(String::new()),
-        _ => {
-          return Err(anyhow!("Unknown target platform {}", item));
-        }
-      };
     }
 
-    Ok(Target {
-      platform,
-      es_version,
-    })
+    Ok(Target { es_version })
   }
 }

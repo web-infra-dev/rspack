@@ -25,11 +25,12 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  contextify, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, CodeReplaceSourceDependency,
-  Compilation, CompilerOptions, Context, Dependency, GenerateContext, LibIdentOptions,
-  LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, Resolve, SourceType,
+  contextify, get_context, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
+  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
+  CodeReplaceSourceDependency, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
+  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
+  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  Resolve, SourceType,
 };
 
 bitflags! {
@@ -144,6 +145,8 @@ impl From<BoxSource> for AstOrSource {
 #[derivative(Debug)]
 pub struct NormalModule {
   id: ModuleIdentifier,
+  /// Context of this module
+  context: Context,
   /// Request with loaders from config
   request: String,
   /// Request intended by user (without loaders from config)
@@ -234,6 +237,7 @@ impl NormalModule {
     };
     Self {
       id: ModuleIdentifier::from(identifier),
+      context: get_context(&resource_data),
       request,
       user_request,
       raw_request,
@@ -349,12 +353,7 @@ impl Module for NormalModule {
     let mut build_meta = BuildMeta::default();
     let mut diagnostics = Vec::new();
 
-    build_context
-      .plugin_driver
-      .read()
-      .await
-      .before_loaders(self)
-      .await?;
+    build_context.plugin_driver.before_loaders(self).await?;
 
     let loader_result = {
       run_loaders(
@@ -542,6 +541,10 @@ impl Module for NormalModule {
     } else {
       None
     }
+  }
+
+  fn get_context(&self) -> Option<&Context> {
+    Some(&self.context)
   }
 }
 

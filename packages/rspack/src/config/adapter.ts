@@ -32,7 +32,6 @@ import {
 	ModuleOptionsNormalized,
 	Node,
 	Optimization,
-	OptimizationSplitChunksOptions,
 	OutputNormalized,
 	Resolve,
 	RspackOptionsNormalized,
@@ -43,6 +42,7 @@ import {
 	StatsValue,
 	Target
 } from "./types";
+import { SplitChunksConfig } from "./zod/optimization/split-chunks";
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -214,7 +214,11 @@ function getRawExternalsPresets(
 ): RawOptions["externalsPresets"] {
 	return {
 		web: presets.web ?? false,
-		node: presets.node ?? false
+		node: presets.node ?? false,
+		electron: presets.electron ?? false,
+		electronMain: presets.electronMain ?? false,
+		electronPreload: presets.electronPreload ?? false,
+		electronRenderer: presets.electronRenderer ?? false
 	};
 }
 
@@ -272,10 +276,14 @@ function getRawModule(
 		!isNil(module.defaultRules),
 		"module.defaultRules should not be nil after defaults"
 	);
-	// TODO: workaround for module.defaultRules
-	const rules = (
-		[...module.defaultRules, ...module.rules] as RuleSetRule[]
-	).map<RawModuleRule>(i => getRawModuleRule(i, options));
+	// "..." in defaultRules will be flatten in `applyModuleDefaults`, and "..." in rules is empty, so it's safe to use `as RuleSetRule[]` at here
+	const ruleSet = [
+		{ rules: module.defaultRules as RuleSetRule[] },
+		{ rules: module.rules as RuleSetRule[] }
+	];
+	const rules = ruleSet.map((rule, index) =>
+		getRawModuleRule(rule, `ruleSet[${index}]`, options)
+	);
 	return {
 		rules,
 		parser: module.parser
@@ -284,6 +292,7 @@ function getRawModule(
 
 const getRawModuleRule = (
 	rule: RuleSetRule,
+	path: string,
 	options: ComposeJsUseOptions
 ): RawModuleRule => {
 	// Rule.loader is a shortcut to Rule.use: [ { loader } ].
@@ -323,13 +332,20 @@ const getRawModuleRule = (
 		scheme: rule.scheme ? getRawRuleSetCondition(rule.scheme) : undefined,
 		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
-		use: createRawModuleRuleUses(rule.use ?? [], options),
+		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
 		parser: rule.parser,
 		generator: rule.generator,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
-			? rule.oneOf.map(i => getRawModuleRule(i, options))
+			? rule.oneOf.map((rule, index) =>
+					getRawModuleRule(rule, `${path}.oneOf[${index}]`, options)
+			  )
+			: undefined,
+		rules: rule.rules
+			? rule.rules.map((rule, index) =>
+					getRawModuleRule(rule, `${path}.rules[${index}]`, options)
+			  )
 			: undefined,
 		enforce: rule.enforce
 	};
@@ -494,9 +510,7 @@ function getRawOptimization(
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
-		splitChunks: optimization.splitChunks
-			? getRawSplitChunksOptions(optimization.splitChunks)
-			: undefined,
+		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
 		removeEmptyChunks: optimization.removeEmptyChunks,
@@ -505,42 +519,32 @@ function getRawOptimization(
 	};
 }
 
-function getRawSplitChunksOptions(
-	sc: OptimizationSplitChunksOptions
-): RawOptions["optimization"]["splitChunks"] {
+function toRawSplitChunksOptions(
+	sc?: SplitChunksConfig
+): RawOptions["optimization"]["splitChunks"] | undefined {
+	if (!sc) {
+		return;
+	}
+
+	const { name, cacheGroups = {}, ...passThrough } = sc;
 	return {
-		name: sc.name === false ? undefined : sc.name,
-		cacheGroups: sc.cacheGroups
-			? Object.fromEntries(
-					Object.entries(sc.cacheGroups).map(([key, group]) => {
-						let normalizedGroup: RawCacheGroupOptions = {
-							test: group.test ? group.test.source : undefined,
-							name: group.name === false ? undefined : group.name,
-							priority: group.priority,
-							minChunks: group.minChunks,
-							chunks: group.chunks,
-							reuseExistingChunk: group.reuseExistingChunk,
-							minSize: group.minSize,
-							maxAsyncSize: group.maxAsyncSize,
-							maxInitialSize: group.maxInitialSize,
-							maxSize: group.maxSize,
-							enforce: group.enforce
-						};
-						return [key, normalizedGroup];
-					})
-			  )
-			: {},
-		chunks: sc.chunks,
-		maxAsyncRequests: sc.maxAsyncRequests,
-		maxInitialRequests: sc.maxInitialRequests,
-		minChunks: sc.minChunks,
-		minSize: sc.minSize,
-		enforceSizeThreshold: sc.enforceSizeThreshold,
-		minRemainingSize: sc.minRemainingSize,
-		maxSize: sc.maxSize,
-		maxAsyncSize: sc.maxAsyncSize,
-		maxInitialSize: sc.maxInitialSize,
-		fallbackCacheGroup: sc.fallbackCacheGroup
+		name: name === false ? undefined : name,
+		cacheGroups: Object.fromEntries(
+			Object.entries(cacheGroups)
+				.filter(([_key, group]) => group !== false)
+				.map(([key, group]) => {
+					group = group as Exclude<typeof group, false>;
+
+					const { test, name, ...passThrough } = group;
+					const rawGroup: RawCacheGroupOptions = {
+						test: test?.source,
+						name: name === false ? undefined : name,
+						...passThrough
+					};
+					return [key, rawGroup];
+				})
+		),
+		...passThrough
 	};
 }
 

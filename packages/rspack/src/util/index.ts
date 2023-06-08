@@ -84,6 +84,7 @@ export function toJsAssetInfo(info?: AssetInfo): JsAssetInfo {
 		hotModuleReplacement: false,
 		related: {},
 		contentHash: [],
+		version: "",
 		...info
 	};
 }

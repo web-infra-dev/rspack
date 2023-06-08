@@ -10,10 +10,10 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, BoxLoader, BoxedParserAndGeneratorBuilder,
-  Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs, Compilation, CompilationArgs,
-  CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module,
-  ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, BoxLoader,
+  BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
+  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
+  JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
   NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
   PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
@@ -138,11 +138,8 @@ impl PluginDriver {
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#compilation
   #[instrument(name = "plugin:compilation", skip_all)]
-  pub async fn compilation(
-    &mut self,
-    compilation: &mut Compilation,
-  ) -> PluginCompilationHookOutput {
-    for plugin in &mut self.plugins {
+  pub async fn compilation(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
+    for plugin in &self.plugins {
       plugin.compilation(CompilationArgs { compilation }).await?;
     }
 
@@ -150,12 +147,8 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:chunk_asset", skip_all)]
-  pub async fn chunk_asset(
-    &mut self,
-    chunk: &Chunk,
-    filename: String,
-  ) -> PluginCompilationHookOutput {
-    for plugin in &mut self.plugins {
+  pub async fn chunk_asset(&self, chunk: &Chunk, filename: String) -> PluginCompilationHookOutput {
+    for plugin in &self.plugins {
       plugin
         .chunk_asset(&ChunkAssetArgs {
           chunk,
@@ -168,22 +161,27 @@ impl PluginDriver {
   }
 
   pub async fn before_compile(
-    &mut self,
+    &self,
     // compilationParams: &mut CompilationParams<'_>,
   ) -> PluginCompilationHookOutput {
-    for plugin in &mut self.plugins {
+    for plugin in &self.plugins {
       plugin.before_compile().await?;
     }
 
     Ok(())
   }
 
-  pub async fn after_compile(
-    &mut self,
-    compilation: &mut Compilation,
-  ) -> PluginCompilationHookOutput {
-    for plugin in &mut self.plugins {
+  pub async fn after_compile(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
+    for plugin in &self.plugins {
       plugin.after_compile(compilation).await?;
+    }
+
+    Ok(())
+  }
+
+  pub async fn finish_make(&self, compilation: &mut Compilation) -> PluginCompilationHookOutput {
+    for plugin in &self.plugins {
+      plugin.finish_make(compilation).await?;
     }
 
     Ok(())
@@ -192,10 +190,10 @@ impl PluginDriver {
   ///
   /// See: https://webpack.js.org/api/compiler-hooks/#thiscompilation
   pub async fn this_compilation(
-    &mut self,
+    &self,
     compilation: &mut Compilation,
   ) -> PluginThisCompilationHookOutput {
-    for plugin in &mut self.plugins {
+    for plugin in &self.plugins {
       plugin
         .this_compilation(ThisCompilationArgs {
           this_compilation: compilation,
@@ -329,11 +327,11 @@ impl PluginDriver {
 
   pub async fn before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs<'_>,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
-      tracing::trace!("running resolve for scheme:{}", plugin.name());
-      if let Some(data) = plugin.before_resolve(PluginContext::new(), &args).await? {
+      tracing::trace!("before resolve {}", plugin.name());
+      if let Some(data) = plugin.before_resolve(PluginContext::new(), args).await? {
         return Ok(Some(data));
       }
     }
@@ -354,12 +352,12 @@ impl PluginDriver {
   }
   pub async fn context_module_before_resolve(
     &self,
-    args: NormalModuleBeforeResolveArgs<'_>,
+    args: &mut NormalModuleBeforeResolveArgs,
   ) -> PluginNormalModuleFactoryBeforeResolveOutput {
     for plugin in &self.plugins {
       tracing::trace!("running resolve for scheme:{}", plugin.name());
       if let Some(data) = plugin
-        .context_module_before_resolve(PluginContext::new(), &args)
+        .context_module_before_resolve(PluginContext::new(), args)
         .await?
       {
         return Ok(Some(data));
@@ -421,10 +419,10 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:process_assets", skip_all)]
-  pub async fn process_assets(&mut self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
+  pub async fn process_assets(&self, args: ProcessAssetsArgs<'_>) -> PluginProcessAssetsOutput {
     macro_rules! run_stage {
       ($stage: ident) => {
-        for plugin in &mut self.plugins {
+        for plugin in &self.plugins {
           plugin
             .$stage(
               PluginContext::new(),
@@ -458,8 +456,8 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:done", skip_all)]
-  pub async fn done<'s, 'c>(&mut self, stats: &'s mut Stats<'c>) -> PluginBuildEndHookOutput {
-    for plugin in &mut self.plugins {
+  pub async fn done<'s, 'c>(&self, stats: &'s mut Stats<'c>) -> PluginBuildEndHookOutput {
+    for plugin in &self.plugins {
       plugin
         .done(PluginContext::new(), DoneArgs { stats })
         .await?;
@@ -467,8 +465,8 @@ impl PluginDriver {
     Ok(())
   }
   #[instrument(name = "plugin:optimize_chunks", skip_all)]
-  pub async fn optimize_chunks(&mut self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin
         .optimize_chunks(PluginContext::new(), OptimizeChunksArgs { compilation })
         .await?;
@@ -477,16 +475,16 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:optimize_modules", skip_all)]
-  pub async fn optimize_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub async fn optimize_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin.optimize_modules(compilation).await?;
     }
     Ok(())
   }
 
   #[instrument(name = "plugin:optimize_chunk_modules", skip_all)]
-  pub async fn optimize_chunk_modules(&mut self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin
         .optimize_chunk_modules(OptimizeChunksArgs { compilation })
         .await?;
@@ -495,8 +493,8 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:finish_modules", skip_all)]
-  pub async fn finish_modules(&mut self, modules: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub async fn finish_modules(&self, modules: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin.finish_modules(modules).await?;
     }
     Ok(())
@@ -535,6 +533,7 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:succeed_module", skip_all)]
   pub async fn succeed_module(&self, module: &dyn Module) -> Result<()> {
     for plugin in &self.plugins {
       plugin.succeed_module(module).await?;
@@ -542,33 +541,49 @@ impl PluginDriver {
     Ok(())
   }
 
+  #[instrument(name = "plugin:still_valid_module", skip_all)]
+  pub async fn still_valid_module(&self, module: &dyn Module) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.still_valid_module(module).await?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:module_ids", skip_all)]
-  pub fn module_ids(&mut self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub fn module_ids(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin.module_ids(compilation)?;
     }
     Ok(())
   }
 
   #[instrument(name = "plugin:chunk_ids", skip_all)]
-  pub fn chunk_ids(&mut self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub fn chunk_ids(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin.chunk_ids(compilation)?;
     }
     Ok(())
   }
 
   #[instrument(name = "plugin:emit", skip_all)]
-  pub async fn emit(&mut self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin.emit(compilation).await?;
     }
     Ok(())
   }
 
+  #[instrument(name = "plugin:asset_emitted", skip_all)]
+  pub async fn asset_emitted(&self, args: &AssetEmittedArgs<'_>) -> Result<()> {
+    for plugin in &self.plugins {
+      plugin.asset_emitted(args).await?;
+    }
+    Ok(())
+  }
+
   #[instrument(name = "plugin:after_emit", skip_all)]
-  pub async fn after_emit(&mut self, compilation: &mut Compilation) -> Result<()> {
-    for plugin in &mut self.plugins {
+  pub async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
+    for plugin in &self.plugins {
       plugin.after_emit(compilation).await?;
     }
     Ok(())

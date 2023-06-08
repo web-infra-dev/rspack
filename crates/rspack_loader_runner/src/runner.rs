@@ -1,5 +1,5 @@
 use std::{
-  fmt::{self, Debug},
+  fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
 };
@@ -15,50 +15,11 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   content::Content,
+  get_scheme,
   loader::{Loader, LoaderItem, LoaderItemList},
   plugin::LoaderRunnerPlugin,
+  Scheme,
 };
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Scheme {
-  None,
-  Data,
-  File,
-  Custom(String),
-  // Http,
-}
-
-impl From<&str> for Scheme {
-  fn from(value: &str) -> Self {
-    match value {
-      "" => Self::None,
-      "data" => Self::Data,
-      "file" => Self::File,
-      v => Self::Custom(v.to_string()),
-    }
-  }
-}
-
-impl fmt::Display for Scheme {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "{}",
-      match self {
-        Self::None => "",
-        Self::Data => "data",
-        Self::File => "file",
-        Self::Custom(v) => v,
-      }
-    )
-  }
-}
-
-pub fn get_scheme(specifier: &str) -> Scheme {
-  url::Url::parse(specifier)
-    .map(|url| Scheme::from(url.scheme()))
-    .unwrap_or(Scheme::None)
-}
 
 #[derive(Debug, Clone)]
 pub struct ResourceData {

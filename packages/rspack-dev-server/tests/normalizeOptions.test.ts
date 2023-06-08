@@ -100,7 +100,6 @@ async function match(config: RspackOptions) {
 		infrastructureLogging: {
 			level: "info",
 			stream: {
-				// @ts-expect-error
 				write: () => {}
 			}
 		}
@@ -127,7 +126,6 @@ async function matchAdditionEntries(
 		entry: ENTRY,
 		infrastructureLogging: {
 			stream: {
-				// @ts-expect-error
 				write: () => {}
 			}
 		}

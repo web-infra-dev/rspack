@@ -12,6 +12,13 @@ pub struct InternalError {
 }
 
 impl InternalError {
+  pub fn new(error_message: String, severity: Severity) -> Self {
+    Self {
+      error_message,
+      severity,
+    }
+  }
+
   pub fn with_severity(mut self, severity: Severity) -> Self {
     self.severity = severity;
     self

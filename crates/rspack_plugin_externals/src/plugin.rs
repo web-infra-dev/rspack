@@ -1,4 +1,4 @@
-use std::{fmt::Debug, path::PathBuf};
+use std::fmt::Debug;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -74,7 +74,7 @@ impl Plugin for ExternalPlugin {
     "external"
   }
 
-  fn apply(&mut self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
     Ok(())
   }
 
@@ -118,13 +118,9 @@ impl Plugin for ExternalPlugin {
         }
         ExternalItem::Fn(f) => {
           let request = args.dependency.request();
-
+          let context = args.context.to_string();
           let result = f(ExternalItemFnCtx {
-            context: PathBuf::from(request.to_string())
-              .parent()
-              .expect("should have context")
-              .to_string_lossy()
-              .to_string(),
+            context,
             request: request.to_string(),
             dependency_type: args.dependency.category().to_string(),
           })

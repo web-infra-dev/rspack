@@ -109,19 +109,11 @@ where
       })
       .collect::<HashMap<String, HotUpdateContent>>();
 
-    let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
-    for (ukey, chunk) in old.compilation.chunk_by_ukey.iter() {
-      let modules = old
-        .compilation
-        .chunk_graph
-        .get_chunk_graph_chunk(ukey)
-        .modules
-        .clone();
-      old_chunks.push((
-        chunk.expect_id().to_string(),
-        modules,
-        chunk.runtime.clone(),
-      ));
+    let mut old_chunks: Vec<(String, RuntimeSpec)> = vec![];
+    for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
+      if chunk.kind != ChunkKind::HotUpdate {
+        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime.clone()));
+      }
     }
 
     // build without stats
@@ -134,12 +126,7 @@ where
       self
         .cache
         .set_modified_files(modified_files.iter().cloned().collect::<Vec<_>>());
-      self
-        .plugin_driver
-        .read()
-        .await
-        .resolver_factory
-        .clear_entries();
+      self.plugin_driver.resolver_factory.clear_entries();
 
       let mut new_compilation = Compilation::new(
         // TODO: use Arc<T> instead
@@ -194,15 +181,11 @@ where
       // Fake this compilation as *currently* rebuilding does not create a new compilation
       self
         .plugin_driver
-        .write()
-        .await
         .this_compilation(&mut self.compilation)
         .await?;
 
       self
         .plugin_driver
-        .write()
-        .await
         .compilation(&mut self.compilation)
         .await?;
 
@@ -280,7 +263,7 @@ where
     // TODO: hash
     // if old.hash == now.hash { return  } else { // xxxx}
 
-    for (chunk_id, _old_chunk_modules, old_runtime) in &old_chunks {
+    for (chunk_id, old_runtime) in &old_chunks {
       let mut new_modules = vec![];
       let mut new_runtime_modules = vec![];
       let mut chunk_id = chunk_id.to_string();
@@ -396,8 +379,6 @@ where
         let render_manifest = self
           .compilation
           .plugin_driver
-          .read()
-          .await
           .render_manifest(RenderManifestArgs {
             compilation: &self.compilation,
             chunk_ukey: ukey,

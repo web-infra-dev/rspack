@@ -35,8 +35,8 @@ napi-sys    = { workspace = true }
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 mimalloc-rust = { workspace = true }
 
-[target.'cfg(all(target_os = "linux", not(all(target_env = "musl", target_arch = "aarch64"))))'.dependencies]
-mimalloc-rust = { workspace = true, features = ["local-dynamic-tls"] }
+[target.'cfg(all(target_os = "linux", target_env = "gnu", any(target_arch = "x86_64", target_arch = "aarch64")))'.dependencies]
+tikv-jemallocator = { workspace = true }
 
 [build-dependencies]
 napi-build = { workspace = true }

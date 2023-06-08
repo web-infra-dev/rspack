@@ -63,6 +63,10 @@ impl ModuleDependency for RequireContextDependency {
   fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
     Some(Box::new(self.clone()))
   }
+
+  fn set_request(&mut self, request: String) {
+    self.options.request = request;
+  }
 }
 
 impl CodeGeneratable for RequireContextDependency {

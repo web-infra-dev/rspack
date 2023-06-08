@@ -451,7 +451,7 @@ impl Plugin for CopyPlugin {
   }
 
   async fn process_assets_stage_additional(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     mut args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {
@@ -468,7 +468,7 @@ impl Plugin for CopyPlugin {
         if pattern.context.is_none() {
           pattern.context = Some(args.compilation.options.context.as_path().into());
         } else if let Some(ctx) = pattern.context.clone() && !ctx.is_absolute() {
-          pattern.context = Some(args.compilation.options.context.join(ctx))
+          pattern.context = Some(args.compilation.options.context.as_path().join(ctx))
         };
 
         Self::run_patter(

@@ -14,10 +14,12 @@ use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_identifier::IdentifierSet;
 use rustc_hash::FxHashSet as HashSet;
-use tokio::sync::RwLock;
 use tracing::instrument;
 
-use crate::{cache::Cache, fast_set, CompilerOptions, Plugin, PluginDriver, SharedPluginDriver};
+use crate::{
+  cache::Cache, fast_set, AssetEmittedArgs, CompilerOptions, Plugin, PluginDriver,
+  SharedPluginDriver,
+};
 
 #[derive(Debug)]
 pub struct Compiler<T>
@@ -48,11 +50,11 @@ where
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
-    let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
+    let plugin_driver = Arc::new(PluginDriver::new(
       options.clone(),
       plugins,
       resolver_factory.clone(),
-    )));
+    ));
     let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
@@ -83,12 +85,7 @@ where
     self.cache.end_idle();
     // TODO: clear the outdate cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self
-      .plugin_driver
-      .read()
-      .await
-      .resolver_factory
-      .clear_entries();
+    self.plugin_driver.resolver_factory.clear_entries();
 
     fast_set(
       &mut self.compilation,
@@ -103,20 +100,16 @@ where
       ),
     );
 
-    self.plugin_driver.write().await.before_compile().await?;
+    self.plugin_driver.before_compile().await?;
 
     // Fake this compilation as *currently* rebuilding does not create a new compilation
     self
       .plugin_driver
-      .write()
-      .await
       .this_compilation(&mut self.compilation)
       .await?;
 
     self
       .plugin_driver
-      .write()
-      .await
       .compilation(&mut self.compilation)
       .await?;
 
@@ -144,6 +137,12 @@ where
   async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
+
+    self
+      .plugin_driver
+      .finish_make(&mut self.compilation)
+      .await?;
+
     self.compilation.finish(self.plugin_driver.clone()).await?;
     // by default include all module in final chunk
     self.compilation.include_module_ids = self
@@ -184,13 +183,11 @@ where
 
     self
       .plugin_driver
-      .write()
-      .await
       .after_compile(&mut self.compilation)
       .await?;
 
     // Consume plugin driver diagnostic
-    let plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
+    let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
     self
       .compilation
       .push_batch_diagnostic(plugin_driver_diagnostics);
@@ -235,14 +232,9 @@ where
       }
     }
 
-    self
-      .plugin_driver
-      .write()
-      .await
-      .emit(&mut self.compilation)
-      .await?;
+    self.plugin_driver.emit(&mut self.compilation).await?;
 
-    let _ = self
+    let results = self
       .compilation
       .assets()
       .iter()
@@ -255,13 +247,12 @@ where
         Some(self.emit_asset(&self.options.output.path, filename, asset))
       })
       .collect::<FuturesResults<_>>();
+    // return first error
+    for item in results.into_inner() {
+      item?;
+    }
 
-    self
-      .plugin_driver
-      .write()
-      .await
-      .after_emit(&mut self.compilation)
-      .await
+    self.plugin_driver.after_emit(&mut self.compilation).await
   }
 
   async fn emit_asset(
@@ -296,6 +287,18 @@ where
       }
 
       self.compilation.emitted_assets.insert(filename.to_string());
+
+      let asset_emitted_args = AssetEmittedArgs {
+        filename,
+        output_path,
+        source: source.clone(),
+        target_path: file_path.as_path(),
+        compilation: &self.compilation,
+      };
+      self
+        .plugin_driver
+        .asset_emitted(&asset_emitted_args)
+        .await?;
     }
     Ok(())
   }

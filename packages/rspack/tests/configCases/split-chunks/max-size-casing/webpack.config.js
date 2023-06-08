@@ -7,7 +7,6 @@ module.exports = {
 		newSplitChunks: true
 	},
 	optimization: {
-		chunkIds: "named",
 		splitChunks: {
 			hidePathInfo: false,
 			minSize: 50,

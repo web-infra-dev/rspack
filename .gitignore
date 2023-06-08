@@ -59,6 +59,7 @@ build/Release
 node_modules/
 !scripts/node_modules/
 !webpack-examples/*/node_modules
+!webpack-test/*/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -193,6 +194,13 @@ artifacts
 # Node Addons
 npm/**/*.node
 
+# Npm packages. Include packages for local releases.
+/npm/*
+!npm/darwin-arm64/
+!npm/darwin-x64/
+!npm/linux-x64-gnu/
+!npm/win32-x64-msvc/
+
 # Precompiled config schema
 packages/rspack/src/config/schema.check.js
 justfile
@@ -210,3 +218,4 @@ justfile
 /webpack-examples/**/dist
 
 smoke-example
+

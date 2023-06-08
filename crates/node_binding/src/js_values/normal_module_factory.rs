@@ -15,13 +15,13 @@ pub struct JsResolveForSchemeResult {
 #[napi(object)]
 pub struct BeforeResolveData {
   pub request: String,
-  pub context: Option<String>,
+  pub context: String,
 }
 
 #[napi(object)]
 pub struct AfterResolveData {
   pub request: String,
-  pub context: Option<String>,
+  pub context: String,
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
@@ -59,11 +59,11 @@ impl From<ResourceData> for JsResolveForSchemeInput {
   }
 }
 
-impl From<NormalModuleBeforeResolveArgs<'_>> for BeforeResolveData {
+impl From<NormalModuleBeforeResolveArgs> for BeforeResolveData {
   fn from(value: NormalModuleBeforeResolveArgs) -> Self {
     Self {
-      context: value.context.to_owned(),
-      request: value.request.to_string(),
+      context: value.context,
+      request: value.request,
     }
   }
 }

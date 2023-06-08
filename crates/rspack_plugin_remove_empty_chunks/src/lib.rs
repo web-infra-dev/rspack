@@ -34,7 +34,7 @@ impl RemoveEmptyChunksPlugin {
 #[async_trait::async_trait]
 impl Plugin for RemoveEmptyChunksPlugin {
   async fn optimize_chunks(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {

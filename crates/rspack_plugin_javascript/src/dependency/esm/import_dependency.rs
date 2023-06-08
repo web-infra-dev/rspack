@@ -73,6 +73,10 @@ impl ModuleDependency for ImportDependency {
   fn chunk_name(&self) -> Option<&str> {
     self.name.as_deref()
   }
+
+  fn set_request(&mut self, request: String) {
+    self.request = request.into();
+  }
 }
 
 impl CodeGeneratable for ImportDependency {

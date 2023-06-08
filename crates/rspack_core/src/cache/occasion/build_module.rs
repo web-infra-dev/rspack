@@ -29,7 +29,7 @@ impl BuildModuleOccasion {
     &self,
     module: &'a mut BoxModule,
     generator: G,
-  ) -> Result<TWithDiagnosticArray<BuildResult>>
+  ) -> Result<(Result<TWithDiagnosticArray<BuildResult>>, bool)>
   where
     G: Fn(&'a mut BoxModule) -> F,
     F: Future<Output = Result<TWithDiagnosticArray<BuildResult>>>,
@@ -37,7 +37,7 @@ impl BuildModuleOccasion {
     let storage = match &self.storage {
       Some(s) => s,
       // no cache return directly
-      None => return generator(module).await,
+      None => return Ok((Ok(generator(module).await?), false)),
     };
 
     let mut need_cache = false;
@@ -52,7 +52,7 @@ impl BuildModuleOccasion {
           .await
           .unwrap_or(false);
         if valid {
-          return Ok(data);
+          return Ok((Ok(data), true));
         }
       };
       need_cache = true;
@@ -101,6 +101,6 @@ impl BuildModuleOccasion {
         .await?;
       storage.set(id, (snapshot, data.clone()));
     }
-    Ok(data)
+    Ok((Ok(data), false))
   }
 }
