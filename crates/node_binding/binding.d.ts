@@ -198,6 +198,7 @@ export interface JsHooks {
   afterCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   finishMake: (...args: any[]) => any
+  buildModule: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any

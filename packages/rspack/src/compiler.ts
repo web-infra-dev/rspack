@@ -37,6 +37,7 @@ import { WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
 import Watching from "./watching";
 import { NormalModule } from "./normalModule";
+import { normalizeJsModule } from "./util/normalization";
 
 class EntryPlugin {
 	constructor(
@@ -343,7 +344,8 @@ class Compiler {
 					contextModuleBeforeResolve:
 						this.#contextModuleBeforeResolve.bind(this),
 					succeedModule: this.#succeedModule.bind(this),
-					stillValidModule: this.#stillValidModule.bind(this)
+					stillValidModule: this.#stillValidModule.bind(this),
+					buildModule: this.#buildModule.bind(this)
 				},
 				createThreadsafeNodeFSFromRaw(this.outputFileSystem),
 				loaderContext => runLoader(loaderContext, this)
@@ -606,7 +608,8 @@ class Compiler {
 			beforeResolve: this.compilation.normalModuleFactory?.hooks.beforeResolve,
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
 			succeedModule: this.compilation.hooks.succeedModule,
-			stillValidModule: this.compilation.hooks.stillValidModule
+			stillValidModule: this.compilation.hooks.stillValidModule,
+			buildModule: this.compilation.hooks.buildModule
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook?.taps.length === 0) {
@@ -634,6 +637,12 @@ class Compiler {
 
 	async #finishMake() {
 		await this.hooks.finishMake.promise(this.compilation);
+		this.#updateDisabledHooks();
+	}
+
+	async #buildModule(module: binding.JsModule) {
+		const normalized = normalizeJsModule(module);
+		this.compilation.hooks.buildModule.call(normalized);
 		this.#updateDisabledHooks();
 	}
 
