@@ -48,7 +48,7 @@ export interface RspackOptionsNormalized {
 	stats: StatsValue;
 	optimization: Optimization;
 	plugins: Plugins;
-	experiments: Experiments;
+	experiments: ExperimentsNormalized;
 	watch?: Watch;
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
@@ -611,12 +611,19 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 ///// Experiments /////
 export interface Experiments {
 	lazyCompilation?: boolean;
-	incrementalRebuild?:
-		| boolean
-		| {
-				make?: boolean;
-				emitAsset?: boolean;
-		  };
+	incrementalRebuild?: boolean | IncrementalRebuildOptions;
+	asyncWebAssembly?: boolean;
+	outputModule?: boolean;
+	newSplitChunks?: boolean;
+	css?: boolean;
+}
+export interface IncrementalRebuildOptions {
+	make?: boolean;
+	emitAsset?: boolean;
+}
+export interface ExperimentsNormalized {
+	lazyCompilation?: boolean;
+	incrementalRebuild?: false | IncrementalRebuildOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
