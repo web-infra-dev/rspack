@@ -59,7 +59,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
         .into_iter()
         .filter(|s| {
           if let Some(export_map) = &used_exports {
-            return export_map.contains(&s.1);
+            return export_map.contains(&s.0);
           }
           true
         })
@@ -75,6 +75,9 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
           InitFragmentStage::STAGE_HARMONY_EXPORTS,
           None,
         ));
+      } else {
+        dbg!(&used_exports);
+        dbg!(&self.exports);
       }
     }
   }

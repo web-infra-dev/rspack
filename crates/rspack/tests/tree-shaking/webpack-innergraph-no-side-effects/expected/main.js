@@ -7,7 +7,7 @@ it("should be able to load package without side effects where modules are unused
 "./module.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'test': function() { return test; }});
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'test': function() { return test; }});
 /* harmony import */var _package__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./package */"./package/index.js");
 
 var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE__["a"];

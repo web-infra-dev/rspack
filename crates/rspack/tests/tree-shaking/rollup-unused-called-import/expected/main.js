@@ -9,6 +9,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = function() {
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 /* harmony import */var _dead__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./dead */"./dead.js");
 
 var __WEBPACK_DEFAULT_EXPORT__ = function() {

@@ -30,12 +30,14 @@ _foo__WEBPACK_IMPORTED_MODULE__["useSelector"];
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 function Provider() {}
 var __WEBPACK_DEFAULT_EXPORT__ = Provider;
 },
 "./selector.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return useSelector; }});
 function useSelector() {
     return "";
 }

@@ -8,7 +8,7 @@ __webpack_require__.d(exports, {'answer': function() { return answer; }});
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'render': function() { return render; }});
+__webpack_require__.d(exports, {'render': function() { return render; }, 'default': function() { return result; }});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
  function render() {

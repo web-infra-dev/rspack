@@ -17,6 +17,7 @@ _app__WEBPACK_IMPORTED_MODULE__["something"]();
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
  const secret = "888";
  const result = 20000;
  const something = function() {};

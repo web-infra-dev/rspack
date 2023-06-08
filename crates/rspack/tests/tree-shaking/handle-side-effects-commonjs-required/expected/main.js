@@ -88,7 +88,7 @@ _export(exports, {
 =======
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'_class_call_check': function() { return _class_call_check; }, '_': function() { return _class_call_check; }});
+__webpack_require__.d(exports, {'_class_call_check': function() { return _class_call_check; }});
 /* harmony import */var _swc_helpers_instanceof__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* @swc/helpers/_/_instanceof */"../../../../../node_modules/@swc/helpers/esm/_instanceof.js");
 
  function _class_call_check(instance, Constructor) {
@@ -99,8 +99,12 @@ __webpack_require__.d(exports, {'_class_call_check': function() { return _class_
 "../../../../../node_modules/@swc/helpers/esm/_create_class.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+<<<<<<< HEAD
 __webpack_require__.d(exports, {'_create_class': function() { return _create_class; }, '_': function() { return _create_class; }});
 >>>>>>> b34aeeb84 (fix: add string replace build ast)
+=======
+__webpack_require__.d(exports, {'_create_class': function() { return _create_class; }});
+>>>>>>> e4b030812 (chore: 🤖 update snap)
 function _defineProperties(target, props) {
     for(var i = 0; i < props.length; i++){
         var descriptor = props[i];

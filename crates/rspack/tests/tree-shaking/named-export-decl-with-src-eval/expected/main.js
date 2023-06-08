@@ -2,6 +2,7 @@
 "./Layout.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return Layout; }});
 function Layout() {}
 },
 "./Something.js": function (module, exports, __webpack_require__) {

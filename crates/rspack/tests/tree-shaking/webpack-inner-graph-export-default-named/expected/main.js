@@ -2,6 +2,7 @@
 "./a.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return abc; }});
 /* harmony import */var _dep_a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./dep?a */"./dep.js?a");
 
 function abc() {
@@ -30,6 +31,7 @@ abc();
 "./d.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return def; }});
 /* harmony import */var _dep_d__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./dep?d */"./dep.js?d");
 
 class def {
@@ -41,40 +43,42 @@ class def {
 "./dep.js?a": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return x; }});
+__webpack_require__.d(exports, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?b": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?c": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return x; }});
+__webpack_require__.d(exports, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?d": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return x; }});
+__webpack_require__.d(exports, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?e": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?f": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return x; }});
+__webpack_require__.d(exports, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
