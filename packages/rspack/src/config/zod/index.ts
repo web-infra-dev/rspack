@@ -14,6 +14,7 @@ import { snapshot } from "./snapshot";
 import { output } from "./output";
 import { devtool } from "./devtool";
 import { optimization } from "./optimization";
+import { resolve } from "./resolve";
 
 export function configSchema() {
 	return z
@@ -37,12 +38,12 @@ export function configSchema() {
 			stats: stats().optional(),
 			snapshot: snapshot().optional(),
 			optimization: optimization().optional(),
+			resolve: resolve().optional(),
 			// TODO(hyf0): what's the usage of this?
 			name: z.string().optional(),
 			// TODO
 			devServer: z.object({}).optional(),
 			output: output().optional(),
-			resolve: z.any().optional(),
 			plugins: z.any().optional(),
 			builtins: builtins().optional(),
 			module: z.any().optional()
