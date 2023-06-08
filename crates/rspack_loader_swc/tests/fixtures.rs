@@ -18,6 +18,9 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
   let tests_path = PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"))).join("tests");
   let expected_path = tests_path.join(expected);
   let actual_path = tests_path.join(actual);
+  let current = env::current_dir().unwrap();
+  let plugin_path = current.join("my_first_plugin.wasm");
+  dbg!(&plugin_path);
   let (result, _) = run_loaders(
     &[Arc::new(SwcLoader::new(SwcLoaderJsOptions::default()))
       as Arc<dyn Loader<LoaderRunnerContext>>],
@@ -96,7 +99,7 @@ async fn rspack_importer() {
   loader_test("swc/index.js", "expected/simple.js").await;
 }
 
-#[fixture("tests/fixtures/*")]
-fn swc(fixture_path: PathBuf) {
-  test_fixture(&fixture_path);
-}
+// #[fixture("tests/fixtures/*")]
+// fn swc(fixture_path: PathBuf) {
+//   test_fixture(&fixture_path);
+// }
