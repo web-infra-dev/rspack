@@ -19,8 +19,8 @@ export async function publish_handler(mode, options) {
 		options.tag
 	} --no-git-checks`;
 	const version = await getLastVersion(root);
-	core.setOutput('published-version', version);
-	core.notice(`Published Version: ${version}`);
+	core.setOutput('version', version);
+	core.notice(`Version: ${version}`);
 	/**
 	 * @Todo test stable release later
 	 */
