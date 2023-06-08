@@ -152,7 +152,8 @@ pub fn generate_entry_startup(
       .module_graph_module_by_identifier(module)
       .map(|module| module.id(&compilation.chunk_graph))
     {
-      module_ids.push(module_id);
+      let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+      module_ids.push(module_id_expr);
     }
 
     if let Some(runtime_chunk) = compilation
