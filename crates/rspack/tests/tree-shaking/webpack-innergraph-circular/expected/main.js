@@ -2,8 +2,8 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./inner */"./inner.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
 
 
 it("export should be unused when only unused functions use it", ()=>{

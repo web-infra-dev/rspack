@@ -19,7 +19,7 @@ pub struct HarmonyImportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub import_map: &'a mut ImportMap,
-  pub span_map: FxHashMap<JsWord, Span>,
+  pub imports: Vec<(JsWord, Span, Vec<(JsWord, Option<JsWord>)>)>,
 }
 
 impl<'a> HarmonyImportDependencyScanner<'a> {
@@ -32,7 +32,7 @@ impl<'a> HarmonyImportDependencyScanner<'a> {
       dependencies,
       code_generable_dependencies,
       import_map,
-      span_map: Default::default(),
+      imports: Default::default(),
     }
   }
 }
@@ -50,7 +50,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       &mut ref_dependencies,
     ));
 
-    for (request, span) in std::mem::take(&mut self.span_map) {
+    for (request, span, specifiers) in std::mem::take(&mut self.imports) {
       let refs = ref_dependencies.remove(&request).unwrap_or_default();
       self
         .dependencies
@@ -58,43 +58,45 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           request,
           Some(span.into()),
           refs,
+          specifiers,
           DependencyType::EsmImport,
         )));
     }
   }
 
   fn visit_import_decl(&mut self, import_decl: &ImportDecl) {
+    let mut specifiers = vec![];
     import_decl.specifiers.iter().for_each(|s| match s {
       ImportSpecifier::Named(n) => {
+        let imported = match &n.imported {
+          Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
+          _ => n.local.sym.clone(),
+        };
         self.import_map.insert(
           (n.local.sym.clone(), n.local.span.ctxt),
-          match &n.imported {
-            Some(ModuleExportName::Ident(ident)) => {
-              Some((import_decl.src.value.clone(), Some(ident.sym.to_string())))
-            }
-            _ => Some((import_decl.src.value.clone(), Some(n.local.sym.to_string()))),
-          },
+          Some((import_decl.src.value.clone(), Some(imported.to_string()))),
         );
+        specifiers.push((n.local.sym.clone(), Some(imported)));
       }
       ImportSpecifier::Default(d) => {
         self.import_map.insert(
           (d.local.sym.clone(), d.local.span.ctxt),
           Some((import_decl.src.value.clone(), Some("default".to_string()))),
         );
+        specifiers.push((d.local.sym.clone(), Some("default".into())));
       }
       ImportSpecifier::Namespace(n) => {
         self.import_map.insert(
           (n.local.sym.clone(), n.local.span.ctxt),
           Some((import_decl.src.value.clone(), None)),
         );
+        specifiers.push((n.local.sym.clone(), None));
       }
     });
 
-    if !self.span_map.contains_key(&import_decl.src.value) {
-      self
-        .span_map
-        .insert(import_decl.src.value.clone(), import_decl.span);
-    }
+    self
+      .imports
+      .push((import_decl.src.value.clone(), import_decl.span, specifiers));
 
     self
       .code_generable_dependencies

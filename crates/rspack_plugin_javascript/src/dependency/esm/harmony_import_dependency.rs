@@ -1,9 +1,11 @@
 use rspack_core::{
-  get_import_var, import_statement, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency,
+  get_import_var, import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratable,
+  CodeGeneratableContext, CodeGeneratableResult, CodeReplaceSourceDependency,
+  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, InitFragment, InitFragmentStage,
+  ModuleDependency,
 };
+use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
 
 use super::HarmonyImportSpecifierDependency;
@@ -16,6 +18,7 @@ pub struct HarmonyImportDependency {
   pub id: Option<DependencyId>,
   pub span: Option<ErrorSpan>,
   pub refs: Vec<HarmonyImportSpecifierDependency>,
+  pub specifiers: Vec<(JsWord, Option<JsWord>)>,
   pub dependency_type: DependencyType,
 }
 
@@ -24,6 +27,7 @@ impl HarmonyImportDependency {
     request: JsWord,
     span: Option<ErrorSpan>,
     refs: Vec<HarmonyImportSpecifierDependency>,
+    specifiers: Vec<(JsWord, Option<JsWord>)>,
     dependency_type: DependencyType,
   ) -> Self {
     Self {
@@ -31,6 +35,7 @@ impl HarmonyImportDependency {
       span,
       id: None,
       refs,
+      specifiers,
       dependency_type,
     }
   }
@@ -43,14 +48,58 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
     code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
     let compilation = &code_generatable_context.compilation;
-
+    let module = &code_generatable_context.module;
     let id: DependencyId = self.id().expect("should have dependency id");
 
-    let ref_module = compilation
+    let ref_mgm = compilation
       .module_graph
-      .module_identifier_by_dependency_id(&id)
+      .module_graph_module_by_dependency_id(&id)
       .expect("should have ref module");
-    if !compilation.include_module_ids.contains(ref_module) {
+    if !compilation
+      .include_module_ids
+      .contains(&ref_mgm.module_identifier)
+    {
+      return;
+    }
+
+    let specifiers = self
+      .specifiers
+      .iter()
+      .filter(|(local, imported)| {
+        if !ref_mgm.module_type.is_js_like() {
+          return true;
+        }
+        match imported {
+          None => true,
+          Some(s) => {
+            let symbol = if s == "default" {
+              SymbolRef::Indirect(IndirectTopLevelSymbol {
+                src: ref_mgm.module_identifier,
+                ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
+                importer: module.identifier(),
+              })
+            } else {
+              SymbolRef::Indirect(IndirectTopLevelSymbol {
+                src: ref_mgm.module_identifier,
+                ty: if matches!(self.dependency_type, DependencyType::EsmImport) {
+                  rspack_symbol::IndirectType::Import(local.clone(), imported.clone())
+                } else {
+                  rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone())
+                },
+                importer: module.identifier(),
+              })
+            };
+            compilation.used_symbol_ref.contains(&symbol)
+          }
+        }
+      })
+      .collect::<Vec<_>>();
+
+    if specifiers.is_empty()
+      && compilation
+        .side_effects_free_modules
+        .contains(&ref_mgm.module_identifier)
+    {
       return;
     }
 

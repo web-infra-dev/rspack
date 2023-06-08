@@ -8,8 +8,8 @@ __webpack_require__.d(exports, {'a': function() { return a; }});
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _b_js_x__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b.js?x */"./b.js?x");
 /* harmony import */var _b_jsx__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b.jsx */"./b.jsx");
+/* harmony import */var _b_js_x__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b.js?x */"./b.js?x");
 
 
 _b_js_x__WEBPACK_IMPORTED_MODULE__["a"];

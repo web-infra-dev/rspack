@@ -7,14 +7,12 @@ var __WEBPACK_DEFAULT_EXPORT__ = 300;
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
-_lib__WEBPACK_IMPORTED_MODULE__["a"];
+a;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.js */"./a.js");
 
 
 },

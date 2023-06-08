@@ -3,17 +3,15 @@
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'app': function() { return app; }});
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
  function app() {}
-app.prototype.result = _lib__WEBPACK_IMPORTED_MODULE__["result"];
+app.prototype.result = result;
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
 
-_app__WEBPACK_IMPORTED_MODULE__["app"]();
+app();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

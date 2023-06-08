@@ -18,15 +18,12 @@ __webpack_require__.d(exports, {'b': function() { return b; }});
 "./enum-old.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"./a.js");
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"./b.js");
 
 
 },
 "./enum.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./enum-old */"./enum-old.js");
 __webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE__, exports);
 
 },

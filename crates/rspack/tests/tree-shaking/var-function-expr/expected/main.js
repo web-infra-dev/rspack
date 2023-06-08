@@ -3,16 +3,15 @@
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'app': function() { return app; }});
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 
  var app = function() {
-    _lib__WEBPACK_IMPORTED_MODULE__["result"];
+    result;
 };
  var app2 = ()=>{
-    _lib__WEBPACK_IMPORTED_MODULE__["secret"];
+    secret;
 };
- var app4 = _lib__WEBPACK_IMPORTED_MODULE__["something"]('app4'), app5 = 10000;
- var app3 = _lib__WEBPACK_IMPORTED_MODULE__["something"]('app3');
+ var app4 = something('app4'), app5 = 10000;
+ var app3 = something('app3');
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';

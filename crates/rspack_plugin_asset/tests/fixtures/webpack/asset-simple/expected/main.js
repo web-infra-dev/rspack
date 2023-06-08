@@ -2,9 +2,9 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _images_file_svg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.svg */"./images/file.svg");
 /* harmony import */var _images_file_png__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.png */"./images/file.png");
 /* harmony import */var _images_file_jpg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.jpg */"./images/file.jpg");
+/* harmony import */var _images_file_svg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.svg */"./images/file.svg");
 
 
 

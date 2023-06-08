@@ -9,11 +9,10 @@ __webpack_require__.d(exports, {'something': function() { return something; }});
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return a; }});
-/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./Something.js");
 
 
 var a = function test() {
-    _Something__WEBPACK_IMPORTED_MODULE__["something"];
+    something;
 };
 
 },

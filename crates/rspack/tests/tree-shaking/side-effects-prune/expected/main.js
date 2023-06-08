@@ -2,7 +2,6 @@
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
 __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE__, exports);
 
  // export {
@@ -12,9 +11,8 @@ __webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE__, exports);
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
 
-_app__WEBPACK_IMPORTED_MODULE__["something"](); // a;
+something(); // a;
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

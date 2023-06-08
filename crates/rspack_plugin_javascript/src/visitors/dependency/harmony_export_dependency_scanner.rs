@@ -89,6 +89,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
   fn visit_named_export(&mut self, named_export: &'_ NamedExport) {
     if let Some(src) = &named_export.src {
       let mut ids = vec![];
+      let mut specifiers = vec![];
       named_export
         .specifiers
         .iter()
@@ -96,19 +97,19 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           ExportSpecifier::Namespace(n) => {
             if let ModuleExportName::Ident(export) = &n.name {
               ids.push((export.sym.to_string(), None));
+              specifiers.push((export.sym.clone(), None))
             }
           }
           ExportSpecifier::Default(_) => unreachable!(),
           ExportSpecifier::Named(named) => {
             if let ModuleExportName::Ident(orig) = &named.orig {
-              ids.push((
-                match &named.exported {
-                  Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
-                  None => orig.sym.to_string(),
-                  _ => unreachable!(),
-                },
-                Some(orig.sym.to_string()),
-              ));
+              let exported = match &named.exported {
+                Some(ModuleExportName::Ident(export)) => export.sym.clone(),
+                None => orig.sym.clone(),
+                _ => unreachable!(),
+              };
+              ids.push((exported.to_string(), Some(orig.sym.to_string())));
+              specifiers.push((orig.sym.clone(), Some(exported)))
             }
           }
         });
@@ -126,6 +127,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           src.value.clone(),
           Some(named_export.span.into()),
           vec![],
+          specifiers,
           DependencyType::EsmExport,
         )));
     } else {
@@ -180,6 +182,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       .push(Box::new(HarmonyImportDependency::new(
         export_all.src.value.clone(),
         Some(export_all.span.into()),
+        vec![],
         vec![],
         DependencyType::EsmExport,
       )));

@@ -2,36 +2,35 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
 
 it("should be able to handle circular referenced", ()=>{
-    expect(_module__WEBPACK_IMPORTED_MODULE__["x"]()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["y"],
-        _module__WEBPACK_IMPORTED_MODULE__["z"]
+    expect(x()).toEqual([
+        y,
+        z
     ]);
-    const [_a, b, c, d] = _module__WEBPACK_IMPORTED_MODULE__["a"]();
+    const [_a, b, c, d] = a();
     expect(b()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        a,
         b,
         c,
         d
     ]);
     expect(c()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        a,
         b,
         c,
         d
     ]);
     expect(d()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        a,
         b,
         c,
         d
     ]);
-    const [f2, f4] = _module__WEBPACK_IMPORTED_MODULE__["f3"]();
+    const [f2, f4] = f3();
     const [f1, _f3] = f2();
-    expect(_f3).toBe(_module__WEBPACK_IMPORTED_MODULE__["f3"]);
-    expect(_module__WEBPACK_IMPORTED_MODULE__["f3"]()).toEqual(f1());
+    expect(_f3).toBe(f3);
+    expect(f3()).toEqual(f1());
     expect(f2()).toEqual(f4());
 });
 },
