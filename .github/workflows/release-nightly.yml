@@ -55,6 +55,7 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Release
+        id: release
         run: |
           ./x version snapshot
           ./x publish snapshot --tag nightly
@@ -64,6 +65,8 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           ONLY_RELEASE_TAG: true
+
+  
 
   notify:
     name: Notify if failed

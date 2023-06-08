@@ -1,5 +1,6 @@
 import { getLastVersion } from "./version.mjs";
 import * as core from "@actions/core";
+
 export async function publish_handler(mode, options) {
 	console.log("options:", options);
 	const npmrcPath = `${process.env.HOME}/.npmrc`;
@@ -18,6 +19,8 @@ export async function publish_handler(mode, options) {
 		options.tag
 	} --no-git-checks`;
 	const version = await getLastVersion(root);
+	core.setOutput('published-version', version);
+	core.notice(`Published Version: ${version}`);
 	/**
 	 * @Todo test stable release later
 	 */
