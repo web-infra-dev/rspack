@@ -144,7 +144,7 @@ pub fn compiler() -> Arc<Compiler> {
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
-    let resource_path = loader_context.resource_path;
+    let resource_path = loader_context.resource_path.to_path_buf();
     let content = loader_context
       .content
       .to_owned()
@@ -171,10 +171,9 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
     GLOBALS.set(&Default::default(), || {
       match try_with_handler(c.cm.clone(), Default::default(), |handler| {
         c.run(|| {
-          let fm = c.cm.new_source_file(
-            FileName::Real(resource_path.clone().into()),
-            content.try_into_string()?,
-          );
+          let fm = c
+            .cm
+            .new_source_file(FileName::Real(resource_path), content.try_into_string()?);
           let comments = SingleThreadedComments::default();
 
           let out = match anyhow::Context::context(
