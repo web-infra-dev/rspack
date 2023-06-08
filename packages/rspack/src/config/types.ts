@@ -611,7 +611,12 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 ///// Experiments /////
 export interface Experiments {
 	lazyCompilation?: boolean;
-	incrementalRebuild?: boolean;
+	incrementalRebuild?:
+		| boolean
+		| {
+				make?: boolean;
+				emitAsset?: boolean;
+		  };
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;

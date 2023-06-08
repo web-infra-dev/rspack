@@ -138,7 +138,7 @@ where
         self.cache.clone(),
       );
 
-      let is_incremental_rebuild = self.options.is_incremental_rebuild();
+      let is_incremental_rebuild = self.options.is_make_use_incremental_rebuild();
       if is_incremental_rebuild {
         // copy field from old compilation
         // make stage used

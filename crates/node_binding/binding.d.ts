@@ -534,7 +534,7 @@ export interface RawEntryItem {
 
 export interface RawExperiments {
   lazyCompilation: boolean
-  incrementalRebuild: boolean
+  incrementalRebuild: RawIncrementalRebuild
   asyncWebAssembly: boolean
   newSplitChunks: boolean
   css: boolean
@@ -617,6 +617,11 @@ export interface RawHtmlPluginConfig {
   title?: string
   favicon?: string
   meta?: Record<string, Record<string, string>>
+}
+
+export interface RawIncrementalRebuild {
+  make: boolean
+  emitAsset: boolean
 }
 
 export interface RawLibraryAuxiliaryComment {

@@ -713,9 +713,24 @@ function getRawExperiments(
 			!isNil(newSplitChunks) &&
 			!isNil(css)
 	);
+
+	const rawIncrementalRebuild =
+		typeof incrementalRebuild === "boolean"
+			? {
+					make: incrementalRebuild,
+					emitAsset: incrementalRebuild
+			  }
+			: Object.assign(
+					{
+						make: true,
+						emitAsset: true
+					},
+					incrementalRebuild
+			  );
+
 	return {
 		lazyCompilation,
-		incrementalRebuild,
+		incrementalRebuild: rawIncrementalRebuild,
 		asyncWebAssembly,
 		newSplitChunks,
 		css
