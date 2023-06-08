@@ -80,6 +80,8 @@ pub fn run_before_pass(
       assumptions.set_public_class_fields = true;
     }
 
+    let resource_path = resource_data.resource_path.to_string_lossy();
+
     let mut pass = chain!(
       strict_mode(build_info),
       swc_visitor::resolver(unresolved_mark, top_level_mark, syntax.typescript()),
@@ -154,14 +156,19 @@ pub fn run_before_pass(
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
       // es_version
-      swc_visitor::compat(
-        options.builtins.preset_env.clone(),
-        es_version,
-        assumptions,
-        top_level_mark,
-        unresolved_mark,
-        comments,
-        syntax.typescript()
+      Optional::new(
+        swc_visitor::compat(
+          options.builtins.preset_env.clone(),
+          es_version,
+          assumptions,
+          top_level_mark,
+          unresolved_mark,
+          comments,
+          syntax.typescript()
+        ),
+        !resource_path.contains("@swc/helpers")
+          && !resource_path.contains("tslib")
+          && !resource_path.contains("core-js")
       ),
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers(unresolved_mark),

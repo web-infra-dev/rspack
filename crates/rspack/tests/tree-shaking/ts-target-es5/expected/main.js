@@ -69,17 +69,17 @@ Object.defineProperty(exports, "__generator", {
         return __generator;
     }
 });
-var extendStatics = function extendStatics1(d, b) {
-    extendStatics = Object.setPrototypeOf || _instanceof({
+var extendStatics = function(d, b) {
+    extendStatics = Object.setPrototypeOf || ({
         __proto__: []
-    }, Array) && function(d, b) {
+    }) instanceof Array && function(d, b) {
         d.__proto__ = b;
     } || function(d, b) {
         for(var p in b)if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p];
     };
     return extendStatics(d, b);
 };
-var __assign = function __assign1() {
+var __assign = function() {
     __assign = Object.assign || function __assign(t) {
         for(var s, i = 1, n = arguments.length; i < n; i++){
             s = arguments[i];
@@ -90,15 +90,31 @@ var __assign = function __assign1() {
     return __assign.apply(this, arguments);
 };
 function __generator(thisArg, body) {
-    var verb = function verb(n) {
+    var _ = {
+        label: 0,
+        sent: function() {
+            if (t[0] & 1) throw t[1];
+            return t[1];
+        },
+        trys: [],
+        ops: []
+    }, f, y, t, g;
+    return g = {
+        next: verb(0),
+        "throw": verb(1),
+        "return": verb(2)
+    }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
+        return this;
+    }), g;
+    function verb(n) {
         return function(v) {
             return step([
                 n,
                 v
             ]);
         };
-    };
-    var step = function step(op) {
+    }
+    function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
         while(g && (g = 0, op[0] && (_ = 0)), _)try {
             if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
@@ -166,30 +182,14 @@ function __generator(thisArg, body) {
             value: op[0] ? op[1] : void 0,
             done: true
         };
-    };
-    var _ = {
-        label: 0,
-        sent: function sent() {
-            if (t[0] & 1) throw t[1];
-            return t[1];
-        },
-        trys: [],
-        ops: []
-    }, f, y, t, g;
-    return g = {
-        next: verb(0),
-        "throw": verb(1),
-        "return": verb(2)
-    }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
-        return this;
-    }), g;
+    }
 }
-Object.create ? function __createBinding(o, m, k, k2) {
+Object.create ? function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
     if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) desc = {
         enumerable: true,
-        get: function get() {
+        get: function() {
             return m[k];
         }
     };
@@ -198,7 +198,7 @@ Object.create ? function __createBinding(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 };
-Object.create ? function __setModuleDefault(o, v) {
+Object.create ? function(o, v) {
     Object.defineProperty(o, "default", {
         enumerable: true,
         value: v
