@@ -1,16 +1,18 @@
 use std::{collections::HashMap, sync::Arc};
 
-use napi::JsString;
+use derivative::Derivative;
+use napi::{Either, JsString};
 use napi_derive::napi;
 use rspack_core::SourceType;
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
 
-type Chunks = crate::js_values::union::Union<JsRegExp, JsString>;
+type Chunks = Either<JsRegExp, JsString>;
 
-#[derive(Debug, Deserialize)]
+#[derive(Derivative, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+#[derivative(Debug)]
 pub struct RawSplitChunksOptions {
   pub fallback_cache_group: Option<RawFallbackCacheGroupOptions>,
   pub name: Option<String>,
@@ -18,6 +20,7 @@ pub struct RawSplitChunksOptions {
   /// What kind of chunks should be selected.
   #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
+  #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
   //   pub automatic_name_delimiter: String,
   pub max_async_requests: Option<u32>,
@@ -45,7 +48,10 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
       enforce_size_threshold: value.enforce_size_threshold,
       min_remaining_size: value.min_remaining_size,
       chunks: value.chunks.map(|chunks| {
-        let chunks = chunks.expect_right().into_string();
+        let Either::B(chunks) = chunks else {
+          panic!("expected string")
+        };
+        let chunks = chunks.into_string();
         match chunks.as_str() {
           "initial" => ChunkType::Initial,
           "async" => ChunkType::Async,
@@ -81,7 +87,10 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
                   f
                 }),
                 chunks: v.chunks.map(|chunks| {
-                  let chunks = chunks.expect_right().into_string();
+                  let Either::B(chunks) = chunks else {
+                    panic!("expected string")
+                  };
+                  let chunks = chunks.into_string();
                   match chunks.as_str() {
                     "initial" => ChunkType::Initial,
                     "async" => ChunkType::Async,
@@ -99,9 +108,10 @@ impl From<RawSplitChunksOptions> for SplitChunksOptions {
   }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Derivative, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+#[derivative(Debug)]
 pub struct RawCacheGroupOptions {
   pub priority: Option<i32>,
   // pub reuse_existing_chunk: Option<bool>,
@@ -113,6 +123,7 @@ pub struct RawCacheGroupOptions {
   /// What kind of chunks should be selected.
   #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
+  #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
   //   pub automatic_name_delimiter: String,
   //   pub max_async_requests: usize,
@@ -135,18 +146,15 @@ pub struct RawCacheGroupOptions {
 
 use rspack_plugin_split_chunks_new as new_split_chunks_plugin;
 
-use crate::{
-  ext::js_string_ext::JsStringExt,
-  js_values::{js_reg_exp::JsRegExp, union::Union},
-};
+use crate::{ext::js_string_ext::JsStringExt, js_values::js_reg_exp::JsRegExp};
 
 fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFilter {
   match raw {
-    Union::Left(reg) => {
+    Either::A(reg) => {
       let reg = reg.source();
       rspack_plugin_split_chunks_new::create_regex_chunk_filter_from_str(&reg)
     }
-    Union::Right(str) => {
+    Either::B(str) => {
       let str = str.into_string();
       rspack_plugin_split_chunks_new::create_chunk_filter_from_str(&str)
     }
@@ -282,12 +290,14 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
   }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Deserialize, Default, Derivative)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
+#[derivative(Debug)]
 pub struct RawFallbackCacheGroupOptions {
   #[serde(skip_deserializing)]
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
+  #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
   pub min_size: Option<f64>,
   pub max_size: Option<f64>,

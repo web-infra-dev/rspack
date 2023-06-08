@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use napi::{JsObject, NapiRaw, NapiValue};
+use napi::{
+  bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
+  JsObject, NapiRaw, NapiValue,
+};
 
 pub struct JsRegExp(JsObject);
 
@@ -25,14 +28,25 @@ impl NapiRaw for JsRegExp {
   }
 }
 
-impl NapiValue for JsRegExp {
-  unsafe fn from_raw(env: napi::sys::napi_env, value: napi::sys::napi_value) -> napi::Result<Self> {
-    let js_object = JsObject::from_raw(env, value)?;
+impl FromNapiValue for JsRegExp {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    let js_object = JsObject::from_raw(env, napi_val)?;
     // TODO(hyf0): we should do dome validation here. Such as make sure the type of the Object is `[object RegExp]`
     Ok(Self(js_object))
   }
+}
 
-  unsafe fn from_raw_unchecked(env: napi::sys::napi_env, value: napi::sys::napi_value) -> Self {
-    Self::from_raw(env, value).expect("Should not failed")
+impl TypeName for JsRegExp {
+  fn type_name() -> &'static str {
+    "RegExp"
+  }
+
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Object
   }
 }
+
+impl ValidateNapiValue for JsRegExp {}
