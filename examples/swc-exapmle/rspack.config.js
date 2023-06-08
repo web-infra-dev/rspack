@@ -1,5 +1,4 @@
 const path = require("path");
-let plugin = path.join(__dirname,'my_first_plugin.wasm')
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	entry: {
@@ -8,7 +7,6 @@ const config = {
 	module: {
 		rules: [{
 			test: /\.jsx$/,
-
 			use: {
 				loader: "builtin:swc-loader",
 				options: {
@@ -18,11 +16,6 @@ const config = {
 						parser: {
 							syntax: "ecmascript",
 							jsx: true,
-						},
-						experimental:{
-							plugins:[
-								[plugin,{}]
-							]
 						},
 						transform: {
 							react: {
