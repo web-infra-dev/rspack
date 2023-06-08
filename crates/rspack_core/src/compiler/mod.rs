@@ -280,7 +280,7 @@ where
         .write(&file_path, source.buffer())
         .await?;
 
-      if !asset.info.version.is_empty() {
+      if !asset.info.version.is_empty() && self.options.experiments.incremental_rebuild.emit_asset {
         self
           .emitted_asset_versions
           .insert(filename.to_string(), asset.info.version.clone());

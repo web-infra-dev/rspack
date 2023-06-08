@@ -14,9 +14,6 @@
       "path": "../rspack"
     },
     {
-      "path": "../rspack-dev-middleware"
-    },
-    {
       "path": "../rspack-dev-server"
     }
   ]

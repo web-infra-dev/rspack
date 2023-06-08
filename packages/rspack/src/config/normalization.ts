@@ -229,7 +229,11 @@ export const getNormalizedRspackOptions = (
 		}),
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments
+			...experiments,
+			incrementalRebuild: optionalNestedConfig(
+				experiments.incrementalRebuild,
+				options => (options === true ? {} : options)
+			)
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),

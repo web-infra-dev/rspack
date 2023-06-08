@@ -26,7 +26,7 @@ pub struct CompilerOptions {
 }
 
 impl CompilerOptions {
-  pub fn is_incremental_rebuild(&self) -> bool {
-    self.experiments.incremental_rebuild && !matches!(self.cache, CacheOptions::Disabled)
+  pub fn is_make_use_incremental_rebuild(&self) -> bool {
+    self.experiments.incremental_rebuild.make && !matches!(self.cache, CacheOptions::Disabled)
   }
 }

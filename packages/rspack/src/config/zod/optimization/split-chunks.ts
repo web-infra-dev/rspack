@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 function chunks() {
-	return z.enum(["initial", "async", "all"]);
+	return z.enum(["initial", "async", "all"]).or(z.instanceof(RegExp));
 }
 
 function name() {

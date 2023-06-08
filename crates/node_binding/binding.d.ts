@@ -364,12 +364,6 @@ export interface JsStatsWarning {
   formatted: string
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface PathData {
   filename?: string
   hash?: string
@@ -471,7 +465,7 @@ export interface RawCacheGroupOptions {
   priority?: number
   test?: string
   /** What kind of chunks should be selected. */
-  chunks?: string
+  chunks?: RegExp | 'async' | 'initial' | 'all'
   minChunks?: number
   minSize?: number
   maxSize?: number
@@ -534,7 +528,7 @@ export interface RawEntryItem {
 
 export interface RawExperiments {
   lazyCompilation: boolean
-  incrementalRebuild: boolean
+  incrementalRebuild: RawIncrementalRebuild
   asyncWebAssembly: boolean
   newSplitChunks: boolean
   css: boolean
@@ -576,7 +570,7 @@ export interface RawExternalsPresets {
 }
 
 export interface RawFallbackCacheGroupOptions {
-  chunks?: string
+  chunks?: RegExp | 'async' | 'initial' | 'all'
   minSize?: number
   maxSize?: number
   maxAsyncSize?: number
@@ -617,6 +611,11 @@ export interface RawHtmlPluginConfig {
   title?: string
   favicon?: string
   meta?: Record<string, Record<string, string>>
+}
+
+export interface RawIncrementalRebuild {
+  make: boolean
+  emitAsset: boolean
 }
 
 export interface RawLibraryAuxiliaryComment {
@@ -892,7 +891,7 @@ export interface RawSplitChunksOptions {
   name?: string
   cacheGroups?: Record<string, RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
-  chunks?: string
+  chunks?: RegExp | 'async' | 'initial' | 'all'
   maxAsyncRequests?: number
   maxInitialRequests?: number
   minChunks?: number
@@ -917,13 +916,5 @@ export interface RawStyleConfig {
 
 export interface RawTrustedTypes {
   policyName?: string
-}
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
 }
 

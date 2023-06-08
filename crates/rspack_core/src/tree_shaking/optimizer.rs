@@ -59,7 +59,7 @@ impl<'a> CodeSizeOptimizer<'a> {
   }
 
   pub async fn run(&mut self) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let is_incremental_rebuild = self.compilation.options.is_incremental_rebuild();
+    let is_incremental_rebuild = self.compilation.options.is_make_use_incremental_rebuild();
     let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
     let analyze_result_map = par_analyze_module(self.compilation).await;
     let mut finalized_result_map = if is_incremental_rebuild {
