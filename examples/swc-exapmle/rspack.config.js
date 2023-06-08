@@ -29,7 +29,7 @@ const config = {
 					},
 				},
 			},
-			type: 'jsx',
+			type: "javascript/auto",
 		},
 			{
 				test: /\.(png|svg|jpg)$/,

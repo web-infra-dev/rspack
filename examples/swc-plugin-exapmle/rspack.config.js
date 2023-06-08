@@ -20,19 +20,19 @@ const config = {
 							syntax: "ecmascript",
 							jsx: true,
 						},
-						experimental:{
-							plugins:[
-								[
-									"@swc/plugin-styled-components",
-									{
-										"displayName": true,
-										"ssr": true,
-										"fileName":true,
-										"namespace": "my-app"
-									}
-								]
-							]
-						},
+						// experimental:{
+						// 	plugins:[
+						// 		[
+						// 			"@swc/plugin-styled-components",
+						// 			{
+						// 				"displayName": true,
+						// 				"ssr": true,
+						// 				"fileName":true,
+						// 				"namespace": "my-app"
+						// 			}
+						// 		]
+						// 	]
+						// },
 						transform: {
 							react: {
 								pragma: "React.createElement",
@@ -45,7 +45,7 @@ const config = {
 					},
 				},
 			},
-			type: 'jsx',
+			type: "javascript/auto",
 		},
 			{
 				test: /\.(png|svg|jpg)$/,
