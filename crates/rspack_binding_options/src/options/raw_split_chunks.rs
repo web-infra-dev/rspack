@@ -235,7 +235,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
               .name
               .map(new_split_chunks_plugin::create_chunk_name_getter_by_const_name)
               .unwrap_or_else(|| overall_name_getter.clone()),
-            priority: v.priority.unwrap_or(-20) as f64,
+            priority: v.priority.unwrap_or(0) as f64,
             test: new_split_chunks_plugin::create_module_filter(v.test.clone()),
             chunk_filter: v.chunks.map(create_chunks_filter).unwrap_or_else(|| {
               overall_chunk_filter
