@@ -18,3 +18,4 @@ rspack_hash              = { path = "../rspack_hash" }
 rspack_identifier        = { path = "../rspack_identifier" }
 rspack_plugin_javascript = { path = "../rspack_plugin_javascript" }
 rustc-hash               = { workspace = true }
+serde_json               = { workspace = true }

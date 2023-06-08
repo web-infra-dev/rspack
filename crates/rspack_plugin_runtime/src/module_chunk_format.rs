@@ -178,7 +178,7 @@ impl Plugin for ModuleChunkFormatPlugin {
           ));
         }
         startup_source.push(format!(
-          "{}__webpack_exec__('{module_id}');",
+          "{}__webpack_exec__(\"{module_id}\");",
           if i + 1 == entries.len() {
             "var __webpack_exports__ = "
           } else {

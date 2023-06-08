@@ -1,4 +1,6 @@
 import a from 'data:text/javascript,export default "a";';
+import b from "data:text/javascript,export default 'b';";
+import c from "data:text/javascript,export default `c`;";
 import "data:text/css,.red{color: red;}";
 import "./index.css";
 import inlineSvg from 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>';
@@ -7,6 +9,8 @@ import path from "node:path";
 
 it("data imports", () => {
 	expect(a).toBe("a");
+	expect(b).toBe("b");
+	expect(c).toBe("c");
 	expect(fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8"))
 		.toBe(`.red {
   color: red;
