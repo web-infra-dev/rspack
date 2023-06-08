@@ -17,13 +17,12 @@ var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE__["a"];
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'a': function() { return a; }});
-/* harmony import */var _unusedModule__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./unusedModule */"./package/unusedModule.js");
 
  function a() {
     return 42;
 }
  function b() {
-    return _unusedModule__WEBPACK_IMPORTED_MODULE__["default"];
+    return value;
 }
 },
 

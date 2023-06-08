@@ -3,7 +3,6 @@
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'answer': function() { return answer; }});
-/* harmony import */var _a_index__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a/index */"./a/index.js");
 
  const answer = 42;
 },

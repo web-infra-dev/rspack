@@ -42,7 +42,17 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
     source: &mut CodeReplaceSourceDependencyReplaceSource,
     code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
+    let compilation = &code_generatable_context.compilation;
+
     let id: DependencyId = self.id().expect("should have dependency id");
+
+    let ref_module = compilation
+      .module_graph
+      .module_identifier_by_dependency_id(&id)
+      .expect("should have ref module");
+    if !compilation.include_module_ids.contains(ref_module) {
+      return;
+    }
 
     self
       .refs

@@ -26,7 +26,6 @@ _tracker__WEBPACK_IMPORTED_MODULE__["track"]("c.js");
 'use strict';
 __webpack_require__.r(exports);
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"../node_modules/pmodule/a.js");
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"../node_modules/pmodule/b.js");
 
 

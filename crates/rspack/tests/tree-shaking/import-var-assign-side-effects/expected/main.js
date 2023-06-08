@@ -10,7 +10,6 @@ class Something {
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE__["default"]; }});
 /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./Something.js");
-/* harmony import */var _layout_export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./layout_export */"./layout_export.js");
 
 
 
