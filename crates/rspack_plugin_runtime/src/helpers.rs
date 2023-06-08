@@ -189,7 +189,7 @@ pub fn generate_entry_startup(
 
   let module_ids_code = &module_ids
     .iter()
-    .map(|id: &&str| format!("__webpack_exec__(\"{id}\")"))
+    .map(|id| format!("__webpack_exec__(\"{id}\")"))
     .collect::<Vec<_>>()
     .join(", ");
   if chunks_ids.is_empty() {

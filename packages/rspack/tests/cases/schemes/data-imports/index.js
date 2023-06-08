@@ -7,10 +7,15 @@ import inlineSvg from 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg
 import fs from "node:fs";
 import path from "node:path";
 
+import('data:text/javascript,global.d = "d";');
+import("data:text/javascript,global.e = 'e';");
+import("data:text/javascript,global.f = `f`;");
+
 it("data imports", () => {
 	expect(a).toBe("a");
 	expect(b).toBe("b");
 	expect(c).toBe("c");
+
 	expect(fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8"))
 		.toBe(`.red {
   color: red;
