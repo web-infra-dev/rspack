@@ -535,7 +535,7 @@ impl TestConfig {
     );
     plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
-        parse_options: options.module.parser.as_ref().and_then(|x| x.asset.clone()),
+        parse_options: None,
       })
       .boxed(),
     );

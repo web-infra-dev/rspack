@@ -159,6 +159,11 @@ export const getNormalizedRspackOptions = (
 				cloneObject,
 				{}
 			),
+			generator: keyedNestedConfig(
+				module.generator as Record<string, any>,
+				cloneObject,
+				{}
+			),
 			defaultRules: optionalNestedArray(module.defaultRules, r => [...r]),
 			rules: nestedArray(module.rules, r => [...r])
 		})),

@@ -286,6 +286,7 @@ export interface ModuleOptions {
 	defaultRules?: RuleSetRules;
 	rules?: RuleSetRules;
 	parser?: ParserOptionsByModuleType;
+	generator?: GeneratorOptionsByModuleType;
 }
 export type RuleSetRules = ("..." | RuleSetRule)[];
 export interface RuleSetRule {
@@ -351,16 +352,38 @@ export interface ParserOptionsByModuleTypeKnown {
 	asset?: AssetParserOptions;
 }
 export interface AssetParserOptions {
-	dataUrlCondition?: AssetParserDataUrlOptions;
+	dataUrlCondition?: AssetParserDataUrl;
 }
+export type AssetParserDataUrl = AssetParserDataUrlOptions;
 export interface AssetParserDataUrlOptions {
 	maxSize?: number;
+}
+export type GeneratorOptionsByModuleType = GeneratorOptionsByModuleTypeKnown;
+export interface GeneratorOptionsByModuleTypeKnown {
+	asset?: AssetGeneratorOptions;
+	"asset/inline"?: AssetInlineGeneratorOptions;
+	"asset/resource"?: AssetResourceGeneratorOptions;
+}
+export type AssetGeneratorOptions = AssetInlineGeneratorOptions &
+	AssetResourceGeneratorOptions;
+export interface AssetInlineGeneratorOptions {
+	dataUrl?: AssetGeneratorDataUrl;
+}
+export type AssetGeneratorDataUrl = AssetGeneratorDataUrlOptions;
+export interface AssetGeneratorDataUrlOptions {
+	encoding?: false | "base64";
+	mimetype?: string;
+}
+export interface AssetResourceGeneratorOptions {
+	filename?: FilenameTemplate;
+	publicPath?: RawPublicPath;
 }
 
 export interface ModuleOptionsNormalized {
 	defaultRules?: RuleSetRules;
 	rules: RuleSetRules;
 	parser: ParserOptionsByModuleType;
+	generator: GeneratorOptionsByModuleType;
 }
 
 export type AvailableTarget =

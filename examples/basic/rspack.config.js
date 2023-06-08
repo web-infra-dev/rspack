@@ -10,7 +10,7 @@ const config = {
 			{
 				template: "./index.html"
 			}
-		],
+		]
 	}
 };
 module.exports = config;

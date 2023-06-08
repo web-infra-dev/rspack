@@ -23,10 +23,10 @@ it("data imports", () => {
 
 
 .class {
-  a: url("2c6053f86393fdda.svg");
-  b: url("2c6053f86393fdda.svg");
-  c: url("2c6053f86393fdda");
-  d: url("2c6053f86393fdda");
+  a: url("82ee8285df64be76.svg");
+  b: url("82ee8285df64be76.svg");
+  c: url("82ee8285df64be76");
+  d: url("82ee8285df64be76");
 }`);
 	expect(inlineSvg).toBe(
 		'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>'
