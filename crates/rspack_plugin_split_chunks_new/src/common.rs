@@ -33,6 +33,13 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
   }
 }
 
+pub fn create_regex_chunk_filter_from_str(regex: &str) -> ChunkFilter {
+  let re =
+    rspack_regex::RspackRegex::new(regex).unwrap_or_else(|_| panic!("Invalid regex: {regex}"));
+
+  Arc::new(move |chunk, _| chunk.name.as_ref().map_or(false, |name| re.test(name)))
+}
+
 pub type ModuleFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
 
 fn create_default_module_filter() -> ModuleFilter {
