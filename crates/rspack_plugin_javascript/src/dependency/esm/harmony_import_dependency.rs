@@ -69,29 +69,33 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
         if !ref_mgm.module_type.is_js_like() {
           return true;
         }
-        match imported {
-          None => true, // namespace
-          Some(s) => {
-            let symbol = if s == "default" {
-              SymbolRef::Indirect(IndirectTopLevelSymbol {
+
+        if let Some(imported) = imported {
+          if imported == "namespace" {
+            return true;
+          }
+          if imported == "default" {
+            return compilation.used_symbol_ref.contains(&SymbolRef::Indirect(
+              IndirectTopLevelSymbol {
                 src: ref_mgm.module_identifier,
                 ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
                 importer: module.identifier(),
-              })
-            } else {
-              SymbolRef::Indirect(IndirectTopLevelSymbol {
-                src: ref_mgm.module_identifier,
-                ty: if matches!(self.dependency_type, DependencyType::EsmImport) {
-                  rspack_symbol::IndirectType::Import(local.clone(), imported.clone())
-                } else {
-                  rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone())
-                },
-                importer: module.identifier(),
-              })
-            };
-            compilation.used_symbol_ref.contains(&symbol)
+              },
+            ));
           }
         }
+
+        compilation
+          .used_symbol_ref
+          .contains(&SymbolRef::Indirect(IndirectTopLevelSymbol {
+            src: ref_mgm.module_identifier,
+            ty: if matches!(self.dependency_type, DependencyType::EsmImport) {
+              rspack_symbol::IndirectType::Import(local.clone(), imported.clone())
+            } else {
+              rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone())
+            },
+            importer: module.identifier(),
+          }))
       })
       .collect::<Vec<_>>();
 
