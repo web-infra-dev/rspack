@@ -360,7 +360,24 @@ module.exports = {
 				},
 				incrementalRebuild: {
 					description: "Rebuild incrementally",
-					type: "boolean"
+					anyOf: [
+						{
+							type: "boolean"
+						},
+						{
+							type: "object",
+							properties: {
+								make: {
+									description: "Make stage enable incremental rebuild",
+									type: "boolean"
+								},
+								emitAsset: {
+									description: "Emit asset enable incremental rebuild",
+									type: "boolean"
+								}
+							}
+						}
+					]
 				},
 				lazyCompilation: {
 					description:

@@ -23,6 +23,7 @@ import type {
 	AvailableTarget,
 	Context,
 	Experiments,
+	ExperimentsNormalized,
 	ExternalsPresets,
 	InfrastructureLogging,
 	Mode,
@@ -141,12 +142,17 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (experiments: Experiments) => {
-	D(experiments, "incrementalRebuild", true);
+const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+	D(experiments, "incrementalRebuild", {});
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+
+	if (typeof experiments.incrementalRebuild === "object") {
+		D(experiments.incrementalRebuild, "make", true);
+		D(experiments.incrementalRebuild, "emitAsset", true);
+	}
 };
 
 const applySnapshotDefaults = (

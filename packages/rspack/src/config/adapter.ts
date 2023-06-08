@@ -6,18 +6,15 @@ import {
 	RawOptions,
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions,
-	RawBannerConditions,
-	RawBannerCondition,
 	RawGeneratorOptions,
 	RawAssetGeneratorOptions,
 	RawParserOptions,
-	RawAssetGeneratorDataUrlOptions,
 	RawAssetParserOptions,
-	RawAssetParserDataUrlOptions,
 	RawAssetParserDataUrl,
 	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
-	RawAssetResourceGeneratorOptions
+	RawAssetResourceGeneratorOptions,
+	RawIncrementalRebuild
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../compiler";
@@ -29,11 +26,8 @@ import {
 	createRawModuleRuleUses
 } from "./adapter-rule-use";
 import {
-	BannerConditions,
-	BannerCondition,
 	CrossOriginLoading,
 	EntryNormalized,
-	Experiments,
 	ExternalItem,
 	ExternalItemValue,
 	Externals,
@@ -58,7 +52,9 @@ import {
 	AssetParserDataUrl,
 	AssetParserOptions,
 	ParserOptionsByModuleType,
-	GeneratorOptionsByModuleType
+	GeneratorOptionsByModuleType,
+	ExperimentsNormalized,
+	IncrementalRebuildOptions
 } from "./types";
 import { SplitChunksConfig } from "./zod/optimization/split-chunks";
 
@@ -697,7 +693,7 @@ function getRawSnapshotOptions(
 }
 
 function getRawExperiments(
-	experiments: Experiments
+	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
 	const {
 		lazyCompilation,
@@ -713,12 +709,30 @@ function getRawExperiments(
 			!isNil(newSplitChunks) &&
 			!isNil(css)
 	);
+
 	return {
 		lazyCompilation,
-		incrementalRebuild,
+		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
 		css
+	};
+}
+
+function getRawIncrementalRebuild(
+	inc: false | IncrementalRebuildOptions
+): RawIncrementalRebuild {
+	if (inc === false) {
+		return {
+			make: false,
+			emitAsset: false
+		};
+	}
+	const { make, emitAsset } = inc;
+	assert(!isNil(make) && !isNil(emitAsset));
+	return {
+		make,
+		emitAsset
 	};
 }
 
