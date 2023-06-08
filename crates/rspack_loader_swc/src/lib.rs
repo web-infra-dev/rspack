@@ -3,7 +3,6 @@
 use std::default::Default;
 use std::sync::Arc;
 
-use once_cell::sync::Lazy;
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
 use rspack_error::{errors_to_diagnostics, internal_error, Error, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
@@ -130,16 +129,6 @@ impl SwcLoader {
     }
   }
 }
-
-/// Get global sourcemap
-// pub fn compiler() -> Arc<Compiler> {
-//   static C: Lazy<Arc<Compiler>> = Lazy::new(|| {
-//     let cm = Arc::new(swc_core::common::SourceMap::new(FilePathMapping::empty()));
-//     Arc::new(Compiler::new(cm))
-//   });
-//
-//   C.clone()
-// }
 
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
