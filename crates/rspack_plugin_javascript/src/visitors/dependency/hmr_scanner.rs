@@ -101,38 +101,33 @@ impl VisitAstPath for HmrDependencyScanner<'_> {
       let Some(first_arg) = node.args.get(0) else {
         return ;
       };
-      ast_path.with(
-        AstParentNodeRef::CallExpr(node, CallExprField::Args(0)),
-        |ast_path| match first_arg.expr.as_ref() {
-          Expr::Lit(Lit::Str(s)) => {
-            ast_path.with(
-              AstParentNodeRef::ExprOrSpread(first_arg, ExprOrSpreadField::Expr),
-              |ast_path| {
-                ast_path.with(
-                  AstParentNodeRef::Expr(first_arg.expr.as_ref(), ExprField::Lit),
-                  |ast_path| {
-                    s.visit_with_path(this, ast_path);
-                  },
-                )
-              },
-            );
-          }
-          Expr::Array(arr) => {
-            ast_path.with(
-              AstParentNodeRef::ExprOrSpread(first_arg, ExprOrSpreadField::Expr),
-              |ast_path| {
-                ast_path.with(
-                  AstParentNodeRef::Expr(first_arg.expr.as_ref(), ExprField::Array),
-                  |ast_path| {
-                    arr.visit_with_path(this, ast_path);
-                  },
-                )
-              },
-            );
-          }
-          _ => {}
-        },
-      );
+      ast_path.with_guard(AstParentNodeRef::CallExpr(node, CallExprField::Args(0)));
+
+      match first_arg.expr.as_ref() {
+        Expr::Lit(Lit::Str(s)) => {
+          ast_path.with_guard(AstParentNodeRef::ExprOrSpread(
+            first_arg,
+            ExprOrSpreadField::Expr,
+          ));
+          ast_path.with_guard(AstParentNodeRef::Expr(
+            first_arg.expr.as_ref(),
+            ExprField::Lit,
+          ));
+          s.visit_with_path(this, ast_path);
+        }
+        Expr::Array(arr) => {
+          ast_path.with_guard(AstParentNodeRef::ExprOrSpread(
+            first_arg,
+            ExprOrSpreadField::Expr,
+          ));
+          ast_path.with_guard(AstParentNodeRef::Expr(
+            first_arg.expr.as_ref(),
+            ExprField::Array,
+          ));
+          arr.visit_with_path(this, ast_path);
+        }
+        _ => {}
+      }
     };
 
     if is_module_hot_accept_call(node) {
