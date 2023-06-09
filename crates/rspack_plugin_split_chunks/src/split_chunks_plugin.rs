@@ -262,7 +262,7 @@ impl SplitChunksPlugin {
         name,
         sizes: Default::default(),
         chunks: Default::default(),
-        _reuseable_chunks: Default::default(),
+        _reusable_chunks: Default::default(),
       });
     let old_size = info.modules.len();
     info.modules.insert(module.identifier());

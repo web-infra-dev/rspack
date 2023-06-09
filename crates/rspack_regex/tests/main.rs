@@ -13,26 +13,6 @@ use swc_core::{
   },
 };
 
-#[cfg(test)]
-mod test_regex {
-
-  use rspack_regex::RspackRegex;
-
-  use super::*;
-
-  #[test]
-  fn test_basic() {
-    // should not panic
-
-    assert!(RspackRegex::with_flags("test\\\\", "").is_ok());
-  }
-  #[test]
-  fn test_js_regex() {
-    regex_assert("assert_match(/test.*/,'testaaaaaaa')");
-    regex_assert("assert_none_match(/test.*/,'tesaaaaaaa')");
-  }
-}
-
 enum AssertType {
   False,
   True,
@@ -83,4 +63,24 @@ fn regex_assert(code: &str) {
     }
     Ok(())
   });
+}
+
+#[cfg(test)]
+mod test_regex {
+
+  use rspack_regex::RspackRegex;
+
+  use super::*;
+
+  #[test]
+  fn test_basic() {
+    // should not panic
+
+    assert!(RspackRegex::with_flags("test\\\\", "").is_ok());
+  }
+  #[test]
+  fn test_js_regex() {
+    regex_assert("assert_match(/test.*/,'testaaaaaaa')");
+    regex_assert("assert_none_match(/test.*/,'tesaaaaaaa')");
+  }
 }

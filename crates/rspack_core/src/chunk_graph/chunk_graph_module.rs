@@ -87,7 +87,7 @@ impl ChunkGraph {
     runtime: &RuntimeSpec,
     runtime_requirements: RuntimeGlobals,
   ) {
-    let mut cgm = self.get_chunk_graph_module_mut(module_identifier);
+    let cgm = self.get_chunk_graph_module_mut(module_identifier);
 
     if let Some(runtime_requirements_map) = &mut cgm.runtime_requirements {
       if let Some(value) = runtime_requirements_map.get_mut(runtime) {

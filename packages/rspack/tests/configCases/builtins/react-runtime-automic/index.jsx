@@ -1,5 +1,5 @@
 const element = <div></div>;
 
-it("react automic", () => {
+it("react automatic", () => {
 	expect(element.type).toBe("div");
 });
