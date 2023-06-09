@@ -77,8 +77,8 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
           None,
         ));
       } else {
-        dbg!(&used_exports);
-        dbg!(&self.exports);
+        // dbg!(&used_exports);
+        // dbg!(&self.exports);
       }
     }
   }
