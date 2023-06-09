@@ -9,6 +9,7 @@ use rspack_error::internal_error;
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r"^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
 });
+const IE_FIX_SUFFIX: &str = "?#iefix";
 
 #[derive(Debug)]
 pub struct DataUriPlugin;
@@ -59,6 +60,10 @@ impl Plugin for DataUriPlugin {
       let is_base64 = captures.get(3).is_some();
       if is_base64 {
         let base64 = rspack_base64::base64::Base64::new();
+        let mut body = body.trim();
+        if body.trim().ends_with("?#iefix") {
+          body = &body[..body.len()-IE_FIX_SUFFIX.len()]
+        }
         return Ok(Some(Content::Buffer(base64.decode_to_vec(body.trim()).map_err(|e| internal_error!(e.to_string()))?)))
       }
       if !body.is_ascii() {
