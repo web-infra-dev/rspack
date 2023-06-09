@@ -143,7 +143,7 @@ pub fn generate_entry_startup(
   entries: &IdentifierLinkedMap<ChunkGroupUkey>,
   passive: bool,
 ) -> BoxSource {
-  let mut module_ids = vec![];
+  let mut module_id_exprs = vec![];
   let mut chunks_ids = HashSet::default();
 
   for (module, entry) in entries {
@@ -152,7 +152,8 @@ pub fn generate_entry_startup(
       .module_graph_module_by_identifier(module)
       .map(|module| module.id(&compilation.chunk_graph))
     {
-      module_ids.push(module_id);
+      let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+      module_id_exprs.push(module_id_expr);
     }
 
     if let Some(runtime_chunk) = compilation
@@ -187,9 +188,9 @@ pub fn generate_entry_startup(
     RuntimeGlobals::ENTRY_MODULE_ID
   ));
 
-  let module_ids_code = &module_ids
+  let module_ids_code = &module_id_exprs
     .iter()
-    .map(|id| format!("__webpack_exec__('{id}')"))
+    .map(|module_id_expr| format!("__webpack_exec__({module_id_expr})"))
     .collect::<Vec<_>>()
     .join(", ");
   if chunks_ids.is_empty() {
