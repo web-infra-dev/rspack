@@ -88,6 +88,9 @@ export class Compilation {
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], undefined>;
 		chunkAsset: tapable.SyncHook<[JsChunk, string], undefined>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
+		assetPath: tapable.SyncWaterfallHook<
+			[path: string, options: PathData, assetInfo: AssetInfo | undefined]
+		>;
 		succeedModule: tapable.SyncHook<[JsModule], undefined>;
 		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
 	};
@@ -124,6 +127,11 @@ export class Compilation {
 			finishModules: new tapable.AsyncSeriesHook(["modules"]),
 			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
+			assetPath: new tapable.SyncWaterfallHook([
+				"path",
+				"options",
+				"assetInfo"
+			]),
 			succeedModule: new tapable.SyncHook(["module"]),
 			stillValidModule: new tapable.SyncHook(["module"])
 		};

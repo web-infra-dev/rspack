@@ -342,6 +342,7 @@ class Compiler {
 					afterResolve: this.#afterResolve.bind(this),
 					contextModuleBeforeResolve:
 						this.#contextModuleBeforeResolve.bind(this),
+					assetPath: this.#assetPath.bind(this),
 					succeedModule: this.#succeedModule.bind(this),
 					stillValidModule: this.#stillValidModule.bind(this)
 				},
@@ -713,6 +714,15 @@ class Compiler {
 	#chunkAsset(assetArg: binding.JsChunkAssetArgs) {
 		this.compilation.hooks.chunkAsset.call(assetArg.chunk, assetArg.filename);
 		this.#updateDisabledHooks();
+	}
+	#assetPath(assetArg: binding.JsAssetPathArgs) {
+		const updatedPath = this.compilation.hooks.assetPath.call(
+			assetArg.filename,
+			assetArg.data,
+			assetArg.assetInfo
+		);
+		this.#updateDisabledHooks();
+		return updatedPath;
 	}
 
 	async #finishModules() {

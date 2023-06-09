@@ -10,20 +10,20 @@ use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, BoxLoader,
-  BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
-  Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
-  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory, Stats,
-  ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, AssetInfo, AssetPathArgs,
+  BoxLoader, BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash,
+  ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs,
+  FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
+  OptimizeChunksArgs, PathData, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
+  PluginModuleHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginProcessAssetsOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, ResolverFactory, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -158,6 +158,31 @@ impl PluginDriver {
     }
 
     Ok(())
+  }
+
+  #[instrument(name = "plugin:asset_path", skip_all)]
+  pub async fn asset_path(
+    &self,
+    filename: String,
+    data: &PathData<'_>,
+    asset_info: Option<&AssetInfo>,
+  ) -> Result<String> {
+    let mut updated_name = filename;
+    for plugin in &self.plugins {
+      let temp = &plugin
+        .asset_path(&AssetPathArgs {
+          filename: &updated_name,
+          data,
+          asset_info,
+        })
+        .await?;
+
+      if let Some(value) = temp.to_owned() {
+        updated_name = value;
+      }
+    }
+
+    Ok(updated_name)
   }
 
   pub async fn before_compile(

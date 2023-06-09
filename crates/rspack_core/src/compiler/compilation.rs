@@ -1334,7 +1334,7 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    filename.render(data, None)
+    self.get_asset_path(filename, data)
   }
 
   pub fn get_path_with_info<'b, 'a: 'b>(
@@ -1342,16 +1342,28 @@ impl Compilation {
     filename: &Filename,
     mut data: PathData<'b>,
   ) -> (String, AssetInfo) {
-    let mut info = AssetInfo::default();
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(&mut info));
-    (path, info)
+    self.get_asset_path_with_info(filename, data)
   }
 
-  pub fn get_asset_path(&self, filename: &Filename, data: PathData) -> String {
-    filename.render(data, None)
+  pub fn get_asset_path(&self, filename: &Filename, data: PathData<'_>) -> String {
+    tokio::task::block_in_place(move || {
+      tokio::runtime::Handle::current().block_on(async move {
+        let result = &self
+          .plugin_driver
+          .asset_path(filename.template().to_owned().to_string(), &data, None)
+          .await;
+        let new_file_name = match result {
+          Ok(result) => Filename::from(result.to_owned()),
+          Err(_) => {
+            panic!("Failed to get asset path");
+          }
+        };
+        new_file_name.render(data, None)
+      })
+    })
   }
 
   pub fn get_asset_path_with_info(
@@ -1359,9 +1371,29 @@ impl Compilation {
     filename: &Filename,
     data: PathData,
   ) -> (String, AssetInfo) {
-    let mut info = AssetInfo::default();
-    let path = filename.render(data, Some(&mut info));
-    (path, info)
+    tokio::task::block_in_place(move || {
+      tokio::runtime::Handle::current().block_on(async move {
+        let mut info = AssetInfo::default();
+
+        let result = &self
+          .plugin_driver
+          .asset_path(
+            filename.template().to_owned().to_string(),
+            &data,
+            Some(&info),
+          )
+          .await;
+        let new_file_name = match result {
+          Ok(result) => Filename::from(result.to_owned()),
+          Err(_) => {
+            panic!("Failed to get asset path");
+          }
+        };
+
+        let path = new_file_name.render(data, Some(&mut info));
+        (path, info)
+      })
+    })
   }
 }
 

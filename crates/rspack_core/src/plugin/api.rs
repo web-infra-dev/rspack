@@ -7,13 +7,14 @@ use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
 
 use crate::{
-  AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, BoxLoader, BoxModule,
-  ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
-  NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
-  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
-  RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
+  AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, AssetPathArgs, BoxLoader,
+  BoxModule, ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions,
+  ContentHashArgs, DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs,
+  ModuleFactoryResult, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs,
+  ParserAndGenerator, PluginContext, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
+  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, SourceType,
+  ThisCompilationArgs,
 };
 
 // use anyhow::{Context, Result};
@@ -39,6 +40,7 @@ pub type PluginRenderModuleContentOutput = Result<Option<BoxSource>>;
 pub type PluginRenderStartupHookOutput = Result<Option<BoxSource>>;
 pub type PluginRenderHookOutput = Result<Option<BoxSource>>;
 pub type PluginJsChunkHashHookOutput = Result<()>;
+pub type PluginJsAssetPathOutput = Result<Option<String>>;
 
 #[async_trait::async_trait]
 pub trait Plugin: Debug + Send + Sync {
@@ -163,6 +165,11 @@ pub trait Plugin: Debug + Send + Sync {
   /// webpack `compilation.hooks.chunkAsset`
   async fn chunk_asset(&self, _args: &ChunkAssetArgs) -> Result<()> {
     Ok(())
+  }
+
+  /// webpack `compilation.hooks.assetPath`
+  async fn asset_path(&self, _args: &AssetPathArgs) -> PluginJsAssetPathOutput {
+    Ok(Some(_args.filename.to_owned()))
   }
 
   // JavascriptModulesPlugin hook
