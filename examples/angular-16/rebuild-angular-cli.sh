@@ -2,7 +2,7 @@
 
 rm -rf ../../node_modules/@angular-devkit
 
-cd ~/work/angular/angular-cli/
+cd ../angular-cli/
 yarn build
 
 cd ~/work/rspack/rspack/
