@@ -6,22 +6,23 @@ use rspack_core::{
   CodeReplaceSourceDependencyReplaceSource, DependencyId, ExportsType, InitFragment,
   InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
-use rspack_symbol::{IndirectType, StarSymbolKind};
+use rspack_symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
+use swc_core::ecma::atoms::JsWord;
 
 use super::format_exports;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for re-exports.
 #[derive(Debug)]
 pub struct HarmonyExportImportedSpecifierDependency {
-  pub request: String,
-  pub ids: Vec<(String, Option<String>)>,
+  pub request: JsWord,
+  pub ids: Vec<(JsWord, Option<JsWord>)>,
   module_identifier: ModuleIdentifier,
 }
 
 impl HarmonyExportImportedSpecifierDependency {
   pub fn new(
-    request: String,
-    ids: Vec<(String, Option<String>)>,
+    request: JsWord,
+    ids: Vec<(JsWord, Option<JsWord>)>,
     module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
@@ -51,7 +52,7 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
           .dependency_by_id(id)
           .expect("should have dependency")
       })
-      .find(|d| d.request() == self.request)
+      .find(|d| d.request() == &self.request)
       .expect("should have dependency")
       .id()
       .expect("should have dependency id");
@@ -63,19 +64,19 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
         .used_symbol_ref
         .iter()
         .filter_map(|item| match item {
-          SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(d.id().atom.to_string()),
+          SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(&d.id().atom),
           SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
-            Some(i.id().to_string())
+            Some(i.id())
           }
           SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-            IndirectType::Import(_, _) => Some(i.id().to_string()),
-            IndirectType::ImportDefault(_) => Some("default".to_string()),
+            IndirectType::Import(_, _) => Some(i.id()),
+            IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
             _ => None,
           },
           SymbolRef::Star(s)
             if s.module_ident == module.identifier() && s.ty() == StarSymbolKind::ReExportAllAs =>
           {
-            Some(s.binding().to_string())
+            Some(&s.binding())
           }
           _ => None,
         })
@@ -91,14 +92,14 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
       if used_exports.is_none() || matches!(used_exports.as_ref(), Some(x) if x.contains(&id.0)) {
         exports.push((
           id.0.clone(),
-          export_from_import(
+          JsWord::from(export_from_import(
             code_generatable_context,
             true,
             import_var.clone(),
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
             &dependency_id,
             false,
-          ),
+          )),
         ));
       }
     }

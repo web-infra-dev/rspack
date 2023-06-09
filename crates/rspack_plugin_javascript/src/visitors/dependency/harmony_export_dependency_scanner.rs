@@ -2,6 +2,7 @@ use rspack_core::{
   CodeReplaceSourceDependency, DependencyType, ModuleDependency, ModuleIdentifier,
   ReplaceConstDependency, SpanExt,
 };
+use rspack_symbol::DEFAULT_JS_WORD;
 use swc_core::{
   common::Spanned,
   ecma::{
@@ -9,6 +10,7 @@ use swc_core::{
       ClassDecl, Decl, DefaultDecl, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
       ExportSpecifier, FnDecl, Ident, ModuleExportName, NamedExport, Program,
     },
+    atoms::JsWord,
     utils::find_pat_ids,
     visit::{noop_visit_type, Visit, VisitWith},
   },
@@ -25,7 +27,7 @@ pub struct HarmonyExportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub import_map: &'a mut ImportMap,
-  pub exports: Vec<(String, String)>,
+  pub exports: Vec<(JsWord, JsWord)>,
   module_identifier: ModuleIdentifier,
 }
 
@@ -63,15 +65,13 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
   fn visit_export_decl(&mut self, export_decl: &'_ ExportDecl) {
     match &export_decl.decl {
       Decl::Class(ClassDecl { ident, .. }) | Decl::Fn(FnDecl { ident, .. }) => {
-        self
-          .exports
-          .push((ident.sym.to_string(), ident.sym.to_string()));
+        self.exports.push((ident.sym.clone(), ident.sym.clone()));
       }
       Decl::Var(v) => {
         self.exports.extend(
           find_pat_ids::<_, Ident>(&v.decls)
             .into_iter()
-            .map(|ident| (ident.sym.to_string(), ident.sym.to_string())),
+            .map(|ident| (ident.sym.clone(), ident.sym.clone())),
         );
       }
       _ => {}
@@ -93,7 +93,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         .for_each(|specifier| match specifier {
           ExportSpecifier::Namespace(n) => {
             if let ModuleExportName::Ident(export) = &n.name {
-              ids.push((export.sym.to_string(), None));
+              ids.push((export.sym.clone(), None));
               specifiers.push((export.sym.clone(), Some("namespace".into())));
             }
           }
@@ -105,7 +105,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 None => orig.sym.clone(),
                 _ => unreachable!(),
               };
-              ids.push((exported.to_string(), Some(orig.sym.to_string())));
+              ids.push((exported.clone(), Some(orig.sym.clone())));
               specifiers.push((
                 orig.sym.clone(),
                 match &named.exported {
@@ -120,7 +120,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
 
       self.code_generable_dependencies.push(Box::new(
         HarmonyExportImportedSpecifierDependency::new(
-          src.value.to_string(),
+          src.value.clone(),
           ids,
           self.module_identifier,
         ),
@@ -143,20 +143,20 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           ExportSpecifier::Named(named) => {
             if let ModuleExportName::Ident(orig) = &named.orig {
               let export = match &named.exported {
-                Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
-                None => orig.sym.to_string(),
+                Some(ModuleExportName::Ident(export)) => export.sym.clone(),
+                None => orig.sym.clone(),
                 _ => unreachable!(),
               };
               if let Some(Some(reference)) = self.import_map.get(&orig.to_id()) {
                 self.code_generable_dependencies.push(Box::new(
                   HarmonyExportImportedSpecifierDependency::new(
-                    reference.0.to_string(),
+                    reference.0.clone(),
                     vec![(export, reference.1.clone())],
                     self.module_identifier,
                   ),
                 ));
               } else {
-                self.exports.push((export, orig.sym.to_string()));
+                self.exports.push((export, orig.sym.clone()));
               }
             }
           }
@@ -197,7 +197,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
   fn visit_export_default_expr(&mut self, export_default_expr: &'_ ExportDefaultExpr) {
     self
       .exports
-      .push(("default".to_string(), DEFAULT_EXPORT.to_string()));
+      .push((DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.into()));
 
     self
       .code_generable_dependencies
@@ -216,10 +216,10 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
     };
 
     self.exports.push((
-      "default".to_string(),
+      DEFAULT_JS_WORD.clone(),
       match &ident {
-        Some(ident) => ident.sym.to_string(),
-        None => DEFAULT_EXPORT.to_string(),
+        Some(ident) => ident.sym.clone(),
+        None => DEFAULT_EXPORT.into(),
       },
     ));
 

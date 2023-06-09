@@ -5,17 +5,18 @@ use rspack_core::{
   CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, DependencyType,
   InitFragment, InitFragmentStage, RuntimeGlobals,
 };
-use rspack_symbol::IndirectType;
+use rspack_symbol::{IndirectType, DEFAULT_JS_WORD};
+use swc_core::ecma::atoms::JsWord;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 // Exclude re-exports.
 #[derive(Debug)]
 pub struct HarmonyExportSpecifierDependency {
-  exports: Vec<(String, String)>,
+  exports: Vec<(JsWord, JsWord)>,
 }
 
 impl HarmonyExportSpecifierDependency {
-  pub fn new(exports: Vec<(String, String)>) -> Self {
+  pub fn new(exports: Vec<(JsWord, JsWord)>) -> Self {
     Self { exports }
   }
 }
@@ -46,13 +47,13 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
           .used_symbol_ref
           .iter()
           .filter_map(|item| match item {
-            SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(d.id().atom.to_string()),
+            SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(&d.id().atom),
             SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
-              Some(i.id().to_string())
+              Some(&i.id())
             }
             SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-              IndirectType::Import(_, _) => Some(i.id().to_string()),
-              IndirectType::ImportDefault(_) => Some("default".to_string()),
+              IndirectType::Import(_, _) => Some(i.id()),
+              IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
               _ => None,
             },
             _ => None,
@@ -92,7 +93,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
   }
 }
 
-pub fn format_exports(exports: &[(String, String)]) -> String {
+pub fn format_exports(exports: &[(JsWord, JsWord)]) -> String {
   format!(
     "{{{}}}",
     exports

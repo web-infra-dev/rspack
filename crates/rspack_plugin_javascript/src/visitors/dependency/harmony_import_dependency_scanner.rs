@@ -1,6 +1,7 @@
 use rspack_core::{
   CodeReplaceSourceDependency, DependencyType, ModuleDependency, ReplaceConstDependency, SpanExt,
 };
+use rspack_symbol::DEFAULT_JS_WORD;
 use rustc_hash::FxHashMap;
 use swc_core::{
   common::{Span, SyntaxContext},
@@ -11,7 +12,7 @@ use swc_core::{
   },
 };
 
-pub type ImportMap = FxHashMap<(JsWord, SyntaxContext), Option<(JsWord, Option<String>)>>;
+pub type ImportMap = FxHashMap<(JsWord, SyntaxContext), Option<(JsWord, Option<JsWord>)>>;
 
 use crate::dependency::{HarmonyImportDependency, HarmonyImportSpecifierDependency};
 
@@ -74,8 +75,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           Some((
             import_decl.src.value.clone(),
             Some(match &n.imported {
-              Some(ModuleExportName::Ident(ident)) => ident.sym.to_string(),
-              _ => n.local.sym.to_string(),
+              Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
+              _ => n.local.sym.clone(),
             }),
           )),
         );
@@ -90,9 +91,9 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       ImportSpecifier::Default(d) => {
         self.import_map.insert(
           (d.local.sym.clone(), d.local.span.ctxt),
-          Some((import_decl.src.value.clone(), Some("default".to_string()))),
+          Some((import_decl.src.value.clone(), Some(DEFAULT_JS_WORD.clone()))),
         );
-        specifiers.push((d.local.sym.clone(), Some("default".into())));
+        specifiers.push((d.local.sym.clone(), Some(DEFAULT_JS_WORD.clone())));
       }
       ImportSpecifier::Namespace(n) => {
         self.import_map.insert(
