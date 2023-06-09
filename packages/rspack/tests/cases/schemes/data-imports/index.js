@@ -31,6 +31,11 @@ it("data imports", () => {
 ;;;
 
 
+.bad {
+  a: url("data:text/bad-base64;base64,abcd?#iefix");
+  b: url("data:text/bad-base64;base64,    abcd?#iefix");
+}
+
 .class {
   a: url("82ee8285df64be76.svg");
   b: url("82ee8285df64be76.svg");
