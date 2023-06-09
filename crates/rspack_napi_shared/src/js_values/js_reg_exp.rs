@@ -5,6 +5,8 @@ use napi::{
   JsObject, NapiRaw, NapiValue,
 };
 
+use crate::object_prototype_to_string_call;
+
 pub struct JsRegExp(JsObject);
 
 impl Debug for JsRegExp {
@@ -34,7 +36,8 @@ impl FromNapiValue for JsRegExp {
     napi_val: napi::sys::napi_value,
   ) -> napi::Result<Self> {
     let js_object = JsObject::from_raw(env, napi_val)?;
-    // TODO(hyf0): we should do dome validation here. Such as make sure the type of the Object is `[object RegExp]`
+    let ty_string = object_prototype_to_string_call(env, &js_object)?;
+    assert_eq!(ty_string.as_str(), "[object RegExp]");
     Ok(Self(js_object))
   }
 }
