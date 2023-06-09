@@ -8,9 +8,10 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+use super::MakeParam;
 use crate::{
-  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
-  PathData, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
+  fast_drop, fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler,
+  ModuleIdentifier, NormalModuleAstOrSource, PathData, RenderManifestArgs, RuntimeSpec,
 };
 
 #[derive(Default)]
@@ -170,6 +171,29 @@ where
         // seal stage used
         new_compilation.code_splitting_cache =
           std::mem::take(&mut self.compilation.code_splitting_cache);
+
+        self.compilation.has_module_import_export_change = false;
+        // remove prev build ast in modules
+        fast_drop(
+          self
+            .compilation
+            .module_graph
+            .modules_mut()
+            .values_mut()
+            .map(|module| {
+              if let Some(m) = module.as_normal_module_mut() {
+                let is_ast_unbuild = matches!(m.ast_or_source(), NormalModuleAstOrSource::Unbuild);
+                if !is_ast_unbuild {
+                  return Some(std::mem::replace(
+                    m.ast_or_source_mut(),
+                    NormalModuleAstOrSource::Unbuild,
+                  ));
+                }
+              }
+              None
+            })
+            .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
+        );
       } else {
         new_compilation.setup_entry_dependencies();
       }
@@ -190,7 +214,7 @@ where
         .await?;
 
       let setup_make_params = if is_incremental_rebuild {
-        SetupMakeParam::ModifiedFiles(modified_files)
+        MakeParam::ModifiedFiles(modified_files)
       } else {
         let deps = self
           .compilation
@@ -204,7 +228,7 @@ where
               .collect::<Vec<_>>()
           })
           .collect::<HashSet<_>>();
-        SetupMakeParam::ForceBuildDeps(deps)
+        MakeParam::ForceBuildDeps(deps)
       };
       self.compile(setup_make_params).await?;
       self.cache.begin_idle();

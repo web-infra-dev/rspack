@@ -718,6 +718,14 @@ export class Compilation {
 			plugins
 		);
 	}
+
+	rebuildModule(m: JsModule, f: (err: any, m: JsModule) => void) {
+		// TODO merge rebuildModule calls
+		this.#inner.rebuildModule([m.moduleIdentifier], function (err, modules) {
+			f(err, modules[0]);
+		});
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *
