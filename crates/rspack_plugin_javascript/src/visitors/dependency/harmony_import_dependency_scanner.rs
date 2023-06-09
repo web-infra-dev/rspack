@@ -69,10 +69,6 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     let mut specifiers = vec![];
     import_decl.specifiers.iter().for_each(|s| match s {
       ImportSpecifier::Named(n) => {
-        let imported = match &n.imported {
-          Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
-          _ => n.local.sym.clone(),
-        };
         self.import_map.insert(
           (n.local.sym.clone(), n.local.span.ctxt),
           Some((

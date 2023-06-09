@@ -105,14 +105,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 None => orig.sym.clone(),
                 _ => unreachable!(),
               };
-              ids.push((
-                exported.to_string(),
-                Some(match &named.exported {
-                  Some(ModuleExportName::Ident(export)) => export.sym.to_string(),
-                  None => orig.sym.to_string(),
-                  _ => unreachable!(),
-                }),
-              ));
+              ids.push((exported.to_string(), Some(orig.sym.to_string())));
               specifiers.push((
                 orig.sym.clone(),
                 match &named.exported {

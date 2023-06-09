@@ -6,6 +6,7 @@ use rspack_core::{
   CodeReplaceSourceDependencyReplaceSource, DependencyId, ExportsType, InitFragment,
   InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
+use rspack_symbol::{IndirectType, StarSymbolKind};
 
 use super::format_exports;
 
@@ -62,10 +63,20 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
         .used_symbol_ref
         .iter()
         .filter_map(|item| match item {
-          SymbolRef::Direct(d) if d.uri() == self.module_identifier => {
-            Some(d.id().atom.to_string())
+          SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(d.id().atom.to_string()),
+          SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
+            Some(i.id().to_string())
           }
-          SymbolRef::Indirect(i) if i.importer == module.identifier() => Some(i.id().to_string()),
+          SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
+            IndirectType::Import(_, _) => Some(i.id().to_string()),
+            IndirectType::ImportDefault(_) => Some("default".to_string()),
+            _ => None,
+          },
+          SymbolRef::Star(s)
+            if s.module_ident == module.identifier() && s.ty() == StarSymbolKind::ReExportAllAs =>
+          {
+            Some(s.binding().to_string())
+          }
           _ => None,
         })
         .collect::<HashSet<_>>();

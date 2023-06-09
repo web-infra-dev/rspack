@@ -5,6 +5,7 @@ use rspack_core::{
   CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, DependencyType,
   InitFragment, InitFragmentStage, RuntimeGlobals,
 };
+use rspack_symbol::IndirectType;
 
 // Create _webpack_require__.d(__webpack_exports__, {}) for each export.
 // Exclude re-exports.
@@ -46,7 +47,14 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
           .iter()
           .filter_map(|item| match item {
             SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(d.id().atom.to_string()),
-            SymbolRef::Indirect(i) if i.importer == module.identifier() => Some(i.id().to_string()),
+            SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
+              Some(i.id().to_string())
+            }
+            SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
+              IndirectType::Import(_, _) => Some(i.id().to_string()),
+              IndirectType::ImportDefault(_) => Some("default".to_string()),
+              _ => None,
+            },
             _ => None,
           })
           .collect::<HashSet<_>>();
