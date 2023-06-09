@@ -37,7 +37,11 @@ impl FromNapiValue for JsRegExp {
   ) -> napi::Result<Self> {
     let js_object = JsObject::from_raw(env, napi_val)?;
     let ty_string = object_prototype_to_string_call(env, &js_object)?;
-    assert_eq!(ty_string.as_str(), "[object RegExp]");
+    if ty_string.as_str() != "[object RegExp]" {
+      return Err(napi::Error::from_reason(format!(
+        "Expect [object RegExp] got {ty_string}"
+      )));
+    }
     Ok(Self(js_object))
   }
 }
