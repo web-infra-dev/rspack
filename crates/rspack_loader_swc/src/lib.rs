@@ -136,10 +136,8 @@ impl SwcLoader {
 impl Loader<LoaderRunnerContext> for SwcLoader {
   async fn run(&self, loader_context: &mut LoaderContext<'_, LoaderRunnerContext>) -> Result<()> {
     let resource_path = loader_context.resource_path.to_path_buf();
-    let content = loader_context
-      .content
-      .to_owned()
-      .expect("content should available");
+    let content = std::mem::take(&mut loader_context.content).expect("content should available");
+
     let c = Compiler::new(Arc::from(swc_core::common::SourceMap::new(
       FilePathMapping::empty(),
     )));
@@ -155,8 +153,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
         .transform
         .merge(MergingOption::from(Some(transform)));
     }
-    if let Some(pre_source_map) = &loader_context.source_map {
-      if let Ok(source_map) = pre_source_map.clone().to_json() {
+    if let Some(pre_source_map) = std::mem::take(&mut loader_context.source_map) {
+      if let Ok(source_map) = pre_source_map.to_json() {
         options.config.input_source_map = Some(InputSourceMap::Str(source_map))
       }
     }
