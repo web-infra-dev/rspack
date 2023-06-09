@@ -35,6 +35,7 @@ export class JsCompilation {
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
+  rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
 }
 
 export class JsStats {
