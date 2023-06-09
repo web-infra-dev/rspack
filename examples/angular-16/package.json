@@ -5,7 +5,8 @@
     "clean:cpu": "bash -c \"rm -rf .angular/ dist && node --cpu-prof --cpu-prof-dir=cpu ./node_modules/@angular/cli/bin/ng.js build\"",
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build rspack",
+    "build-ng": "ng build ng",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -28,7 +29,7 @@
     "raw-loader": "4.0.2"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "file:../../../angular-cli/dist/@angular-devkit/build-angular",
+    "@angular-devkit/build-angular": "file:../../_npm_offline/angular-devkit-build-angular-16.0.1.tgz",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "esbuild": "0.17.8",

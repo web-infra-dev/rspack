@@ -75,7 +75,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@angular-devkit/build-webpack": "file:../angular-cli/dist/@angular-devkit/build-webpack"
+      "@angular-devkit/build-webpack": "file:./_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz"
     }
   },
   "packageManager": "pnpm@7.32.0"
