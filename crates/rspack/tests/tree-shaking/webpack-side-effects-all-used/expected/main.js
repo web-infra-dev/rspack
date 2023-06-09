@@ -14,8 +14,10 @@ _tracker__WEBPACK_IMPORTED_MODULE__["track"]("a.js");
 "../node_modules/pmodule/b.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'z': function() { return _c__WEBPACK_IMPORTED_MODULE__["z"]; }});
 __webpack_require__.d(exports, {'x': function() { return x; }});
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
+/* harmony import */var _c__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./c */"../node_modules/pmodule/c.js");
 var x = "x";
 var y = "y";
 
@@ -36,10 +38,15 @@ _tracker__WEBPACK_IMPORTED_MODULE__["track"]("c.js");
 "../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+<<<<<<< HEAD
 __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+=======
+__webpack_require__.d(exports, {'x': function() { return _b__WEBPACK_IMPORTED_MODULE__["x"]; }, 'z': function() { return _b__WEBPACK_IMPORTED_MODULE__["z"]; }});
+>>>>>>> 5014b97bd (fix: export named & lost export)
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"../node_modules/pmodule/a.js");
 __webpack_require__.es(_a__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"../node_modules/pmodule/b.js");
 
 
 

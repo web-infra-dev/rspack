@@ -46,6 +46,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
           .iter()
           .filter_map(|item| match item {
             SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(d.id().atom.to_string()),
+            SymbolRef::Indirect(i) if i.importer == module.identifier() => Some(i.id().to_string()),
             _ => None,
           })
           .collect::<HashSet<_>>();

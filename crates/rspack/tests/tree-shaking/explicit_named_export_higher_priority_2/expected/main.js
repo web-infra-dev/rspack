@@ -13,6 +13,7 @@ __webpack_require__.d(exports, {'a': function() { return a; }});
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return _baz__WEBPACK_IMPORTED_MODULE__["a"]; }});
 /* harmony import */var _baz__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./baz */"./baz.js");
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
 __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);

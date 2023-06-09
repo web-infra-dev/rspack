@@ -89,17 +89,21 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
             }
           }
 
-          compilation
-            .used_symbol_ref
-            .contains(&SymbolRef::Indirect(IndirectTopLevelSymbol {
+          let symbol = if matches!(self.dependency_type, DependencyType::EsmImport) {
+            SymbolRef::Indirect(IndirectTopLevelSymbol {
               src: ref_mgm.module_identifier,
-              ty: if matches!(self.dependency_type, DependencyType::EsmImport) {
-                rspack_symbol::IndirectType::Import(local.clone(), imported.clone())
-              } else {
-                rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone())
-              },
+              ty: rspack_symbol::IndirectType::Import(local.clone(), imported.clone()),
               importer: module.identifier(),
-            }))
+            })
+          } else {
+            SymbolRef::Indirect(IndirectTopLevelSymbol {
+              src: module.identifier(),
+              ty: rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone()),
+              importer: module.identifier(),
+            })
+          };
+
+          compilation.used_symbol_ref.contains(&symbol)
         })
         .collect::<Vec<_>>();
 
