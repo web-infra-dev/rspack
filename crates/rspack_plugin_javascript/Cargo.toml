@@ -12,6 +12,7 @@ rspack_testing = { path = "../rspack_testing" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }
+dashmap = { workspace = true }
 either = "1"
 indexmap = { workspace = true }
 linked_hash_set = { workspace = true }
@@ -27,6 +28,7 @@ rspack_identifier = { path = "../rspack_identifier" }
 rspack_regex = { path = "../rspack_regex" }
 rspack_symbol = { path = "../rspack_symbol" }
 rustc-hash = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sourcemap = "6.2.3"
 sugar_path = { workspace = true }
@@ -42,6 +44,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_compat",
   "ecma_transforms_proposal",
   "ecma_transforms_typescript",
+  "ecma_loader",
   "ecma_quote",
 ] }
 swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
