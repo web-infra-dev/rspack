@@ -9,6 +9,7 @@ version    = "0.1.0"
 rspack_testing = { path = "../rspack_testing" }
 
 [dependencies]
+ahash = "0.8.3"
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 bitflags = { workspace = true }

@@ -46,6 +46,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c99f64d1e06488f620f932677e24bc6e2897582980441ae90a671415bd7ec2f"
 dependencies = [
  "cfg-if",
+ "getrandom",
  "once_cell",
  "version_check",
 ]
@@ -2653,6 +2654,7 @@ dependencies = [
 name = "rspack_plugin_javascript"
 version = "0.1.0"
 dependencies = [
+ "ahash 0.8.3",
  "anyhow",
  "async-trait",
  "bitflags 1.3.2",

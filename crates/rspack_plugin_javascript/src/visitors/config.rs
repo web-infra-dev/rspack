@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use ahash;
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use swc_core::common::collections;
 use swc_core::common::{comments::SingleThreadedComments, FileName, Mark, SourceMap};
 use swc_core::ecma::loader::resolvers::lru::CachingResolver;
 use swc_core::ecma::loader::resolvers::node::NodeModulesResolver;
