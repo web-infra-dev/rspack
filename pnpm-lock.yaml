@@ -2,6 +2,7 @@ lockfileVersion: 5.4
 
 overrides:
   '@angular-devkit/build-webpack': file:./_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz
+  '@ngtools/webpack': file:./_npm_offline/ngtools-webpack-16.0.1.tgz
   '@rspack/cli': workspace:*
   '@rspack/core': workspace:*
 
@@ -114,7 +115,7 @@ importers:
       '@angular/platform-browser': ^16.0.0
       '@angular/platform-browser-dynamic': ^16.0.0
       '@angular/router': ^16.0.0
-      '@ngtools/webpack': ^16.0.0
+      '@ngtools/webpack': file:/home/valorkin/work/rspack/_npm_offline/ngtools-webpack-16.0.1.tgz
       '@rspack/cli': workspace:*
       '@rspack/plugin-minify': workspace:*
       karma: ~6.4.0
@@ -142,7 +143,7 @@ importers:
       '@angular-devkit/build-angular': 16.0.5_o7m6366b4anp3yuoab5wkcwq5a
       '@angular/cli': 16.0.5
       '@angular/compiler-cli': 16.0.5_f2lqisnhv5ufizigz6rrfcniye
-      '@ngtools/webpack': 16.0.5_me26ie2oh3keanoma2rd5to6bi
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_me26ie2oh3keanoma2rd5to6bi
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
       karma: 6.4.2
@@ -1466,7 +1467,7 @@ packages:
       '@babel/runtime': 7.20.13
       '@babel/template': 7.20.7
       '@discoveryjs/json-ext': 0.5.7
-      '@ngtools/webpack': 15.2.8_3fuganxn45gc5jba27yqybuh5y
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_3fuganxn45gc5jba27yqybuh5y
       ansi-colors: 4.1.3
       autoprefixer: 10.4.13_postcss@8.4.21
       babel-loader: 9.1.2_vbwv3zr3kwaf4v2iytwakh6feu
@@ -1581,7 +1582,7 @@ packages:
       '@babel/runtime': 7.21.0
       '@babel/template': 7.20.7
       '@discoveryjs/json-ext': 0.5.7
-      '@ngtools/webpack': 16.0.5_o3mncufnvjfpenawqawwpd3ioa
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_o3mncufnvjfpenawqawwpd3ioa
       '@vitejs/plugin-basic-ssl': 1.0.1_vite@4.3.9
       ansi-colors: 4.1.3
       autoprefixer: 10.4.14_postcss@8.4.23
@@ -9110,57 +9111,6 @@ packages:
       - supports-color
     dev: false
 
-  /@ngtools/webpack/15.2.8_3fuganxn45gc5jba27yqybuh5y:
-    resolution: {integrity: sha512-BJexeT4FxMtToVBGa3wdl6rrkYXgilP0kkSH4Qzu4MPlLPbeBSr4XQalQriewlpC2uzG0r2SJfrAe2eDhtSykA==}
-    engines: {node: ^14.20.0 || ^16.13.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
-    peerDependencies:
-      '@angular/compiler-cli': ^15.0.0
-      typescript: '>=4.8.2 <5.0'
-      webpack: ^5.54.0
-    dependencies:
-      '@angular/compiler-cli': 15.2.9_q4mbtgcftmjdeatqb7bezb4aze
-      typescript: 4.9.5
-      webpack: 5.76.1_esbuild@0.17.8
-    dev: true
-
-  /@ngtools/webpack/16.0.1_4bkon4y2nvwzedt7fjcjfqa5iy:
-    resolution: {integrity: sha512-CZHFPMiJuOe241kO1VSSPOQ5Z9hWWkY7eSs3hnS50Ntgd4YzlHAydqexmEFpXD2YLOFjdbNETCyJ2BQTM4Kwtw==}
-    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
-    peerDependencies:
-      '@angular/compiler-cli': ^16.0.0
-      typescript: '>=4.9.3 <5.1'
-      webpack: ^5.54.0
-    dependencies:
-      '@angular/compiler-cli': 16.0.5_3xrnuv6bqoygi367ox56fvf7ji
-      typescript: 5.0.2
-      webpack: 5.82.0_esbuild@0.17.18
-    dev: true
-
-  /@ngtools/webpack/16.0.5_me26ie2oh3keanoma2rd5to6bi:
-    resolution: {integrity: sha512-qKQmPKxfcI9pumaKqM4EodcjauLA2JCGdAhBu+xafdmqV52K7goZKCqqzjYpraqeS+UOphi08XetX4mBPu9KMg==}
-    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
-    peerDependencies:
-      '@angular/compiler-cli': ^16.0.0
-      typescript: '>=4.9.3 <5.1'
-      webpack: ^5.54.0
-    dependencies:
-      '@angular/compiler-cli': 16.0.5_f2lqisnhv5ufizigz6rrfcniye
-      typescript: 4.9.5
-    dev: true
-
-  /@ngtools/webpack/16.0.5_o3mncufnvjfpenawqawwpd3ioa:
-    resolution: {integrity: sha512-qKQmPKxfcI9pumaKqM4EodcjauLA2JCGdAhBu+xafdmqV52K7goZKCqqzjYpraqeS+UOphi08XetX4mBPu9KMg==}
-    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
-    peerDependencies:
-      '@angular/compiler-cli': ^16.0.0
-      typescript: '>=4.9.3 <5.1'
-      webpack: ^5.54.0
-    dependencies:
-      '@angular/compiler-cli': 16.0.5_f2lqisnhv5ufizigz6rrfcniye
-      typescript: 4.9.5
-      webpack: 5.80.0_esbuild@0.17.18
-    dev: true
-
   /@node-rs/crc32-android-arm-eabi/1.7.0:
     resolution: {integrity: sha512-a0ligyBGOUT3xcVPo9Ozt2KdrmHFu9jYj2dxqxWFndEM+R6576tOAq2xBIotmpRgKK30KObPz83FFyul1rksbQ==}
     engines: {node: '>= 10'}
@@ -12835,23 +12785,23 @@ packages:
     resolution: {integrity: sha512-ALYone6pm6QmwZoAgeyNksccT9Q4AWZQ6PvfwR37GT6r6FWUPguq6sUmNGSMV2Wr761oQoBxwGGa6DR5o1DC9g==}
     dependencies:
       '@types/connect': 3.4.35
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/bonjour/3.5.10:
     resolution: {integrity: sha512-p7ienRMiS41Nu2/igbJxxLDWrSZ0WxM8UQgCeO9KhoVF7cOVFkrKsiDr1EsJIla8vV3oEEjGcz11jc5yimhzZw==}
     dependencies:
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/connect-history-api-fallback/1.3.5:
     resolution: {integrity: sha512-h8QJa8xSb1WD4fpKBDcATDNGXghFj6/3GRWG6dhmRcu0RX1Ubasur2Uvx5aeEwlf0MwblEC2bMzzMQntxnw/Cw==}
     dependencies:
       '@types/express-serve-static-core': 4.17.35
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/connect/3.4.35:
     resolution: {integrity: sha512-cdeYyv4KWoEgpBISTxWvqYsVy444DOqehiF3fM3ne10AmJ62RSyNkUnxMJXHQWRQQX2eR94m5y1IZyDwBjV9FQ==}
     dependencies:
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/cookie/0.4.1:
     resolution: {integrity: sha512-XW/Aa8APYr6jSVVA1y/DEIZX0/GMKLEVekNG727R8cs56ahETkRAy/3DR7+fJyh7oUgGwNQaRfXCun0+KbWY7Q==}
@@ -12920,7 +12870,7 @@ packages:
   /@types/express-serve-static-core/4.17.35:
     resolution: {integrity: sha512-wALWQwrgiB2AWTT91CB62b6Yt0sNHpznUXeZEcnPU3DRdlDIz74x8Qg1UUYKSVFi+va5vKOLYRBI1bRKiLLKIg==}
     dependencies:
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
       '@types/qs': 6.9.7
       '@types/range-parser': 1.2.4
       '@types/send': 0.17.1
@@ -12990,7 +12940,7 @@ packages:
   /@types/http-proxy/1.17.11:
     resolution: {integrity: sha512-HC8G7c1WmaF2ekqpnFq626xd3Zz0uvaqFmBJNRZCGEZCXkvSdJoNFn/8Ygbd9fKNQj8UzLdCETaI0UWPAjK7IA==}
     dependencies:
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/istanbul-lib-coverage/2.0.4:
     resolution: {integrity: sha512-z/QT1XN4K4KYuslS23k62yDIDLwLFkzxOuMplDtObz0+y7VqJCaO2o+SPwHCvLFZh7xazvvoor2tA/hPz9ee7g==}
@@ -13081,7 +13031,6 @@ packages:
 
   /@types/node/16.18.34:
     resolution: {integrity: sha512-VmVm7gXwhkUimRfBwVI1CHhwp86jDWR04B5FGebMMyxV90SlCmFujwUHrxTD4oO+SOYU86SoxvhgeRQJY7iXFg==}
-    dev: true
 
   /@types/node/18.16.16:
     resolution: {integrity: sha512-NpaM49IGQQAUlBhHMF82QH80J08os4ZmyF9MkpCzWAGuOHqE4gTEbhzd7L3l5LmWuZ6E0OiC1FweQ4tsiW35+g==}
@@ -13183,7 +13132,7 @@ packages:
     resolution: {integrity: sha512-Cwo8LE/0rnvX7kIIa3QHCkcuF21c05Ayb0ZfxPiv0W8VRiZiNW/WuRupHKpqqGVGf7SUA44QSOUKaEd9lIrd/Q==}
     dependencies:
       '@types/mime': 1.3.2
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/serve-index/1.9.1:
     resolution: {integrity: sha512-d/Hs3nWDxNL2xAczmOVZNj92YZCS6RGxfBPjKzuu/XirCgXdpKEb88dYNbrYGint6IVWLNP+yonwVAuRC0T2Dg==}
@@ -13194,7 +13143,7 @@ packages:
     resolution: {integrity: sha512-NUo5XNiAdULrJENtJXZZ3fHtfMolzZwczzBbnAeBbqBwG+LaG6YaJtuwzwGSQZ2wsCrxjEhNNjAkKigy3n8teQ==}
     dependencies:
       '@types/mime': 3.0.1
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/sinon/10.0.13:
     resolution: {integrity: sha512-UVjDqJblVNQYvVNUsj0PuYYw0ELRmgt1Nt5Vk0pT5f16ROGfcKJY8o1HVuMOJOpD727RrGB9EGvoaTQE5tgxZQ==}
@@ -13209,7 +13158,7 @@ packages:
   /@types/sockjs/0.3.33:
     resolution: {integrity: sha512-f0KEEe05NvUnat+boPTZ0dgaLZ4SfSouXUgv5noUiefG2ajgKjmETo9ZJyuqsl7dfl2aHlLJUiki6B4ZYldiiw==}
     dependencies:
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/source-list-map/0.1.2:
     resolution: {integrity: sha512-K5K+yml8LTo9bWJI/rECfIPrGgxdpeNbj+d53lwN4QjW1MCwlkhUms+gtdzigTeUyBr09+u8BwOIY3MXvHdcsA==}
@@ -13272,7 +13221,7 @@ packages:
   /@types/ws/8.5.3:
     resolution: {integrity: sha512-6YOoWjruKj1uLf3INHH7D3qTXwFfEsg1kf3c0uDdSBJwfa/llkwIjrAGV7j7mVgGNbzTQ3HiHKKDXl6bJPD97w==}
     dependencies:
-      '@types/node': 18.7.1
+      '@types/node': 16.18.34
 
   /@types/yargs-parser/21.0.0:
     resolution: {integrity: sha512-iO9ZQHkZxHn4mSakYV0vFHAVDyEOIJQrV2uZ06HxEPcx+mt8swXoZHIbaaJ2crJYFfErySgktuTZ3BeLz+XmFA==}
@@ -30993,7 +30942,7 @@ packages:
       '@babel/runtime': 7.21.5
       '@babel/template': 7.20.7
       '@discoveryjs/json-ext': 0.5.7
-      '@ngtools/webpack': 16.0.1_4bkon4y2nvwzedt7fjcjfqa5iy
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_4bkon4y2nvwzedt7fjcjfqa5iy
       '@rspack/cli': link:packages/rspack-cli
       '@rspack/core': link:packages/rspack
       '@vitejs/plugin-basic-ssl': 1.0.1_vite@4.3.4
@@ -31116,4 +31065,67 @@ packages:
       webpack-dev-server: 4.13.3_webpack@5.82.0
     transitivePeerDependencies:
       - chokidar
+    dev: true
+
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_3fuganxn45gc5jba27yqybuh5y:
+    resolution: {integrity: sha512-1947QUh9ifiyRpuz/4zo8xaYua/Dt/Q+pi0bRlohXGqIh62emWcgNZDVcDH9toiQmDmhcMYN9e2lPHtvovQRyw==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
+    name: '@ngtools/webpack'
+    version: 16.0.1
+    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
+    peerDependencies:
+      '@angular/compiler-cli': ^16.0.0 || ^16.1.0-next.0
+      typescript: '>=4.9.3 <5.1'
+      webpack: ^5.54.0
+    dependencies:
+      '@angular/compiler-cli': 15.2.9_q4mbtgcftmjdeatqb7bezb4aze
+      typescript: 4.9.5
+      webpack: 5.76.1_esbuild@0.17.8
+    dev: true
+
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_4bkon4y2nvwzedt7fjcjfqa5iy:
+    resolution: {integrity: sha512-1947QUh9ifiyRpuz/4zo8xaYua/Dt/Q+pi0bRlohXGqIh62emWcgNZDVcDH9toiQmDmhcMYN9e2lPHtvovQRyw==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
+    name: '@ngtools/webpack'
+    version: 16.0.1
+    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
+    peerDependencies:
+      '@angular/compiler-cli': ^16.0.0 || ^16.1.0-next.0
+      typescript: '>=4.9.3 <5.1'
+      webpack: ^5.54.0
+    dependencies:
+      '@angular/compiler-cli': 16.0.5_3xrnuv6bqoygi367ox56fvf7ji
+      typescript: 5.0.2
+      webpack: 5.82.0_esbuild@0.17.18
+    dev: true
+
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_me26ie2oh3keanoma2rd5to6bi:
+    resolution: {integrity: sha512-1947QUh9ifiyRpuz/4zo8xaYua/Dt/Q+pi0bRlohXGqIh62emWcgNZDVcDH9toiQmDmhcMYN9e2lPHtvovQRyw==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
+    name: '@ngtools/webpack'
+    version: 16.0.1
+    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
+    peerDependencies:
+      '@angular/compiler-cli': ^16.0.0 || ^16.1.0-next.0
+      typescript: '>=4.9.3 <5.1'
+      webpack: ^5.54.0
+    dependencies:
+      '@angular/compiler-cli': 16.0.5_f2lqisnhv5ufizigz6rrfcniye
+      typescript: 4.9.5
+    dev: true
+
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_o3mncufnvjfpenawqawwpd3ioa:
+    resolution: {integrity: sha512-1947QUh9ifiyRpuz/4zo8xaYua/Dt/Q+pi0bRlohXGqIh62emWcgNZDVcDH9toiQmDmhcMYN9e2lPHtvovQRyw==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
+    name: '@ngtools/webpack'
+    version: 16.0.1
+    engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
+    peerDependencies:
+      '@angular/compiler-cli': ^16.0.0 || ^16.1.0-next.0
+      typescript: '>=4.9.3 <5.1'
+      webpack: ^5.54.0
+    dependencies:
+      '@angular/compiler-cli': 16.0.5_f2lqisnhv5ufizigz6rrfcniye
+      typescript: 4.9.5
+      webpack: 5.80.0_esbuild@0.17.18
     dev: true
