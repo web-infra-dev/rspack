@@ -73,5 +73,12 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
+  "pnpm": {
+    "overrides": {
+      "@angular-devkit/build-webpack": "file:./_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz",
+      "@rspack/cli": "workspace:*",
+      "@rspack/core": "workspace:*"
+    }
+  },
   "packageManager": "pnpm@7.32.0"
 }

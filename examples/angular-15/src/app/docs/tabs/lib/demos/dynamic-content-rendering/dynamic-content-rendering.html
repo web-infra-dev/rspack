@@ -1,0 +1,32 @@
+<p>The Component inside the Tab is rendered, when the tab is activated and destroyed when the tab is left.</p>
+<ul class="eventlist">
+  <li *ngFor="let message of messages">{{ message }}</li>
+</ul>
+<tabset>
+  <tab heading="Tab A" #tabA="tab">
+    <sub-component
+      name="A"
+      *ngIf="tabA.active"
+      (onInit)="message('Sub-Component A activated')"
+      (onDestroy)="message('Sub-Component A destroyed')"
+    ></sub-component>
+  </tab>
+
+  <tab heading="Tab B" #tabB="tab">
+    <sub-component
+      name="B"
+      *ngIf="tabB.active"
+      (onInit)="message('Sub-Component B activated')"
+      (onDestroy)="message('Sub-Component B destroyed')"
+    ></sub-component>
+  </tab>
+
+  <tab heading="Tab C" #tabC="tab">
+    <sub-component
+      name="C"
+      *ngIf="tabC.active"
+      (onInit)="message('Sub-Component C activated')"
+      (onDestroy)="message('Sub-Component C destroyed')"
+    ></sub-component>
+  </tab>
+</tabset>

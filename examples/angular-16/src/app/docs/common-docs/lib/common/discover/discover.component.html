@@ -1,0 +1,78 @@
+<demo-section>
+  <div class="common-header">
+    <div class="title-box">
+      <h1>Welcome to ngx-bootstrap!</h1>
+      <p>
+        The best way to quickly integrate <a href="https://getbootstrap.com/docs/5.1" target="_blank">Bootstrap 5 </a> or <a href="https://getbootstrap.com/docs/4.0">Bootstrap 4 </a> Components with Angular
+      </p>
+      <div class="statistic-box">
+        <a href="https://npmjs.org/ngx-bootstrap" target="_blank">
+          <img src="https://img.shields.io/npm/v/ngx-bootstrap/latest.svg" alt="npm latest version" >
+        </a>
+        <a href="https://npmjs.org/ngx-bootstrap" target="_blank">
+          <img src="https://img.shields.io/npm/v/ngx-bootstrap/next.svg" alt="npm next version" >
+        </a>
+        <br/>
+        <a href="https://npmjs.org/ngx-bootstrap" target="_blank">
+          <img src="https://img.shields.io/npm/dm/ngx-bootstrap.svg" alt="npm downloads">
+        </a>
+        <a href="https://opencollective.com/ngx-bootstrap" target="_blank">
+          <img src="https://opencollective.com/ngx-bootstrap/tiers/backer/badge.svg?label=backer&color=brightgreen">
+        </a>
+      </div>
+    </div>
+
+    <div class="d-flex links-box">
+      <a class="d-block" href="https://github.com/valor-software/ngx-bootstrap" target="_blank"><i class="arrow-link"></i>Github link</a>
+      <a class="d-block" href="https://join.slack.com/t/ngx-home/shared_invite/enQtNTExMTY5MzcwMTM0LWVjZGU2MjI4MTVhMGVlMTc2OWRiMzA0NzBhNDU5YzQ0MDM3MWI5NzJjZTUzNzIxZmNjYmFlMjU2MzE0YmY0NWY" target="_blank"><i class="arrow-link"></i>Slack channel </a>
+    </div>
+  </div>
+
+  <h2>Table of contents</h2>
+  <ol>
+    <li><a routerLink="." fragment="users">Who is using ngx-bootstrap</a></li>
+    <li><a routerLink="." fragment="releases">Versioning and Releases</a></li>
+    <li><a routerLink="." fragment="changelog">Changelog</a></li>
+    <li><a routerLink="." fragment="community">Community</a></li>
+  </ol>
+
+  <h2 id="users">Who is using <span class="pln">ngx-bootstrap</span></h2>
+
+  <p>Some time ago, we've started to investigate <a href="https://github.com/valor-software/ngx-bootstrap/issues/5168"
+                                                    target="_blank">companies, which using library ngx-bootstrap</a> in
+    their projects.</p>
+  <p>We know, that for now, we have more than <a
+    href="https://github.com/valor-software/ngx-bootstrap/network/dependents" target="_blank">60000 dependents</a>, but
+    let's see who are they: </p>
+  <div class="container">
+    <div class="row">
+      <div class="col-xl-6 col-md-12 col-sm-12 col-xs-12 company-card" *ngFor="let company of companies">
+        <a class="company-info-wrapper overflow-hidden" href="{{company.link}}" target="_blank">
+          <div [class.overflow-hidden]="company.scale" class="logo-name">
+            <img [class.img-scale]="company.scale" src="{{company.logo}}" alt="{{company.name}} logo">
+          </div>
+          <div class="company-description">{{company.description}}</div>
+        </a>
+      </div>
+    </div>
+  </div>
+  <br/>
+  <div>If your company also using ngx-bootstrap and you want to be in this list:
+    just add an appropriate comment to <a href="https://github.com/valor-software/ngx-bootstrap/issues/5168" target="_blank">this investigation issue: 5168.</a></div>
+
+  <h2 id="releases">Versioning and Releases </h2>
+  <div>We make all possible to make ngx-bootstrap wide-compatible. Compatibility table you can find in the <a target="_blank" href="#/documentation#compatibility">documentation</a>.</div>
+  <div>All our issues , enhancements, feature requests, which would be taken into work first you can find in the nearest <a target="_blank" href="https://github.com/valor-software/ngx-bootstrap/milestones">Milestone</a>.</div>
+
+  <h2 id="changelog">Changelog</h2>
+  <p> All notable changes are described in the <a target="_blank" href="https://github.com/valor-software/ngx-bootstrap/blob/development/CHANGELOG.md">CHANGELOG.md</a> file.</p>
+
+  <h2 id="community">Community</h2>
+
+  <p>Chat with us on <a target="_blank" href="https://join.slack.com/t/ngx-home/shared_invite/enQtNTExMTY5MzcwMTM0LWVjZGU2MjI4MTVhMGVlMTc2OWRiMzA0NzBhNDU5YzQ0MDM3MWI5NzJjZTUzNzIxZmNjYmFlMjU2MzE0YmY0NWY">Slack</a>.</p>
+  <p>For help using NGX-bootstrap, ask on <a target="_blank" href="https://stackoverflow.com/questions/tagged/ngx-bootstrap">StackOverflow</a> using the tag <b>ngx-bootstrap</b>.</p>
+  <p>Follow our core team member <a href="https://twitter.com/valorkin" target="_blank">@valorkin</a> on Twitter.</p>
+
+  <p>If you also would like to show support or simply give back to Open Source community, please consider becoming a
+    backer sponsor of ngx-bootstrap on <a href="https://opencollective.com/ngx-bootstrap" target="_blank">OpenCollective</a>.</p>
+</demo-section>

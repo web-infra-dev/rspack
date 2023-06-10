@@ -1,0 +1,13 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+    <input class="form-control" placeholder="Datepicker" bsDatepicker #dp="bsDatepicker"
+           [isDisabled]="isDisabled">
+  </div>
+  <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+    <input class="form-control" placeholder="Daterangepicker" bsDaterangepicker #dpr="bsDaterangepicker"
+           [isDisabled]="isDisabled">
+  </div>
+  <div class="col-xs-12 col-12 col-sm-4 col-md-12 col-lg-4 form-group mb-3">
+    <button class="btn btn-success" (click)="toggleDisabling()" type="button">Toggle disabling</button>
+  </div>
+</div>

@@ -1,0 +1,60 @@
+<ng-container *ngIf="routesStructure">
+  <div class="sidebar-search icon w-100">
+    <button id="mobile-main-menu" type="button" (click)="toggleSideBar()" class="align-self-baseline">
+      <img src="assets/images/icons/menu-left.svg" alt="left menu">
+    </button>
+    <search-input [showInput]="false" class="w-100"></search-input>
+  </div>
+  <div class="mobile-menu" [class.menuIsOpened]="menuIsOpened" *ngIf="routesStructure && routesStructure['documentation']?.nestedRoutes?.length">
+    <div class="bootstrap-version transition-option">
+      <span class="transition-option" [class.hideText]="!menuIsOpened">Bootstrap: </span>
+      <div class="flex-nowrap d-flex">
+        <button class="btn" type="button" [class.selected]="_bsVersions.isBs4" (click)="installTheme('bs4')">4</button>
+        <button class="btn" type="button" [class.selected]="_bsVersions.isBs5"  (click)="installTheme('bs5')">5</button>
+      </div>
+    </div>
+    <div class="sidebar-content position-relative w-100">
+      <ul class="sidebar-list">
+        <li *ngFor="let route of objectKeys(routesStructure)"
+            [class.active]="getRouteStructureKey(route)?.isOpened"
+            [class.icon]="getRouteStructureKey(route)?.nestedRoutes?.length && menuIsOpened"
+            (click)="toggleSideBar(true); toggleMenuItem($event, route)"
+            class="sidebar-item-main "
+        >
+          <div class="sidebar-list-box">
+            <img [src]="getRouteStructureKey(route)?.icon" alt="sidebar icon">
+            <span [class.hideText]="!menuIsOpened" [class.m-0]="!menuIsOpened" class="transition-option" *ngIf="!getRouteStructureKey(route)?.path; else elseBlock">
+              {{getRouteStructureKey(route)?.title}}
+            </span>
+            <ng-template #elseBlock>
+              <a [class.hideText]="!menuIsOpened" [class.m-0]="!menuIsOpened" href="javascript:void(0);" class="transition-option">
+                {{getRouteStructureKey(route)?.title}}
+              </a>
+            </ng-template>
+          </div>
+        </li>
+      </ul>
+      <ul *ngIf="menuIsOpened && sideBarItemIsOpened" class="sidebar-list scroll-list">
+        <li *ngFor="let route of routesStructure[sideBarItemIsOpened].nestedRoutes"
+            [routerLinkActive]="['active']"
+            [routerLinkActiveOptions]="{exact: true}"
+            class="w-100"
+        >
+          <div class="sidebar-list-box d-flex flex-column secondary-items" [class.show]="route.isOpened">
+            <p (click)="openSemiItemMenu(route, routesStructure[sideBarItemIsOpened].nestedRoutes)">{{route.title}}</p>
+            <div class="sidebar-list sidebar-list-fragment" [class.show]="route.isOpened" *ngIf="route.fragments.length">
+              <div class="sidebar-item sidebar-item-fragment" *ngFor="let item of route.fragments" [class.active]="item.isOpened">
+                <a [routerLink]="[route.path]" [queryParams]="{tab: item.path}" (click)="closeAdaptiveMenu()">{{item.title}}</a>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="double-arrow position-absolute" (click)="toggleSideBar()" [class.menu-opened]="menuIsOpened"></div>
+</ng-container>
+
+
+
+

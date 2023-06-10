@@ -1,0 +1,12 @@
+<pre class="card card-block card-header">{{ myForm?.value | json }}</pre>
+<form *ngIf="myForm" [formGroup]="myForm" class="form-inline d-flex align-items-center">
+  <div class="form-group mb-3">
+    <div class="btn-group" btnRadioGroup formControlName="radio">
+      <label btnRadio="A" class="btn btn-primary mb-0">A</label>
+      <label btnRadio="B" class="btn btn-primary mb-0">B</label>
+      <label btnRadio="C" class="btn btn-primary mb-0">C</label>
+    </div>
+    <button class="btn btn-primary" (click)="myForm.disabled ? myForm.enable() : myForm.disable()">Enable/Disable</button>
+  </div>
+
+</form>

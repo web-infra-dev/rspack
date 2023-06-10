@@ -1,0 +1,6 @@
+<timepicker [(ngModel)]="myTime" [arrowkeys]="allowArrowKeys"></timepicker>
+<hr>
+
+<button type="button" class="btn btn-info section bd-example" (click)="allowArrowKeys = !allowArrowKeys">Enable / Disable keyboard arrow keys</button>
+
+<pre class="alert alert-info">Time is: {{myTime}}</pre>

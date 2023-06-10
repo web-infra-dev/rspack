@@ -1,0 +1,17 @@
+<div class="btn-group" dropdown #dropdown="bs-dropdown" [autoClose]="false">
+  <button dropdownToggle type="button" class="btn btn-primary dropdown-toggle">
+    Button dropdown <span class="caret"></span>
+  </button>
+  <ul id="dropdown-triggers-manual" *dropdownMenu class="dropdown-menu"
+      role="menu" aria-labelledby="button-triggers-manual">
+    <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Another action</a>
+    </li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Something else
+      here</a></li>
+    <li class="divider dropdown-divider"></li>
+  </ul>
+</div>
+<button type="button" class="btn btn-primary" (click)="dropdown.toggle(true)">Toggle</button>
+<button type="button" class="btn btn-primary" (click)="dropdown.show()">Show</button>
+<button type="button" class="btn btn-primary" (click)="dropdown.hide()">Hide</button>

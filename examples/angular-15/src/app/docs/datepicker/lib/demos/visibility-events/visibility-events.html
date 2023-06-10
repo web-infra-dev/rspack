@@ -1,0 +1,16 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+    <input class="form-control"
+           placeholder="Datepicker"
+           placement="right"
+           bsDatepicker
+           (onShown)="handler('onShown')"
+           (onHidden)="handler('onHidden')">
+
+  </div>
+  <div class="col-xs-12 col-12">
+    <pre class="card card-block card-header" *ngFor="let message of messages">{{message}}</pre>
+  </div>
+</div>
+
+

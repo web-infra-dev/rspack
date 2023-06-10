@@ -1,0 +1,21 @@
+<div class="row">
+  <div class="col-md-3">
+    <button type="button" class="btn btn-primary" (click)="isCollapsed = !isCollapsed"
+            [attr.aria-expanded]="!isCollapsed" aria-controls="collapseEvent">Toggle collapse
+    </button>
+  </div>
+  <div class="col-md-9">
+    <pre class="card card-block card-header">Event: {{message}}</pre>
+  </div>
+</div>
+<hr>
+<div id="collapseEvent"
+     [isAnimated]="true"
+     [collapse]="isCollapsed"
+     (collapses)="collapses()"
+     (expands)="expands()"
+     (collapsed)="collapsed()"
+     (expanded)="expanded()">
+
+  <div class="well well-lg card card-block card-header">Some content</div>
+</div>

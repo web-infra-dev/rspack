@@ -1,0 +1,26 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-md-4 form-group mb-3">
+    <input type="text"
+           class="form-control"
+           [bsConfig]="bsConfig"
+           #dp="bsDatepicker"
+           bsDatepicker [(bsValue)]="datePickerValue">
+  </div>
+  <div class="col-xs-12 col-12 col-md-3 form-group mb-3">
+    <button class="btn btn-success" (click)="dp.toggle()" type="button">Date Picker</button>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-xs-12 col-12 col-md-4 form-group mb-3">
+    <input type="text"
+           class="form-control"
+           [bsConfig]="bsConfig"
+           #drp="bsDaterangepicker"
+           bsDaterangepicker [(bsValue)]="dateRangePickerValue">
+  </div>
+  <div class="col-xs-12 col-12 col-md-3 form-group mb-3">
+    <button class="btn btn-success" (click)="drp.toggle()" type="button">DateRange Picker</button>
+  </div>
+</div>
+<br>

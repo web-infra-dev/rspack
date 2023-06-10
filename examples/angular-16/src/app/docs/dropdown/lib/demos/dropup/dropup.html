@@ -1,0 +1,17 @@
+<div class="btn-group" dropdown [dropup]="isDropup">
+  <button id="button-dropup" dropdownToggle type="button" class="btn btn-primary dropdown-toggle"
+          aria-controls="dropdown-dropup">
+    Dropup <span class="caret"></span>
+  </button>
+  <ul id="dropdown-dropup" *dropdownMenu class="dropdown-menu"
+      role="menu" aria-labelledby="button-dropup">
+    <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Another action</a>
+    </li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Something else
+      here</a></li>
+    <li class="divider dropdown-divider"></li>
+    <li role="menuitem"><a class="dropdown-item" href="#">Separated link</a>
+    </li>
+  </ul>
+</div>

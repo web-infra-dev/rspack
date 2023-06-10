@@ -1,0 +1,9 @@
+<ng-container *ngIf="section">
+  <h2 [id]="section.anchor">{{ section.name }}</h2>
+  <pre *ngIf="section.importInfo" class="prettyprint lang-bash prettyprinted" [innerHTML]="section.importInfo"></pre>
+  <pre *ngIf="section.usage" class="prettyprint lang-typescript" [innerHTML]="section.usage.default"></pre>
+  <ng-container *ngFor="let item of apiSectionsContent">
+    <ng-container *ngComponentOutlet="item.outlet; injector: sectionInjections(item)">
+    </ng-container>
+  </ng-container>
+</ng-container>

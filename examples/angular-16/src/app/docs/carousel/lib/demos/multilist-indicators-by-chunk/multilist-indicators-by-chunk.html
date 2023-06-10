@@ -1,0 +1,14 @@
+<p>
+  If `true` - carousel indicators indicate slides chunks works ONLY if singleSlideOffset = FALSE
+</p>
+<carousel [itemsPerSlide]="itemsPerSlide"
+          [singleSlideOffset]="false"
+          [interval]="0"
+          [indicatorsByChunk]="true">
+  <slide *ngFor="let slide of slides; let index=index">
+    <img [src]="slide.image" alt="image slide" style="display: block; width: 100%;">
+    <div class="carousel-caption">
+      <h4>Slide {{index}}</h4>
+    </div>
+  </slide>
+</carousel>

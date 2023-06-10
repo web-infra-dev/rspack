@@ -1,0 +1,17 @@
+<p>
+  <button type="button" class="btn btn-primary btn-sm"
+          (click)="isOpen = !isOpen">Toggle last panel
+  </button>
+</p>
+
+<accordion>
+  <accordion-group heading="Content 1">
+    <p>accordion 1</p>
+  </accordion-group>
+  <accordion-group heading="Content 2">
+    <p>accordion 2</p>
+  </accordion-group>
+  <accordion-group [isOpen]="isOpen" heading="Last panel">
+    <p>accordion 3</p>
+  </accordion-group>
+</accordion>

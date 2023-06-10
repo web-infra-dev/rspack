@@ -1,0 +1,5 @@
+<p>If you missed alert under me, just press <code>Add more</code> button</p>
+<div *ngFor="let alert of alerts">
+  <alert [type]="alert.type" [dismissOnTimeout]="alert.timeout" (onClosed)="onClosed(alert)">{{ alert.msg }}</alert>
+</div>
+<button type="button" class="btn btn-primary" (click)="add()">Add more</button>

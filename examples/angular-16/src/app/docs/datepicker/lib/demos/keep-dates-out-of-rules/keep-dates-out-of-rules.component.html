@@ -1,0 +1,24 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-md-4 form-group mb-3">
+    <input type="text"
+           placeholder="Datepicker"
+           class="form-control"
+           bsDatepicker
+           [bsConfig]="{keepDatesOutOfRules: true}"
+           [maxDate]="maxDate"
+           [minDate]="minDate"
+           [bsValue]="bsInvalidDate"
+    >
+  </div>
+  <div class="col-xs-12 col-12 col-md-4 form-group mb-3">
+    <input type="text"
+           placeholder="Daterangepicker"
+           class="form-control"
+           bsDaterangepicker
+           [bsConfig]="{keepDatesOutOfRules: true}"
+           [maxDate]="maxDate"
+           [minDate]="minDate"
+           [bsValue]="bsRangeValue"
+    >
+  </div>
+</div>

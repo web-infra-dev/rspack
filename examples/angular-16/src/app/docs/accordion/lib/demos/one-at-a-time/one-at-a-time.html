@@ -1,0 +1,18 @@
+<div class="checkbox">
+  <label>
+    <input type="checkbox" [(ngModel)]="oneAtATime">
+    Open only one at a time
+  </label>
+</div>
+
+<accordion [closeOthers]="oneAtATime">
+  <accordion-group heading="Header">
+    This content is straight in the template.
+  </accordion-group>
+  <accordion-group heading="Content 1">
+    <p>Content 1</p>
+  </accordion-group>
+  <accordion-group heading="Content 2">
+    <p>Content 2</p>
+  </accordion-group>
+</accordion>

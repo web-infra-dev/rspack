@@ -1,0 +1,13 @@
+<accordion>
+  <accordion-group heading="Static Header, initially expanded"
+                   [panelClass]="customClass"
+                   [isOpen]="isFirstOpen">
+    This content is straight in the template.
+  </accordion-group>
+  <accordion-group heading="Content 1">
+    <p>accordion 1</p>
+  </accordion-group>
+  <accordion-group heading="Content 2" panelClass="customClass">
+    <p>accordion 2</p>
+  </accordion-group>
+</accordion>

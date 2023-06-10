@@ -1,0 +1,21 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-sm-6 col-md-6 form-group mb-3">
+    <p><code>maxDate</code> is today</p>
+    <input class="form-control"
+           placeholder="Daterangepicker"
+           ngModel
+           bsDaterangepicker
+           [maxDate]="today"
+           [bsConfig]="{ dateInputFormat: 'DD-MM-YYYY',  displayOneMonthRange: true }">
+  </div>
+  <div class="col-xs-12 col-12 col-sm-6 col-md-6 form-group mb-3">
+   <p><code>minDate</code> month is equal to <code>maxDate</code> month</p>
+    <input class="form-control"
+           placeholder="Daterangepicker"
+           ngModel
+           bsDaterangepicker
+           [minDate]="minDate"
+           [maxDate]="maxDate"
+           [bsConfig]="{ dateInputFormat: 'DD-MM-YYYY',  displayOneMonthRange: true }">
+  </div>
+</div>

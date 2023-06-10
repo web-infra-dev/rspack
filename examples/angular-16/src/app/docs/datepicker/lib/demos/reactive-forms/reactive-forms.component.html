@@ -1,0 +1,15 @@
+<form *ngIf="myForm" [formGroup]="myForm">
+  <div class="row">
+    <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+      <input type="text" class="form-control mb-3" placeholder="Datepicker" bsDatepicker formControlName="date" />
+      <pre *ngIf="myForm?.value?.date" class="code-preview">{{myForm.value.date | date}}</pre>
+    </div>
+    <div class="col-xs-12 col-12 col-sm-6 col-md-4 form-group mb-3">
+      <input type="text" class="form-control mb-3"
+             placeholder="Daterangepicker" bsDaterangepicker formControlName="range" />
+      <pre *ngIf="myForm?.value?.range" class="code-preview">from {{myForm.value.range[0] | date}} to {{myForm.value.range[1] | date}}</pre>
+    </div>
+  </div>
+</form>
+
+

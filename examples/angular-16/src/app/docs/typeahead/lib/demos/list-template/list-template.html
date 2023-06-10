@@ -1,0 +1,17 @@
+<pre class="card card-block card-header mb-3">Model: {{selected | json}}</pre>
+<input [(ngModel)]="selected"
+       [typeahead]="states"
+       [optionsListTemplate]="customListTemplate"
+       class="form-control">
+
+<ng-template #customListTemplate let-matches="matches" let-query="query" let-typeaheadTemplateMethods>
+  <ul class="custom-list-group">
+    <li class="custom-list-group-item"
+        *ngFor="let match of matches"
+        [class.active]="typeaheadTemplateMethods.isActive(match)"
+        (click)="typeaheadTemplateMethods.selectMatch(match, $event)"
+        (mouseenter)="typeaheadTemplateMethods.selectActive(match)">
+      {{ match.item }}
+    </li>
+  </ul>
+</ng-template>

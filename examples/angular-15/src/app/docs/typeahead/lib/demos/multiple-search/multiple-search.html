@@ -1,0 +1,6 @@
+<pre class="card card-block card-header">Model: {{selected | json}}</pre>
+<input [(ngModel)]="selected"
+       [typeahead]="states"
+       [typeaheadMultipleSearch]="true"
+       typeaheadMultipleSearchDelimiters=",|"
+       class="form-control">

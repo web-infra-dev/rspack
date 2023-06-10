@@ -1,0 +1,17 @@
+<p>
+  <span tooltip="Hello there! I was triggered manually"
+        triggers="" #pop="bs-tooltip">
+  This text has attached tooltip
+  </span>
+</p>
+
+<button type="button" class="btn btn-success" (click)="pop.show()">
+  Show
+</button>
+<button type="button" class="btn btn-warning" (click)="pop.hide()">
+  Hide
+</button>
+<button type="button" class="btn btn-info" (click)="pop.toggle()">
+  Toggle
+</button>
+

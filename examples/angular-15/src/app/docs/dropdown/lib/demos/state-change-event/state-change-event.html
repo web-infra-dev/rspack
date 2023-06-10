@@ -1,0 +1,21 @@
+<div class="row">
+  <div class="col-xs-12 col-12 mb-3" *ngIf="text">
+      <pre class="card card-block card-header">The dropdown is {{text}}</pre>
+  </div>
+  <div class="col-xs-12 col-12 mb-2">
+    <div class="btn-group"
+         dropdown
+         (isOpenChange)="onOpenChange($event)">
+      <button id="button-state-change" dropdownToggle type="button" class="btn btn-primary dropdown-toggle"
+              aria-controls="dropdown-state-change">
+        Button dropdown <span class="caret"></span>
+      </button>
+      <ul id="dropdown-state-change" *dropdownMenu class="dropdown-menu"
+          role="menu" aria-labelledby="button-state-change">
+        <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+        <li role="menuitem"><a class="dropdown-item" href="#">Another action</a></li>
+        <li role="menuitem"><a class="dropdown-item" href="#">Something else here</a></li>
+      </ul>
+    </div>
+  </div>
+</div>

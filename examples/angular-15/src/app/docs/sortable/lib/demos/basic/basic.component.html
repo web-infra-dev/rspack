@@ -1,0 +1,34 @@
+<div class="row">
+  <div class="col-xs-6 col-6 col-md-5 col-lg-3">
+    <bs-sortable
+      [(ngModel)]="itemStringsLeft"
+      itemClass="sortable-item"
+      itemActiveClass="sortable-item-active"
+      placeholderItem="Drag here"
+      placeholderClass="placeholderStyle text-center"
+      wrapperClass="sortable-wrapper"
+    ></bs-sortable>
+  </div>
+  <div class="col-xs-6 col-6 col-md-5 col-lg-3">
+    <bs-sortable
+      [(ngModel)]="itemStringsRight"
+      itemClass="sortable-item"
+      itemActiveClass="sortable-item-active"
+      placeholderItem="Drag here"
+      placeholderClass="placeholderStyle text-center"
+      wrapperClass="sortable-wrapper"
+    ></bs-sortable>
+  </div>
+</div>
+
+<div class='row'>
+  <div class="col-xs-6 col-6 col-md-5 col-lg-3">
+    <pre class="code-preview">model: {{ itemStringsLeft | json }}</pre>
+  </div>
+
+  <div class="col-xs-6 col-6 col-md-5 col-lg-3">
+    <pre class="code-preview">model: {{ itemStringsRight | json }}</pre>
+  </div>
+</div>
+
+

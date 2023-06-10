@@ -1,0 +1,11 @@
+<button type="button" class="btn btn-primary"
+        (click)="typeaheadSingleWords = !typeaheadSingleWords">Toggle typeaheadSingleWords
+</button>
+<pre class="card card-block card-header">
+  typeaheadSingleWords: {{typeaheadSingleWords}}
+  Model: {{selected | json}}
+</pre>
+<input [(ngModel)]="selected"
+       [typeahead]="states"
+       [typeaheadSingleWords]="typeaheadSingleWords"
+       class="form-control">

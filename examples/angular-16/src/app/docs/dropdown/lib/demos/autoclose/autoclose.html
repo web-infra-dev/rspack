@@ -1,0 +1,31 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-sm-6 mb-3">
+    <p>Default behavior: dropdown closes after outside click or pressing ESC</p>
+    <div class="btn-group" dropdown>
+      <button id="button-autoclose1" dropdownToggle type="button" class="btn btn-primary dropdown-toggle"
+              aria-controls="dropdown-autoclose1">
+        Button dropdown <span class="caret"></span>
+      </button>
+      <ul id="dropdown-autoclose1" *dropdownMenu class="dropdown-menu"
+          role="menu" aria-labelledby="button-autoclose1">
+        <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+        <li role="menuitem"><a class="dropdown-item" href="#">Another action</a></li>
+        <li role="menuitem"><a class="dropdown-item" href="#">Something else here</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-xs-12 col-12 col-sm-6 mb-3">
+    <p>This dropdown won't be closed after outside click or pressing ESC</p>
+    <div class="btn-group" dropdown [autoClose]="false">
+      <button id="button-autoclose2" dropdownToggle type="button" class="btn btn-primary dropdown-toggle"
+              aria-controls="dropdown-autoclose2">
+        Button dropdown <span class="caret"></span>
+      </button>
+      <ul id="dropdown-autoclose2" *dropdownMenu class="dropdown-menu" role="menu" aria-labelledby="button-autoclose2">
+        <li role="menuitem"><a class="dropdown-item" href="#">Action</a></li>
+        <li role="menuitem"><a class="dropdown-item" href="#">Another action</a></li>
+        <li role="menuitem"><a class="dropdown-item" href="#">Something else here</a></li>
+      </ul>
+    </div>
+  </div>
+</div>

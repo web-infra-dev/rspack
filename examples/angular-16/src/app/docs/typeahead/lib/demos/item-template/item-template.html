@@ -1,0 +1,9 @@
+<ng-template #customItemTemplate let-model="item" let-index="index">
+  <h5>This is: {{model | json}} Index: {{ index }}</h5>
+</ng-template>
+
+<pre class="card card-block card-header mb-3">Model: {{selected | json}}</pre>
+<input [(ngModel)]="selected"
+       [typeahead]="states"
+       [typeaheadItemTemplate]="customItemTemplate"
+       class="form-control">

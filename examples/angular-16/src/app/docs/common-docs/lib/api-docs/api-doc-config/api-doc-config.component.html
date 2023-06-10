@@ -1,0 +1,51 @@
+<div (click)="trackSourceClick()" class="api-doc-component">
+  <h3 [attr.id]="headerAnchor">
+    <a href="https://github.com/valor-software/ngx-bootstrap/tree/development/{{ apiDocs?.fileName }}"
+       target="_blank" rel="noopener">{{ apiDocs?.className }}</a>
+  </h3>
+  <p [innerHTML]="apiDocs?.description"></p>
+
+  <ng-template [ngIf]="apiDocs?.properties && apiDocs?.properties?.length">
+    <section>
+      <h3>Properties</h3>
+      <table class="table table-bordered">
+        <tbody>
+        <tr *ngFor="let prop of apiDocs?.properties">
+          <td class="col-xs-3"><code>{{ prop.name }}</code></td>
+          <td class="col-xs-9">
+            <div><i>Type: </i><code>{{ prop.type }}</code></div>
+            <ng-template [ngIf]="prop.defaultValue">
+              <div><i>Default value: </i><code>{{ prop.defaultValue || '-'}}</code></div>
+            </ng-template>
+            <div [innerHTML]="prop.description"></div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </section>
+  </ng-template>
+
+  <ng-template [ngIf]="apiDocs?.methods && apiDocs?.methods?.length && this.isShowMethods">
+    <section>
+      <h3>Methods</h3>
+      <table class="table table-bordered">
+        <tbody>
+        <tr *ngFor="let method of apiDocs?.methods">
+          <td class="col-xs-3"><code>{{ method.name }}</code></td>
+          <td class="col-xs-9">
+            <div>
+              <code>{{ method.name }}(</code>
+              <span class="api-doc-methods"><ng-container *ngFor="let arg of method.args; let last = last">{{ arg.name }}:
+              {{ arg.type }}<ng-container *ngIf="!last && method.args.length > 1">, </ng-container>
+              </ng-container><code>)</code>
+              => {{ method.returnType }}
+              </span>
+            </div>
+            <div [innerHTML]="method.description"></div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </section>
+  </ng-template>
+</div>

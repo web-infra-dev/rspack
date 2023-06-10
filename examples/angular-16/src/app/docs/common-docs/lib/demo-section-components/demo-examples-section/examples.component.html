@@ -1,0 +1,28 @@
+<ng-container *ngIf="section">
+  <p *ngIf="section.description" [innerHTML]="section.description"></p>
+
+  <div class="example-section" *ngFor="let item of examples">
+    <h3 *ngIf="item.title" [attr.id]="item.anchor" class="d-flex justify-content-between">
+      {{ item.title }}
+      <p *ngIf="item?.component || tabName === 'examples'" class="m-0">
+        <a *ngIf="item.title !== 'Accessibility' && tabName !== 'examples'"
+           title="Open this demo in StackBlitz"
+           href="#"
+           class="stackblitz-link"
+           (click)="openStackBlitzDemo(item?.component?.default, item?.html?.default)">
+          <img src="assets/images/stackblitz.png" alt="" width="20">
+        </a>
+        <a *ngIf="tabName !== 'examples'" class="anchor-link d-inline-block" routerLink="." [fragment]="item.anchor">#</a>
+        <a *ngIf="item.title !== 'Accessibility' && tabName === 'examples'" [queryParams]="{tab: 'overview'}" routerLink="." [fragment]="initFragment(item.anchor)">
+          <img src="assets/images/icons/icon-code.svg" alt="" width="20">
+        </a>
+      </p>
+    </h3>
+    <p *ngIf="item.description" [innerHTML]="item.description"></p>
+    <ng-sample-box [ts]="item?.component?.default" [html]="item?.html?.default" [style]="item.style ">
+      <ng-container *ngComponentOutlet="item.outlet"></ng-container>
+    </ng-sample-box>
+  </div>
+</ng-container>
+
+

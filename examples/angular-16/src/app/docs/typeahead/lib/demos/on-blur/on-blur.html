@@ -1,0 +1,7 @@
+<pre class="card card-block card-header">Model: {{selected | json}}</pre>
+<pre class="card card-block card-header">Option on blur: {{optionOnBlur | json}}</pre>
+
+<input [(ngModel)]="selected"
+       [typeahead]="states"
+       (typeaheadOnBlur)="typeaheadOnBlur($event)"
+       class="form-control">

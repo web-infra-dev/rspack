@@ -1,0 +1,25 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-sm-4 form-group mb-3">
+    <input type="text" class="form-control" #dp="bsDatepicker" bsDatepicker [outsideClick]="false">
+  </div>
+  <div class="col-xs-12 col-12 col-sm-8 form-group mb-3">
+    <button class="btn btn-success"
+            (click)="dp.show()"
+            type="button">
+      Open
+    </button>
+
+    <button class="btn btn-success"
+            (click)="dp.hide()"
+            type="button">
+      Close
+    </button>
+
+    <button class="btn btn-success"
+            (click)="dp.toggle()"
+            [attr.aria-expanded]="dp.isOpen"
+            type="button">
+      Toggle
+    </button>
+  </div>
+</div>

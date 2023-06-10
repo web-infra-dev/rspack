@@ -1,0 +1,5 @@
+<ng-template #popTemplate let-message="message">{{ message }}</ng-template>
+<button type="button" class="btn btn-primary"
+        [popover]="popTemplate" [popoverContext]="context">
+  Open popover with custom context
+</button>

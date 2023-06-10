@@ -1,0 +1,12 @@
+<carousel (activeSlideChange)="log($event)" [interval]="0">
+  <slide *ngFor="let slide of slides; let index=index">
+    <img [src]="slide.image" alt="image slide" style="display: block; width: 100%;">
+
+    <div class="carousel-caption">
+      <h4>Slide {{index}}</h4>
+      <p>{{slide.text}}</p>
+    </div>
+  </slide>
+</carousel>
+<br/>
+<pre class="card card-block card-header">{{slideChangeMessage}}</pre>

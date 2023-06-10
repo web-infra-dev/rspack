@@ -1,0 +1,11 @@
+<pre class="card card-block card-header">Model: {{asyncSelected | json}}</pre>
+
+<input [(ngModel)]="asyncSelected"
+       [typeahead]="dataSource"
+       (typeaheadLoading)="changeTypeaheadLoading($event)"
+       (typeaheadOnSelect)="typeaheadOnSelect($event)"
+       [typeaheadOptionsLimit]="7"
+       typeaheadOptionField="name"
+       placeholder="Locations loaded with timeout"
+       class="form-control">
+<div *ngIf="typeaheadLoading">Loading</div>

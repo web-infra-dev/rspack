@@ -1,0 +1,7 @@
+<button type="button" class="btn btn-primary" (click)="isCollapsed = !isCollapsed"
+        [attr.aria-expanded]="!isCollapsed" aria-controls="collapseBasic">Toggle collapse
+</button>
+<hr>
+<div id="collapseBasic" [collapse]="isCollapsed">
+  <div class="well well-lg card card-block card-header">Some content</div>
+</div>

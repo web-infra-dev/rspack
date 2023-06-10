@@ -1,0 +1,33 @@
+<div class="row">
+  <div class="col-xs-12 col-12 col-md-4 col-lg-4 form-group mb-3">
+    <select
+      class="custom-select form-control from-select"
+      [(ngModel)]="colorTheme" (ngModelChange)="applyTheme(dp);">
+      <option value="theme-default">default</option>
+      <option value="theme-green">green</option>
+      <option value="theme-blue">blue</option>
+      <option value="theme-dark-blue">dark-blue</option>
+      <option value="theme-red">red</option>
+      <option value="theme-orange">orange</option>
+    </select>
+  </div>
+
+  <div class="col-xs-12 col-12 col-md-5 col-lg-5 form-group mb-3">
+    <div class="form-group mb-3">
+      <div class="input-group">
+        <input type="text" class="form-control" bsDatepicker #dp="bsDatepicker" [bsConfig]="bsConfig">
+        <div class="input-group-btn">
+          <button class="btn btn-success"
+                  (click)="dp.show()"
+                  [attr.aria-expanded]="dp.isOpen"
+                  type="button">
+            Open
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<br>
+
+

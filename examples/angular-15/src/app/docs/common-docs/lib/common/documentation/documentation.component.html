@@ -1,0 +1,322 @@
+<demo-section>
+  <div id="content" class="content-box d-block pl-0 ps-0 pe-0 pr-0">
+    <div class="common-header">
+      <div class="title-box">
+        <h1>Welcome to ngx-bootstrap!</h1>
+        <p>
+          The best way to quickly integrate <a href="https://getbootstrap.com/docs/5.2" target="_blank">Bootstrap 5 </a> or <a href="https://getbootstrap.com/docs/4.0" target="_blank">Bootstrap 4 </a> Components with Angular
+        </p>
+        <div class="statistic-box">
+          <a href="https://npmjs.org/ngx-bootstrap" target="_blank">
+            <img src="https://img.shields.io/npm/v/ngx-bootstrap/latest.svg" alt="npm latest version" >
+          </a>
+          <a href="https://npmjs.org/ngx-bootstrap" target="_blank">
+            <img src="https://img.shields.io/npm/v/ngx-bootstrap/next.svg" alt="npm next version" >
+          </a>
+          <br/>
+          <a href="https://npmjs.org/ngx-bootstrap" target="_blank">
+            <img src="https://img.shields.io/npm/dm/ngx-bootstrap.svg" alt="npm downloads">
+          </a>
+          <a href="https://opencollective.com/ngx-bootstrap" target="_blank">
+            <img src="https://opencollective.com/ngx-bootstrap/tiers/backer/badge.svg?label=backer&color=brightgreen">
+          </a>
+        </div>
+      </div>
+
+      <div class="d-flex links-box">
+        <a class="d-block" href="https://github.com/valor-software/ngx-bootstrap" target="_blank"><i class="arrow-link"></i>Github link</a>
+        <a class="d-block" href="https://join.slack.com/t/ngx-home/shared_invite/enQtNTExMTY5MzcwMTM0LWVjZGU2MjI4MTVhMGVlMTc2OWRiMzA0NzBhNDU5YzQ0MDM3MWI5NzJjZTUzNzIxZmNjYmFlMjU2MzE0YmY0NWY" target="_blank"><i class="arrow-link"></i>Slack channel </a>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Links</h2>
+      <ul>
+        <li><a routerLink=".">Documentation</a></li>
+        <li><a href="https://github.com/valor-software/ngx-bootstrap/blob/development/CHANGELOG.md" target="_blank">Release Notes</a></li>
+        <li><a href="https://join.slack.com/t/ngx-home/shared_invite/enQtNTExMTY5MzcwMTM0LWVjZGU2MjI4MTVhMGVlMTc2OWRiMzA0NzBhNDU5YzQ0MDM3MWI5NzJjZTUzNzIxZmNjYmFlMjU2MzE0YmY0NWY" target="_blank">Slack Community</a></li>
+      </ul>
+
+      <h2>Table of contents</h2>
+      <ol>
+        <li><a routerLink="." fragment="getting-started">Getting Started</a></li>
+        <li><a routerLink="." fragment="usage--demo">Usage & Demo</a></li>
+        <li><a routerLink="." fragment="supporting-ngx-bootstrap">Supporting NGX-Bootstrap</a></li>
+        <li><a routerLink="." fragment="installation">Installation</a></li>
+        <li><a routerLink="." fragment="compatibility">Compatibility</a></li>
+        <li><a routerLink="." fragment="troubleshooting">Troubleshooting</a></li>
+        <li><a routerLink="." fragment="contribution">Contributing</a></li>
+        <li><a routerLink="." fragment="credits">Credits</a></li>
+        <li><a routerLink="." fragment="license">License</a></li>
+      </ol>
+
+      <h2 id="getting-started">
+        Getting Started
+        <a class="anchor-link" routerLink="." fragment="getting-started">#</a>
+      </h2>
+      <p>ngx-bootstrap provides Bootstrap components powered by Angular, so you don't need to include original JS
+        components.</p>
+      <p>Check our Getting started guide if it's your first project with Angular Bootstrap.</p>
+
+      <h2 id="usage--demo">
+        Usage & Demo
+        <a class="anchor-link" routerLink="." fragment="usage--demo">#</a>
+      </h2>
+      <p>
+        Bootstrap components for Angular applications, dozens of demos and API documentation could be found here:
+        <a routerLink="/components">https://valor-software.com/ngx-bootstrap</a>.
+      </p>
+
+      <h2 id="supporting-ngx-bootstrap">
+        Supporting NGX-Bootstrap
+        <a class="anchor-link" routerLink="." fragment="supporting-ngx-bootstrap">#</a>
+      </h2>
+      <p>
+        ngx-bootstrap is an Open Source (MIT Licensed) project, it's an independent project with ongoing development
+        made possible thanks to the support of our awesome backers.
+        If you also would like to show support or simply give back to Open Source community, please consider becoming a
+        backer sponsor of <a href="https://opencollective.com/ngx-bootstrap" target="_blank">ngx-bootstrap on OpenCollective</a>.
+      </p>
+      <p>
+        All donated funds are managed transparently on OpenCollective and will be used solely for compensating work and
+        expenses for contributors. Valor Software employees and contractors are not eligible to use these funds.
+      </p>
+      <p>
+        What's there for you? Proper recognition and exposure of your name/logo/website on our page.
+        Our main sponsors will be presented under this section! Be the first!
+      </p>
+
+      <h2 id="installation">
+        Installation
+        <a class="anchor-link" routerLink="." fragment="installation">#</a>
+      </h2>
+      <h4>Angular CLI way</h4>
+      <p>
+        Use the Angular CLI ng add command for updating your Angular project.
+      </p>
+      <pre class="prettyprint lang-bash prettyprinted"><span class="pln">ng add ngx-bootstrap</span></pre>
+
+      <h4>Manual way</h4>
+      <p>Install <code>ngx-bootstrap</code> from <code>npm</code></p>
+      <pre class="prettyprint lang-bash prettyprinted"><span class="pln">npm install ngx</span><span
+        class="pun">-</span><span class="pln">bootstrap </span><span class="pun">--</span><span class="pln">save</span></pre>
+      <p>Add wanted package to NgModule imports:</p>
+
+      <pre class="prettyprint lang-js prettyprinted">
+  <span class="kwd">import</span><span class="pln"> </span><span class="pun">{{'{'}}</span><span class="kwd"> TooltipModule </span><span
+        class="pun">{{'}'}}</span><span class="pln"> from </span><span class="str">'ngx-bootstrap/tooltip'</span><span
+        class="pun">;</span>
+  <span class="pln">&nbsp;</span>
+  <span class="lit">@NgModule</span><span class="pun">({{'{'}}</span>
+  <span class="pln">  &hellip;</span>
+  <span class="pln">  imports:</span><span class="pln"> </span><span class="pln">[</span><span class="pln"> </span><span
+        class="typ">TooltipModule<span class="pln">.forRoot(), &hellip;</span></span><span class="pln"> </span><span
+        class="pun">]</span>
+  <span class="pln">  &hellip;</span>
+  <span class="pun">{{'}'}})</span></pre>
+
+      <p>Add component to your page:</p>
+
+      <pre class="prettyprint lang-js prettyprinted">
+  <span class="kwd">&lt;button</span><span class="pln"> </span><span class="atn">type</span><span
+        class="pun">=</span><span class="atv">"button"</span><span class="pln"> </span><span
+        class="atn">class</span><span class="pun">=</span><span class="atv">"btn btn-primary"</span>
+  <span class="atn">        tooltip</span><span class="pun">=</span><span class="atv">"Vivamus sagittis lacus vel augue laoreet rutrum faucibus."</span><span
+        class="kwd">&gt;</span>
+  <span class="pln">  Simple demo</span>
+  <span class="kwd">&lt;/button&gt;</span></pre>
+
+      <p>You will need to add bootstrap css:</p>
+      <ul>
+        <li><code>Bootstrap 5</code></li>
+      </ul>
+
+      <pre class="prettyprint prettyprinted"><span class="com">&lt;!--- index.html --&gt;</span><span
+        class="pln"></span>
+<span class="tag">&lt;link</span><span class="pln"> </span><span class="atn">href</span><span class="pun">=</span><span
+          class="atv">"https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"</span><span
+          class="pln"> </span><span class="atn">rel</span><span class="pun">=</span><span
+          class="atv">"stylesheet"</span> <span class="atn">crossorigin</span><span class="pun">=</span><span
+          class="atv">"anonymous"</span> <span class="atn">integrity</span><span class="pun">=</span><span
+          class="atv">"sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"</span><span class="tag">&gt;</span></pre>
+
+      <ul>
+        <li><code>Bootstrap 4</code></li>
+      </ul>
+
+      <pre class="prettyprint prettyprinted"><span class="com">&lt;!--- index.html --&gt;</span><span
+        class="pln"></span>
+<span class="tag">&lt;link</span><span class="pln"> </span><span class="atn">href</span><span class="pun">=</span><span
+          class="atv">"https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"</span><span
+          class="pln"> </span><span class="atn">rel</span><span class="pun">=</span><span
+          class="atv">"stylesheet"</span> <span class="atn">crossorigin</span><span class="pun">=</span><span
+          class="atv">"anonymous"</span> <span class="atn">integrity</span><span class="pun">=</span><span
+          class="atv">"sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2"</span><span class="tag">&gt;</span></pre>
+
+      <h3>Setting up the bootstrap version manually</h3>
+      <p>
+        As you may know <code>ngx-bootstrap</code> support several <code>bootstrap.css</code> versions at the same time
+        and has automatic tool to
+        guess current used version of library, but if this guess fails you can specify version of
+        <code>bootstrap.css</code>
+        manually.
+      </p>
+      <p>
+        Sometimes, your project might contain some library that could interfere with the bootstrap framework, or you
+        might have a customized version of bootstrap. The consequence is that the process of determining bootstrap
+        version might be failed, which can break the UI. In that case, we can still set the bootstrap version manually
+        in the bootstrapping component (i.e. <code>AppComponent</code>):
+      </p>
+
+      <pre class="prettyprint lang-js prettyprinted">
+  <span class="kwd">import</span><span class="pln"> </span><span class="pun">{{'{'}}</span><span
+        class="pln"> setTheme </span><span class="pun">{{'}'}}</span><span class="pln"> from </span><span class="str">'ngx-bootstrap/utils'</span><span
+        class="pun">;</span>
+  <span class="pln">&nbsp;</span>
+  <span class="lit">@Component</span><span class="pun">({{'{'}}</span><span class="pln">&hellip;</span><span
+        class="pun">{{'}'}})</span>
+  <span class="kwd">export</span><span class="pln"> </span><span class="kwd">class</span><span class="pln"> </span><span
+        class="typ">AppComponent</span><span class="pln"> </span><span class="pun">{{'{'}}</span>
+  <span class="pln">  constructor</span><span class="pun">()</span><span class="pln"> </span><span
+        class="pun">{{'{'}}</span>
+  <span class="pln">    setTheme</span><span class="pun">(</span><span class="str">'bs5'</span><span class="pun">);</span><span
+        class="pln"> </span><span class="com">// or 'bs4'</span>
+  <span class="pln">    <span class="pln">&hellip;</span></span>
+  <span class="pln">  </span><span class="pun">{{'}'}}</span>
+  <span class="pun">{{'}'}}</span></pre>
+
+      <h3>How to build lib for development</h3>
+      <p>First time:</p>
+
+      <pre class="prettyprint lang-bash prettyprinted">
+  <span class="pln">git clone</span><span class="pln"> https://github.com/valor-software/ngx-bootstrap.git</span>
+  <span class="atn">cd</span><span class="pln"> ngx-bootstrap</span>
+  <span class="pln">npm ci</span>
+  <span class="pln">npm run build</span>
+  <span class="pln">npm start</span></pre>
+
+      <h2 id="compatibility">
+        Compatibility
+        <a class="anchor-link" routerLink="." fragment="compatibility">#</a>
+      </h2>
+      <p>The only two dependencies are <a href="https://angular.io" target="_blank">Angular</a> and  <a href="https://getbootstrap.com" target="_blank">Bootstrap</a> CSS.</p>
+      <p>Here is the versions compatibility list:</p>
+      <table class="compatibility mb-4">
+        <thead>
+        <tr>
+          <th>ngx-bootstrap</th>
+          <th>Angular</th>
+          <th>Bootstrap CSS</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <th>10.x.x</th>
+          <th>15.x.x</th>
+          <th>5.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>9.0.0</th>
+          <th>14.x.x</th>
+          <th>5.x.x or 4.x.x or 3.x.x</th>
+        </tr>
+        <tr>
+          <th>8.0.0</th>
+          <th>12.x.x - 13.x.x</th>
+          <th>5.x.x or 4.x.x or 3.x.x</th>
+        </tr>
+        <tr>
+          <th>7.1.0</th>
+          <th>11.x.x - 12.x.x</th>
+          <th>5.x.x or 4.x.x or 3.x.x</th>
+        </tr>
+        <tr>
+          <th>7.0.0</th>
+          <th>11.x.x - 12.x.x</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>6.0.0</th>
+          <th>9.x.x - 10.x.x</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>5.6.x</th>
+          <th>7.x.x - 9.1.0</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>5.0.0 - 5.6.0</th>
+          <th>7.x.x - 8.x.x</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>4.x.x</th>
+          <th>6.x.x - 7.x.x</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>3.x.x</th>
+          <th>6.x.x - 7.x.x</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>2.x.x</th>
+          <th>2.x.x - 4.x.x</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        <tr>
+          <th>1.x.x</th>
+          <th>2.x.x</th>
+          <th>3.x.x or 4.x.x</th>
+        </tr>
+        </tbody>
+      </table>
+
+      <h2 id="troubleshooting">
+        Troubleshooting
+        <a class="anchor-link" routerLink="." fragment="troubleshooting">#</a>
+      </h2>
+      <p>
+        So if you are in trouble, here's where you can look for help.
+      </p>
+      <p>
+        The best place to ask questions is on <a href="https://stackoverflow.com/questions/tagged/ngx-bootstrap" target="_blank">StackOverflow (under the ngx-bootstrap tag)</a> You can also join <a href="https://join.slack.com/t/ngx-home/shared_invite/enQtNTExMTY5MzcwMTM0LWVjZGU2MjI4MTVhMGVlMTc2OWRiMzA0NzBhNDU5YzQ0MDM3MWI5NzJjZTUzNzIxZmNjYmFlMjU2MzE0YmY0NWY" target="_blank">our Slack channel</a> and link your stackoverflow question there. But try to avoid asking generic help questions directly on
+        Slack since they can easily get lost in the chat. You can also <a href="https://github.com/valor-software/ngx-bootstrap/issues?utf8=%E2%9C%93&q=is%3Aissue" target="_blank">search among the existing GitHub issues</a>.
+      </p>
+      <p>If, <b>and only if</b>, none of the above helped, please open a <a href="https://github.com/valor-software/ngx-bootstrap/issues/new" target="_blank">new issue</a></p>
+
+      <h2 id="contribution">
+        Contribution
+        <a class="anchor-link" routerLink="." fragment="contribution">#</a>
+      </h2>
+      <p>Are very welcome! And remember, contribution is not only PRs and code, but any help with docs or helping other
+        developers to solve issues are very appreciated! Thanks in advance!</p>
+      <p>Please read our <a href="https://github.com/valor-software/ngx-bootstrap/blob/development/CONTRIBUTING.md" target="_blank">contribution guidelines</a>.</p>
+
+      <h3 id="credits">
+        Credits
+        <a class="anchor-link" routerLink="." fragment="credits">#</a>
+      </h3>
+      <p>Crossbrowser testing sponsored by
+        <a href="https://saucelabs.com/" class="pr-1 pe-1" target="_blank">Saucelabs</a>
+        <a href="https://saucelabs.com/" target="_blank">
+          <img src="https://avatars2.githubusercontent.com/u/88837?s=200&v=4" alt="Saucelabs" width="31" height="31">
+        </a>
+      </p>
+
+      <p>End-to-end testing sponsored by
+        <a href="https://www.cypress.io/" class="pr-1 pe-1" target="_blank">Cypress</a>
+        <a href="https://www.cypress.io/" target="_blank">
+          <img src="https://raw.githubusercontent.com/cypress-io/cypress-icons/master/src/favicon/favicon.ico" alt="Cypress" width="31" height="31">
+        </a>
+      </p>
+
+      <h3 id="license">
+        License
+        <a class="anchor-link" routerLink="." fragment="license">#</a>
+      </h3>
+      <p><a href="https://github.com/valor-software/ngx-bootstrap/blob/development/LICENSE" target="_blank">MIT</a></p>
+    </div>
+  </div>
+</demo-section>

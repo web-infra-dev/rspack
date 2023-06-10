@@ -1,0 +1,16 @@
+<rating [(ngModel)]="rate" [max]="max" [readonly]="isReadonly"
+        (onHover)="hoveringOver($event)" (onLeave)="resetStar()"
+        [titles]="['one','two','three']"></rating>
+<!--      [ngClass]="{'label-warning': percent<30, 'label-info': percent>=30 && percent<70, 'label-success': percent>=70}"-->
+<span class="label"
+      [ngStyle]="{display: (overStar && !isReadonly) ? 'inline' : 'none'}">{{percent}}%</span>
+<div class="card">
+    <pre class="card-block card-header" style="margin:15px 0;">Rate: <b>{{rate}}</b>;  Readonly is: <i>{{isReadonly}}</i>;  Hovering over: <b>{{overStar || "none"}}</b></pre>
+</div>
+
+<button type="button" class="btn btn-sm btn-danger" (click)="rate = 0"
+        [disabled]="isReadonly">Clear
+</button>
+<button type="button" class="btn btn-sm btn-primary"
+        (click)="isReadonly = ! isReadonly">Toggle Readonly
+</button>

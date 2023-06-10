@@ -1,0 +1,15 @@
+<button type="button" class="btn btn-primary" (click)="openModal(template)">Open modal</button>
+<ng-template #template>
+  <div class="modal-header">
+    <h4 class="modal-title pull-left">Modal</h4>
+    <button type="button" class="btn-close close pull-right" aria-label="Close" (click)="modalRef?.hide()">
+      <span aria-hidden="true" class="visually-hidden">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Cumque delectus enim esse excepturi, impedit,
+      iste magnam officia optio, quam quis quisquam saepe sint unde velit vitae! Animi in iusto ut?</p>
+      <button type="button" class="btn btn-primary" popover="Vivamus sagittis">popover</button>
+      <button type="button" class="btn btn-primary" tooltip="Vivamus sagittis">tooltip</button>
+  </div>
+</ng-template>

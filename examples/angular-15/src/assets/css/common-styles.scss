@@ -1,0 +1,147 @@
+@import "variables";
+
+html {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: inherit;
+}
+
+body {
+  min-width: 320px;
+  font-family: 'Manrope', Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+h1, h2, h3, h4 {
+
+  &:focus {
+    outline: none;
+  }
+}
+
+p {
+  font-family: 'Open Sans';
+}
+
+h1 {
+  font-family: 'Open Sans';
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 36px;
+  color: black;
+  margin-bottom: 15px;
+
+  img {
+    width: 20px;
+  }
+}
+
+h2 {
+  font-family: 'Open Sans';
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 32px;
+  color: black;
+}
+
+h3 {
+  font-family: 'Open Sans';
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+
+  a {
+    color: black;
+  }
+}
+
+.landing {
+
+  h1 {
+    font-family: 'Manrope bold';
+    font-size: 72px;
+    line-height: 100px;
+    color: $dark-font-color;
+  }
+
+  h2 {
+    font-family: 'Manrope bold';
+    font-weight: 800;
+    font-size: 48px;
+    line-height: 64px;
+    color: $dark-font-color;
+  }
+}
+
+.item {
+
+  & > p {
+    display: inline;
+    margin: 0;
+    font-family: 'Open Sans';
+    font-size: 14px;
+    line-height: 20px;
+    color: #393D41;
+  }
+}
+
+code {
+  word-break: normal;
+  color: #FE5AAB;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.container-width {
+  width: $container-width;
+  max-width: 100%;
+}
+
+.container-width-lg {
+  width: $container-width-lg;
+  max-width: 100%;
+}
+
+.hidden {
+  width: 0!important;
+  opacity: 0!important;
+}
+
+.transition-option {
+  transition: all ease .2s;
+}
+
+.scroll-list, add-nav {
+
+  &::-webkit-scrollbar {
+    width: 1px;
+    height: 20px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #B4C5D5;
+    border-radius: 10%;
+    border: 0px solid transparent;
+  }
+}
+.alert-md-local {
+  background-color: #009688;
+  border-color: #00695C;
+  color: #fff;
+}
+
+examples > p {
+  margin-top: 10px;
+}
+

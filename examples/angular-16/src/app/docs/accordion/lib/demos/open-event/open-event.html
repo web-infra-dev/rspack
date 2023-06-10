@@ -1,0 +1,11 @@
+<accordion>
+  <accordion-group heading="Group without isOpenChange event listener">
+    <p>Some content</p>
+  </accordion-group>
+  <accordion-group heading="Group with isOpenChange event listener" (isOpenChange)="log($event)">
+    <p>Some content</p>
+  </accordion-group>
+  <accordion-group heading="Group with isOpenChange event listener" (isOpenChange)="log($event)">
+    <p>Some content</p>
+  </accordion-group>
+</accordion>

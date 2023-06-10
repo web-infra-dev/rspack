@@ -1,0 +1,8 @@
+<timepicker [(ngModel)]="myTime" [showMeridian]="isMeridian" (isValid)="isValid($event)"></timepicker>
+<hr>
+<pre class="alert"
+     [class.alert-danger]="!valid"
+     [class.alert-success]="valid">
+  Time is: {{myTime}}
+</pre>
+<div *ngIf="!valid" class="alert alert-danger">Invalid time</div>

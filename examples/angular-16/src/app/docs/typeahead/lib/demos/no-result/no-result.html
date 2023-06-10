@@ -1,0 +1,7 @@
+<pre class="card card-block card-header">Model: {{selected | json}}</pre>
+<div class="alert alert-danger" *ngIf="noResult">No Results Found</div>
+
+<input [(ngModel)]="selected"
+       [typeahead]="states"
+       (typeaheadNoResults)="typeaheadNoResults($event)"
+       class="form-control">

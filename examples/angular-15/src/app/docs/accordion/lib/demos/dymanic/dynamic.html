@@ -1,0 +1,11 @@
+<p>
+  <button type="button" class="btn btn-primary btn-sm" (click)="addGroupItem()">
+    Add Group Item
+  </button>
+</p>
+
+<accordion>
+  <accordion-group *ngFor="let group of groups" [heading]="group.title">
+    {{ group?.content }}
+  </accordion-group>
+</accordion>

@@ -1,0 +1,10 @@
+<p>
+  <span [popover]="'Hello there! I was triggered by changing isOpen property'"
+        triggers=""  [isOpen]="isOpen">
+  This text has attached popover
+  </span>
+</p>
+<button type="button" class="btn btn-primary"
+        (click)="isOpen = !isOpen">
+  Toggle
+</button>
