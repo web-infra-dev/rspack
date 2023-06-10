@@ -271,7 +271,7 @@ impl<'me> CodeSplitter<'me> {
     }
 
     {
-      let mut module = self
+      let module = self
         .compilation
         .module_graph
         .module_graph_module_by_identifier_mut(&item.module_identifier)
@@ -309,7 +309,7 @@ impl<'me> CodeSplitter<'me> {
       chunk_group.next_post_order_index += 1;
     }
 
-    let mut module = self
+    let module = self
       .compilation
       .module_graph
       .module_graph_module_by_identifier_mut(&item.module_identifier)

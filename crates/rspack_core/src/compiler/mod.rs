@@ -1,5 +1,6 @@
 mod compilation;
 mod hmr;
+mod make;
 mod queue;
 mod resolver;
 
@@ -7,6 +8,7 @@ use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
 use dashmap::DashMap;
+use make::MakeParam;
 pub use queue::*;
 pub use resolver::*;
 use rspack_error::Result;
@@ -127,14 +129,14 @@ where
           .collect::<Vec<_>>()
       })
       .collect::<HashSet<_>>();
-    self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
+    self.compile(MakeParam::ForceBuildDeps(deps)).await?;
     self.cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
+  async fn compile(&mut self, params: MakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
 

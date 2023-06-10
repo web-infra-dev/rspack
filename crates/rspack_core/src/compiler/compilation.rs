@@ -25,22 +25,21 @@ use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 
+use super::make::{MakeParam, RebuildDepsBuilder};
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  utils::fast_drop,
-  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
-  BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
-  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
-  ContentHashArgs, DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint,
-  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleAstOrSource, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats,
-  TaskResult, WorkerTask,
+  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModule,
+  BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey,
+  ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
+  CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
+  CompilerOptions, ContentHashArgs, DependencyId, EntryDependency, EntryItem, EntryOptions,
+  Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
+  ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -55,12 +54,6 @@ pub type BuildDependency = (
   DependencyId,
   Option<ModuleIdentifier>, /* parent module */
 );
-
-#[derive(Debug)]
-pub enum SetupMakeParam {
-  ModifiedFiles(HashSet<PathBuf>),
-  ForceBuildDeps(HashSet<BuildDependency>),
-}
 
 #[derive(Debug)]
 pub struct Compilation {
@@ -357,80 +350,65 @@ impl Compilation {
   }
 
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, params: SetupMakeParam) -> Result<()> {
+  pub async fn make(&mut self, param: MakeParam) -> Result<()> {
     if let Some(e) = self.plugin_driver.clone().make(self).await.err() {
       self.push_batch_diagnostic(e.into());
     }
+    let make_failed_module =
+      MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
+    let make_failed_dependencies =
+      MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
+    self
+      .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
+      .await
+  }
 
-    // remove prev build ast in modules
-    fast_drop(
-      self
-        .module_graph
-        .modules_mut()
-        .values_mut()
-        .map(|module| {
-          if let Some(m) = module.as_normal_module_mut() {
-            let is_ast_unbuild = matches!(m.ast_or_source(), NormalModuleAstOrSource::Unbuild);
-            if !is_ast_unbuild {
-              return Some(std::mem::replace(
-                m.ast_or_source_mut(),
-                NormalModuleAstOrSource::Unbuild,
-              ));
-            }
-          }
-          None
-        })
-        .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
-    );
+  pub async fn rebuild_module(
+    &mut self,
+    module_identifiers: HashSet<ModuleIdentifier>,
+  ) -> Result<Vec<&BoxModule>> {
+    for id in &module_identifiers {
+      self.cache.build_module_occasion.remove_cache(id);
+    }
 
-    let mut force_build_module = std::mem::take(&mut self.make_failed_module);
-    let mut force_build_deps = std::mem::take(&mut self.make_failed_dependencies);
+    self
+      .update_module_graph(vec![MakeParam::ForceBuildModules(
+        module_identifiers.clone(),
+      )])
+      .await?;
+
+    Ok(
+      module_identifiers
+        .into_iter()
+        .filter_map(|id| self.module_graph.module_by_identifier(&id))
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
+    let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
     let mut origin_module_deps = HashMap::default();
-    // handle setup params
-    if let SetupMakeParam::ModifiedFiles(files) = &params {
-      force_build_module.extend(self.module_graph.modules().values().filter_map(|module| {
-        // check has dependencies modified
-        if self
-          .module_graph
-          .has_dependencies(&module.identifier(), files)
-        {
-          Some(module.identifier())
-        } else {
-          None
-        }
-      }));
-      // collect origin_module_deps
-      for module_id in &force_build_module {
-        let mgm = self
-          .module_graph
-          .module_graph_module_by_identifier(module_id)
-          .expect("module graph module not exist");
-        let deps = mgm
-          .all_depended_modules(&self.module_graph)
-          .into_iter()
-          .cloned()
-          .collect::<Vec<_>>();
-        origin_module_deps.insert(*module_id, deps);
-      }
-    }
-    if let SetupMakeParam::ForceBuildDeps(deps) = params {
-      force_build_deps.extend(deps);
-    }
 
-    // move deps bindings module to force_build_module
-    for (dependency_id, _) in &force_build_deps {
-      if let Some(mid) = self
+    // collect origin_module_deps
+    for module_id in deps_builder.get_force_build_modules() {
+      let mgm = self
         .module_graph
-        .module_identifier_by_dependency_id(dependency_id)
-      {
-        force_build_module.insert(*mid);
-      }
+        .module_graph_module_by_identifier(module_id)
+        .expect("module graph module not exist");
+      let deps = mgm
+        .all_depended_modules(&self.module_graph)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
+      origin_module_deps.insert(*module_id, deps);
     }
 
     let mut need_check_isolated_module_ids = HashSet::default();
+    // rebuild module issuer mappings
+    // save rebuild module issue to restore them
     let mut origin_module_issuers = HashMap::default();
     // calc need_check_isolated_module_ids & regen_module_issues
-    for id in &force_build_module {
+    for id in deps_builder.get_force_build_modules() {
       if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
         let depended_modules = mgm
           .all_depended_modules(&self.module_graph)
@@ -452,13 +430,8 @@ impl Compilation {
     let mut make_failed_module = HashSet::default();
     let mut errored = None;
 
-    force_build_deps.extend(
-      force_build_module
-        .iter()
-        .flat_map(|id| self.module_graph.revoke_module(id)),
-    );
-
-    force_build_deps
+    deps_builder
+      .revoke_modules(&mut self.module_graph)
       .into_iter()
       .for_each(|(id, parent_module_identifier)| {
         let dependency = self
@@ -730,8 +703,11 @@ impl Compilation {
       }
     });
 
-    self.make_failed_dependencies = make_failed_dependencies;
-    self.make_failed_module = make_failed_module;
+    // TODO @jerrykingxyz make update_module_graph a pure function
+    self
+      .make_failed_dependencies
+      .extend(make_failed_dependencies);
+    self.make_failed_module.extend(make_failed_module);
     tracing::debug!("All task is finished");
 
     // clean isolated module
@@ -773,16 +749,17 @@ impl Compilation {
     self.has_module_import_export_change = if origin_module_deps.is_empty() {
       true
     } else {
-      !origin_module_deps.into_iter().all(|(module_id, deps)| {
-        if let Some(mgm) = self
-          .module_graph
-          .module_graph_module_by_identifier(&module_id)
-        {
-          mgm.all_depended_modules(&self.module_graph) == deps.iter().collect::<Vec<_>>()
-        } else {
-          false
-        }
-      })
+      self.has_module_import_export_change
+        || !origin_module_deps.into_iter().all(|(module_id, deps)| {
+          if let Some(mgm) = self
+            .module_graph
+            .module_graph_module_by_identifier(&module_id)
+          {
+            mgm.all_depended_modules(&self.module_graph) == deps.iter().collect::<Vec<_>>()
+          } else {
+            false
+          }
+        })
     };
 
     // add context module and context element module to bailout_module_identifiers

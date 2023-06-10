@@ -257,6 +257,36 @@ pub fn javascript_path_to(
 
 #[macro_export]
 macro_rules! create_css_visitor {
+  (visit_mut_stylesheet($arg:ident: &mut Stylesheet) $b:block) => {{
+      struct Visitor<T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> {
+          visit_mut_stylesheet: T,
+      }
+
+      impl<T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> $crate::CssVisitorBuilder
+          for Box<Visitor<T>>
+      {
+          fn create<'a>(&'a self) -> Box<dyn swc_core::css::visit::VisitMut + Send + Sync + 'a> {
+              Box::new(&**self)
+          }
+      }
+
+      impl<'a, T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> swc_core::css::visit::VisitMut
+          for &'a Visitor<T>
+      {
+          fn visit_mut_stylesheet(&mut self, $arg: &mut swc_core::css::ast::Stylesheet) {
+              (self.visit_mut_stylesheet)($arg);
+          }
+      }
+
+      (
+          $crate::CodeGeneratableAstPath::Css(Vec::new()),
+          $crate::CodeGeneratableVisitorBuilder::Css(
+              Box::new(Box::new(Visitor {
+                  visit_mut_stylesheet: move |$arg: &mut swc_core::css::ast::Stylesheet| $b,
+              })) as Box<dyn $crate::CssVisitorBuilder>
+          ),
+      )
+  }};
   (exact $ast_path:expr, $name:ident($arg:ident: &mut $ty:ident) $b:block) => {
       $crate::create_css_visitor!(__ $ast_path.to_vec(), $name($arg: &mut $ty) $b)
   };
@@ -291,36 +321,6 @@ macro_rules! create_css_visitor {
           $crate::CodeGeneratableVisitorBuilder::Css(
               Box::new(Box::new(Visitor {
                   $name: move |$arg: &mut swc_core::css::ast::$ty| $b,
-              })) as Box<dyn $crate::CssVisitorBuilder>
-          ),
-      )
-  }};
-  (visit_mut_stylesheet($arg:ident: &mut Stylesheet) $b:block) => {{
-      struct Visitor<T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> {
-          visit_mut_stylesheet: T,
-      }
-
-      impl<T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> $crate::CssVisitorBuilder
-          for Box<Visitor<T>>
-      {
-          fn create<'a>(&'a self) -> Box<dyn swc_core::css::visit::VisitMut + Send + Sync + 'a> {
-              Box::new(&**self)
-          }
-      }
-
-      impl<'a, T: Fn(&mut swc_core::css::ast::Stylesheet) + Send + Sync> swc_core::css::visit::VisitMut
-          for &'a Visitor<T>
-      {
-          fn visit_mut_stylesheet(&mut self, $arg: &mut swc_core::css::ast::Stylesheet) {
-              (self.visit_mut_stylesheet)($arg);
-          }
-      }
-
-      (
-          $crate::CodeGeneratableAstPath::Css(Vec::new()),
-          $crate::CodeGeneratableVisitorBuilder::Css(
-              Box::new(Box::new(Visitor {
-                  visit_mut_stylesheet: move |$arg: &mut swc_core::css::ast::Stylesheet| $b,
               })) as Box<dyn $crate::CssVisitorBuilder>
           ),
       )

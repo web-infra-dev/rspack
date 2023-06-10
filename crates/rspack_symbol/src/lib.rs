@@ -320,7 +320,7 @@ impl PartialEq for SymbolExt {
 /// ```
 /// **b.js**
 /// ```js
-/// improt * as a from './a.js'
+/// import * as a from './a.js'
 /// a.a()
 /// ```
 /// In such scenario only `a` from `a.js` is used, `a.b` is unused.
