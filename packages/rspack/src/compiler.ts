@@ -14,6 +14,7 @@ import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
 import {
+	EntryNormalized,
 	OutputNormalized,
 	RspackOptionsNormalized,
 	RspackPluginInstance
@@ -138,6 +139,7 @@ class Compiler {
 		afterCompile: tapable.AsyncSeriesHook<[Compilation]>;
 		finishModules: tapable.AsyncSeriesHook<[any]>;
 		finishMake: tapable.AsyncSeriesHook<[Compilation]>;
+		entryOption: tapable.SyncBailHook<[string, EntryNormalized], any>;
 	};
 	options: RspackOptionsNormalized;
 	#disabledHooks: string[];
@@ -237,7 +239,8 @@ class Compiler {
 			beforeCompile: new tapable.AsyncSeriesHook(["params"]),
 			afterCompile: new tapable.AsyncSeriesHook(["compilation"]),
 			finishMake: new tapable.AsyncSeriesHook(["compilation"]),
-			finishModules: new tapable.AsyncSeriesHook(["modules"])
+			finishModules: new tapable.AsyncSeriesHook(["modules"]),
+			entryOption: new tapable.SyncBailHook(["context", "entry"])
 		};
 		this.modifiedFiles = undefined;
 		this.removedFiles = undefined;
@@ -609,7 +612,11 @@ class Compiler {
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
+<<<<<<< HEAD
 			buildModule: this.compilation.hooks.buildModule
+=======
+			entryOption: this.hooks.entryOption
+>>>>>>> feat: add entryOption hook
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook?.taps.length === 0) {
