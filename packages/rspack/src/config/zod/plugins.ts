@@ -7,6 +7,7 @@ const rspackPluginFunction = z
 	.returns(z.void());
 
 const rspackPluginInstance = z.object({
+	name: z.string().optional(),
 	apply: rspackPluginFunction
 });
 
