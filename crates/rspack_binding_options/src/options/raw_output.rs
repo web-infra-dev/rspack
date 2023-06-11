@@ -240,9 +240,22 @@ impl RawOutputOptions {
           }
           "require" => {
             plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
-            plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
+            plugins.push(
+              rspack_plugin_runtime::CommonJsChunkLoadingPlugin {
+                async_chunk_loading: false,
+              }
+              .boxed(),
+            );
           }
-          // TODO async-node
+          "async-node" => {
+            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
+            plugins.push(
+              rspack_plugin_runtime::CommonJsChunkLoadingPlugin {
+                async_chunk_loading: true,
+              }
+              .boxed(),
+            );
+          }
           "import" => {
             plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
           }
