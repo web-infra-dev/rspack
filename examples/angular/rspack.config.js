@@ -68,11 +68,11 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: false,
-		// minimizer: [
-		// 	new minifyPlugin({
-		// 		minifier: "terser",
-		// 	}),
-		// ],
+		minimizer: [
+			new minifyPlugin({
+				minifier: "terser",
+			}),
+		],
 		// minimize:false,
 		// moduleIds: 'named',
 		splitChunks: {
