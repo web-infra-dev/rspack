@@ -32,9 +32,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
-  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
-  NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -331,7 +330,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
     let mut include_module_ids = IdentifierSet::default();
-    dbg!(&used_export_module_identifiers);
 
     if side_effects_analyze {
       let symbol_graph = &self.symbol_graph;
@@ -382,18 +380,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         {
           continue;
         } else {
-          dbg!(
-            &analyze_result.module_identifier,
-            used,
-            !self
-              .bailout_modules
-              .contains_key(&analyze_result.module_identifier),
-            self.side_effects_free_modules.contains(&module_identifier),
-            !self
-              .compilation
-              .entry_module_identifiers
-              .contains(&module_identifier)
-          );
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -1264,13 +1250,13 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           AssetModule::new(*module_identifier).analyze(compilation)
         };
 
-        dbg_matches!(
-          &module_identifier.as_str(),
-          &optimize_analyze_result.reachable_import_of_export,
-          &optimize_analyze_result.used_symbol_refs,
-          &optimize_analyze_result.export_map,
-          &optimize_analyze_result.import_map,
-        );
+        // dbg_matches!(
+        //   &module_identifier.as_str(),
+        //   &optimize_analyze_result.reachable_import_of_export,
+        //   &optimize_analyze_result.used_symbol_refs,
+        //   &optimize_analyze_result.export_map,
+        //   &optimize_analyze_result.import_map,
+        // );
 
         Some((*module_identifier, optimize_analyze_result))
       })
