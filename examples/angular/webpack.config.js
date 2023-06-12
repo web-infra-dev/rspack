@@ -4,24 +4,16 @@ const TerserPlugin = require('terser-webpack-plugin')
 delete rspackConfig.builtins;
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 
-rspackConfig.optimization.concatenateModules = false;
-rspackConfig.optimization.mangleExports = false;
-// rspackConfig.optimization.innerGraph = false;
+// Noticed that, rspack don't support scope hoisting and export mangling for now, they are known issues.
+// So before you are trying to report code size inflation issue, please uncomment these two lines below at first and run again
+
+
+// rspackConfig.optimization.concatenateModules = false;
+// rspackConfig.optimization.mangleExports = false;
 rspackConfig.plugins.push(new HtmlWebpackPlugin())
 rspackConfig.plugins.push(
   new webpack.DefinePlugin({
-    ngDevMode: true,
+    ngDevMode: false,
   })
 )
-// rspackConfig.optimization.minimizer = [
-// 	new TerserPlugin({
-// 		minify: TerserPlugin.terserMinify,
-// 		// `terserOptions` options will be passed to `swc` (`@swc/core`)
-// 		// Link to options - https://swc.rs/docs/config-js-minify
-// 		terserOptions: {}
-// 	})
-// ];
-// rspackConfig.optimization.providedExports = false;
-// rspackConfig.optimization.usedExports = false;
-// rspackConfig.optimization.sideEffects = 'flag';
 module.exports = rspackConfig;
