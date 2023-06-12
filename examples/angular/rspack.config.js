@@ -1,6 +1,6 @@
 const { AngularWebpackPlugin } = require("@ngtools/webpack");
 const minifyPlugin = require("@rspack/plugin-minify");
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const {
 	DedupeModuleResolvePlugin,
@@ -23,11 +23,7 @@ class MyPlugin {
 		compiler.hooks.compilation.tap(
 			"MyPlugin",
 			(compilation, { normalModuleFactory }) => {
-				normalModuleFactory.hooks.afterResolve.tap(
-					"MyPlugin",
-					() => {
-					},
-				);
+				normalModuleFactory.hooks.afterResolve.tap("MyPlugin", () => {});
 			},
 		);
 		// compilation.normalModuleFactory?.hooks.afterResolve.tapAsync('MyPlugin', () => {
@@ -38,7 +34,7 @@ class MyPlugin {
 /** @type {import('@rspack/cli').Configuration} */
 module.exports = {
 	devtool: false,
-	target: ["web", "es2022"],
+	target: ["web", "es2015"],
 	entry: {
 		polyfills: ["zone.js"],
 		main: ["./src/main.ts"],
@@ -68,13 +64,12 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: false,
+		//swc has different behavior compare to terser,this lead output size inflate
 		minimizer: [
 			new minifyPlugin({
 				minifier: "terser",
 			}),
 		],
-		// minimize:false,
-		// moduleIds: 'named',
 		splitChunks: {
 			// 'maxAsyncRequests': null, // throws error
 			cacheGroups: {
@@ -101,13 +96,12 @@ module.exports = {
 				template: "./src/index.html",
 			},
 		],
-		treeShaking: true,
 		codeGeneration: {
 			keepComments: true,
 		},
 		define: {
-			ngDevMode: false
-		}
+			ngDevMode: false,
+		},
 	},
 	module: {
 		parser: {
@@ -141,19 +135,6 @@ module.exports = {
 				use: [{ loader: "raw-loader" }, { loader: "sass-loader" }],
 			},
 			{ test: /[/\\]rxjs[/\\]add[/\\].+\.js$/, sideEffects: true },
-			// {
-			// 		test: /\.m?js$/,
-			//       // exclude: /(node_modules|bower_components)/,
-			//       use: {
-			//           // Use `.swcrc` to configure swc
-			//           loader: "swc-loader",
-			// 					options: {
-			// 						jsc: {
-			// 							target: 'es2022'
-			// 						}
-			// 					}
-			//       },
-			// },
 			{
 				test: /\.[cm]?[tj]sx?$/,
 				exclude: [
@@ -212,12 +193,7 @@ module.exports = {
 		],
 	},
 	plugins: [
-		// 		new BundleAnalyzerPlugin({
-		// 			// writes to <webpack output dir>/stats.json by default
-		// generateStatsFile: true
-		// 		}),
-		// new BundleAnalyzerPlugin(),
-		// new DedupeModuleResolvePlugin(),
+		new DedupeModuleResolvePlugin(),
 		new NamedChunksPlugin(),
 		new OccurrencesPlugin({
 			aot: true,
