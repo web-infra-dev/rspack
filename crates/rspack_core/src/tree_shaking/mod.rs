@@ -42,8 +42,7 @@ static CARE_MODULE_ID_FROM_ENV: Lazy<Vec<String>> = Lazy::new(|| {
     Err(_) => vec![],
   }
 });
-pub static CARED_MODULE_ID: &[&str] =
-  &["/Users/bytedance/Documents/rspack/rspack/node_modules/@angular/core/fesm2022/core.mjs"];
+pub static CARED_MODULE_ID: &[&str] = &[];
 
 pub fn debug_care_module_id<T: AsRef<str>>(id: T) -> bool {
   if !ANALYZE_LOGGING {

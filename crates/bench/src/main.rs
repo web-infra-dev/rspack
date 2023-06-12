@@ -49,8 +49,8 @@ async fn main() {
     .unwrap_or_default();
   let path_list = vec![
     // "examples/cjs-tree-shaking-basic",
-    "examples/basic",
-    // "smoke-example/basic",
+    // "examples/basic",
+    "smoke-example/basic",
     // "examples/export-star-chain",
     // "examples/bbb",
     /* "examples/named-export-decl-with-src-eval",
