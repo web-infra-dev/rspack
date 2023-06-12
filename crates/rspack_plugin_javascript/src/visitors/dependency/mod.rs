@@ -176,6 +176,7 @@ pub fn scan_dependencies_with_string_replace(
       &mut dependencies,
       &mut code_replace_source_dependencies,
       &mut import_map,
+      module_identifier,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,

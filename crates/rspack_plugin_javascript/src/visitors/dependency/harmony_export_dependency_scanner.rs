@@ -84,58 +84,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
   }
 
   fn visit_named_export(&mut self, named_export: &'_ NamedExport) {
-    if let Some(src) = &named_export.src {
-      let mut ids = vec![];
-      let mut specifiers = vec![];
-      named_export
-        .specifiers
-        .iter()
-        .for_each(|specifier| match specifier {
-          ExportSpecifier::Namespace(n) => {
-            if let ModuleExportName::Ident(export) = &n.name {
-              ids.push((export.sym.clone(), None));
-              specifiers.push((export.sym.clone(), Some("namespace".into())));
-            }
-          }
-          ExportSpecifier::Default(_) => unreachable!(),
-          ExportSpecifier::Named(named) => {
-            if let ModuleExportName::Ident(orig) = &named.orig {
-              let exported = match &named.exported {
-                Some(ModuleExportName::Ident(export)) => export.sym.clone(),
-                None => orig.sym.clone(),
-                _ => unreachable!(),
-              };
-              ids.push((exported.clone(), Some(orig.sym.clone())));
-              specifiers.push((
-                orig.sym.clone(),
-                match &named.exported {
-                  Some(ModuleExportName::Ident(export)) => Some(export.sym.clone()),
-                  None => None,
-                  _ => unreachable!(),
-                },
-              ))
-            }
-          }
-        });
-
-      self.code_generable_dependencies.push(Box::new(
-        HarmonyExportImportedSpecifierDependency::new(
-          src.value.clone(),
-          ids,
-          self.module_identifier,
-        ),
-      ));
-      self
-        .dependencies
-        .push(Box::new(HarmonyImportDependency::new(
-          src.value.clone(),
-          Some(named_export.span.into()),
-          vec![],
-          specifiers,
-          DependencyType::EsmExport,
-          false,
-        )));
-    } else {
+    if named_export.src.is_none() {
       named_export
         .specifiers
         .iter()
@@ -162,15 +111,15 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           }
           _ => unreachable!(),
         });
+      self
+        .code_generable_dependencies
+        .push(Box::new(ReplaceConstDependency::new(
+          named_export.span.real_lo(),
+          named_export.span.real_hi(),
+          "".into(),
+          None,
+        )));
     }
-    self
-      .code_generable_dependencies
-      .push(Box::new(ReplaceConstDependency::new(
-        named_export.span.real_lo(),
-        named_export.span.real_hi(),
-        "".into(),
-        None,
-      )));
   }
 
   fn visit_export_all(&mut self, export_all: &'_ ExportAll) {
