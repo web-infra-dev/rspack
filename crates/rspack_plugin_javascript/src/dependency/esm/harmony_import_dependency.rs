@@ -128,6 +128,7 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
       init_fragments,
       compilation,
       module,
+      runtime_requirements,
       ..
     } = code_generatable_context;
 
@@ -162,6 +163,7 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
       ));
     }
     if self.export_all {
+      runtime_requirements.add(RuntimeGlobals::EXPORT_STAR);
       let exports_argument = compilation
         .module_graph
         .module_graph_module_by_identifier(&module.identifier())
