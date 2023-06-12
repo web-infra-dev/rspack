@@ -105,6 +105,9 @@ module.exports = {
 		codeGeneration: {
 			keepComments: true,
 		},
+		define: {
+			ngDevMode: false
+		}
 	},
 	module: {
 		parser: {
