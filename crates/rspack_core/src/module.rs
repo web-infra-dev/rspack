@@ -11,9 +11,12 @@ use rspack_util::ext::{AsAny, DynEq, DynHash};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  CodeGenerationResult, Compilation, CompilerContext, CompilerOptions, Context, ContextModule,
-  DependencyTemplate, ExternalModule, ModuleDependency, ModuleType, NormalModule, RawModule,
-  Resolve, SharedPluginDriver, SourceType,
+  ChunkUkey, CodeGenerationResult, CodeGenerationResult, CodeReplaceSourceDependency, Compilation,
+  Compilation, CompilerContext, CompilerContext, CompilerOptions, CompilerOptions, Context,
+  Context, ContextModule, ContextModule, Dependency, DependencyTemplate, ExternalModule,
+  ExternalModule, ModuleDependency, ModuleDependency, ModuleType, ModuleType, NormalModule,
+  NormalModule, RawModule, RawModule, Resolve, Resolve, SharedPluginDriver, SharedPluginDriver,
+  SourceType, SourceType,
 };
 
 pub struct BuildContext<'a> {
@@ -191,6 +194,14 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
 
   fn get_context(&self) -> Option<&Context> {
     None
+  }
+
+  fn has_chunk_condition(&self) -> bool {
+    false
+  }
+
+  fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> bool {
+    true
   }
 }
 
