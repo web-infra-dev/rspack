@@ -122,27 +122,6 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
     }
   }
 
-  fn visit_export_all(&mut self, export_all: &'_ ExportAll) {
-    self
-      .dependencies
-      .push(Box::new(HarmonyImportDependency::new(
-        export_all.src.value.clone(),
-        Some(export_all.span.into()),
-        vec![],
-        vec![],
-        DependencyType::EsmExport,
-        true,
-      )));
-    self
-      .code_generable_dependencies
-      .push(Box::new(ReplaceConstDependency::new(
-        export_all.span.real_lo(),
-        export_all.span.real_hi(),
-        "".into(),
-        None,
-      )));
-  }
-
   fn visit_export_default_expr(&mut self, export_default_expr: &'_ ExportDefaultExpr) {
     self
       .exports

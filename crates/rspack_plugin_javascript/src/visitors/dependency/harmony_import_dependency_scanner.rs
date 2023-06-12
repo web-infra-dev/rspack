@@ -9,8 +9,8 @@ use swc_core::{
   common::{Span, SyntaxContext},
   ecma::{
     ast::{
-      ExportSpecifier, Ident, ImportDecl, ImportSpecifier, ModuleExportName, NamedExport, Program,
-      Prop,
+      ExportAll, ExportSpecifier, Ident, ImportDecl, ImportSpecifier, ModuleExportName,
+      NamedExport, Program, Prop,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
@@ -28,7 +28,7 @@ pub struct HarmonyImportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub import_map: &'a mut ImportMap,
-  pub imports: IndexMap<(JsWord, DependencyType), (Span, Vec<(JsWord, Option<JsWord>)>)>,
+  pub imports: IndexMap<(JsWord, DependencyType), (Span, Vec<(JsWord, Option<JsWord>)>, bool)>,
   pub module_identifier: ModuleIdentifier,
 }
 
@@ -62,7 +62,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       &mut ref_dependencies,
     ));
 
-    for ((request, dependency_type), (span, specifiers)) in
+    for ((request, dependency_type), (span, specifiers, exports_all)) in
       std::mem::take(&mut self.imports).into_iter()
     {
       let refs = if matches!(dependency_type, DependencyType::EsmImport) {
@@ -78,7 +78,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           refs,
           specifiers,
           dependency_type,
-          false,
+          exports_all,
         )));
     }
   }
@@ -122,10 +122,12 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
     });
 
     let key = (import_decl.src.value.clone(), DependencyType::EsmImport);
-    if let Some((_, s)) = self.imports.get_mut(&key) {
+    if let Some((_, s, _)) = self.imports.get_mut(&key) {
       s.extend(specifiers);
     } else {
-      self.imports.insert(key, (import_decl.span, specifiers));
+      self
+        .imports
+        .insert(key, (import_decl.span, specifiers, false));
     }
     self
       .code_generable_dependencies
@@ -180,10 +182,12 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         ),
       ));
       let key = (src.value.clone(), DependencyType::EsmExport);
-      if let Some((_, s)) = self.imports.get_mut(&key) {
+      if let Some((_, s, _)) = self.imports.get_mut(&key) {
         s.extend(specifiers);
       } else {
-        self.imports.insert(key, (named_export.span, specifiers));
+        self
+          .imports
+          .insert(key, (named_export.span, specifiers, false));
       }
       self
         .code_generable_dependencies
@@ -194,6 +198,21 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           None,
         )));
     }
+  }
+
+  fn visit_export_all(&mut self, export_all: &ExportAll) {
+    let key = (export_all.src.value.clone(), DependencyType::EsmExport);
+    if self.imports.get(&key).is_none() {
+      self.imports.insert(key, (export_all.span, vec![], true));
+    }
+    self
+      .code_generable_dependencies
+      .push(Box::new(ReplaceConstDependency::new(
+        export_all.span.real_lo(),
+        export_all.span.real_hi(),
+        "".into(),
+        None,
+      )));
   }
 }
 
