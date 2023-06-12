@@ -1,3 +1,4 @@
+const webpack = require('webpack')
 const rspackConfig = require("./rspack.config");
 const TerserPlugin = require('terser-webpack-plugin')
 delete rspackConfig.builtins;
@@ -7,6 +8,11 @@ rspackConfig.optimization.concatenateModules = false;
 rspackConfig.optimization.mangleExports = false;
 // rspackConfig.optimization.innerGraph = false;
 rspackConfig.plugins.push(new HtmlWebpackPlugin())
+rspackConfig.plugins.push(
+  new webpack.DefinePlugin({
+    ngDevMode: true,
+  })
+)
 // rspackConfig.optimization.minimizer = [
 // 	new TerserPlugin({
 // 		minify: TerserPlugin.terserMinify,

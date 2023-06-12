@@ -9,8 +9,9 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, FactoryMeta,
-  ModuleDependency, ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
+  Chunk, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType, ErrorSpan,
+  FactoryMeta, ModuleDependency, ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver,
+  Stats,
 };
 // #[derive(Debug)]
 // pub struct ParseModuleArgs<'a> {
