@@ -1,6 +1,5 @@
 const { AngularWebpackPlugin } = require("@ngtools/webpack");
 const minifyPlugin = require("@rspack/plugin-minify");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const {
 	DedupeModuleResolvePlugin,
