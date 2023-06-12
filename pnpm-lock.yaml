@@ -114,6 +114,7 @@ importers:
       '@rspack/cli': workspace:*
       '@rspack/plugin-minify': workspace:*
       '@swc/core': ^1.3.14
+      html-webpack-plugin: ^5.5.0
       karma: ~6.4.0
       karma-chrome-launcher: ~3.1.0
       karma-coverage: ~2.2.0
@@ -139,7 +140,7 @@ importers:
       tslib: 2.5.0
       zone.js: 0.13.0
     devDependencies:
-      '@angular-devkit/build-angular': 16.0.0_4uyq45pmcxij6toywlysuyvyyi
+      '@angular-devkit/build-angular': 16.0.0_gp5upivptjhunpwok2kmrvdweu
       '@angular-devkit/build-webpack': 0.1600.0
       '@angular/cli': 16.0.0
       '@angular/compiler-cli': 16.0.0_scldldeidleauflck5yigfgo3u
@@ -147,6 +148,7 @@ importers:
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
       '@swc/core': 1.3.23
+      html-webpack-plugin: 5.5.0
       karma: 6.4.2
       karma-chrome-launcher: 3.1.1
       karma-coverage: 2.2.0
@@ -1286,7 +1288,7 @@ packages:
       - chokidar
     dev: true
 
-  /@angular-devkit/build-angular/16.0.0_4uyq45pmcxij6toywlysuyvyyi:
+  /@angular-devkit/build-angular/16.0.0_gp5upivptjhunpwok2kmrvdweu:
     resolution: {integrity: sha512-OvDQAbrV3cUMfHws30MnDURsXselZ0GWhSxZjOdcD3cF64Nsq5ywftHOT+QC3YdDghwI8gMADN9et+aVDscBzQ==}
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
     peerDependencies:
@@ -1386,7 +1388,7 @@ packages:
       webpack-dev-middleware: 6.0.2_webpack@5.80.0
       webpack-dev-server: 4.13.2_webpack@5.80.0
       webpack-merge: 5.8.0
-      webpack-subresource-integrity: 5.1.0_webpack@5.80.0
+      webpack-subresource-integrity: 5.1.0_5dzwmvl7zcqts6hfkdrlgg6r74
     optionalDependencies:
       esbuild: 0.17.18
     transitivePeerDependencies:
@@ -27554,7 +27556,7 @@ packages:
     resolution: {integrity: sha512-aWwE/YuO2W7VCOyWwyDJ7BRSYRYjeXat+X31YiasMM3FS6/4X9W4Mb9Q0g+jIdVgArr1Mb08sHBJKMT5M9+gVA==}
     dev: true
 
-  /webpack-subresource-integrity/5.1.0_webpack@5.80.0:
+  /webpack-subresource-integrity/5.1.0_5dzwmvl7zcqts6hfkdrlgg6r74:
     resolution: {integrity: sha512-sacXoX+xd8r4WKsy9MvH/q/vBtEHr86cpImXwyg74pFIpERKt6FmB8cXpeuh0ZLgclOlHI4Wcll7+R5L02xk9Q==}
     engines: {node: '>= 12'}
     peerDependencies:
@@ -27564,6 +27566,7 @@ packages:
       html-webpack-plugin:
         optional: true
     dependencies:
+      html-webpack-plugin: 5.5.0
       typed-assert: 1.0.9
       webpack: 5.80.0_ejgoaodhcjicfuigcunirhmzgu
     dev: true

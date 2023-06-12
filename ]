@@ -1,4 +1,7 @@
-use std::{path::Path, sync::Arc};
+use std::{
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -9,9 +12,7 @@ use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
-  tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
+  cache::Cache, module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   AssetGeneratorOptions, AssetParserOptions, BoxLoader, CompilerOptions, Dependency,
   DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
   ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
@@ -72,15 +73,29 @@ impl NormalModuleFactory {
     // allow javascript plugin to modify args
     let mut before_resolve_args = NormalModuleBeforeResolveArgs {
       request: data.dependency.request().to_string(),
-      context: data.context.to_string(),
+      context: data.context.take(),
     };
     if let Ok(Some(false)) = self
       .plugin_driver
+      .read()
+      .await
       .before_resolve(&mut before_resolve_args)
       .await
     {
+      let importer = self.context.original_resource_path.as_ref();
+      let importer_with_context = if let Some(importer) = importer {
+        Path::new(importer)
+          .parent()
+          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+          .to_path_buf()
+      } else {
+        PathBuf::from(self.context.options.context.as_path())
+      };
       let request_without_match_resource = data.dependency.request();
-      let ident = format!("{}/{request_without_match_resource}", &data.context);
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
       let missing_module = MissingModule::new(
@@ -95,7 +110,7 @@ impl NormalModuleFactory {
       ));
     }
 
-    data.context = before_resolve_args.context.into();
+    data.context = before_resolve_args.context;
     data.dependency.set_request(before_resolve_args.request);
     Ok(None)
   }
@@ -107,9 +122,11 @@ impl NormalModuleFactory {
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     if let Ok(Some(false)) = self
       .plugin_driver
+      .read()
+      .await
       .after_resolve(NormalModuleAfterResolveArgs {
         request: data.dependency.request(),
-        context: data.context.as_ref(),
+        context: &data.context,
         file_dependencies: &factory_result.file_dependencies,
         context_dependencies: &factory_result.context_dependencies,
         missing_dependencies: &factory_result.missing_dependencies,
@@ -117,8 +134,20 @@ impl NormalModuleFactory {
       })
       .await
     {
+      let importer = self.context.original_resource_path.as_ref();
+      let importer_with_context = if let Some(importer) = importer {
+        Path::new(importer)
+          .parent()
+          .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+          .to_path_buf()
+      } else {
+        PathBuf::from(self.context.options.context.as_path())
+      };
       let request_without_match_resource = data.dependency.request();
-      let ident = format!("{}/{request_without_match_resource}", &data.context);
+      let ident = format!(
+        "{}{request_without_match_resource}",
+        importer_with_context.display()
+      );
       let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
       let missing_module = MissingModule::new(
@@ -138,14 +167,21 @@ impl NormalModuleFactory {
     &mut self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
-    let importer = self.context.original_module_identifier.as_ref();
+    let importer = self.context.original_resource_path.as_ref();
+    let importer_with_context = if let Some(importer) = importer {
+      Path::new(importer)
+        .parent()
+        .ok_or_else(|| anyhow::format_err!("parent() failed for {:?}", importer))?
+        .to_path_buf()
+    } else {
+      PathBuf::from(self.context.options.context.as_path())
+    };
     let mut request_without_match_resource = data.dependency.request();
 
     let mut file_dependencies = Default::default();
     let mut missing_dependencies = Default::default();
 
     let scheme = get_scheme(request_without_match_resource);
-    let context_scheme = get_scheme(data.context.as_ref());
     let plugin_driver = &self.plugin_driver;
 
     let mut match_resource_data: Option<ResourceData> = None;
@@ -158,19 +194,36 @@ impl NormalModuleFactory {
     let resource_data = if scheme != Scheme::None
       && !Path::is_absolute(Path::new(request_without_match_resource))
     {
-      // resource with scheme
       plugin_driver
+        .read()
+        .await
         .normal_module_factory_resolve_for_scheme(ResourceData::new(
           request_without_match_resource.to_string(),
           "".into(),
         ))
         .await?
-    }
-    // TODO: resource within scheme, call resolveInScheme hook
-    else {
+    } else {
       {
-        let plugin_driver = &self.plugin_driver;
-        let context = data.context.as_path();
+        let plugin_driver = self.plugin_driver.read().await;
+        let importer = importer.map(|i| i.display().to_string());
+        let context = {
+          if let Some(context) = &data.context {
+            context.as_path()
+          } else if let Some(i) = importer.as_ref() {
+            {
+              // TODO: delete this fn after use `normalModule.context` rather than `importer`
+              if let Some(index) = i.find('?') {
+                Path::new(&i[0..index])
+              } else {
+                Path::new(i)
+              }
+            }
+            .parent()
+            .ok_or_else(|| internal_error!("parent() failed for {:?}", importer))?
+          } else {
+            &plugin_driver.options.context
+          }
+        };
         request_without_match_resource = {
           let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
           if let Some(m) = match_resource_match {
@@ -277,11 +330,7 @@ impl NormalModuleFactory {
 
       let resolve_args = ResolveArgs {
         importer,
-        context: if context_scheme != Scheme::None {
-          self.context.options.context.clone()
-        } else {
-          data.context.clone()
-        },
+        context: data.context.clone(),
         specifier: request_without_match_resource,
         dependency_type: data.dependency.dependency_type(),
         dependency_category: data.dependency.category(),
@@ -310,7 +359,11 @@ impl NormalModuleFactory {
             .description_optional(resource.description)
         }
         Ok(ResolveResult::Ignored) => {
-          let ident = format!("{}/{}", &data.context, request_without_match_resource);
+          let ident = format!(
+            "{}/{}",
+            importer_with_context.display(),
+            request_without_match_resource
+          );
           let module_identifier = ModuleIdentifier::from(format!("ignored|{ident}"));
 
           let raw_module = RawModule::new(
@@ -327,7 +380,10 @@ impl NormalModuleFactory {
           ));
         }
         Err(ResolveError(runtime_error, internal_error)) => {
-          let ident = format!("{}/{request_without_match_resource}", &data.context);
+          let ident = format!(
+            "{}{request_without_match_resource}",
+            importer_with_context.display()
+          );
           let module_identifier = ModuleIdentifier::from(format!("missing|{ident}"));
 
           let missing_module = MissingModule::new(
@@ -432,11 +488,13 @@ impl NormalModuleFactory {
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let factory_meta = FactoryMeta {
-      side_effects: self.calculate_side_effects(&resolved_module_rules, &resource_data),
+      side_effects: self.calculate_side_effects(&resolved_module_rules),
     };
 
     let resolved_parser_and_generator = self
       .plugin_driver
+      .read()
+      .await
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
@@ -464,6 +522,8 @@ impl NormalModuleFactory {
 
     let module = if let Some(module) = self
       .plugin_driver
+      .read()
+      .await
       .module(ModuleArgs {
         dependency_type: data.dependency.dependency_type().clone(),
         indentfiler: normal_module.identifier(),
@@ -513,39 +573,20 @@ impl NormalModuleFactory {
     resolved
   }
 
-  fn calculate_side_effects(
-    &self,
-    module_rules: &[&ModuleRule],
-    resource_data: &ResourceData,
-  ) -> Option<bool> {
-    let mut side_effect_res = None;
-    // side_effects from module rule has higher priority
+  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
+    let mut side_effects = None;
     module_rules.iter().for_each(|rule| {
-      side_effect_res = rule.side_effects;
+      side_effects = rule.side_effects;
     });
-    if side_effect_res.is_some() {
-      return side_effect_res;
-    }
-    let resource_path = &resource_data.resource_path;
-    let description = resource_data.resource_description.as_ref()?;
-    let package_path = description.dir().as_ref();
-    let side_effects = SideEffects::from_description(description)?;
-
-    let relative_path = resource_path.relative(package_path);
-    side_effect_res = Some(get_side_effects_from_package_json(
-      side_effects,
-      relative_path,
-    ));
-
-    side_effect_res
+    side_effects
   }
 
   fn calculate_parser_and_generator_options(
     &self,
     module_rules: &[&ModuleRule],
-  ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
-    let mut resolved_parser = None;
-    let mut resolved_generator = None;
+  ) -> (Option<AssetParserOptions>, Option<AssetGeneratorOptions>) {
+    let mut resolved_parser: Option<AssetParserOptions> = None;
+    let mut resolved_generator: Option<AssetGeneratorOptions> = None;
 
     module_rules.iter().for_each(|rule| {
       // TODO: should deep merge
@@ -582,6 +623,8 @@ impl NormalModuleFactory {
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let result = self
       .plugin_driver
+      .read()
+      .await
       .factorize(
         FactorizeArgs {
           context: &data.context,
@@ -609,7 +652,7 @@ impl NormalModuleFactory {
 
 #[derive(Debug, Clone)]
 pub struct NormalModuleFactoryContext {
-  pub original_module_identifier: Option<ModuleIdentifier>,
+  pub original_resource_path: Option<PathBuf>,
   pub module_type: Option<ModuleType>,
   pub side_effects: Option<bool>,
   pub options: Arc<CompilerOptions>,

@@ -1,10 +1,12 @@
 const rspackConfig = require("./rspack.config");
 const TerserPlugin = require('terser-webpack-plugin')
 delete rspackConfig.builtins;
+const HtmlWebpackPlugin = require('html-webpack-plugin')
 
 rspackConfig.optimization.concatenateModules = false;
 rspackConfig.optimization.mangleExports = false;
 rspackConfig.optimization.innerGraph = false;
+rspackConfig.plugins.push(new HtmlWebpackPlugin())
 // rspackConfig.optimization.minimizer = [
 // 	new TerserPlugin({
 // 		minify: TerserPlugin.terserMinify,

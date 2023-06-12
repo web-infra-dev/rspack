@@ -9,7 +9,7 @@ use rustc_hash::FxHashSet as HashSet;
 use crate::ast::css::Ast as CssAst;
 use crate::ast::javascript::Ast as JsAst;
 use crate::{
-  Chunk, ChunkUkey, Compilation, Context, DependencyCategory, DependencyType, ErrorSpan,
+  Chunk, ChunkUkey, Compilation, DependencyCategory, DependencyType, ErrorSpan, FactoryMeta,
   ModuleDependency, ModuleIdentifier, Resolve, RuntimeGlobals, SharedPluginDriver, Stats,
 };
 // #[derive(Debug)]
@@ -110,6 +110,7 @@ pub struct NormalModuleAfterResolveArgs<'a> {
   pub file_dependencies: &'a HashSet<PathBuf>,
   pub context_dependencies: &'a HashSet<PathBuf>,
   pub missing_dependencies: &'a HashSet<PathBuf>,
+  pub factory_meta: &'a FactoryMeta,
 }
 
 #[derive(Debug)]

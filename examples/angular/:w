@@ -1,7 +1,5 @@
 const { AngularWebpackPlugin } = require("@ngtools/webpack");
 const minifyPlugin = require("@rspack/plugin-minify");
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-
 const {
 	DedupeModuleResolvePlugin,
 } = require("@angular-devkit/build-angular/src/webpack/plugins/dedupe-module-resolve-plugin");
@@ -68,11 +66,11 @@ module.exports = {
 	},
 	optimization: {
 		runtimeChunk: false,
-		// minimizer: [
-		// 	new minifyPlugin({
-		// 		minifier: "terser",
-		// 	}),
-		// ],
+		minimizer: [
+			new minifyPlugin({
+				minifier: "terser",
+			}),
+		],
 		// minimize:false,
 		// moduleIds: 'named',
 		splitChunks: {

@@ -1168,8 +1168,7 @@ impl<'a> ModuleRefAnalyze<'a> {
   }
 
   fn get_side_effects_from_config(&mut self) -> Option<SideEffectType> {
-    // sideEffects in module.rule has higher priority,
-    // we could early return if we match a rule.
+    // side_effects has calculated in factorize phase
     if let Some(mgm) = self
       .module_graph
       .module_graph_module_by_identifier(&self.module_identifier)
@@ -1177,24 +1176,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     {
       return Some(SideEffectType::Configuration(*side_effects))
     }
-
-    let resource_data = self
-      .module_graph
-      .module_by_identifier(&self.module_identifier)
-      .and_then(|module| module.as_normal_module())
-      .map(|normal_module| normal_module.resource_resolved_data())?;
-    let resource_path = &resource_data.resource_path;
-    let description = resource_data.resource_description.as_ref()?;
-    let package_path = description.dir().as_ref();
-    let side_effects = SideEffects::from_description(description)?;
-
-    let relative_path = resource_path.relative(package_path);
-    let side_effects = Some(get_side_effects_from_package_json(
-      side_effects,
-      relative_path,
-    ));
-
-    side_effects.map(SideEffectType::Configuration)
+    None
   }
 }
 
