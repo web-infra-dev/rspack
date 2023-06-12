@@ -1,18 +1,16 @@
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
-	mode: "production",
 	context: __dirname,
 	mode: "development",
 	entry: {
-		main: "./src/index.js",
+		main: "./src/index.js"
 	},
 	builtins: {
 		html: [
 			{
-				template: "./index.html",
-			},
-		],
-		treeShaking: true,
-	},
+				template: "./index.html"
+			}
+		]
+	}
 };
 module.exports = config;
