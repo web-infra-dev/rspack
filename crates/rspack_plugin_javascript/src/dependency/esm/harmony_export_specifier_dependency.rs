@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use rspack_core::{
   tree_shaking::visitor::SymbolRef, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, DependencyType,
-  InitFragment, InitFragmentStage, RuntimeGlobals,
+  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, InitFragment,
+  InitFragmentStage, RuntimeGlobals,
 };
 use rspack_symbol::{IndirectType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
