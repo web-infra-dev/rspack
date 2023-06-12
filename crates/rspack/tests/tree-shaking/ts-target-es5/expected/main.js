@@ -2,7 +2,7 @@
 "../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'_async_to_generator': function() { return _async_to_generator; }});
+__webpack_require__.d(exports, {'_async_to_generator': function() { return _async_to_generator; }, '_': function() { return _async_to_generator; }});
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
     try {
         var info = gen[key](arg);

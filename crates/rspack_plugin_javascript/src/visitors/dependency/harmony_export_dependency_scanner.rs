@@ -1,13 +1,12 @@
 use rspack_core::{
-  CodeReplaceSourceDependency, DependencyType, ModuleDependency, ModuleIdentifier,
-  ReplaceConstDependency, SpanExt,
+  CodeReplaceSourceDependency, ModuleDependency, ModuleIdentifier, ReplaceConstDependency, SpanExt,
 };
 use rspack_symbol::DEFAULT_JS_WORD;
 use swc_core::{
   common::Spanned,
   ecma::{
     ast::{
-      ClassDecl, Decl, DefaultDecl, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
+      ClassDecl, Decl, DefaultDecl, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
       ExportSpecifier, FnDecl, Ident, ModuleExportName, NamedExport, Program,
     },
     atoms::JsWord,
@@ -19,8 +18,7 @@ use swc_core::{
 use super::harmony_import_dependency_scanner::ImportMap;
 use crate::dependency::{
   HarmonyExportHeaderDependency, HarmonyExportImportedSpecifierDependency,
-  HarmonyExportSpecifierDependency, HarmonyExpressionHeaderDependency, HarmonyImportDependency,
-  DEFAULT_EXPORT,
+  HarmonyExportSpecifierDependency, HarmonyExpressionHeaderDependency, DEFAULT_EXPORT,
 };
 
 pub struct HarmonyExportDependencyScanner<'a> {

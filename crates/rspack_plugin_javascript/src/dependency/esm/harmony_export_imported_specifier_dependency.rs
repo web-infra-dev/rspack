@@ -6,12 +6,13 @@ use rspack_core::{
   CodeReplaceSourceDependencyReplaceSource, DependencyId, ExportsType, InitFragment,
   InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
-use rspack_symbol::{IndirectType, StarSymbolKind, DEFAULT_JS_WORD};
+use rspack_symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
 
 use super::format_exports;
 
-// Create _webpack_require__.d(__webpack_exports__, {}) for re-exports.
+// Create _webpack_require__.d(__webpack_exports__, {}).
+// import { a } from 'a'; export { a }
 #[derive(Debug)]
 pub struct HarmonyExportImportedSpecifierDependency {
   pub request: JsWord,
@@ -64,7 +65,20 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
         .used_symbol_ref
         .iter()
         .filter_map(|item| match item {
-          SymbolRef::Direct(d) if d.uri() == module.identifier() => Some(&d.id().atom),
+          SymbolRef::Direct(d) if d.uri() == module.identifier() => {
+            if *d.ty() == SymbolType::Temp {
+              if let Some(key) = &self.ids.iter().find(|e| {
+                if let Some(v) = &e.1 {
+                  v == &d.id().atom && e.0 != d.id().atom
+                } else {
+                  false
+                }
+              }) {
+                return Some(&key.0);
+              }
+            }
+            Some(&d.id().atom)
+          }
           SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
             Some(i.id())
           }

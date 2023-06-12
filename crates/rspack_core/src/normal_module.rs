@@ -108,16 +108,21 @@ impl AstOrSource {
     }
   }
 
-  // pub fn map<F, G>(self, f: F, g: G) -> Self
-  // where
-  //   F: FnOnce(ModuleAst) -> ModuleAst,
-  //   G: FnOnce(BoxSource) -> BoxSource,
-  // {
-  //   match self {
-  //     AstOrSource::Ast(ast) => Self::Ast(f(ast)),
-  //     AstOrSource::Source(source) => Self::Source(g(source)),
-  //   }
-  // }
+  pub fn map<F, G>(self, f: F, g: G) -> Self
+  where
+    F: FnOnce(ModuleAst) -> ModuleAst,
+    G: FnOnce(BoxSource) -> BoxSource,
+  {
+    let ast = match self.inner.0 {
+      Some(ast) => Some(f(ast)),
+      _ => None,
+    };
+    let source = match self.inner.1 {
+      Some(source) => Some(g(source)),
+      _ => None,
+    };
+    Self::new(ast, source)
+  }
 }
 
 impl From<ModuleAst> for AstOrSource {
@@ -450,9 +455,9 @@ impl Module for NormalModule {
             requested_source_type: *source_type,
           },
         )?;
-        // generation_result.ast_or_source = generation_result
-        //   .ast_or_source
-        //   .map(|i| i, |s| CachedSource::new(s).boxed());
+        generation_result.ast_or_source = generation_result
+          .ast_or_source
+          .map(|i| i, |s| CachedSource::new(s).boxed());
         code_generation_result.add(*source_type, generation_result);
       }
       code_generation_result.set_hash(
