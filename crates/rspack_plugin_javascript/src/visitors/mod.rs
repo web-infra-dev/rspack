@@ -27,7 +27,6 @@ pub mod swc_visitor;
 mod tree_shaking;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::{Error, Result};
-use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
@@ -38,6 +37,7 @@ mod async_module;
 mod config;
 
 use crate::visitors::async_module::{build_async_module, build_await_dependencies};
+use crate::visitors::config::ModuleConfig;
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
 use crate::visitors::tree_shaking::MarkInfo;
