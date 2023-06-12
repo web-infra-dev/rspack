@@ -33,7 +33,7 @@ class MyPlugin {
 /** @type {import('@rspack/cli').Configuration} */
 module.exports = {
 	devtool: false,
-	target: ["web", "es2015"],
+	target: ["web", "es2022"],
 	entry: {
 		polyfills: ["zone.js"],
 		main: ["./src/main.ts"],
@@ -192,7 +192,7 @@ module.exports = {
 		],
 	},
 	plugins: [
-		new DedupeModuleResolvePlugin(),
+		// new DedupeModuleResolvePlugin(),
 		new NamedChunksPlugin(),
 		new OccurrencesPlugin({
 			aot: true,
