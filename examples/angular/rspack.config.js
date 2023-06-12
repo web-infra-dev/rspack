@@ -23,11 +23,11 @@ class MyPlugin {
 		compiler.hooks.compilation.tap(
 			"MyPlugin",
 			(compilation, { normalModuleFactory }) => {
+				// TODO: This is just a workaround to support set `_module.factoryMeta.sideEffects` on loaderContext , because I am not sure If we should add a new hook that called anyway,
+				// This issue maybe addressed after discussing with rspack core member
 				normalModuleFactory.hooks.afterResolve.tap("MyPlugin", () => {});
 			},
 		);
-		// compilation.normalModuleFactory?.hooks.afterResolve.tapAsync('MyPlugin', () => {
-		// })
 	}
 }
 
