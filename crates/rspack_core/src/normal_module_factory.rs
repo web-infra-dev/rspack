@@ -12,13 +12,13 @@ use crate::{
   cache::Cache,
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
-  AssetGeneratorOptions, AssetParserOptions, BoxLoader, CompilerOptions, Dependency,
-  DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, GeneratorOptions, MissingModule,
-  ModuleArgs, ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve,
-  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory,
-  ResourceData, ResourceParsedData, SharedPluginDriver,
+  BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
+  FactoryMeta, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule,
+  ModuleRuleEnforce, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
+  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
+  ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
