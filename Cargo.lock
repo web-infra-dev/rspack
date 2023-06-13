@@ -2831,9 +2831,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "479db96d68b916ed1f1ba61d7f5c667850239365b3a606a26c271d0f59f546f8"
+checksum = "945955c953f0a80eba0c6b9566012249a349df595a6d3ae10f562a99e35b2837"
 dependencies = [
  "dashmap",
  "dyn-clone",
