@@ -117,12 +117,12 @@ impl CssPlugin {
     Self { config }
   }
 
-  pub(crate) fn get_ordered_chunk_css_modules<'module_graph, 'chunk_graph>(
+  pub(crate) fn get_ordered_chunk_css_modules<'chunk_graph>(
     chunk: &Chunk,
     chunk_graph: &'chunk_graph ChunkGraph,
-    module_graph: &'module_graph ModuleGraph,
+    module_graph: &'chunk_graph ModuleGraph,
     compilation: &Compilation,
-  ) -> Vec<&'module_graph dyn Module> {
+  ) -> Vec<&'chunk_graph dyn Module> {
     // Align with https://github.com/webpack/webpack/blob/8241da7f1e75c5581ba535d127fa66aeb9eb2ac8/lib/css/CssModulesPlugin.js#L368
     let mut css_modules = chunk_graph
       .get_chunk_modules_iterable_by_source_type(&chunk.ukey, SourceType::Css, module_graph)

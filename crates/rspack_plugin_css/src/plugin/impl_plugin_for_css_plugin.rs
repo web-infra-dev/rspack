@@ -30,7 +30,7 @@ impl CssPlugin {
     ordered_css_modules: &[&dyn Module],
   ) -> rspack_error::Result<ConcatSource> {
     let module_sources = ordered_css_modules
-      .into_iter()
+      .iter()
       .map(|module| {
         let module_id = &module.identifier();
         let code_gen_result = compilation
