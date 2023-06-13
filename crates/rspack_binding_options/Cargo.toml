@@ -12,6 +12,7 @@ rspack_error                            = { path = "../rspack_error" }
 rspack_identifier                       = { path = "../rspack_identifier" }
 rspack_ids                              = { path = "../rspack_ids" }
 rspack_loader_sass                      = { path = "../rspack_loader_sass" }
+rspack_loader_swc                       = { path = "../rspack_loader_swc" }
 rspack_napi_shared                      = { path = "../rspack_napi_shared" }
 rspack_plugin_asset                     = { path = "../rspack_plugin_asset" }
 rspack_plugin_banner                    = { path = "../rspack_plugin_banner" }

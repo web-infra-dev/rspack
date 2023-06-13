@@ -30,6 +30,11 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
         panic!("Could not parse builtin:sass-loader options: {options:?}, error: {e:?}")
       }),
     )),
+    "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
+      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+        panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
+      }),
+    )),
     loader => panic!("{loader} is not supported yet."),
   }
 }

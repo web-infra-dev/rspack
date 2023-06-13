@@ -387,9 +387,12 @@ export interface ModuleOptionsNormalized {
 }
 
 export type AvailableTarget =
+	| "async-node"
 	| "node"
 	| `node${number}`
 	| `node${number}.${number}`
+	| `async-node${number}.${number}`
+	| `async-node${number}`
 	| "electron-main"
 	| `electron${number}-main`
 	| `electron${number}.${number}-main`
