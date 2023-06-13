@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
   "description": "A Fast Rust-based web bundler",
   "private": true,
