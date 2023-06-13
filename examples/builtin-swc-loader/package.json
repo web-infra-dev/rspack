@@ -1,5 +1,5 @@
 {
-  "name": "example-react",
+  "name": "example-builtin-swc-loader",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -15,10 +15,6 @@
     "@rspack/cli": "workspace:*",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-refresh": "0.14.0",
-    "styled-components": "5.3.6"
-  },
-  "devDependencies": {
-    "@swc/plugin-styled-components": "^1.5.67"
+    "react-refresh": "0.14.0"
   }
 }
