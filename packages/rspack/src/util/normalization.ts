@@ -5,8 +5,7 @@ export interface NormalizedJsModule extends JsModule {
 }
 
 export function normalizeJsModule(m: JsModule): NormalizedJsModule {
-	return {
-		...m,
+	return Object.assign(m, {
 		identifier: () => m.moduleIdentifier
-	};
+	});
 }
