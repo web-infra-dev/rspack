@@ -1,9 +1,9 @@
 lockfileVersion: 5.4
 
 overrides:
-  '@angular-devkit/build-angular': file:../angular-cli/dist/@angular-devkit/build-angular
-  '@angular-devkit/build-webpack': file:../angular-cli/dist/@angular-devkit/build-webpack
-  '@ngtools/webpack': file:../angular-cli/dist/@ngtools/webpack
+  '@angular-devkit/build-angular': file:./_npm_offline/angular-devkit-build-angular-16.0.1.tgz
+  '@angular-devkit/build-webpack': file:./_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz
+  '@ngtools/webpack': file:./_npm_offline/ngtools-webpack-16.0.1.tgz
   '@rspack/cli': workspace:*
   '@rspack/core': workspace:*
   '@rspack/dev-server': workspace:*
@@ -106,7 +106,7 @@ importers:
 
   examples/angular:
     specifiers:
-      '@angular-devkit/build-angular': file:/home/valorkin/work/angular-cli/dist/@angular-devkit/build-angular
+      '@angular-devkit/build-angular': file:/home/valorkin/work/rspack/_npm_offline/angular-devkit-build-angular-16.0.1.tgz
       '@angular/animations': ^16.0.0
       '@angular/cli': ~16.0.0
       '@angular/common': ^16.0.0
@@ -117,7 +117,7 @@ importers:
       '@angular/platform-browser': ^16.0.0
       '@angular/platform-browser-dynamic': ^16.0.0
       '@angular/router': ^16.0.0
-      '@ngtools/webpack': file:/home/valorkin/work/angular-cli/dist/@ngtools/webpack
+      '@ngtools/webpack': file:/home/valorkin/work/rspack/_npm_offline/ngtools-webpack-16.0.1.tgz
       '@rspack/cli': workspace:*
       '@rspack/plugin-minify': workspace:*
       karma: ~6.4.0
@@ -142,10 +142,10 @@ importers:
       tslib: 2.5.3
       zone.js: 0.13.1
     devDependencies:
-      '@angular-devkit/build-angular': file:../angular-cli/dist/@angular-devkit/build-angular_o7m6366b4anp3yuoab5wkcwq5a
+      '@angular-devkit/build-angular': file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz_o7m6366b4anp3yuoab5wkcwq5a
       '@angular/cli': 16.0.5
       '@angular/compiler-cli': 16.0.5_f2lqisnhv5ufizigz6rrfcniye
-      '@ngtools/webpack': file:../angular-cli/dist/@ngtools/webpack_me26ie2oh3keanoma2rd5to6bi
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_me26ie2oh3keanoma2rd5to6bi
       '@rspack/cli': link:../../packages/rspack-cli
       '@rspack/plugin-minify': link:../../packages/rspack-plugin-minify
       karma: 6.4.2
@@ -157,7 +157,7 @@ importers:
 
   examples/angular-15:
     specifiers:
-      '@angular-devkit/build-angular': file:/home/valorkin/work/angular-cli/dist/@angular-devkit/build-angular
+      '@angular-devkit/build-angular': file:/home/valorkin/work/rspack/_npm_offline/angular-devkit-build-angular-16.0.1.tgz
       '@angular/animations': ^15.2.0
       '@angular/cli': ~15.2.8
       '@angular/common': ^15.2.0
@@ -199,7 +199,7 @@ importers:
       tslib: 2.5.3
       zone.js: 0.12.0
     devDependencies:
-      '@angular-devkit/build-angular': file:../angular-cli/dist/@angular-devkit/build-angular_k6mwjofo7vktf66du6x7yoarq4
+      '@angular-devkit/build-angular': file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz_k6mwjofo7vktf66du6x7yoarq4
       '@angular/cli': 15.2.8
       '@angular/compiler-cli': 15.2.9_q4mbtgcftmjdeatqb7bezb4aze
       '@rspack/cli': link:../../packages/rspack-cli
@@ -216,8 +216,8 @@ importers:
 
   examples/angular-16:
     specifiers:
-      '@angular-devkit/build-angular': file:/home/valorkin/work/angular-cli/dist/@angular-devkit/build-angular
-      '@angular-devkit/build-webpack': file:/home/valorkin/work/angular-cli/dist/@angular-devkit/build-webpack
+      '@angular-devkit/build-angular': file:/home/valorkin/work/rspack/_npm_offline/angular-devkit-build-angular-16.0.1.tgz
+      '@angular-devkit/build-webpack': file:/home/valorkin/work/rspack/_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz
       '@angular/animations': ^16.0.0
       '@angular/cli': ~16.0.0
       '@angular/common': ^16.0.0
@@ -265,8 +265,8 @@ importers:
       tslib: 2.5.3
       zone.js: 0.13.1
     devDependencies:
-      '@angular-devkit/build-angular': file:../angular-cli/dist/@angular-devkit/build-angular_jblf77w4sj6kzha75f74o4evwq
-      '@angular-devkit/build-webpack': file:../angular-cli/dist/@angular-devkit/build-webpack
+      '@angular-devkit/build-angular': file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz_jblf77w4sj6kzha75f74o4evwq
+      '@angular-devkit/build-webpack': file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz
       '@angular/cli': 16.0.5
       '@angular/compiler-cli': 16.0.5_3xrnuv6bqoygi367ox56fvf7ji
       '@rspack/cli': link:../../packages/rspack-cli
@@ -1422,7 +1422,7 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1_ajv@8.12.0
       jsonc-parser: 3.2.0
       rxjs: 6.6.7
       source-map: 0.7.4
@@ -1438,7 +1438,7 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1_ajv@8.12.0
       jsonc-parser: 3.2.0
       rxjs: 7.8.1
       source-map: 0.7.4
@@ -1454,7 +1454,7 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1_ajv@8.12.0
       chokidar: 3.5.3
       jsonc-parser: 3.2.0
       rxjs: 7.8.1
@@ -1471,7 +1471,7 @@ packages:
         optional: true
     dependencies:
       ajv: 8.12.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1_ajv@8.12.0
       jsonc-parser: 3.2.0
       rxjs: 7.8.1
       source-map: 0.7.4
@@ -11727,8 +11727,10 @@ packages:
       ajv: 6.12.6
     dev: true
 
-  /ajv-formats/2.1.1:
+  /ajv-formats/2.1.1_ajv@8.12.0:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
+    peerDependencies:
+      ajv: ^8.0.0
     peerDependenciesMeta:
       ajv:
         optional: true
@@ -23932,7 +23934,7 @@ packages:
     dependencies:
       '@types/json-schema': 7.0.12
       ajv: 8.12.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1_ajv@8.12.0
       ajv-keywords: 5.1.0_ajv@8.12.0
 
   /scroll-into-view-if-needed/2.2.20:
@@ -27931,9 +27933,9 @@ packages:
       yaml: 2.3.1
     dev: false
 
-  file:../angular-cli/dist/@angular-devkit/build-angular_jblf77w4sj6kzha75f74o4evwq:
-    resolution: {directory: ../angular-cli/dist/@angular-devkit/build-angular, type: directory}
-    id: file:../angular-cli/dist/@angular-devkit/build-angular
+  file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz_jblf77w4sj6kzha75f74o4evwq:
+    resolution: {integrity: sha512-/3iQLE+qA2f2eilvvKf70mOiE9UmYQNeKYq5g0m88e3BynzK5mGEKMMopLENgJ0ImosN8tEndf9TpgTwBU/T8g==, tarball: file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz}
+    id: file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz
     name: '@angular-devkit/build-angular'
     version: 16.0.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -27971,7 +27973,7 @@ packages:
     dependencies:
       '@ampproject/remapping': 2.2.1
       '@angular-devkit/architect': 0.1600.1_chokidar@3.5.3
-      '@angular-devkit/build-webpack': file:../angular-cli/dist/@angular-devkit/build-webpack_xmr3l5tvlwuwfbc2t3hvt4ej6e
+      '@angular-devkit/build-webpack': file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz_xmr3l5tvlwuwfbc2t3hvt4ej6e
       '@angular-devkit/core': 16.0.1_chokidar@3.5.3
       '@angular/compiler-cli': 16.0.5_3xrnuv6bqoygi367ox56fvf7ji
       '@babel/core': 7.21.8
@@ -27985,7 +27987,7 @@ packages:
       '@babel/runtime': 7.21.5
       '@babel/template': 7.20.7
       '@discoveryjs/json-ext': 0.5.7
-      '@ngtools/webpack': file:../angular-cli/dist/@ngtools/webpack_4bkon4y2nvwzedt7fjcjfqa5iy
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_4bkon4y2nvwzedt7fjcjfqa5iy
       '@rspack/cli': link:packages/rspack-cli
       '@rspack/core': link:packages/rspack
       '@rspack/dev-server': link:packages/rspack-dev-server
@@ -28058,9 +28060,9 @@ packages:
       - webpack-cli
     dev: true
 
-  file:../angular-cli/dist/@angular-devkit/build-angular_k6mwjofo7vktf66du6x7yoarq4:
-    resolution: {directory: ../angular-cli/dist/@angular-devkit/build-angular, type: directory}
-    id: file:../angular-cli/dist/@angular-devkit/build-angular
+  file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz_k6mwjofo7vktf66du6x7yoarq4:
+    resolution: {integrity: sha512-/3iQLE+qA2f2eilvvKf70mOiE9UmYQNeKYq5g0m88e3BynzK5mGEKMMopLENgJ0ImosN8tEndf9TpgTwBU/T8g==, tarball: file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz}
+    id: file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz
     name: '@angular-devkit/build-angular'
     version: 16.0.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -28098,7 +28100,7 @@ packages:
     dependencies:
       '@ampproject/remapping': 2.2.1
       '@angular-devkit/architect': 0.1600.1_chokidar@3.5.3
-      '@angular-devkit/build-webpack': file:../angular-cli/dist/@angular-devkit/build-webpack_xmr3l5tvlwuwfbc2t3hvt4ej6e
+      '@angular-devkit/build-webpack': file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz_xmr3l5tvlwuwfbc2t3hvt4ej6e
       '@angular-devkit/core': 16.0.1_chokidar@3.5.3
       '@angular/compiler-cli': 15.2.9_q4mbtgcftmjdeatqb7bezb4aze
       '@babel/core': 7.21.8
@@ -28112,7 +28114,7 @@ packages:
       '@babel/runtime': 7.21.5
       '@babel/template': 7.20.7
       '@discoveryjs/json-ext': 0.5.7
-      '@ngtools/webpack': file:../angular-cli/dist/@ngtools/webpack_zmdgxztwjgiho2o3x4ttdyq6km
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_zmdgxztwjgiho2o3x4ttdyq6km
       '@rspack/cli': link:packages/rspack-cli
       '@rspack/core': link:packages/rspack
       '@rspack/dev-server': link:packages/rspack-dev-server
@@ -28185,9 +28187,9 @@ packages:
       - webpack-cli
     dev: true
 
-  file:../angular-cli/dist/@angular-devkit/build-angular_o7m6366b4anp3yuoab5wkcwq5a:
-    resolution: {directory: ../angular-cli/dist/@angular-devkit/build-angular, type: directory}
-    id: file:../angular-cli/dist/@angular-devkit/build-angular
+  file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz_o7m6366b4anp3yuoab5wkcwq5a:
+    resolution: {integrity: sha512-/3iQLE+qA2f2eilvvKf70mOiE9UmYQNeKYq5g0m88e3BynzK5mGEKMMopLENgJ0ImosN8tEndf9TpgTwBU/T8g==, tarball: file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz}
+    id: file:_npm_offline/angular-devkit-build-angular-16.0.1.tgz
     name: '@angular-devkit/build-angular'
     version: 16.0.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -28225,7 +28227,7 @@ packages:
     dependencies:
       '@ampproject/remapping': 2.2.1
       '@angular-devkit/architect': 0.1600.1_chokidar@3.5.3
-      '@angular-devkit/build-webpack': file:../angular-cli/dist/@angular-devkit/build-webpack_xmr3l5tvlwuwfbc2t3hvt4ej6e
+      '@angular-devkit/build-webpack': file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz_xmr3l5tvlwuwfbc2t3hvt4ej6e
       '@angular-devkit/core': 16.0.1_chokidar@3.5.3
       '@angular/compiler-cli': 16.0.5_f2lqisnhv5ufizigz6rrfcniye
       '@babel/core': 7.21.8
@@ -28239,7 +28241,7 @@ packages:
       '@babel/runtime': 7.21.5
       '@babel/template': 7.20.7
       '@discoveryjs/json-ext': 0.5.7
-      '@ngtools/webpack': file:../angular-cli/dist/@ngtools/webpack_hyxsrrslw4auvco5v4crsi3m2m
+      '@ngtools/webpack': file:_npm_offline/ngtools-webpack-16.0.1.tgz_hyxsrrslw4auvco5v4crsi3m2m
       '@rspack/cli': link:packages/rspack-cli
       '@rspack/core': link:packages/rspack
       '@rspack/dev-server': link:packages/rspack-dev-server
@@ -28312,8 +28314,8 @@ packages:
       - webpack-cli
     dev: true
 
-  file:../angular-cli/dist/@angular-devkit/build-webpack:
-    resolution: {directory: ../angular-cli/dist/@angular-devkit/build-webpack, type: directory}
+  file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz:
+    resolution: {integrity: sha512-kwHKkW2PH7lxad7aTW5/OMqfOefpXgRtn8roASGSgtpz9/2QesEwTVmPhfIQwQ1RsKJWbuRaKWREZ4POaalzsg==, tarball: file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz}
     name: '@angular-devkit/build-webpack'
     version: 0.1600.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -28327,9 +28329,9 @@ packages:
       - chokidar
     dev: true
 
-  file:../angular-cli/dist/@angular-devkit/build-webpack_xmr3l5tvlwuwfbc2t3hvt4ej6e:
-    resolution: {directory: ../angular-cli/dist/@angular-devkit/build-webpack, type: directory}
-    id: file:../angular-cli/dist/@angular-devkit/build-webpack
+  file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz_xmr3l5tvlwuwfbc2t3hvt4ej6e:
+    resolution: {integrity: sha512-kwHKkW2PH7lxad7aTW5/OMqfOefpXgRtn8roASGSgtpz9/2QesEwTVmPhfIQwQ1RsKJWbuRaKWREZ4POaalzsg==, tarball: file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz}
+    id: file:_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz
     name: '@angular-devkit/build-webpack'
     version: 0.1600.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -28345,9 +28347,9 @@ packages:
       - chokidar
     dev: true
 
-  file:../angular-cli/dist/@ngtools/webpack_4bkon4y2nvwzedt7fjcjfqa5iy:
-    resolution: {directory: ../angular-cli/dist/@ngtools/webpack, type: directory}
-    id: file:../angular-cli/dist/@ngtools/webpack
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_4bkon4y2nvwzedt7fjcjfqa5iy:
+    resolution: {integrity: sha512-haKygx1VYGZtlBYeQRweN0zbh4pFHG4sLGP5+GN75aG/qS2UDZI+lnW18+Y5+NkXbtCsS6wiq0zHLTJcS1eWFA==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
     name: '@ngtools/webpack'
     version: 16.0.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -28361,9 +28363,9 @@ packages:
       webpack: 5.82.0_esbuild@0.17.18
     dev: true
 
-  file:../angular-cli/dist/@ngtools/webpack_hyxsrrslw4auvco5v4crsi3m2m:
-    resolution: {directory: ../angular-cli/dist/@ngtools/webpack, type: directory}
-    id: file:../angular-cli/dist/@ngtools/webpack
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_hyxsrrslw4auvco5v4crsi3m2m:
+    resolution: {integrity: sha512-haKygx1VYGZtlBYeQRweN0zbh4pFHG4sLGP5+GN75aG/qS2UDZI+lnW18+Y5+NkXbtCsS6wiq0zHLTJcS1eWFA==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
     name: '@ngtools/webpack'
     version: 16.0.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -28377,9 +28379,9 @@ packages:
       webpack: 5.82.0_esbuild@0.17.18
     dev: true
 
-  file:../angular-cli/dist/@ngtools/webpack_me26ie2oh3keanoma2rd5to6bi:
-    resolution: {directory: ../angular-cli/dist/@ngtools/webpack, type: directory}
-    id: file:../angular-cli/dist/@ngtools/webpack
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_me26ie2oh3keanoma2rd5to6bi:
+    resolution: {integrity: sha512-haKygx1VYGZtlBYeQRweN0zbh4pFHG4sLGP5+GN75aG/qS2UDZI+lnW18+Y5+NkXbtCsS6wiq0zHLTJcS1eWFA==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
     name: '@ngtools/webpack'
     version: 16.0.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
@@ -28392,9 +28394,9 @@ packages:
       typescript: 4.9.5
     dev: true
 
-  file:../angular-cli/dist/@ngtools/webpack_zmdgxztwjgiho2o3x4ttdyq6km:
-    resolution: {directory: ../angular-cli/dist/@ngtools/webpack, type: directory}
-    id: file:../angular-cli/dist/@ngtools/webpack
+  file:_npm_offline/ngtools-webpack-16.0.1.tgz_zmdgxztwjgiho2o3x4ttdyq6km:
+    resolution: {integrity: sha512-haKygx1VYGZtlBYeQRweN0zbh4pFHG4sLGP5+GN75aG/qS2UDZI+lnW18+Y5+NkXbtCsS6wiq0zHLTJcS1eWFA==, tarball: file:_npm_offline/ngtools-webpack-16.0.1.tgz}
+    id: file:_npm_offline/ngtools-webpack-16.0.1.tgz
     name: '@ngtools/webpack'
     version: 16.0.1
     engines: {node: ^16.14.0 || >=18.10.0, npm: ^6.11.0 || ^7.5.6 || >=8.0.0, yarn: '>= 1.13.0'}
