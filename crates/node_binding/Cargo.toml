@@ -25,6 +25,7 @@ backtrace   = { workspace = true }
 dashmap     = { workspace = true }
 futures     = { workspace = true }
 once_cell   = { workspace = true }
+rustc-hash  = { workspace = true }
 tokio       = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 tracing     = { workspace = true }
 

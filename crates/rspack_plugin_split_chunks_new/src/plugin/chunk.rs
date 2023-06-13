@@ -26,7 +26,7 @@ impl SplitChunksPlugin {
         .get_number_of_chunk_modules(&chunk.ukey)
         != module_group.modules.len()
       {
-        // Fast path for checking is the chunk reuseable for this `ModuleGroup`.
+        // Fast path for checking is the chunk reusable for this `ModuleGroup`.
         return None;
       }
 
@@ -61,7 +61,7 @@ impl SplitChunksPlugin {
     });
 
     /// Port https://github.com/webpack/webpack/blob/b471a6bfb71020f6d8f136ef10b7efb239ef5bbf/lib/optimize/SplitChunksPlugin.js#L1360-L1373
-    fn best_reuseable_chunk<'a>(first: &'a Chunk, second: &'a Chunk) -> &'a Chunk {
+    fn best_reusable_chunk<'a>(first: &'a Chunk, second: &'a Chunk) -> &'a Chunk {
       match (&first.name, &second.name) {
         (None, None) => first,
         (None, Some(_)) => second,
@@ -80,10 +80,9 @@ impl SplitChunksPlugin {
       }
     }
 
-    let best_reuseable_chunk =
-      candidates.reduce_with(|best, each| best_reuseable_chunk(best, each));
+    let best_reusable_chunk = candidates.reduce_with(|best, each| best_reusable_chunk(best, each));
 
-    best_reuseable_chunk.map(|c| c.ukey)
+    best_reusable_chunk.map(|c| c.ukey)
   }
 
   pub(crate) fn get_corresponding_chunk(

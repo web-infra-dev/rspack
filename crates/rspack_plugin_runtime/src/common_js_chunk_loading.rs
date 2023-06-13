@@ -5,10 +5,13 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
+use crate::runtime_module::ReadFileChunkLoadingRuntimeModule;
 use crate::runtime_module::RequireChunkLoadingRuntimeModule;
 
 #[derive(Debug)]
-pub struct CommonJsChunkLoadingPlugin;
+pub struct CommonJsChunkLoadingPlugin {
+  pub async_chunk_loading: bool,
+}
 
 #[async_trait]
 impl Plugin for CommonJsChunkLoadingPlugin {
@@ -59,10 +62,17 @@ impl Plugin for CommonJsChunkLoadingPlugin {
     if has_chunk_loading {
       runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
       runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
-      compilation.add_runtime_module(
-        chunk,
-        RequireChunkLoadingRuntimeModule::new(**runtime_requirements).boxed(),
-      );
+      if self.async_chunk_loading {
+        compilation.add_runtime_module(
+          chunk,
+          ReadFileChunkLoadingRuntimeModule::new(**runtime_requirements).boxed(),
+        )
+      } else {
+        compilation.add_runtime_module(
+          chunk,
+          RequireChunkLoadingRuntimeModule::new(**runtime_requirements).boxed(),
+        );
+      }
     }
 
     Ok(())

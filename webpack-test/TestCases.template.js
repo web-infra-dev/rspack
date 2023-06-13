@@ -128,8 +128,11 @@ const describeCases = config => {
 											mangleExports: true,
 											emitOnErrors: true,
 											concatenateModules: false,
-											moduleIds: "size",
-											chunkIds: "size",
+											// TODO: size is not supported yet
+											// moduleIds: "size",
+											// chunkIds: "size",
+											moduleIds: "named",
+											chunkIds: "named",
 											minimizer: [terserForTesting],
 											...config.optimization
 									  },
@@ -196,11 +199,12 @@ const describeCases = config => {
 								plugins: (config.plugins || []).concat(function () {
 									this.hooks.compilation.tap("TestCasesTest", compilation => {
 										[
-											"optimize",
-											"optimizeModules",
-											"optimizeChunks",
-											"afterOptimizeTree",
-											"afterOptimizeAssets"
+											// TODO: the follwing hooks are not supported yet, so comment it out
+											// "optimize",
+											// "optimizeModules",
+											// "optimizeChunks",
+											// "afterOptimizeTree",
+											// "afterOptimizeAssets"
 										].forEach(hook => {
 											compilation.hooks[hook].tap("TestCasesTest", () =>
 												compilation.checkConstraints()

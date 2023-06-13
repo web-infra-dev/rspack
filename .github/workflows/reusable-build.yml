@@ -183,8 +183,7 @@ jobs:
   test:
     needs: [select, build]
     runs-on: ${{ needs.select.outputs.host }}
-    # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -214,26 +213,29 @@ jobs:
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: pnpm run test:ci
 
       ### x86_64-apple-darwin
 
       - name: Test x86_64-apple-darwin
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: pnpm run test:ci
 
       ### x86_64-pc-windows-msvc
 
       - name: Test x86_64-pc-windows-msvc
-        if: ${{  inputs.target == 'x86_64-pc-windows-msvc' }}
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
       ### write the latest metric into branch gh-pages
       ### Note that, We can't merge this script, because this script only runs on main branch
       - name: Update main branch test compatibility metric
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && github.ref_name == 'main' && matrix.node == '18' }}
-        run: node ./webpack-test/scripts/generate.js ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}  
+        run: node ./webpack-test/scripts/generate.js ${{ secrets.GITHUB_TOKEN }} ${{ github.sha }}
 
       # ### update metric diff against main branch when pull request change
       - name: Update

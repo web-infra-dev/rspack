@@ -19,7 +19,8 @@ import v2 from ${JSON.stringify(
 				.slice("file://".length)
 	)};
 export const val1 = v1;
-export const val2 = v2;`
+export const val2 = v2;
+`
 );
 fs.utimesSync(file, new Date(Date.now() - 10000), new Date(Date.now() - 10000));
 
