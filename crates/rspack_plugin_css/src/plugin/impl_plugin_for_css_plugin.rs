@@ -7,10 +7,10 @@ use rspack_core::rspack_sources::ReplaceSource;
 use rspack_core::{
   get_css_chunk_filename_template,
   rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
-  Chunk, ChunkKind, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
+  Chunk, ChunkKind, Module, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
   SourceType,
 };
-use rspack_core::{Compilation, LibIdentOptions, ModuleIdentifier};
+use rspack_core::{Compilation, LibIdentOptions};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 
@@ -20,18 +20,19 @@ use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
 use crate::CssPlugin;
 
 struct CssModuleDebugInfo<'a> {
-  pub module_id: &'a ModuleIdentifier,
+  pub module: &'a dyn Module,
 }
 
 impl CssPlugin {
   fn render_chunk_to_source(
     compilation: &Compilation,
     chunk: &Chunk,
-    ordered_css_modules: &[ModuleIdentifier],
+    ordered_css_modules: &[&dyn Module],
   ) -> rspack_error::Result<ConcatSource> {
     let module_sources = ordered_css_modules
       .iter()
-      .map(|module_id| {
+      .map(|module| {
+        let module_id = &module.identifier();
         let code_gen_result = compilation
           .code_generation_results
           .get(module_id, Some(&chunk.runtime))?;
@@ -41,7 +42,8 @@ impl CssPlugin {
           .map(|result| result.ast_or_source.clone().try_into_source())
           .transpose();
 
-        module_source.map(|source| source.map(|source| (CssModuleDebugInfo { module_id }, source)))
+        module_source
+          .map(|source| source.map(|source| (CssModuleDebugInfo { module: *module }, source)))
       })
       .collect::<Result<Vec<_>>>()?;
 
@@ -82,10 +84,7 @@ impl CssPlugin {
     }
 
     let context = compilation.options.context.as_str();
-    let module = compilation
-      .module_graph
-      .module_by_identifier(debug_info.module_id)
-      .expect("should have a module");
+    let module = debug_info.module;
 
     let debug_module_id = module
       .lib_ident(LibIdentOptions { context })
@@ -155,12 +154,12 @@ impl Plugin for CssPlugin {
 
     ordered_modules
       .iter()
-      .map(|mgm| {
+      .map(|m| {
         (
           compilation
             .code_generation_results
-            .get_hash(mgm, Some(&chunk.runtime)),
-          compilation.chunk_graph.get_module_id(*mgm),
+            .get_hash(&m.identifier(), Some(&chunk.runtime)),
+          compilation.chunk_graph.get_module_id(m.identifier()),
         )
       })
       .for_each(|(current, id)| {
