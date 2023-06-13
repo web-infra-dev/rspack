@@ -73,12 +73,24 @@
     "sass-embedded-win32-ia32": "1.58.3",
     "sass-embedded-win32-x64": "1.58.3"
   },
+  "//file-overrides": {
+    "@angular-devkit/build-angular": "file:./_npm_offline/angular-devkit-build-angular-16.0.1.tgz",
+    "@angular-devkit/build-webpack": "file:./_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz",
+    "@ngtools/webpack": "file:./_npm_offline/ngtools-webpack-16.0.1.tgz"
+  },
+  "//rel-overrides": {
+    "@angular-devkit/build-angular": "file:../angular-cli/dist/@angular-devkit/build-angular",
+    "@angular-devkit/build-webpack": "file:../angular-cli/dist/@angular-devkit/build-webpack",
+    "@ngtools/webpack": "file:../angular-cli/dist/@ngtools/webpack"
+  },
   "pnpm": {
     "overrides": {
-      "@angular-devkit/build-webpack": "file:./_npm_offline/angular-devkit-build-webpack-0.1600.1.tgz",
-      "@ngtools/webpack": "file:./_npm_offline/ngtools-webpack-16.0.1.tgz",
+      "@angular-devkit/build-angular": "file:../angular-cli/dist/@angular-devkit/build-angular",
+      "@angular-devkit/build-webpack": "file:../angular-cli/dist/@angular-devkit/build-webpack",
+      "@ngtools/webpack": "file:../angular-cli/dist/@ngtools/webpack",
       "@rspack/cli": "workspace:*",
-      "@rspack/core": "workspace:*"
+      "@rspack/core": "workspace:*",
+      "@rspack/dev-server": "workspace:*"
     }
   },
   "packageManager": "pnpm@7.32.0"
