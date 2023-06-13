@@ -102,7 +102,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         "runtime/readfile_chunk_loading_with_hmr.js"
       )));
       source.add(RawSource::from(
-        include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "jsonp"),
+        include_str!("runtime/javascript_hot_module_replacement.js").replace("$key$", "readFileVm"),
       ));
     }
 

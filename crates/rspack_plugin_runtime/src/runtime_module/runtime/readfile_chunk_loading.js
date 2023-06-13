@@ -1,4 +1,4 @@
-var installChunk = (chunk) => {
+var installChunk = function (chunk) {
   var moreModules = chunk.modules, chunkIds = chunk.ids,
       runtime = chunk.runtime;
   for (var moduleId in moreModules) {
