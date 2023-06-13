@@ -11,6 +11,10 @@ module.exports = {
 				issuer: /\.js/,
 				mimetype: /^image\/svg/,
 				type: "asset/inline"
+			},
+			{
+				mimetype: /^text\/bad-base64/,
+				type: "asset/inline"
 			}
 		]
 	},

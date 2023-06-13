@@ -11,7 +11,6 @@ import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
 import {
-	JsAsset,
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,
@@ -44,6 +43,7 @@ import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
+import MergeCaller from "./util/MergeCaller";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -718,6 +718,29 @@ export class Compilation {
 			plugins
 		);
 	}
+
+	_rebuildModule = new MergeCaller(
+		(args: Array<[string, (err: any, m: JsModule) => void]>) => {
+			this.#inner.rebuildModule(
+				args.map(item => item[0]),
+				function (err: any, modules: JsModule[]) {
+					for (const [id, callback] of args) {
+						const m = modules.find(item => item.moduleIdentifier === id);
+						if (m) {
+							callback(err, m);
+						} else {
+							callback(err || new Error("module no found"), null as any);
+						}
+					}
+				}
+			);
+		},
+		10
+	);
+	rebuildModule(m: JsModule, f: (err: any, m: JsModule) => void) {
+		this._rebuildModule.run(m.moduleIdentifier, f);
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *

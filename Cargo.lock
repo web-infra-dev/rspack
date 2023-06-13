@@ -2190,6 +2190,8 @@ name = "rspack_base64"
 version = "0.1.0"
 dependencies = [
  "base64-simd",
+ "once_cell",
+ "regex",
 ]
 
 [[package]]
@@ -2490,6 +2492,7 @@ dependencies = [
  "rspack_identifier",
  "rspack_napi_shared",
  "rspack_tracing",
+ "rustc-hash",
  "testing_macros",
  "tikv-jemallocator",
  "tokio",

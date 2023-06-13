@@ -28,4 +28,7 @@ where
   fn set(&self, id: Identifier, data: Item) {
     self.data.insert(id, data);
   }
+  fn remove(&self, id: &Identifier) {
+    self.data.remove(id);
+  }
 }

@@ -5,6 +5,12 @@ pub enum Mode {
   None,
 }
 
+impl Mode {
+  pub fn is_development(&self) -> bool {
+    matches!(self, Mode::Development)
+  }
+}
+
 impl From<String> for Mode {
   fn from(value: String) -> Self {
     match value.as_ref() {
