@@ -43,6 +43,7 @@ pub struct JsHooksAdapter {
   pub after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_make_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub build_module_tsfn: ThreadsafeFunction<JsModule, ()>, // TODO
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)>,
   pub after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
@@ -464,6 +465,22 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call finish make: {err}"))?
   }
 
+  async fn build_module(&self, module: &mut dyn rspack_core::Module) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::BuildModule) {
+      return Ok(());
+    }
+
+    self
+      .build_module_tsfn
+      .call(
+        module.to_js_module().expect("Convert to js_module failed."),
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call build module: {err}"))?
+  }
+
   async fn finish_modules(
     &self,
     compilation: &mut rspack_core::Compilation,
@@ -586,6 +603,7 @@ impl JsHooksAdapter {
       after_compile,
       finish_modules,
       finish_make,
+      build_module,
       chunk_asset,
       succeed_module,
       still_valid_module,
@@ -626,6 +644,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(after_compile, env);
     let finish_make_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_make, env);
+    let build_module_tsfn: ThreadsafeFunction<JsModule, ()> =
+      js_fn_into_theadsafe_fn!(build_module, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_modules, env);
     let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
@@ -670,6 +690,7 @@ impl JsHooksAdapter {
       normal_module_factory_resolve_for_scheme,
       finish_modules_tsfn,
       finish_make_tsfn,
+      build_module_tsfn,
       chunk_asset_tsfn,
       after_resolve,
       succeed_module_tsfn,

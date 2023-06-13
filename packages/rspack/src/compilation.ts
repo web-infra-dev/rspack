@@ -43,6 +43,7 @@ import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
+import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
 import MergeCaller from "./util/MergeCaller";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
@@ -90,6 +91,7 @@ export class Compilation {
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: tapable.SyncHook<[JsModule], undefined>;
 		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -125,7 +127,8 @@ export class Compilation {
 			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new tapable.SyncHook(["module"]),
-			stillValidModule: new tapable.SyncHook(["module"])
+			stillValidModule: new tapable.SyncHook(["module"]),
+			buildModule: new tapable.SyncHook(["module"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -608,12 +611,7 @@ export class Compilation {
 	);
 
 	get modules() {
-		return this.getModules().map(item => {
-			return {
-				identifier: () => item.moduleIdentifier,
-				...item
-			};
-		});
+		return this.getModules().map(item => normalizeJsModule(item));
 	}
 
 	get chunks() {
