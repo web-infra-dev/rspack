@@ -4,7 +4,7 @@ use std::default::Default;
 use std::sync::Arc;
 
 use rspack_core::{rspack_sources::SourceMap, LoaderRunnerContext, Mode};
-use rspack_error::{errors_to_diagnostics, internal_error, Error, Result};
+use rspack_error::{errors_to_diagnostics, internal_error, Diagnostic, Error, Result};
 use rspack_loader_runner::{Identifiable, Identifier, Loader, LoaderContext};
 use serde::Deserialize;
 use swc_config::config_types::{BoolConfig, MergingOption};
@@ -157,6 +157,15 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
       if let Ok(source_map) = pre_source_map.to_json() {
         options.config.input_source_map = Some(InputSourceMap::Str(source_map))
       }
+    }
+
+    if options.config.jsc.experimental.plugins.is_some() {
+      loader_context.diagnostic.push(Diagnostic::warn(
+        format!("{}", self.identifier()),
+        format!("Experimental plugins are not currently supported"),
+        0,
+        0,
+      ));
     }
 
     GLOBALS.set(&Default::default(), || {

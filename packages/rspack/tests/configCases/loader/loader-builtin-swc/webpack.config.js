@@ -17,7 +17,7 @@ module.exports = {
 						}
 					}
 				},
-				type: "jsx"
+				type: "javascript/auto"
 			}
 		]
 	}

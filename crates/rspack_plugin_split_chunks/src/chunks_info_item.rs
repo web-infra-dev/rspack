@@ -16,7 +16,7 @@ pub(crate) struct ChunksInfoItem {
   pub name: Option<String>,
   pub sizes: SplitChunkSizes,
   pub chunks: FxHashSet<ChunkUkey>,
-  pub _reuseable_chunks: FxHashSet<ChunkUkey>,
+  pub _reusable_chunks: FxHashSet<ChunkUkey>,
   // bigint | Chunk
   // pub chunks_keys: Hash
 }
