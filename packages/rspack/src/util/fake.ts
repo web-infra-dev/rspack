@@ -1,5 +1,6 @@
 import { Compilation, Assets } from "..";
 import * as tapable from "tapable";
+import MergeCaller from "./MergeCaller";
 
 export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 	type FakeProcessAssetsOptions = string | { name: string; stage?: number };
@@ -41,23 +42,25 @@ export const createFakeProcessAssetsHook = (compilation: Compilation) => {
 };
 
 export function createFakeCompilationDependencies(
-	deps: string[],
+	getDeps: () => string[],
 	addDeps: (deps: string[]) => void
 ) {
+	const addDepsCaller = new MergeCaller(addDeps, 10);
 	return {
 		*[Symbol.iterator]() {
+			const deps = getDeps();
 			for (const dep of deps) {
 				yield dep;
 			}
 		},
 		has(dep: string): boolean {
-			return deps.includes(dep);
+			return getDeps().includes(dep);
 		},
 		add: (dep: string) => {
-			addDeps([dep]);
+			addDepsCaller.push(dep);
 		},
 		addAll: (deps: Iterable<string>) => {
-			addDeps(Array.from(deps));
+			addDepsCaller.push(...deps);
 		}
 	};
 }

@@ -587,33 +587,25 @@ export class Compilation {
 		);
 	}
 
-	get fileDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getFileDependencies(),
-			d => this.#inner.addFileDependencies(d)
-		);
-	}
+	fileDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getFileDependencies(),
+		d => this.#inner.addFileDependencies(d)
+	);
 
-	get contextDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getContextDependencies(),
-			d => this.#inner.addContextDependencies(d)
-		);
-	}
+	contextDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getContextDependencies(),
+		d => this.#inner.addContextDependencies(d)
+	);
 
-	get missingDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getMissingDependencies(),
-			d => this.#inner.addMissingDependencies(d)
-		);
-	}
+	missingDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getMissingDependencies(),
+		d => this.#inner.addMissingDependencies(d)
+	);
 
-	get buildDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getBuildDependencies(),
-			d => this.#inner.addBuildDependencies(d)
-		);
-	}
+	buildDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getBuildDependencies(),
+		d => this.#inner.addBuildDependencies(d)
+	);
 
 	get modules() {
 		return this.getModules().map(item => {
@@ -719,7 +711,7 @@ export class Compilation {
 		);
 	}
 
-	_rebuildModule = new MergeCaller(
+	_rebuildModuleCaller = new MergeCaller(
 		(args: Array<[string, (err: any, m: JsModule) => void]>) => {
 			this.#inner.rebuildModule(
 				args.map(item => item[0]),
@@ -738,7 +730,7 @@ export class Compilation {
 		10
 	);
 	rebuildModule(m: JsModule, f: (err: any, m: JsModule) => void) {
-		this._rebuildModule.run(m.moduleIdentifier, f);
+		this._rebuildModuleCaller.push([m.moduleIdentifier, f]);
 	}
 
 	/**
