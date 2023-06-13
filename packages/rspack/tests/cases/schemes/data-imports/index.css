@@ -1,5 +1,6 @@
 @import url("data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ=="); /* .b{color: green} */
 @import url("./a.css");
+@import "./bad-base64.css";
 
 .class {
   a: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"></svg>');

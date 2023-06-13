@@ -4,6 +4,7 @@ use derivative::Derivative;
 use napi::{Either, JsString};
 use napi_derive::napi;
 use rspack_core::SourceType;
+use rspack_napi_shared::{JsRegExp, JsStringExt};
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
 use serde::Deserialize;
 
@@ -145,8 +146,6 @@ pub struct RawCacheGroupOptions {
 }
 
 use rspack_plugin_split_chunks_new as new_split_chunks_plugin;
-
-use crate::{ext::js_string_ext::JsStringExt, js_values::js_reg_exp::JsRegExp};
 
 fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFilter {
   match raw {
