@@ -11,7 +11,8 @@ module.exports =  {
       // "<rootDir>/*.basictest.js",
       // "<rootDir>/*.longtest.js",
       // "<rootDir>/*.unittest.js",
-      "<rootDir>/TestCasesNormal.basictest.js"
+      "<rootDir>/TestCasesNormal.basictest.js",
+      "<rootDir>/ConfigTestCases.basictest.js"
     ],
     "watchPathIgnorePatterns": [
       "<rootDir>/.git",
