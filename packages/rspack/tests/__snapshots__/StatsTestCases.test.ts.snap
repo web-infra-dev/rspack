@@ -586,6 +586,27 @@ exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 1`]
 
 exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 2`] = `""`;
 
+exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
+{
+  "errors": [],
+  "errorsCount": 0,
+  "warnings": [
+    {
+      "formatted": "Experimental plugins are not currently supported.
+",
+      "message": "Experimental plugins are not currently supported.",
+    },
+  ],
+  "warningsCount": 1,
+}
+`;
+
+exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
+"
+Experimental plugins are not currently supported.
+"
+`;
+
 exports[`StatsTestCases should print correct stats for minify-error-recovery 1`] = `
 {
   "errors": [

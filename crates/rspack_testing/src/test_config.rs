@@ -367,6 +367,14 @@ impl TestConfig {
                 })
                 .unwrap_or_default(),
             )) as BoxLoader,
+            "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
+              i.options
+                .map(|options| {
+                  serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
+                    .expect("should give a right loader options")
+                })
+                .unwrap_or_default(),
+            )) as BoxLoader,
             _ => panic!("should give a right loader"),
           })
           .collect::<Vec<BoxLoader>>(),

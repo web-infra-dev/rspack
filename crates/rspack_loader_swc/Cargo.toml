@@ -1,0 +1,33 @@
+[package]
+edition    = "2021"
+license    = "MIT"
+name       = "rspack_loader_swc"
+repository = "https://github.com/web-infra-dev/rspack"
+version    = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+once_cell = { workspace = true }
+rspack_core = { path = "../rspack_core" }
+rspack_error = { path = "../rspack_error" }
+rspack_loader_runner = { path = "../rspack_loader_runner" }
+serde = { workspace = true, features = ["derive"] }
+serde_json = "1.0.96"
+str_indices = "0.4.1"
+swc_config = { workspace = true }
+swc_core = { workspace = true, features = [
+  "base",
+  "ecma_ast",
+  "common",
+  #  "swc_plugin_runner",
+  #  "plugin_transform_host_native_filesystem_cache",
+  #  "plugin_transform_host_native",
+] }
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
+
+[dev-dependencies]
+indexmap       = { workspace = true }
+rspack_testing = { path = "../rspack_testing" }
