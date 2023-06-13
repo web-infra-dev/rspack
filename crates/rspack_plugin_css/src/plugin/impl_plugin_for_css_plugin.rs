@@ -6,11 +6,11 @@ use rayon::prelude::*;
 use rspack_core::rspack_sources::ReplaceSource;
 use rspack_core::{
   get_css_chunk_filename_template,
-  rspack_sources::{BoxSource, ConcatSource, MapOptions, RawSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, MapOptions, RawSource, Source, SourceExt},
   Chunk, ChunkKind, ModuleType, ParserAndGenerator, PathData, Plugin, RenderManifestEntry,
   SourceType,
 };
-use rspack_core::{Compilation, ModuleIdentifier};
+use rspack_core::{Compilation, LibIdentOptions, ModuleIdentifier};
 use rspack_error::Result;
 use rspack_hash::RspackHash;
 
@@ -18,6 +18,10 @@ use crate::parser_and_generator::CssParserAndGenerator;
 use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
 use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER_REGEX;
 use crate::CssPlugin;
+
+struct CssModuleDebugInfo<'a> {
+  pub module_id: &'a ModuleIdentifier,
+}
 
 impl CssPlugin {
   fn render_chunk_to_source(
@@ -37,9 +41,9 @@ impl CssPlugin {
           .map(|result| result.ast_or_source.clone().try_into_source())
           .transpose();
 
-        module_source
+        module_source.map(|source| source.map(|source| (CssModuleDebugInfo { module_id }, source)))
       })
-      .collect::<Result<Vec<Option<BoxSource>>>>()?;
+      .collect::<Result<Vec<_>>>()?;
 
     let source = module_sources
       .into_par_iter()
@@ -47,17 +51,61 @@ impl CssPlugin {
       // Should we return a Error if there is a `None` in `module_sources`?
       // Webpack doesn't throw. It just do a best-effort checking https://github.com/webpack/webpack/blob/5e3c4d0ddf8ae6a6e45fea42be4e8950fe49c0bb/lib/css/CssModulesPlugin.js#L565-L568
       .flatten()
-      .fold(ConcatSource::default, |mut output, cur| {
-        output.add(cur);
-        output.add(RawSource::from("\n"));
-        output
-      })
+      .fold(
+        ConcatSource::default,
+        |mut acc, (debug_info, cur_source)| {
+          let (start, end) = Self::render_module_debug_info(compilation, &debug_info);
+          acc.add(start);
+          acc.add(cur_source);
+          acc.add(RawSource::from("\n"));
+          acc.add(end);
+          acc
+        },
+      )
       .reduce(ConcatSource::default, |mut acc, cur| {
         acc.add(cur);
         acc
       });
 
     Ok(source)
+  }
+
+  fn render_module_debug_info(
+    compilation: &Compilation,
+    debug_info: &CssModuleDebugInfo,
+  ) -> (ConcatSource, ConcatSource) {
+    let mut start = ConcatSource::default();
+    let mut end = ConcatSource::default();
+    let is_dev = compilation.options.mode.is_development();
+    if !is_dev {
+      return (start, end);
+    }
+
+    let context = compilation.options.context.as_str();
+    let module = compilation
+      .module_graph
+      .module_by_identifier(debug_info.module_id)
+      .expect("should have a module");
+
+    let debug_module_id = module
+      .lib_ident(LibIdentOptions { context })
+      .unwrap_or("None".into());
+
+    start.add(RawSource::from(format!(
+      "/* #region {:?} */\n",
+      debug_module_id,
+    )));
+
+    start.add(RawSource::from(format!(
+      "/*\n- type: {}\n*/\n",
+      module.module_type(),
+    )));
+
+    end.add(RawSource::from(format!(
+      "/* #endregion {debug_module_id:?} */\n\n"
+    )));
+
+    (start, end)
   }
 }
 
