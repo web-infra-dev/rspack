@@ -5,7 +5,7 @@
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --forceExit",
+    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest  --logHeapUsage --runInBand --bail --forceExit",
     "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --forceExit --json | node scripts/test-metric.js",
     "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --json --forceExit"
   },
@@ -65,60 +65,5 @@
     "tapable": "2.2.1",
     "watchpack": "^2.4.0",
     "webpack-sources": "3.2.3"
-  },
-  "jest": {
-    "forceExit": true,
-    "setupFiles": [
-      "<rootDir>/setupEnv.js"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/setupTestFramework.js"
-    ],
-    "testMatch": [
-      "<rootDir>/*.test.js",
-      "<rootDir>/*.basictest.js",
-      "<rootDir>/*.longtest.js",
-      "<rootDir>/*.unittest.js"
-    ],
-    "watchPathIgnorePatterns": [
-      "<rootDir>/.git",
-      "<rootDir>/node_modules",
-      "<rootDir>/js",
-      "<rootDir>/browsertest/js",
-      "<rootDir>/fixtures/temp-cache-fixture",
-      "<rootDir>/fixtures/temp-",
-      "<rootDir>/benchmark",
-      "<rootDir>/assembly",
-      "<rootDir>/tooling",
-      "<rootDir>/examples/*/dist",
-      "<rootDir>/coverage",
-      "<rootDir>/.eslintcache"
-    ],
-    "modulePathIgnorePatterns": [
-      "<rootDir>/.git",
-      "<rootDir>/node_modules/webpack/node_modules",
-      "<rootDir>/js",
-      "<rootDir>/browsertest/js",
-      "<rootDir>/fixtures/temp-cache-fixture",
-      "<rootDir>/fixtures/temp-",
-      "<rootDir>/benchmark",
-      "<rootDir>/examples/*/dist",
-      "<rootDir>/coverage",
-      "<rootDir>/.eslintcache"
-    ],
-    "transformIgnorePatterns": [
-      "<rootDir>"
-    ],
-    "coverageDirectory": "<rootDir>/coverage",
-    "coveragePathIgnorePatterns": [
-      "\\.runtime\\.js$",
-      "<rootDir>",
-      "<rootDir>/schemas",
-      "<rootDir>/node_modules"
-    ],
-    "testEnvironment": "./patch-node-env.js",
-    "coverageReporters": [
-      "json"
-    ]
   }
 }
