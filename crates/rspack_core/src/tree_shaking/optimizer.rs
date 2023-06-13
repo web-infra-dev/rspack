@@ -380,6 +380,16 @@ impl<'a> CodeSizeOptimizer<'a> {
         {
           continue;
         } else {
+          // dbg!(analyze_result.module_identifier);
+          // dbg!(!used);
+          // dbg!(&!self
+          //   .bailout_modules
+          //   .contains_key(&analyze_result.module_identifier));
+          // dbg!(&self.side_effects_free_modules.contains(&module_identifier));
+          // dbg!(&!self
+          //   .compilation
+          //   .entry_module_identifiers
+          //   .contains(&module_identifier));
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();

@@ -678,7 +678,6 @@ class Compiler {
 				resolveData
 			);
 
-		// console.log(resolveData)
 		NormalModule.getCompilationHooks(this.compilation).loader.tap(
 			"sideEffectFreePropPlugin",
 			(loaderContext: any) => {
