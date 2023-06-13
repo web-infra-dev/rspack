@@ -122,15 +122,19 @@ impl From<SwcLoaderJsOptions> for Options {
 #[derive(Debug)]
 pub struct SwcLoader {
   options: Options,
+  identifier: Identifier,
 }
 
 impl SwcLoader {
   pub fn new(options: SwcLoaderJsOptions) -> Self {
     Self {
       options: Options::from(options),
+      identifier: LOADER_IDENTIFIER.into(),
     }
   }
 }
+
+const LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 
 #[async_trait::async_trait]
 impl Loader<LoaderRunnerContext> for SwcLoader {
@@ -161,8 +165,8 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
 
     if options.config.jsc.experimental.plugins.is_some() {
       loader_context.diagnostic.push(Diagnostic::warn(
-        format!("{}", self.identifier()),
-        format!("Experimental plugins are not currently supported"),
+        LOADER_IDENTIFIER.to_string(),
+        "Experimental plugins are not currently supported.".to_string(),
         0,
         0,
       ));
@@ -225,6 +229,6 @@ impl Loader<LoaderRunnerContext> for SwcLoader {
 
 impl Identifiable for SwcLoader {
   fn identifier(&self) -> Identifier {
-    "builtin:swc-loader".into()
+    self.identifier
   }
 }

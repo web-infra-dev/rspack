@@ -592,9 +592,9 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
   "errorsCount": 0,
   "warnings": [
     {
-      "formatted": "Experimental plugins are not currently supported
+      "formatted": "Experimental plugins are not currently supported.
 ",
-      "message": "Experimental plugins are not currently supported",
+      "message": "Experimental plugins are not currently supported.",
     },
   ],
   "warningsCount": 1,
@@ -603,7 +603,7 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
 "
-Experimental plugins are not currently supported
+Experimental plugins are not currently supported.
 "
 `;
 
