@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-server",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
   "description": "Development server for rspack",
   "main": "./dist/index.js",
@@ -31,7 +31,6 @@
   },
   "dependencies": {
     "@rspack/dev-client": "workspace:*",
-    "webpack-dev-middleware": "6.0.2",
     "@rspack/dev-server": "workspace:*",
     "chokidar": "3.5.3",
     "connect-history-api-fallback": "2.0.0",
@@ -39,6 +38,7 @@
     "http-proxy-middleware": "2.0.6",
     "mime-types": "2.1.35",
     "webpack": "5.76.0",
+    "webpack-dev-middleware": "6.0.2",
     "webpack-dev-server": "4.13.1",
     "ws": "8.8.1"
   },
