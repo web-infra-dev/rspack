@@ -188,7 +188,8 @@ pub fn render_chunk_init_fragments(
 }
 
 pub fn render_init_fragments(source: BoxSource, fragments: &mut [&InitFragment]) -> BoxSource {
-  fragments.sort_unstable_by_key(|m| m.stage);
+  // here use sort_by_key because need keep order equal stage fragments
+  fragments.sort_by_key(|m| m.stage);
 
   let mut sources = ConcatSource::default();
 

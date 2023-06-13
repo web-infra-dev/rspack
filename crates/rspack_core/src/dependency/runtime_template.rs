@@ -51,7 +51,7 @@ pub fn export_from_import(
           InitFragmentStage::STAGE_HARMONY_EXPORTS,
           None,
         ));
-        return format!("/*#__PURE__*/ {import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{}))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
+        return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
       }
   }
 
