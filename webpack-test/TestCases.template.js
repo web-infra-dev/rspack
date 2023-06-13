@@ -129,8 +129,8 @@ const describeCases = config => {
 											emitOnErrors: true,
 											concatenateModules: false,
 											// TODO: size is not supported yet
-											moduleIds: "size",
-											chunkIds: "size",
+											// moduleIds: "size",
+											// chunkIds: "size",
 											moduleIds: "named",
 											chunkIds: "named",
 											minimizer: [terserForTesting],
