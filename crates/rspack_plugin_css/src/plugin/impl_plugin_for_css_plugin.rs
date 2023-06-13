@@ -73,10 +73,12 @@ impl CssPlugin {
   fn render_module_debug_info(
     compilation: &Compilation,
     debug_info: &CssModuleDebugInfo,
-  ) -> (RawSource, RawSource) {
+  ) -> (ConcatSource, ConcatSource) {
+    let mut start = ConcatSource::default();
+    let mut end = ConcatSource::default();
     let is_dev = compilation.options.mode.is_development();
     if !is_dev {
-      return (RawSource::from(""), RawSource::from(""));
+      return (start, end);
     }
 
     let context = compilation.options.context.as_str();
@@ -89,20 +91,21 @@ impl CssPlugin {
       .lib_ident(LibIdentOptions { context })
       .unwrap_or("None".into());
 
-    let module = compilation
-      .module_graph
-      .module_by_identifier(debug_info.module_id)
-      .expect("should have a module");
-
-    let rendering_start = RawSource::from(format!(
-      "/* start {:?}\n- type: {}\n*/\n",
+    start.add(RawSource::from(format!(
+      "/* #region {:?} */\n",
       debug_module_id,
+    )));
+
+    start.add(RawSource::from(format!(
+      "/*\n- type: {}\n*/\n",
       module.module_type(),
-    ));
+    )));
 
-    let rendering_end = RawSource::from(format!("/* end {:?} */\n\n", debug_module_id));
+    end.add(RawSource::from(format!(
+      "/* #endregion {debug_module_id:?} */\n\n"
+    )));
 
-    (rendering_start, rendering_end)
+    (start, end)
   }
 }
 

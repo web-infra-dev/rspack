@@ -1,23 +1,26 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`cases exported tests data imports 1`] = `
-"/* start "data:text/css,.red{color: red;}"
+"/* #region "data:text/css,.red{color: red;}" */
+/*
 - type: css
 */
 .red {
   color: red;
 }
-/* end "data:text/css,.red{color: red;}" */
+/* #endregion "data:text/css,.red{color: red;}" */
 
-/* start "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ=="
+/* #region "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
+/*
 - type: css
 */
 .b {
   color: green;
 }
-/* end "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
+/* #endregion "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
 
-/* start "./a.css"
+/* #region "./a.css" */
+/*
 - type: css
 */
 .a {
@@ -25,18 +28,20 @@ exports[`cases exported tests data imports 1`] = `
 }
 ;;;
 
-/* end "./a.css" */
+/* #endregion "./a.css" */
 
-/* start "./bad-base64.css"
+/* #region "./bad-base64.css" */
+/*
 - type: css
 */
 .bad {
   a: url("data:text/bad-base64;base64,abcd?#iefix");
   b: url("data:text/bad-base64;base64,    abcd?#iefix");
 }
-/* end "./bad-base64.css" */
+/* #endregion "./bad-base64.css" */
 
-/* start "./index.css"
+/* #region "./index.css" */
+/*
 - type: css
 */
 .class {
@@ -45,7 +50,7 @@ exports[`cases exported tests data imports 1`] = `
   c: url("82ee8285df64be76");
   d: url("82ee8285df64be76");
 }
-/* end "./index.css" */
+/* #endregion "./index.css" */
 
 "
 `;
