@@ -1,4 +1,4 @@
-use super::JsCompatSource;
+use super::{JsCompatSource, PathData};
 
 #[napi(object)]
 pub struct JsAssetInfoRelated {
@@ -99,6 +99,35 @@ impl From<&rspack_core::AssetEmittedArgs<'_>> for JsAssetEmittedArgs {
       filename: args.filename.to_string(),
       output_path: args.output_path.to_string_lossy().to_string(),
       target_path: args.target_path.to_string_lossy().to_string(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsAssetPathArgs {
+  pub filename: String,
+  pub data: PathData,
+  pub asset_info: Option<JsAssetInfo>,
+}
+
+impl From<&rspack_core::AssetPathArgs<'_>> for JsAssetPathArgs {
+  fn from(args: &rspack_core::AssetPathArgs) -> Self {
+    let path_data = PathData {
+      filename: args.data.filename.map(|s| s.to_string()),
+      content_hash: args.data.content_hash.map(|s| s.to_string()),
+      hash: args.data.hash.map(|s| s.to_string()),
+      id: args.data.id.map(|s| s.to_string()),
+      runtime: args.data.runtime.map(|s| s.to_string()),
+      url: args.data.url.map(|s| s.to_string()),
+    };
+    let asset_info = args
+      .asset_info
+      .to_owned()
+      .map(|info| JsAssetInfo::from(info.to_owned()));
+    Self {
+      filename: args.filename.to_string(),
+      data: path_data,
+      asset_info,
     }
   }
 }

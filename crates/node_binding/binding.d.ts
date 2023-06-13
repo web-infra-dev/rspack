@@ -156,6 +156,12 @@ export interface JsAssetInfoRelated {
   sourceMap?: string
 }
 
+export interface JsAssetPathArgs {
+  filename: string
+  data: PathData
+  assetInfo?: JsAssetInfo
+}
+
 export interface JsChunk {
   files: Array<string>
 }
@@ -205,6 +211,7 @@ export interface JsHooks {
   contextModuleBeforeResolve: (...args: any[]) => any
   normalModuleFactoryResolveForScheme: (...args: any[]) => any
   chunkAsset: (...args: any[]) => any
+  assetPath: (...args: any[]) => any
   succeedModule: (...args: any[]) => any
   stillValidModule: (...args: any[]) => any
 }
