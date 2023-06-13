@@ -1,0 +1,7 @@
+{
+  "name": "tests",
+  "devDependencies": {
+    "acorn": "^8.8.2",
+    "acorn-walk": "^8.2.0"
+  }
+}

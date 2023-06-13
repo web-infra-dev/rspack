@@ -1,0 +1,491 @@
+{
+	"array-side-effects": {
+		"./app.js": { "exports": ["app"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./src/a.js"] },
+		"./lib.js": { "exports": ["result"], "imports": [] },
+		"./src/a.js": { "exports": [], "imports": ["./app.js"] }
+	},
+	"assign-with-side-effects": {
+		"./app.js": { "exports": ["app"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["result"], "imports": [] }
+	},
+	"basic": {
+		"./answer.js": { "exports": ["answer"], "imports": [] },
+		"./app.js": { "exports": [], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["myanswer"], "imports": ["./answer.js"] }
+	},
+	"bb": {
+		"./a.js": { "exports": [], "imports": ["./b.js", "./c.js"] },
+		"./b.js": { "exports": ["d"], "imports": [] },
+		"./c.js": { "exports": ["ccc"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./a.js"] }
+	},
+	"cjs-export-computed-property": {
+		"./zh_locale.js": { "exports": [], "imports": [] },
+		"./antd/index.ts": {
+			"exports": ["locales"],
+			"imports": ["./locale_zh.ts"]
+		},
+		"./index.ts": { "exports": ["test"], "imports": ["./antd/index.ts"] },
+		"./locale_zh.ts": { "exports": ["default"], "imports": ["./zh_locale.js"] }
+	},
+	"cjs-tree-shaking-basic": {
+		"./answer.js": { "exports": ["answer"], "imports": [] },
+		"./app.js": { "exports": ["myanswer"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js", "./answer.js"] },
+		"./lib.js": { "exports": ["myanswer"], "imports": [] }
+	},
+	"conflicted_name_by_re_export_all_should_be_hidden": {
+		"./bar.js": { "exports": [], "imports": [] },
+		"./foo.js": { "exports": [], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./foo.js", "./bar.js"] }
+	},
+	"context-module": {
+		"./child/child/index.js": { "exports": ["value"], "imports": [] },
+		"./child/index.js": { "exports": ["value"], "imports": [] },
+		"./child Sync  recursive ^\\.\\/.*\\.js$": { "exports": [], "imports": [] },
+		"./index.js": {
+			"exports": [],
+			"imports": ["./child Sync  recursive ^\\.\\/.*\\.js$"]
+		}
+	},
+	"context-module-elimated": { "./index.js": { "exports": [], "imports": [] } },
+	"default_export": {
+		"./answer.js": { "exports": ["answer"], "imports": [] },
+		"./app.js": { "exports": ["render", "default"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": {
+			"exports": ["secret", "myanswer"],
+			"imports": ["./answer.js"]
+		}
+	},
+	"explicit_named_export_higher_priority_1": {
+		"./bar.js": { "exports": [], "imports": [] },
+		"./foo.js": { "exports": ["a"], "imports": ["./bar.js"] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"explicit_named_export_higher_priority_2": {
+		"./bar.js": { "exports": [], "imports": [] },
+		"./baz.js": { "exports": ["a"], "imports": [] },
+		"./foo.js": { "exports": ["a"], "imports": ["./baz.js", "./bar.js"] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"export-all-from-side-effects-free-commonjs": {
+		"./index.js": { "exports": [], "imports": ["./lib.js"] },
+		"./lib.js": { "exports": [], "imports": [] }
+	},
+	"export-star-chain": {
+		"./Layout.js": { "exports": [], "imports": ["./something/index.js"] },
+		"./colors/a.js": { "exports": ["red"], "imports": [] },
+		"./colors/b.js": { "exports": ["blue"], "imports": [] },
+		"./colors/c.js": { "exports": [], "imports": ["./colors/result.js"] },
+		"./colors/index.js": {
+			"exports": [],
+			"imports": ["./colors/a.js", "./colors/b.js", "./colors/c.js"]
+		},
+		"./colors/result.js": { "exports": ["result"], "imports": [] },
+		"./export.js": { "exports": [], "imports": ["./Layout.js"] },
+		"./index.js": { "exports": [], "imports": ["./export.js"] },
+		"./something/Something.js": { "exports": ["Something"], "imports": [] },
+		"./something/index.js": {
+			"exports": ["Colors"],
+			"imports": ["./colors/index.js", "./something/Something.js"]
+		}
+	},
+	"export_star": {
+		"./bar.js": { "exports": ["bar"], "imports": ["./foo.js", "./result.js"] },
+		"./foo.js": {
+			"exports": ["a", "foo"],
+			"imports": ["./bar.js", "./result.js"]
+		},
+		"./index.js": { "exports": [], "imports": ["./foo.js"] },
+		"./result.js": { "exports": ["c"], "imports": ["./foo.js", "./bar.js"] }
+	},
+	"export_star2": {
+		"./bar.js": { "exports": [], "imports": ["./foo.js", "./result.js"] },
+		"./foo.js": { "exports": [], "imports": ["./bar.js", "./result.js"] },
+		"./index.js": {
+			"exports": [],
+			"imports": ["./foo.js", "./bar.js", "./result.js"]
+		},
+		"./result.js": { "exports": [], "imports": ["./foo.js", "./bar.js"] }
+	},
+	"export_star_conflict_export_no_error": {
+		"./bar.js": { "exports": ["b"], "imports": ["./foo.js", "./result.js"] },
+		"./foo.js": { "exports": [], "imports": ["./bar.js", "./result.js"] },
+		"./index.js": { "exports": [], "imports": ["./bar.js"] },
+		"./result.js": { "exports": [], "imports": ["./foo.js", "./bar.js"] }
+	},
+	"handle-side-effects-commonjs-imported-unused": {
+		"./index.js": { "exports": [], "imports": [] }
+	},
+	"handle-side-effects-commonjs-required": {
+		"./index.js": { "exports": [], "imports": ["./source/index.js"] },
+		"./source/index.js": {
+			"exports": [],
+			"imports": [
+				"../../../../../node_modules/@swc/helpers/esm/_class_call_check.js",
+				"../../../../../node_modules/@swc/helpers/esm/_create_class.js"
+			]
+		},
+		"../../../../../node_modules/@swc/helpers/esm/_class_call_check.js": {
+			"exports": ["_class_call_check", "_"],
+			"imports": []
+		},
+		"../../../../../node_modules/@swc/helpers/esm/_create_class.js": {
+			"exports": ["_create_class", "_"],
+			"imports": []
+		}
+	},
+	"import-var-assign-side-effects": {
+		"./Something.js": { "exports": ["default"], "imports": [] },
+		"./export.js": { "exports": ["Sider"], "imports": ["./Something.js"] },
+		"./index.js": { "exports": [], "imports": ["./export.js"] }
+	},
+	"inherit_export_map_should_lookup_in_dfs_order": {
+		"./a.js": { "exports": ["c"], "imports": [] },
+		"./bar.js": { "exports": [], "imports": [] },
+		"./c.js": { "exports": ["a"], "imports": ["./foo.js", "./bar.js"] },
+		"./foo.js": { "exports": ["b"], "imports": ["./a.js"] },
+		"./index.js": { "exports": [], "imports": ["./c.js"] }
+	},
+	"issues_3198": {
+		"./index.js": { "exports": [], "imports": ["./test.js"] },
+		"./test.js": { "exports": ["obj"], "imports": [] }
+	},
+	"local-binding-reachable1": {
+		"./Layout.js": { "exports": ["defaults"], "imports": [] },
+		"./export.js": { "exports": ["Something"], "imports": ["./Layout.js"] },
+		"./index.js": { "exports": [], "imports": ["./export.js"] }
+	},
+	"local-binding-reachable2": {
+		"./Layout.js": { "exports": ["defaults"], "imports": [] },
+		"./export.js": { "exports": ["Something"], "imports": ["./Layout.js"] },
+		"./index.js": { "exports": [], "imports": ["./export.js"] }
+	},
+	"module-rule-side-effects1": {
+		"./a.js": { "exports": ["a"], "imports": [] },
+		"./c.js": { "exports": [], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./a.js", "./c.js"] }
+	},
+	"module-rule-side-effects2": {
+		"./a.js": { "exports": ["a"], "imports": [] },
+		"./b.js": { "exports": [], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./a.js", "./b.js"] }
+	},
+	"named-export-decl-with-src-eval": {
+		"./Layout.js": { "exports": ["default"], "imports": [] },
+		"./Something.js": { "exports": ["something"], "imports": [] },
+		"./c.js": { "exports": ["cccc"], "imports": [] },
+		"./export.js": {
+			"exports": ["cccc"],
+			"imports": ["./Layout.js", "./Something.js", "./c.js"]
+		},
+		"./index.js": { "exports": [], "imports": ["./export.js"] }
+	},
+	"named_export_alias": {
+		"./Something.js": { "exports": ["something"], "imports": [] },
+		"./export.js": { "exports": ["default"], "imports": ["./Something.js"] },
+		"./index.js": { "exports": [], "imports": ["./export.js"] }
+	},
+	"namespace-access-var-decl-rhs": {
+		"./a.js": { "exports": ["a"], "imports": [] },
+		"./b.js": { "exports": ["b"], "imports": [] },
+		"./enum-old.js": { "exports": ["a", "b"], "imports": ["./a.js", "./b.js"] },
+		"./enum.js": { "exports": [], "imports": ["./enum-old.js"] },
+		"./index.js": { "exports": [], "imports": ["./lib.js"] },
+		"./lib.js": {
+			"exports": ["getDocPermissionTextSendMe"],
+			"imports": ["./enum.js"]
+		}
+	},
+	"prune-bailout-module": {
+		"./a.js": { "exports": ["default"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./lib.js"] },
+		"./lib.js": { "exports": ["a"], "imports": ["./a.js"] }
+	},
+	"react-redux-like": {
+		"./app.js": {
+			"exports": ["Provider", "useSelector"],
+			"imports": ["./lib.js", "./selector.js"]
+		},
+		"./foo.js": { "exports": [], "imports": ["./app.js"] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] },
+		"./lib.js": { "exports": ["default"], "imports": [] },
+		"./selector.js": { "exports": ["default"], "imports": [] }
+	},
+	"reexport_default_as": {
+		"./bar.js": { "exports": ["default"], "imports": [] },
+		"./foo.js": { "exports": ["Select"], "imports": ["./bar.js"] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"reexport_entry_elimination": {
+		"./a.js": { "exports": ["b"], "imports": ["./b.js"] },
+		"./b.js": { "exports": ["default"], "imports": ["./c.js"] },
+		"./c.js": { "exports": ["default"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./a.js"] }
+	},
+	"rename-export-from-import": {
+		"./app.js": { "exports": ["q"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["question"], "imports": [] }
+	},
+	"rollup-unmodified-default-exports": {
+		"./foo.js": { "exports": ["default"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"rollup-unmodified-default-exports-function-argument": {
+		"./foo.js": { "exports": ["default", "bar"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"rollup-unused-called-import": {
+		"./dead.js": { "exports": [], "imports": [] },
+		"./foo.js": { "exports": ["default"], "imports": ["./dead.js"] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"rollup-unused-default-exports": {
+		"./foo.js": { "exports": ["foo"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"rollup-unused-inner-functions-and-classes": {
+		"./index.js": { "exports": [], "imports": ["./stuff.js"] },
+		"./stuff.js": { "exports": ["bar", "baz"], "imports": [] }
+	},
+	"rollup-unused-var": {
+		"./foo.js": { "exports": ["foo"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"side-effects-analyzed": {
+		"./app.js": { "exports": ["something"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["default"], "imports": [] }
+	},
+	"side-effects-flagged-only": {
+		"./app.js": {
+			"exports": ["something"],
+			"imports": ["./lib.js", "./src/a.js"]
+		},
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["default"], "imports": [] },
+		"./src/a.js": { "exports": [], "imports": [] }
+	},
+	"side-effects-prune": {
+		"./app.js": { "exports": [], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["something"], "imports": [] }
+	},
+	"side-effects-two": {
+		"./app.js": { "exports": ["something"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["default"], "imports": [] }
+	},
+	"simple-namespace-access": {
+		"./index.js": { "exports": [], "imports": ["./maths.js"] },
+		"./maths.js": { "exports": ["square", "xxx"], "imports": ["./test.js"] },
+		"./test.js": { "exports": ["test", "ccc"], "imports": [] }
+	},
+	"static-class": {
+		"./a.js": { "exports": ["a"], "imports": ["./b.js"] },
+		"./b.js": { "exports": ["bb"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./a.js"] }
+	},
+	"transitive_side_effects_when_analyze": {
+		"./app.js": { "exports": ["a"], "imports": ["./side-effects.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./side-effects.js": { "exports": [], "imports": [] }
+	},
+	"tree-shaking-false-with-side-effect-true": {
+		"./ b.js": { "exports": ["b"], "imports": [] },
+		"./a.js": { "exports": ["a"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./a.js", "./ b.js"] }
+	},
+	"tree-shaking-interop": {
+		"./a.js": { "exports": ["a"], "imports": [] },
+		"./foo.js": { "exports": [], "imports": ["./a.js"] },
+		"./index.js": { "exports": [], "imports": ["./foo.js"] }
+	},
+	"tree-shaking-lazy-import": {
+		"./app.js": { "exports": ["answer"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] }
+	},
+	"ts-target-es5": {
+		"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": {
+			"exports": ["_async_to_generator", "_"],
+			"imports": []
+		},
+		"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js": {
+			"exports": ["_"],
+			"imports": ["../../../../../node_modules/tslib/tslib.es6.js"]
+		},
+		"../../../../../node_modules/tslib/tslib.es6.js": {
+			"exports": ["__generator"],
+			"imports": []
+		},
+		"./index.ts": {
+			"exports": ["test"],
+			"imports": [
+				"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js",
+				"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js"
+			]
+		}
+	},
+	"var-function-expr": {
+		"./app.js": { "exports": ["app"], "imports": ["./lib.js"] },
+		"./index.js": { "exports": [], "imports": ["./app.js"] },
+		"./lib.js": { "exports": ["result", "something"], "imports": [] }
+	},
+	"webpack-inner-graph-export-default-named": {
+		"./a.js": { "exports": ["default"], "imports": ["./dep.js?a"] },
+		"./b.js": { "exports": [], "imports": ["./dep.js?b"] },
+		"./c.js": { "exports": [], "imports": ["./dep.js?c"] },
+		"./d.js": { "exports": ["default"], "imports": ["./dep.js?d"] },
+		"./dep.js?a": { "exports": ["x", "default"], "imports": [] },
+		"./dep.js?b": { "exports": ["default"], "imports": [] },
+		"./dep.js?c": { "exports": ["x", "default"], "imports": [] },
+		"./dep.js?d": { "exports": ["x", "default"], "imports": [] },
+		"./dep.js?e": { "exports": ["default"], "imports": [] },
+		"./dep.js?f": { "exports": ["x", "default"], "imports": [] },
+		"./e.js": { "exports": [], "imports": ["./dep.js?e"] },
+		"./f.js": { "exports": [], "imports": ["./dep.js?f"] },
+		"./index.js": {
+			"exports": [],
+			"imports": [
+				"./a.js", "./b.js", "./c.js", "./d.js", "./e.js", "./f.js",
+				"./dep.js?a", "./dep.js?b", "./dep.js?c", "./dep.js?d", "./dep.js?e",
+				"./dep.js?f"
+			]
+		}
+	},
+	"webpack-inner-graph-switch": {
+		"./import-module.js": { "exports": ["test"], "imports": ["./module.js"] },
+		"./index.js": { "exports": [], "imports": ["./import-module.js"] },
+		"./module.js": { "exports": ["default"], "imports": ["./some-module.js"] },
+		"./some-module.js": {
+			"exports": ["Block", "Inline", "Document"],
+			"imports": []
+		}
+	},
+	"webpack-innergraph-circular": {
+		"./index.js": { "exports": [], "imports": ["./inner.js", "./module.js"] },
+		"./inner.js": {
+			"exports": ["A", "B", "exportAUsed", "exportBUsed", "exportCUsed"],
+			"imports": []
+		},
+		"./module.js": { "exports": ["x", "y"], "imports": ["./inner.js"] }
+	},
+	"webpack-innergraph-circular2": {
+		"./index.js": { "exports": [], "imports": ["./module.js"] },
+		"./module.js": { "exports": ["x", "y", "z", "a", "f3"], "imports": [] }
+	},
+	"webpack-innergraph-no-side-effects": {
+		"./index.js": { "exports": [], "imports": ["./module.js"] },
+		"./module.js": {
+			"exports": ["default", "test"],
+			"imports": ["./package/index.js"]
+		},
+		"./package/index.js": { "exports": ["a"], "imports": [] }
+	},
+	"webpack-innergraph-try-globals": {
+		"./import-module.js": { "exports": [], "imports": ["./module.js"] },
+		"./index.js": { "exports": [], "imports": ["./import-module.js"] },
+		"./module.js": { "exports": ["ok", "ok2"], "imports": [] }
+	},
+	"webpack-reexport-namespace-and-default": {
+		"./index.js": {
+			"exports": [],
+			"imports": [
+				"./package1/script.js", "./package1/script2.js", "./package2/script.js",
+				"./module.js"
+			]
+		},
+		"./module.js": {
+			"exports": ["mod"],
+			"imports": ["./package1/script.js", "./package2/script.js"]
+		},
+		"./package1/script.js": {
+			"exports": ["exportDefaultUsed"],
+			"imports": ["./package1/script1.js"]
+		},
+		"./package1/script1.js": {
+			"exports": [],
+			"imports": ["./package1/script2.js"]
+		},
+		"./package1/script2.js": {
+			"exports": ["exportDefaultUsed"],
+			"imports": []
+		},
+		"./package2/script.js": {
+			"exports": ["default", "exportDefaultUsed"],
+			"imports": ["./package2/script1.js"]
+		},
+		"./package2/script1.js": { "exports": ["default"], "imports": [] }
+	},
+	"webpack-side-effects-all-used": {
+		"../node_modules/pmodule/a.js": {
+			"exports": ["a"],
+			"imports": ["../node_modules/pmodule/tracker.js"]
+		},
+		"../node_modules/pmodule/b.js": {
+			"exports": ["x", "z"],
+			"imports": [
+				"../node_modules/pmodule/c.js", "../node_modules/pmodule/tracker.js"
+			]
+		},
+		"../node_modules/pmodule/c.js": {
+			"exports": ["z"],
+			"imports": ["../node_modules/pmodule/tracker.js"]
+		},
+		"../node_modules/pmodule/index.js": {
+			"exports": ["x", "z", "default"],
+			"imports": [
+				"../node_modules/pmodule/a.js", "../node_modules/pmodule/b.js",
+				"../node_modules/pmodule/tracker.js"
+			]
+		},
+		"../node_modules/pmodule/tracker.js": {
+			"exports": ["track", "log"],
+			"imports": []
+		},
+		"./index.js": {
+			"exports": [],
+			"imports": [
+				"../node_modules/pmodule/tracker.js", "../node_modules/pmodule/index.js"
+			]
+		}
+	},
+	"webpack-side-effects-simple-unused": {
+		"../node_modules/pmodule/b.js": {
+			"exports": ["x", "z"],
+			"imports": [
+				"../node_modules/pmodule/c.js", "../node_modules/pmodule/tracker.js"
+			]
+		},
+		"../node_modules/pmodule/c.js": {
+			"exports": ["z"],
+			"imports": ["../node_modules/pmodule/tracker.js"]
+		},
+		"../node_modules/pmodule/index.js": {
+			"exports": ["x", "z", "default"],
+			"imports": [
+				"../node_modules/pmodule/b.js", "../node_modules/pmodule/tracker.js"
+			]
+		},
+		"../node_modules/pmodule/tracker.js": {
+			"exports": ["track", "log"],
+			"imports": []
+		},
+		"./index.js": {
+			"exports": [],
+			"imports": [
+				"../node_modules/pmodule/tracker.js", "../node_modules/pmodule/index.js"
+			]
+		}
+	},
+	"with-assets": {
+		"./a.js": { "exports": ["a"], "imports": [] },
+		"./index.js": { "exports": [], "imports": ["./a.js", "./a.svg"] },
+		"./a.svg": { "exports": [], "imports": [] }
+	}
+}
