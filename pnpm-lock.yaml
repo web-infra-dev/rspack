@@ -92,9 +92,11 @@ importers:
     specifiers:
       acorn: ^8.8.2
       acorn-walk: ^8.2.0
+      jest-diff: ^29.5.0
     devDependencies:
       acorn: 8.8.2
       acorn-walk: 8.2.0
+      jest-diff: 29.5.0
 
   crates/rspack_fs_node:
     specifiers:

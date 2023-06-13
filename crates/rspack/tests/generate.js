@@ -25,7 +25,7 @@ for (let i = 0; i < list.length; i++) {
 		const dirabpath = path.join(testDir, item)
 		const expectedfilePath = path.join(dirabpath, "expected/main.js")
 		const file = fs.readFileSync(expectedfilePath).toString();
-		const exportinfo = getExportInfo(file, false)
+		const exportinfo = getExportInfo(file, true)
 		res[item] = exportinfo
 	} catch(err) {
 		console.log(item)
@@ -34,6 +34,7 @@ for (let i = 0; i < list.length; i++) {
 }
 
 console.log(JSON.stringify(res))
+
 function getExportInfo(file, isWebpack) {
 	const exportInfo = {};
 	let modulesNode = null;
@@ -62,32 +63,8 @@ function getExportInfo(file, isWebpack) {
 }
 
 // const webpackExportInfo = getExportInfo(webpack, true)
-// const rspackExportInfo = getExportInfo(rspack, false);
+// const rspackExportInfo = getExportInfo(rspack, true);
 // console.log(rspackExportInfo)
-// console.log(Object.keys(webpackExportInfo).length)
-// console.log(Object.keys(rspackExportInfo).length)
-// Object.keys(rspackExportInfo).forEach(key => {
-//   if (webpackExportInfo[key] == undefined) {
-//     console.log(key)
-//   } else {
-//     const r = rspackExportInfo[key]
-//     const w = webpackExportInfo[key]
-//     let diff = []
-//     for (let i = 0; i  < r.length; i++) {
-//       let symbol = r[i]
-//       if (!w.includes(symbol)) {
-//         diff.push(symbol)
-//       }
-//     }
-//
-//     if (diff.length) {
-//       console.log(`${key}: \n, ${JSON.stringify(diff)}`)
-//     }
-//   }
-// })
-//
-//
-//
 
 function getExportFromRspack(func) {
   let exports = [];
@@ -135,27 +112,40 @@ function getExportFromRspack(func) {
 	}
 }
 
-//
-// function getExportFromWebpack(func) {
-//   let ret = [];
-//   walk.simple(func, {
-//     CallExpression(node) {
-//       let callee = node.callee;
-//       if (
-//         callee.type === "MemberExpression" &&
-//         callee.object.name === "__webpack_require__" &&
-//         callee.property.name === "d"
-//       ) {
-//         const arguments = node.arguments;
-//         if (arguments[0].type === "Identifier" && arguments[0].name === "__webpack_exports__") {
-//           const obj = node.arguments[1];
-//           let properties = obj.properties;
-//           for (let prop of properties) {
-//             ret.push(prop.key.value);
-//           }
-//         }
-//       }
-//     },
-//   });
-//   return ret
-// }
+function getExportFromWebpack(func) {
+  let exports = [];
+	let imports = []
+  walk.simple(func, {
+    CallExpression(node) {
+      let callee = node.callee;
+      if (
+        callee.type === "MemberExpression" &&
+        callee.object.name === "__webpack_require__" &&
+        callee.property.name === "d"
+      ) {
+        const arguments = node.arguments;
+        if (arguments[0].type === "Identifier" && arguments[0].name === "exports") {
+          const obj = node.arguments[1];
+          let properties = obj.properties;
+          for (let prop of properties) {
+            exports.push(prop.key.value);
+          }
+        }
+      }
+
+      if (
+        callee.type === "Identifier" &&
+        callee.name === "__webpack_require__"
+      ) {
+        const obj = node.arguments[0];
+				if (obj.type === "Literal") {
+					imports.push(obj.value)
+				}
+      }
+    },
+  });
+  return {
+		exports,
+		imports
+	}
+}
