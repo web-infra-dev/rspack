@@ -96,7 +96,9 @@ fn property_access(o: &Vec<JsWord>, mut start: usize) -> String {
 }
 
 pub fn get_import_var(user_request: &str) -> String {
-  format!("{}__WEBPACK_IMPORTED_MODULE__", to_identifier(user_request))
+  // avoid './a' and '../a' generate diffrent identifier
+  let request = user_request.replace("..", "$");
+  format!("{}__WEBPACK_IMPORTED_MODULE__", to_identifier(&request))
 }
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {

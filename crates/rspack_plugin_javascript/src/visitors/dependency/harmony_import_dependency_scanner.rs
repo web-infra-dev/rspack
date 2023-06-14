@@ -202,7 +202,9 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 
   fn visit_export_all(&mut self, export_all: &ExportAll) {
     let key = (export_all.src.value.clone(), DependencyType::EsmExport);
-    if self.imports.get(&key).is_none() {
+    if let Some((_, _, exports_all)) = self.imports.get_mut(&key) {
+      *exports_all = true;
+    } else {
       self.imports.insert(key, (export_all.span, vec![], true));
     }
     self

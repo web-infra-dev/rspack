@@ -70,8 +70,8 @@ __webpack_require__.d(exports, {'Something': function() { return Something; }});
 "./something/index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'Colors': function() { return _colors_index__WEBPACK_IMPORTED_MODULE__; }});
-/* harmony import */var _colors_index__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../colors/index */"./colors/index.js");
+__webpack_require__.d(exports, {'Colors': function() { return $_colors_index__WEBPACK_IMPORTED_MODULE__; }});
+/* harmony import */var $_colors_index__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../colors/index */"./colors/index.js");
 /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./something/Something.js");
 __webpack_require__.es(_Something__WEBPACK_IMPORTED_MODULE__, exports);
 

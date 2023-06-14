@@ -18,12 +18,15 @@ pub fn contextify(context: impl AsRef<Path>, request: &str) -> String {
     .join("!")
 }
 
+static IDENTIFIER_NAME_REPLACE_REGEX: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"^([^a-zA-Z$_])").expect("should init regex"));
 static IDENTIFIER_REGEXP: Lazy<Regex> =
   Lazy::new(|| Regex::new(r"[^a-zA-Z0-9$]+").expect("should init regex"));
 
 #[inline]
-pub fn to_identifier(v: &str) -> Cow<'_, str> {
-  IDENTIFIER_REGEXP.replace_all(v, "_")
+pub fn to_identifier(v: &str) -> String {
+  let id = IDENTIFIER_NAME_REPLACE_REGEX.replace_all(v, "_$1");
+  IDENTIFIER_REGEXP.replace_all(&id, "_").to_string()
 }
 
 static PATH_QUERY_FRAGMENT_REGEXP: Lazy<Regex> = Lazy::new(|| {

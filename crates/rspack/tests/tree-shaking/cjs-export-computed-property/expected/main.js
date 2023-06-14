@@ -12,10 +12,10 @@ exports["default"] = _default;
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'locales': function() { return locales; }});
-/* harmony import */var _locale_zh__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../locale_zh */"./locale_zh.ts");
+/* harmony import */var $_locale_zh__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../locale_zh */"./locale_zh.ts");
 
 const locales = {
-    zh_CN: _locale_zh__WEBPACK_IMPORTED_MODULE__["default"]
+    zh_CN: $_locale_zh__WEBPACK_IMPORTED_MODULE__["default"]
 };
 
 },
@@ -33,8 +33,9 @@ _antd_index__WEBPACK_IMPORTED_MODULE__["locales"].zh_CN;
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./zh_locale */"./zh_locale.js");
+/* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE___default = /*#__PURE__*/__webpack_require__.n(_zh_locale__WEBPACK_IMPORTED_MODULE__);
 
-var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE__;
+var __WEBPACK_DEFAULT_EXPORT__ = _zh_locale__WEBPACK_IMPORTED_MODULE___default;
 },
 
 },function(__webpack_require__) {

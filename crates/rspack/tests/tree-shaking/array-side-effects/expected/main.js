@@ -26,9 +26,9 @@ __webpack_require__.d(exports, {'result': function() { return result; }});
 "./src/a.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../app */"./app.js");
+/* harmony import */var $_app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../app */"./app.js");
 
-_app__WEBPACK_IMPORTED_MODULE__["app"];
+$_app__WEBPACK_IMPORTED_MODULE__["app"];
 },
 
 },function(__webpack_require__) {
