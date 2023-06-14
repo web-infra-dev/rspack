@@ -1,5 +1,7 @@
 use once_cell::sync::Lazy;
-use rspack_core::{ContextMode, ContextOptions, DependencyCategory, ModuleDependency, SpanExt};
+use rspack_core::{
+  ChunkGroupOptions, ContextMode, ContextOptions, DependencyCategory, ModuleDependency, SpanExt,
+};
 use rspack_regex::RspackRegex;
 use swc_core::{
   common::{comments::Comments, Span},
@@ -76,7 +78,7 @@ impl Visit for ImportScanner<'_> {
                 node.span.real_hi(),
                 imported.value.clone(),
                 Some(node.span.into()),
-                chunk_name,
+                ChunkGroupOptions::default().name_optional(chunk_name),
               )));
             }
             Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
@@ -94,7 +96,7 @@ impl Visit for ImportScanner<'_> {
                 node.span.real_hi(),
                 request,
                 Some(node.span.into()),
-                chunk_name,
+                ChunkGroupOptions::default().name_optional(chunk_name),
               )));
             }
             _ => {

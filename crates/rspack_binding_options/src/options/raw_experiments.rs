@@ -1,5 +1,5 @@
 use napi_derive::napi;
-use rspack_core::{Experiments, IncrementalRebuild};
+use rspack_core::{Experiments, IncrementalRebuild, IncrementalRebuildMakeState};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Default)]
@@ -26,7 +26,10 @@ impl From<RawExperiments> for Experiments {
     Self {
       lazy_compilation: value.lazy_compilation,
       incremental_rebuild: IncrementalRebuild {
-        make: value.incremental_rebuild.make,
+        make: value
+          .incremental_rebuild
+          .make
+          .then(IncrementalRebuildMakeState::default),
         emit_asset: value.incremental_rebuild.emit_asset,
       },
       async_web_assembly: value.async_web_assembly,

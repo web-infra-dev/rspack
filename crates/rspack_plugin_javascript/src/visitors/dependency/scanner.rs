@@ -1,9 +1,10 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  CommonJsRequireContextDependency, CompilerOptions, ConstDependency, ContextMode, ContextOptions,
-  Dependency, DependencyCategory, EsmDynamicImportDependency, ImportContextDependency,
-  ModuleDependency, RequireContextDependency, ResourceData, RuntimeGlobals,
+  ChunkGroupOptions, CommonJsRequireContextDependency, CompilerOptions, ConstDependency,
+  ContextMode, ContextOptions, Dependency, DependencyCategory, EsmDynamicImportDependency,
+  ImportContextDependency, ModuleDependency, RequireContextDependency, ResourceData,
+  RuntimeGlobals,
 };
 use rspack_regex::RspackRegex;
 use swc_core::common::comments::Comments;
@@ -154,7 +155,7 @@ impl DependencyScanner<'_> {
                 imported.value.clone(),
                 Some(node.span.into()),
                 as_parent_path(ast_path),
-                chunk_name,
+                ChunkGroupOptions::default().name_optional(chunk_name),
               )));
             }
             Expr::Tpl(tpl) if tpl.quasis.len() == 1 => {
@@ -171,7 +172,7 @@ impl DependencyScanner<'_> {
                 request,
                 Some(node.span.into()),
                 as_parent_path(ast_path),
-                chunk_name,
+                ChunkGroupOptions::default().name_optional(chunk_name),
               )));
             }
             _ => {

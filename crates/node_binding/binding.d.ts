@@ -534,9 +534,11 @@ export interface RawDevServer {
   hot: boolean
 }
 
-export interface RawEntryItem {
+export interface RawEntryDescription {
   import: Array<string>
   runtime?: string
+  chunkLoading?: string
+  publicPath?: string
 }
 
 export interface RawExperiments {
@@ -725,7 +727,7 @@ export interface RawOptimizationOptions {
 }
 
 export interface RawOptions {
-  entry: Record<string, RawEntryItem>
+  entry: Record<string, RawEntryDescription>
   /**
    * Using this Vector to track the original order of user land entry configuration
    * std::collection::HashMap does not guarantee the insertion order, for more details you could refer
@@ -776,8 +778,8 @@ export interface RawOutputOptions {
   importFunctionName: string
   iife: boolean
   module: boolean
-  chunkFormat?: string
-  chunkLoading?: string
+  chunkFormat: string
+  chunkLoading: string
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string

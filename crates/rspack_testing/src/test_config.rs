@@ -397,24 +397,6 @@ impl TestConfig {
 
     let options = CompilerOptions {
       context: c::Context::new(context.to_string_lossy().to_string()),
-      entry: self
-        .entry
-        .into_iter()
-        .map(|(k, v)| {
-          (
-            k,
-            c::EntryItem {
-              import: v.import,
-              runtime: v
-                .runtime
-                .map(Some)
-                // Splitting runtime code into a separate chunk
-                // is friendly to snapshot testing.
-                .unwrap_or_else(|| Some("runtime".to_string())),
-            },
-          )
-        })
-        .collect(),
       output: c::OutputOptions {
         clean: self.output.clean,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
@@ -433,6 +415,7 @@ impl TestConfig {
           .expect("Should exist"),
         public_path: c::PublicPath::String("/".to_string()),
         unique_name: "__rspack_test__".to_string(),
+        chunk_loading: c::ChunkLoading::Jsonp,
         chunk_loading_global: "webpackChunkwebpack".to_string(),
         path: context.join("dist"),
         library: self.output.library.map(|l| c::LibraryOptions {
@@ -507,6 +490,22 @@ impl TestConfig {
       },
     };
     let mut plugins = Vec::new();
+    for (name, desc) in &self.entry {
+      for request in &desc.import {
+        plugins.push(
+          rspack_plugin_entry::EntryPlugin::new(
+            name.clone(),
+            request.to_owned(),
+            rspack_core::EntryOptions {
+              runtime: Some("runtime".to_string()),
+              chunk_loading: None,
+              public_path: None,
+            },
+          )
+          .boxed(),
+        );
+      }
+    }
     if self.builtins.dev_friendly_split_chunks {
       plugins
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());

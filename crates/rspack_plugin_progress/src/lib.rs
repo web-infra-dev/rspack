@@ -4,7 +4,7 @@ use std::{cmp, sync::atomic::AtomicU32};
 
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_core::{
-  Compilation, DoneArgs, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
+  Compilation, DoneArgs, MakeParam, Module, OptimizeChunksArgs, Plugin, PluginBuildEndHookOutput,
   PluginContext, PluginMakeHookOutput, PluginOptimizeChunksOutput, PluginProcessAssetsOutput,
   ProcessAssetsArgs,
 };
@@ -48,7 +48,12 @@ impl Plugin for ProgressPlugin {
     "progress"
   }
 
-  async fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
+  async fn make(
+    &self,
+    _ctx: PluginContext,
+    _compilation: &mut Compilation,
+    _param: &mut MakeParam,
+  ) -> PluginMakeHookOutput {
     self.progress_bar.reset();
     self.progress_bar.set_prefix(
       self

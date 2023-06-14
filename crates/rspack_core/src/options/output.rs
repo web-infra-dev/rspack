@@ -25,6 +25,7 @@ pub struct OutputOptions {
   pub wasm_loading: WasmLoading,
   pub webassembly_module_filename: Filename,
   pub unique_name: String,
+  pub chunk_loading: ChunkLoading,
   pub chunk_loading_global: String,
   pub filename: Filename,
   pub chunk_filename: Filename,
@@ -57,6 +58,31 @@ impl From<&OutputOptions> for RspackHash {
 #[derive(Debug)]
 pub struct TrustedTypes {
   pub policy_name: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChunkLoading {
+  False,
+  Jsonp,
+  ImportScripts,
+  Require,
+  AsyncNode,
+  Import,
+  // TODO: Custom
+}
+
+impl From<&str> for ChunkLoading {
+  fn from(value: &str) -> Self {
+    match value {
+      "jsonp" => Self::Jsonp,
+      "import-scripts" => Self::ImportScripts,
+      "require" => Self::Require,
+      "async-node" => Self::AsyncNode,
+      "import" => Self::Import,
+      "false" => Self::False,
+      _ => unimplemented!("custom chunkLoading in not supported yet"),
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -349,7 +375,7 @@ fn hash_len(hash: &str, caps: &Captures) -> usize {
     .min(hash_len)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PublicPath {
   // TODO: should be RawPublicPath(Filename)
   String(String),

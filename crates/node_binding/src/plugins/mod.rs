@@ -130,7 +130,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn make(
     &self,
     _ctx: rspack_core::PluginContext,
-    _compilation: &rspack_core::Compilation,
+    _compilation: &mut rspack_core::Compilation,
+    _param: &mut rspack_core::MakeParam,
   ) -> rspack_core::PluginMakeHookOutput {
     if self.is_hook_disabled(&Hook::Make) {
       return Ok(());

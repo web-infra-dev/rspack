@@ -139,8 +139,8 @@ pub struct RawOutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
-  pub chunk_format: Option<String>,
-  pub chunk_loading: Option<String>,
+  pub chunk_format: String,
+  pub chunk_loading: String,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
   pub source_map_filename: String,
@@ -177,6 +177,7 @@ impl RawOptionsApply for RawOutputOptions {
       },
       webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
+      chunk_loading: self.chunk_loading.as_str().into(),
       chunk_loading_global: to_identifier(&self.chunk_loading_global),
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
@@ -207,20 +208,20 @@ impl RawOutputOptions {
     &self,
     plugins: &mut Vec<BoxPlugin>,
   ) -> Result<(), rspack_error::Error> {
-    if let Some(chunk_format) = &self.chunk_format {
-      match chunk_format.as_str() {
-        "array-push" => {
-          plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-        }
-        "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
-        "module" => {
-          plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin {}.boxed());
-        }
-        _ => {
-          return Err(internal_error!(
-            "Unsupported chunk format '{chunk_format}'."
-          ))
-        }
+    match self.chunk_format.as_str() {
+      "array-push" => {
+        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
+      }
+      "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
+      "module" => {
+        plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin {}.boxed());
+      }
+      "false" => {}
+      _ => {
+        return Err(internal_error!(
+          "Unsupported chunk format '{}'",
+          self.chunk_format
+        ))
       }
     }
     Ok(())

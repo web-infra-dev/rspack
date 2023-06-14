@@ -8,14 +8,13 @@ use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
 use dashmap::DashMap;
-use make::MakeParam;
+pub use make::MakeParam;
 pub use queue::*;
 pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet as HashSet;
 use tracing::instrument;
 
 use crate::{
@@ -64,7 +63,6 @@ where
       compilation: Compilation::new(
         options,
         Default::default(),
-        Default::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
         cache.clone(),
@@ -92,9 +90,7 @@ where
     fast_set(
       &mut self.compilation,
       Compilation::new(
-        // TODO: use Arc<T> instead
         self.options.clone(),
-        self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
@@ -115,21 +111,9 @@ where
       .compilation(&mut self.compilation)
       .await?;
 
-    self.compilation.setup_entry_dependencies();
-
-    let deps = self
-      .compilation
-      .entry_dependencies
-      .iter()
-      .flat_map(|(_, deps)| {
-        deps
-          .clone()
-          .into_iter()
-          .map(|d| (d, None))
-          .collect::<Vec<_>>()
-      })
-      .collect::<HashSet<_>>();
-    self.compile(MakeParam::ForceBuildDeps(deps)).await?;
+    self
+      .compile(MakeParam::ForceBuildDeps(Default::default()))
+      .await?;
     self.cache.begin_idle();
     self.compile_done().await?;
     Ok(())
@@ -287,7 +271,8 @@ where
         .write(&file_path, source.buffer())
         .await?;
 
-      if !asset.info.version.is_empty() && self.options.experiments.incremental_rebuild.emit_asset {
+      if !asset.info.version.is_empty() && self.options.is_incremental_rebuild_emit_asset_enabled()
+      {
         self
           .emitted_asset_versions
           .insert(filename.to_string(), asset.info.version.clone());

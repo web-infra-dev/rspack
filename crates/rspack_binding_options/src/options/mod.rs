@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
-  ModuleType, OutputOptions, PluginExt,
+  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, Experiments, ModuleOptions, ModuleType,
+  OutputOptions, PluginExt,
 };
 use serde::Deserialize;
 
@@ -59,7 +58,7 @@ pub trait RawOptionsApply {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
-  pub entry: HashMap<String, RawEntryItem>,
+  pub entry: HashMap<String, RawEntryDescription>,
   /// Using this Vector to track the original order of user land entry configuration
   /// std::collection::HashMap does not guarantee the insertion order, for more details you could refer
   /// https://doc.rust-lang.org/std/collections/index.html#iterators:~:text=For%20unordered%20collections%20like%20HashMap%2C%20the%20items%20will%20be%20yielded%20in%20whatever%20order%20the%20internal%20representation%20made%20most%20convenient.%20This%20is%20great%20for%20reading%20through%20all%20the%20contents%20of%20the%20collection.
@@ -97,11 +96,27 @@ impl RawOptionsApply for RawOptions {
     loader_runner: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
-    let entry = self
-      .__entry_order
-      .into_iter()
-      .filter_map(|key| self.entry.remove_entry(&key).map(|(k, v)| (k, v.into())))
-      .collect::<IndexMap<String, EntryItem>>();
+    // https://github.com/web-infra-dev/rspack/discussions/3252#discussioncomment-6182939
+    // will solve the order problem by add EntryOptionPlugin on js side, and we can only
+    // care about EntryOptions instead EntryDescription
+    for key in &self.__entry_order {
+      if let Some((name, desc)) = self.entry.remove_entry(key) {
+        for request in desc.import {
+          plugins.push(
+            rspack_plugin_entry::EntryPlugin::new(
+              name.clone(),
+              request,
+              rspack_core::EntryOptions {
+                runtime: desc.runtime.clone(),
+                chunk_loading: desc.chunk_loading.as_deref().map(Into::into),
+                public_path: desc.public_path.clone().map(Into::into),
+              },
+            )
+            .boxed(),
+          );
+        }
+      }
+    }
     let output: OutputOptions = self.output.apply(plugins, loader_runner)?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();
@@ -213,7 +228,6 @@ impl RawOptionsApply for RawOptions {
     }
 
     Ok(Self::Options {
-      entry,
       context,
       mode,
       module,
