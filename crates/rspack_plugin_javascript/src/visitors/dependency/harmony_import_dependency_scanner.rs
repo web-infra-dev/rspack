@@ -24,11 +24,13 @@ use crate::dependency::{
   HarmonyImportSpecifierDependency,
 };
 
+pub type Imports = IndexMap<(JsWord, DependencyType), (Span, Vec<(JsWord, Option<JsWord>)>, bool)>;
+
 pub struct HarmonyImportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
   pub import_map: &'a mut ImportMap,
-  pub imports: IndexMap<(JsWord, DependencyType), (Span, Vec<(JsWord, Option<JsWord>)>, bool)>,
+  pub imports: Imports,
   pub module_identifier: ModuleIdentifier,
 }
 
@@ -161,7 +163,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                 None => orig.sym.clone(),
                 _ => unreachable!(),
               };
-              ids.push((exported.clone(), Some(orig.sym.clone())));
+              ids.push((exported, Some(orig.sym.clone())));
               specifiers.push((
                 orig.sym.clone(),
                 match &named.exported {

@@ -113,14 +113,8 @@ impl AstOrSource {
     F: FnOnce(ModuleAst) -> ModuleAst,
     G: FnOnce(BoxSource) -> BoxSource,
   {
-    let ast = match self.inner.0 {
-      Some(ast) => Some(f(ast)),
-      _ => None,
-    };
-    let source = match self.inner.1 {
-      Some(source) => Some(g(source)),
-      _ => None,
-    };
+    let ast = self.inner.0.map(f);
+    let source = self.inner.1.map(g);
     Self::new(ast, source)
   }
 }

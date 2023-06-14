@@ -1,24 +1,17 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./bar.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
- const a = 'bar';
+"use strict";
 },
 "./foo.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
- const a = 'foo';
- const b = 'foo';
+"use strict";
 },
 "./index.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
-__webpack_require__.es(_foo__WEBPACK_IMPORTED_MODULE__, exports);
-/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
-__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);
-
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+__webpack_require__.es(__webpack_require__("./foo.js"), exports);
+__webpack_require__.es(__webpack_require__("./bar.js"), exports);
 },
 
 },function(__webpack_require__) {

@@ -1,33 +1,51 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'app': function() { return app; }});
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
-
- var app = function() {
-    _lib__WEBPACK_IMPORTED_MODULE__["result"];
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "app", {
+    enumerable: true,
+    get: function() {
+        return app;
+    }
+});
+var _lib = __webpack_require__("./lib.js");
+var app = function() {
+    _lib.result;
 };
- var app2 = ()=>{
-    _lib__WEBPACK_IMPORTED_MODULE__["secret"];
-};
- var app4 = _lib__WEBPACK_IMPORTED_MODULE__["something"]('app4'), app5 = 10000;
- var app3 = _lib__WEBPACK_IMPORTED_MODULE__["something"]('app3');
+(0, _lib.something)('app4');
+(0, _lib.something)('app3');
 },
 "./index.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
-
-_app__WEBPACK_IMPORTED_MODULE__["app"]();
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var _app = __webpack_require__("./app.js");
+(0, _app.app)();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'result': function() { return result; }, 'something': function() { return something; }});
- const secret = "888";
- const result = 20000;
- const something = function() {};
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    result: function() {
+        return result;
+    },
+    something: function() {
+        return something;
+    }
+});
+const result = 20000;
+const something = function() {};
 },
 
 },function(__webpack_require__) {

@@ -90,7 +90,7 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
           SymbolRef::Star(s)
             if s.module_ident == module.identifier() && s.ty() == StarSymbolKind::ReExportAllAs =>
           {
-            Some(&s.binding())
+            Some(s.binding())
           }
           _ => None,
         })

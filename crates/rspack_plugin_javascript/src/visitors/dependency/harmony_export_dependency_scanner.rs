@@ -69,7 +69,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         self.exports.extend(
           find_pat_ids::<_, Ident>(&v.decls)
             .into_iter()
-            .map(|ident| (ident.sym.clone(), ident.sym.clone())),
+            .map(|ident| (ident.sym.clone(), ident.sym)),
         );
       }
       _ => {}

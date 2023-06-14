@@ -1,58 +1,91 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
- const a = {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "a", {
+    enumerable: true,
+    get: function() {
+        return a;
+    }
+});
+const a = {
     a: ''
 };
 },
 "./b.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'b': function() { return b; }});
- const b = {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "b", {
+    enumerable: true,
+    get: function() {
+        return b;
+    }
+});
+const b = {
     b: ""
 };
 },
 "./enum-old.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return _a__WEBPACK_IMPORTED_MODULE__["a"]; }});
-__webpack_require__.d(exports, {'b': function() { return _b__WEBPACK_IMPORTED_MODULE__["b"]; }});
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"./a.js");
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"./b.js");
-
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    a: function() {
+        return _a.a;
+    },
+    b: function() {
+        return _b.b;
+    }
+});
+var _a = __webpack_require__("./a.js");
+var _b = __webpack_require__("./b.js");
 },
 "./enum.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./enum-old */"./enum-old.js");
-__webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE__, exports);
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+__webpack_require__.es(__webpack_require__("./enum-old.js"), exports);
 },
 "./index.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
-
-console.log(_lib__WEBPACK_IMPORTED_MODULE__["getDocPermissionTextSendMe"]);
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var _lib = __webpack_require__("./lib.js");
+console.log(_lib.getDocPermissionTextSendMe);
 },
 "./lib.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }});
-/* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./enum.js */"./enum.js");
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "getDocPermissionTextSendMe", {
+    enumerable: true,
+    get: function() {
+        return getDocPermissionTextSendMe;
+    }
+});
+var _enum = __webpack_require__.ir(__webpack_require__("./enum.js"));
 function Record() {}
- const code2CreateChatDocPermission = {
-    1: _enum_js__WEBPACK_IMPORTED_MODULE__.a.a
-};
- function getDocPermissionTextSendMe() {}
- class Doc extends Record({}) {
+({
+    1: _enum.a.a
+});
+function getDocPermissionTextSendMe() {}
+class Doc extends Record({}) {
     isSheet() {
-        return this.type === _enum_js__WEBPACK_IMPORTED_MODULE__.b.b;
+        return this.type === _enum.b.b;
     }
 }
 Doc.fromJS = (data)=>new Doc(data);

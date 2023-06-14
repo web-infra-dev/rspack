@@ -1,21 +1,34 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["lib_js"], {
 "./lib.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
-/* harmony import */var _test__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./test */"./test.js");
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: function() {
+        return _default;
+    }
+});
+var _test = __webpack_require__.ir(__webpack_require__("./test.js"));
 function myanswer() {
-    _test__WEBPACK_IMPORTED_MODULE__["default"];
+    _test.default;
 }
-var __WEBPACK_DEFAULT_EXPORT__ = myanswer;
+var _default = myanswer;
 },
 "./test.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: function() {
+        return _default;
+    }
+});
 function test() {}
-var __WEBPACK_DEFAULT_EXPORT__ = test;
+var _default = test;
 },
 
 }]);

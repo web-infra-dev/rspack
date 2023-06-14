@@ -59,7 +59,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
               Some(&d.id().atom)
             }
             SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
-              Some(&i.id())
+              Some(i.id())
             }
             SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
               // IndirectType::Import(_, _) => Some(i.indirect_id()),

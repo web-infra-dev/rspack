@@ -1,44 +1,69 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var _module = __webpack_require__("./module.js");
 it("should be able to handle circular referenced", ()=>{
-    expect(_module__WEBPACK_IMPORTED_MODULE__["x"]()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["y"],
-        _module__WEBPACK_IMPORTED_MODULE__["z"]
+    expect((0, _module.x)()).toEqual([
+        _module.y,
+        _module.z
     ]);
-    const [_a, b, c, d] = _module__WEBPACK_IMPORTED_MODULE__["a"]();
+    const [_a, b, c, d] = (0, _module.a)();
     expect(b()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        _module.a,
         b,
         c,
         d
     ]);
     expect(c()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        _module.a,
         b,
         c,
         d
     ]);
     expect(d()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        _module.a,
         b,
         c,
         d
     ]);
-    const [f2, f4] = _module__WEBPACK_IMPORTED_MODULE__["f3"]();
+    const [f2, f4] = (0, _module.f3)();
     const [f1, _f3] = f2();
-    expect(_f3).toBe(_module__WEBPACK_IMPORTED_MODULE__["f3"]);
-    expect(_module__WEBPACK_IMPORTED_MODULE__["f3"]()).toEqual(f1());
+    expect(_f3).toBe(_module.f3);
+    expect((0, _module.f3)()).toEqual(f1());
     expect(f2()).toEqual(f4());
 });
 },
 "./module.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return x; }, 'y': function() { return y; }, 'z': function() { return z; }, 'a': function() { return a; }, 'f3': function() { return f3; }});
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    x: function() {
+        return x;
+    },
+    y: function() {
+        return y;
+    },
+    z: function() {
+        return z;
+    },
+    a: function() {
+        return a;
+    },
+    f3: function() {
+        return f3;
+    }
+});
 function x() {
     return [
         y,
@@ -57,7 +82,6 @@ function z() {
         y
     ];
 }
-
 function a() {
     return [
         a,
@@ -90,7 +114,6 @@ function d() {
         d
     ];
 }
-
 function f1() {
     return [
         f2,
@@ -115,7 +138,6 @@ function f4() {
         f3
     ];
 }
-
 },
 
 },function(__webpack_require__) {

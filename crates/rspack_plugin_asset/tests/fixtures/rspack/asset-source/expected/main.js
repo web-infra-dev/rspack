@@ -1,10 +1,11 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _data_txt__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./data.txt */"./data.txt");
-
-console.log(_data_txt__WEBPACK_IMPORTED_MODULE__);
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var _datatxt = __webpack_require__.ir(__webpack_require__("./data.txt"));
+console.log(_datatxt.default);
 },
 "./data.txt": function (module, exports, __webpack_require__) {
 module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";},

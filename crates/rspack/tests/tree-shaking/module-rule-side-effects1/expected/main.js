@@ -1,24 +1,28 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
- const a = 3;
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "a", {
+    enumerable: true,
+    get: function() {
+        return a;
+    }
+});
+const a = 3;
 },
 "./c.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
- const c = 300;
+"use strict";
 },
 "./index.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.js */"./a.js");
-/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./c.js */"./c.js");
-
-
-
-_a_js__WEBPACK_IMPORTED_MODULE__["a"];
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var _a = __webpack_require__("./a.js");
+__webpack_require__("./c.js");
+_a.a;
 },
 
 },function(__webpack_require__) {

@@ -1,20 +1,21 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./a.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"./b.js");
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE___default = /*#__PURE__*/__webpack_require__.n(_b__WEBPACK_IMPORTED_MODULE__);
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+__webpack_require__("./b.js");
 console.log('a');
 },
 "./b.js": function (module, exports, __webpack_require__) {
 console.log('b');
 },
 "./index.js": function (module, exports, __webpack_require__) {
-'use strict';
-__webpack_require__.r(exports);
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"./a.js");
-
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+__webpack_require__("./a.js");
 console.log('hello, world');
 },
 

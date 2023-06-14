@@ -194,11 +194,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
       };
 
       Ok(GenerationResult {
-        ast_or_source: render_init_fragments(
-          source.boxed(),
-          &mut init_fragments.iter().collect::<Vec<_>>(),
-        )
-        .into(),
+        ast_or_source: render_init_fragments(source.boxed(), &mut init_fragments).into(),
       })
     } else {
       Err(internal_error!(
