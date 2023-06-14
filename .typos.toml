@@ -9,7 +9,6 @@ extend-exclude = [
   "webpack-test",
   "./examples",
   "**/CHANGELOG.md",
-  "**/CHANGELOG.md",
   "pnpm-lock.yaml",
 ]
 
