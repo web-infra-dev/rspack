@@ -83,7 +83,7 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
             Some(i.id())
           }
           SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-            IndirectType::Import(_, _) => Some(i.id()),
+            // IndirectType::Import(_, _) => Some(i.id()),
             IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
             _ => None,
           },
