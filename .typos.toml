@@ -9,5 +9,11 @@ extend-exclude = [
   "webpack-test",
   "./examples",
   "**/CHANGELOG.md",
+  "**/CHANGELOG.md",
   "pnpm-lock.yaml",
 ]
+
+
+[default.extend-identifiers]
+# *sigh* this just isn't worth the cost of fixing
+JSerFeng = "JSerFeng"
