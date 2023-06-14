@@ -25,6 +25,12 @@ pub struct AfterResolveData {
   pub file_dependencies: Vec<String>,
   pub context_dependencies: Vec<String>,
   pub missing_dependencies: Vec<String>,
+  pub factory_meta: FactoryMeta,
+}
+
+#[napi(object)]
+pub struct FactoryMeta {
+  pub side_effects: Option<bool>,
 }
 
 #[napi(object)]
@@ -91,6 +97,9 @@ impl From<NormalModuleAfterResolveArgs<'_>> for AfterResolveData {
         .into_iter()
         .map(|item| item.to_string_lossy().to_string())
         .collect::<Vec<_>>(),
+      factory_meta: FactoryMeta {
+        side_effects: value.factory_meta.side_effects,
+      },
     }
   }
 }

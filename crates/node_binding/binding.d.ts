@@ -92,11 +92,16 @@ export interface AfterResolveData {
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
+  factoryMeta: FactoryMeta
 }
 
 export interface BeforeResolveData {
   request: string
   context: string
+}
+
+export interface FactoryMeta {
+  sideEffects?: boolean
 }
 
 /**

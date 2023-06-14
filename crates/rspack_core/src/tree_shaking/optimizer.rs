@@ -114,6 +114,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         self.merge_bailout_modules_reason(module_identifier, reason);
       }
     }
+    tracing::debug!(side_effect_map = format!("{:#?}", side_effect_map));
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
@@ -329,6 +330,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
     let mut include_module_ids = IdentifierSet::default();
+
     if side_effects_analyze {
       let symbol_graph = &self.symbol_graph;
       let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
@@ -378,6 +380,16 @@ impl<'a> CodeSizeOptimizer<'a> {
         {
           continue;
         } else {
+          // dbg!(analyze_result.module_identifier);
+          // dbg!(!used);
+          // dbg!(&!self
+          //   .bailout_modules
+          //   .contains_key(&analyze_result.module_identifier));
+          // dbg!(&self.side_effects_free_modules.contains(&module_identifier));
+          // dbg!(&!self
+          //   .compilation
+          //   .entry_module_identifiers
+          //   .contains(&module_identifier));
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -1249,11 +1261,11 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
         };
 
         // dbg_matches!(
-        //   module_identifier.as_str(),
+        //   &module_identifier.as_str(),
+        //   &optimize_analyze_result.reachable_import_of_export,
+        //   &optimize_analyze_result.used_symbol_refs,
         //   &optimize_analyze_result.export_map,
         //   &optimize_analyze_result.import_map,
-        //   &optimize_analyze_result.reachable_import_of_export,
-        //   &optimize_analyze_result.used_symbol_refs
         // );
 
         Some((*module_identifier, optimize_analyze_result))

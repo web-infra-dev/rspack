@@ -678,6 +678,16 @@ class Compiler {
 				resolveData
 			);
 
+		NormalModule.getCompilationHooks(this.compilation).loader.tap(
+			"sideEffectFreePropPlugin",
+			(loaderContext: any) => {
+				loaderContext._module = {
+					factoryMeta: {
+						sideEffectFree: !resolveData.factoryMeta.sideEffects
+					}
+				};
+			}
+		);
 		this.#updateDisabledHooks();
 		return res;
 	}

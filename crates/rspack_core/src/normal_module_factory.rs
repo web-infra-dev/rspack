@@ -9,7 +9,9 @@ use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache, module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  cache::Cache,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
   BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
   FactoryMeta, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule,
@@ -111,6 +113,7 @@ impl NormalModuleFactory {
         file_dependencies: &factory_result.file_dependencies,
         context_dependencies: &factory_result.context_dependencies,
         missing_dependencies: &factory_result.missing_dependencies,
+        factory_meta: &factory_result.factory_meta,
       })
       .await
     {
@@ -429,7 +432,7 @@ impl NormalModuleFactory {
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let factory_meta = FactoryMeta {
-      side_effects: self.calculate_side_effects(&resolved_module_rules),
+      side_effects: self.calculate_side_effects(&resolved_module_rules, &resource_data),
     };
 
     let resolved_parser_and_generator = self
@@ -510,12 +513,31 @@ impl NormalModuleFactory {
     resolved
   }
 
-  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
-    let mut side_effects = None;
+  fn calculate_side_effects(
+    &self,
+    module_rules: &[&ModuleRule],
+    resource_data: &ResourceData,
+  ) -> Option<bool> {
+    let mut side_effect_res = None;
+    // side_effects from module rule has higher priority
     module_rules.iter().for_each(|rule| {
-      side_effects = rule.side_effects;
+      side_effect_res = rule.side_effects;
     });
-    side_effects
+    if side_effect_res.is_some() {
+      return side_effect_res;
+    }
+    let resource_path = &resource_data.resource_path;
+    let description = resource_data.resource_description.as_ref()?;
+    let package_path = description.dir().as_ref();
+    let side_effects = SideEffects::from_description(description)?;
+
+    let relative_path = resource_path.relative(package_path);
+    side_effect_res = Some(get_side_effects_from_package_json(
+      side_effects,
+      relative_path,
+    ));
+
+    side_effect_res
   }
 
   fn calculate_parser_and_generator_options(

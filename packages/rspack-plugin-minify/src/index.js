@@ -2,7 +2,7 @@ const isJsFile = /\.[cm]?js(?:\?.*)?$/i;
 const isCssFile = /\.css(?:\?.*)?$/i;
 
 const esbuild = require("esbuild");
-const terser = require("terser");
+const { minify } = require("terser");
 const { RawSource, SourceMapSource } = require("webpack-sources");
 module.exports = class RspackMinifyPlugin {
 	/**
@@ -31,20 +31,24 @@ module.exports = class RspackMinifyPlugin {
 				minifyWhitespace: true
 			});
 		} else if (this.options.minifier === "terser") {
-			const result = await terser.minify(
+			const result = await minify(
 				{
 					[sourcefile]: code
 				},
 				{
-					sourceMap: sourcemap,
-					ecma: this.options.target,
-					mangle: this.options.mangle,
-					keep_classnames: this.options.keep_classnames,
-					keep_fnames: this.options.keep_fnames,
-					compress: {
-						passes: 2
-					}
+					sourceMap: sourcemap
 				}
+				// { module: false, ecma: 2015 }
+				// {
+				// 	sourceMap: sourcemap,
+				// 	ecma: 5,
+				// 	mangle: true,
+				// 	keep_classnames: true,
+				// 	keep_fnames: true,
+				// 	compress: {
+				// 		passes: 2
+				// 	}
+				// }
 			);
 			return result;
 		}
