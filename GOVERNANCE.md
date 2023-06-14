@@ -76,10 +76,10 @@ Current list of collaborators (in alphabetical order):
 - [@9aoy]
 - [@bvanjoi]
 - [@chenjiahan]
-- [@dmitry-stepanenko]
 - [@JSerFeng]
 - [@sanyuan0704]
 - [@suxin2017]
+- [@valorkin]
 - [@zackarychapple]
 
 Collaborator activities
@@ -125,7 +125,7 @@ The contents of this document are based on [Node.js Project Governance](https://
 [@9aoy]: https://github.com/9aoy
 [@bvanjoi]: https://github.com/bvanjoi
 [@chenjiahan]: https://github.com/chenjiahan
-[@dmitry-stepanenko]: https://github.com/dmitry-stepanenko
+[@valorkin]: https://github.com/valorkin
 [@JSerFeng]: https://github.com/JSerFeng
 [@sanyuan0704]: https://github.com/sanyuan0704
 [@suxin2017]: https://github.com/suxin2017
