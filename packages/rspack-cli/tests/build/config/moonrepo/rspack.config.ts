@@ -1,10 +1,12 @@
-import packageA_deps from "./packageA/index";
-import packageB_deps from "./packageB/index";
+// @ts-ignore
+import packageA_deps from "./packageA/index.ts";
+// @ts-ignore
+import packageB_deps from "./packageB/index.ts";
 
 import path from "node:path";
-// import { fileURLToPath } from "node:url";
+import { fileURLToPath } from "node:url";
 
-// const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default {
 	mode: "production",

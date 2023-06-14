@@ -2,24 +2,44 @@ import path from "path";
 import fs from "fs";
 import { RspackCLIOptions } from "../types";
 import { RspackOptions, MultiRspackOptions } from "@rspack/core";
-import findExtFile from "./findExtFile";
-import jiti from "jiti";
-import { transform } from "sucrase";
+import findConfig from "./findConfig";
+import rechoir from "rechoir";
+import interpret from "interpret";
+import { pathToFileURL } from "url";
+import isEsmFile from "./isEsmFile";
+import isTsFile from "./isTsFile";
+import crossImport from "./crossImport";
+
+interface RechoirError extends Error {
+	failures: RechoirError[];
+	error: Error;
+}
 
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
 
-// Use it to load configuration files from https://github.com/unjs/jiti.
-const jitiLoad = (() => {
-	return jiti(__filename, {
-		interopDefault: true,
-		cache: true,
-		transform: options => {
-			return transform(options.source, {
-				transforms: ["typescript", "imports"]
-			});
+const registerLoad = (configPath: string) => {
+	const ext = path.extname(configPath);
+	// TODO implement good `.mts` support after https://github.com/gulpjs/rechoir/issues/43
+	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
+	if (isEsmFile(configPath) && isTsFile(configPath)) {
+		return;
+	}
+	const extensions = Object.fromEntries(
+		Object.entries(interpret.extensions).filter(([key]) => key === ext)
+	);
+	if (Object.keys(extensions).length === 0) {
+		throw new Error(`config file "${configPath}" is not supported.`);
+	}
+	try {
+		rechoir.prepare(extensions, configPath);
+	} catch (error) {
+		const failures = (error as RechoirError)?.failures;
+		if (failures) {
+			const messages = failures.map(failure => failure.error.message);
+			throw new Error(`${messages.join("\n")}`);
 		}
-	});
-})();
+	}
+};
 
 export type LoadedRspackConfig =
 	| undefined
@@ -39,11 +59,13 @@ export async function loadRspackConfig(
 		if (!fs.existsSync(configPath)) {
 			throw new Error(`config file "${configPath}" not found.`);
 		}
-		return jitiLoad(configPath);
+		isTsFile(configPath) && registerLoad(configPath);
+		return crossImport(configPath, cwd);
 	} else {
-		const defaultConfig = findExtFile(path.resolve(cwd, DEFAULT_CONFIG_NAME));
+		const defaultConfig = findConfig(path.resolve(cwd, DEFAULT_CONFIG_NAME));
 		if (defaultConfig) {
-			return jitiLoad(defaultConfig);
+			isTsFile(defaultConfig) && registerLoad(defaultConfig);
+			return crossImport(defaultConfig, cwd);
 		} else {
 			return {};
 		}

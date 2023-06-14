@@ -14,7 +14,10 @@
     "dev": "tsc -b -w",
     "test": "jest --runInBand"
   },
-  "files": ["bin", "dist"],
+  "files": [
+    "bin",
+    "dist"
+  ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {
@@ -23,20 +26,23 @@
     "directory": "packages/rspack-cli"
   },
   "devDependencies": {
+    "@types/rechoir": "^0.6.1",
     "@types/webpack-bundle-analyzer": "^4.6.0",
     "concat-stream": "^2.0.0",
     "execa": "^5.0.0",
     "internal-ip": "6.2.0",
-    "source-map-support": "^0.5.19"
+    "source-map-support": "^0.5.19",
+    "ts-node": "10.9.1"
   },
   "dependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "workspace:*",
     "colorette": "2.0.19",
-    "jiti": "^1.18.2",
+    "interpret": "^3.1.1",
+    "rechoir": "^0.8.0",
     "semver": "6.3.0",
-    "sucrase": "^3.32.0",
+    "type-fest": "^2.14.0",
     "webpack-bundle-analyzer": "4.6.1",
     "yargs": "17.6.2"
   }
