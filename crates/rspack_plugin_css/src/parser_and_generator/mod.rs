@@ -12,7 +12,7 @@ use rspack_core::{
   BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType, ParseContext,
   ParseResult, ParserAndGenerator, SourceType,
 };
-use rspack_core::{AstOrSource, ModuleAst, ModuleDependency};
+use rspack_core::{ModuleAst, ModuleDependency};
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
@@ -190,7 +190,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ParseResult {
         dependencies,
         presentational_dependencies: vec![],
-        ast_or_source: AstOrSource::Ast(ModuleAst::Css(CssAst::new(stylesheet, cm))),
+        ast_or_source: ModuleAst::Css(CssAst::new(stylesheet, cm)).into(),
         code_replace_source_dependencies: vec![],
       }
       .with_diagnostic(diagnostic),

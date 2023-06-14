@@ -154,6 +154,7 @@ where
       .keys()
       .cloned()
       .collect::<IdentifierSet>();
+
     if option.builtins.tree_shaking.enable()
       || option
         .output

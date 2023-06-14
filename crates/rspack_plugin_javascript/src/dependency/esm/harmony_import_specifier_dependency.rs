@@ -2,6 +2,7 @@ use rspack_core::{
   export_from_import, get_import_var, CodeReplaceSourceDependencyContext,
   CodeReplaceSourceDependencyReplaceSource, DependencyId,
 };
+use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportSpecifierDependency {
@@ -9,7 +10,7 @@ pub struct HarmonyImportSpecifierDependency {
   start: u32,
   end: u32,
   // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-  ids: Option<String>,
+  ids: Option<JsWord>,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -18,7 +19,7 @@ impl HarmonyImportSpecifierDependency {
     start: u32,
     end: u32,
     // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-    ids: Option<String>,
+    ids: Option<JsWord>,
   ) -> Self {
     Self {
       shorthand,

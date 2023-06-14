@@ -178,7 +178,7 @@ impl RawOptionsApply for RawOutputOptions {
       },
       webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
-      chunk_loading_global: to_identifier(&self.chunk_loading_global).to_string(),
+      chunk_loading_global: to_identifier(&self.chunk_loading_global),
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
       cross_origin_loading: self.cross_origin_loading.into(),

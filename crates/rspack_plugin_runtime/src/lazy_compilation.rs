@@ -42,14 +42,17 @@ impl Module for LazyCompilationProxyModule {
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
     cgr.add(
       SourceType::JavaScript,
-      AstOrSource::Source(
-        RawSource::from(
-          include_str!("runtime/lazy_compilation.js")
-            // TODO
-            .replace("$CHUNK_ID$", self.module_identifier.to_string().as_str())
-            .replace("$MODULE_ID$", self.module_identifier.to_string().as_str()),
-        )
-        .boxed(),
+      AstOrSource::new(
+        None,
+        Some(
+          RawSource::from(
+            include_str!("runtime/lazy_compilation.js")
+              // TODO
+              .replace("$CHUNK_ID$", self.module_identifier.to_string().as_str())
+              .replace("$MODULE_ID$", self.module_identifier.to_string().as_str()),
+          )
+          .boxed(),
+        ),
       ),
     );
     cgr.set_hash(

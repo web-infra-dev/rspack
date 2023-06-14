@@ -1,12 +1,12 @@
 use rspack_core::{
   CodeReplaceSourceDependency, ContextMode, ContextOptions, DependencyCategory, ModuleDependency,
-  ReplaceConstDependency, SpanExt,
+  ReplaceConstDependency, RuntimeGlobals, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Callee, Expr, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
+    ast::{CallExpr, Callee, Expr, Ident, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },
@@ -135,6 +135,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                       },
                       Some(call_expr.span.into()),
                     )));
+                  return;
                 }
               }
             }
@@ -143,9 +144,11 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
       }
       if expr_matcher::is_require_resolve(expr) {
         self.add_require_resolve(call_expr, false);
+        return;
       }
       if expr_matcher::is_require_resolve_weak(expr) {
         self.add_require_resolve(call_expr, true);
+        return;
       }
     }
     call_expr.visit_children_with(self);
@@ -170,6 +173,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
             "'function'".into(),
             None,
           )));
+        return;
       }
     }
     unary_expr.visit_children_with(self);
@@ -182,5 +186,19 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
       self.replace_require_resolve(&bin.right);
     }
     if_stmt.visit_children_with(self);
+  }
+
+  fn visit_ident(&mut self, ident: &Ident) {
+    // TODO: webpack will replace it to undefined
+    if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
+      self
+        .code_generable_dependencies
+        .push(Box::new(ReplaceConstDependency::new(
+          ident.span().real_lo(),
+          ident.span().real_hi(),
+          RuntimeGlobals::REQUIRE.name().into(),
+          None,
+        )));
+    }
   }
 }

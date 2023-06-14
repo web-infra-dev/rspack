@@ -93,7 +93,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Ast(ModuleAst::JavaScript(ast)),
+        ast_or_source: ModuleAst::JavaScript(ast).into(),
         dependencies,
         presentational_dependencies,
         code_replace_source_dependencies,

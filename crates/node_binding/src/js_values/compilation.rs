@@ -172,7 +172,7 @@ impl JsCompilation {
         Some(module) => {
           let compat_source = CompatSource::from(source).boxed();
           *module.ast_or_source_mut() =
-            NormalModuleAstOrSource::new_built(AstOrSource::Source(compat_source), &[]);
+            NormalModuleAstOrSource::new_built(AstOrSource::new(None, Some(compat_source)), &[]);
           true
         }
         None => false,
