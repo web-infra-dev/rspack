@@ -72,6 +72,7 @@ impl ModuleIssuer {
   }
 }
 
+// TODO Here should only has source for string replace codegen, but the tree-shaking analyzer need ast at now, so here use ast as workaround.
 #[derive(Debug, Clone, Hash)]
 pub struct AstOrSource {
   inner: (Option<ModuleAst>, Option<BoxSource>),
