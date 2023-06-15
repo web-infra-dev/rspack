@@ -83,8 +83,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
       &source,
     )?;
 
-    let output: crate::TransformOutput =
-      crate::ast::stringify(&ast, &compiler_options.devtool, Some(true))?;
+    let output: crate::TransformOutput = crate::ast::stringify(&ast, &compiler_options.devtool)?;
 
     let mut scan_ast = match crate::ast::parse(
       output.code.clone(), // TODO avoid code clone

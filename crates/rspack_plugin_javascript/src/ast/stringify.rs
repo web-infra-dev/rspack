@@ -20,11 +20,7 @@ use swc_core::{
 
 use crate::TransformOutput;
 
-pub fn stringify(
-  ast: &Ast,
-  devtool: &Devtool,
-  keep_comments: Option<bool>,
-) -> Result<TransformOutput> {
+pub fn stringify(ast: &Ast, devtool: &Devtool) -> Result<TransformOutput> {
   ast.visit(|program, context| {
     print(
       program.get_inner_program(),
@@ -37,11 +33,7 @@ pub fn stringify(
         names: Default::default(),
       },
       false,
-      // if let Some(true) = keep_comments {
       program.comments.as_ref().map(|c| c as &dyn Comments),
-      // } else {
-      //   None
-      // },
       false,
     )
   })

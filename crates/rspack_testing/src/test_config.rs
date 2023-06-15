@@ -480,9 +480,6 @@ impl TestConfig {
           extract_comments: op.extract_comments,
         }),
         preset_env: self.builtins.preset_env.map(Into::into),
-        code_generation: self.builtins.code_generation.map(|op| c::CodeGeneration {
-          keep_comments: op.keep_comments,
-        }),
         ..Default::default()
       },
       module: c::ModuleOptions {
