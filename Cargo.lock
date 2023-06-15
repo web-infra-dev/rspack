@@ -2281,7 +2281,11 @@ dependencies = [
  "rspack_plugin_css",
  "rspack_plugin_dev_friendly_split_chunks",
  "rspack_plugin_devtool",
+<<<<<<< HEAD
  "rspack_plugin_entry",
+=======
+ "rspack_plugin_ensure_chunk_conditions",
+>>>>>>> 6433cc2ad (done)
  "rspack_plugin_externals",
  "rspack_plugin_html",
  "rspack_plugin_javascript",
@@ -2660,11 +2664,19 @@ dependencies = [
 ]
 
 [[package]]
+<<<<<<< HEAD
 name = "rspack_plugin_entry"
+=======
+name = "rspack_plugin_ensure_chunk_conditions"
+>>>>>>> 6433cc2ad (done)
 version = "0.1.0"
 dependencies = [
  "async-trait",
  "rspack_core",
+<<<<<<< HEAD
+=======
+ "rspack_error",
+>>>>>>> 6433cc2ad (done)
 ]
 
 [[package]]

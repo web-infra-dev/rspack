@@ -229,7 +229,7 @@ impl Module for ExternalModule {
 
   fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> bool {
     if self.external_type == "css-import" {
-      true
+      return true;
     }
     compilation
       .chunk_graph

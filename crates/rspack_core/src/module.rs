@@ -200,7 +200,7 @@ pub trait Module: Debug + Send + Sync + AsAny + DynHash + DynEq + Identifiable {
     false
   }
 
-  fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> bool {
+  fn chunk_condition(&self, _chunk_key: &ChunkUkey, _compilation: &Compilation) -> bool {
     true
   }
 }

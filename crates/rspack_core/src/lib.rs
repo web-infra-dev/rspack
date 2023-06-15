@@ -69,8 +69,6 @@ mod ukey;
 pub use ukey::*;
 mod module_graph_module;
 pub use module_graph_module::*;
-mod ensure_chunk_conditions_plugin;
-pub mod ensure_chunk_conditions_plugin;
 pub mod tree_shaking;
 
 pub use rspack_loader_runner::{get_scheme, ResourceData, Scheme};
