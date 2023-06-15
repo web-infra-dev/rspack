@@ -351,11 +351,8 @@ where
       }
 
       if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
-        let mut hot_update_chunk = Chunk::new(
-          Some(chunk_id.to_string()),
-          Some(chunk_id.to_string()),
-          ChunkKind::HotUpdate,
-        );
+        let mut hot_update_chunk =
+          Chunk::new(None, Some(chunk_id.to_string()), ChunkKind::HotUpdate);
         hot_update_chunk.runtime = new_runtime.clone();
         let mut chunk_hash = RspackHash::from(&self.compilation.options.output);
         let ukey = hot_update_chunk.ukey;
