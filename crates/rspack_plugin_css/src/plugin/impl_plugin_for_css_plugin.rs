@@ -193,7 +193,7 @@ impl Plugin for CssPlugin {
       compilation,
     );
 
-    // Prevent generating css files for chunks which doesn't contain css modules.
+    // Prevent generating css files for chunks which don't contain css modules.
     if ordered_css_modules.is_empty() {
       return Ok(Default::default());
     }
