@@ -1,5 +1,5 @@
 import * as path from "path";
-
+import util from "util";
 import type {
 	RawBuiltins,
 	RawBannerConfig,
@@ -489,6 +489,9 @@ export function resolveCodeGeneration(builtins: Builtins): RawCodeGeneration {
 	if (!builtins.codeGeneration) {
 		return { keepComments: Boolean(builtins.minifyOptions?.extractComments) };
 	}
+	// TODO: remove this configuration in 0.3.0
+	util.deprecate(() => {},
+	"`builtins.codeGeneration` will be removed in 0.3.0")();
 	return {
 		keepComments: false,
 		...builtins.codeGeneration

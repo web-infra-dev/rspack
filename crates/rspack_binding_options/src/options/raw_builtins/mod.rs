@@ -55,6 +55,13 @@ pub struct RawPresetEnv {
   pub core_js: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawCodeGeneration {
+  pub keep_comments: bool,
+}
+
 impl From<RawMinification> for Minification {
   fn from(value: RawMinification) -> Self {
     Self {
@@ -104,6 +111,7 @@ pub struct RawBuiltins {
   pub banner: Option<Vec<RawBannerConfig>>,
   pub plugin_import: Option<Vec<RawPluginImportConfig>>,
   pub relay: Option<RawRelayConfig>,
+  pub code_generation: Option<RawCodeGeneration>,
 }
 
 impl RawOptionsApply for RawBuiltins {
