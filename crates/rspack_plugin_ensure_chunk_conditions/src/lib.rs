@@ -57,7 +57,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
               }
               if chunk_group.is_initial() {
                 return Err(Error::InternalError(rspack_error::InternalError {
-                  error_message: format!("Cannot fullfil chunk condition of {}", module_id),
+                  error_message: format!("Cannot fulfil chunk condition of {}", module_id),
                   severity: Default::default(),
                 }));
               }
