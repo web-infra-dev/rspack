@@ -17,7 +17,7 @@ interface RechoirError extends Error {
 
 const DEFAULT_CONFIG_NAME = "rspack.config" as const;
 
-const registerLoad = (configPath: string) => {
+const registerLoader = (configPath: string) => {
 	const ext = path.extname(configPath);
 	// TODO implement good `.mts` support after https://github.com/gulpjs/rechoir/issues/43
 	// For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
@@ -59,12 +59,12 @@ export async function loadRspackConfig(
 		if (!fs.existsSync(configPath)) {
 			throw new Error(`config file "${configPath}" not found.`);
 		}
-		isTsFile(configPath) && registerLoad(configPath);
+		isTsFile(configPath) && registerLoader(configPath);
 		return crossImport(configPath, cwd);
 	} else {
 		const defaultConfig = findConfig(path.resolve(cwd, DEFAULT_CONFIG_NAME));
 		if (defaultConfig) {
-			isTsFile(defaultConfig) && registerLoad(defaultConfig);
+			isTsFile(defaultConfig) && registerLoader(defaultConfig);
 			return crossImport(defaultConfig, cwd);
 		} else {
 			return {};
