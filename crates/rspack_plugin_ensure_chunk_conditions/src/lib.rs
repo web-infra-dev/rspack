@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rspack_core::{OptimizeChunksArgs, Plugin, PluginContext, PluginOptimizeChunksOutput};
 use rspack_error::Error;
@@ -16,7 +16,6 @@ impl Plugin for EnsureChunkConditionsPlugin {
     let compilation = args.compilation;
 
     let mut source_module_chunks = HashMap::new();
-
     compilation
       .module_graph
       .modules()
@@ -41,19 +40,20 @@ impl Plugin for EnsureChunkConditionsPlugin {
     let mut target_module_chunks = HashMap::new();
 
     for (module_id, chunk_keys) in &source_module_chunks {
+      let mut target_chunks = HashSet::new();
       for chunk_key in chunk_keys {
         if let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key) {
-          let mut chunk_group_keys = chunk
-            .groups
-            .iter()
-            .map(|group_key| group_key)
-            .collect::<Vec<_>>();
+          let mut chunk_group_keys = chunk.groups.iter().collect::<Vec<_>>();
 
-          while let Some(chunk_group_key) = chunk_group_keys.pop() {
+          'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
             if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_key) {
               for chunk in &chunk_group.chunks {
-                target_module_chunks.insert(*module_id, vec![chunk]);
-                break;
+                if let Some(module) = compilation.module_graph.module_by_identifier(module_id) {
+                  if module.chunk_condition(chunk, compilation) {
+                    target_chunks.insert(chunk);
+                    continue 'out;
+                  }
+                }
               }
               if chunk_group.is_initial() {
                 return Err(Error::InternalError(rspack_error::InternalError {
@@ -68,6 +68,7 @@ impl Plugin for EnsureChunkConditionsPlugin {
           }
         }
       }
+      target_module_chunks.insert(*module_id, target_chunks);
     }
     for (module_id, chunks) in source_module_chunks {
       for chunk in chunks {
