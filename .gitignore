@@ -110,6 +110,7 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+webpack-dist
 
 # Gatsby files
 .cache/

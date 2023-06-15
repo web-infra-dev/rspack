@@ -38,17 +38,6 @@ module.exports = class RspackMinifyPlugin {
 				{
 					sourceMap: sourcemap
 				}
-				// { module: false, ecma: 2015 }
-				// {
-				// 	sourceMap: sourcemap,
-				// 	ecma: 5,
-				// 	mangle: true,
-				// 	keep_classnames: true,
-				// 	keep_fnames: true,
-				// 	compress: {
-				// 		passes: 2
-				// 	}
-				// }
 			);
 			return result;
 		}
