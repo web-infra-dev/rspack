@@ -158,7 +158,6 @@ impl RawOptionsApply for RawOutputOptions {
     _: &JsLoaderRunner,
   ) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_chunk_format_plugin(plugins)?;
-    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     self.apply_chunk_loading_plugin(plugins)?;
     self.apply_library_plugin(plugins);
     for wasm_loading in self.enabled_wasm_loading_types {

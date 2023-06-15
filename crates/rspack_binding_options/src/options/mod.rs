@@ -136,7 +136,7 @@ impl RawOptionsApply for RawOptions {
     if dev_server.hot {
       plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
     }
-    plugins.push(rspack_plugin_runtime::BasicRuntimeRequirementPlugin {}.boxed());
+    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }

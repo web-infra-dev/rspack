@@ -207,7 +207,7 @@ export const describeCases = config => {
 								return;
 							}
 							// Wait for uncaught errors to occur
-							// setTimeout(done, 200);
+							setTimeout(done, 200);
 							return;
 						};
 						// if (config.cache) {
