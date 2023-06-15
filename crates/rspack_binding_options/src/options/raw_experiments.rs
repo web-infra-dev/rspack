@@ -1,5 +1,4 @@
 use napi_derive::napi;
-use rspack_core::{Experiments, IncrementalRebuild, IncrementalRebuildMakeState};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Default)]
@@ -19,22 +18,4 @@ pub struct RawExperiments {
   pub async_web_assembly: bool,
   pub new_split_chunks: bool,
   pub css: bool,
-}
-
-impl From<RawExperiments> for Experiments {
-  fn from(value: RawExperiments) -> Self {
-    Self {
-      lazy_compilation: value.lazy_compilation,
-      incremental_rebuild: IncrementalRebuild {
-        make: value
-          .incremental_rebuild
-          .make
-          .then(IncrementalRebuildMakeState::default),
-        emit_asset: value.incremental_rebuild.emit_asset,
-      },
-      async_web_assembly: value.async_web_assembly,
-      new_split_chunks: value.new_split_chunks,
-      css: value.css,
-    }
-  }
 }

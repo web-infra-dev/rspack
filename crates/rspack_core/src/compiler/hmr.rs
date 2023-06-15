@@ -150,7 +150,7 @@ where
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =
           std::mem::take(&mut self.compilation.make_failed_module);
-        new_compilation.entries = std::mem::take(&mut self.compilation.entries);
+        new_compilation.entries = dbg!(std::mem::take(&mut self.compilation.entries));
         new_compilation.lazy_visit_modules =
           std::mem::take(&mut self.compilation.lazy_visit_modules);
         new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, Experiments, ModuleOptions, ModuleType,
-  OutputOptions, PluginExt,
+  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
+  IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
 use serde::Deserialize;
 
@@ -123,13 +123,26 @@ impl RawOptionsApply for RawOptions {
     let mode = self.mode.unwrap_or_default().into();
     let module: ModuleOptions = self.module.apply(plugins, loader_runner)?;
     let target = self.target.apply(plugins, loader_runner)?;
-    let experiments: Experiments = self.experiments.into();
-    let stats = self.stats.into();
     let cache = self.cache.into();
-    let snapshot = self.snapshot.into();
+    let experiments = Experiments {
+      lazy_compilation: self.experiments.lazy_compilation,
+      incremental_rebuild: IncrementalRebuild {
+        make: self
+          .experiments
+          .incremental_rebuild
+          .make
+          .then(IncrementalRebuildMakeState::default),
+        emit_asset: self.experiments.incremental_rebuild.emit_asset,
+      },
+      async_web_assembly: self.experiments.async_web_assembly,
+      new_split_chunks: self.experiments.new_split_chunks,
+      css: self.experiments.css,
+    };
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
       self.optimization.apply(plugins, loader_runner)
     })?;
+    let stats = self.stats.into();
+    let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
     let builtins = self.builtins.apply(plugins, loader_runner)?;

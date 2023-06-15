@@ -22,7 +22,6 @@ import {
 import type {
 	AvailableTarget,
 	Context,
-	Experiments,
 	ExperimentsNormalized,
 	ExternalsPresets,
 	InfrastructureLogging,
@@ -67,9 +66,9 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 
-	applyExperimentsDefaults(options.experiments);
-
 	F(options, "cache", () => development);
+
+	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -142,7 +141,10 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+const applyExperimentsDefaults = (
+	experiments: ExperimentsNormalized,
+	{ cache }: { cache: boolean }
+) => {
 	D(experiments, "incrementalRebuild", {});
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
@@ -152,6 +154,14 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 	if (typeof experiments.incrementalRebuild === "object") {
 		D(experiments.incrementalRebuild, "make", true);
 		D(experiments.incrementalRebuild, "emitAsset", true);
+	}
+	if (
+		!cache &&
+		experiments.incrementalRebuild &&
+		experiments.incrementalRebuild.make
+	) {
+		experiments.incrementalRebuild.make = false;
+		// TODO: use logger to warn user enable cache for incrementalRebuild.make
 	}
 };
 

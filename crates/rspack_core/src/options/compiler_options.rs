@@ -27,7 +27,6 @@ pub struct CompilerOptions {
 impl CompilerOptions {
   pub fn is_incremental_rebuild_make_enabled(&self) -> bool {
     self.experiments.incremental_rebuild.make.is_some()
-      && !matches!(self.cache, CacheOptions::Disabled)
   }
 
   pub fn get_incremental_rebuild_make_state(&self) -> Option<&IncrementalRebuildMakeState> {
