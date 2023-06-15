@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 exports["default"] = void 0;
-var _default = {};
+/* eslint-disable no-template-curly-in-string */ var _default = {};
 exports["default"] = _default;
 },
 "./antd/index.ts": function (module, exports, __webpack_require__) {

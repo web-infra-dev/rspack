@@ -11,6 +11,9 @@ Object.defineProperty(exports, "something", {
     }
 });
 var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
+ // export {
+ //   result as test
+ // }
 },
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";

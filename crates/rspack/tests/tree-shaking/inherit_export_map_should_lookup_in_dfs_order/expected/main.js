@@ -45,6 +45,7 @@ __webpack_require__.es(__webpack_require__("./a.js"), exports);
 const b = 'foo';
 },
 "./index.js": function (module, exports, __webpack_require__) {
+// require("./c.js");
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true

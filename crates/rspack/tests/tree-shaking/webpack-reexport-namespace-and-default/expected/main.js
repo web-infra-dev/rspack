@@ -10,10 +10,12 @@ var _script1 = __webpack_require__("./package2/script.js");
 it("should load module correctly", ()=>{
     __webpack_require__("./module.js");
 });
+// if (process.env.NODE_ENV === "production") {
 it("default export should be unused", ()=>{
     expect(_script.exportDefaultUsed).toBe(false);
     expect(_script2.exportDefaultUsed).toBe(false);
 });
+// }
 it("default export should be used", ()=>{
     expect(_script1.exportDefaultUsed).toBe(true);
 });

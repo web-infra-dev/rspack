@@ -1,6 +1,6 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
+/* TREE-SHAKING */ "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
@@ -9,6 +9,9 @@ console.log(_maths.xxx.test);
 console.log(_maths['square']);
 },
 "./maths.js": function (module, exports, __webpack_require__) {
+// maths.js
+// This function isn't used anywhere, so
+// Rollup excludes it from the bundle...
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true

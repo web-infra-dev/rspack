@@ -20,7 +20,8 @@ exports.test = 30;
 {
     const res = __webpack_require__("./a.js");
     module.exports = res;
-}},
+} // export default function () {}
+},
 "./index.js": function (module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
