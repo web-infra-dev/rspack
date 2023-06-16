@@ -39,6 +39,7 @@ pub enum SymbolRef {
   Indirect(IndirectTopLevelSymbol),
   /// uri
   Star(StarSymbol),
+  // Url(JsWord),
 }
 
 impl SymbolRef {

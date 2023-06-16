@@ -237,8 +237,10 @@ importers:
   examples/basic:
     specifiers:
       '@rspack/cli': workspace:*
+      '@swc/wasm-web': ^1.3.64
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      '@swc/wasm-web': 1.3.64
 
   examples/builtin-swc-loader:
     specifiers:
@@ -9910,6 +9912,10 @@ packages:
     resolution: {integrity: sha512-sJ902EfIzn1Fa+qYmjdQqh8tPsoxyBz+8yBKC2HKUxyezKJFwPGOn7pv4WY6QuQW//ySQi5lJjA/ZT9sNWWNTg==}
     dependencies:
       tslib: 2.5.0
+
+  /@swc/wasm-web/1.3.64:
+    resolution: {integrity: sha512-AwPEUzprDwy2JpSqf3aejxE5fTreaAn5e/DY/p+F8rHdj/mkvW9oK13yg7kCODq2RO7bd25MQJqTUeAJHjLPjA==}
+    dev: true
 
   /@szmarczak/http-timer/1.1.2:
     resolution: {integrity: sha512-XIB2XbzHTN6ieIjfIMV9hlVcfPU26s2vafYWQcZHWXHOxiaRZYEDKEwdl129Zyg50+foYV2jCgtrqSA6qNuNSA==}
@@ -27830,7 +27836,6 @@ packages:
     dependencies:
       clone-deep: 4.0.1
       wildcard: 2.0.0
-    dev: true
 
   /webpack-merge/5.9.0:
     resolution: {integrity: sha512-6NbRQw4+Sy50vYNTw7EyOn41OZItPiXB8GNv3INSoe3PSFaHJEz3SHTrYVaRm2LilNGnFUzh0FAwqPEmU/CwDg==}

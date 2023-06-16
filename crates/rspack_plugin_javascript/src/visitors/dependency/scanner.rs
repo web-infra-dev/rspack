@@ -207,38 +207,32 @@ impl DependencyScanner<'_> {
     }) = &*new_expr.callee
     {
       if let Some(args) = &new_expr.args {
-        if let (Some(first), Some(second)) = (args.first(), args.get(1)) {
-          if let (
-            ExprOrSpread {
-              spread: None,
-              expr: box Expr::Lit(Lit::Str(path)),
-            },
-            // import.meta.url
-            ExprOrSpread {
-              spread: None,
-              expr:
-                box Expr::Member(MemberExpr {
-                  obj:
-                    box Expr::MetaProp(MetaPropExpr {
-                      kind: MetaPropKind::ImportMeta,
-                      ..
-                    }),
-                  prop:
-                    MemberProp::Ident(Ident {
-                      sym: js_word!("url"),
-                      ..
-                    }),
+        if let [ExprOrSpread {
+          spread: None,
+          expr: box Expr::Lit(Lit::Str(path)),
+        }, ExprOrSpread {
+          spread: None,
+          expr:
+            box Expr::Member(MemberExpr {
+              obj:
+                box Expr::MetaProp(MetaPropExpr {
+                  kind: MetaPropKind::ImportMeta,
                   ..
                 }),
-            },
-          ) = (first, second)
-          {
-            self.add_dependency(Box::new(URLDependency::new(
-              path.value.clone(),
-              Some(new_expr.span.into()),
-              as_parent_path(ast_path),
-            )))
-          }
+              prop:
+                MemberProp::Ident(Ident {
+                  sym: js_word!("url"),
+                  ..
+                }),
+              ..
+            }),
+        }] = &args[..]
+        {
+          self.add_dependency(Box::new(URLDependency::new(
+            path.value.clone(),
+            Some(new_expr.span.into()),
+            as_parent_path(ast_path),
+          )))
         }
       }
     }
