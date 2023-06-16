@@ -1295,6 +1295,7 @@ fn update_reachable_dependency(
   bailout_modules: &IdentifierMap<BailoutFlag>,
 ) {
   let root_module_identifier = symbol_ref.importer();
+  // reachable_dependency_identifier.insert(root_module_identifier);
   // FIXME: currently we don't analyze export info of bailout module like commonjs,
   // it may cause we don't include bailout module in such scenario:
   // ```js
@@ -1330,7 +1331,7 @@ fn update_reachable_dependency(
     let symbol = symbol_graph
       .get_symbol(&cur)
       .expect("Can't get Symbol of NodeIndex");
-    let module_identifier = symbol.module_identifier();
+    let module_identifier = symbol.importer();
     if module_identifier == root_module_identifier {
       for ele in symbol_graph
         .graph

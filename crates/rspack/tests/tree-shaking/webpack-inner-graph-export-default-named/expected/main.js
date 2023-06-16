@@ -38,7 +38,18 @@ abc();
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__("./dep.js?d");
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: function() {
+        return def;
+    }
+});
+var _depjsd = __webpack_require__("./dep.js?d");
+class def {
+    method() {
+        return _depjsd.x;
+    }
+}
 },
 "./dep.js?a": function (module, exports, __webpack_require__) {
 "use strict";
@@ -102,12 +113,21 @@ var _default = __webpack_exports_info__.x.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    x: function() {
+        return x;
+    },
+    default: function() {
         return _default;
     }
 });
+const x = "x";
 var _default = __webpack_exports_info__.x.used;
 },
 "./dep.js?e": function (module, exports, __webpack_require__) {
@@ -128,12 +148,21 @@ var _default = __webpack_exports_info__.x.used;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: all[name]
+    });
+}
+_export(exports, {
+    x: function() {
+        return x;
+    },
+    default: function() {
         return _default;
     }
 });
+const x = "x";
 var _default = __webpack_exports_info__.x.used;
 },
 "./e.js": function (module, exports, __webpack_require__) {
@@ -148,10 +177,10 @@ __webpack_require__("./dep.js?e");
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-__webpack_require__("./dep.js?f");
+var _depjsf = __webpack_require__("./dep.js?f");
 class def {
     method() {
-        return x;
+        return _depjsf.x;
     }
 }
 new def().method();
@@ -164,7 +193,7 @@ Object.defineProperty(exports, "__esModule", {
 var _a = __webpack_require__.ir(__webpack_require__("./a.js"));
 __webpack_require__("./b.js");
 __webpack_require__("./c.js");
-__webpack_require__("./d.js");
+var _d = __webpack_require__.ir(__webpack_require__("./d.js"));
 __webpack_require__("./e.js");
 __webpack_require__("./f.js");
 var _depjsa = __webpack_require__.ir(__webpack_require__("./dep.js?a"));
@@ -175,7 +204,7 @@ var _depjse = __webpack_require__.ir(__webpack_require__("./dep.js?e"));
 var _depjsf = __webpack_require__.ir(__webpack_require__("./dep.js?f"));
 it("should generate valid code", ()=>{
     expect((0, _a.default)()).toBe("x");
-    expect(new D().method()).toBe("x");
+    expect(new _d.default().method()).toBe("x");
 });
 it("a should be used", ()=>{
     expect(_depjsa.default).toBe(true);
