@@ -7,7 +7,6 @@ use swc_core::ecma::ast::EsVersion;
 use swc_core::ecma::transforms::base::feature::{
   enable_available_feature_from_es_version, FeatureFlag,
 };
-// use swc_core::ecma::transforms::base::{enable_available_feature_from_es_version, FeatureFlag};
 use swc_core::ecma::visit::Fold;
 
 pub fn build_module<'a>(

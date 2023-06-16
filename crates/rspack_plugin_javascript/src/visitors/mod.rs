@@ -3,6 +3,7 @@ use std::collections::LinkedList;
 use std::path::{Path, PathBuf};
 
 pub use dependency::*;
+use swc_core::base::config::ModuleConfig;
 use xxhash_rust::xxh32::xxh32;
 mod finalize;
 use either::Either;
@@ -27,7 +28,6 @@ pub mod swc_visitor;
 mod tree_shaking;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::{Error, Result};
-use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
@@ -69,7 +69,7 @@ pub fn run_before_pass(
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
-  ast.transform_with_handler(cm.clone(), |handler, program, context| {
+  ast.transform_with_handler(cm.clone(), |_handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
     let comments = None;
@@ -139,7 +139,7 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(
-        swc_visitor::define(&options.builtins.define, handler, &cm),
+        swc_visitor::define(&options.builtins.define),
         !options.builtins.define.is_empty()
       ),
       Optional::new(
