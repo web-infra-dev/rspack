@@ -6,7 +6,9 @@ use rspack_regex::RspackRegex;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{CallExpr, Callee, Expr, Ident, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
+    ast::{
+      AssignExpr, BinExpr, CallExpr, Callee, Expr, Ident, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp,
+    },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },
@@ -55,7 +57,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
     }
   }
 
-  fn replace_require_resolve(&mut self, expr: &Expr) {
+  fn replace_require_resolve(&mut self, expr: &Expr, value: &'static str) {
     if expr_matcher::is_require(expr)
       || expr_matcher::is_require_resolve(expr)
       || expr_matcher::is_require_resolve_weak(expr)
@@ -65,7 +67,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
         .push(Box::new(ReplaceConstDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
-          "true".into(),
+          value.into(),
           None,
         )));
     }
@@ -86,10 +88,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
       if let Expr::Ident(ident) = &**expr {
         if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
           {
-            if call_expr.args.len() != 1 {
-              return;
-            }
-            if let Some(expr) = call_expr.args.get(0) {
+            if let Some(expr) = call_expr.args.get(0) && call_expr.args.len() == 1 {
               if expr.spread.is_none() {
                 // TemplateLiteral String
                 if let Expr::Tpl(tpl) = expr.expr.as_ref()  && tpl.exprs.is_empty(){
@@ -139,6 +138,14 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
                 }
               }
             }
+            self
+              .code_generable_dependencies
+              .push(Box::new(ReplaceConstDependency::new(
+                ident.span().real_lo(),
+                ident.span().real_hi(),
+                RuntimeGlobals::REQUIRE.name().into(),
+                None,
+              )));
           }
         }
       }
@@ -163,44 +170,25 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
       ..
     } = unary_expr
     {
-      if expr_matcher::is_require(expr)
-        || expr_matcher::is_require_resolve(expr)
-        || expr_matcher::is_require_resolve_weak(expr)
-      {
-        self
-          .code_generable_dependencies
-          .push(Box::new(ReplaceConstDependency::new(
-            unary_expr.span().real_lo(),
-            unary_expr.span().real_hi(),
-            "'function'".into(),
-            None,
-          )));
-        return;
-      }
+      self.replace_require_resolve(expr, "'function'");
     }
     unary_expr.visit_children_with(self);
   }
 
   fn visit_if_stmt(&mut self, if_stmt: &IfStmt) {
-    self.replace_require_resolve(&if_stmt.test);
+    self.replace_require_resolve(&if_stmt.test, "true");
     if let Expr::Bin(bin) = &*if_stmt.test {
-      self.replace_require_resolve(&bin.left);
-      self.replace_require_resolve(&bin.right);
+      self.replace_require_resolve(&bin.left, "true");
+      self.replace_require_resolve(&bin.right, "true");
     }
     if_stmt.visit_children_with(self);
   }
 
-  fn visit_ident(&mut self, ident: &Ident) {
-    // TODO: webpack will replace it to undefined
-    if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
-      self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
-          ident.span().real_lo(),
-          ident.span().real_hi(),
-          RuntimeGlobals::REQUIRE.name().into(),
-          None,
-        )));
+  fn visit_assign_expr(&mut self, assign_expr: &AssignExpr) {
+    if let Expr::Bin(bin) = &*assign_expr.right {
+      self.replace_require_resolve(&bin.left, "undefined");
+      self.replace_require_resolve(&bin.right, "undefined");
     }
+    assign_expr.visit_children_with(self);
   }
 }
