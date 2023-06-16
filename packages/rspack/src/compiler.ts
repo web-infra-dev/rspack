@@ -717,14 +717,14 @@ class Compiler {
 
 	async #optimizeChunkModules() {
 		await this.compilation.hooks.optimizeChunkModules.promise(
-			this.compilation.getChunks(),
-			this.compilation.getModules()
+			this.compilation.__internal__getChunks(),
+			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
 	}
 	async #optimizeModules() {
 		await this.compilation.hooks.optimizeModules.promise(
-			this.compilation.getModules()
+			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
 	}
@@ -736,7 +736,7 @@ class Compiler {
 
 	async #finishModules() {
 		await this.compilation.hooks.finishModules.promise(
-			this.compilation.getModules()
+			this.compilation.modules
 		);
 		this.#updateDisabledHooks();
 	}

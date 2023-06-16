@@ -611,9 +611,10 @@ export class Compilation {
 	);
 
 	get modules() {
-		return this.getModules().map(item => normalizeJsModule(item));
+		return this.__internal__getModules().map(item => normalizeJsModule(item));
 	}
 
+	// FIXME: This is not aligned with Webpack.
 	get chunks() {
 		var stats = this.getStats().toJson({
 			all: false,
@@ -642,7 +643,7 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
-		let modules = this.getModules();
+		let modules = this.__internal__getModules();
 		let moduleMap: Map<string, JsModule> = new Map();
 		for (let module of modules) {
 			moduleMap.set(module.moduleIdentifier, module);
@@ -682,10 +683,23 @@ export class Compilation {
 		return modules.get(identifier);
 	}
 
-	getModules(): JsModule[] {
+	/**
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getModules(): JsModule[] {
 		return this.#inner.getModules();
 	}
-	getChunks(): JsChunk[] {
+
+	/**
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getChunks(): JsChunk[] {
 		return this.#inner.getChunks();
 	}
 
