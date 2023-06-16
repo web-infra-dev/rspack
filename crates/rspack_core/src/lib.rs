@@ -3,7 +3,7 @@
 #![feature(box_patterns)]
 #![feature(anonymous_lifetime_in_impl_trait)]
 
-use std::{borrow::Cow, fmt, sync::Arc};
+use std::{fmt, sync::Arc};
 
 use rspack_database::Database;
 pub mod external_module;
@@ -181,7 +181,6 @@ impl ModuleType {
       ModuleType::AssetResource => "asset/resource",
       ModuleType::AssetInline => "asset/inline",
     }
-    .into()
   }
 }
 
