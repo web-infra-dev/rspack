@@ -20,6 +20,5 @@ swc_core = { workspace = true, features = [
   "__common",
   "__parser",
   "__utils",
-  "__base",
   "ecma_preset_env",
 ] }
