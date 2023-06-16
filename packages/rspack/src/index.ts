@@ -7,6 +7,7 @@ export * from "./stats";
 export * from "./multiStats";
 export * from "./chunk_group";
 export * from "./normalModuleFactory";
+export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
 
 import { Configuration } from "./config";
 // TODO(hyf0): should remove this re-export when we cleanup the exports of `@rspack/core`

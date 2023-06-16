@@ -6,7 +6,10 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
-use crate::{ChunkGroup, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier};
+use crate::{
+  ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkUkey, Compilation,
+  ModuleIdentifier, RuntimeSpec,
+};
 
 pub(super) struct CodeSplitter<'me> {
   pub(super) compilation: &'me mut Compilation,
@@ -39,12 +42,10 @@ impl<'me> CodeSplitter<'me> {
     let compilation = &mut self.compilation;
     let module_graph = &compilation.module_graph;
 
-    let entries = compilation.entry_data();
-
     let mut input_entrypoints_and_modules: HashMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
       HashMap::default();
 
-    for (name, entry_data) in entries.iter() {
+    for (name, entry_data) in &compilation.entries {
       let options = &entry_data.options;
       let dependencies = &entry_data.dependencies;
       let module_identifiers = dependencies
@@ -65,11 +66,11 @@ impl<'me> CodeSplitter<'me> {
       compilation.chunk_graph.add_chunk(chunk.ukey);
 
       let mut entrypoint = ChunkGroup::new(
-        ChunkGroupKind::Entrypoint,
+        ChunkGroupKind::new_entrypoint(true),
         HashSet::from_iter([Arc::from(
           options.runtime.clone().unwrap_or_else(|| name.to_string()),
         )]),
-        Some(name.to_string()),
+        ChunkGroupOptions::default().name(name),
       );
       if options.runtime.is_none() {
         entrypoint.set_runtime_chunk(chunk.ukey);
@@ -111,7 +112,7 @@ impl<'me> CodeSplitter<'me> {
       }
     }
 
-    for (name, entry_data) in entries.iter() {
+    for (name, entry_data) in &compilation.entries {
       let options = &entry_data.options;
 
       if let Some(runtime) = &options.runtime {
@@ -350,7 +351,7 @@ impl<'me> CodeSplitter<'me> {
       });
     self.queue.extend(queue_items.into_iter());
 
-    for (module_identifier, chunk_name) in mgm
+    for (module_identifier, group_options) in mgm
       .dynamic_depended_modules(&self.compilation.module_graph)
       .into_iter()
       .rev()
@@ -391,7 +392,7 @@ impl<'me> CodeSplitter<'me> {
         self.split_point_modules.insert(*module_identifier);
       }
 
-      let chunk = if let Some(chunk_name) = chunk_name {
+      let chunk = if let Some(chunk_name) = group_options.and_then(|x| x.name.as_deref()) {
         Compilation::add_named_chunk(
           chunk_name.to_string(),
           &mut self.compilation.chunk_by_ukey,
@@ -400,9 +401,6 @@ impl<'me> CodeSplitter<'me> {
       } else {
         Compilation::add_chunk(&mut self.compilation.chunk_by_ukey)
       };
-      chunk
-        .chunk_reasons
-        .push(format!("DynamicImport({module_identifier})"));
       self
         .remove_parent_modules_context
         .add_chunk_relation(item.chunk, chunk.ukey);
@@ -419,11 +417,32 @@ impl<'me> CodeSplitter<'me> {
         .chunk_group_by_ukey
         .get_mut(&item.chunk_group)
         .expect("chunk group not found");
-      let mut chunk_group = ChunkGroup::new(
-        ChunkGroupKind::Normal,
-        item_chunk_group.runtime.clone(),
-        chunk_name.map(|i| i.to_owned()),
-      );
+
+      let mut chunk_group = if let Some(group_options) = group_options && let Some(entry_options) = &group_options.entry_options {
+        chunk.chunk_reasons.push(format!("AsyncEntrypoint({module_identifier})"));
+        self
+          .remove_parent_modules_context
+          .add_root_chunk(chunk.ukey);
+        let mut entrypoint = ChunkGroup::new(
+          ChunkGroupKind::new_entrypoint(false),
+          RuntimeSpec::from_iter([entry_options.runtime.as_deref().expect("should have runtime for AsyncEntrypoint").into()]),
+          group_options.to_owned(),
+        );
+        entrypoint.set_runtime_chunk(chunk.ukey);
+        entrypoint.set_entry_point_chunk(chunk.ukey);
+        self.compilation.async_entrypoints.push(entrypoint.ukey);
+        entrypoint
+      } else {
+        chunk
+          .chunk_reasons
+          .push(format!("DynamicImport({module_identifier})"));
+        ChunkGroup::new(
+          ChunkGroupKind::Normal,
+          item_chunk_group.runtime.clone(),
+          ChunkGroupOptions::default().name_optional(group_options.and_then(|x| x.name.as_deref())),
+        )
+      };
+
       if let Some(name) = &chunk_group.options.name {
         self
           .compilation

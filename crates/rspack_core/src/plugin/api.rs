@@ -9,8 +9,8 @@ use rspack_sources::BoxSource;
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, BoxLoader, BoxModule,
   ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleArgs, ModuleFactoryResult,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
   RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
@@ -61,7 +61,12 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
+  async fn make(
+    &self,
+    _ctx: PluginContext,
+    _compilation: &mut Compilation,
+    _param: &mut MakeParam,
+  ) -> PluginMakeHookOutput {
     Ok(())
   }
 

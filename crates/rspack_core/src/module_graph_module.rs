@@ -3,8 +3,9 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   is_async_dependency, module_graph::ConnectionId, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, ChunkGraph, DependencyId, ExportsType, FactoryMeta, ModuleDependency,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleIssuer, ModuleSyntax, ModuleType,
+  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, DependencyId, ExportsType, FactoryMeta,
+  ModuleDependency, ModuleGraph, ModuleGraphConnection, ModuleIdentifier, ModuleIssuer,
+  ModuleSyntax, ModuleType,
 };
 
 #[derive(Debug)]
@@ -127,7 +128,7 @@ impl ModuleGraphModule {
   pub fn dynamic_depended_modules<'a>(
     &self,
     module_graph: &'a ModuleGraph,
-  ) -> Vec<(&'a ModuleIdentifier, Option<&'a str>)> {
+  ) -> Vec<(&'a ModuleIdentifier, Option<&'a ChunkGroupOptions>)> {
     self
       .dependencies
       .iter()
@@ -140,7 +141,7 @@ impl ModuleGraphModule {
           .module_identifier_by_dependency_id(id)
           .expect("should have a module here");
 
-        let chunk_name = dep.chunk_name();
+        let chunk_name = dep.group_options();
         Some((module, chunk_name))
       })
       .collect()

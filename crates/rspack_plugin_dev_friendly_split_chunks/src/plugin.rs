@@ -185,7 +185,7 @@ impl Plugin for DevFriendlySplitChunksPlugin {
     // Yeah. Leaky abstraction, but fast.
     let mut chunk_and_cgc = split_modules
       .map(|modules| {
-        let mut chunk = Chunk::new(None, None, rspack_core::ChunkKind::Normal);
+        let mut chunk = Chunk::new(None, rspack_core::ChunkKind::Normal);
         chunk
           .chunk_reasons
           .push("Split with ref count> 1".to_string());

@@ -32,23 +32,16 @@ use crate::{
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
   AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModule,
-  BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey,
+  BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
   ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
   CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
-  CompilerOptions, ContentHashArgs, DependencyId, EntryDependency, EntryItem, EntryOptions,
-  Entrypoint, FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
+  CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData, EntryOptions, Entrypoint,
+  FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
   ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
   ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
   RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
-
-#[derive(Debug)]
-pub struct EntryData {
-  pub name: String,
-  pub dependencies: Vec<DependencyId>,
-  pub options: EntryOptions,
-}
 
 pub type BuildDependency = (
   DependencyId,
@@ -58,8 +51,7 @@ pub type BuildDependency = (
 #[derive(Debug)]
 pub struct Compilation {
   pub options: Arc<CompilerOptions>,
-  entries: BundleEntries,
-  pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
+  pub entries: Entry,
   pub module_graph: ModuleGraph,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
@@ -70,6 +62,7 @@ pub struct Compilation {
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
@@ -106,7 +99,6 @@ impl Compilation {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     options: Arc<CompilerOptions>,
-    entries: BundleEntries,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
@@ -122,10 +114,10 @@ impl Compilation {
       runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
-      entry_dependencies: Default::default(),
-      entries,
+      entries: Default::default(),
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
+      async_entrypoints: Default::default(),
       assets: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
@@ -157,8 +149,16 @@ impl Compilation {
     }
   }
 
-  pub fn add_entry(&mut self, name: String, detail: EntryItem) {
-    self.entries.insert(name, detail);
+  pub fn add_entry(&mut self, entry: DependencyId, name: String, options: EntryOptions) {
+    if let Some(data) = self.entries.get_mut(&name) {
+      data.dependencies.push(entry);
+    } else {
+      let data = EntryData {
+        dependencies: vec![entry],
+        options,
+      };
+      self.entries.insert(name.to_owned(), data);
+    }
   }
 
   pub fn update_asset(
@@ -293,7 +293,7 @@ impl Compilation {
         .expect("This should not happen");
       chunk
     } else {
-      let chunk = Chunk::new(Some(name.clone()), None, ChunkKind::Normal);
+      let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
       let ukey = chunk.ukey;
       named_chunks.insert(name, chunk.ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
@@ -301,57 +301,21 @@ impl Compilation {
   }
 
   pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> &mut Chunk {
-    let chunk = Chunk::new(None, None, ChunkKind::Normal);
+    let chunk = Chunk::new(None, ChunkKind::Normal);
     let ukey = chunk.ukey;
     chunk_by_ukey.add(chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
 
-  #[instrument(name = "entry_data", skip(self))]
-  pub fn entry_data(&self) -> IndexMap<String, EntryData> {
-    self
-      .entries
-      .iter()
-      .map(|(name, item)| {
-        let dependencies = self
-          .entry_dependencies
-          .get(name)
-          .expect("should have dependencies")
-          .clone();
-        (
-          name.clone(),
-          EntryData {
-            dependencies,
-            name: name.clone(),
-            options: EntryOptions {
-              runtime: item.runtime.clone(),
-            },
-          },
-        )
-      })
-      .collect()
-  }
-
-  pub fn setup_entry_dependencies(&mut self) {
-    self.entries.iter().for_each(|(name, item)| {
-      let dependencies = item
-        .import
-        .iter()
-        .map(|detail| {
-          let dependency =
-            Box::new(EntryDependency::new(detail.to_string())) as BoxModuleDependency;
-          self.module_graph.add_dependency(dependency)
-        })
-        .collect::<Vec<_>>();
-      self
-        .entry_dependencies
-        .insert(name.to_string(), dependencies);
-    })
-  }
-
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, param: MakeParam) -> Result<()> {
-    if let Some(e) = self.plugin_driver.clone().make(self).await.err() {
+  pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
+    if let Some(e) = self
+      .plugin_driver
+      .clone()
+      .make(self, &mut param)
+      .await
+      .err()
+    {
       self.push_batch_diagnostic(e.into());
     }
     let make_failed_module =
@@ -1036,7 +1000,14 @@ impl Compilation {
         .expect("chunk group not found");
       entrypoint.get_runtime_chunk()
     });
-    HashSet::from_iter(entries)
+    let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
+      let entrypoint = self
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+        .expect("chunk group not found");
+      entrypoint.get_runtime_chunk()
+    });
+    HashSet::from_iter(entries.chain(async_entries))
   }
 
   #[instrument(name = "compilation:process_runtime_requirements", skip_all)]

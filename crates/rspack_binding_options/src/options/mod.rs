@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use indexmap::IndexMap;
 use napi_derive::napi;
 use rspack_core::{
-  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, EntryItem, Experiments, ModuleOptions,
-  ModuleType, OutputOptions, PluginExt,
+  BoxPlugin, CompilerOptions, DevServerOptions, Devtool, Experiments, IncrementalRebuild,
+  IncrementalRebuildMakeState, ModuleOptions, ModuleType, OutputOptions, PluginExt,
 };
 use serde::Deserialize;
 
@@ -59,7 +58,7 @@ pub trait RawOptionsApply {
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawOptions {
-  pub entry: HashMap<String, RawEntryItem>,
+  pub entry: HashMap<String, RawEntryDescription>,
   /// Using this Vector to track the original order of user land entry configuration
   /// std::collection::HashMap does not guarantee the insertion order, for more details you could refer
   /// https://doc.rust-lang.org/std/collections/index.html#iterators:~:text=For%20unordered%20collections%20like%20HashMap%2C%20the%20items%20will%20be%20yielded%20in%20whatever%20order%20the%20internal%20representation%20made%20most%20convenient.%20This%20is%20great%20for%20reading%20through%20all%20the%20contents%20of%20the%20collection.
@@ -97,24 +96,53 @@ impl RawOptionsApply for RawOptions {
     loader_runner: &JsLoaderRunner,
   ) -> Result<Self::Options, rspack_error::Error> {
     let context = self.context.into();
-    let entry = self
-      .__entry_order
-      .into_iter()
-      .filter_map(|key| self.entry.remove_entry(&key).map(|(k, v)| (k, v.into())))
-      .collect::<IndexMap<String, EntryItem>>();
+    // https://github.com/web-infra-dev/rspack/discussions/3252#discussioncomment-6182939
+    // will solve the order problem by add EntryOptionPlugin on js side, and we can only
+    // care about EntryOptions instead EntryDescription
+    for key in &self.__entry_order {
+      if let Some((name, desc)) = self.entry.remove_entry(key) {
+        for request in desc.import {
+          plugins.push(
+            rspack_plugin_entry::EntryPlugin::new(
+              name.clone(),
+              request,
+              rspack_core::EntryOptions {
+                runtime: desc.runtime.clone(),
+                chunk_loading: desc.chunk_loading.as_deref().map(Into::into),
+                public_path: desc.public_path.clone().map(Into::into),
+              },
+            )
+            .boxed(),
+          );
+        }
+      }
+    }
     let output: OutputOptions = self.output.apply(plugins, loader_runner)?;
     let resolve = self.resolve.try_into()?;
     let devtool: Devtool = self.devtool.into();
     let mode = self.mode.unwrap_or_default().into();
     let module: ModuleOptions = self.module.apply(plugins, loader_runner)?;
     let target = self.target.apply(plugins, loader_runner)?;
-    let experiments: Experiments = self.experiments.into();
-    let stats = self.stats.into();
     let cache = self.cache.into();
-    let snapshot = self.snapshot.into();
+    let experiments = Experiments {
+      lazy_compilation: self.experiments.lazy_compilation,
+      incremental_rebuild: IncrementalRebuild {
+        make: self
+          .experiments
+          .incremental_rebuild
+          .make
+          .then(IncrementalRebuildMakeState::default),
+        emit_asset: self.experiments.incremental_rebuild.emit_asset,
+      },
+      async_web_assembly: self.experiments.async_web_assembly,
+      new_split_chunks: self.experiments.new_split_chunks,
+      css: self.experiments.css,
+    };
     let optimization = IS_ENABLE_NEW_SPLIT_CHUNKS.set(&experiments.new_split_chunks, || {
       self.optimization.apply(plugins, loader_runner)
     })?;
+    let stats = self.stats.into();
+    let snapshot = self.snapshot.into();
     let node = self.node.map(|n| n.into());
     let dev_server: DevServerOptions = self.dev_server.into();
     let builtins = self.builtins.apply(plugins, loader_runner)?;
@@ -213,7 +241,6 @@ impl RawOptionsApply for RawOptions {
     }
 
     Ok(Self::Options {
-      entry,
       context,
       mode,
       module,

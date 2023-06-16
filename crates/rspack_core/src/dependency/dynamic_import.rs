@@ -8,9 +8,9 @@ use swc_core::{
 };
 
 use crate::{
-  create_javascript_visitor, CodeGeneratable, CodeGeneratableContext, CodeGeneratableDeclMappings,
-  CodeGeneratableResult, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  JsAstPath, ModuleDependency, ModuleDependencyExt, RuntimeGlobals,
+  create_javascript_visitor, ChunkGroupOptions, CodeGeneratable, CodeGeneratableContext,
+  CodeGeneratableDeclMappings, CodeGeneratableResult, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, JsAstPath, ModuleDependency, ModuleDependencyExt, RuntimeGlobals,
 };
 
 #[derive(Debug, Eq, Clone)]
@@ -21,8 +21,9 @@ pub struct EsmDynamicImportDependency {
   dependency_type: &'static DependencyType,
   span: Option<ErrorSpan>,
 
-  /// Used to store `webpackChunkName` in `import("/* webpackChunkName: "plugins/myModule" */")`
-  pub name: Option<String>,
+  /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
+  /// for example: `import(/* webpackChunkName: "my-chunk-name", webpackPrefetch: true */ './module')`
+  pub group_options: ChunkGroupOptions,
 
   #[allow(unused)]
   ast_path: JsAstPath,
@@ -51,11 +52,11 @@ impl EsmDynamicImportDependency {
     request: JsWord,
     span: Option<ErrorSpan>,
     ast_path: JsAstPath,
-    name: Option<String>,
+    group_options: ChunkGroupOptions,
   ) -> Self {
     Self {
       request,
-      name,
+      group_options,
       category: &DependencyCategory::Esm,
       dependency_type: &DependencyType::DynamicImport,
       span,
@@ -95,8 +96,8 @@ impl ModuleDependency for EsmDynamicImportDependency {
     self.span.as_ref()
   }
 
-  fn chunk_name(&self) -> Option<&str> {
-    self.name.as_deref()
+  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+    Some(&self.group_options)
   }
 
   fn set_request(&mut self, request: String) {

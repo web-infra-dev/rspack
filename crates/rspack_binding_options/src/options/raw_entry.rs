@@ -1,20 +1,12 @@
 use napi_derive::napi;
-use rspack_core::EntryItem;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawEntryItem {
+pub struct RawEntryDescription {
   pub import: Vec<String>,
   pub runtime: Option<String>,
-}
-
-impl From<RawEntryItem> for EntryItem {
-  fn from(value: RawEntryItem) -> Self {
-    Self {
-      import: value.import,
-      runtime: value.runtime,
-    }
-  }
+  pub chunk_loading: Option<String>,
+  pub public_path: Option<String>,
 }

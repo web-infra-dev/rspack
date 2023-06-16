@@ -13,17 +13,17 @@ use crate::{
   AdditionalChunkRuntimeRequirementsArgs, ApplyContext, AssetEmittedArgs, BoxLoader,
   BoxedParserAndGeneratorBuilder, Chunk, ChunkAssetArgs, ChunkContentHash, ChunkHashArgs,
   Compilation, CompilationArgs, CompilerOptions, Content, ContentHashArgs, DoneArgs, FactorizeArgs,
-  JsChunkHashArgs, Module, ModuleArgs, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, NormalModuleFactoryContext, OptimizeChunksArgs, Plugin,
-  PluginAdditionalChunkRuntimeRequirementsOutput, PluginBuildEndHookOutput,
-  PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext, PluginFactorizeHookOutput,
-  PluginJsChunkHashHookOutput, PluginMakeHookOutput, PluginModuleHookOutput,
-  PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
-  PluginProcessAssetsOutput, PluginRenderChunkHookOutput, PluginRenderHookOutput,
-  PluginRenderManifestHookOutput, PluginRenderModuleContentOutput, PluginRenderStartupHookOutput,
-  PluginThisCompilationHookOutput, ProcessAssetsArgs, RenderArgs, RenderChunkArgs,
-  RenderManifestArgs, RenderModuleContentArgs, RenderStartupArgs, Resolver, ResolverFactory, Stats,
-  ThisCompilationArgs,
+  JsChunkHashArgs, MakeParam, Module, ModuleArgs, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, NormalModuleFactoryContext,
+  OptimizeChunksArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
+  PluginBuildEndHookOutput, PluginChunkHashHookOutput, PluginCompilationHookOutput, PluginContext,
+  PluginFactorizeHookOutput, PluginJsChunkHashHookOutput, PluginMakeHookOutput,
+  PluginModuleHookOutput, PluginNormalModuleFactoryAfterResolveOutput,
+  PluginNormalModuleFactoryBeforeResolveOutput, PluginProcessAssetsOutput,
+  PluginRenderChunkHookOutput, PluginRenderHookOutput, PluginRenderManifestHookOutput,
+  PluginRenderModuleContentOutput, PluginRenderStartupHookOutput, PluginThisCompilationHookOutput,
+  ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
+  RenderStartupArgs, Resolver, ResolverFactory, Stats, ThisCompilationArgs,
 };
 
 pub struct PluginDriver {
@@ -448,9 +448,15 @@ impl PluginDriver {
   }
 
   #[instrument(name = "plugin:make", skip_all)]
-  pub async fn make(&self, compilation: &Compilation) -> PluginMakeHookOutput {
+  pub async fn make(
+    &self,
+    compilation: &mut Compilation,
+    param: &mut MakeParam,
+  ) -> PluginMakeHookOutput {
     for plugin in &self.plugins {
-      plugin.make(PluginContext::new(), compilation).await?;
+      plugin
+        .make(PluginContext::new(), compilation, param)
+        .await?;
     }
     Ok(())
   }
