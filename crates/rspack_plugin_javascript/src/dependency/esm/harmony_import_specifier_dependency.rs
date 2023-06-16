@@ -11,6 +11,7 @@ pub struct HarmonyImportSpecifierDependency {
   end: u32,
   // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
   ids: Option<JsWord>,
+  is_call: bool,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -20,6 +21,7 @@ impl HarmonyImportSpecifierDependency {
     end: u32,
     // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
     ids: Option<JsWord>,
+    is_call: bool,
   ) -> Self {
     Self {
       shorthand,
@@ -27,6 +29,7 @@ impl HarmonyImportSpecifierDependency {
       end,
       // harmony_harmony_import_dependency,
       ids,
+      is_call,
     }
   }
 
@@ -49,7 +52,7 @@ impl HarmonyImportSpecifierDependency {
         .map(|i| vec![i.clone()])
         .unwrap_or_default(),
       id,
-      false,
+      self.is_call,
     );
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);

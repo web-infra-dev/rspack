@@ -11,14 +11,16 @@ pub struct HarmonyExpressionHeaderDependency {
   pub start: u32,
   pub end: u32,
   pub declaration: bool,
+  pub function: bool,
 }
 
 impl HarmonyExpressionHeaderDependency {
-  pub fn new(start: u32, end: u32, declaration: bool) -> Self {
+  pub fn new(start: u32, end: u32, declaration: bool, function: bool) -> Self {
     Self {
       start,
       end,
       declaration,
+      function,
     }
   }
 }
@@ -30,7 +32,16 @@ impl CodeReplaceSourceDependency for HarmonyExpressionHeaderDependency {
     _code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
     if self.declaration {
+      // remove export default
       source.replace(self.start, self.end, "", None);
+    } else if self.function {
+      // hoist function
+      source.replace(
+        self.start,
+        self.end + 8, /* function len */
+        format!("function {DEFAULT_EXPORT}").as_str(),
+        None,
+      );
     } else {
       source.replace(
         self.start,

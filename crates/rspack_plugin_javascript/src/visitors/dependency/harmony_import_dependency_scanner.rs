@@ -9,8 +9,8 @@ use swc_core::{
   common::{Span, SyntaxContext},
   ecma::{
     ast::{
-      ExportAll, ExportSpecifier, Ident, ImportDecl, ImportSpecifier, ModuleExportName,
-      NamedExport, Program, Prop,
+      CallExpr, Callee, ExportAll, ExportSpecifier, Ident, ImportDecl, ImportSpecifier,
+      ModuleExportName, NamedExport, Program, Prop,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
@@ -221,6 +221,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
 }
 
 pub struct HarmonyImportRefDependencyScanner<'a> {
+  pub enter_callee: bool,
   pub import_map: &'a ImportMap,
   pub ref_dependencies: &'a mut FxHashMap<JsWord, Vec<HarmonyImportSpecifierDependency>>,
 }
@@ -233,6 +234,7 @@ impl<'a> HarmonyImportRefDependencyScanner<'a> {
     Self {
       import_map,
       ref_dependencies,
+      enter_callee: false,
     }
   }
 }
@@ -253,6 +255,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
               shorthand.span.real_lo(),
               shorthand.span.real_hi(),
               reference.1.clone(),
+              false,
             ));
         }
       }
@@ -271,8 +274,15 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           ident.span.real_lo(),
           ident.span.real_hi(),
           reference.1.clone(),
+          self.enter_callee,
         ));
     }
+  }
+
+  fn visit_callee(&mut self, callee: &Callee) {
+    self.enter_callee = true;
+    callee.visit_children_with(self);
+    self.enter_callee = false;
   }
 
   fn visit_import_decl(&mut self, _decl: &ImportDecl) {}

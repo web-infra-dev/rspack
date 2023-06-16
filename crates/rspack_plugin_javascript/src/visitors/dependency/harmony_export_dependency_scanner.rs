@@ -131,6 +131,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         export_default_expr.span().real_lo(),
         export_default_expr.expr.span().real_lo(),
         false,
+        false,
       )));
   }
 
@@ -155,6 +156,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         export_default_decl.span().real_lo(),
         export_default_decl.decl.span().real_lo(),
         ident.is_some(),
+        matches!(&export_default_decl.decl, DefaultDecl::Fn(_)),
       )));
   }
 }
