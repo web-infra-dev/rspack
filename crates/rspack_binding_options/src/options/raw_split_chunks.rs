@@ -3,9 +3,11 @@ use std::{collections::HashMap, sync::Arc};
 use derivative::Derivative;
 use napi::{Either, JsString};
 use napi_derive::napi;
+use new_split_chunks_plugin::ModuleTypeFilter;
 use rspack_core::SourceType;
 use rspack_napi_shared::{JsRegExp, JsStringExt};
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
+use rspack_regex::RspackRegex;
 use serde::Deserialize;
 
 type Chunks = Either<JsRegExp, JsString>;
@@ -126,6 +128,10 @@ pub struct RawCacheGroupOptions {
   #[napi(ts_type = "RegExp | 'async' | 'initial' | 'all'")]
   #[derivative(Debug = "ignore")]
   pub chunks: Option<Chunks>,
+  #[serde(skip_deserializing)]
+  #[napi(ts_type = "RegExp | string")]
+  #[derivative(Debug = "ignore")]
+  pub r#type: Option<Either<JsRegExp, JsString>>,
   //   pub automatic_name_delimiter: String,
   //   pub max_async_requests: usize,
   //   pub max_initial_requests: usize,
@@ -227,6 +233,11 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             .min_chunks
             .unwrap_or(if enforce { 1 } else { overall_min_chunks });
 
+          let r#type = v
+            .r#type
+            .map(create_module_type_filter)
+            .unwrap_or_else(rspack_plugin_split_chunks_new::create_default_module_type_filter);
+
           new_split_chunks_plugin::CacheGroup {
             id_hint: key.clone(),
             key,
@@ -250,6 +261,7 @@ impl From<RawSplitChunksOptions> for new_split_chunks_plugin::PluginOptions {
             max_initial_requests: u32::MAX,
             max_async_size,
             max_initial_size,
+            r#type,
           }
         }),
     );
@@ -302,4 +314,18 @@ pub struct RawFallbackCacheGroupOptions {
   pub max_size: Option<f64>,
   pub max_async_size: Option<f64>,
   pub max_initial_size: Option<f64>,
+}
+
+fn create_module_type_filter(raw: Either<JsRegExp, JsString>) -> ModuleTypeFilter {
+  match raw {
+    Either::A(js_reg) => {
+      let raw_reg = js_reg.source();
+      let regex = RspackRegex::new(&raw_reg).expect("Should be valid regex");
+      Arc::new(move |m| regex.test(m.module_type().as_str()))
+    }
+    Either::B(js_str) => {
+      let type_str = js_str.into_string();
+      Arc::new(move |m| m.module_type().as_str() == type_str.as_str())
+    }
+  }
 }

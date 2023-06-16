@@ -11,6 +11,11 @@ use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>;
+pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
+
+pub fn create_default_module_type_filter() -> ModuleTypeFilter {
+  Arc::new(|_| true)
+}
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
   Arc::new(|chunk, chunk_group_db| !chunk.can_be_initial(chunk_group_db))
