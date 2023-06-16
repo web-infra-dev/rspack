@@ -139,7 +139,7 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(
-        swc_visitor::define(&options.builtins.define, unresolved_mark, top_level_mark),
+        swc_visitor::define(&options.builtins.define),
         !options.builtins.define.is_empty()
       ),
       Optional::new(

@@ -1,16 +1,17 @@
 use std::sync::Arc;
 
 use rspack_core::Define;
+use swc_core::common::collections::AHashMap;
 use swc_core::ecma::parser::EsConfig;
+use swc_core::ecma::transforms::optimization::inline_globals2;
+use swc_core::ecma::utils::NodeIgnoringSpan;
 use swc_core::ecma::visit::Fold;
 use swc_core::{
   common::FileName,
   ecma::parser::{parse_file_as_expr, Syntax},
 };
-use swc_core::{common::Mark, ecma::visit::as_folder};
-use swc_ecma_minifier::globals_defs;
 
-pub fn define(opts: &Define, unresolved_mark: Mark, top_level_mark: Mark) -> impl Fold {
+pub fn define(opts: &Define) -> impl Fold {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let defs = opts
     .iter()
@@ -38,9 +39,14 @@ pub fn define(opts: &Define, unresolved_mark: Mark, top_level_mark: Mark) -> imp
         .unwrap_or_else(|_| panic!("builtins.define: Failed to parse {:?}", target))
       };
 
-      (target, replacement)
+      (NodeIgnoringSpan::owned(*target), *replacement)
     })
-    .collect::<Vec<_>>();
+    .collect::<AHashMap<_, _>>();
 
-  as_folder(globals_defs(defs, unresolved_mark, top_level_mark))
+  inline_globals2(
+    Default::default(),
+    Default::default(),
+    Arc::new(defs),
+    Default::default(),
+  )
 }
