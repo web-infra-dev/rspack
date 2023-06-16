@@ -155,8 +155,9 @@ const applyExperimentsDefaults = (
 		D(experiments.incrementalRebuild, "make", true);
 		D(experiments.incrementalRebuild, "emitAsset", true);
 	}
+
 	if (
-		!cache &&
+		cache === false &&
 		experiments.incrementalRebuild &&
 		experiments.incrementalRebuild.make
 	) {
