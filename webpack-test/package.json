@@ -5,9 +5,9 @@
   "license": "MIT",
   "main": "./dist/index.d.ts",
   "scripts": {
-    "test": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest  --logHeapUsage --runInBand --bail --forceExit",
-    "test:metric": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --forceExit --json | node scripts/test-metric.js",
-    "test:metric:json": "cross-env NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --json --forceExit"
+    "test": "cross-env RSPACK_WEBPACK_TEST=true NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest  --logHeapUsage --runInBand --bail --forceExit",
+    "test:metric": "cross-env  RSPACK_WEBPACK_TEST=true NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --forceExit --json | node scripts/test-metric.js",
+    "test:metric:json": "cross-env  RSPACK_WEBPACK_TEST=true NODE_OPTIONS=\"--experimental-vm-modules --max-old-space-size=4096  --trace-deprecation\" jest --logHeapUsage --runInBand --bail --json --forceExit"
   },
   "files": [
     "dist"

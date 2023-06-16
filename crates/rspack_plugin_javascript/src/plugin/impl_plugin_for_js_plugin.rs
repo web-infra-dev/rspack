@@ -20,7 +20,9 @@ use rspack_hash::RspackHash;
 use swc_config::config_types::BoolOrDataConfig;
 use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 
-use crate::parser_and_generator::JavaScriptParserAndGenerator;
+use crate::parser_and_generator::{
+  JavaScriptParserAndGenerator, JavaScriptStringReplaceParserAndGenerator,
+};
 // use crate::parser_and_generator::JavaScriptStringReplaceParserAndGenerator;
 use crate::{JsMinifyOptions, JsPlugin};
 
@@ -30,12 +32,14 @@ impl Plugin for JsPlugin {
     "javascript"
   }
   fn apply(&self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
-    let create_parser_and_generator =
-      move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
-
-    // let create_parser_and_generator = move || {
-    //   Box::new(JavaScriptStringReplaceParserAndGenerator::new()) as Box<dyn ParserAndGenerator>
-    // };
+    let enable_string_replace = std::env::var("RSPACK_WEBPACK_TEST").is_ok();
+    let create_parser_and_generator = if enable_string_replace {
+      move || {
+        Box::new(JavaScriptStringReplaceParserAndGenerator::new()) as Box<dyn ParserAndGenerator>
+      }
+    } else {
+      move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>
+    };
 
     ctx
       .context
