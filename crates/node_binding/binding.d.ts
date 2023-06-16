@@ -479,6 +479,7 @@ export interface RawCacheGroupOptions {
   test?: string
   /** What kind of chunks should be selected. */
   chunks?: RegExp | 'async' | 'initial' | 'all'
+  type?: RegExp | string
   minChunks?: number
   minSize?: number
   maxSize?: number
