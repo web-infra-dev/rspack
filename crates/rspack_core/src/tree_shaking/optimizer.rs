@@ -32,8 +32,9 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
-  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
+  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
+  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
+  NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -235,6 +236,7 @@ impl<'a> CodeSizeOptimizer<'a> {
           SymbolRef::Indirect(_) | SymbolRef::Star(_) => {
             continue;
           }
+          SymbolRef::Url { .. } => continue,
         }
         let index = self
           .symbol_graph
@@ -422,6 +424,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             }
           }
         }
+        dbg!(&reachable_dependency_identifier);
 
         let mgm = self
           .compilation
@@ -662,7 +665,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
-    // dbg!(&current_symbol_ref);
     if visited_symbol_ref.contains(&current_symbol_ref) {
       return;
     } else {
@@ -723,6 +725,13 @@ impl<'a> CodeSizeOptimizer<'a> {
           used_export_module_identifiers,
           *module_ident,
           ModuleUsedType::EXPORT_ALL,
+        );
+      }
+      SymbolRef::Url { src: uri, .. } => {
+        merge_used_export_type(
+          used_export_module_identifiers,
+          uri.clone(),
+          ModuleUsedType::DIRECT,
         );
       }
       _ => {}
@@ -1085,6 +1094,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         //   }
         // }
       }
+      SymbolRef::Url { .. } => {}
     }
   }
   #[allow(clippy::too_many_arguments)]
@@ -1263,13 +1273,13 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           AssetModule::new(*module_identifier).analyze(compilation)
         };
 
-        // dbg_matches!(
-        //   &module_identifier.as_str(),
-        //   &optimize_analyze_result.reachable_import_of_export,
-        //   &optimize_analyze_result.used_symbol_refs,
-        //   &optimize_analyze_result.export_map,
-        //   &optimize_analyze_result.import_map,
-        // );
+        dbg_matches!(
+          &module_identifier.as_str(),
+          &optimize_analyze_result.reachable_import_of_export,
+          &optimize_analyze_result.used_symbol_refs,
+          &optimize_analyze_result.export_map,
+          &optimize_analyze_result.import_map,
+        );
 
         Some((*module_identifier, optimize_analyze_result))
       })
@@ -1320,7 +1330,7 @@ fn update_reachable_dependency(
     let symbol = symbol_graph
       .get_symbol(&cur)
       .expect("Can't get Symbol of NodeIndex");
-    let module_identifier = symbol.importer();
+    let module_identifier = symbol.module_identifier();
     if module_identifier == root_module_identifier {
       for ele in symbol_graph
         .graph

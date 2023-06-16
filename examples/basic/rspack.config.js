@@ -15,7 +15,7 @@ const config = {
 	},
 	optimization: {
 		moduleIds: 'named',
-		sideEffects: 'flag',
+		sideEffects:true,
 		minimize: false
 	},
 	stats: "all"

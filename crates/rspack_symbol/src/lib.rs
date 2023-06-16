@@ -309,7 +309,7 @@ impl PartialEq for SymbolExt {
   }
 }
 
-/// This enum hold a `Id` from `swc` or a simplified member expr with a `Id` and a `JsWord`
+/// This enum hold any possible part of the original code, maybe a `Id` from `swc` or a simplified member expr with a `Id` and a `JsWord`
 /// This is useful when we want to tree-shake the namespace access property e.g.
 /// assume we have
 ///
@@ -326,12 +326,13 @@ impl PartialEq for SymbolExt {
 /// In such scenario only `a` from `a.js` is used, `a.b` is unused.
 /// We use [BetterIdOrMemExpr::MemberExpr] to represent namespace access
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum IdOrMemExpr {
+pub enum Part {
   Id(BetterId),
   MemberExpr { object: BetterId, property: JsWord },
+  Url(JsWord),
 }
 
-impl IdOrMemExpr {
+impl Part {
   /// Returns `true` if the better id or mem expr is [`Id`].
   ///
   /// [`Id`]: BetterIdOrMemExpr::Id
@@ -348,10 +349,11 @@ impl IdOrMemExpr {
     matches!(self, Self::MemberExpr { .. })
   }
 
-  pub fn get_id(&self) -> &BetterId {
+  pub fn get_id(&self) -> Option<&BetterId> {
     match self {
-      IdOrMemExpr::Id(id) => id,
-      IdOrMemExpr::MemberExpr { object, .. } => object,
+      Part::Id(id) => Some(id),
+      Part::MemberExpr { object, .. } => Some(object),
+      Part::Url(_) => None,
     }
   }
 }

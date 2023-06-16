@@ -142,5 +142,9 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
       star.module_ident(),
       star.ty(),
     )),
+    SymbolRef::Url { importer, src } => SymbolRef::Url {
+      importer: contextify(context, importer.as_str()).into(),
+      src: contextify(context, src.as_str()).into(),
+    },
   }
 }
