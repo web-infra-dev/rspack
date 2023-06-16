@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use swc_core::base::config::ModuleConfig;
 use swc_core::common::FileName;
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
 use swc_core::ecma::ast::EsVersion;
@@ -7,8 +8,6 @@ use swc_core::ecma::transforms::base::feature::{
   enable_available_feature_from_es_version, FeatureFlag,
 };
 use swc_core::ecma::visit::Fold;
-
-use crate::visitors::config::ModuleConfig;
 
 pub fn build_module<'a>(
   cm: &Arc<SourceMap>,

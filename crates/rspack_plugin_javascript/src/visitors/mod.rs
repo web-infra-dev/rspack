@@ -3,6 +3,7 @@ use std::collections::LinkedList;
 use std::path::{Path, PathBuf};
 
 pub use dependency::*;
+use swc_core::base::config::ModuleConfig;
 use xxhash_rust::xxh32::xxh32;
 mod finalize;
 use either::Either;
@@ -34,10 +35,8 @@ use swc_core::ecma::transforms::module::common_js::Config as CommonjsConfig;
 use swc_emotion::EmotionOptions;
 use tree_shaking::tree_shaking_visitor;
 mod async_module;
-mod config;
 
 use crate::visitors::async_module::{build_async_module, build_await_dependencies};
-use crate::visitors::config::ModuleConfig;
 use crate::visitors::plugin_import::plugin_import;
 use crate::visitors::relay::relay;
 use crate::visitors::tree_shaking::MarkInfo;
@@ -70,7 +69,7 @@ pub fn run_before_pass(
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
-  ast.transform_with_handler(cm.clone(), |handler, program, context| {
+  ast.transform_with_handler(cm.clone(), |_handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
     let comments = None;
@@ -140,7 +139,7 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(
-        swc_visitor::define(&options.builtins.define, handler, &cm),
+        swc_visitor::define(&options.builtins.define, unresolved_mark, top_level_mark),
         !options.builtins.define.is_empty()
       ),
       Optional::new(
