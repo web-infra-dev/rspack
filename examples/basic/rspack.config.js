@@ -14,9 +14,7 @@ const config = {
 		teeShaking: true
 	},
 	optimization: {
-		moduleIds: 'named',
 		sideEffects:true,
-		minimize: false
 	},
 	stats: "all"
 };

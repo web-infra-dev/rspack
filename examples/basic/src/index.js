@@ -1,2 +1,4 @@
 import init from "@swc/wasm-web";
-init()
+init().then(res => {
+	console.log(res)
+})

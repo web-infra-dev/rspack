@@ -84,9 +84,9 @@ impl ConvertModulePath for SymbolRef {
 
 impl ConvertModulePath for Symbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_uri(
+    self.set_src(
       module_graph
-        .normal_module_source_path_by_identifier(&self.uri())
+        .normal_module_source_path_by_identifier(&self.src())
         .expect("Can't get module source path by identifier")
         .as_ref()
         .into(),

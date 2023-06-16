@@ -127,7 +127,7 @@ pub fn generate_debug_symbol_graph(
 pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
   match symbol_ref {
     SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
-      contextify(context, direct.uri().as_str()).into(),
+      contextify(context, direct.src().as_str()).into(),
       direct.id().clone(),
       *direct.ty(),
     )),

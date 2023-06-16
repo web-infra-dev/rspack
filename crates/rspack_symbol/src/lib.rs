@@ -19,7 +19,7 @@ bitflags! {
 }
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Symbol {
-  pub(crate) uri: Identifier,
+  pub(crate) src: Identifier,
   pub(crate) id: BetterId,
   pub(crate) ty: SymbolType,
 }
@@ -31,12 +31,12 @@ pub enum SymbolType {
 }
 
 impl Symbol {
-  pub fn new(uri: Identifier, id: BetterId, ty: SymbolType) -> Self {
-    Self { uri, id, ty }
+  pub fn new(src: Identifier, id: BetterId, ty: SymbolType) -> Self {
+    Self { src, id, ty }
   }
 
-  pub fn uri(&self) -> Identifier {
-    self.uri
+  pub fn src(&self) -> Identifier {
+    self.src
   }
 
   pub fn id(&self) -> &BetterId {
@@ -47,8 +47,8 @@ impl Symbol {
     &self.ty
   }
 
-  pub fn set_uri(&mut self, uri: Identifier) {
-    self.uri = uri;
+  pub fn set_src(&mut self, uri: Identifier) {
+    self.src = uri;
   }
 }
 

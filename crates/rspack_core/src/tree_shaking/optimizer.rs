@@ -229,7 +229,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       for symbol_ref in self.symbol_graph.symbol_refs() {
         match symbol_ref {
           SymbolRef::Direct(direct) => {
-            if direct.id().atom != serde_symbol.id || !direct.uri().contains(&serde_symbol.uri) {
+            if direct.id().atom != serde_symbol.id || !direct.src().contains(&serde_symbol.uri) {
               continue;
             }
           }
@@ -683,14 +683,12 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.symbol_graph.add_node(&current_symbol_ref);
     // We don't need mark the symbol usage if it is from a bailout module because
     // bailout module will skipping tree-shaking anyway
-    let is_bailout_module_identifier = self
-      .bailout_modules
-      .contains_key(&current_symbol_ref.module_identifier());
+    let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
     match &current_symbol_ref {
       SymbolRef::Direct(symbol) => {
         merge_used_export_type(
           used_export_module_identifiers,
-          symbol.uri(),
+          symbol.src(),
           ModuleUsedType::DIRECT,
         );
       }
@@ -738,7 +736,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     };
     match current_symbol_ref {
       SymbolRef::Direct(ref symbol) => {
-        let module_result = analyze_map.get(&symbol.uri()).expect("TODO:");
+        let module_result = analyze_map.get(&symbol.src()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
           .get(&symbol.id().atom)
@@ -913,7 +911,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 );
                 merge_used_export_type(
                   used_export_module_identifiers,
-                  current_symbol_ref.module_identifier(),
+                  current_symbol_ref.src(),
                   ModuleUsedType::INDIRECT,
                 );
 
@@ -1295,28 +1293,6 @@ fn update_reachable_dependency(
   bailout_modules: &IdentifierMap<BailoutFlag>,
 ) {
   let root_module_identifier = symbol_ref.importer();
-  // reachable_dependency_identifier.insert(root_module_identifier);
-  // FIXME: currently we don't analyze export info of bailout module like commonjs,
-  // it may cause we don't include bailout module in such scenario:
-  // ```js
-  // //index.js
-  // import * as all from './lib.js'
-  // all
-  // // lib.js
-  // exports['a'] = 1000;
-  // ```
-  // This code would let lib.js be unreachable when it is marked as sideEffects false.
-  // Currently we use such a workaround make bailout module reachable.
-  if matches!(
-    symbol_ref,
-    SymbolRef::Star(StarSymbol {
-      ty: StarSymbolKind::ImportAllAs,
-      ..
-    })
-  ) && bailout_modules.contains_key(&symbol_ref.module_identifier())
-  {
-    reachable_dependency_identifier.insert(symbol_ref.module_identifier());
-  }
   let node_index = *symbol_graph
     .get_node_index(symbol_ref)
     .unwrap_or_else(|| panic!("Can't get NodeIndex of {symbol_ref:?}"));
@@ -1331,7 +1307,7 @@ fn update_reachable_dependency(
     let symbol = symbol_graph
       .get_symbol(&cur)
       .expect("Can't get Symbol of NodeIndex");
-    let module_identifier = symbol.importer();
+    let module_identifier = symbol.src();
     if module_identifier == root_module_identifier {
       for ele in symbol_graph
         .graph

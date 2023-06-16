@@ -46,9 +46,9 @@ pub enum SymbolRef {
 }
 
 impl SymbolRef {
-  pub fn module_identifier(&self) -> ModuleIdentifier {
+  pub fn src(&self) -> ModuleIdentifier {
     match self {
-      SymbolRef::Direct(d) => d.uri(),
+      SymbolRef::Direct(d) => d.src(),
       SymbolRef::Indirect(i) => i.src(),
       SymbolRef::Star(s) => s.src(),
       SymbolRef::Url { src, .. } => src.clone(),
@@ -57,7 +57,7 @@ impl SymbolRef {
 
   pub fn importer(&self) -> ModuleIdentifier {
     match self {
-      SymbolRef::Direct(d) => d.uri(),
+      SymbolRef::Direct(d) => d.src(),
       SymbolRef::Indirect(i) => i.importer,
       SymbolRef::Star(s) => s.module_ident(),
       SymbolRef::Url { importer, .. } => importer.clone(),
@@ -656,6 +656,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             _ => {}
           }
         }
+      }
+    }
+    new_expr.callee.visit_with(self);
+    if let Some(args) = &new_expr.args {
+      for ele in args {
+        ele.visit_with(self);
       }
     }
   }
