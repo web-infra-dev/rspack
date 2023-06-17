@@ -14,6 +14,7 @@ thread_local! {
 }
 
 pub use crate::{
-  ext::js_string_ext::JsStringExt, js_values::js_reg_exp::JsRegExp,
+  ext::{js_reg_exp_ext::JsRegExpExt, js_string_ext::JsStringExt},
+  js_values::js_reg_exp::JsRegExp,
   utils::object_prototype_to_string_call,
 };

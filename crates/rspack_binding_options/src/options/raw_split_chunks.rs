@@ -5,9 +5,8 @@ use napi::{Either, JsString};
 use napi_derive::napi;
 use new_split_chunks_plugin::ModuleTypeFilter;
 use rspack_core::SourceType;
-use rspack_napi_shared::{JsRegExp, JsStringExt};
+use rspack_napi_shared::{JsRegExp, JsRegExpExt, JsStringExt};
 use rspack_plugin_split_chunks::{CacheGroupOptions, ChunkType, SplitChunksOptions, TestFn};
-use rspack_regex::RspackRegex;
 use serde::Deserialize;
 
 type Chunks = Either<JsRegExp, JsString>;
@@ -156,8 +155,7 @@ use rspack_plugin_split_chunks_new as new_split_chunks_plugin;
 fn create_chunks_filter(raw: Chunks) -> rspack_plugin_split_chunks_new::ChunkFilter {
   match raw {
     Either::A(reg) => {
-      let reg = reg.source();
-      rspack_plugin_split_chunks_new::create_regex_chunk_filter_from_str(&reg)
+      rspack_plugin_split_chunks_new::create_regex_chunk_filter_from_str(reg.to_rspack_regex())
     }
     Either::B(str) => {
       let str = str.into_string();
@@ -319,8 +317,7 @@ pub struct RawFallbackCacheGroupOptions {
 fn create_module_type_filter(raw: Either<JsRegExp, JsString>) -> ModuleTypeFilter {
   match raw {
     Either::A(js_reg) => {
-      let raw_reg = js_reg.source();
-      let regex = RspackRegex::new(&raw_reg).expect("Should be valid regex");
+      let regex = js_reg.to_rspack_regex();
       Arc::new(move |m| regex.test(m.module_type().as_str()))
     }
     Either::B(js_str) => {
