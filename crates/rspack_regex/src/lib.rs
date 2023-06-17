@@ -1,7 +1,6 @@
-#![feature(try_blocks)]
+#![feature(let_chains)]
 
-use regress::Regex;
-use rspack_error::{internal_error, Error};
+use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
 
 use self::algo::Algo;
@@ -20,23 +19,13 @@ impl RspackRegex {
   }
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
-    Regex::with_flags(expr, flags)
-      .map(|regex| RspackRegex {
-        algo: Algo::Regress(regex),
-      })
-      .map_err(|_| internal_error!("Can't construct regex `/{expr}/{flags}`"))
+    Ok(Self {
+      algo: Algo::new(expr, flags)?,
+    })
   }
 
   pub fn new(expr: &str) -> Result<Self, Error> {
-    Regex::with_flags(expr, "")
-      .map(|regex| RspackRegex {
-        algo: Algo::Regress(regex),
-      })
-      .map_err(|_| internal_error!("Can't construct regex `/{}/{}`", expr, ""))
-  }
-
-  pub fn new_with_optimized(expr: &str) -> Result<Self, Error> {
-    Algo::new(expr, "").map(|algo| RspackRegex { algo })
+    Self::with_flags(expr, "")
   }
 }
 

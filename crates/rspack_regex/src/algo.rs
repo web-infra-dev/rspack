@@ -4,15 +4,20 @@ use rspack_error::{internal_error, Error};
 
 #[derive(Clone, Debug)]
 pub enum Algo {
-  /// See details at https://github.com/web-infra-dev/rspack/pull/3113
-  EndWith { pats: Vec<String> },
   /// Regress is considered having the same behaviors as RegExp in JS.
+  /// But Regress has poor performance. To improve performance of regex matching,
+  /// we would try to use some fast algo to do matching, when we detect some special pattern.
+  /// See details at https://github.com/web-infra-dev/rspack/pull/3113
+  EndWith {
+    pats: Vec<String>,
+  },
   Regress(regress::Regex),
 }
 
 impl Algo {
-  pub fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
-    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr) {
+  pub(crate) fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
+    let ignore_case = flags.contains('i');
+    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr) && !ignore_case {
       Ok(algo)
     } else {
       regress::Regex::with_flags(expr, flags)
@@ -23,7 +28,7 @@ impl Algo {
     }
   }
 
-  pub fn try_compile_to_end_with_fast_path(expr: &str) -> Option<Algo> {
+  fn try_compile_to_end_with_fast_path(expr: &str) -> Option<Algo> {
     let hir = regex_syntax::parse(expr).ok()?;
     let seq = regex_syntax::hir::literal::Extractor::new()
       .kind(ExtractKind::Suffix)
@@ -47,13 +52,21 @@ impl Algo {
       Algo::EndWith { pats } => pats.iter().any(|pat| str.ends_with(pat)),
     }
   }
+}
 
-  #[cfg(test)]
+#[cfg(test)]
+impl Algo {
+  fn end_with_pats(&self) -> std::collections::HashSet<&str> {
+    match self {
+      Algo::EndWith { pats } => pats.iter().map(|s| s.as_str()).collect(),
+      Algo::Regress(_) => panic!("expect EndWith"),
+    }
+  }
+
   fn is_end_with(&self) -> bool {
     matches!(self, Self::EndWith { .. })
   }
 
-  #[cfg(test)]
   fn is_regress(&self) -> bool {
     matches!(self, Self::Regress(..))
   }
@@ -71,11 +84,25 @@ fn is_ends_with_regex(hir: &Hir) -> bool {
 #[cfg(test)]
 mod test_algo {
   use super::*;
+
   #[test]
-  fn check_fast_path() {
+  fn should_use_end_with_algo_with_i_flag() {
     assert!(Algo::new("\\.js$", "").unwrap().is_end_with());
-    assert!(Algo::new("\\.(jsx?|tsx?)$", "").unwrap().is_end_with());
-    assert!(Algo::new("\\.(svg|png)$", "").unwrap().is_end_with());
+    assert!(!Algo::new("\\.js$", "i").unwrap().is_end_with());
+  }
+
+  #[test]
+  fn correct_end_with() {
+    use std::collections::HashSet;
+    let algo = Algo::new("\\.js$", "").unwrap();
+    assert_eq!(algo.end_with_pats(), HashSet::from([".js"]));
+    let algo = Algo::new("\\.(jsx?|tsx?)$", "").unwrap();
+    assert_eq!(
+      algo.end_with_pats(),
+      HashSet::from([".jsx", ".tsx", ".js", ".ts"])
+    );
+    let algo = Algo::new("\\.(svg|png)$", "").unwrap();
+    assert_eq!(algo.end_with_pats(), HashSet::from([".svg", ".png"]));
   }
 
   #[test]
