@@ -46,15 +46,6 @@ fn regex_assert(code: &str) {
           Some(Lit::Str(str)) => str.value.to_string(),
           _ => unreachable!(),
         };
-        if let Some(Lit::Regex(reg)) = regex.expr.as_lit() {
-          let rspack_reg = RspackRegex::try_from(reg.clone()).expect("TODO:");
-          match t {
-            AssertType::False => assert!(rspack_reg.find(&string_lit).is_none()),
-            AssertType::True => assert!(rspack_reg.find(&string_lit).is_some()),
-          }
-        } else {
-          unreachable!()
-        }
       }
 
       _ => {

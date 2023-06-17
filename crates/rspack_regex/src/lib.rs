@@ -1,4 +1,6 @@
-use regress::{Match, Matches, Regex};
+#![feature(try_blocks)]
+
+use regress::Regex;
 use rspack_error::{internal_error, Error};
 use swc_core::ecma::ast::Regex as SwcRegex;
 
@@ -13,28 +15,8 @@ pub struct RspackRegex {
 }
 
 impl RspackRegex {
-  /// # Panic
-  /// [Algo::FastCustom] does not implement `find`, this method may panic if original
-  /// regex could be optimized by fast path
-  pub fn find(&self, text: &str) -> Option<Match> {
-    match &self.algo {
-      Algo::FastCustom(_) => panic!("Algo::FastCustom does not implement `find`"),
-      Algo::Regress(regex) => regex.find(text),
-    }
-  }
-
   pub fn test(&self, text: &str) -> bool {
     self.algo.test(text)
-  }
-
-  /// # Panic
-  /// [Algo::FastCustom] does not implement `find_iter`, this method may panic if original
-  /// regex could be optimized by fast path
-  pub fn find_iter<'r, 't>(&'r self, text: &'t str) -> Matches<'r, 't> {
-    match &self.algo {
-      Algo::FastCustom(_) => panic!("Algo::FastCustom does not implement `find_iter`"),
-      Algo::Regress(regex) => regex.find_iter(text),
-    }
   }
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
