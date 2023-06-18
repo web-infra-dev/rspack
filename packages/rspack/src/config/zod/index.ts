@@ -16,6 +16,7 @@ import { devtool } from "./devtool";
 import { optimization } from "./optimization";
 import { resolve } from "./resolve";
 import { plugins } from "./plugins";
+import { moduleSchema } from "./module";
 
 export function configSchema() {
 	return z
@@ -41,13 +42,12 @@ export function configSchema() {
 			optimization: optimization().optional(),
 			resolve: resolve().optional(),
 			plugins: plugins().optional(),
-			// TODO(hyf0): what's the usage of this?
+			module: moduleSchema().optional(),
 			name: z.string().optional(),
 			// TODO
 			devServer: z.object({}).optional(),
 			output: output().optional(),
-			builtins: builtins().optional(),
-			module: z.any().optional()
+			builtins: builtins().optional()
 		})
 		.strict();
 }
