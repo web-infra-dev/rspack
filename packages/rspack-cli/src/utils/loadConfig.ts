@@ -37,6 +37,8 @@ const registerLoader = (configPath: string) => {
 		if (failures) {
 			const messages = failures.map(failure => failure.error.message);
 			throw new Error(`${messages.join("\n")}`);
+		} else {
+			throw error;
 		}
 	}
 };
