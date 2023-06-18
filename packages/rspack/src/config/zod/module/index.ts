@@ -2,7 +2,7 @@ import { z } from "zod";
 import { rules } from "./rules";
 import { generator } from "./generator";
 
-export function moduleSchema() {
+export function module() {
 	return z.strictObject({
 		defaultRules: rules().optional(),
 		rules: rules().optional(),

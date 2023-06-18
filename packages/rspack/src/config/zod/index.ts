@@ -16,7 +16,7 @@ import { devtool } from "./devtool";
 import { optimization } from "./optimization";
 import { resolve } from "./resolve";
 import { plugins } from "./plugins";
-import { moduleSchema } from "./module";
+import { module } from "./module";
 
 export function configSchema() {
 	return z
@@ -42,7 +42,7 @@ export function configSchema() {
 			optimization: optimization().optional(),
 			resolve: resolve().optional(),
 			plugins: plugins().optional(),
-			module: moduleSchema().optional(),
+			module: module().optional(),
 			name: z.string().optional(),
 			// TODO
 			devServer: z.object({}).optional(),
