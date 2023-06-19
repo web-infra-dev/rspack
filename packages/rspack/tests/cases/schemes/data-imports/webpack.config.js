@@ -1,3 +1,19 @@
+const path = require("path");
+
+const pluginName = "plugin";
+class Plugin {
+	apply(compiler) {
+		compiler.hooks.afterCompile.tap(pluginName, compilation => {
+			const deps = [
+				...compilation.fileDependencies,
+				...compilation.contextDependencies,
+				...compilation.missingDependencies,
+				...compilation.buildDependencies
+			];
+			expect(deps.every(item => path.isAbsolute(item))).toBe(true);
+		});
+	}
+}
 /** @type {import('webpack').Configuration} */
 module.exports = {
 	module: {
@@ -18,6 +34,7 @@ module.exports = {
 			}
 		]
 	},
+	plugins: [new Plugin()],
 	experiments: {
 		css: true
 	}
