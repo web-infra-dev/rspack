@@ -237,10 +237,8 @@ importers:
   examples/basic:
     specifiers:
       '@rspack/cli': workspace:*
-      '@swc/wasm-web': ^1.3.64
     devDependencies:
       '@rspack/cli': link:../../packages/rspack-cli
-      '@swc/wasm-web': 1.3.64
 
   examples/builtin-swc-loader:
     specifiers:
@@ -9913,10 +9911,6 @@ packages:
     dependencies:
       tslib: 2.5.0
 
-  /@swc/wasm-web/1.3.64:
-    resolution: {integrity: sha512-AwPEUzprDwy2JpSqf3aejxE5fTreaAn5e/DY/p+F8rHdj/mkvW9oK13yg7kCODq2RO7bd25MQJqTUeAJHjLPjA==}
-    dev: true
-
   /@szmarczak/http-timer/1.1.2:
     resolution: {integrity: sha512-XIB2XbzHTN6ieIjfIMV9hlVcfPU26s2vafYWQcZHWXHOxiaRZYEDKEwdl129Zyg50+foYV2jCgtrqSA6qNuNSA==}
     engines: {node: '>=6'}
@@ -12193,14 +12187,6 @@ packages:
       ajv: 6.12.6
     dev: true
 
-  /ajv-formats/2.1.1:
-    resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
-    peerDependenciesMeta:
-      ajv:
-        optional: true
-    dependencies:
-      ajv: 8.12.0
-
   /ajv-formats/2.1.1_ajv@8.12.0:
     resolution: {integrity: sha512-Wx0Kx52hxE7C18hkMEggYlEifqWZtYaRgouJor+WMdPnQyEK13vgEWyVNup7SoeeoLMsr4kf5h6dOW11I15MUA==}
     peerDependencies:
@@ -12676,7 +12662,7 @@ packages:
     dependencies:
       '@babel/core': 7.21.0
       find-cache-dir: 3.3.2
-      schema-utils: 4.0.1
+      schema-utils: 4.0.0
     dev: true
 
   /babel-loader/9.1.2_raxzjdae5xi72du35zy3bmcfvy:
@@ -24441,7 +24427,7 @@ packages:
     dependencies:
       '@types/json-schema': 7.0.11
       ajv: 8.12.0
-      ajv-formats: 2.1.1
+      ajv-formats: 2.1.1_ajv@8.12.0
       ajv-keywords: 5.1.0_ajv@8.12.0
 
   /scroll-into-view-if-needed/2.2.20:
@@ -26177,7 +26163,7 @@ packages:
       schema-utils: 3.1.2
       serialize-javascript: 6.0.1
       terser: 5.17.1
-      webpack: 5.76.0_webpack-cli@4.10.0
+      webpack: 5.76.0
 
   /terser/5.16.1:
     resolution: {integrity: sha512-xvQfyfA1ayT0qdK47zskQgRZeWLoOQ8JQ6mIgRGVNwZKdQMU+5FkCBjmv4QjcrTzyZquRw2FVtlJSRUmMKQslw==}
@@ -27594,6 +27580,7 @@ packages:
       rechoir: 0.7.1
       webpack: 5.76.0_webpack-cli@4.10.0
       webpack-merge: 5.9.0
+    dev: true
 
   /webpack-dev-middleware/5.3.3:
     resolution: {integrity: sha512-hj5CYrY0bZLB+eTO+x/j67Pkrquiy7kWepMHmUMoPsmcUaeEnQJqFzHJOyxgWlq746/wUuA64p9ta34Kyb01pA==}
@@ -27867,6 +27854,7 @@ packages:
     dependencies:
       clone-deep: 4.0.1
       wildcard: 2.0.0
+    dev: true
 
   /webpack-sources/2.3.1:
     resolution: {integrity: sha512-y9EI9AO42JjEcrTJFOYmVywVZdKVUfOvDUPsJea5GIr1JOEGFVqwlY2K098fFoIjOkDzHn2AjRvM8dsBZu+gCA==}
