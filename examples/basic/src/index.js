@@ -1,4 +1,7 @@
-import init from "@swc/wasm-web";
-init().then(res => {
-	console.log(res)
-})
+import { answer } from "./answer";
+function render() {
+	document.getElementById(
+		"root"
+	).innerHTML = `the answer to the universe is ${answer}`;
+}
+render();

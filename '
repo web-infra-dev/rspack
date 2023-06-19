@@ -724,7 +724,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         );
       }
       SymbolRef::Url { src, .. } => {
-        merge_used_export_type(used_export_module_identifiers, *src, ModuleUsedType::DIRECT);
+        merge_used_export_type(used_export_module_identifiers, src, ModuleUsedType::DIRECT);
       }
       _ => {}
     };

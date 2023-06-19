@@ -51,7 +51,7 @@ impl SymbolRef {
       SymbolRef::Direct(d) => d.src(),
       SymbolRef::Indirect(i) => i.src(),
       SymbolRef::Star(s) => s.src(),
-      SymbolRef::Url { src, .. } => src.clone(),
+      SymbolRef::Url { src, .. } => *src,
     }
   }
 
@@ -60,7 +60,7 @@ impl SymbolRef {
       SymbolRef::Direct(d) => d.src(),
       SymbolRef::Indirect(i) => i.importer,
       SymbolRef::Star(s) => s.module_ident(),
-      SymbolRef::Url { importer, .. } => importer.clone(),
+      SymbolRef::Url { importer, .. } => *importer,
     }
   }
   /// Returns `true` if the symbol ref is [`Direct`].
@@ -331,7 +331,8 @@ impl<'a> ModuleRefAnalyze<'a> {
               self.module_identifier,
               IndirectType::Import(property.clone(), None),
             )),
-            SymbolRef::Url { importer, src: uri } => unreachable!(),
+            // It is impossible to import a URL
+            SymbolRef::Url { .. } => unreachable!(),
           })
         }
         Part::Url(src) => {
@@ -344,7 +345,7 @@ impl<'a> ModuleRefAnalyze<'a> {
 
           Some(SymbolRef::Url {
             importer: self.module_identifier,
-            src: src_module_id.clone(),
+            src: *src_module_id,
           })
         }
       })
@@ -465,7 +466,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                     ));
                   return HashSet::from_iter([SymbolRef::Url {
                     importer: self.module_identifier,
-                    src: src_module_id.clone(),
+                    src: *src_module_id,
                   }]);
                 }
               };
@@ -512,7 +513,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
                 return HashSet::from_iter([SymbolRef::Url {
                   importer: self.module_identifier,
-                  src: src_module_id.clone(),
+                  src: *src_module_id,
                 }]);
               }
             };
@@ -551,14 +552,11 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         Part::Url(src) => {
           let src_module_id = self
             .resolve_module_identifier(src, &DependencyType::NewUrl)
-            .expect(&format!(
-              "Can't resolve {} in {}",
-              src, self.module_identifier
-            ));
+            .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           let url = SymbolRef::Url {
             importer: self.module_identifier,
-            src: src_module_id.clone(),
+            src: *src_module_id,
           };
           self.used_symbol_ref.insert(url);
         }
@@ -653,7 +651,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
             None => {
               self.used_id_set.insert(src);
             }
-            _ => {}
           }
         }
       }

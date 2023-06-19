@@ -5,12 +5,11 @@
   "main": "index.js",
   "private": true,
   "scripts": {
-    "dev": "rspack serve -c rspack.config.js",
-    "build": "rspack build -c rspack.config.js"
+    "dev": "rspack serve",
+    "build": "rspack build"
   },
   "devDependencies": {
-    "@rspack/cli": "workspace:*",
-    "@swc/wasm-web": "^1.3.64"
+    "@rspack/cli": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],

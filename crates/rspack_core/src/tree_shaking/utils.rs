@@ -136,7 +136,7 @@ impl ConvertModulePath for StarSymbol {
 }
 
 impl ConvertModulePath for ModuleIdentifier {
-  fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
+  fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
     module_graph
       .normal_module_source_path_by_identifier(&self)
       .expect("Can't get module source path by identifier")
