@@ -22,6 +22,10 @@ import {
 import type {
 	AvailableTarget,
 	Context,
+	Entry,
+	EntryDescription,
+	EntryDescriptionNormalized,
+	EntryNormalized,
 	ExperimentsNormalized,
 	ExternalsPresets,
 	InfrastructureLogging,
@@ -86,7 +90,8 @@ export const applyRspackOptionsDefaults = (
 			(typeof target === "string" && target.startsWith("browserslist")) ||
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
-		outputModule: options.experiments.outputModule
+		outputModule: options.experiments.outputModule,
+		entry: options.entry
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -344,12 +349,14 @@ const applyOutputDefaults = (
 		context,
 		outputModule,
 		targetProperties: tp,
-		isAffectedByBrowserslist
+		isAffectedByBrowserslist,
+		entry
 	}: {
 		context: Context;
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
+		entry: EntryNormalized;
 	}
 ) => {
 	F(output, "uniqueName", () => {
@@ -477,21 +484,6 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
-	A(output, "enabledChunkLoadingTypes", () => {
-		const enabledChunkLoadingTypes = new Set<string>();
-		if (output.chunkLoading) {
-			enabledChunkLoadingTypes.add(output.chunkLoading);
-		}
-		// if (output.workerChunkLoading) {
-		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
-		// }
-		// forEachEntry(desc => {
-		// 	if (desc.chunkLoading) {
-		// 		enabledChunkLoadingTypes.add(desc.chunkLoading);
-		// 	}
-		// });
-		return Array.from(enabledChunkLoadingTypes);
-	});
 	F(output, "wasmLoading", () => {
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
@@ -503,14 +495,6 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
-	A(output, "enabledLibraryTypes", () => {
-		const enabledLibraryTypes = [];
-		if (output.library) {
-			enabledLibraryTypes.push(output.library.type);
-		}
-		// TODO respect entryOptions.library
-		return enabledLibraryTypes;
-	});
 	F(output, "globalObject", () => {
 		if (tp) {
 			if (tp.global) return "global";
@@ -520,7 +504,49 @@ const applyOutputDefaults = (
 	});
 	D(output, "importFunctionName", "import");
 	F(output, "clean", () => !!output.clean);
+	D(output, "crossOriginLoading", false);
+	F(output, "sourceMapFilename", () => {
+		return "[file].map";
+	});
 
+	const { trustedTypes } = output;
+	if (trustedTypes) {
+		F(
+			trustedTypes,
+			"policyName",
+			() =>
+				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
+		);
+	}
+
+	const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
+		for (const name of Object.keys(entry)) {
+			fn(entry[name]);
+		}
+	};
+	A(output, "enabledLibraryTypes", () => {
+		const enabledLibraryTypes = [];
+		if (output.library) {
+			enabledLibraryTypes.push(output.library.type);
+		}
+		// TODO respect entryOptions.library
+		return enabledLibraryTypes;
+	});
+	A(output, "enabledChunkLoadingTypes", () => {
+		const enabledChunkLoadingTypes = new Set<string>();
+		if (output.chunkLoading) {
+			enabledChunkLoadingTypes.add(output.chunkLoading);
+		}
+		// if (output.workerChunkLoading) {
+		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
+		// }
+		forEachEntry(desc => {
+			if (desc.chunkLoading) {
+				enabledChunkLoadingTypes.add(desc.chunkLoading);
+			}
+		});
+		return Array.from(enabledChunkLoadingTypes);
+	});
 	A(output, "enabledWasmLoadingTypes", () => {
 		const enabledWasmLoadingTypes = new Set<string>();
 		if (output.wasmLoading) {
@@ -535,21 +561,6 @@ const applyOutputDefaults = (
 		// 	}
 		// });
 		return Array.from(enabledWasmLoadingTypes);
-	});
-
-	D(output, "crossOriginLoading", false);
-
-	const { trustedTypes } = output;
-	if (trustedTypes) {
-		F(
-			trustedTypes,
-			"policyName",
-			() =>
-				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
-		);
-	}
-	F(output, "sourceMapFilename", () => {
-		return "[file].map";
 	});
 };
 
