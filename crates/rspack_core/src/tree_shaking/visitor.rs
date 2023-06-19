@@ -338,10 +338,7 @@ impl<'a> ModuleRefAnalyze<'a> {
         Part::Url(src) => {
           let src_module_id = self
             .resolve_module_identifier(src, &DependencyType::NewUrl)
-            .expect(&format!(
-              "Can't resolve {} in {}",
-              src, self.module_identifier
-            ));
+            .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
           Some(SymbolRef::Url {
             importer: self.module_identifier,
@@ -460,10 +457,9 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
                 Part::Url(src) => {
                   let src_module_id = self
                     .resolve_module_identifier(src, &DependencyType::NewUrl)
-                    .expect(&format!(
-                      "Can't resolve {} in {}",
-                      src, self.module_identifier
-                    ));
+                    .unwrap_or_else(|| {
+                      panic!("Can't resolve {} in {}", src, self.module_identifier)
+                    });
                   return HashSet::from_iter([SymbolRef::Url {
                     importer: self.module_identifier,
                     src: *src_module_id,
@@ -506,10 +502,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               Part::Url(src) => {
                 let src_module_id = self
                   .resolve_module_identifier(src, &DependencyType::NewUrl)
-                  .expect(&format!(
-                    "Can't resolve {} in {}",
-                    src, self.module_identifier
-                  ));
+                  .unwrap_or_else(|| panic!("Can't resolve {} in {}", src, self.module_identifier));
 
                 return HashSet::from_iter([SymbolRef::Url {
                   importer: self.module_identifier,
