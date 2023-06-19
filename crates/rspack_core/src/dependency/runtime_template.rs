@@ -122,7 +122,7 @@ pub fn module_id(
   } else if weak {
     "null /* weak dependency, without id */".to_string()
   } else {
-    unreachable!("runtime template no module id")
+    miss_module(request)
   }
 }
 
@@ -139,11 +139,7 @@ pub fn import_statement(
     ..
   } = code_generatable_context;
 
-  let module_id = compilation
-    .module_graph
-    .module_graph_module_by_dependency_id(id)
-    .map(|m| m.id(&compilation.chunk_graph))
-    .expect("should have dependency id");
+  let module_id_expr = module_id(&compilation, id, request, false);
 
   runtime_requirements.add(RuntimeGlobals::REQUIRE);
 
@@ -152,9 +148,8 @@ pub fn import_statement(
   let opt_declaration = if update { "" } else { "var " };
 
   let import_content = format!(
-    "/* harmony import */{opt_declaration}{import_var} = {}({});\n",
-    RuntimeGlobals::REQUIRE,
-    module_id_expr(request, module_id)
+    "/* harmony import */{opt_declaration}{import_var} = {}({module_id_expr});\n",
+    RuntimeGlobals::REQUIRE
   );
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
@@ -169,4 +164,150 @@ pub fn import_statement(
     );
   }
   (import_content, "".to_string())
+}
+
+pub fn module_namespace_promise(
+  code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+  id: &DependencyId,
+  request: &str,
+  weak: bool,
+) -> String {
+  let CodeReplaceSourceDependencyContext {
+    runtime_requirements,
+    compilation,
+    module,
+    ..
+  } = code_generatable_context;
+
+  let module_id_expr = module_id(&compilation, id, request, weak);
+
+  let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
+
+  let header = if weak {
+    runtime_requirements.add(RuntimeGlobals::MODULE_FACTORIES);
+    Some(format!(
+      "if(!{}[{module_id_expr}]) {{\n {} \n}}",
+      RuntimeGlobals::MODULE_FACTORIES,
+      weak_error(request)
+    ))
+  } else {
+    None
+  };
+  let mut fake_type = 16;
+  let mut appending;
+  match exports_type {
+    ExportsType::Namespace => {
+      if let Some(header) = header {
+        appending = format!(
+          ".then(function() {{ {header}\nreturn {}}})",
+          module_raw(compilation, runtime_requirements, id, request, weak)
+        )
+      } else {
+        runtime_requirements.add(RuntimeGlobals::REQUIRE);
+        appending =
+          format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+      }
+    }
+    _ => {
+      if matches!(exports_type, ExportsType::Dynamic) {
+        fake_type |= 4;
+      }
+      if matches!(exports_type, ExportsType::DefaultWithNamed) {
+        fake_type |= 2;
+      }
+      runtime_requirements.add(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+      if compilation.module_graph.is_async(&module.identifier()) {
+        if let Some(header) = header {
+          appending = format!(
+            ".then(function() {{\n {header}\nreturn {}\n}})",
+            module_raw(compilation, runtime_requirements, id, request, weak)
+          )
+        } else {
+          runtime_requirements.add(RuntimeGlobals::REQUIRE);
+          appending =
+            format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
+        }
+        appending.push_str(
+          format!(
+            ".then(function(m){{\n {}(m, {fake_type}) \n}})",
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+          )
+          .as_str(),
+        );
+      } else {
+        fake_type |= 1;
+        if let Some(header) = header {
+          let expr = format!(
+            "{}({module_id_expr}, {fake_type}))",
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+          );
+          appending = format!(".then(function() {{\n {header} return {expr};\n}})");
+        } else {
+          appending = format!(
+            ".then({}.bind(__webpack_require__, {module_id_expr}, {fake_type}))",
+            RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
+          );
+        }
+      }
+    }
+  }
+
+  format!(
+    "{}{appending}",
+    block_promise(&module_id_expr, runtime_requirements)
+  )
+}
+
+pub fn block_promise(module_id_str: &str, runtime_requirements: &mut RuntimeGlobals) -> String {
+  runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
+  runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
+  format!(
+    "{}({module_id_str})",
+    RuntimeGlobals::LOAD_CHUNK_WITH_MODULE
+  )
+}
+
+pub fn module_raw(
+  compilation: &Compilation,
+  runtime_requirements: &mut RuntimeGlobals,
+  id: &DependencyId,
+  request: &str,
+  weak: bool,
+) -> String {
+  if let Some(module_identifier) = compilation.module_graph.module_identifier_by_dependency_id(id)
+        && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
+  {
+    runtime_requirements.add(RuntimeGlobals::REQUIRE);
+     format!(
+      "{}({})",
+      RuntimeGlobals::REQUIRE,
+      module_id_expr(request, module_id)
+    )
+  } else if weak {
+    weak_error(request)
+  } else {
+    miss_module(request)
+  }
+}
+
+pub fn miss_module(request: &str) -> String {
+  format!("Object({}())", throw_missing_module_error_function(request))
+}
+
+pub fn throw_missing_module_error_function(request: &str) -> String {
+  format!(
+    "function webpackMissingModule() {{ {} }}",
+    throw_missing_module_error_block(request)
+  )
+}
+
+pub fn throw_missing_module_error_block(request: &str) -> String {
+  format!(
+    "var e = new Error('Cannot find module '{request}''); e.code = 'MODULE_NOT_FOUND'; throw e;"
+  )
+}
+
+pub fn weak_error(request: &str) -> String {
+  let msg = format!("Module is not available (weak dependency), request is {request}.");
+  format!("var e = new Error('{msg}'); e.code = 'MODULE_NOT_FOUND'; throw e;")
 }

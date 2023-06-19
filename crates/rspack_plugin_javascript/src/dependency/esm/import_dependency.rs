@@ -1,8 +1,8 @@
 use rspack_core::{
-  module_id_expr, ChunkGroupOptions, CodeGeneratable, CodeGeneratableContext,
+  module_namespace_promise, ChunkGroupOptions, CodeGeneratable, CodeGeneratableContext,
   CodeGeneratableResult, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
   CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  DependencyType, ErrorSpan, ModuleDependency,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -96,33 +96,10 @@ impl CodeReplaceSourceDependency for ImportDependency {
     code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   ) {
     let id: DependencyId = self.id().expect("should have dependency id");
-
-    let CodeReplaceSourceDependencyContext {
-      runtime_requirements,
-      compilation,
-      ..
-    } = code_generatable_context;
-
-    let module_id = compilation
-      .module_graph
-      .module_graph_module_by_dependency_id(&id)
-      .map(|m| m.id(&compilation.chunk_graph))
-      .expect("should have dependency id");
-
-    let module_id_str = module_id_expr(&self.request, module_id);
-
-    // Add interop require to runtime requirements, as dynamic imports have been transformed so `inject_runtime_helper` will not be able to detect this.
-    runtime_requirements.insert(RuntimeGlobals::INTEROP_REQUIRE);
-    runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
-    runtime_requirements.insert(RuntimeGlobals::LOAD_CHUNK_WITH_MODULE);
-
     source.replace(
       self.start,
       self.end,
-      format!(
-        "__webpack_require__.el({module_id_str}).then(__webpack_require__.bind(__webpack_require__, {module_id_str})).then(__webpack_require__.ir)",
-      )
-      .as_str(),
+      module_namespace_promise(code_generatable_context, &id, &self.request, false).as_str(),
       None,
     );
   }
