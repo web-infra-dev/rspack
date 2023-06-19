@@ -4,7 +4,7 @@ const fs = require("fs");
 it("should not shake the url import", () => {
 	a();
 	const file = fs.readFileSync(__filename).toString();
-	// 3 = 2 + 1 in assertion
+	// 3 = 2 time(in output code) + 1 time(in assertion)
 	expect(countSubstringOccurrences(file, "a.wasm")).toBe(3);
 });
 

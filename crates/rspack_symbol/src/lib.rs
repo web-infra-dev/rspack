@@ -309,8 +309,9 @@ impl PartialEq for SymbolExt {
   }
 }
 
-/// This enum hold any possible part of the original code, maybe a `Id` from `swc` or a simplified member expr with a `Id` and a `JsWord`
-/// This is useful when we want to tree-shake the namespace access property e.g.
+/// The enum hold any possible part of the original code, e.g.
+/// variant maybe the top level binding of a module, or maybe a `new URL` dependency
+/// member expr is useful when we want to tree-shake the namespace access property e.g.
 /// assume we have
 ///
 /// **a.js**
@@ -324,7 +325,7 @@ impl PartialEq for SymbolExt {
 /// a.a()
 /// ```
 /// In such scenario only `a` from `a.js` is used, `a.b` is unused.
-/// We use [BetterIdOrMemExpr::MemberExpr] to represent namespace access
+/// We use [Part::MemberExpr] to represent namespace access
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum Part {
   Id(BetterId),

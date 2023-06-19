@@ -331,7 +331,6 @@ impl<'a> ModuleRefAnalyze<'a> {
               self.module_identifier,
               IndirectType::Import(property.clone(), None),
             )),
-            // It is impossible to import a URL
             SymbolRef::Url { .. } => unreachable!(),
           })
         }
