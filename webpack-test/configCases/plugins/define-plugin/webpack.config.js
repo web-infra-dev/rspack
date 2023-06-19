@@ -1,9 +1,9 @@
-var DefinePlugin = require("../../../../").DefinePlugin;
-const Module = require("../../../../").Module;
-/** @type {import("../../../../").Configuration} */
+// var DefinePlugin = require("../../../../").DefinePlugin;
+// const Module = require("../../../../").Module;
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	plugins: [
-		new DefinePlugin({
+	builtins: {
+		define: {
 			TRUE: true,
 			FALSE: false,
 			NULL: null,
@@ -49,6 +49,6 @@ module.exports = {
 			// // 	},
 			// // ),
 			A_DOT_J: '"a.j"',
-		},
-	},
+		}
+	}
 };
