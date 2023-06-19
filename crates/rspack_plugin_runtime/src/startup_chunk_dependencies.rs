@@ -40,11 +40,12 @@ impl Plugin for StartupChunkDependenciesPlugin {
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     let compilation: &mut &mut rspack_core::Compilation = &mut args.compilation;
+    let is_enabled_for_chunk = is_enabled_for_chunk(args.chunk, &self.chunk_loading, compilation);
     let runtime_requirements = &mut args.runtime_requirements;
     if compilation
       .chunk_graph
       .has_chunk_entry_dependent_chunks(args.chunk, &compilation.chunk_group_by_ukey)
-      && is_enabled_for_chunk(args.chunk, &self.chunk_loading, compilation)
+      && is_enabled_for_chunk
     {
       runtime_requirements.insert(RuntimeGlobals::STARTUP);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
@@ -63,12 +64,10 @@ impl Plugin for StartupChunkDependenciesPlugin {
     args: &mut AdditionalChunkRuntimeRequirementsArgs,
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     let compilation = &mut args.compilation;
-
+    let is_enabled_for_chunk = is_enabled_for_chunk(args.chunk, &self.chunk_loading, compilation);
     let runtime_requirements = &mut args.runtime_requirements;
 
-    if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT)
-      && is_enabled_for_chunk(args.chunk, &self.chunk_loading, compilation)
-    {
+    if runtime_requirements.contains(RuntimeGlobals::STARTUP_ENTRYPOINT) && is_enabled_for_chunk {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES);
