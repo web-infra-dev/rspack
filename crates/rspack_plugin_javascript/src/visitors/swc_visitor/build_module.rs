@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use swc_core::base::config::ModuleConfig;
+use swc_core::common::comments::Comments;
 use swc_core::common::FileName;
 use swc_core::common::{comments::SingleThreadedComments, Mark, SourceMap};
 use swc_core::ecma::ast::EsVersion;
@@ -23,7 +24,7 @@ pub fn build_module<'a>(
   };
   ModuleConfig::build(
     cm.clone(),
-    comments,
+    comments.map(|c| c as &dyn Comments),
     Default::default(),
     Default::default(),
     &FileName::Custom("".to_string()),

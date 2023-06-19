@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
 const lib = __webpack_require__("./lib.js");
-const { DO_NOT_CONVERTED9  } = __webpack_require__("./lib.js");
+const { DO_NOT_CONVERTED9 } = __webpack_require__("./lib.js");
 equal(true, true);
 assert.deepStrictEqual(5, 5);
 assert.deepStrictEqual(null, null);
@@ -164,11 +164,11 @@ assert.deepStrictEqual("302".P3, undefined);
 assert.deepStrictEqual("302".P4, undefined);
 const DO_NOT_CONVERTED = 201;
 assert.deepStrictEqual(DO_NOT_CONVERTED, 201);
-let { DO_NOT_CONVERTED2  } = {
+let { DO_NOT_CONVERTED2 } = {
     DO_NOT_CONVERTED2: 202
 };
 assert.deepStrictEqual(DO_NOT_CONVERTED2, 202);
-const { c: DO_NOT_CONVERTED3  } = {
+const { c: DO_NOT_CONVERTED3 } = {
     c: 203
 };
 assert.deepStrictEqual(DO_NOT_CONVERTED3, 203);

@@ -57,6 +57,7 @@ swc_core = { workspace = true, features = [
   "ecma_transforms_react",
   "ecma_transforms_module",
   "swc_ecma_codegen",
+  "ecma_preset_env",
   "swc_ecma_visit",
   "ecma_visit_path",
   "css_ast",
