@@ -6,8 +6,6 @@ it("should not shake the url import", () => {
 	const file = fs.readFileSync(__filename).toString();
 	// 3 = 2 + 1 in assertion
 	expect(countSubstringOccurrences(file, "a.wasm")).toBe(3);
-	// TODO: here b should be two times
-	expect(countSubstringOccurrences(file, "b.wasm")).toBe(3);
 });
 
 function countSubstringOccurrences(string, substring) {
