@@ -1,4 +1,4 @@
-import BannerPlugin = require("./lib/BannerPlugin");
+import EnvironmentPlugin from "./lib/EnvironmentPlugin";
 
 export * from "./compiler";
 export * from "./multiCompiler";
@@ -10,7 +10,8 @@ export * from "./multiStats";
 export * from "./chunk_group";
 export * from "./normalModuleFactory";
 export { cachedCleverMerge as cleverMerge } from "./util/cleverMerge";
-export { BannerPlugin };
+export { EnvironmentPlugin };
+
 import { Configuration } from "./config";
 // TODO(hyf0): should remove this re-export when we cleanup the exports of `@rspack/core`
 export type OptimizationSplitChunksOptions = NonNullable<
