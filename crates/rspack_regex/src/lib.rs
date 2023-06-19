@@ -1,5 +1,6 @@
-use regress::{Match, Matches, Regex};
-use rspack_error::{internal_error, Error};
+#![feature(let_chains)]
+
+use rspack_error::Error;
 use swc_core::ecma::ast::Regex as SwcRegex;
 
 use self::algo::Algo;
@@ -13,48 +14,18 @@ pub struct RspackRegex {
 }
 
 impl RspackRegex {
-  /// # Panic
-  /// [Algo::FastCustom] does not implement `find`, this method may panic if original
-  /// regex could be optimized by fast path
-  pub fn find(&self, text: &str) -> Option<Match> {
-    match &self.algo {
-      Algo::FastCustom(_) => panic!("Algo::FastCustom does not implement `find`"),
-      Algo::Regress(regex) => regex.find(text),
-    }
-  }
-
   pub fn test(&self, text: &str) -> bool {
     self.algo.test(text)
   }
 
-  /// # Panic
-  /// [Algo::FastCustom] does not implement `find_iter`, this method may panic if original
-  /// regex could be optimized by fast path
-  pub fn find_iter<'r, 't>(&'r self, text: &'t str) -> Matches<'r, 't> {
-    match &self.algo {
-      Algo::FastCustom(_) => panic!("Algo::FastCustom does not implement `find_iter`"),
-      Algo::Regress(regex) => regex.find_iter(text),
-    }
-  }
-
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
-    Regex::with_flags(expr, flags)
-      .map(|regex| RspackRegex {
-        algo: Algo::Regress(regex),
-      })
-      .map_err(|_| internal_error!("Can't construct regex `/{expr}/{flags}`"))
+    Ok(Self {
+      algo: Algo::new(expr, flags)?,
+    })
   }
 
   pub fn new(expr: &str) -> Result<Self, Error> {
-    Regex::with_flags(expr, "")
-      .map(|regex| RspackRegex {
-        algo: Algo::Regress(regex),
-      })
-      .map_err(|_| internal_error!("Can't construct regex `/{}/{}`", expr, ""))
-  }
-
-  pub fn new_with_optimized(expr: &str) -> Result<Self, Error> {
-    Algo::new(expr, "").map(|algo| RspackRegex { algo })
+    Self::with_flags(expr, "")
   }
 }
 
