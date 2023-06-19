@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "isolatedModules": true,
+    "typeRoots": ["node_modules/@types"]
+  }
+}
