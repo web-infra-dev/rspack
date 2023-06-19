@@ -127,7 +127,7 @@ pub fn generate_debug_symbol_graph(
 pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
   match symbol_ref {
     SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
-      contextify(context, direct.uri().as_str()).into(),
+      contextify(context, direct.src().as_str()).into(),
       direct.id().clone(),
       *direct.ty(),
     )),
@@ -142,5 +142,9 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef, context: &str) -> SymbolRef {
       star.module_ident(),
       star.ty(),
     )),
+    SymbolRef::Url { importer, src } => SymbolRef::Url {
+      importer: contextify(context, importer.as_str()).into(),
+      src: contextify(context, src.as_str()).into(),
+    },
   }
 }
