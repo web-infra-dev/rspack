@@ -70,7 +70,9 @@ impl<'me> CodeSplitter<'me> {
         HashSet::from_iter([Arc::from(
           options.runtime.clone().unwrap_or_else(|| name.to_string()),
         )]),
-        ChunkGroupOptions::default().name(name),
+        ChunkGroupOptions::default()
+          .name(name)
+          .entry_options(options.clone()),
       );
       if options.runtime.is_none() {
         entrypoint.set_runtime_chunk(chunk.ukey);

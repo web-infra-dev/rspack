@@ -1,4 +1,5 @@
 use napi_derive::napi;
+use rspack_core::ChunkLoading;
 use rspack_core::{
   to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
   LibraryOptions, OutputOptions, PluginExt, TrustedTypes, WasmLoading,
@@ -239,7 +240,13 @@ impl RawOutputOptions {
             plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
           }
           "require" => {
-            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
+            plugins.push(
+              rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(
+                ChunkLoading::Require,
+                false,
+              )
+              .boxed(),
+            );
             plugins.push(
               rspack_plugin_runtime::CommonJsChunkLoadingPlugin {
                 async_chunk_loading: false,
@@ -248,7 +255,13 @@ impl RawOutputOptions {
             );
           }
           "async-node" => {
-            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
+            plugins.push(
+              rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(
+                ChunkLoading::AsyncNode,
+                false,
+              )
+              .boxed(),
+            );
             plugins.push(
               rspack_plugin_runtime::CommonJsChunkLoadingPlugin {
                 async_chunk_loading: true,
@@ -260,7 +273,13 @@ impl RawOutputOptions {
             plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
           }
           "import-scripts" => {
-            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(true).boxed());
+            plugins.push(
+              rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(
+                ChunkLoading::ImportScripts,
+                true,
+              )
+              .boxed(),
+            );
             plugins.push(rspack_plugin_runtime::ImportScriptsChunkLoadingPlugin {}.boxed());
           }
           "universal" => {

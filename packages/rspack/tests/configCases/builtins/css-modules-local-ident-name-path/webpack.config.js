@@ -1,4 +1,5 @@
 module.exports = {
+	entry: "./src/index.js",
 	builtins: {
 		css: {
 			modules: {
