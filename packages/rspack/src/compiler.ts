@@ -612,8 +612,7 @@ class Compiler {
 			afterResolve: this.compilation.normalModuleFactory?.hooks.afterResolve,
 			succeedModule: this.compilation.hooks.succeedModule,
 			stillValidModule: this.compilation.hooks.stillValidModule,
-			buildModule: this.compilation.hooks.buildModule,
-			entryOption: this.hooks.entryOption
+			buildModule: this.compilation.hooks.buildModule
 		};
 		for (const [name, hook] of Object.entries(hookMap)) {
 			if (hook?.taps.length === 0) {
