@@ -43,7 +43,7 @@ export function describeCases(config: { name: string; casePath: string }) {
 					const bundlePath = path.resolve(outputPath, "main.js");
 
 					if (
-						![".js", ".jsx", ".ts", ".tsx"].every(ext => {
+						![".js", ".jsx", ".ts", ".tsx", ".mjs"].every(ext => {
 							return !fs.existsSync(path.resolve(testRoot, "index" + ext));
 						})
 					) {

@@ -86,54 +86,52 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
       if let Expr::Ident(ident) = &**expr {
         if "require".eq(&ident.sym) && ident.span.ctxt == *self.unresolved_ctxt {
           {
-            if let Some(expr) = call_expr.args.get(0) && call_expr.args.len() == 1 {
-              if expr.spread.is_none() {
-                // TemplateLiteral String
-                if let Expr::Tpl(tpl) = expr.expr.as_ref()  && tpl.exprs.is_empty(){
-                  let s = tpl.quasis.first().expect("should have one quasis").raw.as_ref();
-                  let request = JsWord::from(s);
-                   self.dependencies.push(Box::new(CommonJsRequireDependency::new(
-                    request,
+            if let Some(expr) = call_expr.args.get(0) && call_expr.args.len() == 1 && expr.spread.is_none() {
+              // TemplateLiteral String
+              if let Expr::Tpl(tpl) = expr.expr.as_ref()  && tpl.exprs.is_empty(){
+                let s = tpl.quasis.first().expect("should have one quasis").raw.as_ref();
+                let request = JsWord::from(s);
+                  self.dependencies.push(Box::new(CommonJsRequireDependency::new(
+                  request,
+                  Some(call_expr.span.into()),
+                  call_expr.span.real_lo(),
+                  call_expr.span.real_hi(),
+                  self.in_try
+                )));
+                return;
+              }
+              if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
+                self
+                  .dependencies
+                  .push(Box::new(CommonJsRequireDependency::new(
+                    s.value.clone(),
                     Some(call_expr.span.into()),
                     call_expr.span.real_lo(),
                     call_expr.span.real_hi(),
-                    self.in_try
+                    self.in_try,
                   )));
-                  return;
-                }
-                if let Expr::Lit(Lit::Str(s)) = expr.expr.as_ref() {
-                  self
-                    .dependencies
-                    .push(Box::new(CommonJsRequireDependency::new(
-                      s.value.clone(),
-                      Some(call_expr.span.into()),
-                      call_expr.span.real_lo(),
-                      call_expr.span.real_hi(),
-                      self.in_try,
-                    )));
-                  return;
-                }
-                if let Some((context, reg)) = scanner_context_module(expr.expr.as_ref()) {
-                  self
-                    .dependencies
-                    .push(Box::new(CommonJsRequireContextDependency::new(
-                      call_expr.callee.span().real_lo(),
-                      call_expr.callee.span().real_hi(),
-                      call_expr.span.real_hi(),
-                      ContextOptions {
-                        mode: ContextMode::Sync,
-                        recursive: true,
-                        reg_exp: RspackRegex::new(&reg).expect("reg failed"),
-                        reg_str: reg,
-                        include: None,
-                        exclude: None,
-                        category: DependencyCategory::CommonJS,
-                        request: context,
-                      },
-                      Some(call_expr.span.into()),
-                    )));
-                  return;
-                }
+                return;
+              }
+              if let Some((context, reg)) = scanner_context_module(expr.expr.as_ref()) {
+                self
+                  .dependencies
+                  .push(Box::new(CommonJsRequireContextDependency::new(
+                    call_expr.callee.span().real_lo(),
+                    call_expr.callee.span().real_hi(),
+                    call_expr.span.real_hi(),
+                    ContextOptions {
+                      mode: ContextMode::Sync,
+                      recursive: true,
+                      reg_exp: RspackRegex::new(&reg).expect("reg failed"),
+                      reg_str: reg,
+                      include: None,
+                      exclude: None,
+                      category: DependencyCategory::CommonJS,
+                      request: context,
+                    },
+                    Some(call_expr.span.into()),
+                  )));
+                return;
               }
             }
             self
