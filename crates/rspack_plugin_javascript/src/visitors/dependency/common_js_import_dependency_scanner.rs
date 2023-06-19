@@ -6,9 +6,7 @@ use rspack_regex::RspackRegex;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{
-      AssignExpr, BinExpr, CallExpr, Callee, Expr, Ident, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp,
-    },
+    ast::{AssignExpr, CallExpr, Callee, Expr, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },

@@ -10,7 +10,7 @@ pub struct HarmonyImportSpecifierDependency {
   start: u32,
   end: u32,
   // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-  ids: Option<JsWord>,
+  ids: Vec<JsWord>,
   is_call: bool,
 }
 
@@ -20,7 +20,7 @@ impl HarmonyImportSpecifierDependency {
     start: u32,
     end: u32,
     // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-    ids: Option<JsWord>,
+    ids: Vec<JsWord>,
     is_call: bool,
   ) -> Self {
     Self {
@@ -46,11 +46,7 @@ impl HarmonyImportSpecifierDependency {
       code_generatable_context,
       true,
       import_var,
-      self
-        .ids
-        .as_ref()
-        .map(|i| vec![i.clone()])
-        .unwrap_or_default(),
+      self.ids.clone(),
       id,
       self.is_call,
     );

@@ -94,7 +94,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 None => orig.sym.clone(),
                 _ => unreachable!(),
               };
-              if let Some(Some(reference)) = self.import_map.get(&orig.to_id()) {
+              if let Some(reference) = self.import_map.get(&orig.to_id()) {
                 self.code_generable_dependencies.push(Box::new(
                   HarmonyExportImportedSpecifierDependency::new(
                     reference.0.clone(),

@@ -9,15 +9,18 @@ use swc_core::{
   common::{Span, SyntaxContext},
   ecma::{
     ast::{
-      CallExpr, Callee, ExportAll, ExportSpecifier, Ident, ImportDecl, ImportSpecifier,
-      ModuleExportName, NamedExport, Program, Prop,
+      Callee, ExportAll, ExportSpecifier, Expr, Ident, ImportDecl, ImportSpecifier, Lit,
+      MemberExpr, MemberProp, ModuleExportName, NamedExport, Program, Prop,
     },
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
-pub type ImportMap = FxHashMap<(JsWord, SyntaxContext), Option<(JsWord, Option<JsWord>)>>;
+pub type ImportMap = FxHashMap<
+  (JsWord /* ident */, SyntaxContext /* ctxt */),
+  (JsWord /* request */, Option<JsWord> /* id */),
+>;
 
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportDependency,
@@ -91,13 +94,13 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       ImportSpecifier::Named(n) => {
         self.import_map.insert(
           (n.local.sym.clone(), n.local.span.ctxt),
-          Some((
+          (
             import_decl.src.value.clone(),
             Some(match &n.imported {
               Some(ModuleExportName::Ident(ident)) => ident.sym.clone(),
               _ => n.local.sym.clone(),
             }),
-          )),
+          ),
         );
         specifiers.push((
           n.local.sym.clone(),
@@ -110,14 +113,14 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       ImportSpecifier::Default(d) => {
         self.import_map.insert(
           (d.local.sym.clone(), d.local.span.ctxt),
-          Some((import_decl.src.value.clone(), Some(DEFAULT_JS_WORD.clone()))),
+          (import_decl.src.value.clone(), Some(DEFAULT_JS_WORD.clone())),
         );
         specifiers.push((d.local.sym.clone(), Some(DEFAULT_JS_WORD.clone())));
       }
       ImportSpecifier::Namespace(n) => {
         self.import_map.insert(
           (n.local.sym.clone(), n.local.span.ctxt),
-          Some((import_decl.src.value.clone(), None)),
+          (import_decl.src.value.clone(), None),
         );
         specifiers.push((n.local.sym.clone(), Some("namespace".into())));
       }
@@ -245,7 +248,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   fn visit_prop(&mut self, n: &Prop) {
     match n {
       Prop::Shorthand(shorthand) => {
-        if let Some(Some(reference)) = self.import_map.get(&shorthand.to_id()) {
+        if let Some(reference) = self.import_map.get(&shorthand.to_id()) {
           self
             .ref_dependencies
             .entry(reference.0.clone())
@@ -254,7 +257,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
               true,
               shorthand.span.real_lo(),
               shorthand.span.real_hi(),
-              reference.1.clone(),
+              reference.1.clone().map(|f| vec![f]).unwrap_or_default(),
               false,
             ));
         }
@@ -264,7 +267,7 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
   }
 
   fn visit_ident(&mut self, ident: &Ident) {
-    if let Some(Some(reference)) = self.import_map.get(&ident.to_id()) {
+    if let Some(reference) = self.import_map.get(&ident.to_id()) {
       self
         .ref_dependencies
         .entry(reference.0.clone())
@@ -273,10 +276,47 @@ impl Visit for HarmonyImportRefDependencyScanner<'_> {
           false,
           ident.span.real_lo(),
           ident.span.real_hi(),
-          reference.1.clone(),
+          reference.1.clone().map(|f| vec![f]).unwrap_or_default(),
           self.enter_callee,
         ));
     }
+  }
+
+  fn visit_member_expr(&mut self, member_expr: &MemberExpr) {
+    if let Expr::Ident(ident) = &*member_expr.obj {
+      // xxx.default
+      if let Some(reference) = self.import_map.get(&ident.to_id()) {
+        let prop = match &member_expr.prop {
+          MemberProp::Ident(ident) => Some(ident.sym.clone()),
+          MemberProp::Computed(c) => {
+            if let Expr::Lit(Lit::Str(str)) = &*c.expr {
+              Some(str.value.clone())
+            } else {
+              None
+            }
+          }
+          _ => None,
+        };
+
+        if matches!(prop, Some(prop) if prop == DEFAULT_JS_WORD) {
+          let mut ids = reference.1.clone().map(|f| vec![f]).unwrap_or_default();
+          ids.push(DEFAULT_JS_WORD.clone());
+          self
+            .ref_dependencies
+            .entry(reference.0.clone())
+            .or_insert(vec![])
+            .push(HarmonyImportSpecifierDependency::new(
+              false,
+              member_expr.span.real_lo(),
+              member_expr.span.real_hi(),
+              ids,
+              self.enter_callee,
+            ));
+          return;
+        }
+      }
+    }
+    member_expr.visit_children_with(self);
   }
 
   fn visit_callee(&mut self, callee: &Callee) {
