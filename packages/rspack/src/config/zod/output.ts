@@ -83,7 +83,7 @@ export function output() {
 		hashFunction: z.string().or(z.function()).optional(),
 		// TODO(hyf0)
 		module: z.any().optional(),
-		strictModuleErrorHandling: z.any().optional(),
+		strictModuleErrorHandling: z.boolean().optional(),
 		umdNamedDefine: umdNamedDefine.optional(),
 		chunkLoadingGlobal: z.string().optional(),
 		trustedTypes: z
