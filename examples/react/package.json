@@ -15,12 +15,6 @@
     "@rspack/cli": "workspace:*",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-refresh": "0.14.0",
-    "reactflow": "^11.7.3"
-  },
-  "pnpm": {
-    "overrides": {
-      "d3-selection": "3.0.0"
-    }
+    "react-refresh": "0.14.0"
   }
 }

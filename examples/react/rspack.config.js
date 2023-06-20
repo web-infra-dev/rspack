@@ -3,7 +3,6 @@ const config = {
 	entry: {
 		main: "./src/index.jsx"
 	},
-	devtool: false,
 	module: {
 		rules: [
 			{
@@ -17,11 +16,7 @@ const config = {
 			{
 				template: "./index.html"
 			}
-		],
-		treeShaking: true
-	},
-	optimization: {
-		sideEffects: true
+		]
 	}
 };
 module.exports = config;
