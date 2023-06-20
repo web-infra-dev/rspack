@@ -22,7 +22,7 @@ impl AssetModule {
       .module_graph_module_by_identifier(&self.module_identifier)
       && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
     {
-      return Some(SideEffectType::Analyze(*side_effects))
+      return Some(SideEffectType::Configuration(*side_effects))
     }
 
     let resource_data = compilation
