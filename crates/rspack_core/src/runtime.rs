@@ -2,6 +2,8 @@ use std::{fmt::Debug, sync::Arc};
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+use crate::{ChunkLoading, ChunkUkey, Compilation};
+
 pub type RuntimeSpec = HashSet<Arc<str>>;
 pub type RuntimeKey = String;
 
@@ -144,4 +146,18 @@ impl RuntimeSpecSet {
   pub fn is_empty(&self) -> bool {
     self.len() == 0
   }
+}
+
+pub fn is_enabled_for_chunk(
+  chunk_ukey: &ChunkUkey,
+  expected: &ChunkLoading,
+  compilation: &Compilation,
+) -> bool {
+  let chunk_loading = compilation
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
+    .and_then(|options| options.chunk_loading.as_ref())
+    .unwrap_or(&compilation.options.output.chunk_loading);
+  chunk_loading == expected
 }

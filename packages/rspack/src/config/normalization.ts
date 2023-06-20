@@ -273,7 +273,9 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 		} else {
 			result[key] = {
 				import: Array.isArray(value.import) ? value.import : [value.import],
-				runtime: value.runtime
+				runtime: value.runtime,
+				publicPath: value.publicPath,
+				chunkLoading: value.chunkLoading
 			};
 		}
 	}

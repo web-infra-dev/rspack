@@ -140,7 +140,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
         internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
-        let reg = rspack_regex::RspackRegex::new_with_optimized(
+        let reg = rspack_regex::RspackRegex::new(
             x.regexp_matcher.as_ref().ok_or_else(|| {
               internal_error!(
                 "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""

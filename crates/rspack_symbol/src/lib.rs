@@ -19,7 +19,7 @@ bitflags! {
 }
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct Symbol {
-  pub(crate) uri: Identifier,
+  pub(crate) src: Identifier,
   pub(crate) id: BetterId,
   pub(crate) ty: SymbolType,
 }
@@ -31,12 +31,12 @@ pub enum SymbolType {
 }
 
 impl Symbol {
-  pub fn new(uri: Identifier, id: BetterId, ty: SymbolType) -> Self {
-    Self { uri, id, ty }
+  pub fn new(src: Identifier, id: BetterId, ty: SymbolType) -> Self {
+    Self { src, id, ty }
   }
 
-  pub fn uri(&self) -> Identifier {
-    self.uri
+  pub fn src(&self) -> Identifier {
+    self.src
   }
 
   pub fn id(&self) -> &BetterId {
@@ -47,8 +47,8 @@ impl Symbol {
     &self.ty
   }
 
-  pub fn set_uri(&mut self, uri: Identifier) {
-    self.uri = uri;
+  pub fn set_src(&mut self, uri: Identifier) {
+    self.src = uri;
   }
 }
 
@@ -309,8 +309,9 @@ impl PartialEq for SymbolExt {
   }
 }
 
-/// This enum hold a `Id` from `swc` or a simplified member expr with a `Id` and a `JsWord`
-/// This is useful when we want to tree-shake the namespace access property e.g.
+/// The enum hold any possible part of the original code, e.g.
+/// variant maybe the top level binding of a module, or maybe a `new URL` dependency
+/// member expr is useful when we want to tree-shake the namespace access property e.g.
 /// assume we have
 ///
 /// **a.js**
@@ -324,14 +325,15 @@ impl PartialEq for SymbolExt {
 /// a.a()
 /// ```
 /// In such scenario only `a` from `a.js` is used, `a.b` is unused.
-/// We use [BetterIdOrMemExpr::MemberExpr] to represent namespace access
+/// We use [Part::MemberExpr] to represent namespace access
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub enum IdOrMemExpr {
+pub enum Part {
   Id(BetterId),
   MemberExpr { object: BetterId, property: JsWord },
+  Url(JsWord),
 }
 
-impl IdOrMemExpr {
+impl Part {
   /// Returns `true` if the better id or mem expr is [`Id`].
   ///
   /// [`Id`]: BetterIdOrMemExpr::Id
@@ -348,10 +350,11 @@ impl IdOrMemExpr {
     matches!(self, Self::MemberExpr { .. })
   }
 
-  pub fn get_id(&self) -> &BetterId {
+  pub fn get_id(&self) -> Option<&BetterId> {
     match self {
-      IdOrMemExpr::Id(id) => id,
-      IdOrMemExpr::MemberExpr { object, .. } => object,
+      Part::Id(id) => Some(id),
+      Part::MemberExpr { object, .. } => Some(object),
+      Part::Url(_) => None,
     }
   }
 }

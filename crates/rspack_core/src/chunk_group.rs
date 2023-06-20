@@ -217,4 +217,14 @@ impl ChunkGroupOptions {
     self.name = v.map(|v| v.into());
     self
   }
+
+  pub fn entry_options(mut self, v: impl Into<EntryOptions>) -> Self {
+    self.entry_options = Some(v.into());
+    self
+  }
+
+  pub fn entry_options_optional<T: Into<EntryOptions>>(mut self, v: Option<T>) -> Self {
+    self.entry_options = v.map(|v| v.into());
+    self
+  }
 }

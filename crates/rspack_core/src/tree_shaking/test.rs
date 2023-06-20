@@ -4,7 +4,7 @@ mod test_side_effects {
 
   use crate::tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects};
 
-  fn wrap_get_side_effects_from_package_json(
+  fn get_side_effects_from_package_json_helper(
     side_effects_config: Vec<&str>,
     relative_path: &str,
   ) -> bool {
@@ -25,24 +25,29 @@ mod test_side_effects {
   }
   #[test]
   fn cases() {
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js"],
       "./src/x/y/z.js"
     ));
 
-    assert!(!wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
+      vec!["./src/index.js", "./src/selection/index.js"],
+      "./src/selection/index.js"
+    ));
+
+    assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js"],
       "./x.js"
     ));
 
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./**/src/x/y/z.js"],
       "./src/x/y/z.js"
     ));
 
     // 				"./src/x/y/z.js",
     // 				"./src/**/z.js",
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/z.js"],
       "./src/x/y/z.js"
     ));
@@ -50,7 +55,7 @@ mod test_side_effects {
     // 				"./src/x/y/z.js",
     // 				"./**/x/**/z.js",
 
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./**/x/**/z.js"],
       "./src/x/y/z.js"
     ));
@@ -58,7 +63,7 @@ mod test_side_effects {
     // 				"./src/x/y/z.js",
     // 				"./**/src/**",
 
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./**/src/**"],
       "./src/x/y/z.js"
     ));
@@ -66,14 +71,14 @@ mod test_side_effects {
     // 				"./src/x/y/z.js",
     // 				"./**/src/*",
 
-    assert!(!wrap_get_side_effects_from_package_json(
+    assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/x/y/z.js"],
       "./**/src/*"
     ));
 
     // 				"./src/x/y/z.js",
     // 				"*.js",
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["*.js"],
       "./src/x/y/z.js"
     ));
@@ -81,7 +86,7 @@ mod test_side_effects {
     // 				"./src/x/y/z.js",
     // 				"x/**/z.js",
 
-    assert!(!wrap_get_side_effects_from_package_json(
+    assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/x/y/z.js"],
       "x/**/z.js"
     ));
@@ -89,32 +94,32 @@ mod test_side_effects {
     // 				"./src/x/y/z.js",
     // 				"src/**/z.js",
 
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/z.js"],
       "./src/x/y/z.js"
     ));
     // 				"./src/x/y/z.js",
     // 				"src/**/{x,y,z}.js",
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["src/**/{x,y,z}.js"],
       "./src/x/y/z.js"
     ));
     // 				"./src/x/y/z.js",
     // 				"src/**/[x-z].js",
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/[x-z].js"],
       "./src/x/y/z.js"
     ));
     // 		const array = ["./src/**/*.js", "./dirty.js"];
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
       "./src/x/y/z.js"
     ));
-    assert!(wrap_get_side_effects_from_package_json(
+    assert!(get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
       "./dirty.js"
     ));
-    assert!(!wrap_get_side_effects_from_package_json(
+    assert!(!get_side_effects_from_package_json_helper(
       vec!["./src/**/*.js", "./dirty.js"],
       "./clean.js"
     ));

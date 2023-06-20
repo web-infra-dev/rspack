@@ -65,7 +65,7 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
         .used_symbol_ref
         .iter()
         .filter_map(|item| match item {
-          SymbolRef::Direct(d) if d.uri() == module.identifier() => {
+          SymbolRef::Direct(d) if d.src() == module.identifier() => {
             if *d.ty() == SymbolType::Temp {
               if let Some(key) = &self.ids.iter().find(|e| {
                 if let Some(v) = &e.1 {

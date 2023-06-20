@@ -176,8 +176,7 @@ where
         self.compilation.has_module_import_export_change = false;
         // remove prev build ast in modules
         fast_drop(
-          self
-            .compilation
+          new_compilation
             .module_graph
             .modules_mut()
             .values_mut()

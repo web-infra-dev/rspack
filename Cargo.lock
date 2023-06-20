@@ -2467,6 +2467,7 @@ version = "0.1.0"
 dependencies = [
  "napi",
  "rspack_error",
+ "rspack_regex",
  "tokio",
 ]
 

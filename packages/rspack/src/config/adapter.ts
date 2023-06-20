@@ -122,9 +122,11 @@ function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
 	const raw: RawOptions["entry"] = {};
 	for (const key of Object.keys(entry)) {
 		const runtime = entry[key].runtime;
+		const chunkLoading = entry[key].chunkLoading;
 		raw[key] = {
 			import: entry[key].import!,
-			runtime: runtime === false ? undefined : runtime
+			runtime: runtime === false ? undefined : runtime,
+			chunkLoading: chunkLoading === false ? "false" : chunkLoading
 		};
 	}
 	return raw;

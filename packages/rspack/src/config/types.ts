@@ -74,20 +74,18 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
-export type IgnoreWarningsPattern = (
-	| RegExp
-	| ((warning: Error, compilation: Compilation) => boolean)
-)[];
-export type IgnoreWarningsNormalized = ((
-	warning: Error,
-	compilation: Compilation
-) => boolean)[];
+export type ChunkLoading = false | ChunkLoadingType;
+export type ChunkLoadingType =
+	| ("jsonp" | "import-scripts" | "require" | "async-node" | "import")
+	| string;
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }
 export interface EntryDescription {
 	import: EntryItem;
 	runtime?: EntryRuntime;
+	chunkLoading?: ChunkLoading;
+	publicPath?: PublicPath;
 }
 
 export type EntryNormalized = EntryStaticNormalized;
@@ -97,6 +95,8 @@ export interface EntryStaticNormalized {
 export interface EntryDescriptionNormalized {
 	import?: string[];
 	runtime?: EntryRuntime;
+	chunkLoading?: ChunkLoading;
+	publicPath?: PublicPath;
 }
 
 ///// Output /////
@@ -643,6 +643,16 @@ export type WatchOptions = watchpack.WatchOptions;
 export interface DevServer extends webpackDevServer.Configuration {
 	hot?: boolean;
 }
+
+///// IgnoreWarnings /////
+export type IgnoreWarningsPattern = (
+	| RegExp
+	| ((warning: Error, compilation: Compilation) => boolean)
+)[];
+export type IgnoreWarningsNormalized = ((
+	warning: Error,
+	compilation: Compilation
+) => boolean)[];
 
 ///// Builtins /////
 export type Builtins = oldBuiltins.Builtins;

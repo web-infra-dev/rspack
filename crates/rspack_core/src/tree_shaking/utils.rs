@@ -4,7 +4,7 @@ use swc_core::ecma::ast::{CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit};
 use swc_core::ecma::atoms::{js_word, JsWord};
 
 use super::visitor::SymbolRef;
-use crate::ModuleGraph;
+use crate::{ModuleGraph, ModuleIdentifier};
 
 pub fn get_first_string_lit_arg(e: &CallExpr) -> Option<JsWord> {
   // we check the length at the begin of [is_require_literal_expr]
@@ -74,15 +74,19 @@ impl ConvertModulePath for SymbolRef {
       SymbolRef::Star(star) => {
         SymbolRef::Star(star.convert_module_identifier_to_module_path(module_graph))
       }
+      SymbolRef::Url { importer, src } => SymbolRef::Url {
+        importer: importer.convert_module_identifier_to_module_path(module_graph),
+        src: src.convert_module_identifier_to_module_path(module_graph),
+      },
     }
   }
 }
 
 impl ConvertModulePath for Symbol {
   fn convert_module_identifier_to_module_path(mut self, module_graph: &ModuleGraph) -> Self {
-    self.set_uri(
+    self.set_src(
       module_graph
-        .normal_module_source_path_by_identifier(&self.uri())
+        .normal_module_source_path_by_identifier(&self.src())
         .expect("Can't get module source path by identifier")
         .as_ref()
         .into(),
@@ -128,5 +132,15 @@ impl ConvertModulePath for StarSymbol {
         .into(),
     );
     self
+  }
+}
+
+impl ConvertModulePath for ModuleIdentifier {
+  fn convert_module_identifier_to_module_path(self, module_graph: &ModuleGraph) -> Self {
+    module_graph
+      .normal_module_source_path_by_identifier(&self)
+      .expect("Can't get module source path by identifier")
+      .as_ref()
+      .into()
   }
 }
