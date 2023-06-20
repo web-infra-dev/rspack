@@ -9,7 +9,10 @@ use swc_core::ecma::visit::fields::IfStmtField;
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
 
-use super::{as_parent_path, expr_matcher, is_require_resolve_call, is_require_resolve_weak_call};
+use super::{
+  as_parent_path, expr_matcher, is_require_resolve_call, is_require_resolve_weak_call,
+  is_unresolved_require_member_expr,
+};
 
 pub struct CommonJsScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
@@ -111,14 +114,12 @@ impl VisitAstPath for CommonJsScanner<'_> {
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
     if let Callee::Expr(expr) = &node.callee {
-      if let Expr::Ident(ident) = &**expr {
-        if ident.span.ctxt == *self.unresolved_ctxt {
-          if is_require_resolve_call(node) {
-            return self.add_require_resolve(node, ast_path, false);
-          }
-          if is_require_resolve_weak_call(node) {
-            return self.add_require_resolve(node, ast_path, true);
-          }
+      if is_unresolved_require_member_expr(expr, self.unresolved_ctxt) {
+        if is_require_resolve_call(node) {
+          return self.add_require_resolve(node, ast_path, false);
+        }
+        if is_require_resolve_weak_call(node) {
+          return self.add_require_resolve(node, ast_path, true);
         }
       }
     }
