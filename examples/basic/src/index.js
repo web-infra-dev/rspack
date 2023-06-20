@@ -4,4 +4,5 @@ function render() {
 		"root"
 	).innerHTML = `the answer to the universe is ${answer}`;
 }
+console.log(process.env.test)
 render();

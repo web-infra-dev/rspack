@@ -1,3 +1,7 @@
+const rspack = require("@rspack/core");
+console.log(rspack)
+process.env.test = "test"
+
 /** @type {import('@rspack/cli').Configuration} */
 const config = {
 	context: __dirname,
@@ -11,6 +15,7 @@ const config = {
 				template: "./index.html"
 			}
 		]
-	}
+	},
+	plugins: [new rspack.EnvironmentPlugin("test")]
 };
 module.exports = config;
