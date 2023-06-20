@@ -35,6 +35,7 @@ export class JsCompilation {
   addContextDependencies(deps: Array<string>): void
   addMissingDependencies(deps: Array<string>): void
   addBuildDependencies(deps: Array<string>): void
+  rebuildModule(moduleIdentifiers: Array<string>, f: (...args: any[]) => any): void
 }
 
 export class JsStats {
@@ -91,11 +92,16 @@ export interface AfterResolveData {
   fileDependencies: Array<string>
   contextDependencies: Array<string>
   missingDependencies: Array<string>
+  factoryMeta: FactoryMeta
 }
 
 export interface BeforeResolveData {
   request: string
   context: string
+}
+
+export interface FactoryMeta {
+  sideEffects?: boolean
 }
 
 /**
@@ -198,6 +204,7 @@ export interface JsHooks {
   afterCompile: (...args: any[]) => any
   finishModules: (...args: any[]) => any
   finishMake: (...args: any[]) => any
+  buildModule: (...args: any[]) => any
   beforeResolve: (...args: any[]) => any
   afterResolve: (...args: any[]) => any
   contextModuleBeforeResolve: (...args: any[]) => any
@@ -384,12 +391,42 @@ export interface PathWithInfo {
   info: JsAssetInfo
 }
 
-export interface RawAssetParserDataUrlOption {
+export interface RawAssetGeneratorDataUrl {
+  type: "options"
+  options?: RawAssetGeneratorDataUrlOptions
+}
+
+export interface RawAssetGeneratorDataUrlOptions {
+  encoding?: "base64" | "false" | undefined
+  mimetype?: string
+}
+
+export interface RawAssetGeneratorOptions {
+  filename?: string
+  publicPath?: string
+  dataUrl?: RawAssetGeneratorDataUrl
+}
+
+export interface RawAssetInlineGeneratorOptions {
+  dataUrl?: RawAssetGeneratorDataUrl
+}
+
+export interface RawAssetParserDataUrl {
+  type: "options"
+  options?: RawAssetParserDataUrlOptions
+}
+
+export interface RawAssetParserDataUrlOptions {
   maxSize?: number
 }
 
 export interface RawAssetParserOptions {
-  dataUrlCondition?: RawAssetParserDataUrlOption
+  dataUrlCondition?: RawAssetParserDataUrl
+}
+
+export interface RawAssetResourceGeneratorOptions {
+  filename?: string
+  publicPath?: string
 }
 
 export interface RawBannerCondition {
@@ -441,7 +478,8 @@ export interface RawCacheGroupOptions {
   priority?: number
   test?: string
   /** What kind of chunks should be selected. */
-  chunks?: string
+  chunks?: RegExp | 'async' | 'initial' | 'all'
+  type?: RegExp | string
   minChunks?: number
   minSize?: number
   maxSize?: number
@@ -497,14 +535,16 @@ export interface RawDevServer {
   hot: boolean
 }
 
-export interface RawEntryItem {
+export interface RawEntryDescription {
   import: Array<string>
   runtime?: string
+  chunkLoading?: string
+  publicPath?: string
 }
 
 export interface RawExperiments {
   lazyCompilation: boolean
-  incrementalRebuild: boolean
+  incrementalRebuild: RawIncrementalRebuild
   asyncWebAssembly: boolean
   newSplitChunks: boolean
   css: boolean
@@ -546,11 +586,18 @@ export interface RawExternalsPresets {
 }
 
 export interface RawFallbackCacheGroupOptions {
-  chunks?: string
+  chunks?: RegExp | 'async' | 'initial' | 'all'
   minSize?: number
   maxSize?: number
   maxAsyncSize?: number
   maxInitialSize?: number
+}
+
+export interface RawGeneratorOptions {
+  type: "asset" | "asset/inline" | "asset/resource" | "unknown"
+  asset?: RawAssetGeneratorOptions
+  assetInline?: RawAssetInlineGeneratorOptions
+  assetResource?: RawAssetResourceGeneratorOptions
 }
 
 export interface RawGlobOptions {
@@ -580,6 +627,11 @@ export interface RawHtmlPluginConfig {
   title?: string
   favicon?: string
   meta?: Record<string, Record<string, string>>
+}
+
+export interface RawIncrementalRebuild {
+  make: boolean
+  emitAsset: boolean
 }
 
 export interface RawLibraryAuxiliaryComment {
@@ -612,7 +664,8 @@ export interface RawMinification {
 
 export interface RawModuleOptions {
   rules: Array<RawModuleRule>
-  parser?: RawParserOptions
+  parser?: Record<string, RawParserOptions>
+  generator?: Record<string, RawGeneratorOptions>
 }
 
 export interface RawModuleRule {
@@ -629,8 +682,8 @@ export interface RawModuleRule {
   sideEffects?: boolean
   use?: Array<RawModuleRuleUse>
   type?: string
-  parser?: RawModuleRuleParser
-  generator?: RawModuleRuleGenerator
+  parser?: RawParserOptions
+  generator?: RawGeneratorOptions
   resolve?: RawResolveOptions
   issuer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
@@ -640,14 +693,6 @@ export interface RawModuleRule {
   rules?: Array<RawModuleRule>
   /** Specifies the category of the loader. No value means normal loader. */
   enforce?: 'pre' | 'post'
-}
-
-export interface RawModuleRuleGenerator {
-  filename?: string
-}
-
-export interface RawModuleRuleParser {
-  dataUrlCondition?: RawAssetParserDataUrlOption
 }
 
 /**
@@ -683,7 +728,7 @@ export interface RawOptimizationOptions {
 }
 
 export interface RawOptions {
-  entry: Record<string, RawEntryItem>
+  entry: Record<string, RawEntryDescription>
   /**
    * Using this Vector to track the original order of user land entry configuration
    * std::collection::HashMap does not guarantee the insertion order, for more details you could refer
@@ -734,8 +779,8 @@ export interface RawOutputOptions {
   importFunctionName: string
   iife: boolean
   module: boolean
-  chunkFormat?: string
-  chunkLoading?: string
+  chunkFormat: string
+  chunkLoading: string
   enabledChunkLoadingTypes?: Array<string>
   trustedTypes?: RawTrustedTypes
   sourceMapFilename: string
@@ -746,6 +791,7 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
+  type: "asset" | "unknown"
   asset?: RawAssetParserOptions
 }
 
@@ -861,7 +907,7 @@ export interface RawSplitChunksOptions {
   name?: string
   cacheGroups?: Record<string, RawCacheGroupOptions>
   /** What kind of chunks should be selected. */
-  chunks?: string
+  chunks?: RegExp | 'async' | 'initial' | 'all'
   maxAsyncRequests?: number
   maxInitialRequests?: number
   minChunks?: number

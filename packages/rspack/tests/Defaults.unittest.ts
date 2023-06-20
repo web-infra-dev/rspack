@@ -206,6 +206,9 @@ describe("snapshots", () => {
 		-   "cache": false,
 		+   "cache": true,
 		@@ ... @@
+		-       "make": false,
+		+       "make": true,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
 		@@ ... @@
@@ -829,6 +832,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "cache": false,
 		+   "cache": true,
+		@@ ... @@
+		-       "make": false,
+		+       "make": true,
 	`)
 	);
 	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
@@ -841,6 +847,9 @@ describe("snapshots", () => {
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
+		@@ ... @@
+		-       "make": false,
+		+       "make": true,
 	`)
 	);
 	test(
@@ -856,6 +865,9 @@ describe("snapshots", () => {
 			+   "cache": Object {
 			+     "type": "filesystem",
 			+   },
+			@@ ... @@
+			-       "make": false,
+			+       "make": true,
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
@@ -997,6 +1009,9 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
+			@@ ... @@
+			-       "make": false,
+			+       "make": true,
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunk",

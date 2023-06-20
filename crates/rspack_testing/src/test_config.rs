@@ -367,6 +367,14 @@ impl TestConfig {
                 })
                 .unwrap_or_default(),
             )) as BoxLoader,
+            "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
+              i.options
+                .map(|options| {
+                  serde_json::from_str::<rspack_loader_swc::SwcLoaderJsOptions>(&options)
+                    .expect("should give a right loader options")
+                })
+                .unwrap_or_default(),
+            )) as BoxLoader,
             _ => panic!("should give a right loader"),
           })
           .collect::<Vec<BoxLoader>>(),
@@ -389,24 +397,6 @@ impl TestConfig {
 
     let options = CompilerOptions {
       context: c::Context::new(context.to_string_lossy().to_string()),
-      entry: self
-        .entry
-        .into_iter()
-        .map(|(k, v)| {
-          (
-            k,
-            c::EntryItem {
-              import: v.import,
-              runtime: v
-                .runtime
-                .map(Some)
-                // Splitting runtime code into a separate chunk
-                // is friendly to snapshot testing.
-                .unwrap_or_else(|| Some("runtime".to_string())),
-            },
-          )
-        })
-        .collect(),
       output: c::OutputOptions {
         clean: self.output.clean,
         filename: c::Filename::from_str(&self.output.filename).expect("Should exist"),
@@ -425,6 +415,7 @@ impl TestConfig {
           .expect("Should exist"),
         public_path: c::PublicPath::String("/".to_string()),
         unique_name: "__rspack_test__".to_string(),
+        chunk_loading: c::ChunkLoading::Jsonp,
         chunk_loading_global: "webpackChunkwebpack".to_string(),
         path: context.join("dist"),
         library: self.output.library.map(|l| c::LibraryOptions {
@@ -499,6 +490,22 @@ impl TestConfig {
       },
     };
     let mut plugins = Vec::new();
+    for (name, desc) in &self.entry {
+      for request in &desc.import {
+        plugins.push(
+          rspack_plugin_entry::EntryPlugin::new(
+            name.clone(),
+            request.to_owned(),
+            rspack_core::EntryOptions {
+              runtime: Some("runtime".to_string()),
+              chunk_loading: None,
+              public_path: None,
+            },
+          )
+          .boxed(),
+        );
+      }
+    }
     if self.builtins.dev_friendly_split_chunks {
       plugins
         .push(rspack_plugin_dev_friendly_split_chunks::DevFriendlySplitChunksPlugin::new().boxed());
@@ -527,7 +534,7 @@ impl TestConfig {
     );
     plugins.push(
       rspack_plugin_asset::AssetPlugin::new(rspack_plugin_asset::AssetConfig {
-        parse_options: options.module.parser.as_ref().and_then(|x| x.asset.clone()),
+        parse_options: None,
       })
       .boxed(),
     );
@@ -547,13 +554,12 @@ impl TestConfig {
     }
     plugins.push(rspack_plugin_json::JsonPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
     plugins.push(rspack_plugin_runtime::JsonpChunkLoadingPlugin {}.boxed());
+    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     if options.dev_server.hot {
       plugins.push(rspack_plugin_runtime::HotModuleReplacementPlugin {}.boxed());
     }
-    plugins.push(rspack_plugin_runtime::BasicRuntimeRequirementPlugin {}.boxed());
     if options.experiments.lazy_compilation {
       plugins.push(rspack_plugin_runtime::LazyCompilationPlugin {}.boxed());
     }

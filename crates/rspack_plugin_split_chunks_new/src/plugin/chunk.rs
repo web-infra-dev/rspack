@@ -8,11 +8,9 @@ use crate::SplitChunksPlugin;
 impl SplitChunksPlugin {
   /// Affected by `splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk`
   ///
-  /// If the current chunk contains modules already split out from the main bundle,
-  /// it will be reused instead of a new one being generated. This can affect the
-  /// resulting file name of the chunk.
-  ///
-  /// the best means the reused chunks contains all modules in this ModuleGroup
+  /// If there is a code splitting chunk that the contains the same modules as the current `ModuleGroup`,
+  /// with `reuseExistingChunk: true`,the code splitting chunks will be reused instead of create a new one
+  /// for the current `ModuleGroup`.
   pub(crate) fn find_the_best_reusable_chunk(
     &self,
     compilation: &mut Compilation,
@@ -26,7 +24,7 @@ impl SplitChunksPlugin {
         .get_number_of_chunk_modules(&chunk.ukey)
         != module_group.modules.len()
       {
-        // Fast path for checking is the chunk reuseable for this `ModuleGroup`.
+        // Fast path
         return None;
       }
 
@@ -36,11 +34,10 @@ impl SplitChunksPlugin {
           .get_number_of_entry_modules(&chunk.ukey)
           > 0
       {
-        // `module_group.chunks.len() > 1`: this ModuleGroup are related multiple chunks generated in code splitting.
-        // `get_number_of_entry_modules(&chunk.ukey) > 0`:  current chunk is an initial chunk.
+        // `module_group.chunks.len() > 1`: This `ModuleGroup` are related to multiple code splitting chunks.
+        // `get_number_of_entry_modules(&chunk.ukey) > 0`:  Current chunk is an initial chunk.
 
-        // I(hyf0) don't see why breaking for this condition. But ChatGPT3.5 told me:
-
+        // I(hyf0) don't see why the process needs to bailout for this condition. But ChatGPT3.5 told me:
         // The condition means that if there are multiple chunks in item and the current chunk is an
         // entry chunk, then it cannot be reused. This is because entry chunks typically contain the core
         // code of an application, while other chunks contain various parts of the application. If
@@ -61,7 +58,7 @@ impl SplitChunksPlugin {
     });
 
     /// Port https://github.com/webpack/webpack/blob/b471a6bfb71020f6d8f136ef10b7efb239ef5bbf/lib/optimize/SplitChunksPlugin.js#L1360-L1373
-    fn best_reuseable_chunk<'a>(first: &'a Chunk, second: &'a Chunk) -> &'a Chunk {
+    fn best_reusable_chunk<'a>(first: &'a Chunk, second: &'a Chunk) -> &'a Chunk {
       match (&first.name, &second.name) {
         (None, None) => first,
         (None, Some(_)) => second,
@@ -80,10 +77,9 @@ impl SplitChunksPlugin {
       }
     }
 
-    let best_reuseable_chunk =
-      candidates.reduce_with(|best, each| best_reuseable_chunk(best, each));
+    let best_reusable_chunk = candidates.reduce_with(|best, each| best_reusable_chunk(best, each));
 
-    best_reuseable_chunk.map(|c| c.ukey)
+    best_reusable_chunk.map(|c| c.ukey)
   }
 
   pub(crate) fn get_corresponding_chunk(

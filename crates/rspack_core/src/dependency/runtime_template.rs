@@ -1,3 +1,5 @@
+use swc_core::ecma::atoms::JsWord;
+
 use crate::{
   to_identifier, CodeReplaceSourceDependencyContext, Compilation, DependencyId, ExportsType,
   InitFragment, InitFragmentStage, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
@@ -7,7 +9,7 @@ pub fn export_from_import(
   code_generatable_context: &mut CodeReplaceSourceDependencyContext,
   default_interop: bool,
   import_var: String,
-  mut export_name: Vec<String>,
+  mut export_name: Vec<JsWord>,
   id: &DependencyId,
   is_call: bool,
 ) -> String {
@@ -23,7 +25,7 @@ pub fn export_from_import(
 
   if default_interop {
     if !export_name.is_empty()
-        && let Some(first_export_name) = export_name.get(0) && *first_export_name == "default"
+        && let Some(first_export_name) = export_name.get(0) && first_export_name == "default"
       {
         match exports_type {
             ExportsType::Dynamic => {
@@ -37,7 +39,7 @@ pub fn export_from_import(
       } else if !export_name.is_empty() {
         if matches!(exports_type, ExportsType::DefaultOnly) {
           return format!("/* non-default import from non-esm module */undefined\n{}", property_access(&export_name, 1));
-        } else if !matches!(exports_type, ExportsType::Namespace)  && let Some(first_export_name) = export_name.get(0) && *first_export_name == "__esModule" {
+        } else if !matches!(exports_type, ExportsType::Namespace)  && let Some(first_export_name) = export_name.get(0) && first_export_name == "__esModule" {
           return "/* __esModule */true".to_string();
         }
       } else if matches!(exports_type, ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) {
@@ -49,7 +51,7 @@ pub fn export_from_import(
           InitFragmentStage::STAGE_HARMONY_EXPORTS,
           None,
         ));
-        return format!("/*#__PURE__*/ {import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{}))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
+        return format!("/*#__PURE__*/ ({import_var}_namespace_cache || ({import_var}_namespace_cache = {}({import_var}{})))", RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT, if matches!(exports_type, ExportsType::DefaultOnly) { "" } else { ", 2" });
       }
   }
 
@@ -83,7 +85,7 @@ pub fn get_exports_type(
     .get_exports_type(strict)
 }
 
-fn property_access(o: &Vec<String>, mut start: usize) -> String {
+fn property_access(o: &Vec<JsWord>, mut start: usize) -> String {
   let mut str = String::default();
   while start < o.len() {
     let property = &o[start];
@@ -94,7 +96,9 @@ fn property_access(o: &Vec<String>, mut start: usize) -> String {
 }
 
 pub fn get_import_var(user_request: &str) -> String {
-  format!("{}__WEBPACK_IMPORTED_MODULE__", to_identifier(user_request))
+  // avoid './a' and '../a' generate different identifier
+  let request = user_request.replace("..", "$");
+  format!("{}__WEBPACK_IMPORTED_MODULE__", to_identifier(&request))
 }
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {

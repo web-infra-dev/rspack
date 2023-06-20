@@ -7,6 +7,6 @@ module.exports = config => {
 };
 
 */
-module.exports = () => {return false}
+module.exports = () => {return true}
 
 							

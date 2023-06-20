@@ -5,7 +5,6 @@ use std::{
   sync::Arc,
 };
 
-use indexmap::IndexMap;
 use rspack_core::{
   run_loaders, CompilerContext, CompilerOptions, Loader, LoaderRunnerContext, ResourceData,
   SideEffectOption,
@@ -33,7 +32,6 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
     &[],
     CompilerContext {
       options: std::sync::Arc::new(CompilerOptions {
-        entry: IndexMap::default(),
         context: rspack_core::Context::default(),
         dev_server: rspack_core::DevServerOptions::default(),
         devtool: rspack_core::Devtool::default(),
@@ -49,6 +47,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
           cross_origin_loading: rspack_core::CrossOriginLoading::Disable,
           unique_name: Default::default(),
+          chunk_loading: rspack_core::ChunkLoading::Jsonp,
           chunk_loading_global: "webpackChunkwebpack".to_string(),
           css_chunk_filename: rspack_core::Filename::from_str("").expect("TODO:"),
           css_filename: rspack_core::Filename::from_str("").expect("TODO:"),

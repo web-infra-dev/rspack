@@ -159,6 +159,11 @@ export const getNormalizedRspackOptions = (
 				cloneObject,
 				{}
 			),
+			generator: keyedNestedConfig(
+				module.generator as Record<string, any>,
+				cloneObject,
+				{}
+			),
 			defaultRules: optionalNestedArray(module.defaultRules, r => [...r]),
 			rules: nestedArray(module.rules, r => [...r])
 		})),
@@ -224,7 +229,11 @@ export const getNormalizedRspackOptions = (
 		}),
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments
+			...experiments,
+			incrementalRebuild: optionalNestedConfig(
+				experiments.incrementalRebuild,
+				options => (options === true ? {} : options)
+			)
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -264,7 +273,9 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 		} else {
 			result[key] = {
 				import: Array.isArray(value.import) ? value.import : [value.import],
-				runtime: value.runtime
+				runtime: value.runtime,
+				publicPath: value.publicPath,
+				chunkLoading: value.chunkLoading
 			};
 		}
 	}

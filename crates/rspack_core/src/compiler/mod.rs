@@ -1,5 +1,6 @@
 mod compilation;
 mod hmr;
+mod make;
 mod queue;
 mod resolver;
 
@@ -7,13 +8,13 @@ use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
 use dashmap::DashMap;
+pub use make::MakeParam;
 pub use queue::*;
 pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet as HashSet;
 use tracing::instrument;
 
 use crate::{
@@ -62,7 +63,6 @@ where
       compilation: Compilation::new(
         options,
         Default::default(),
-        Default::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
         cache.clone(),
@@ -90,9 +90,7 @@ where
     fast_set(
       &mut self.compilation,
       Compilation::new(
-        // TODO: use Arc<T> instead
         self.options.clone(),
-        self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
@@ -113,28 +111,16 @@ where
       .compilation(&mut self.compilation)
       .await?;
 
-    self.compilation.setup_entry_dependencies();
-
-    let deps = self
-      .compilation
-      .entry_dependencies
-      .iter()
-      .flat_map(|(_, deps)| {
-        deps
-          .clone()
-          .into_iter()
-          .map(|d| (d, None))
-          .collect::<Vec<_>>()
-      })
-      .collect::<HashSet<_>>();
-    self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
+    self
+      .compile(MakeParam::ForceBuildDeps(Default::default()))
+      .await?;
     self.cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
+  async fn compile(&mut self, params: MakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
 
@@ -152,12 +138,17 @@ where
       .keys()
       .cloned()
       .collect::<IdentifierSet>();
+
     if option.builtins.tree_shaking.enable()
       || option
         .output
         .enabled_library_types
         .as_ref()
-        .map(|types| types.iter().any(|item| item == "module"))
+        .map(|types| {
+          types
+            .iter()
+            .any(|item| item == "module" || item == "commonjs-static")
+        })
         .unwrap_or(false)
     {
       let (analyze_result, diagnostics) = self
@@ -280,7 +271,8 @@ where
         .write(&file_path, source.buffer())
         .await?;
 
-      if !asset.info.version.is_empty() {
+      if !asset.info.version.is_empty() && self.options.is_incremental_rebuild_emit_asset_enabled()
+      {
         self
           .emitted_asset_versions
           .insert(filename.to_string(), asset.info.version.clone());

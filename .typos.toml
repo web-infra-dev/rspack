@@ -9,5 +9,9 @@ extend-exclude = [
   "webpack-test",
   "./examples",
   "**/CHANGELOG.md",
+  "GOVERNANCE.md",
   "pnpm-lock.yaml",
 ]
+
+[default.extend-words]
+Nd = "Nd"

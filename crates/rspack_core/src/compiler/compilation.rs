@@ -25,31 +25,23 @@ use swc_core::ecma::ast::ModuleItem;
 use tokio::sync::mpsc::error::TryRecvError;
 use tracing::instrument;
 
+use super::make::{MakeParam, RebuildDepsBuilder};
 use crate::{
   build_chunk_graph::build_chunk_graph,
   cache::{use_code_splitting_cache, Cache, CodeSplittingCache},
   is_source_equal,
   tree_shaking::{optimizer, visitor::SymbolRef, BailoutFlag, OptimizeDependencyResult},
-  utils::fast_drop,
-  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModuleDependency,
-  BuildQueue, BuildTask, BuildTaskResult, BundleEntries, Chunk, ChunkByUkey, ChunkContentHash,
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey, CleanQueue,
-  CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults, CompilerOptions,
-  ContentHashArgs, DependencyId, EntryDependency, EntryItem, EntryOptions, Entrypoint,
+  AddQueue, AddTask, AddTaskResult, AdditionalChunkRuntimeRequirementsArgs, BoxModule,
+  BoxModuleDependency, BuildQueue, BuildTask, BuildTaskResult, Chunk, ChunkByUkey,
+  ChunkContentHash, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkHashArgs, ChunkKind, ChunkUkey,
+  CleanQueue, CleanTask, CleanTaskResult, CodeGenerationResult, CodeGenerationResults,
+  CompilerOptions, ContentHashArgs, DependencyId, Entry, EntryData, EntryOptions, Entrypoint,
   FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
-  ModuleIdentifier, ModuleType, NormalModuleAstOrSource, PathData, ProcessAssetsArgs,
-  ProcessDependenciesQueue, ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs,
-  Resolve, ResolverFactory, RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats,
-  TaskResult, WorkerTask,
+  ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
+  ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
-
-#[derive(Debug)]
-pub struct EntryData {
-  pub name: String,
-  pub dependencies: Vec<DependencyId>,
-  pub options: EntryOptions,
-}
 
 pub type BuildDependency = (
   DependencyId,
@@ -57,16 +49,9 @@ pub type BuildDependency = (
 );
 
 #[derive(Debug)]
-pub enum SetupMakeParam {
-  ModifiedFiles(HashSet<PathBuf>),
-  ForceBuildDeps(HashSet<BuildDependency>),
-}
-
-#[derive(Debug)]
 pub struct Compilation {
   pub options: Arc<CompilerOptions>,
-  entries: BundleEntries,
-  pub entry_dependencies: HashMap<String, Vec<DependencyId>>,
+  pub entries: Entry,
   pub module_graph: ModuleGraph,
   pub make_failed_dependencies: HashSet<BuildDependency>,
   pub make_failed_module: HashSet<ModuleIdentifier>,
@@ -77,6 +62,7 @@ pub struct Compilation {
   pub chunk_by_ukey: Database<Chunk>,
   pub chunk_group_by_ukey: Database<ChunkGroup>,
   pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: IndexSet<Diagnostic, BuildHasherDefault<FxHasher>>,
@@ -113,7 +99,6 @@ impl Compilation {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     options: Arc<CompilerOptions>,
-    entries: BundleEntries,
     module_graph: ModuleGraph,
     plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
@@ -129,10 +114,10 @@ impl Compilation {
       runtime_module_code_generation_results: Default::default(),
       chunk_by_ukey: Default::default(),
       chunk_group_by_ukey: Default::default(),
-      entry_dependencies: Default::default(),
-      entries,
+      entries: Default::default(),
       chunk_graph: Default::default(),
       entrypoints: Default::default(),
+      async_entrypoints: Default::default(),
       assets: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
@@ -164,8 +149,16 @@ impl Compilation {
     }
   }
 
-  pub fn add_entry(&mut self, name: String, detail: EntryItem) {
-    self.entries.insert(name, detail);
+  pub fn add_entry(&mut self, entry: DependencyId, name: String, options: EntryOptions) {
+    if let Some(data) = self.entries.get_mut(&name) {
+      data.dependencies.push(entry);
+    } else {
+      let data = EntryData {
+        dependencies: vec![entry],
+        options,
+      };
+      self.entries.insert(name.to_owned(), data);
+    }
   }
 
   pub fn update_asset(
@@ -300,7 +293,7 @@ impl Compilation {
         .expect("This should not happen");
       chunk
     } else {
-      let chunk = Chunk::new(Some(name.clone()), None, ChunkKind::Normal);
+      let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
       let ukey = chunk.ukey;
       named_chunks.insert(name, chunk.ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk)
@@ -308,129 +301,78 @@ impl Compilation {
   }
 
   pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> &mut Chunk {
-    let chunk = Chunk::new(None, None, ChunkKind::Normal);
+    let chunk = Chunk::new(None, ChunkKind::Normal);
     let ukey = chunk.ukey;
     chunk_by_ukey.add(chunk);
     chunk_by_ukey.get_mut(&ukey).expect("chunk not found")
   }
 
-  #[instrument(name = "entry_data", skip(self))]
-  pub fn entry_data(&self) -> IndexMap<String, EntryData> {
-    self
-      .entries
-      .iter()
-      .map(|(name, item)| {
-        let dependencies = self
-          .entry_dependencies
-          .get(name)
-          .expect("should have dependencies")
-          .clone();
-        (
-          name.clone(),
-          EntryData {
-            dependencies,
-            name: name.clone(),
-            options: EntryOptions {
-              runtime: item.runtime.clone(),
-            },
-          },
-        )
-      })
-      .collect()
-  }
-
-  pub fn setup_entry_dependencies(&mut self) {
-    self.entries.iter().for_each(|(name, item)| {
-      let dependencies = item
-        .import
-        .iter()
-        .map(|detail| {
-          let dependency =
-            Box::new(EntryDependency::new(detail.to_string())) as BoxModuleDependency;
-          self.module_graph.add_dependency(dependency)
-        })
-        .collect::<Vec<_>>();
-      self
-        .entry_dependencies
-        .insert(name.to_string(), dependencies);
-    })
-  }
-
   #[instrument(name = "compilation:make", skip_all)]
-  pub async fn make(&mut self, params: SetupMakeParam) -> Result<()> {
-    if let Some(e) = self.plugin_driver.clone().make(self).await.err() {
+  pub async fn make(&mut self, mut param: MakeParam) -> Result<()> {
+    if let Some(e) = self
+      .plugin_driver
+      .clone()
+      .make(self, &mut param)
+      .await
+      .err()
+    {
       self.push_batch_diagnostic(e.into());
     }
+    let make_failed_module =
+      MakeParam::ForceBuildModules(std::mem::take(&mut self.make_failed_module));
+    let make_failed_dependencies =
+      MakeParam::ForceBuildDeps(std::mem::take(&mut self.make_failed_dependencies));
+    self
+      .update_module_graph(vec![param, make_failed_module, make_failed_dependencies])
+      .await
+  }
 
-    // remove prev build ast in modules
-    fast_drop(
-      self
-        .module_graph
-        .modules_mut()
-        .values_mut()
-        .map(|module| {
-          if let Some(m) = module.as_normal_module_mut() {
-            let is_ast_unbuild = matches!(m.ast_or_source(), NormalModuleAstOrSource::Unbuild);
-            if !is_ast_unbuild {
-              return Some(std::mem::replace(
-                m.ast_or_source_mut(),
-                NormalModuleAstOrSource::Unbuild,
-              ));
-            }
-          }
-          None
-        })
-        .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
-    );
+  pub async fn rebuild_module(
+    &mut self,
+    module_identifiers: HashSet<ModuleIdentifier>,
+  ) -> Result<Vec<&BoxModule>> {
+    for id in &module_identifiers {
+      self.cache.build_module_occasion.remove_cache(id);
+    }
 
-    let mut force_build_module = std::mem::take(&mut self.make_failed_module);
-    let mut force_build_deps = std::mem::take(&mut self.make_failed_dependencies);
+    self
+      .update_module_graph(vec![MakeParam::ForceBuildModules(
+        module_identifiers.clone(),
+      )])
+      .await?;
+
+    Ok(
+      module_identifiers
+        .into_iter()
+        .filter_map(|id| self.module_graph.module_by_identifier(&id))
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  async fn update_module_graph(&mut self, params: Vec<MakeParam>) -> Result<()> {
+    let deps_builder = RebuildDepsBuilder::new(params, &self.module_graph);
     let mut origin_module_deps = HashMap::default();
-    // handle setup params
-    if let SetupMakeParam::ModifiedFiles(files) = &params {
-      force_build_module.extend(self.module_graph.modules().values().filter_map(|module| {
-        // check has dependencies modified
-        if self
-          .module_graph
-          .has_dependencies(&module.identifier(), files)
-        {
-          Some(module.identifier())
-        } else {
-          None
-        }
-      }));
-      // collect origin_module_deps
-      for module_id in &force_build_module {
-        let mgm = self
-          .module_graph
-          .module_graph_module_by_identifier(module_id)
-          .expect("module graph module not exist");
-        let deps = mgm
-          .all_depended_modules(&self.module_graph)
-          .into_iter()
-          .cloned()
-          .collect::<Vec<_>>();
-        origin_module_deps.insert(*module_id, deps);
-      }
-    }
-    if let SetupMakeParam::ForceBuildDeps(deps) = params {
-      force_build_deps.extend(deps);
-    }
 
-    // move deps bindings module to force_build_module
-    for (dependency_id, _) in &force_build_deps {
-      if let Some(mid) = self
+    // collect origin_module_deps
+    for module_id in deps_builder.get_force_build_modules() {
+      let mgm = self
         .module_graph
-        .module_identifier_by_dependency_id(dependency_id)
-      {
-        force_build_module.insert(*mid);
-      }
+        .module_graph_module_by_identifier(module_id)
+        .expect("module graph module not exist");
+      let deps = mgm
+        .all_depended_modules(&self.module_graph)
+        .into_iter()
+        .cloned()
+        .collect::<Vec<_>>();
+      origin_module_deps.insert(*module_id, deps);
     }
 
     let mut need_check_isolated_module_ids = HashSet::default();
+    // rebuild module issuer mappings
+    // save rebuild module issue to restore them
     let mut origin_module_issuers = HashMap::default();
     // calc need_check_isolated_module_ids & regen_module_issues
-    for id in &force_build_module {
+    for id in deps_builder.get_force_build_modules() {
       if let Some(mgm) = self.module_graph.module_graph_module_by_identifier(id) {
         let depended_modules = mgm
           .all_depended_modules(&self.module_graph)
@@ -452,13 +394,8 @@ impl Compilation {
     let mut make_failed_module = HashSet::default();
     let mut errored = None;
 
-    force_build_deps.extend(
-      force_build_module
-        .iter()
-        .flat_map(|id| self.module_graph.revoke_module(id)),
-    );
-
-    force_build_deps
+    deps_builder
+      .revoke_modules(&mut self.module_graph)
       .into_iter()
       .for_each(|(id, parent_module_identifier)| {
         let dependency = self
@@ -730,8 +667,11 @@ impl Compilation {
       }
     });
 
-    self.make_failed_dependencies = make_failed_dependencies;
-    self.make_failed_module = make_failed_module;
+    // TODO @jerrykingxyz make update_module_graph a pure function
+    self
+      .make_failed_dependencies
+      .extend(make_failed_dependencies);
+    self.make_failed_module.extend(make_failed_module);
     tracing::debug!("All task is finished");
 
     // clean isolated module
@@ -773,16 +713,17 @@ impl Compilation {
     self.has_module_import_export_change = if origin_module_deps.is_empty() {
       true
     } else {
-      !origin_module_deps.into_iter().all(|(module_id, deps)| {
-        if let Some(mgm) = self
-          .module_graph
-          .module_graph_module_by_identifier(&module_id)
-        {
-          mgm.all_depended_modules(&self.module_graph) == deps.iter().collect::<Vec<_>>()
-        } else {
-          false
-        }
-      })
+      self.has_module_import_export_change
+        || !origin_module_deps.into_iter().all(|(module_id, deps)| {
+          if let Some(mgm) = self
+            .module_graph
+            .module_graph_module_by_identifier(&module_id)
+          {
+            mgm.all_depended_modules(&self.module_graph) == deps.iter().collect::<Vec<_>>()
+          } else {
+            false
+          }
+        })
     };
 
     // add context module and context element module to bailout_module_identifiers
@@ -1059,7 +1000,14 @@ impl Compilation {
         .expect("chunk group not found");
       entrypoint.get_runtime_chunk()
     });
-    HashSet::from_iter(entries)
+    let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
+      let entrypoint = self
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+        .expect("chunk group not found");
+      entrypoint.get_runtime_chunk()
+    });
+    HashSet::from_iter(entries.chain(async_entries))
   }
 
   #[instrument(name = "compilation:process_runtime_requirements", skip_all)]

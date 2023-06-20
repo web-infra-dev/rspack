@@ -1,16 +1,19 @@
-## Related issue (if exists)
+<!--
+  Thank you for submitting a pull request!
 
-<!--- Provide link of related issues -->
+  We appreciate the time and effort you have invested in making these changes. Please ensure that you provide enough information to allow others to review your pull request.
+
+  Upon submission, your pull request will be automatically assigned with reviewers.
+
+  If you want to learn more about contributing to this project, please visit: https://github.com/web-infra-dev/rspack/blob/main/CONTRIBUTING.md.
+-->
 
 ## Summary
 
-<!-- Explain the **motivation** for making this change. What existing problem does the pull request solve? -->
+<!-- Can you explain the reasoning behind implementing this change? What problem or issue does this pull request resolve? -->
 
-copilot:summary
+<!-- It would be helpful if you could provide any relevant context, such as GitHub issues or related discussions. -->
 
-<details open=true>
-  <summary><h2>Walkthrough</h2></summary>
+## Test Plan
 
-copilot:walkthrough
-
-</details>
+<!-- Can you please describe how you tested the changes you made to the code? -->

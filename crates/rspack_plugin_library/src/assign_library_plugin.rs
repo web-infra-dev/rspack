@@ -1,13 +1,19 @@
 use std::hash::Hash;
 
+use once_cell::sync::Lazy;
+use regex::Regex;
+use rspack_core::tree_shaking::webpack_ext::ExportInfoExt;
 use rspack_core::{
   rspack_sources::{ConcatSource, RawSource, SourceExt},
-  Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin, PluginContext,
-  PluginJsChunkHashHookOutput, PluginRenderHookOutput, PluginRenderStartupHookOutput, RenderArgs,
-  RenderStartupArgs, SourceType,
+  to_identifier, Chunk, Compilation, Filename, JsChunkHashArgs, LibraryOptions, PathData, Plugin,
+  PluginContext, PluginJsChunkHashHookOutput, PluginRenderHookOutput,
+  PluginRenderStartupHookOutput, RenderArgs, RenderStartupArgs, SourceType,
 };
+use rspack_error::internal_error;
 
 use crate::utils::property_access;
+
+const COMMON_LIBRARY_NAME_MESSAGE: &str = "Common configuration options that specific library names are 'output.library[.name]', 'entry.xyz.library[.name]', 'ModuleFederationPlugin.name' and 'ModuleFederationPlugin.library[.name]'.";
 
 #[derive(Debug)]
 pub enum Unnamed {
@@ -79,6 +85,12 @@ impl Plugin for AssignLibraryPlugin {
   fn render(&self, _ctx: PluginContext, args: &RenderArgs) -> PluginRenderHookOutput {
     if self.options.declare {
       let base = &self.get_resolved_full_name(args.compilation, args.chunk())[0];
+      if !is_name_valid(base) {
+        let base_identifier = to_identifier(base);
+        return Err(
+          internal_error!("Library name base ({base}) must be a valid identifier when using a var declaring library type. Either use a valid identifier (e. g. {base_identifier}) or use a different library type (e. g. `type: 'global'`, which assign a property on the global scope instead of declaring a variable). {COMMON_LIBRARY_NAME_MESSAGE}"),
+        );
+      }
       let mut source = ConcatSource::default();
       source.add(RawSource::from(format!("var {base};\n")));
       source.add(args.source.clone());
@@ -109,6 +121,18 @@ impl Plugin for AssignLibraryPlugin {
     let export_access = property_library(library);
     if matches!(self.options.unnamed, Unnamed::Static) {
       let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
+      if let Some(analyze_results) = args
+        .compilation
+        .optimize_analyze_result_map
+        .get(&args.module)
+      {
+        for info in analyze_results.ordered_exports() {
+          let name_access = property_access(&vec![info.name.to_string()]);
+          source.add(RawSource::from(format!(
+            "{export_target}{name_access} = __webpack_exports__{export_access}{name_access};\n",
+          )));
+        }
+      }
       source.add(RawSource::from(format!(
         "Object.defineProperty({export_target}, '__esModule', {{ value: true }});\n",
       )));
@@ -209,4 +233,18 @@ fn access_with_init(accessor: &Vec<String>, existing_length: usize, init_last: b
   }
 
   current
+}
+
+static KEYWORD_REGEXP: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^(await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|super|switch|static|this|throw|try|true|typeof|var|void|while|with|yield)$").expect("should init regex")
+});
+
+static IDENTIFIER_REGEXP: Lazy<Regex> = Lazy::new(|| {
+  Regex::new(r"^[\p{L}\p{Nl}$_][\p{L}\p{Nl}$\p{Mn}\p{Mc}\p{Nd}\p{Pc}]*$")
+    .expect("should init regex")
+});
+
+#[inline]
+pub fn is_name_valid(v: &str) -> bool {
+  !KEYWORD_REGEXP.is_match(v) && IDENTIFIER_REGEXP.is_match(v)
 }

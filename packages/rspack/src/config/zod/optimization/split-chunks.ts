@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 function chunks() {
-	return z.enum(["initial", "async", "all"]);
+	return z.enum(["initial", "async", "all"]).or(z.instanceof(RegExp));
 }
 
 function name() {
@@ -23,6 +23,7 @@ const cacheGroupOptions = z.strictObject({
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
 	reuseExistingChunk: z.boolean().optional(),
+	type: z.string().or(z.instanceof(RegExp)).optional(),
 	...sharedCacheGroupConfigPart
 });
 

@@ -220,7 +220,9 @@ async fn create_loader_context<'c, C: 'c>(
   context: C,
 ) -> Result<LoaderContext<'c, C>> {
   let mut file_dependencies: HashSet<PathBuf> = Default::default();
-  file_dependencies.insert(resource_data.resource_path.clone());
+  if resource_data.resource_path.is_absolute() {
+    file_dependencies.insert(resource_data.resource_path.clone());
+  }
 
   let loader_context = LoaderContext {
     cacheable: true,

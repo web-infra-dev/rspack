@@ -6,8 +6,15 @@ import {
 	RawOptions,
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions,
-	RawBannerConditions,
-	RawBannerCondition
+	RawGeneratorOptions,
+	RawAssetGeneratorOptions,
+	RawParserOptions,
+	RawAssetParserOptions,
+	RawAssetParserDataUrl,
+	RawAssetGeneratorDataUrl,
+	RawAssetInlineGeneratorOptions,
+	RawAssetResourceGeneratorOptions,
+	RawIncrementalRebuild
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../compiler";
@@ -19,11 +26,8 @@ import {
 	createRawModuleRuleUses
 } from "./adapter-rule-use";
 import {
-	BannerConditions,
-	BannerCondition,
 	CrossOriginLoading,
 	EntryNormalized,
-	Experiments,
 	ExternalItem,
 	ExternalItemValue,
 	Externals,
@@ -40,7 +44,17 @@ import {
 	RuleSetRule,
 	SnapshotOptions,
 	StatsValue,
-	Target
+	Target,
+	AssetGeneratorDataUrl,
+	AssetGeneratorOptions,
+	AssetInlineGeneratorOptions,
+	AssetResourceGeneratorOptions,
+	AssetParserDataUrl,
+	AssetParserOptions,
+	ParserOptionsByModuleType,
+	GeneratorOptionsByModuleType,
+	ExperimentsNormalized,
+	IncrementalRebuildOptions
 } from "./types";
 import { SplitChunksConfig } from "./zod/optimization/split-chunks";
 
@@ -108,9 +122,11 @@ function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
 	const raw: RawOptions["entry"] = {};
 	for (const key of Object.keys(entry)) {
 		const runtime = entry[key].runtime;
+		const chunkLoading = entry[key].chunkLoading;
 		raw[key] = {
 			import: entry[key].import!,
-			runtime: runtime === false ? undefined : runtime
+			runtime: runtime === false ? undefined : runtime,
+			chunkLoading: chunkLoading === false ? "false" : chunkLoading
 		};
 	}
 	return raw;
@@ -178,10 +194,10 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
-		chunkFormat: output.chunkFormat === false ? undefined : output.chunkFormat!,
+		chunkFormat: output.chunkFormat === false ? "false" : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
 		chunkLoading:
-			output.chunkLoading === false ? undefined : output.chunkLoading!,
+			output.chunkLoading === false ? "false" : output.chunkLoading!,
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
@@ -286,7 +302,8 @@ function getRawModule(
 	);
 	return {
 		rules,
-		parser: module.parser
+		parser: getRawParserOptionsByModuleType(module.parser),
+		generator: getRawGeneratorOptionsByModuleType(module.generator)
 	};
 }
 
@@ -334,8 +351,12 @@ const getRawModuleRule = (
 		sideEffects: rule.sideEffects,
 		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
-		parser: rule.parser,
-		generator: rule.generator,
+		parser: rule.parser
+			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
+			: undefined,
+		generator: rule.generator
+			? getRawGeneratorOptions(rule.generator, rule.type ?? "javascript/auto")
+			: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
@@ -389,39 +410,6 @@ function getRawRuleSetCondition(
 	);
 }
 
-export function getBannerCondition(
-	condition: BannerCondition
-): RawBannerCondition {
-	if (typeof condition === "string") {
-		return {
-			type: "string",
-			stringMatcher: condition
-		};
-	}
-	if (condition instanceof RegExp) {
-		return {
-			type: "regexp",
-			regexpMatcher: condition.source
-		};
-	}
-	throw new Error("unreachable: condition should be one of string, RegExp");
-}
-
-export function getBannerConditions(
-	condition?: BannerConditions
-): RawBannerConditions | undefined {
-	if (!condition) return undefined;
-
-	if (Array.isArray(condition)) {
-		return {
-			type: "array",
-			arrayMatcher: condition.map(i => getBannerCondition(i))
-		};
-	}
-
-	return getBannerCondition(condition);
-}
-
 function getRawRuleSetLogicalConditions(
 	logical: RuleSetLogicalConditions
 ): RawRuleSetLogicalConditions {
@@ -432,6 +420,139 @@ function getRawRuleSetLogicalConditions(
 		or: logical.or ? logical.or.map(i => getRawRuleSetCondition(i)) : undefined,
 		not: logical.not ? getRawRuleSetCondition(logical.not) : undefined
 	};
+}
+
+function getRawParserOptionsByModuleType(
+	parser: ParserOptionsByModuleType
+): Record<string, RawParserOptions> {
+	return Object.fromEntries(
+		Object.entries(parser).map(([k, v]) => [k, getRawParserOptions(v, k)])
+	);
+}
+
+function getRawGeneratorOptionsByModuleType(
+	parser: GeneratorOptionsByModuleType
+): Record<string, RawGeneratorOptions> {
+	return Object.fromEntries(
+		Object.entries(parser).map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+	);
+}
+
+function getRawParserOptions(
+	parser: { [k: string]: any },
+	type: string
+): RawParserOptions {
+	if (type === "asset") {
+		return {
+			type: "asset",
+			asset: getRawAssetParserOptions(parser)
+		};
+	}
+	return {
+		type: "unknown"
+	};
+}
+
+function getRawAssetParserOptions(
+	parser: AssetParserOptions
+): RawAssetParserOptions {
+	return {
+		dataUrlCondition: parser.dataUrlCondition
+			? getRawAssetParserDataUrl(parser.dataUrlCondition)
+			: undefined
+	};
+}
+
+function getRawAssetParserDataUrl(
+	dataUrlCondition: AssetParserDataUrl
+): RawAssetParserDataUrl {
+	if (typeof dataUrlCondition === "object" && dataUrlCondition !== null) {
+		return {
+			type: "options",
+			options: {
+				maxSize: dataUrlCondition.maxSize
+			}
+		};
+	}
+	throw new Error(
+		`unreachable: AssetParserDataUrl type should be one of "options", but got ${dataUrlCondition}`
+	);
+}
+
+function getRawGeneratorOptions(
+	generator: { [k: string]: any },
+	type: string
+): RawGeneratorOptions {
+	if (type === "asset") {
+		return {
+			type: "asset",
+			asset: generator ? getRawAssetGeneratorOptions(generator) : undefined
+		};
+	}
+	if (type === "asset/inline") {
+		return {
+			type: "asset/inline",
+			assetInline: generator
+				? getRawAssetInlineGeneratorOptions(generator)
+				: undefined
+		};
+	}
+	if (type === "asset/resource") {
+		return {
+			type: "asset/resource",
+			assetResource: generator
+				? getRawAssetResourceGeneratorOptions(generator)
+				: undefined
+		};
+	}
+	return {
+		type: "unknown"
+	};
+}
+
+function getRawAssetGeneratorOptions(
+	options: AssetGeneratorOptions
+): RawAssetGeneratorOptions {
+	return {
+		...getRawAssetInlineGeneratorOptions(options),
+		...getRawAssetResourceGeneratorOptions(options)
+	};
+}
+
+function getRawAssetInlineGeneratorOptions(
+	options: AssetInlineGeneratorOptions
+): RawAssetInlineGeneratorOptions {
+	return {
+		dataUrl: options.dataUrl
+			? getRawAssetGeneratorDaraUrl(options.dataUrl)
+			: undefined
+	};
+}
+
+function getRawAssetResourceGeneratorOptions(
+	options: AssetResourceGeneratorOptions
+): RawAssetResourceGeneratorOptions {
+	return {
+		filename: options.filename,
+		publicPath: options.publicPath
+	};
+}
+
+function getRawAssetGeneratorDaraUrl(
+	dataUrl: AssetGeneratorDataUrl
+): RawAssetGeneratorDataUrl {
+	if (typeof dataUrl === "object" && dataUrl !== null) {
+		return {
+			type: "options",
+			options: {
+				encoding: dataUrl.encoding === false ? "false" : dataUrl.encoding,
+				mimetype: dataUrl.mimetype
+			}
+		};
+	}
+	throw new Error(
+		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
+	);
 }
 
 function getRawExternals(externals: Externals): RawOptions["externals"] {
@@ -574,7 +695,7 @@ function getRawSnapshotOptions(
 }
 
 function getRawExperiments(
-	experiments: Experiments
+	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
 	const {
 		lazyCompilation,
@@ -590,12 +711,30 @@ function getRawExperiments(
 			!isNil(newSplitChunks) &&
 			!isNil(css)
 	);
+
 	return {
 		lazyCompilation,
-		incrementalRebuild,
+		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
 		css
+	};
+}
+
+function getRawIncrementalRebuild(
+	inc: false | IncrementalRebuildOptions
+): RawIncrementalRebuild {
+	if (inc === false) {
+		return {
+			make: false,
+			emitAsset: false
+		};
+	}
+	const { make, emitAsset } = inc;
+	assert(!isNil(make) && !isNil(emitAsset));
+	return {
+		make,
+		emitAsset
 	};
 }
 

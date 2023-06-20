@@ -17,14 +17,25 @@ const allowTarget = z
 		"browserslist"
 	])
 	.or(z.literal("node"))
+	.or(z.literal("async-node"))
 	.or(
 		z.custom<`node${number}`>(
 			value => typeof value === "string" && /^node\d+$/.test(value)
 		)
 	)
 	.or(
+		z.custom<`async-node${number}`>(
+			value => typeof value === "string" && /^async-node\d+$/.test(value)
+		)
+	)
+	.or(
 		z.custom<`node${number}.${number}`>(
 			value => typeof value === "string" && /^node\d+\.\d+$/.test(value)
+		)
+	)
+	.or(
+		z.custom<`async-node${number}.${number}`>(
+			value => typeof value === "string" && /^async-node\d+\.\d+$/.test(value)
 		)
 	)
 	.or(z.literal("electron-main"))

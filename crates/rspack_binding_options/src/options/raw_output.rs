@@ -1,4 +1,5 @@
 use napi_derive::napi;
+use rspack_core::ChunkLoading;
 use rspack_core::{
   to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
   LibraryOptions, OutputOptions, PluginExt, TrustedTypes, WasmLoading,
@@ -139,8 +140,8 @@ pub struct RawOutputOptions {
   pub import_function_name: String,
   pub iife: bool,
   pub module: bool,
-  pub chunk_format: Option<String>,
-  pub chunk_loading: Option<String>,
+  pub chunk_format: String,
+  pub chunk_loading: String,
   pub enabled_chunk_loading_types: Option<Vec<String>>,
   pub trusted_types: Option<RawTrustedTypes>,
   pub source_map_filename: String,
@@ -158,7 +159,6 @@ impl RawOptionsApply for RawOutputOptions {
     _: &JsLoaderRunner,
   ) -> Result<OutputOptions, rspack_error::Error> {
     self.apply_chunk_format_plugin(plugins)?;
-    plugins.push(rspack_plugin_runtime::RuntimePlugin {}.boxed());
     self.apply_chunk_loading_plugin(plugins)?;
     self.apply_library_plugin(plugins);
     for wasm_loading in self.enabled_wasm_loading_types {
@@ -178,7 +178,8 @@ impl RawOptionsApply for RawOutputOptions {
       },
       webassembly_module_filename: self.webassembly_module_filename.into(),
       unique_name: self.unique_name,
-      chunk_loading_global: to_identifier(&self.chunk_loading_global).to_string(),
+      chunk_loading: self.chunk_loading.as_str().into(),
+      chunk_loading_global: to_identifier(&self.chunk_loading_global),
       filename: self.filename.into(),
       chunk_filename: self.chunk_filename.into(),
       cross_origin_loading: self.cross_origin_loading.into(),
@@ -208,20 +209,20 @@ impl RawOutputOptions {
     &self,
     plugins: &mut Vec<BoxPlugin>,
   ) -> Result<(), rspack_error::Error> {
-    if let Some(chunk_format) = &self.chunk_format {
-      match chunk_format.as_str() {
-        "array-push" => {
-          plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
-        }
-        "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
-        "module" => {
-          plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin {}.boxed());
-        }
-        _ => {
-          return Err(internal_error!(
-            "Unsupported chunk format '{chunk_format}'."
-          ))
-        }
+    match self.chunk_format.as_str() {
+      "array-push" => {
+        plugins.push(rspack_plugin_runtime::ArrayPushCallbackChunkFormatPlugin {}.boxed());
+      }
+      "commonjs" => plugins.push(rspack_plugin_runtime::CommonJsChunkFormatPlugin {}.boxed()),
+      "module" => {
+        plugins.push(rspack_plugin_runtime::ModuleChunkFormatPlugin {}.boxed());
+      }
+      "false" => {}
+      _ => {
+        return Err(internal_error!(
+          "Unsupported chunk format '{}'",
+          self.chunk_format
+        ))
       }
     }
     Ok(())
@@ -239,15 +240,46 @@ impl RawOutputOptions {
             plugins.push(rspack_plugin_runtime::CssModulesPlugin {}.boxed());
           }
           "require" => {
-            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(false).boxed());
-            plugins.push(rspack_plugin_runtime::CommonJsChunkLoadingPlugin {}.boxed());
+            plugins.push(
+              rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(
+                ChunkLoading::Require,
+                false,
+              )
+              .boxed(),
+            );
+            plugins.push(
+              rspack_plugin_runtime::CommonJsChunkLoadingPlugin {
+                async_chunk_loading: false,
+              }
+              .boxed(),
+            );
           }
-          // TODO async-node
+          "async-node" => {
+            plugins.push(
+              rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(
+                ChunkLoading::AsyncNode,
+                false,
+              )
+              .boxed(),
+            );
+            plugins.push(
+              rspack_plugin_runtime::CommonJsChunkLoadingPlugin {
+                async_chunk_loading: true,
+              }
+              .boxed(),
+            );
+          }
           "import" => {
             plugins.push(rspack_plugin_runtime::ModuleChunkLoadingPlugin {}.boxed());
           }
           "import-scripts" => {
-            plugins.push(rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(true).boxed());
+            plugins.push(
+              rspack_plugin_runtime::StartupChunkDependenciesPlugin::new(
+                ChunkLoading::ImportScripts,
+                true,
+              )
+              .boxed(),
+            );
             plugins.push(rspack_plugin_runtime::ImportScriptsChunkLoadingPlugin {}.boxed());
           }
           "universal" => {

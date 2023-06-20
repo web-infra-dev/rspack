@@ -4,8 +4,8 @@ use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ModuleIdentifier,
-  RuntimeSpec,
+  Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, EntryOptions,
+  ModuleIdentifier, RuntimeSpec,
 };
 
 impl DatabaseItem for ChunkGroup {
@@ -34,11 +34,11 @@ pub struct ChunkGroup {
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, name: Option<String>) -> Self {
+  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, group_options: ChunkGroupOptions) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
-      options: ChunkGroupOptions { name },
+      options: group_options,
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
@@ -91,7 +91,7 @@ impl ChunkGroup {
   }
 
   pub fn is_initial(&self) -> bool {
-    matches!(self.kind, ChunkGroupKind::Entrypoint)
+    matches!(self.kind, ChunkGroupKind::Entrypoint { initial } if initial)
   }
 
   pub fn set_runtime_chunk(&mut self, chunk_ukey: ChunkUkey) {
@@ -100,7 +100,7 @@ impl ChunkGroup {
 
   pub fn get_runtime_chunk(&self) -> ChunkUkey {
     match self.kind {
-      ChunkGroupKind::Entrypoint => self
+      ChunkGroupKind::Entrypoint { .. } => self
         .runtime_chunk
         .expect("EntryPoint runtime chunk not set"),
       ChunkGroupKind::Normal => unreachable!("Normal chunk group doesn't have runtime chunk"),
@@ -113,7 +113,7 @@ impl ChunkGroup {
 
   pub fn get_entry_point_chunk(&self) -> ChunkUkey {
     match self.kind {
-      ChunkGroupKind::Entrypoint => self
+      ChunkGroupKind::Entrypoint { .. } => self
         .entry_point_chunk
         .expect("EntryPoint runtime chunk not set"),
       ChunkGroupKind::Normal => unreachable!("Normal chunk group doesn't have runtime chunk"),
@@ -187,11 +187,44 @@ impl ChunkGroup {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChunkGroupKind {
-  Entrypoint,
+  Entrypoint { initial: bool },
   Normal,
 }
 
-#[derive(Debug, Clone)]
+impl ChunkGroupKind {
+  pub fn new_entrypoint(initial: bool) -> Self {
+    Self::Entrypoint { initial }
+  }
+
+  pub fn is_entrypoint(&self) -> bool {
+    matches!(self, Self::Entrypoint { .. })
+  }
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
+  pub entry_options: Option<EntryOptions>,
+}
+
+impl ChunkGroupOptions {
+  pub fn name(mut self, v: impl Into<String>) -> Self {
+    self.name = Some(v.into());
+    self
+  }
+
+  pub fn name_optional<T: Into<String>>(mut self, v: Option<T>) -> Self {
+    self.name = v.map(|v| v.into());
+    self
+  }
+
+  pub fn entry_options(mut self, v: impl Into<EntryOptions>) -> Self {
+    self.entry_options = Some(v.into());
+    self
+  }
+
+  pub fn entry_options_optional<T: Into<EntryOptions>>(mut self, v: Option<T>) -> Self {
+    self.entry_options = v.map(|v| v.into());
+    self
+  }
 }

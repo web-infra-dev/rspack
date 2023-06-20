@@ -10,9 +10,10 @@ pub use crate::{
   cache_group::CacheGroup,
   common::{
     create_all_chunk_filter, create_async_chunk_filter, create_chunk_filter_from_str,
-    create_chunk_name_getter_by_const_name, create_empty_chunk_name_getter,
-    create_initial_chunk_filter, create_module_filter, create_module_filter_from_rspack_regex,
-    FallbackCacheGroup, SplitChunkSizes,
+    create_chunk_name_getter_by_const_name, create_default_module_type_filter,
+    create_empty_chunk_name_getter, create_initial_chunk_filter, create_module_filter,
+    create_module_filter_from_rspack_regex, create_regex_chunk_filter_from_str, ChunkFilter,
+    FallbackCacheGroup, ModuleTypeFilter, SplitChunkSizes,
   },
   plugin::{PluginOptions, SplitChunksPlugin},
 };
