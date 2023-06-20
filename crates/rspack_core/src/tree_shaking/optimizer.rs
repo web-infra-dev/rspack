@@ -57,7 +57,7 @@ struct ModuleEliminator {
 }
 impl ModuleEliminator {
   fn could_be_skipped(&self) -> bool {
-    self.export_used && !self.is_bailout && self.side_effects_free && !self.is_entry
+    !self.export_used && !self.is_bailout && self.side_effects_free && !self.is_entry
   }
 }
 
