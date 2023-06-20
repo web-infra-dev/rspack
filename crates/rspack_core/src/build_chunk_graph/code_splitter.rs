@@ -370,6 +370,21 @@ impl<'me> CodeSplitter<'me> {
       .into_iter()
       .rev()
     {
+      let item_chunk_group = self
+        .compilation
+        .chunk_group_by_ukey
+        .get_mut(&item.chunk_group)
+        .expect("chunk group not found");
+      if !item_chunk_group.info.async_chunks || !item_chunk_group.info.chunk_loading {
+        self.queue.push(QueueItem {
+          action: QueueAction::AddAndEnter,
+          chunk: item.chunk,
+          chunk_group: item.chunk_group,
+          module_identifier: *module_identifier,
+        });
+        continue;
+      }
+
       let is_already_split_module = self.split_point_modules.contains(module_identifier);
 
       if is_already_split_module {
@@ -387,11 +402,6 @@ impl<'me> CodeSplitter<'me> {
         self
           .remove_parent_modules_context
           .add_chunk_relation(item.chunk, *chunk_ukey);
-        let item_chunk_group = self
-          .compilation
-          .chunk_group_by_ukey
-          .get_mut(&item.chunk_group)
-          .expect("chunk group not found");
         item_chunk_group.children.extend(chunk.groups.clone());
         for chunk_group_ukey in chunk.groups.iter() {
           let chunk_group = self
@@ -426,12 +436,6 @@ impl<'me> CodeSplitter<'me> {
         .split_point_module_identifier_to_chunk_ukey
         .insert(*module_identifier, chunk.ukey);
 
-      let item_chunk_group = self
-        .compilation
-        .chunk_group_by_ukey
-        .get_mut(&item.chunk_group)
-        .expect("chunk group not found");
-
       let mut chunk_group = if let Some(group_options) = group_options && let Some(entry_options) = &group_options.entry_options {
         chunk.chunk_reasons.push(format!("AsyncEntrypoint({module_identifier})"));
         self
@@ -450,18 +454,6 @@ impl<'me> CodeSplitter<'me> {
         entrypoint.set_entry_point_chunk(chunk.ukey);
         self.compilation.async_entrypoints.push(entrypoint.ukey);
         entrypoint
-      } else if !item_chunk_group.info.async_chunks || !item_chunk_group.info.chunk_loading {
-        self
-          .compilation
-          .chunk_graph
-          .connect_block_and_chunk_group(*module_identifier, item.chunk_group);
-        self.queue.push(QueueItem {
-          action: QueueAction::AddAndEnter,
-          chunk: item.chunk,
-          chunk_group: item.chunk_group,
-          module_identifier: *module_identifier,
-        });
-        return;
       } else {
         chunk
           .chunk_reasons

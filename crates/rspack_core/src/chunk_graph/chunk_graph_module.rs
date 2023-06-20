@@ -147,6 +147,7 @@ impl ChunkGraph {
     block: &ModuleIdentifier,
     chunk_group_by_ukey: &'a ChunkGroupByUkey,
   ) -> &'a ChunkGroup {
+    dbg!(&self.block_to_chunk_group_ukey);
     let ukey = self
       .block_to_chunk_group_ukey
       .get(block)
