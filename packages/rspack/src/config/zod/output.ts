@@ -34,22 +34,23 @@ function libraryType() {
 	]);
 }
 
+const umdNamedDefine = z.boolean();
+
+const auxiliaryComment = z.string().or(
+	z.strictObject({
+		amd: z.string().optional(),
+		commonjs: z.string().optional(),
+		commonjs2: z.string().optional(),
+		root: z.string().optional()
+	})
+);
+
 export function output() {
 	return z.strictObject({
 		iife: z.boolean().optional(),
 		clean: z.boolean().optional(),
 		assetModuleFilename: z.string().optional(),
-		auxiliaryComment: z
-			.string()
-			.or(
-				z.strictObject({
-					amd: z.string().optional(),
-					commonjs: z.string().optional(),
-					commonjs2: z.string().optional(),
-					root: z.string().optional()
-				})
-			)
-			.optional(),
+		auxiliaryComment: auxiliaryComment.optional(),
 		chunkFormat: z
 			.enum(["array-push", "commonjs", "module"])
 			.or(z.literal(false))
@@ -83,11 +84,36 @@ export function output() {
 		// TODO(hyf0)
 		module: z.any().optional(),
 		strictModuleErrorHandling: z.any().optional(),
-		umdNamedDefine: z.any().optional(),
-		chunkLoadingGlobal: z.any().optional(),
-		trustedTypes: z.any().optional(),
-		hashDigest: z.any().optional(),
-		hashDigestLength: z.any().optional(),
-		library: z.any().optional()
+		umdNamedDefine: umdNamedDefine.optional(),
+		chunkLoadingGlobal: z.string().optional(),
+		trustedTypes: z
+			.literal(true)
+			.or(z.string())
+			.or(
+				z.strictObject({
+					policyName: z.string().optional()
+				})
+			)
+			.optional(),
+		hashDigest: z.string().optional(),
+		hashDigestLength: z.number().optional(),
+		library: z
+			.strictObject({
+				auxiliaryComment: auxiliaryComment.optional(),
+				export: z.string().array().or(z.string()).optional(),
+				name: z
+					.string()
+					.or(z.string().array())
+					.or(
+						z.strictObject({
+							amd: z.string().optional(),
+							commonjs: z.string().optional(),
+							root: z.string().or(z.string().array()).optional()
+						})
+					),
+				type: libraryType().optional(),
+				umdNamedDefine: umdNamedDefine.optional()
+			})
+			.optional()
 	});
 }
