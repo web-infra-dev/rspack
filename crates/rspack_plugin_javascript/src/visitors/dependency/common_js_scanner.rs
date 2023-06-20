@@ -3,7 +3,8 @@ use rspack_core::{
   RuntimeRequirementsDependency,
 };
 use swc_core::common::pass::AstNodePath;
-use swc_core::ecma::ast::{CallExpr, Expr, Lit};
+use swc_core::common::SyntaxContext;
+use swc_core::ecma::ast::{CallExpr, Callee, Expr, Lit};
 use swc_core::ecma::visit::fields::IfStmtField;
 use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
 use swc_core::quote;
@@ -14,17 +15,20 @@ pub struct CommonJsScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
   in_try: bool,
+  unresolved_ctxt: &'a SyntaxContext,
 }
 
 impl<'a> CommonJsScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
     presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
+    unresolved_ctxt: &'a SyntaxContext,
   ) -> Self {
     Self {
       dependencies,
       presentational_dependencies,
       in_try: false,
+      unresolved_ctxt,
     }
   }
 
@@ -106,11 +110,17 @@ impl VisitAstPath for CommonJsScanner<'_> {
     node: &'ast CallExpr,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
-    if is_require_resolve_call(node) {
-      return self.add_require_resolve(node, ast_path, false);
-    }
-    if is_require_resolve_weak_call(node) {
-      return self.add_require_resolve(node, ast_path, true);
+    if let Callee::Expr(expr) = &node.callee {
+      if let Expr::Ident(ident) = &**expr {
+        if ident.span.ctxt == *self.unresolved_ctxt {
+          if is_require_resolve_call(node) {
+            return self.add_require_resolve(node, ast_path, false);
+          }
+          if is_require_resolve_weak_call(node) {
+            return self.add_require_resolve(node, ast_path, true);
+          }
+        }
+      }
     }
     node.visit_children_with_path(self, ast_path);
   }
