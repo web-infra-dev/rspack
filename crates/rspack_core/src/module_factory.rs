@@ -33,7 +33,9 @@ impl ModuleFactoryResult {
   }
 
   pub fn file_dependency(mut self, file: PathBuf) -> Self {
-    self.file_dependencies.insert(file);
+    if file.is_absolute() {
+      self.file_dependencies.insert(file);
+    }
     self
   }
 
