@@ -149,6 +149,7 @@ pub struct RawOutputOptions {
   pub hash_digest: String,
   pub hash_digest_length: u32,
   pub hash_salt: Option<String>,
+  pub async_chunks: bool,
 }
 
 impl RawOptionsApply for RawOutputOptions {
@@ -200,6 +201,7 @@ impl RawOptionsApply for RawOutputOptions {
       hash_digest: self.hash_digest.as_str().into(),
       hash_digest_length: self.hash_digest_length as usize,
       hash_salt: self.hash_salt.into(),
+      async_chunks: self.async_chunks,
     })
   }
 }

@@ -539,6 +539,7 @@ export interface RawEntryDescription {
   import: Array<string>
   runtime?: string
   chunkLoading?: string
+  asyncChunks?: boolean
   publicPath?: string
 }
 
@@ -788,6 +789,7 @@ export interface RawOutputOptions {
   hashDigest: string
   hashDigestLength: number
   hashSalt?: string
+  asyncChunks: boolean
 }
 
 export interface RawParserOptions {

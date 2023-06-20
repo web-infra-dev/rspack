@@ -109,6 +109,7 @@ impl RawOptionsApply for RawOptions {
               rspack_core::EntryOptions {
                 runtime: desc.runtime.clone(),
                 chunk_loading: desc.chunk_loading.as_deref().map(Into::into),
+                async_chunks: desc.async_chunks,
                 public_path: desc.public_path.clone().map(Into::into),
               },
             )

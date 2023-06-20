@@ -458,6 +458,7 @@ const applyOutputDefaults = (
 			"Chunk format can't be selected by default when no target is specified"
 		);
 	});
+	D(output, "asyncChunks", true);
 	F(output, "chunkLoading", () => {
 		if (tp) {
 			switch (output.chunkFormat) {

@@ -85,6 +85,7 @@ export interface EntryDescription {
 	import: EntryItem;
 	runtime?: EntryRuntime;
 	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 }
 
@@ -96,6 +97,7 @@ export interface EntryDescriptionNormalized {
 	import?: string[];
 	runtime?: EntryRuntime;
 	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 }
 
@@ -137,6 +139,7 @@ export interface Output {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -251,6 +254,7 @@ export interface OutputNormalized {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
 }
 
 ///// Resolve /////

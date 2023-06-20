@@ -7,8 +7,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::remove_parent_modules::RemoveParentModulesContext;
 use crate::{
-  ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkUkey, Compilation,
-  ModuleIdentifier, RuntimeSpec,
+  ChunkGroup, ChunkGroupInfo, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey, ChunkLoading,
+  ChunkUkey, Compilation, ModuleIdentifier, RuntimeSpec,
 };
 
 pub(super) struct CodeSplitter<'me> {
@@ -73,6 +73,18 @@ impl<'me> CodeSplitter<'me> {
         ChunkGroupOptions::default()
           .name(name)
           .entry_options(options.clone()),
+        ChunkGroupInfo {
+          chunk_loading: !matches!(
+            options
+              .chunk_loading
+              .as_ref()
+              .unwrap_or(&compilation.options.output.chunk_loading),
+            ChunkLoading::False
+          ),
+          async_chunks: options
+            .async_chunks
+            .unwrap_or(compilation.options.output.async_chunks),
+        },
       );
       if options.runtime.is_none() {
         entrypoint.set_runtime_chunk(chunk.ukey);
@@ -429,11 +441,27 @@ impl<'me> CodeSplitter<'me> {
           ChunkGroupKind::new_entrypoint(false),
           RuntimeSpec::from_iter([entry_options.runtime.as_deref().expect("should have runtime for AsyncEntrypoint").into()]),
           group_options.to_owned(),
+          ChunkGroupInfo {
+            chunk_loading: entry_options.chunk_loading.as_ref().map(|x| !matches!(x, ChunkLoading::False)).unwrap_or(item_chunk_group.info.chunk_loading),
+            async_chunks: entry_options.async_chunks.unwrap_or(item_chunk_group.info.async_chunks),
+          },
         );
         entrypoint.set_runtime_chunk(chunk.ukey);
         entrypoint.set_entry_point_chunk(chunk.ukey);
         self.compilation.async_entrypoints.push(entrypoint.ukey);
         entrypoint
+      } else if !item_chunk_group.info.async_chunks || !item_chunk_group.info.chunk_loading {
+        self
+          .compilation
+          .chunk_graph
+          .connect_block_and_chunk_group(*module_identifier, item.chunk_group);
+        self.queue.push(QueueItem {
+          action: QueueAction::AddAndEnter,
+          chunk: item.chunk,
+          chunk_group: item.chunk_group,
+          module_identifier: *module_identifier,
+        });
+        return;
       } else {
         chunk
           .chunk_reasons
@@ -442,6 +470,10 @@ impl<'me> CodeSplitter<'me> {
           ChunkGroupKind::Normal,
           item_chunk_group.runtime.clone(),
           ChunkGroupOptions::default().name_optional(group_options.and_then(|x| x.name.as_deref())),
+          ChunkGroupInfo {
+            chunk_loading: item_chunk_group.info.chunk_loading,
+            async_chunks: item_chunk_group.info.async_chunks,
+          },
         )
       };
 
