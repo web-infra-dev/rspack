@@ -48,6 +48,23 @@ enum EntryLikeType {
   Bailout,
 }
 
+#[derive(Debug)]
+struct ModuleEliminator {
+  export_used: bool,
+  is_bailout: bool,
+  side_effects_free: bool,
+  is_entry: bool,
+  /// used for debugging
+  #[allow(unused)]
+  module_identifier: ModuleIdentifier,
+}
+
+impl ModuleEliminator {
+  fn could_be_skipped(&self) -> bool {
+    !self.export_used && !self.is_bailout && self.side_effects_free && !self.is_entry
+  }
+}
+
 impl<'a> CodeSizeOptimizer<'a> {
   pub fn new(compilation: &'a mut Compilation) -> Self {
     Self {
@@ -179,7 +196,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
       side_effects_options,
-      &finalized_result_map,
       used_export_module_identifiers,
       &mut used_symbol_ref,
       visited_symbol_ref,
@@ -327,7 +343,6 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn finalize_symbol(
     &mut self,
     side_effects_analyze: bool,
-    analyze_results: &IdentifierMap<OptimizeAnalyzeResult>,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
     visited_symbol_ref: HashSet<SymbolRef>,
@@ -361,39 +376,21 @@ impl<'a> CodeSizeOptimizer<'a> {
         } else {
           visited.insert(module_identifier);
         }
-        let result = analyze_results.get(&module_identifier);
-        let analyze_result = match result {
-          Some(result) => result,
-          None => {
-            // These are js module without analyze result, like external module
-            include_module_ids.insert(module_identifier);
-            continue;
-          }
-        };
-        let used = used_export_module_identifiers.contains_key(&analyze_result.module_identifier);
-
-        if !used
-          && !self
-            .bailout_modules
-            .contains_key(&analyze_result.module_identifier)
-          && self.side_effects_free_modules.contains(&module_identifier)
-          && !self
+        let eliminator = ModuleEliminator {
+          export_used: used_export_module_identifiers.contains_key(&module_identifier),
+          is_bailout: self.bailout_modules.contains_key(&module_identifier),
+          side_effects_free: self.side_effects_free_modules.contains(&module_identifier),
+          is_entry: self
             .compilation
             .entry_module_identifiers
-            .contains(&module_identifier)
-        {
+            .contains(&module_identifier),
+          module_identifier,
+        };
+
+        if eliminator.could_be_skipped() {
           continue;
         } else {
-          // dbg!(analyze_result.module_identifier);
-          // dbg!(!used);
-          // dbg!(&!self
-          //   .bailout_modules
-          //   .contains_key(&analyze_result.module_identifier));
-          // dbg!(&self.side_effects_free_modules.contains(&module_identifier));
-          // dbg!(&!self
-          //   .compilation
-          //   .entry_module_identifiers
-          //   .contains(&module_identifier));
+          // dbg!(&eliminator);
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -1270,6 +1267,7 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
         //   &optimize_analyze_result.used_symbol_refs,
         //   &optimize_analyze_result.export_map,
         //   &optimize_analyze_result.import_map,
+        //   &optimize_analyze_result.side_effects
         // );
 
         Some((*module_identifier, optimize_analyze_result))

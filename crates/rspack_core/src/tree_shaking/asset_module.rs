@@ -1,8 +1,4 @@
-use sugar_path::SugarPath;
-
-use super::visitor::SideEffects;
 use super::{analyzer::OptimizeAnalyzer, visitor::OptimizeAnalyzeResult, SideEffectType};
-use crate::tree_shaking::visitor::get_side_effects_from_package_json;
 use crate::{Compilation, FactoryMeta, ModuleIdentifier};
 
 pub struct AssetModule {
@@ -22,26 +18,9 @@ impl AssetModule {
       .module_graph_module_by_identifier(&self.module_identifier)
       && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
     {
-      return Some(SideEffectType::Analyze(*side_effects))
+      return Some(SideEffectType::Configuration(*side_effects))
     }
-
-    let resource_data = compilation
-      .module_graph
-      .module_by_identifier(&self.module_identifier)
-      .and_then(|module| module.as_normal_module())
-      .map(|normal_module| normal_module.resource_resolved_data())?;
-    let resource_path = &resource_data.resource_path;
-    let description = resource_data.resource_description.as_ref()?;
-    let package_path = description.dir().as_ref();
-    let side_effects = SideEffects::from_description(description)?;
-
-    let relative_path = resource_path.relative(package_path);
-    let side_effects = Some(get_side_effects_from_package_json(
-      side_effects,
-      relative_path,
-    ));
-
-    side_effects.map(SideEffectType::Configuration)
+    None
   }
 }
 

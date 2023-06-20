@@ -10,7 +10,6 @@ use rspack_symbol::{
   SymbolExt, SymbolFlag, SymbolType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
@@ -1266,24 +1265,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     {
       return Some(SideEffectType::Configuration(*side_effects))
     }
-
-    let resource_data = self
-      .module_graph
-      .module_by_identifier(&self.module_identifier)
-      .and_then(|module| module.as_normal_module())
-      .map(|normal_module| normal_module.resource_resolved_data())?;
-    let resource_path = &resource_data.resource_path;
-    let description = resource_data.resource_description.as_ref()?;
-    let package_path = description.dir().as_ref();
-    let side_effects = SideEffects::from_description(description)?;
-
-    let relative_path = resource_path.relative(package_path);
-    let side_effects = Some(get_side_effects_from_package_json(
-      side_effects,
-      relative_path,
-    ));
-
-    side_effects.map(SideEffectType::Configuration)
+    None
   }
 }
 
@@ -1294,21 +1276,22 @@ pub fn get_side_effects_from_package_json(
   match side_effects {
     SideEffects::Bool(s) => s,
     SideEffects::String(s) => {
-      let trim_start = s.trim_start_matches("./");
-      let normalized_glob = if trim_start.contains('/') {
-        trim_start.to_string()
-      } else {
-        String::from("**/") + trim_start
-      };
-      glob_match::glob_match(
-        &normalized_glob,
-        relative_path.to_string_lossy().trim_start_matches("./"),
-      )
+      glob_match_with_normalized_pattern(&s, &relative_path.to_string_lossy())
     }
     SideEffects::Array(patterns) => patterns
       .iter()
-      .any(|pattern| glob_match::glob_match(pattern, &relative_path.to_string_lossy())),
+      .any(|pattern| glob_match_with_normalized_pattern(pattern, &relative_path.to_string_lossy())),
   }
+}
+
+fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
+  let trim_start = pattern.trim_start_matches("./");
+  let normalized_glob = if trim_start.contains('/') {
+    trim_start.to_string()
+  } else {
+    String::from("**/") + trim_start
+  };
+  glob_match::glob_match(&normalized_glob, string.trim_start_matches("./"))
 }
 
 impl<'a> ModuleRefAnalyze<'a> {
