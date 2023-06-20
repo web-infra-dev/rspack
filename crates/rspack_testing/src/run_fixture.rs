@@ -31,9 +31,8 @@ pub async fn test_fixture(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem
 
   let (options, plugins) = apply_from_fixture(fixture_path);
   // clean output
-  match std::fs::remove_dir_all(&options.output.path) {
-    Ok(_) => {}
-    Err(_) => {}
+  if options.output.path.exists() {
+    std::fs::remove_dir_all(&options.output.path).expect("should remove output");
   }
   let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
   compiler

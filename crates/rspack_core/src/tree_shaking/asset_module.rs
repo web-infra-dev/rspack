@@ -1,8 +1,4 @@
-use sugar_path::SugarPath;
-
-use super::visitor::SideEffects;
 use super::{analyzer::OptimizeAnalyzer, visitor::OptimizeAnalyzeResult, SideEffectType};
-use crate::tree_shaking::visitor::get_side_effects_from_package_json;
 use crate::{Compilation, FactoryMeta, ModuleIdentifier};
 
 pub struct AssetModule {

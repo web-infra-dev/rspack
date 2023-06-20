@@ -32,9 +32,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, dbg_matches, join_string_component, tree_shaking::utils::ConvertModulePath,
-  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
-  NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
@@ -56,6 +55,7 @@ struct ModuleEliminator {
   side_effects_free: bool,
   is_entry: bool,
   /// used for debugging
+  #[allow(unused)]
   module_identifier: ModuleIdentifier,
 }
 
@@ -196,7 +196,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
       side_effects_options,
-      &finalized_result_map,
       used_export_module_identifiers,
       &mut used_symbol_ref,
       visited_symbol_ref,
@@ -344,7 +343,6 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn finalize_symbol(
     &mut self,
     side_effects_analyze: bool,
-    analyze_results: &IdentifierMap<OptimizeAnalyzeResult>,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
     visited_symbol_ref: HashSet<SymbolRef>,
@@ -378,15 +376,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         } else {
           visited.insert(module_identifier);
         }
-        let result = analyze_results.get(&module_identifier);
-        let analyze_result = match result {
-          Some(result) => result,
-          None => {
-            // These are js module without analyze result, like external module
-            include_module_ids.insert(module_identifier);
-            continue;
-          }
-        };
         let eliminator = ModuleEliminator {
           export_used: used_export_module_identifiers.contains_key(&module_identifier),
           is_bailout: self.bailout_modules.contains_key(&module_identifier),

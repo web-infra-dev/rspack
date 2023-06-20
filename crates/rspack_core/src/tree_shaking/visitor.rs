@@ -10,7 +10,6 @@ use rspack_symbol::{
   SymbolExt, SymbolFlag, SymbolType,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use sugar_path::SugarPath;
 use swc_core::common::SyntaxContext;
 use swc_core::common::{util::take::Take, Mark, GLOBALS};
 use swc_core::ecma::ast::*;
