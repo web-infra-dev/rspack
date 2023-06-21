@@ -90,17 +90,19 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
         &stringify_map(&map)
       )));
       source.add(RawSource::from(
-        "__webpack_require__.el = function(module) {
-          var chunkId = map[module];
-          if (chunkId === undefined) {
-              return Promise.resolve();
-          }
-          if (chunkId.length > 1) {
-            return Promise.all(chunkId.map(__webpack_require__.e));
-          } else {
-            return __webpack_require__.e(chunkId[0]);
-          };
-      }\n",
+        "
+__webpack_require__.el = function(module) {
+  var chunkId = map[module];
+  if (chunkId === undefined) {
+      return Promise.resolve();
+  }
+  if (chunkId.length > 1) {
+    return Promise.all(chunkId.map(__webpack_require__.e));
+  } else {
+    return __webpack_require__.e(chunkId[0]);
+  };
+}
+",
       ));
 
       source.boxed()
