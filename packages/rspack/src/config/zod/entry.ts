@@ -18,6 +18,7 @@ const entryDescription = z
 					.or(z.string())
 					.optional()
 			),
+		asyncChunks: z.boolean().optional(),
 		wasmLoading: z
 			.literal(false)
 			.or(z.enum(["fetch-streaming", "fetch", "async-node"]))

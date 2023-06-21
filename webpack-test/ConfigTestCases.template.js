@@ -106,12 +106,11 @@ const describeCases = config => {
 								// 	];
 								// }
 								if (!options.entry) options.entry = "./index.js";
-								if (!options.target) options.target = "node";
+								if (!options.target) options.target = "async-node";
 								if (!options.output) options.output = {};
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
 								if (!options.output.path) options.output.path = outputDirectory;
-								if (!options.output.publicPath) options.output.publicPath = "/";
 								// if (typeof options.output.pathinfo === "undefined")
 								// 	options.output.pathinfo = true;
 								if (!options.output.filename)

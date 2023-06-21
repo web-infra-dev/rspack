@@ -8,5 +8,6 @@ pub struct RawEntryDescription {
   pub import: Vec<String>,
   pub runtime: Option<String>,
   pub chunk_loading: Option<String>,
+  pub async_chunks: Option<bool>,
   pub public_path: Option<String>,
 }

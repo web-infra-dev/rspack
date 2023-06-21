@@ -19,6 +19,7 @@ pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
   pub chunks: Vec<ChunkUkey>,
   pub options: ChunkGroupOptions,
+  pub info: ChunkGroupInfo,
   pub(crate) module_pre_order_indices: IdentifierMap<usize>,
   pub(crate) module_post_order_indices: IdentifierMap<usize>,
   pub(crate) parents: HashSet<ChunkGroupUkey>,
@@ -34,11 +35,17 @@ pub struct ChunkGroup {
 }
 
 impl ChunkGroup {
-  pub fn new(kind: ChunkGroupKind, runtime: RuntimeSpec, group_options: ChunkGroupOptions) -> Self {
+  pub fn new(
+    kind: ChunkGroupKind,
+    runtime: RuntimeSpec,
+    group_options: ChunkGroupOptions,
+    info: ChunkGroupInfo,
+  ) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
       chunks: vec![],
       options: group_options,
+      info,
       module_post_order_indices: Default::default(),
       module_pre_order_indices: Default::default(),
       parents: Default::default(),
@@ -227,4 +234,10 @@ impl ChunkGroupOptions {
     self.entry_options = v.map(|v| v.into());
     self
   }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ChunkGroupInfo {
+  pub chunk_loading: bool,
+  pub async_chunks: bool,
 }
