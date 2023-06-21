@@ -34,7 +34,7 @@ module.exports = [
 			unknownContextRegExp: /$^/,
 			unknownContextCritical: false
 		},
-		// plugins: [new EnvironmentPlugin("DDD")]
+		plugins: [new EnvironmentPlugin("DDD")]
 	},
 	{
 		name: "eeefff",

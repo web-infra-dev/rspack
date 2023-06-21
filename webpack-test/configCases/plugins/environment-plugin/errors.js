@@ -9,7 +9,7 @@ const modules = [{
 	name: 'ddd',
 	variables: [],
 	allowedErrors: [
-		// [{compilerPath: /ddd/}, /DDD environment variable is undefined./]
+		[{compilerPath: /ddd/}, /DDD environment variable is undefined./]
 	]
 }, {
 	name: 'eeefff',

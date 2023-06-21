@@ -108,8 +108,6 @@ module.exports = function checkArrayExpectation(
 				true
 			);
 		}
-
-		console.log(array)
 		for (let i = 0; i < array.length; i++) {
 			if (Array.isArray(expected[i])) {
 				for (let j = 0; j < expected[i].length; j++) {
