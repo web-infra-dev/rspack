@@ -106,7 +106,7 @@ impl VisitAstPath for Analyzer<'_> {
       });
       if let Some(specifier) = specifier && !specifier.is_empty(){
     let mut specifier = replace_module_request_prefix(specifier, self.diagnostics);
-    if specifier.contains("%") {
+    if specifier.contains('%') {
       specifier = urlencoding::decode(&specifier).expect("url invalid").to_string();
     }
     let dep = Box::new(CssUrlDependency::new(
