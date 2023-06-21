@@ -102,7 +102,7 @@ pub fn get_scheme(specifier: &str) -> Scheme {
     }
   }
 
-  Scheme::from(&specifier[..i])
+  Scheme::from(specifier[..i].to_ascii_lowercase().as_str())
 }
 
 #[cfg(test)]

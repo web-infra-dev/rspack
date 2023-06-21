@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_error::internal_error;
 
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,(.*)$").expect("Invalid Regex")
+  Regex::new(r"^(?i:data):([^;,]+)?((?:;[^;,]+)*?)(?:;(base64))?,((?s).*)$").expect("Invalid Regex")
 });
 
 #[derive(Debug)]
