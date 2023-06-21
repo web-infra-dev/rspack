@@ -403,6 +403,7 @@ impl<'me> CodeSplitter<'me> {
           .remove_parent_modules_context
           .add_chunk_relation(item.chunk, *chunk_ukey);
         item_chunk_group.children.extend(chunk.groups.clone());
+        let runtime = item_chunk_group.runtime.clone();
         for chunk_group_ukey in chunk.groups.iter() {
           let chunk_group = self
             .compilation
@@ -410,6 +411,7 @@ impl<'me> CodeSplitter<'me> {
             .get_mut(chunk_group_ukey)
             .expect("chunk group not found");
           chunk_group.parents.insert(item.chunk_group);
+          chunk_group.runtime.extend(runtime.clone());
         }
         continue;
       } else {

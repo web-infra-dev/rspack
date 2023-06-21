@@ -62,7 +62,7 @@ impl RuntimeModule for LoadChunkWithModuleRuntimeModule {
                   .chunk_by_ukey
                   .get(chunk_ukey)
                   .expect("chunk should exist");
-                if &chunk.runtime == runtime {
+                if chunk.runtime.is_superset(runtime) {
                   Some(chunk.expect_id().to_string())
                 } else {
                   None
