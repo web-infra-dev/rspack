@@ -3,7 +3,7 @@ use std::{fmt::Write, hash::Hash, path::Path};
 use heck::{ToKebabCase, ToLowerCamelCase};
 use indexmap::IndexMap;
 use once_cell::sync::Lazy;
-use regex::Regex;
+use regex::{Captures, Regex};
 use rspack_core::{Compilation, ModuleDependency, OutputOptions, PathData, RuntimeGlobals};
 use rspack_error::{internal_error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
@@ -140,4 +140,51 @@ pub fn css_modules_exports_to_string(
   }
   code += "};\n";
   Ok(code)
+}
+
+static STRING_MULTILINE: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\\[\n\r\f]").expect("Invalid RegExp"));
+
+static TRIM_WHITE_SPACES: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"(^[ \t\n\r\f]*|[ \t\n\r\f]*$)").expect("Invalid RegExp"));
+
+static UNESCAPE: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\\([0-9a-fA-F]{1,6}[ \t\n\r\f]?|[\s\S])").expect("Invalid RegExp"));
+
+static DATA: Lazy<Regex> = Lazy::new(|| Regex::new(r"^(?i)data:").expect("Invalid RegExp"));
+
+pub fn normalize_url(s: &str) -> String {
+  let result = STRING_MULTILINE.replace_all(s, "");
+  let result = TRIM_WHITE_SPACES.replace_all(&result, "");
+  let result = UNESCAPE.replace_all(&result, |caps: &Captures| {
+    caps
+      .get(0)
+      .map(|m| {
+        let m = m.as_str();
+        dbg!(m);
+        if m.len() > 2 {
+          if let Ok(r_u32) = u32::from_str_radix(&m[1..].trim(), 16) {
+            if let Some(ch) = char::from_u32(r_u32) {
+              return Some(format!("{}", ch));
+            }
+          }
+          None
+        } else {
+          Some(format!("{}", &m[1..2]))
+        }
+      })
+      .flatten()
+      .unwrap_or(format!("{}", &caps[0]))
+  });
+
+  if DATA.is_match(&result) {
+    return result.to_string();
+  }
+  if result.contains('%') {
+    if let Ok(r) = urlencoding::decode(&result) {
+      return r.to_string();
+    }
+  }
+
+  return result.to_string();
 }

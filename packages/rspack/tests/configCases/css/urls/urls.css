@@ -1,8 +1,8 @@
-@supports (background-image: url("unknown.png")) {
+/* @supports (background-image: url("unknown.png")) {
 	div {
 		a195: url("img.png");
 	}
-}
+} */
 
 div {
 	a148: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg"%3E%3Crect width="100%25" height="100%25" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /%3E%3C/svg%3E');
