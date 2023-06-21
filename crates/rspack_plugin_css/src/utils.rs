@@ -169,10 +169,10 @@ pub fn normalize_url(s: &str) -> String {
           }
           None
         } else {
-          Some(format!("{}", &m[1..2]))
+          Some(m[1..2].to_string())
         }
       })
-      .unwrap_or(format!("{}", &caps[0]))
+      .unwrap_or(caps[0].to_string())
   });
 
   if DATA.is_match(&result) {
