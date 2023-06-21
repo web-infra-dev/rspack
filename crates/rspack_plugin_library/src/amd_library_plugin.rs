@@ -77,7 +77,7 @@ impl Plugin for AmdLibraryPlugin {
         "define('{normalize_name}', {external_deps_array}, {fn_start}"
       )));
     } else if modules.is_empty() {
-      source.add(RawSource::from(format!("define({fn_start}, ")));
+      source.add(RawSource::from(format!("define({fn_start}")));
     } else {
       source.add(RawSource::from(format!(
         "define({external_deps_array}, {fn_start}"

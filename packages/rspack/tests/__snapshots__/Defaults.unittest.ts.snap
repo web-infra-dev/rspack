@@ -51,12 +51,19 @@ exports[`snapshots should have the correct base config 1`] = `
   "experiments": {
     "asyncWebAssembly": false,
     "css": true,
-    "incrementalRebuild": true,
+    "incrementalRebuild": {
+      "emitAsset": true,
+      "make": false,
+    },
     "lazyCompilation": false,
     "newSplitChunks": true,
   },
   "externals": undefined,
   "externalsPresets": {
+    "electron": false,
+    "electronMain": false,
+    "electronPreload": false,
+    "electronRenderer": false,
     "node": false,
     "web": true,
   },
@@ -189,6 +196,7 @@ exports[`snapshots should have the correct base config 1`] = `
         ],
       },
     ],
+    "generator": {},
     "parser": {
       "asset": {
         "dataUrlCondition": {
@@ -229,16 +237,15 @@ exports[`snapshots should have the correct base config 1`] = `
         },
       },
       "chunks": "async",
-      "enforceSizeThreshold": 30000,
       "maxAsyncRequests": Infinity,
       "maxInitialRequests": Infinity,
       "minChunks": 1,
-      "minRemainingSize": undefined,
       "minSize": 10000,
     },
   },
   "output": {
     "assetModuleFilename": "[hash][ext][query]",
+    "asyncChunks": true,
     "chunkFilename": "[name].js",
     "chunkFormat": "array-push",
     "chunkLoading": "jsonp",

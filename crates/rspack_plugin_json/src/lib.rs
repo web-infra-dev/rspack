@@ -140,10 +140,7 @@ impl Plugin for JsonPlugin {
     "json"
   }
 
-  fn apply(
-    &mut self,
-    ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
       Box::new(|| Box::new(JsonParserAndGenerator {})),

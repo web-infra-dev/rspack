@@ -2,6 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use futures::Future;
 use rspack_error::{Result, TWithDiagnosticArray};
+use rspack_identifier::Identifier;
 
 use crate::{
   cache::snapshot::{Snapshot, SnapshotManager},
@@ -22,6 +23,12 @@ impl BuildModuleOccasion {
     Self {
       storage,
       snapshot_manager,
+    }
+  }
+
+  pub fn remove_cache(&self, id: &Identifier) {
+    if let Some(s) = self.storage.as_ref() {
+      s.remove(id);
     }
   }
 

@@ -1,16 +1,16 @@
 use std::{fmt::Debug, path::Path};
 
+use dashmap::DashMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_loader_runner::{Content, ResourceData};
 use rspack_sources::BoxSource;
-use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   AdditionalChunkRuntimeRequirementsArgs, AssetEmittedArgs, AssetInfo, BoxLoader, BoxModule,
   ChunkAssetArgs, ChunkHashArgs, Compilation, CompilationArgs, CompilerOptions, ContentHashArgs,
-  DoneArgs, FactorizeArgs, JsChunkHashArgs, Module, ModuleArgs, ModuleFactoryResult, ModuleType,
-  NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
+  DoneArgs, FactorizeArgs, JsChunkHashArgs, MakeParam, Module, ModuleArgs, ModuleFactoryResult,
+  ModuleType, NormalModule, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   NormalModuleFactoryContext, OptimizeChunksArgs, ParserAndGenerator, PluginContext,
   ProcessAssetsArgs, RenderArgs, RenderChunkArgs, RenderManifestArgs, RenderModuleContentArgs,
   RenderStartupArgs, Resolver, SourceType, ThisCompilationArgs,
@@ -46,27 +46,32 @@ pub trait Plugin: Debug + Send + Sync {
     "unknown"
   }
 
-  fn apply(&mut self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
+  fn apply(&self, _ctx: PluginContext<&mut ApplyContext>) -> Result<()> {
     Ok(())
   }
 
-  async fn compilation(&mut self, _args: CompilationArgs<'_>) -> PluginCompilationHookOutput {
+  async fn compilation(&self, _args: CompilationArgs<'_>) -> PluginCompilationHookOutput {
     Ok(())
   }
 
   async fn this_compilation(
-    &mut self,
+    &self,
     _args: ThisCompilationArgs<'_>,
   ) -> PluginThisCompilationHookOutput {
     Ok(())
   }
 
-  async fn make(&self, _ctx: PluginContext, _compilation: &Compilation) -> PluginMakeHookOutput {
+  async fn make(
+    &self,
+    _ctx: PluginContext,
+    _compilation: &mut Compilation,
+    _param: &mut MakeParam,
+  ) -> PluginMakeHookOutput {
     Ok(())
   }
 
   async fn done<'s, 'c>(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: DoneArgs<'s, 'c>,
   ) -> PluginBuildEndHookOutput {
@@ -161,7 +166,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   /// webpack `compilation.hooks.chunkAsset`
-  async fn chunk_asset(&mut self, _args: &ChunkAssetArgs) -> Result<()> {
+  async fn chunk_asset(&self, _args: &ChunkAssetArgs) -> Result<()> {
     Ok(())
   }
 
@@ -222,7 +227,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_additional(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -230,7 +235,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_additions(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -238,7 +243,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_pre_process(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -246,7 +251,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_none(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -254,7 +259,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_optimize_size(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -262,7 +267,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_dev_tooling(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -270,7 +275,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_optimize_inline(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -278,7 +283,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_summarize(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -286,7 +291,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_optimize_hash(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -294,7 +299,7 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn process_assets_stage_report(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: ProcessAssetsArgs<'_>,
   ) -> PluginProcessAssetsOutput {
@@ -302,34 +307,34 @@ pub trait Plugin: Debug + Send + Sync {
   }
 
   async fn optimize_chunks(
-    &mut self,
+    &self,
     _ctx: PluginContext,
     _args: OptimizeChunksArgs<'_>,
   ) -> PluginOptimizeChunksOutput {
     Ok(())
   }
 
-  async fn optimize_modules(&mut self, _compilation: &mut Compilation) -> Result<()> {
+  async fn optimize_modules(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
-  async fn optimize_chunk_modules(&mut self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
+  async fn optimize_chunk_modules(&self, _args: OptimizeChunksArgs<'_>) -> Result<()> {
     Ok(())
   }
 
-  async fn before_compile(&mut self) -> Result<()> {
+  async fn before_compile(&self) -> Result<()> {
     Ok(())
   }
 
-  async fn after_compile(&mut self, _compilation: &mut Compilation) -> Result<()> {
+  async fn after_compile(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
-  async fn finish_make(&mut self, _compilation: &mut Compilation) -> Result<()> {
+  async fn finish_make(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
-  async fn finish_modules(&mut self, _modules: &mut Compilation) -> Result<()> {
+  async fn finish_modules(&self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
@@ -362,15 +367,15 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  fn module_ids(&mut self, _modules: &mut Compilation) -> Result<()> {
+  fn module_ids(&self, _modules: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
-  fn chunk_ids(&mut self, _compilation: &mut Compilation) -> Result<()> {
+  fn chunk_ids(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
-  async fn emit(&mut self, _compilation: &mut Compilation) -> Result<()> {
+  async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 
@@ -378,7 +383,7 @@ pub trait Plugin: Debug + Send + Sync {
     Ok(())
   }
 
-  async fn after_emit(&mut self, _compilation: &mut Compilation) -> Result<()> {
+  async fn after_emit(&self, _compilation: &mut Compilation) -> Result<()> {
     Ok(())
   }
 }
@@ -445,18 +450,13 @@ pub type BoxedParserAndGeneratorBuilder =
 
 #[derive(Default)]
 pub struct ApplyContext {
-  // pub(crate) registered_parser: HashMap<ModuleType, BoxedParser>,
   pub(crate) registered_parser_and_generator_builder:
-    HashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
+    DashMap<ModuleType, BoxedParserAndGeneratorBuilder>,
 }
 
 impl ApplyContext {
-  // pub fn register_parser(&mut self, module_type: ModuleType, parser: BoxedParser) {
-  //   self.registered_parser.insert(module_type, parser);
-  // }
-
   pub fn register_parser_and_generator_builder(
-    &mut self,
+    &self,
     module_type: ModuleType,
     parser_and_generator_builder: BoxedParserAndGeneratorBuilder,
   ) {

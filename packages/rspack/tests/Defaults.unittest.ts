@@ -133,10 +133,8 @@ describe("snapshots", () => {
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,
 		@@ ... @@
-		-       "enforceSizeThreshold": 30000,
 		-       "maxAsyncRequests": Infinity,
 		-       "maxInitialRequests": Infinity,
-		+       "enforceSizeThreshold": 50000,
 		+       "maxAsyncRequests": 30,
 		+       "maxInitialRequests": 30,
 		@@ ... @@
@@ -184,10 +182,8 @@ describe("snapshots", () => {
 		-     "sideEffects": "flag",
 		+     "sideEffects": true,
 		@@ ... @@
-		-       "enforceSizeThreshold": 30000,
 		-       "maxAsyncRequests": Infinity,
 		-       "maxInitialRequests": Infinity,
-		+       "enforceSizeThreshold": 50000,
 		+       "maxAsyncRequests": 30,
 		+       "maxInitialRequests": 30,
 		@@ ... @@
@@ -210,11 +206,11 @@ describe("snapshots", () => {
 		-   "cache": false,
 		+   "cache": true,
 		@@ ... @@
+		-       "make": false,
+		+       "make": true,
+		@@ ... @@
 		-   "mode": "none",
 		+   "mode": "development",
-		@@ ... @@
-		-       "minRemainingSize": undefined,
-		+       "minRemainingSize": 0,
 		@@ ... @@
 		-       "production",
 		+       "development",
@@ -642,6 +638,11 @@ describe("snapshots", () => {
 		+ Received
 
 		@@ ... @@
+		-     "electron": false,
+		-     "electronMain": false,
+		+     "electron": true,
+		+     "electronMain": true,
+		@@ ... @@
 		-     "node": false,
 		-     "web": true,
 		+     "node": true,
@@ -710,6 +711,12 @@ describe("snapshots", () => {
 		- Expected
 		+ Received
 
+		@@ ... @@
+		-     "electron": false,
+		+     "electron": true,
+		@@ ... @@
+		-     "electronPreload": false,
+		+     "electronPreload": true,
 		@@ ... @@
 		-     "node": false,
 		+     "node": true,
@@ -825,6 +832,9 @@ describe("snapshots", () => {
 		@@ ... @@
 		-   "cache": false,
 		+   "cache": true,
+		@@ ... @@
+		-       "make": false,
+		+       "make": true,
 	`)
 	);
 	test("cache filesystem", { cache: { type: "filesystem" } }, e =>
@@ -837,6 +847,9 @@ describe("snapshots", () => {
 		+   "cache": Object {
 		+     "type": "filesystem",
 		+   },
+		@@ ... @@
+		-       "make": false,
+		+       "make": true,
 	`)
 	);
 	test(
@@ -853,11 +866,11 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			@@ ... @@
+			-       "make": false,
+			+       "make": true,
+			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
-			@@ ... @@
-			-       "minRemainingSize": undefined,
-			+       "minRemainingSize": 0,
 			@@ ... @@
 			-       "production",
 			+       "development",
@@ -996,6 +1009,9 @@ describe("snapshots", () => {
 			+     "type": "filesystem",
 			+   },
 			+   "context": "<cwd>/tests/fixtures",
+			@@ ... @@
+			-       "make": false,
+			+       "make": true,
 			@@ ... @@
 			-     "chunkLoadingGlobal": "webpackChunk@rspack/core",
 			+     "chunkLoadingGlobal": "webpackChunk",

@@ -48,6 +48,23 @@ enum EntryLikeType {
   Bailout,
 }
 
+#[derive(Debug)]
+struct ModuleEliminator {
+  export_used: bool,
+  is_bailout: bool,
+  side_effects_free: bool,
+  is_entry: bool,
+  /// used for debugging
+  #[allow(unused)]
+  module_identifier: ModuleIdentifier,
+}
+
+impl ModuleEliminator {
+  fn could_be_skipped(&self) -> bool {
+    !self.export_used && !self.is_bailout && self.side_effects_free && !self.is_entry
+  }
+}
+
 impl<'a> CodeSizeOptimizer<'a> {
   pub fn new(compilation: &'a mut Compilation) -> Self {
     Self {
@@ -59,7 +76,10 @@ impl<'a> CodeSizeOptimizer<'a> {
   }
 
   pub async fn run(&mut self) -> Result<TWithDiagnosticArray<OptimizeDependencyResult>> {
-    let is_incremental_rebuild = self.compilation.options.is_incremental_rebuild();
+    let is_incremental_rebuild = self
+      .compilation
+      .options
+      .is_incremental_rebuild_make_enabled();
     let is_first_time_analyze = self.compilation.optimize_analyze_result_map.is_empty();
     let analyze_result_map = par_analyze_module(self.compilation).await;
     let mut finalized_result_map = if is_incremental_rebuild {
@@ -114,6 +134,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         self.merge_bailout_modules_reason(module_identifier, reason);
       }
     }
+    tracing::debug!(side_effect_map = format!("{:#?}", side_effect_map));
 
     self.side_effects_free_modules = self.get_side_effects_free_modules(side_effect_map);
 
@@ -175,7 +196,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     // dependency_replacement();
     let include_module_ids = self.finalize_symbol(
       side_effects_options,
-      &finalized_result_map,
       used_export_module_identifiers,
       &mut used_symbol_ref,
       visited_symbol_ref,
@@ -224,13 +244,14 @@ impl<'a> CodeSizeOptimizer<'a> {
       for symbol_ref in self.symbol_graph.symbol_refs() {
         match symbol_ref {
           SymbolRef::Direct(direct) => {
-            if direct.id().atom != serde_symbol.id || !direct.uri().contains(&serde_symbol.uri) {
+            if direct.id().atom != serde_symbol.id || !direct.src().contains(&serde_symbol.uri) {
               continue;
             }
           }
           SymbolRef::Indirect(_) | SymbolRef::Star(_) => {
             continue;
           }
+          SymbolRef::Url { .. } => continue,
         }
         let index = self
           .symbol_graph
@@ -322,13 +343,13 @@ impl<'a> CodeSizeOptimizer<'a> {
   fn finalize_symbol(
     &mut self,
     side_effects_analyze: bool,
-    analyze_results: &IdentifierMap<OptimizeAnalyzeResult>,
     used_export_module_identifiers: IdentifierMap<ModuleUsedType>,
     used_symbol_ref: &mut HashSet<SymbolRef>,
     visited_symbol_ref: HashSet<SymbolRef>,
     dead_node_index: &HashSet<NodeIndex>,
   ) -> IdentifierSet {
     let mut include_module_ids = IdentifierSet::default();
+
     if side_effects_analyze {
       let symbol_graph = &self.symbol_graph;
       let mut module_visited_symbol_ref: IdentifierMap<Vec<SymbolRef>> = IdentifierMap::default();
@@ -355,29 +376,21 @@ impl<'a> CodeSizeOptimizer<'a> {
         } else {
           visited.insert(module_identifier);
         }
-        let result = analyze_results.get(&module_identifier);
-        let analyze_result = match result {
-          Some(result) => result,
-          None => {
-            // These are js module without analyze result, like external module
-            include_module_ids.insert(module_identifier);
-            continue;
-          }
-        };
-        let used = used_export_module_identifiers.contains_key(&analyze_result.module_identifier);
-
-        if !used
-          && !self
-            .bailout_modules
-            .contains_key(&analyze_result.module_identifier)
-          && self.side_effects_free_modules.contains(&module_identifier)
-          && !self
+        let eliminator = ModuleEliminator {
+          export_used: used_export_module_identifiers.contains_key(&module_identifier),
+          is_bailout: self.bailout_modules.contains_key(&module_identifier),
+          side_effects_free: self.side_effects_free_modules.contains(&module_identifier),
+          is_entry: self
             .compilation
             .entry_module_identifiers
-            .contains(&module_identifier)
-        {
+            .contains(&module_identifier),
+          module_identifier,
+        };
+
+        if eliminator.could_be_skipped() {
           continue;
         } else {
+          // dbg!(&eliminator);
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -394,7 +407,6 @@ impl<'a> CodeSizeOptimizer<'a> {
               symbol_ref,
               &mut reachable_dependency_identifier,
               symbol_graph,
-              &self.bailout_modules,
             );
             let node_index = symbol_graph
               .get_node_index(symbol_ref)
@@ -647,7 +659,6 @@ impl<'a> CodeSizeOptimizer<'a> {
     visited_symbol_ref: &mut HashSet<SymbolRef>,
     errors: &mut Vec<Error>,
   ) {
-    // dbg!(&current_symbol_ref);
     if visited_symbol_ref.contains(&current_symbol_ref) {
       return;
     } else {
@@ -666,14 +677,12 @@ impl<'a> CodeSizeOptimizer<'a> {
     self.symbol_graph.add_node(&current_symbol_ref);
     // We don't need mark the symbol usage if it is from a bailout module because
     // bailout module will skipping tree-shaking anyway
-    let is_bailout_module_identifier = self
-      .bailout_modules
-      .contains_key(&current_symbol_ref.module_identifier());
+    let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
     match &current_symbol_ref {
       SymbolRef::Direct(symbol) => {
         merge_used_export_type(
           used_export_module_identifiers,
-          symbol.uri(),
+          symbol.src(),
           ModuleUsedType::DIRECT,
         );
       }
@@ -710,11 +719,14 @@ impl<'a> CodeSizeOptimizer<'a> {
           ModuleUsedType::EXPORT_ALL,
         );
       }
+      SymbolRef::Url { src, .. } => {
+        merge_used_export_type(used_export_module_identifiers, *src, ModuleUsedType::DIRECT);
+      }
       _ => {}
     };
     match current_symbol_ref {
       SymbolRef::Direct(ref symbol) => {
-        let module_result = analyze_map.get(&symbol.uri()).expect("TODO:");
+        let module_result = analyze_map.get(&symbol.src()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
           .get(&symbol.id().atom)
@@ -889,7 +901,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                 );
                 merge_used_export_type(
                   used_export_module_identifiers,
-                  current_symbol_ref.module_identifier(),
+                  current_symbol_ref.src(),
                   ModuleUsedType::INDIRECT,
                 );
 
@@ -1070,6 +1082,7 @@ impl<'a> CodeSizeOptimizer<'a> {
         //   }
         // }
       }
+      SymbolRef::Url { .. } => {}
     }
   }
   #[allow(clippy::too_many_arguments)]
@@ -1249,11 +1262,12 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
         };
 
         // dbg_matches!(
-        //   module_identifier.as_str(),
+        //   &module_identifier.as_str(),
+        //   &optimize_analyze_result.reachable_import_of_export,
+        //   &optimize_analyze_result.used_symbol_refs,
         //   &optimize_analyze_result.export_map,
         //   &optimize_analyze_result.import_map,
-        //   &optimize_analyze_result.reachable_import_of_export,
-        //   &optimize_analyze_result.used_symbol_refs
+        //   &optimize_analyze_result.side_effects
         // );
 
         Some((*module_identifier, optimize_analyze_result))
@@ -1267,30 +1281,8 @@ fn update_reachable_dependency(
   symbol_ref: &SymbolRef,
   reachable_dependency_identifier: &mut IdentifierSet,
   symbol_graph: &SymbolGraph,
-  bailout_modules: &IdentifierMap<BailoutFlag>,
 ) {
   let root_module_identifier = symbol_ref.importer();
-  // FIXME: currently we don't analyze export info of bailout module like commonjs,
-  // it may cause we don't include bailout module in such scenario:
-  // ```js
-  // //index.js
-  // import * as all from './lib.js'
-  // all
-  // // lib.js
-  // exports['a'] = 1000;
-  // ```
-  // This code would let lib.js be unreachable when it is marked as sideEffects false.
-  // Currently we use such a workaround make bailout module reachable.
-  if matches!(
-    symbol_ref,
-    SymbolRef::Star(StarSymbol {
-      ty: StarSymbolKind::ImportAllAs,
-      ..
-    })
-  ) && bailout_modules.contains_key(&symbol_ref.module_identifier())
-  {
-    reachable_dependency_identifier.insert(symbol_ref.module_identifier());
-  }
   let node_index = *symbol_graph
     .get_node_index(symbol_ref)
     .unwrap_or_else(|| panic!("Can't get NodeIndex of {symbol_ref:?}"));
@@ -1305,7 +1297,7 @@ fn update_reachable_dependency(
     let symbol = symbol_graph
       .get_symbol(&cur)
       .expect("Can't get Symbol of NodeIndex");
-    let module_identifier = symbol.importer();
+    let module_identifier = symbol.src();
     if module_identifier == root_module_identifier {
       for ele in symbol_graph
         .graph

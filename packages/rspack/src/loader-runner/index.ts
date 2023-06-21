@@ -157,6 +157,23 @@ function getCurrentLoader(
 	return null;
 }
 
+function serializeObject(
+	map: string | object | undefined | null
+): Buffer | undefined {
+	if (isNil(map)) {
+		return undefined;
+	}
+
+	if (typeof map === "string") {
+		if (map) {
+			return toBuffer(map);
+		}
+		return undefined;
+	}
+
+	return toBuffer(JSON.stringify(map));
+}
+
 export async function runLoader(
 	rawContext: JsLoaderContext,
 	compiler: Compiler
@@ -540,16 +557,8 @@ export async function runLoader(
 				const [content, sourceMap, additionalData] = result;
 				resolve({
 					content: isNil(content) ? undefined : toBuffer(content),
-					sourceMap: isNil(sourceMap)
-						? undefined
-						: toBuffer(
-								typeof sourceMap === "string"
-									? sourceMap
-									: JSON.stringify(sourceMap)
-						  ),
-					additionalData: isNil(additionalData)
-						? undefined
-						: toBuffer(JSON.stringify(additionalData)),
+					sourceMap: serializeObject(sourceMap),
+					additionalData: serializeObject(additionalData),
 					buildDependencies,
 					cacheable,
 					fileDependencies,
@@ -580,16 +589,8 @@ export async function runLoader(
 					const [content, sourceMap, additionalData] = result;
 					resolve({
 						content: isNil(content) ? undefined : toBuffer(content),
-						sourceMap: isNil(sourceMap)
-							? undefined
-							: toBuffer(
-									typeof sourceMap === "string"
-										? sourceMap
-										: JSON.stringify(sourceMap)
-							  ),
-						additionalData: isNil(additionalData)
-							? undefined
-							: toBuffer(JSON.stringify(additionalData)),
+						sourceMap: serializeObject(sourceMap),
+						additionalData: serializeObject(additionalData),
 						buildDependencies,
 						cacheable,
 						fileDependencies,

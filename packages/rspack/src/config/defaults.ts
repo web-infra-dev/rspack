@@ -22,7 +22,11 @@ import {
 import type {
 	AvailableTarget,
 	Context,
-	Experiments,
+	Entry,
+	EntryDescription,
+	EntryDescriptionNormalized,
+	EntryNormalized,
+	ExperimentsNormalized,
 	ExternalsPresets,
 	InfrastructureLogging,
 	Mode,
@@ -66,9 +70,9 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 
-	applyExperimentsDefaults(options.experiments);
-
 	F(options, "cache", () => development);
+
+	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
 
 	applySnapshotDefaults(options.snapshot, { production });
 
@@ -86,7 +90,8 @@ export const applyRspackOptionsDefaults = (
 			(typeof target === "string" && target.startsWith("browserslist")) ||
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
-		outputModule: options.experiments.outputModule
+		outputModule: options.experiments.outputModule,
+		entry: options.entry
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -141,12 +146,29 @@ const applyInfrastructureLoggingDefaults = (
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
-const applyExperimentsDefaults = (experiments: Experiments) => {
-	D(experiments, "incrementalRebuild", true);
+const applyExperimentsDefaults = (
+	experiments: ExperimentsNormalized,
+	{ cache }: { cache: boolean }
+) => {
+	D(experiments, "incrementalRebuild", {});
 	D(experiments, "lazyCompilation", false);
 	D(experiments, "asyncWebAssembly", false);
 	D(experiments, "newSplitChunks", true);
 	D(experiments, "css", true); // we not align with webpack about the default value for better DX
+
+	if (typeof experiments.incrementalRebuild === "object") {
+		D(experiments.incrementalRebuild, "make", true);
+		D(experiments.incrementalRebuild, "emitAsset", true);
+	}
+
+	if (
+		cache === false &&
+		experiments.incrementalRebuild &&
+		experiments.incrementalRebuild.make
+	) {
+		experiments.incrementalRebuild.make = false;
+		// TODO: use logger to warn user enable cache for incrementalRebuild.make
+	}
 };
 
 const applySnapshotDefaults = (
@@ -327,12 +349,14 @@ const applyOutputDefaults = (
 		context,
 		outputModule,
 		targetProperties: tp,
-		isAffectedByBrowserslist
+		isAffectedByBrowserslist,
+		entry
 	}: {
 		context: Context;
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
+		entry: EntryNormalized;
 	}
 ) => {
 	F(output, "uniqueName", () => {
@@ -434,6 +458,7 @@ const applyOutputDefaults = (
 			"Chunk format can't be selected by default when no target is specified"
 		);
 	});
+	D(output, "asyncChunks", true);
 	F(output, "chunkLoading", () => {
 		if (tp) {
 			switch (output.chunkFormat) {
@@ -460,21 +485,6 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
-	A(output, "enabledChunkLoadingTypes", () => {
-		const enabledChunkLoadingTypes = new Set<string>();
-		if (output.chunkLoading) {
-			enabledChunkLoadingTypes.add(output.chunkLoading);
-		}
-		// if (output.workerChunkLoading) {
-		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
-		// }
-		// forEachEntry(desc => {
-		// 	if (desc.chunkLoading) {
-		// 		enabledChunkLoadingTypes.add(desc.chunkLoading);
-		// 	}
-		// });
-		return Array.from(enabledChunkLoadingTypes);
-	});
 	F(output, "wasmLoading", () => {
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
@@ -486,14 +496,6 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
-	A(output, "enabledLibraryTypes", () => {
-		const enabledLibraryTypes = [];
-		if (output.library) {
-			enabledLibraryTypes.push(output.library.type);
-		}
-		// TODO respect entryOptions.library
-		return enabledLibraryTypes;
-	});
 	F(output, "globalObject", () => {
 		if (tp) {
 			if (tp.global) return "global";
@@ -503,7 +505,49 @@ const applyOutputDefaults = (
 	});
 	D(output, "importFunctionName", "import");
 	F(output, "clean", () => !!output.clean);
+	D(output, "crossOriginLoading", false);
+	F(output, "sourceMapFilename", () => {
+		return "[file].map";
+	});
 
+	const { trustedTypes } = output;
+	if (trustedTypes) {
+		F(
+			trustedTypes,
+			"policyName",
+			() =>
+				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
+		);
+	}
+
+	const forEachEntry = (fn: (desc: EntryDescriptionNormalized) => void) => {
+		for (const name of Object.keys(entry)) {
+			fn(entry[name]);
+		}
+	};
+	A(output, "enabledLibraryTypes", () => {
+		const enabledLibraryTypes = [];
+		if (output.library) {
+			enabledLibraryTypes.push(output.library.type);
+		}
+		// TODO respect entryOptions.library
+		return enabledLibraryTypes;
+	});
+	A(output, "enabledChunkLoadingTypes", () => {
+		const enabledChunkLoadingTypes = new Set<string>();
+		if (output.chunkLoading) {
+			enabledChunkLoadingTypes.add(output.chunkLoading);
+		}
+		// if (output.workerChunkLoading) {
+		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
+		// }
+		forEachEntry(desc => {
+			if (desc.chunkLoading) {
+				enabledChunkLoadingTypes.add(desc.chunkLoading);
+			}
+		});
+		return Array.from(enabledChunkLoadingTypes);
+	});
 	A(output, "enabledWasmLoadingTypes", () => {
 		const enabledWasmLoadingTypes = new Set<string>();
 		if (output.wasmLoading) {
@@ -519,21 +563,6 @@ const applyOutputDefaults = (
 		// });
 		return Array.from(enabledWasmLoadingTypes);
 	});
-
-	D(output, "crossOriginLoading", false);
-
-	const { trustedTypes } = output;
-	if (trustedTypes) {
-		F(
-			trustedTypes,
-			"policyName",
-			() =>
-				output.uniqueName!.replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
-		);
-	}
-	F(output, "sourceMapFilename", () => {
-		return "[file].map";
-	});
 };
 
 const applyExternalsPresetsDefaults = (
@@ -542,6 +571,32 @@ const applyExternalsPresetsDefaults = (
 ) => {
 	D(externalsPresets, "web", targetProperties && targetProperties.web);
 	D(externalsPresets, "node", targetProperties && targetProperties.node);
+	D(
+		externalsPresets,
+		"electron",
+		targetProperties && targetProperties.electron
+	);
+	D(
+		externalsPresets,
+		"electronMain",
+		targetProperties &&
+			targetProperties.electron &&
+			targetProperties.electronMain
+	);
+	D(
+		externalsPresets,
+		"electronPreload",
+		targetProperties &&
+			targetProperties.electron &&
+			targetProperties.electronPreload
+	);
+	D(
+		externalsPresets,
+		"electronRenderer",
+		targetProperties &&
+			targetProperties.electron &&
+			targetProperties.electronRenderer
+	);
 };
 
 const applyNodeDefaults = (
@@ -570,7 +625,7 @@ const applyOptimizationDefaults = (
 ) => {
 	D(optimization, "removeAvailableModules", true);
 	D(optimization, "removeEmptyChunks", true);
-	F(optimization, "moduleIds", () => {
+	F(optimization, "moduleIds", (): "named" | "deterministic" => {
 		if (production) return "deterministic";
 		return "named";
 	});
@@ -589,8 +644,8 @@ const applyOptimizationDefaults = (
 		// D(splitChunks, "usedExports", optimization.usedExports === true);
 		D(splitChunks, "minChunks", 1);
 		F(splitChunks, "minSize", () => (production ? 20000 : 10000));
-		F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
-		F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
+		// F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
+		// F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
 		F(splitChunks, "maxAsyncRequests", () => (production ? 30 : Infinity));
 		F(splitChunks, "maxInitialRequests", () => (production ? 30 : Infinity));
 		// D(splitChunks, "automaticNameDelimiter", "-");

@@ -227,11 +227,7 @@ impl WorkerTask for BuildTask {
     let (build_result, is_cache_valid) = match cache
       .build_module_occasion
       .use_cache(&mut module, |module| async {
-        plugin_driver
-          .read()
-          .await
-          .build_module(module.as_mut())
-          .await?;
+        plugin_driver.build_module(module.as_mut()).await?;
 
         let result = module
           .build(BuildContext {
@@ -244,7 +240,7 @@ impl WorkerTask for BuildTask {
           })
           .await;
 
-        plugin_driver.read().await.succeed_module(&**module).await?;
+        plugin_driver.succeed_module(&**module).await?;
 
         result
       })
@@ -255,11 +251,7 @@ impl WorkerTask for BuildTask {
     };
 
     if is_cache_valid {
-      plugin_driver
-        .read()
-        .await
-        .still_valid_module(module.as_ref())
-        .await?;
+      plugin_driver.still_valid_module(module.as_ref()).await?;
     }
 
     build_result.map(|build_result| {

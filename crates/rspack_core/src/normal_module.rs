@@ -25,11 +25,11 @@ use rustc_hash::FxHasher;
 use serde_json::json;
 
 use crate::{
-  contextify, get_context, AssetGeneratorOptions, AssetParserOptions, BoxLoader, BoxModule,
-  BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult,
-  CodeReplaceSourceDependency, Compilation, CompilerOptions, Context, Dependency, GenerateContext,
-  LibIdentOptions, LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency,
-  ModuleGraph, ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
+  contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerOptions, Context,
+  Dependency, GenerateContext, GeneratorOptions, LibIdentOptions,
+  LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
   Resolve, SourceType,
 };
 
@@ -72,46 +72,38 @@ impl ModuleIssuer {
   }
 }
 
+// TODO Here should only has source for string replace codegen, but the tree-shaking analyzer need ast at now, so here use ast as workaround.
 #[derive(Debug, Clone, Hash)]
-pub enum AstOrSource {
-  Ast(ModuleAst),
-  Source(BoxSource),
+pub struct AstOrSource {
+  inner: (Option<ModuleAst>, Option<BoxSource>),
 }
 
 impl AstOrSource {
-  pub fn is_ast(&self) -> bool {
-    matches!(self, AstOrSource::Ast(_))
-  }
-
-  pub fn is_source(&self) -> bool {
-    matches!(self, AstOrSource::Source(_))
+  pub fn new(ast: Option<ModuleAst>, source: Option<BoxSource>) -> Self {
+    Self {
+      inner: (ast, source),
+    }
   }
 
   pub fn as_ast(&self) -> Option<&ModuleAst> {
-    match self {
-      AstOrSource::Ast(ast) => Some(ast),
-      _ => None,
-    }
+    self.inner.0.as_ref()
   }
 
   pub fn as_source(&self) -> Option<&BoxSource> {
-    match self {
-      AstOrSource::Source(source) => Some(source),
-      _ => None,
-    }
+    self.inner.1.as_ref()
   }
 
   pub fn try_into_ast(self) -> Result<ModuleAst> {
-    match self {
-      AstOrSource::Ast(ast) => Ok(ast),
+    match self.inner.0 {
+      Some(ast) => Ok(ast),
       // TODO: change to user error
       _ => Err(internal_error!("Failed to convert to ast")),
     }
   }
 
   pub fn try_into_source(self) -> Result<BoxSource> {
-    match self {
-      AstOrSource::Source(source) => Ok(source),
+    match self.inner.1 {
+      Some(source) => Ok(source),
       // TODO: change to user error
       _ => Err(internal_error!("Failed to convert to source")),
     }
@@ -122,22 +114,21 @@ impl AstOrSource {
     F: FnOnce(ModuleAst) -> ModuleAst,
     G: FnOnce(BoxSource) -> BoxSource,
   {
-    match self {
-      AstOrSource::Ast(ast) => Self::Ast(f(ast)),
-      AstOrSource::Source(source) => Self::Source(g(source)),
-    }
+    let ast = self.inner.0.map(f);
+    let source = self.inner.1.map(g);
+    Self::new(ast, source)
   }
 }
 
 impl From<ModuleAst> for AstOrSource {
   fn from(ast: ModuleAst) -> Self {
-    AstOrSource::Ast(ast)
+    AstOrSource::new(Some(ast), None)
   }
 }
 
 impl From<BoxSource> for AstOrSource {
   fn from(source: BoxSource) -> Self {
-    AstOrSource::Source(source)
+    AstOrSource::new(None, Some(source))
   }
 }
 
@@ -173,9 +164,9 @@ pub struct NormalModule {
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Resolve>,
   /// Parser options derived from [Rule.parser]
-  parser_options: Option<AssetParserOptions>,
+  parser_options: Option<ParserOptions>,
   /// Generator options derived from [Rule.generator]
-  generator_options: Option<AssetGeneratorOptions>,
+  generator_options: Option<GeneratorOptions>,
 
   options: Arc<CompilerOptions>,
   #[allow(unused)]
@@ -221,8 +212,8 @@ impl NormalModule {
     raw_request: String,
     module_type: impl Into<ModuleType>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
-    parser_options: Option<AssetParserOptions>,
-    generator_options: Option<AssetGeneratorOptions>,
+    parser_options: Option<ParserOptions>,
+    generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
     resource_data: ResourceData,
     resolve_options: Option<Resolve>,
@@ -353,12 +344,7 @@ impl Module for NormalModule {
     let mut build_meta = BuildMeta::default();
     let mut diagnostics = Vec::new();
 
-    build_context
-      .plugin_driver
-      .read()
-      .await
-      .before_loaders(self)
-      .await?;
+    build_context.plugin_driver.before_loaders(self).await?;
 
     let loader_result = {
       run_loaders(
@@ -483,8 +469,9 @@ impl Module for NormalModule {
       if self.source_types().contains(&SourceType::JavaScript) {
         code_generation_result.add(
           SourceType::JavaScript,
-          AstOrSource::Source(
-            RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed(),
+          AstOrSource::new(
+            None,
+            Some(RawSource::from(format!("throw new Error({});\n", json!(error_message))).boxed()),
           ),
         );
       }

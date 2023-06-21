@@ -143,7 +143,7 @@ impl Debug for SplitChunksPlugin {
 impl Plugin for SplitChunksPlugin {
   #[tracing::instrument(name = "SplitChunksPlugin::optimize_chunks", skip_all)]
   async fn optimize_chunks(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {

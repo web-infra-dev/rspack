@@ -1,5 +1,4 @@
-exports.ids = ['main'];
-exports.modules = {
+(self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./child Lazy  recursive ^\\.\\/.*\\.js$": function (module, exports, __webpack_require__) {
 var map = {"./a.js": "./child/a.js","./b.js": "./child/b.js",};
 function webpackAsyncContext(req) {
@@ -31,8 +30,9 @@ __webpack_require__("./child Lazy  recursive ^\\.\\/.*\\.js$")(('./child/' + req
 __webpack_require__("./child Lazy  recursive ^\\.\\/.*\\.js$")("./child/".concat(request, ".js").replace("./child/", "./")).then(({ a  })=>console.log("context_module_concat", a));
 },
 
-};
-var __webpack_require__ = require('./runtime.js');
-__webpack_require__.C(exports)
+},function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__('./index.js'));
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);

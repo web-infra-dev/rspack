@@ -20,8 +20,5 @@ module.exports = {
 				type: "asset"
 			}
 		]
-	},
-	devServer: {
-		open: true
 	}
 };

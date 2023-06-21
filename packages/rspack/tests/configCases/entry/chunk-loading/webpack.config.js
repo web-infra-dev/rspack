@@ -1,0 +1,12 @@
+module.exports = {
+	entry: {
+		a: {
+			import: "./a.js",
+			chunkLoading: "async-node"
+		},
+		b: {
+			import: "./b.js",
+			chunkLoading: "require"
+		}
+	}
+};

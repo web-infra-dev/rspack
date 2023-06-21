@@ -8,9 +8,10 @@ use rspack_identifier::{IdentifierMap, IdentifierSet};
 use rspack_sources::{RawSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
+use super::MakeParam;
 use crate::{
-  fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler, ModuleIdentifier,
-  PathData, RenderManifestArgs, RuntimeSpec, SetupMakeParam,
+  fast_drop, fast_set, AssetInfo, Chunk, ChunkKind, Compilation, CompilationAsset, Compiler,
+  ModuleIdentifier, NormalModuleAstOrSource, PathData, RenderManifestArgs, RuntimeSpec,
 };
 
 #[derive(Default)]
@@ -109,19 +110,11 @@ where
       })
       .collect::<HashMap<String, HotUpdateContent>>();
 
-    let mut old_chunks: Vec<(String, IdentifierSet, RuntimeSpec)> = vec![];
-    for (ukey, chunk) in old.compilation.chunk_by_ukey.iter() {
-      let modules = old
-        .compilation
-        .chunk_graph
-        .get_chunk_graph_chunk(ukey)
-        .modules
-        .clone();
-      old_chunks.push((
-        chunk.expect_id().to_string(),
-        modules,
-        chunk.runtime.clone(),
-      ));
+    let mut old_chunks: Vec<(String, RuntimeSpec)> = vec![];
+    for (_, chunk) in old.compilation.chunk_by_ukey.iter() {
+      if chunk.kind != ChunkKind::HotUpdate {
+        old_chunks.push((chunk.expect_id().to_string(), chunk.runtime.clone()));
+      }
     }
 
     // build without stats
@@ -134,25 +127,22 @@ where
       self
         .cache
         .set_modified_files(modified_files.iter().cloned().collect::<Vec<_>>());
-      self
-        .plugin_driver
-        .read()
-        .await
-        .resolver_factory
-        .clear_entries();
+      self.plugin_driver.resolver_factory.clear_entries();
 
       let mut new_compilation = Compilation::new(
-        // TODO: use Arc<T> instead
         self.options.clone(),
-        self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.cache.clone(),
       );
 
-      let is_incremental_rebuild = self.options.is_incremental_rebuild();
-      if is_incremental_rebuild {
+      if let Some(state) = self.options.get_incremental_rebuild_make_state() {
+        state.set_is_not_first();
+      }
+
+      let is_incremental_rebuild_make = self.options.is_incremental_rebuild_make_enabled();
+      if is_incremental_rebuild_make {
         // copy field from old compilation
         // make stage used
         new_compilation.module_graph = std::mem::take(&mut self.compilation.module_graph);
@@ -160,8 +150,7 @@ where
           std::mem::take(&mut self.compilation.make_failed_dependencies);
         new_compilation.make_failed_module =
           std::mem::take(&mut self.compilation.make_failed_module);
-        new_compilation.entry_dependencies =
-          std::mem::take(&mut self.compilation.entry_dependencies);
+        new_compilation.entries = std::mem::take(&mut self.compilation.entries);
         new_compilation.lazy_visit_modules =
           std::mem::take(&mut self.compilation.lazy_visit_modules);
         new_compilation.file_dependencies = std::mem::take(&mut self.compilation.file_dependencies);
@@ -183,8 +172,28 @@ where
         // seal stage used
         new_compilation.code_splitting_cache =
           std::mem::take(&mut self.compilation.code_splitting_cache);
-      } else {
-        new_compilation.setup_entry_dependencies();
+
+        new_compilation.has_module_import_export_change = false;
+        // remove prev build ast in modules
+        fast_drop(
+          new_compilation
+            .module_graph
+            .modules_mut()
+            .values_mut()
+            .map(|module| {
+              if let Some(m) = module.as_normal_module_mut() {
+                let is_ast_unbuild = matches!(m.ast_or_source(), NormalModuleAstOrSource::Unbuild);
+                if !is_ast_unbuild {
+                  return Some(std::mem::replace(
+                    m.ast_or_source_mut(),
+                    NormalModuleAstOrSource::Unbuild,
+                  ));
+                }
+              }
+              None
+            })
+            .collect::<Vec<Option<NormalModuleAstOrSource>>>(),
+        );
       }
 
       fast_set(&mut self.compilation, new_compilation);
@@ -194,34 +203,18 @@ where
       // Fake this compilation as *currently* rebuilding does not create a new compilation
       self
         .plugin_driver
-        .write()
-        .await
         .this_compilation(&mut self.compilation)
         .await?;
 
       self
         .plugin_driver
-        .write()
-        .await
         .compilation(&mut self.compilation)
         .await?;
 
-      let setup_make_params = if is_incremental_rebuild {
-        SetupMakeParam::ModifiedFiles(modified_files)
+      let setup_make_params = if is_incremental_rebuild_make {
+        MakeParam::ModifiedFiles(modified_files)
       } else {
-        let deps = self
-          .compilation
-          .entry_dependencies
-          .iter()
-          .flat_map(|(_, deps)| {
-            deps
-              .clone()
-              .into_iter()
-              .map(|d| (d, None))
-              .collect::<Vec<_>>()
-          })
-          .collect::<HashSet<_>>();
-        SetupMakeParam::ForceBuildDeps(deps)
+        MakeParam::ForceBuildDeps(Default::default())
       };
       self.compile(setup_make_params).await?;
       self.cache.begin_idle();
@@ -280,7 +273,7 @@ where
     // TODO: hash
     // if old.hash == now.hash { return  } else { // xxxx}
 
-    for (chunk_id, _old_chunk_modules, old_runtime) in &old_chunks {
+    for (chunk_id, old_runtime) in &old_chunks {
       let mut new_modules = vec![];
       let mut new_runtime_modules = vec![];
       let mut chunk_id = chunk_id.to_string();
@@ -344,11 +337,8 @@ where
       }
 
       if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
-        let mut hot_update_chunk = Chunk::new(
-          Some(chunk_id.to_string()),
-          Some(chunk_id.to_string()),
-          ChunkKind::HotUpdate,
-        );
+        let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
+        hot_update_chunk.id = Some(chunk_id.to_string());
         hot_update_chunk.runtime = new_runtime.clone();
         let mut chunk_hash = RspackHash::from(&self.compilation.options.output);
         let ukey = hot_update_chunk.ukey;
@@ -396,8 +386,6 @@ where
         let render_manifest = self
           .compilation
           .plugin_driver
-          .read()
-          .await
           .render_manifest(RenderManifestArgs {
             compilation: &self.compilation,
             chunk_ukey: ukey,

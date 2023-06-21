@@ -15,13 +15,13 @@ export async function getLastVersion(root) {
 	});
 	return result.default.version;
 }
-export async function getSnapshotVersion() {
+export async function getSnapshotVersion(lastVersion) {
 	const commitId = await getCommitId();
 	const dateTime = new Date()
 		.toISOString()
 		.replace(/\.\d{3}Z$/, "")
 		.replace(/[^\d]/g, "");
-	return `0.0.0-canary-${commitId}-${dateTime}`;
+	return `${lastVersion}-canary-${commitId}-${dateTime}`;
 }
 export async function version_handler(version) {
 	const allowedVersion = ["major", "minor", "patch", "snapshot"];
@@ -35,7 +35,7 @@ export async function version_handler(version) {
 	const lastVersion = await getLastVersion(root);
 	let nextVersion;
 	if (version === "snapshot") {
-		nextVersion = await getSnapshotVersion();
+		nextVersion = await getSnapshotVersion(lastVersion);
 	} else {
 		nextVersion = semver.inc(lastVersion, version);
 	}

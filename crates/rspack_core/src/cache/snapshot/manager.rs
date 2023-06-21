@@ -58,7 +58,17 @@ impl SnapshotManager {
         let hash = match hash_cache.get(path) {
           Some(hash) => *hash,
           None => {
-            let res = calc_hash(&tokio::fs::read(path).await?);
+            let res = if path.is_dir() {
+              let dir = &mut tokio::fs::read_dir(path).await?;
+              let mut sub_files = vec![];
+              while let Some(entry) = dir.next_entry().await? {
+                let dir_u8 = entry.path().as_os_str().to_string_lossy().to_string();
+                sub_files.push(dir_u8);
+              }
+              calc_hash(&sub_files)
+            } else {
+              calc_hash(&tokio::fs::read(path).await?)
+            };
             hash_cache.insert(path.to_owned(), res);
             res
           }

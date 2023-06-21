@@ -5,12 +5,14 @@ use napi::bindgen_prelude::*;
 use napi::NapiRaw;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::AssetInfo;
+use rspack_core::ModuleIdentifier;
 use rspack_core::{rspack_sources::SourceExt, AstOrSource, NormalModuleAstOrSource};
 use rspack_identifier::Identifier;
 use rspack_napi_shared::NapiResultExt;
 
 use super::module::ToJsModule;
 use super::PathWithInfo;
+use crate::utils::callbackify;
 use crate::{
   js_values::{chunk::JsChunk, module::JsModule, PathData},
   CompatSource, JsAsset, JsAssetInfo, JsChunkGroup, JsCompatSource, JsStats, ToJsCompatSource,
@@ -170,7 +172,7 @@ impl JsCompilation {
         Some(module) => {
           let compat_source = CompatSource::from(source).boxed();
           *module.ast_or_source_mut() =
-            NormalModuleAstOrSource::new_built(AstOrSource::Source(compat_source), &[]);
+            NormalModuleAstOrSource::new_built(AstOrSource::new(None, Some(compat_source)), &[]);
           true
         }
         None => false,
@@ -382,6 +384,30 @@ impl JsCompilation {
       .inner
       .build_dependencies
       .extend(deps.into_iter().map(PathBuf::from))
+  }
+
+  #[napi]
+  pub fn rebuild_module(
+    &'static mut self,
+    env: Env,
+    module_identifiers: Vec<String>,
+    f: JsFunction,
+  ) -> Result<()> {
+    callbackify(env, f, async {
+      let modules = self
+        .inner
+        .rebuild_module(rustc_hash::FxHashSet::from_iter(
+          module_identifiers.into_iter().map(ModuleIdentifier::from),
+        ))
+        .await
+        .map_err(|e| Error::new(napi::Status::GenericFailure, format!("{e}")))?;
+      Ok(
+        modules
+          .into_iter()
+          .filter_map(|item| item.to_js_module().ok())
+          .collect::<Vec<_>>(),
+      )
+    })
   }
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/dev-client",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "license": "MIT",
   "description": "Development client for rspack",
   "scripts": {
@@ -8,6 +8,9 @@
     "dev": "tsc -w",
     "test": "echo success"
   },
+  "files": [
+    "dist"
+  ],
   "homepage": "https://rspack.dev",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": {

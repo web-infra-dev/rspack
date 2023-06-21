@@ -9,13 +9,15 @@ use sugar_path::{AsPath, SugarPath};
 use swc_core::common::Span;
 
 use crate::{
-  cache::Cache, module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
-  AssetGeneratorOptions, AssetParserOptions, BoxLoader, CompilerOptions, Dependency,
-  DependencyCategory, DependencyType, FactorizeArgs, FactoryMeta, MissingModule, ModuleArgs,
-  ModuleDependency, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ModuleIdentifier, ModuleRule, ModuleRuleEnforce, ModuleType, NormalModule,
-  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, RawModule, Resolve, ResolveArgs,
-  ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
+  cache::Cache,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
+  BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
+  FactoryMeta, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule,
+  ModuleRuleEnforce, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
+  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
+  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
   ResourceParsedData, SharedPluginDriver,
 };
 
@@ -74,8 +76,6 @@ impl NormalModuleFactory {
     };
     if let Ok(Some(false)) = self
       .plugin_driver
-      .read()
-      .await
       .before_resolve(&mut before_resolve_args)
       .await
     {
@@ -107,14 +107,13 @@ impl NormalModuleFactory {
   ) -> Result<Option<TWithDiagnosticArray<ModuleFactoryResult>>> {
     if let Ok(Some(false)) = self
       .plugin_driver
-      .read()
-      .await
       .after_resolve(NormalModuleAfterResolveArgs {
         request: data.dependency.request(),
         context: data.context.as_ref(),
         file_dependencies: &factory_result.file_dependencies,
         context_dependencies: &factory_result.context_dependencies,
         missing_dependencies: &factory_result.missing_dependencies,
+        factory_meta: &factory_result.factory_meta,
       })
       .await
     {
@@ -161,8 +160,6 @@ impl NormalModuleFactory {
     {
       // resource with scheme
       plugin_driver
-        .read()
-        .await
         .normal_module_factory_resolve_for_scheme(ResourceData::new(
           request_without_match_resource.to_string(),
           "".into(),
@@ -172,7 +169,7 @@ impl NormalModuleFactory {
     // TODO: resource within scheme, call resolveInScheme hook
     else {
       {
-        let plugin_driver = self.plugin_driver.read().await;
+        let plugin_driver = &self.plugin_driver;
         let context = data.context.as_path();
         request_without_match_resource = {
           let match_resource_match = MATCH_RESOURCE_REGEX.captures(request_without_match_resource);
@@ -444,13 +441,11 @@ impl NormalModuleFactory {
     let (resolved_parser_options, resolved_generator_options) =
       self.calculate_parser_and_generator_options(&resolved_module_rules);
     let factory_meta = FactoryMeta {
-      side_effects: self.calculate_side_effects(&resolved_module_rules),
+      side_effects: self.calculate_side_effects(&resolved_module_rules, &resource_data),
     };
 
     let resolved_parser_and_generator = self
       .plugin_driver
-      .read()
-      .await
       .registered_parser_and_generator_builder
       .get(&resolved_module_type)
       .ok_or_else(|| {
@@ -478,8 +473,6 @@ impl NormalModuleFactory {
 
     let module = if let Some(module) = self
       .plugin_driver
-      .read()
-      .await
       .module(ModuleArgs {
         dependency_type: data.dependency.dependency_type().clone(),
         indentfiler: normal_module.identifier(),
@@ -529,20 +522,39 @@ impl NormalModuleFactory {
     resolved
   }
 
-  fn calculate_side_effects(&self, module_rules: &[&ModuleRule]) -> Option<bool> {
-    let mut side_effects = None;
+  fn calculate_side_effects(
+    &self,
+    module_rules: &[&ModuleRule],
+    resource_data: &ResourceData,
+  ) -> Option<bool> {
+    let mut side_effect_res = None;
+    // side_effects from module rule has higher priority
     module_rules.iter().for_each(|rule| {
-      side_effects = rule.side_effects;
+      side_effect_res = rule.side_effects;
     });
-    side_effects
+    if side_effect_res.is_some() {
+      return side_effect_res;
+    }
+    let resource_path = &resource_data.resource_path;
+    let description = resource_data.resource_description.as_ref()?;
+    let package_path = description.dir().as_ref();
+    let side_effects = SideEffects::from_description(description)?;
+
+    let relative_path = resource_path.relative(package_path);
+    side_effect_res = Some(get_side_effects_from_package_json(
+      side_effects,
+      relative_path,
+    ));
+
+    side_effect_res
   }
 
   fn calculate_parser_and_generator_options(
     &self,
     module_rules: &[&ModuleRule],
-  ) -> (Option<AssetParserOptions>, Option<AssetGeneratorOptions>) {
-    let mut resolved_parser: Option<AssetParserOptions> = None;
-    let mut resolved_generator: Option<AssetGeneratorOptions> = None;
+  ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
+    let mut resolved_parser = None;
+    let mut resolved_generator = None;
 
     module_rules.iter().for_each(|rule| {
       // TODO: should deep merge
@@ -579,8 +591,6 @@ impl NormalModuleFactory {
   ) -> Result<TWithDiagnosticArray<ModuleFactoryResult>> {
     let result = self
       .plugin_driver
-      .read()
-      .await
       .factorize(
         FactorizeArgs {
           context: &data.context,

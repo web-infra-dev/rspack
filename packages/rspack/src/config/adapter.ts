@@ -6,8 +6,15 @@ import {
 	RawOptions,
 	RawRuleSetCondition,
 	RawRuleSetLogicalConditions,
-	RawBannerConditions,
-	RawBannerCondition
+	RawGeneratorOptions,
+	RawAssetGeneratorOptions,
+	RawParserOptions,
+	RawAssetParserOptions,
+	RawAssetParserDataUrl,
+	RawAssetGeneratorDataUrl,
+	RawAssetInlineGeneratorOptions,
+	RawAssetResourceGeneratorOptions,
+	RawIncrementalRebuild
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../compiler";
@@ -19,11 +26,8 @@ import {
 	createRawModuleRuleUses
 } from "./adapter-rule-use";
 import {
-	BannerConditions,
-	BannerCondition,
 	CrossOriginLoading,
 	EntryNormalized,
-	Experiments,
 	ExternalItem,
 	ExternalItemValue,
 	Externals,
@@ -32,7 +36,6 @@ import {
 	ModuleOptionsNormalized,
 	Node,
 	Optimization,
-	OptimizationSplitChunksOptions,
 	OutputNormalized,
 	Resolve,
 	RspackOptionsNormalized,
@@ -41,8 +44,19 @@ import {
 	RuleSetRule,
 	SnapshotOptions,
 	StatsValue,
-	Target
+	Target,
+	AssetGeneratorDataUrl,
+	AssetGeneratorOptions,
+	AssetInlineGeneratorOptions,
+	AssetResourceGeneratorOptions,
+	AssetParserDataUrl,
+	AssetParserOptions,
+	ParserOptionsByModuleType,
+	GeneratorOptionsByModuleType,
+	ExperimentsNormalized,
+	IncrementalRebuildOptions
 } from "./types";
+import { SplitChunksConfig } from "./zod/optimization/split-chunks";
 
 export const getRawOptions = (
 	options: RspackOptionsNormalized,
@@ -108,9 +122,12 @@ function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
 	const raw: RawOptions["entry"] = {};
 	for (const key of Object.keys(entry)) {
 		const runtime = entry[key].runtime;
+		const chunkLoading = entry[key].chunkLoading;
 		raw[key] = {
 			import: entry[key].import!,
-			runtime: runtime === false ? undefined : runtime
+			runtime: runtime === false ? undefined : runtime,
+			chunkLoading: chunkLoading === false ? "false" : chunkLoading,
+			asyncChunks: entry[key].asyncChunks
 		};
 	}
 	return raw;
@@ -178,10 +195,10 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		clean: output.clean!,
 		assetModuleFilename: output.assetModuleFilename!,
 		filename: output.filename!,
-		chunkFormat: output.chunkFormat === false ? undefined : output.chunkFormat!,
+		chunkFormat: output.chunkFormat === false ? "false" : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
 		chunkLoading:
-			output.chunkLoading === false ? undefined : output.chunkLoading!,
+			output.chunkLoading === false ? "false" : output.chunkLoading!,
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
@@ -205,7 +222,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		hashFunction: output.hashFunction!,
 		hashDigest: output.hashDigest!,
 		hashDigestLength: output.hashDigestLength!,
-		hashSalt: output.hashSalt!
+		hashSalt: output.hashSalt!,
+		asyncChunks: output.asyncChunks!
 	};
 }
 
@@ -214,7 +232,11 @@ function getRawExternalsPresets(
 ): RawOptions["externalsPresets"] {
 	return {
 		web: presets.web ?? false,
-		node: presets.node ?? false
+		node: presets.node ?? false,
+		electron: presets.electron ?? false,
+		electronMain: presets.electronMain ?? false,
+		electronPreload: presets.electronPreload ?? false,
+		electronRenderer: presets.electronRenderer ?? false
 	};
 }
 
@@ -282,7 +304,8 @@ function getRawModule(
 	);
 	return {
 		rules,
-		parser: module.parser
+		parser: getRawParserOptionsByModuleType(module.parser),
+		generator: getRawGeneratorOptionsByModuleType(module.generator)
 	};
 }
 
@@ -330,8 +353,12 @@ const getRawModuleRule = (
 		sideEffects: rule.sideEffects,
 		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
 		type: rule.type,
-		parser: rule.parser,
-		generator: rule.generator,
+		parser: rule.parser
+			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
+			: undefined,
+		generator: rule.generator
+			? getRawGeneratorOptions(rule.generator, rule.type ?? "javascript/auto")
+			: undefined,
 		resolve: rule.resolve ? getRawResolve(rule.resolve) : undefined,
 		oneOf: rule.oneOf
 			? rule.oneOf.map((rule, index) =>
@@ -385,39 +412,6 @@ function getRawRuleSetCondition(
 	);
 }
 
-export function getBannerCondition(
-	condition: BannerCondition
-): RawBannerCondition {
-	if (typeof condition === "string") {
-		return {
-			type: "string",
-			stringMatcher: condition
-		};
-	}
-	if (condition instanceof RegExp) {
-		return {
-			type: "regexp",
-			regexpMatcher: condition.source
-		};
-	}
-	throw new Error("unreachable: condition should be one of string, RegExp");
-}
-
-export function getBannerConditions(
-	condition?: BannerConditions
-): RawBannerConditions | undefined {
-	if (!condition) return undefined;
-
-	if (Array.isArray(condition)) {
-		return {
-			type: "array",
-			arrayMatcher: condition.map(i => getBannerCondition(i))
-		};
-	}
-
-	return getBannerCondition(condition);
-}
-
 function getRawRuleSetLogicalConditions(
 	logical: RuleSetLogicalConditions
 ): RawRuleSetLogicalConditions {
@@ -428,6 +422,139 @@ function getRawRuleSetLogicalConditions(
 		or: logical.or ? logical.or.map(i => getRawRuleSetCondition(i)) : undefined,
 		not: logical.not ? getRawRuleSetCondition(logical.not) : undefined
 	};
+}
+
+function getRawParserOptionsByModuleType(
+	parser: ParserOptionsByModuleType
+): Record<string, RawParserOptions> {
+	return Object.fromEntries(
+		Object.entries(parser).map(([k, v]) => [k, getRawParserOptions(v, k)])
+	);
+}
+
+function getRawGeneratorOptionsByModuleType(
+	parser: GeneratorOptionsByModuleType
+): Record<string, RawGeneratorOptions> {
+	return Object.fromEntries(
+		Object.entries(parser).map(([k, v]) => [k, getRawGeneratorOptions(v, k)])
+	);
+}
+
+function getRawParserOptions(
+	parser: { [k: string]: any },
+	type: string
+): RawParserOptions {
+	if (type === "asset") {
+		return {
+			type: "asset",
+			asset: getRawAssetParserOptions(parser)
+		};
+	}
+	return {
+		type: "unknown"
+	};
+}
+
+function getRawAssetParserOptions(
+	parser: AssetParserOptions
+): RawAssetParserOptions {
+	return {
+		dataUrlCondition: parser.dataUrlCondition
+			? getRawAssetParserDataUrl(parser.dataUrlCondition)
+			: undefined
+	};
+}
+
+function getRawAssetParserDataUrl(
+	dataUrlCondition: AssetParserDataUrl
+): RawAssetParserDataUrl {
+	if (typeof dataUrlCondition === "object" && dataUrlCondition !== null) {
+		return {
+			type: "options",
+			options: {
+				maxSize: dataUrlCondition.maxSize
+			}
+		};
+	}
+	throw new Error(
+		`unreachable: AssetParserDataUrl type should be one of "options", but got ${dataUrlCondition}`
+	);
+}
+
+function getRawGeneratorOptions(
+	generator: { [k: string]: any },
+	type: string
+): RawGeneratorOptions {
+	if (type === "asset") {
+		return {
+			type: "asset",
+			asset: generator ? getRawAssetGeneratorOptions(generator) : undefined
+		};
+	}
+	if (type === "asset/inline") {
+		return {
+			type: "asset/inline",
+			assetInline: generator
+				? getRawAssetInlineGeneratorOptions(generator)
+				: undefined
+		};
+	}
+	if (type === "asset/resource") {
+		return {
+			type: "asset/resource",
+			assetResource: generator
+				? getRawAssetResourceGeneratorOptions(generator)
+				: undefined
+		};
+	}
+	return {
+		type: "unknown"
+	};
+}
+
+function getRawAssetGeneratorOptions(
+	options: AssetGeneratorOptions
+): RawAssetGeneratorOptions {
+	return {
+		...getRawAssetInlineGeneratorOptions(options),
+		...getRawAssetResourceGeneratorOptions(options)
+	};
+}
+
+function getRawAssetInlineGeneratorOptions(
+	options: AssetInlineGeneratorOptions
+): RawAssetInlineGeneratorOptions {
+	return {
+		dataUrl: options.dataUrl
+			? getRawAssetGeneratorDaraUrl(options.dataUrl)
+			: undefined
+	};
+}
+
+function getRawAssetResourceGeneratorOptions(
+	options: AssetResourceGeneratorOptions
+): RawAssetResourceGeneratorOptions {
+	return {
+		filename: options.filename,
+		publicPath: options.publicPath
+	};
+}
+
+function getRawAssetGeneratorDaraUrl(
+	dataUrl: AssetGeneratorDataUrl
+): RawAssetGeneratorDataUrl {
+	if (typeof dataUrl === "object" && dataUrl !== null) {
+		return {
+			type: "options",
+			options: {
+				encoding: dataUrl.encoding === false ? "false" : dataUrl.encoding,
+				mimetype: dataUrl.mimetype
+			}
+		};
+	}
+	throw new Error(
+		`unreachable: AssetGeneratorDataUrl type should be one of "options", but got ${dataUrl}`
+	);
 }
 
 function getRawExternals(externals: Externals): RawOptions["externals"] {
@@ -506,9 +633,7 @@ function getRawOptimization(
 		"optimization.moduleIds, optimization.removeAvailableModules, optimization.removeEmptyChunks, optimization.sideEffects, optimization.realContentHash should not be nil after defaults"
 	);
 	return {
-		splitChunks: optimization.splitChunks
-			? getRawSplitChunksOptions(optimization.splitChunks)
-			: undefined,
+		splitChunks: toRawSplitChunksOptions(optimization.splitChunks),
 		moduleIds: optimization.moduleIds,
 		removeAvailableModules: optimization.removeAvailableModules,
 		removeEmptyChunks: optimization.removeEmptyChunks,
@@ -517,42 +642,32 @@ function getRawOptimization(
 	};
 }
 
-function getRawSplitChunksOptions(
-	sc: OptimizationSplitChunksOptions
-): RawOptions["optimization"]["splitChunks"] {
+function toRawSplitChunksOptions(
+	sc?: SplitChunksConfig
+): RawOptions["optimization"]["splitChunks"] | undefined {
+	if (!sc) {
+		return;
+	}
+
+	const { name, cacheGroups = {}, ...passThrough } = sc;
 	return {
-		name: sc.name === false ? undefined : sc.name,
-		cacheGroups: sc.cacheGroups
-			? Object.fromEntries(
-					Object.entries(sc.cacheGroups).map(([key, group]) => {
-						let normalizedGroup: RawCacheGroupOptions = {
-							test: group.test ? group.test.source : undefined,
-							name: group.name === false ? undefined : group.name,
-							priority: group.priority,
-							minChunks: group.minChunks,
-							chunks: group.chunks,
-							reuseExistingChunk: group.reuseExistingChunk,
-							minSize: group.minSize,
-							maxAsyncSize: group.maxAsyncSize,
-							maxInitialSize: group.maxInitialSize,
-							maxSize: group.maxSize,
-							enforce: group.enforce
-						};
-						return [key, normalizedGroup];
-					})
-			  )
-			: {},
-		chunks: sc.chunks,
-		maxAsyncRequests: sc.maxAsyncRequests,
-		maxInitialRequests: sc.maxInitialRequests,
-		minChunks: sc.minChunks,
-		minSize: sc.minSize,
-		enforceSizeThreshold: sc.enforceSizeThreshold,
-		minRemainingSize: sc.minRemainingSize,
-		maxSize: sc.maxSize,
-		maxAsyncSize: sc.maxAsyncSize,
-		maxInitialSize: sc.maxInitialSize,
-		fallbackCacheGroup: sc.fallbackCacheGroup
+		name: name === false ? undefined : name,
+		cacheGroups: Object.fromEntries(
+			Object.entries(cacheGroups)
+				.filter(([_key, group]) => group !== false)
+				.map(([key, group]) => {
+					group = group as Exclude<typeof group, false>;
+
+					const { test, name, ...passThrough } = group;
+					const rawGroup: RawCacheGroupOptions = {
+						test: test?.source,
+						name: name === false ? undefined : name,
+						...passThrough
+					};
+					return [key, rawGroup];
+				})
+		),
+		...passThrough
 	};
 }
 
@@ -582,7 +697,7 @@ function getRawSnapshotOptions(
 }
 
 function getRawExperiments(
-	experiments: Experiments
+	experiments: ExperimentsNormalized
 ): RawOptions["experiments"] {
 	const {
 		lazyCompilation,
@@ -598,12 +713,30 @@ function getRawExperiments(
 			!isNil(newSplitChunks) &&
 			!isNil(css)
 	);
+
 	return {
 		lazyCompilation,
-		incrementalRebuild,
+		incrementalRebuild: getRawIncrementalRebuild(incrementalRebuild),
 		asyncWebAssembly,
 		newSplitChunks,
 		css
+	};
+}
+
+function getRawIncrementalRebuild(
+	inc: false | IncrementalRebuildOptions
+): RawIncrementalRebuild {
+	if (inc === false) {
+		return {
+			make: false,
+			emitAsset: false
+		};
+	}
+	const { make, emitAsset } = inc;
+	assert(!isNil(make) && !isNil(emitAsset));
+	return {
+		make,
+		emitAsset
 	};
 }
 

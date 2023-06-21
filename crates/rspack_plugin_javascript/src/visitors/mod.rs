@@ -3,6 +3,7 @@ use std::collections::LinkedList;
 use std::path::{Path, PathBuf};
 
 pub use dependency::*;
+use swc_core::base::config::ModuleConfig;
 use xxhash_rust::xxh32::xxh32;
 mod finalize;
 use either::Either;
@@ -27,7 +28,6 @@ pub mod swc_visitor;
 mod tree_shaking;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, GenerateContext, ResourceData};
 use rspack_error::{Error, Result};
-use swc_core::base::config::ModuleConfig;
 use swc_core::common::{chain, comments::Comments};
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
@@ -69,7 +69,7 @@ pub fn run_before_pass(
   let cm = ast.get_context().source_map.clone();
   // TODO: should use react-loader to get exclude/include
   let should_transform_by_react = module_type.is_jsx_like();
-  ast.transform_with_handler(cm.clone(), |handler, program, context| {
+  ast.transform_with_handler(cm.clone(), |_handler, program, context| {
     let top_level_mark = context.top_level_mark;
     let unresolved_mark = context.unresolved_mark;
     let comments = None;
@@ -79,6 +79,8 @@ pub fn run_before_pass(
       assumptions.set_class_methods = true;
       assumptions.set_public_class_fields = true;
     }
+
+    let resource_path = resource_data.resource_path.to_string_lossy();
 
     let mut pass = chain!(
       strict_mode(build_info),
@@ -137,7 +139,7 @@ pub fn run_before_pass(
       // enable if configurable
       // swc_visitor::const_modules(cm, globals),
       Optional::new(
-        swc_visitor::define(&options.builtins.define, handler, &cm),
+        swc_visitor::define(&options.builtins.define),
         !options.builtins.define.is_empty()
       ),
       Optional::new(
@@ -154,14 +156,19 @@ pub fn run_before_pass(
       // swc_visitor::json_parse(min_cost),
       swc_visitor::paren_remover(comments.map(|v| v as &dyn Comments)),
       // es_version
-      swc_visitor::compat(
-        options.builtins.preset_env.clone(),
-        es_version,
-        assumptions,
-        top_level_mark,
-        unresolved_mark,
-        comments,
-        syntax.typescript()
+      Optional::new(
+        swc_visitor::compat(
+          options.builtins.preset_env.clone(),
+          es_version,
+          assumptions,
+          top_level_mark,
+          unresolved_mark,
+          comments,
+          syntax.typescript()
+        ),
+        !resource_path.contains("@swc/helpers")
+          && !resource_path.contains("tslib")
+          && !resource_path.contains("core-js")
       ),
       swc_visitor::reserved_words(),
       swc_visitor::inject_helpers(unresolved_mark),

@@ -277,7 +277,7 @@ impl JsPlugin {
     let runtime_requirements = compilation
       .chunk_graph
       .get_tree_runtime_requirements(&args.chunk_ukey);
-    let (module_source, mut chunk_init_fragments) =
+    let (module_source, chunk_init_fragments) =
       render_chunk_modules(compilation, &args.chunk_ukey)?;
     let (header, startup) = self.render_bootstrap(&args.chunk_ukey, args.compilation);
     let mut sources = ConcatSource::default();
@@ -293,17 +293,14 @@ impl JsPlugin {
         .keys()
         .last()
         .expect("should have last entry module");
-      if let Some(source) =
-        compilation
-          .plugin_driver
-          .read()
-          .await
-          .render_startup(RenderStartupArgs {
-            compilation,
-            chunk: &chunk.ukey,
-            module: *last_entry_module,
-            source: startup,
-          })?
+      if let Some(source) = compilation
+        .plugin_driver
+        .render_startup(RenderStartupArgs {
+          compilation,
+          chunk: &chunk.ukey,
+          module: *last_entry_module,
+          source: startup,
+        })?
       {
         sources.add(source);
       }
@@ -316,8 +313,8 @@ impl JsPlugin {
     } else {
       sources.boxed()
     };
-    final_source = render_chunk_init_fragments(final_source, &mut chunk_init_fragments);
-    if let Some(source) = compilation.plugin_driver.read().await.render(RenderArgs {
+    final_source = render_chunk_init_fragments(final_source, chunk_init_fragments);
+    if let Some(source) = compilation.plugin_driver.render(RenderArgs {
       compilation,
       chunk: &args.chunk_ukey,
       source: &final_source,
@@ -332,14 +329,12 @@ impl JsPlugin {
     &self,
     args: &rspack_core::RenderManifestArgs<'_>,
   ) -> Result<BoxSource> {
-    let (module_source, mut chunk_init_fragments) =
+    let (module_source, chunk_init_fragments) =
       render_chunk_modules(args.compilation, &args.chunk_ukey)?;
     let source = args
       .compilation
       .plugin_driver
       .clone()
-      .read()
-      .await
       .render_chunk(RenderChunkArgs {
         compilation: args.compilation,
         chunk_ukey: &args.chunk_ukey,
@@ -347,10 +342,7 @@ impl JsPlugin {
       })
       .await?
       .expect("should run render_chunk hook");
-    Ok(render_chunk_init_fragments(
-      source,
-      &mut chunk_init_fragments,
-    ))
+    Ok(render_chunk_init_fragments(source, chunk_init_fragments))
   }
 
   #[inline]
@@ -363,8 +355,6 @@ impl JsPlugin {
     compilation
       .plugin_driver
       .clone()
-      .read()
-      .await
       .js_chunk_hash(JsChunkHashArgs {
         compilation,
         chunk_ukey,

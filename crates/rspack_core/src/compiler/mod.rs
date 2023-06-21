@@ -1,5 +1,6 @@
 mod compilation;
 mod hmr;
+mod make;
 mod queue;
 mod resolver;
 
@@ -7,14 +8,13 @@ use std::{path::Path, sync::Arc};
 
 pub use compilation::*;
 use dashmap::DashMap;
+pub use make::MakeParam;
 pub use queue::*;
 pub use resolver::*;
 use rspack_error::Result;
 use rspack_fs::AsyncWritableFileSystem;
 use rspack_futures::FuturesResults;
 use rspack_identifier::IdentifierSet;
-use rustc_hash::FxHashSet as HashSet;
-use tokio::sync::RwLock;
 use tracing::instrument;
 
 use crate::{
@@ -51,18 +51,17 @@ where
     let options = Arc::new(options);
 
     let resolver_factory = Arc::new(ResolverFactory::new(options.resolve.clone()));
-    let plugin_driver = Arc::new(RwLock::new(PluginDriver::new(
+    let plugin_driver = Arc::new(PluginDriver::new(
       options.clone(),
       plugins,
       resolver_factory.clone(),
-    )));
+    ));
     let cache = Arc::new(Cache::new(options.clone()));
 
     Self {
       options: options.clone(),
       compilation: Compilation::new(
         options,
-        Default::default(),
         Default::default(),
         plugin_driver.clone(),
         resolver_factory.clone(),
@@ -86,19 +85,12 @@ where
     self.cache.end_idle();
     // TODO: clear the outdate cache entries in resolver,
     // TODO: maybe it's better to use external entries.
-    self
-      .plugin_driver
-      .read()
-      .await
-      .resolver_factory
-      .clear_entries();
+    self.plugin_driver.resolver_factory.clear_entries();
 
     fast_set(
       &mut self.compilation,
       Compilation::new(
-        // TODO: use Arc<T> instead
         self.options.clone(),
-        self.options.entry.clone(),
         Default::default(),
         self.plugin_driver.clone(),
         self.resolver_factory.clone(),
@@ -106,52 +98,34 @@ where
       ),
     );
 
-    self.plugin_driver.write().await.before_compile().await?;
+    self.plugin_driver.before_compile().await?;
 
     // Fake this compilation as *currently* rebuilding does not create a new compilation
     self
       .plugin_driver
-      .write()
-      .await
       .this_compilation(&mut self.compilation)
       .await?;
 
     self
       .plugin_driver
-      .write()
-      .await
       .compilation(&mut self.compilation)
       .await?;
 
-    self.compilation.setup_entry_dependencies();
-
-    let deps = self
-      .compilation
-      .entry_dependencies
-      .iter()
-      .flat_map(|(_, deps)| {
-        deps
-          .clone()
-          .into_iter()
-          .map(|d| (d, None))
-          .collect::<Vec<_>>()
-      })
-      .collect::<HashSet<_>>();
-    self.compile(SetupMakeParam::ForceBuildDeps(deps)).await?;
+    self
+      .compile(MakeParam::ForceBuildDeps(Default::default()))
+      .await?;
     self.cache.begin_idle();
     self.compile_done().await?;
     Ok(())
   }
 
   #[instrument(name = "compile", skip_all)]
-  async fn compile(&mut self, params: SetupMakeParam) -> Result<()> {
+  async fn compile(&mut self, params: MakeParam) -> Result<()> {
     let option = self.options.clone();
     self.compilation.make(params).await?;
 
     self
       .plugin_driver
-      .write()
-      .await
       .finish_make(&mut self.compilation)
       .await?;
 
@@ -164,12 +138,17 @@ where
       .keys()
       .cloned()
       .collect::<IdentifierSet>();
+
     if option.builtins.tree_shaking.enable()
       || option
         .output
         .enabled_library_types
         .as_ref()
-        .map(|types| types.iter().any(|item| item == "module"))
+        .map(|types| {
+          types
+            .iter()
+            .any(|item| item == "module" || item == "commonjs-static")
+        })
         .unwrap_or(false)
     {
       let (analyze_result, diagnostics) = self
@@ -195,13 +174,11 @@ where
 
     self
       .plugin_driver
-      .write()
-      .await
       .after_compile(&mut self.compilation)
       .await?;
 
     // Consume plugin driver diagnostic
-    let plugin_driver_diagnostics = self.plugin_driver.read().await.take_diagnostic();
+    let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();
     self
       .compilation
       .push_batch_diagnostic(plugin_driver_diagnostics);
@@ -246,12 +223,7 @@ where
       }
     }
 
-    self
-      .plugin_driver
-      .write()
-      .await
-      .emit(&mut self.compilation)
-      .await?;
+    self.plugin_driver.emit(&mut self.compilation).await?;
 
     let results = self
       .compilation
@@ -271,12 +243,7 @@ where
       item?;
     }
 
-    self
-      .plugin_driver
-      .write()
-      .await
-      .after_emit(&mut self.compilation)
-      .await
+    self.plugin_driver.after_emit(&mut self.compilation).await
   }
 
   async fn emit_asset(
@@ -304,7 +271,8 @@ where
         .write(&file_path, source.buffer())
         .await?;
 
-      if !asset.info.version.is_empty() {
+      if !asset.info.version.is_empty() && self.options.is_incremental_rebuild_emit_asset_enabled()
+      {
         self
           .emitted_asset_versions
           .insert(filename.to_string(), asset.info.version.clone());
@@ -321,8 +289,6 @@ where
       };
       self
         .plugin_driver
-        .read()
-        .await
         .asset_emitted(&asset_emitted_args)
         .await?;
     }

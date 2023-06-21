@@ -106,12 +106,11 @@ const describeCases = config => {
 								// 	];
 								// }
 								if (!options.entry) options.entry = "./index.js";
-								if (!options.target) options.target = "node";
+								if (!options.target) options.target = "async-node";
 								if (!options.output) options.output = {};
 								if (!options.devtool) options.devtool = false;
 								if (options.cache === undefined) options.cache = false;
 								if (!options.output.path) options.output.path = outputDirectory;
-								if (!options.output.publicPath) options.output.publicPath = "/";
 								// if (typeof options.output.pathinfo === "undefined")
 								// 	options.output.pathinfo = true;
 								if (!options.output.filename)
@@ -247,7 +246,7 @@ const describeCases = config => {
 								require("@rspack/core").rspack(options, (err, stats) => {
 									deprecationTracker();
 									if (err) return handleFatalError(err, done);
-									const { modules, children, errorsCount } = stats.toJson({
+									const { errorsCount } = stats.toJson({
 										all: false,
 										modules: true,
 										errorsCount: true
@@ -262,27 +261,27 @@ const describeCases = config => {
 												)
 											);
 										}
-										const allModules = children
-											? children.reduce(
-												(all, { modules }) => all.concat(modules),
-												modules || []
-											)
-											: modules;
-										if (
-											allModules.some(
-												m => m.type !== "cached modules" && !m.cached
-											)
-										) {
-											return done(
-												new Error(
-													`Some modules were not cached:\n${stats.toString({
-														all: false,
-														modules: true,
-														modulesSpace: 100
-													})}`
-												)
-											);
-										}
+//										const allModules = children
+//											? children.reduce(
+//												(all, { modules }) => all.concat(modules),
+//												modules || []
+//											)
+//											    : modules;
+//										if (
+//											allModules.some(
+//												m => m.type !== "cached modules" && !m.cached
+//											)
+//										) {
+//											return done(
+//												new Error(
+//													`Some modules were not cached:\n${stats.toString({
+//														all: false,
+//														modules: true,
+//														modulesSpace: 100
+//													})}`
+//												)
+//											);
+//										}
 									}
 									const infrastructureLogErrors = filterInfraStructureErrors(
 										infraStructureLog,

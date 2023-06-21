@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
-  PluginContext, RuntimeGlobals, RuntimeModuleExt,
+  is_enabled_for_chunk, AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, Plugin,
+  PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 
@@ -16,10 +16,7 @@ impl Plugin for CssModulesPlugin {
     "CssModulesPlugin"
   }
 
-  fn apply(
-    &mut self,
-    _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     Ok(())
   }
 
@@ -30,10 +27,13 @@ impl Plugin for CssModulesPlugin {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     let compilation = &mut args.compilation;
     let chunk = args.chunk;
+    let chunk_loading_value = ChunkLoading::Jsonp;
+    let is_enabled_for_chunk = is_enabled_for_chunk(chunk, &chunk_loading_value, compilation);
     let runtime_requirements = &mut args.runtime_requirements;
 
-    if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-      || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
+    if (runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      || runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS))
+      && is_enabled_for_chunk
     {
       runtime_requirements.insert(RuntimeGlobals::PUBLIC_PATH);
       runtime_requirements.insert(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);

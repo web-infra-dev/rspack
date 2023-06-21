@@ -47,8 +47,6 @@ impl ContextModuleFactory {
     };
     if let Ok(Some(false)) = self
       .plugin_driver
-      .read()
-      .await
       .context_module_before_resolve(&mut before_resolve_args)
       .await
     {
@@ -114,7 +112,7 @@ impl ContextModuleFactory {
             .expect("should has options")
             .clone(),
         },
-        plugin_driver.read().await.resolver_factory.clone(),
+        plugin_driver.resolver_factory.clone(),
       )) as BoxModule,
       Ok(ResolveResult::Ignored) => {
         let ident = format!("{}/{}", data.context, specifier);

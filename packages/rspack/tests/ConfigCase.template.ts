@@ -31,13 +31,8 @@ const categories = fs.readdirSync(casesPath).map(cat => {
 		tests: fs
 			.readdirSync(path.join(casesPath, cat))
 			.filter(folder => !folder.startsWith("_"))
-			// exclude outdate test
 			.filter(folder =>
-				[".js", ".jsx", ".ts", ".tsx"].some(ext => {
-					return fs.existsSync(
-						path.join(casesPath, cat, folder, "index" + ext)
-					);
-				})
+				fs.lstatSync(path.join(casesPath, cat, folder)).isDirectory()
 			)
 			.sort()
 	};
@@ -207,7 +202,7 @@ export const describeCases = config => {
 								return;
 							}
 							// Wait for uncaught errors to occur
-							// setTimeout(done, 200);
+							setTimeout(done, 200);
 							return;
 						};
 						// if (config.cache) {

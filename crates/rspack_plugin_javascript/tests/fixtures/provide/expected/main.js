@@ -1,10 +1,29 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
 var process = __webpack_require__("./process.js");
+__webpack_require__("./name.js");
 console.log(process.env);
 (function(process) {
     console.log(process, process[0], process.env);
 })({});
+},
+"./name.js": function (module, exports, __webpack_require__) {
+"use strict";
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "default", {
+    enumerable: true,
+    get: function() {
+        return _default;
+    }
+});
+const lib = {
+    get: ()=>{
+        return "my-name";
+    }
+};
+var _default = lib;
 },
 "./process.js": function (module, exports, __webpack_require__) {
 var process = module.exports = {};
@@ -137,7 +156,7 @@ process.umask = function() {
 
 },function(__webpack_require__) {
 var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
-var __webpack_exports__ = (__webpack_exec__('./index.js'));
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
 
 }
 ]);

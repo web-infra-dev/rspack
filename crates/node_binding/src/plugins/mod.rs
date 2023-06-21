@@ -43,6 +43,7 @@ pub struct JsHooksAdapter {
   pub after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()>,
   pub finish_make_tsfn: ThreadsafeFunction<JsCompilation, ()>,
+  pub build_module_tsfn: ThreadsafeFunction<JsModule, ()>, // TODO
   pub chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()>,
   pub before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)>,
   pub after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>>,
@@ -66,7 +67,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn compilation(
-    &mut self,
+    &self,
     args: rspack_core::CompilationArgs<'_>,
   ) -> rspack_core::PluginCompilationHookOutput {
     if self.is_hook_disabled(&Hook::Compilation) {
@@ -88,7 +89,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn this_compilation(
-    &mut self,
+    &self,
     args: rspack_core::ThisCompilationArgs<'_>,
   ) -> rspack_core::PluginThisCompilationHookOutput {
     if self.is_hook_disabled(&Hook::ThisCompilation) {
@@ -109,7 +110,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call this_compilation: {err}"))?
   }
 
-  async fn chunk_asset(&mut self, args: &ChunkAssetArgs) -> rspack_error::Result<()> {
+  async fn chunk_asset(&self, args: &ChunkAssetArgs) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::ChunkAsset) {
       return Ok(());
     }
@@ -129,7 +130,8 @@ impl rspack_core::Plugin for JsHooksAdapter {
   async fn make(
     &self,
     _ctx: rspack_core::PluginContext,
-    _compilation: &rspack_core::Compilation,
+    _compilation: &mut rspack_core::Compilation,
+    _param: &mut rspack_core::MakeParam,
   ) -> rspack_core::PluginMakeHookOutput {
     if self.is_hook_disabled(&Hook::Make) {
       return Ok(());
@@ -224,7 +226,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_additional(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -241,7 +243,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_pre_process(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -258,7 +260,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_additions(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -275,7 +277,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_none(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -292,7 +294,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_optimize_inline(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -311,7 +313,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_summarize(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -329,7 +331,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_optimize_hash(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -346,7 +348,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn process_assets_stage_report(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     _args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsHookOutput {
@@ -363,7 +365,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn optimize_modules(
-    &mut self,
+    &self,
     compilation: &mut rspack_core::Compilation,
   ) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::OptimizeModules) {
@@ -383,7 +385,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn optimize_chunk_modules(
-    &mut self,
+    &self,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::OptimizeChunkModules) {
@@ -405,7 +407,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn before_compile(
-    &mut self,
+    &self,
     // args: &mut rspack_core::CompilationArgs<'_>
   ) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::BeforeCompile) {
@@ -421,7 +423,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn after_compile(
-    &mut self,
+    &self,
     compilation: &mut rspack_core::Compilation,
   ) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::AfterCompile) {
@@ -443,7 +445,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
   }
 
   async fn finish_make(
-    &mut self,
+    &self,
     compilation: &mut rspack_core::Compilation,
   ) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::FinishMake) {
@@ -464,8 +466,24 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call finish make: {err}"))?
   }
 
+  async fn build_module(&self, module: &mut dyn rspack_core::Module) -> rspack_error::Result<()> {
+    if self.is_hook_disabled(&Hook::BuildModule) {
+      return Ok(());
+    }
+
+    self
+      .build_module_tsfn
+      .call(
+        module.to_js_module().expect("Convert to js_module failed."),
+        ThreadsafeFunctionCallMode::NonBlocking,
+      )
+      .into_rspack_result()?
+      .await
+      .map_err(|err| internal_error!("Failed to call build module: {err}"))?
+  }
+
   async fn finish_modules(
-    &mut self,
+    &self,
     compilation: &mut rspack_core::Compilation,
   ) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::FinishModules) {
@@ -486,7 +504,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to finish modules: {err}"))?
   }
 
-  async fn emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  async fn emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::Emit) {
       return Ok(());
     }
@@ -513,7 +531,7 @@ impl rspack_core::Plugin for JsHooksAdapter {
       .map_err(|err| internal_error!("Failed to call asset emitted: {err}"))?
   }
 
-  async fn after_emit(&mut self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  async fn after_emit(&self, _: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     if self.is_hook_disabled(&Hook::AfterEmit) {
       return Ok(());
     }
@@ -586,6 +604,7 @@ impl JsHooksAdapter {
       after_compile,
       finish_modules,
       finish_make,
+      build_module,
       chunk_asset,
       succeed_module,
       still_valid_module,
@@ -626,6 +645,8 @@ impl JsHooksAdapter {
       js_fn_into_theadsafe_fn!(after_compile, env);
     let finish_make_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_make, env);
+    let build_module_tsfn: ThreadsafeFunction<JsModule, ()> =
+      js_fn_into_theadsafe_fn!(build_module, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
       js_fn_into_theadsafe_fn!(finish_modules, env);
     let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
@@ -670,6 +691,7 @@ impl JsHooksAdapter {
       normal_module_factory_resolve_for_scheme,
       finish_modules_tsfn,
       finish_make_tsfn,
+      build_module_tsfn,
       chunk_asset_tsfn,
       after_resolve,
       succeed_module_tsfn,

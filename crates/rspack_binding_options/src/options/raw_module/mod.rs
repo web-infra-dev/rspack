@@ -8,8 +8,11 @@ pub use js_loader::*;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{
-  AssetGeneratorOptions, AssetParserDataUrlOption, AssetParserOptions, BoxLoader, DescriptionData,
-  ModuleOptions, ModuleRule, ModuleRuleEnforce, ParserOptions,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
+  AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
+  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, GeneratorOptions,
+  GeneratorOptionsByModuleType, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleType,
+  ParserOptions, ParserOptionsByModuleType,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;
@@ -25,6 +28,11 @@ fn get_builtin_loader(builtin: &str, options: Option<&str>) -> BoxLoader {
     "builtin:sass-loader" => Arc::new(rspack_loader_sass::SassLoader::new(
       serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
         panic!("Could not parse builtin:sass-loader options: {options:?}, error: {e:?}")
+      }),
+    )),
+    "builtin:swc-loader" => Arc::new(rspack_loader_swc::SwcLoader::new(
+      serde_json::from_str(options.unwrap_or("{}")).unwrap_or_else(|e| {
+        panic!("Could not parse builtin:swc-loader options:{options:?},error: {e:?}")
       }),
     )),
     loader => panic!("{loader} is not supported yet."),
@@ -132,7 +140,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
         internal_error!("should have a string_matcher when RawRuleSetCondition.type is \"string\"")
       })?),
       "regexp" => {
-        let reg = rspack_regex::RspackRegex::new_with_optimized(
+        let reg = rspack_regex::RspackRegex::new(
             x.regexp_matcher.as_ref().ok_or_else(|| {
               internal_error!(
                 "should have a regexp_matcher when RawRuleSetCondition.type is \"regexp\""
@@ -229,10 +237,8 @@ pub struct RawModuleRule {
   pub r#use: Option<Vec<RawModuleRuleUse>>,
   pub use_tsfn: Option<JsFunction>,
   pub r#type: Option<String>,
-  #[derivative(Debug = "ignore")]
-  pub parser: Option<RawModuleRuleParser>,
-  #[derivative(Debug = "ignore")]
-  pub generator: Option<RawModuleRuleGenerator>,
+  pub parser: Option<RawParserOptions>,
+  pub generator: Option<RawGeneratorOptions>,
   pub resolve: Option<RawResolveOptions>,
   pub issuer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
@@ -245,56 +251,38 @@ pub struct RawModuleRule {
   pub enforce: Option<String>,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawModuleRuleGenerator {
-  pub filename: Option<String>,
+pub struct RawParserOptions {
+  #[napi(ts_type = r#""asset" | "unknown""#)]
+  pub r#type: String,
+  pub asset: Option<RawAssetParserOptions>,
 }
 
-impl From<RawModuleRuleGenerator> for AssetGeneratorOptions {
-  fn from(value: RawModuleRuleGenerator) -> Self {
-    Self {
-      filename: value.filename.map(|i| i.into()),
+impl From<RawParserOptions> for ParserOptions {
+  fn from(value: RawParserOptions) -> Self {
+    match value.r#type.as_str() {
+      "asset" => Self::Asset(
+        value
+          .asset
+          .expect("should have an \"asset\" when RawParserOptions.type is \"asset\"")
+          .into(),
+      ),
+      "unknown" => Self::Unknown,
+      _ => panic!(
+        "Failed to resolve the RawParserOptions.type {}. Expected type is \"asset\", \"unknown\".",
+        value.r#type
+      ),
     }
   }
 }
 
-#[derive(Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-#[napi(object)]
-pub struct RawModuleRuleParser {
-  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
-}
-
-impl From<RawModuleRuleParser> for AssetParserOptions {
-  fn from(value: RawModuleRuleParser) -> Self {
-    Self {
-      data_url_condition: value.data_url_condition.map(|i| i.into()),
-    }
-  }
-}
-
-#[derive(Debug, Clone, Deserialize, Default)]
-#[napi(object)]
-#[serde(rename_all = "camelCase")]
-pub struct RawAssetParserDataUrlOption {
-  pub max_size: Option<u32>,
-}
-
-impl From<RawAssetParserDataUrlOption> for AssetParserDataUrlOption {
-  fn from(value: RawAssetParserDataUrlOption) -> Self {
-    Self {
-      max_size: value.max_size,
-    }
-  }
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
 pub struct RawAssetParserOptions {
-  pub data_url_condition: Option<RawAssetParserDataUrlOption>,
+  pub data_url_condition: Option<RawAssetParserDataUrl>,
 }
 
 impl From<RawAssetParserOptions> for AssetParserOptions {
@@ -305,11 +293,187 @@ impl From<RawAssetParserOptions> for AssetParserOptions {
   }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawParserOptions {
-  pub asset: Option<RawAssetParserOptions>,
+pub struct RawAssetParserDataUrl {
+  #[napi(ts_type = r#""options""#)]
+  pub r#type: String,
+  pub options: Option<RawAssetParserDataUrlOptions>,
+  // TODO: pub function
+}
+
+impl From<RawAssetParserDataUrl> for AssetParserDataUrl {
+  fn from(value: RawAssetParserDataUrl) -> Self {
+    match value.r#type.as_str() {
+      "options" => Self::Options(
+        value
+          .options
+          .expect("should have an \"options\" when RawAssetParserDataUrl.type is \"options\"")
+          .into(),
+      ),
+      _ => panic!(
+        "Failed to resolve the RawAssetParserDataUrl.type {}. Expected type is `options`.",
+        value.r#type
+      ),
+    }
+  }
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+#[napi(object)]
+#[serde(rename_all = "camelCase")]
+pub struct RawAssetParserDataUrlOptions {
+  pub max_size: Option<u32>,
+}
+
+impl From<RawAssetParserDataUrlOptions> for AssetParserDataUrlOptions {
+  fn from(value: RawAssetParserDataUrlOptions) -> Self {
+    Self {
+      max_size: value.max_size,
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawGeneratorOptions {
+  #[napi(ts_type = r#""asset" | "asset/inline" | "asset/resource" | "unknown""#)]
+  pub r#type: String,
+  pub asset: Option<RawAssetGeneratorOptions>,
+  pub asset_inline: Option<RawAssetInlineGeneratorOptions>,
+  pub asset_resource: Option<RawAssetResourceGeneratorOptions>,
+}
+
+impl From<RawGeneratorOptions> for GeneratorOptions {
+  fn from(value: RawGeneratorOptions) -> Self {
+    match value.r#type.as_str() {
+      "asset" => Self::Asset(
+        value
+          .asset
+          .expect("should have an \"asset\" when RawGeneratorOptions.type is \"asset\"")
+          .into(),
+      ),
+      "asset/inline" => Self::AssetInline(
+        value
+          .asset_inline
+          .expect(
+            "should have an \"asset_inline\" when RawGeneratorOptions.type is \"asset/inline\"",
+          )
+          .into(),
+      ),
+      "asset/resource" => Self::AssetResource(
+        value
+          .asset_resource
+          .expect(
+            "should have an \"asset_resource\" when RawGeneratorOptions.type is \"asset/resource\"",
+          )
+          .into(),
+      ),
+      "unknown" => Self::Unknown,
+      _ => panic!(
+        "Failed to resolve the RawGeneratorOptions.type {}. Expected type is \"asset\", \"asset/inline\", \"asset/resource\", \"unknown\".",
+        value.r#type
+      ),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetGeneratorOptions {
+  pub filename: Option<String>,
+  pub public_path: Option<String>,
+  pub data_url: Option<RawAssetGeneratorDataUrl>,
+}
+
+impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
+  fn from(value: RawAssetGeneratorOptions) -> Self {
+    Self {
+      filename: value.filename.map(|i| i.into()),
+      public_path: value.public_path.map(|i| i.into()),
+      data_url: value.data_url.map(|i| i.into()),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetInlineGeneratorOptions {
+  pub data_url: Option<RawAssetGeneratorDataUrl>,
+}
+
+impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
+  fn from(value: RawAssetInlineGeneratorOptions) -> Self {
+    Self {
+      data_url: value.data_url.map(|i| i.into()),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetResourceGeneratorOptions {
+  pub filename: Option<String>,
+  pub public_path: Option<String>,
+}
+
+impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
+  fn from(value: RawAssetResourceGeneratorOptions) -> Self {
+    Self {
+      filename: value.filename.map(|i| i.into()),
+      public_path: value.public_path.map(|i| i.into()),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetGeneratorDataUrl {
+  #[napi(ts_type = r#""options""#)]
+  pub r#type: String,
+  pub options: Option<RawAssetGeneratorDataUrlOptions>,
+  // TODO: pub function
+}
+
+impl From<RawAssetGeneratorDataUrl> for AssetGeneratorDataUrl {
+  fn from(value: RawAssetGeneratorDataUrl) -> Self {
+    match value.r#type.as_str() {
+      "options" => Self::Options(
+        value
+          .options
+          .expect("should have an \"options\" when RawAssetGeneratorDataUrl.type is \"options\"")
+          .into(),
+      ),
+      _ => panic!(
+        "Failed to resolve the RawAssetGeneratorDataUrl.type {}. Expected type is `options`.",
+        value.r#type
+      ),
+    }
+  }
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+#[napi(object)]
+pub struct RawAssetGeneratorDataUrlOptions {
+  #[napi(ts_type = r#""base64" | "false" | undefined"#)]
+  pub encoding: Option<String>,
+  pub mimetype: Option<String>,
+}
+
+impl From<RawAssetGeneratorDataUrlOptions> for AssetGeneratorDataUrlOptions {
+  fn from(value: RawAssetGeneratorDataUrlOptions) -> Self {
+    Self {
+      encoding: value.encoding.map(|i| i.into()),
+      mimetype: value.mimetype,
+    }
+  }
 }
 
 #[derive(Debug, Deserialize)]
@@ -317,7 +481,8 @@ pub struct RawParserOptions {
 #[napi(object)]
 pub struct RawModuleOptions {
   pub rules: Vec<RawModuleRule>,
-  pub parser: Option<RawParserOptions>,
+  pub parser: Option<HashMap<String, RawParserOptions>>,
+  pub generator: Option<HashMap<String, RawGeneratorOptions>>,
 }
 
 impl RawOptionsApply for RawModuleRule {
@@ -440,9 +605,22 @@ impl RawOptionsApply for RawModuleOptions {
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
     Ok(ModuleOptions {
       rules,
-      parser: self.parser.map(|x| ParserOptions {
-        asset: x.asset.map(|y| y.into()),
-      }),
+      parser: self
+        .parser
+        .map(|x| {
+          x.into_iter()
+            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .collect::<std::result::Result<ParserOptionsByModuleType, rspack_error::Error>>()
+        })
+        .transpose()?,
+      generator: self
+        .generator
+        .map(|x| {
+          x.into_iter()
+            .map(|(k, v)| Ok((ModuleType::try_from(k.as_str())?, v.into())))
+            .collect::<std::result::Result<GeneratorOptionsByModuleType, rspack_error::Error>>()
+        })
+        .transpose()?,
     })
   }
 }

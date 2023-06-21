@@ -45,7 +45,6 @@ pub use chunk::*;
 mod dependency;
 pub use dependency::*;
 mod utils;
-use tokio::sync::RwLock;
 pub use utils::*;
 mod chunk_graph;
 pub use chunk_graph::*;
@@ -155,39 +154,39 @@ impl ModuleType {
       ModuleType::JsDynamic | ModuleType::JsxDynamic | ModuleType::Ts | ModuleType::Tsx
     )
   }
+
+  pub fn as_str(&self) -> &str {
+    match self {
+      ModuleType::Js => "javascript/auto",
+      ModuleType::JsEsm => "javascript/esm",
+      ModuleType::JsDynamic => "javascript/dynamic",
+
+      ModuleType::Jsx => "javascriptx",
+      ModuleType::JsxEsm => "javascriptx/esm",
+      ModuleType::JsxDynamic => "javascriptx/dynamic",
+
+      ModuleType::Ts => "typescript",
+      ModuleType::Tsx => "typescriptx",
+
+      ModuleType::Css => "css",
+      ModuleType::CssModule => "css/module",
+
+      ModuleType::Json => "json",
+
+      ModuleType::WasmSync => "webassembly/sync",
+      ModuleType::WasmAsync => "webassembly/async",
+
+      ModuleType::Asset => "asset",
+      ModuleType::AssetSource => "asset/source",
+      ModuleType::AssetResource => "asset/resource",
+      ModuleType::AssetInline => "asset/inline",
+    }
+  }
 }
 
 impl fmt::Display for ModuleType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "{}",
-      match self {
-        ModuleType::Js => "javascript/auto",
-        ModuleType::JsEsm => "javascript/esm",
-        ModuleType::JsDynamic => "javascript/dynamic",
-
-        ModuleType::Jsx => "javascriptx",
-        ModuleType::JsxEsm => "javascriptx/esm",
-        ModuleType::JsxDynamic => "javascriptx/dynamic",
-
-        ModuleType::Ts => "typescript",
-        ModuleType::Tsx => "typescriptx",
-
-        ModuleType::Css => "css",
-        ModuleType::CssModule => "css/module",
-
-        ModuleType::Json => "json",
-
-        ModuleType::WasmSync => "webassembly/sync",
-        ModuleType::WasmAsync => "webassembly/async",
-
-        ModuleType::Asset => "asset",
-        ModuleType::AssetSource => "asset/source",
-        ModuleType::AssetResource => "asset/resource",
-        ModuleType::AssetInline => "asset/inline",
-      }
-    )
+    write!(f, "{}", self.as_str(),)
   }
 }
 
@@ -232,4 +231,4 @@ impl TryFrom<&str> for ModuleType {
 
 pub type ChunkByUkey = Database<Chunk>;
 pub type ChunkGroupByUkey = Database<ChunkGroup>;
-pub(crate) type SharedPluginDriver = Arc<RwLock<PluginDriver>>;
+pub(crate) type SharedPluginDriver = Arc<PluginDriver>;

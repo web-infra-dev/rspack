@@ -23,7 +23,7 @@ impl NamedChunkIdsPlugin {
 }
 
 impl Plugin for NamedChunkIdsPlugin {
-  fn chunk_ids(&mut self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
+  fn chunk_ids(&self, compilation: &mut rspack_core::Compilation) -> rspack_error::Result<()> {
     let mut used_ids = get_used_chunk_ids(compilation);
     let chunk_graph = &compilation.chunk_graph;
     let module_graph = &compilation.module_graph;

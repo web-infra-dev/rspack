@@ -9,13 +9,13 @@
  */
 
 import watchpack from "watchpack";
-import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
-import { RawFallbackCacheGroupOptions } from "@rspack/binding";
+import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
-export type { RspackOptions };
+import type { OptimizationConfig as Optimization } from "./zod/optimization";
+export type { RspackOptions, Optimization };
 
 export type { BannerConditions, BannerCondition } from "./builtins";
 
@@ -48,7 +48,7 @@ export interface RspackOptionsNormalized {
 	stats: StatsValue;
 	optimization: Optimization;
 	plugins: Plugins;
-	experiments: Experiments;
+	experiments: ExperimentsNormalized;
 	watch?: Watch;
 	watchOptions: WatchOptions;
 	devServer?: DevServer;
@@ -65,7 +65,7 @@ export type Dependencies = Name[];
 ///// Context /////
 export type Context = string;
 
-///// Mode */////
+///// Mode /////
 export type Mode = "development" | "production" | "none";
 
 ///// Entry /////
@@ -74,20 +74,19 @@ export type EntryStatic = EntryObject | EntryUnnamed;
 export type EntryUnnamed = EntryItem;
 export type EntryRuntime = false | string;
 export type EntryItem = string[] | string;
-export type IgnoreWarningsPattern = (
-	| RegExp
-	| ((warning: Error, compilation: Compilation) => boolean)
-)[];
-export type IgnoreWarningsNormalized = ((
-	warning: Error,
-	compilation: Compilation
-) => boolean)[];
+export type ChunkLoading = false | ChunkLoadingType;
+export type ChunkLoadingType =
+	| ("jsonp" | "import-scripts" | "require" | "async-node" | "import")
+	| string;
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }
 export interface EntryDescription {
 	import: EntryItem;
 	runtime?: EntryRuntime;
+	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
+	publicPath?: PublicPath;
 }
 
 export type EntryNormalized = EntryStaticNormalized;
@@ -97,6 +96,9 @@ export interface EntryStaticNormalized {
 export interface EntryDescriptionNormalized {
 	import?: string[];
 	runtime?: EntryRuntime;
+	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
+	publicPath?: PublicPath;
 }
 
 ///// Output /////
@@ -137,6 +139,7 @@ export interface Output {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -251,6 +254,7 @@ export interface OutputNormalized {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
 }
 
 ///// Resolve /////
@@ -286,6 +290,7 @@ export interface ModuleOptions {
 	defaultRules?: RuleSetRules;
 	rules?: RuleSetRules;
 	parser?: ParserOptionsByModuleType;
+	generator?: GeneratorOptionsByModuleType;
 }
 export type RuleSetRules = ("..." | RuleSetRule)[];
 export interface RuleSetRule {
@@ -354,32 +359,59 @@ export interface ParserOptionsByModuleTypeKnown {
 	asset?: AssetParserOptions;
 }
 export interface AssetParserOptions {
-	dataUrlCondition?: AssetParserDataUrlOptions;
+	dataUrlCondition?: AssetParserDataUrl;
 }
+export type AssetParserDataUrl = AssetParserDataUrlOptions;
 export interface AssetParserDataUrlOptions {
 	maxSize?: number;
+}
+export type GeneratorOptionsByModuleType = GeneratorOptionsByModuleTypeKnown;
+export interface GeneratorOptionsByModuleTypeKnown {
+	asset?: AssetGeneratorOptions;
+	"asset/inline"?: AssetInlineGeneratorOptions;
+	"asset/resource"?: AssetResourceGeneratorOptions;
+}
+export type AssetGeneratorOptions = AssetInlineGeneratorOptions &
+	AssetResourceGeneratorOptions;
+export interface AssetInlineGeneratorOptions {
+	dataUrl?: AssetGeneratorDataUrl;
+}
+export type AssetGeneratorDataUrl = AssetGeneratorDataUrlOptions;
+export interface AssetGeneratorDataUrlOptions {
+	encoding?: false | "base64";
+	mimetype?: string;
+}
+export interface AssetResourceGeneratorOptions {
+	filename?: FilenameTemplate;
+	publicPath?: RawPublicPath;
 }
 
 export interface ModuleOptionsNormalized {
 	defaultRules?: RuleSetRules;
 	rules: RuleSetRules;
 	parser: ParserOptionsByModuleType;
+	generator: GeneratorOptionsByModuleType;
 }
 
 export type AvailableTarget =
+	| "async-node"
 	| "node"
+	| `node${number}`
+	| `node${number}.${number}`
+	| `async-node${number}.${number}`
+	| `async-node${number}`
+	| "electron-main"
+	| `electron${number}-main`
+	| `electron${number}.${number}-main`
+	| "electron-renderer"
+	| `electron${number}-renderer`
+	| `electron${number}.${number}-renderer`
+	| "electron-preload"
+	| `electron${number}-preload`
+	| `electron${number}.${number}-preload`
 	| "web"
 	| "webworker"
-	| "es3"
-	| "es5"
-	| "es2015"
-	| "es2016"
-	| "es2017"
-	| "es2018"
-	| "es2019"
-	| "es2020"
-	| "es2021"
-	| "es2022"
+	| `es${number}`
 	| "browserslist";
 
 ///// Target /////
@@ -466,6 +498,10 @@ export type ExternalsType =
 export interface ExternalsPresets {
 	node?: boolean;
 	web?: boolean;
+	electron?: boolean;
+	electronMain?: boolean;
+	electronPreload?: boolean;
+	electronRenderer?: boolean;
 }
 
 ///// InfrastructureLogging /////
@@ -562,52 +598,6 @@ export interface StatsOptions {
 	nestedModules?: boolean;
 }
 
-///// Optimization /////
-export interface Optimization {
-	moduleIds?: "named" | "deterministic";
-	minimize?: boolean;
-	minimizer?: ("..." | RspackPluginInstance)[];
-	splitChunks?: OptimizationSplitChunksOptions | false;
-	runtimeChunk?: OptimizationRuntimeChunk;
-	removeAvailableModules?: boolean;
-	/**
-	 * Remove chunks which are empty.
-	 */
-	removeEmptyChunks?: boolean;
-	sideEffects?: "flag" | boolean;
-	realContentHash?: boolean;
-}
-export interface OptimizationSplitChunksOptions {
-	cacheGroups?: {
-		[k: string]: OptimizationSplitChunksCacheGroup;
-	};
-	chunks?: "initial" | "async" | "all";
-	maxAsyncRequests?: number;
-	maxInitialRequests?: number;
-	minChunks?: number;
-	minSize?: OptimizationSplitChunksSizes;
-	enforceSizeThreshold?: OptimizationSplitChunksSizes;
-	minRemainingSize?: OptimizationSplitChunksSizes;
-	name?: string | false;
-	maxSize?: number;
-	maxAsyncSize?: number;
-	maxInitialSize?: number;
-	fallbackCacheGroup?: RawFallbackCacheGroupOptions;
-}
-export interface OptimizationSplitChunksCacheGroup {
-	chunks?: "initial" | "async" | "all";
-	minChunks?: number;
-	name?: string | false;
-	priority?: number;
-	reuseExistingChunk?: boolean;
-	test?: RegExp;
-	minSize?: number;
-	maxSize?: number;
-	maxAsyncSize?: number;
-	maxInitialSize?: number;
-	enforce?: boolean;
-}
-export type OptimizationSplitChunksSizes = number;
 export type OptimizationRuntimeChunk =
 	| ("single" | "multiple")
 	| boolean
@@ -617,7 +607,7 @@ export type OptimizationRuntimeChunk =
 export type OptimizationRuntimeChunkNormalized =
 	| false
 	| {
-			name: Function;
+			name: (...args: any[]) => string | undefined;
 	  };
 
 ///// Plugins /////
@@ -631,7 +621,19 @@ export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 ///// Experiments /////
 export interface Experiments {
 	lazyCompilation?: boolean;
-	incrementalRebuild?: boolean;
+	incrementalRebuild?: boolean | IncrementalRebuildOptions;
+	asyncWebAssembly?: boolean;
+	outputModule?: boolean;
+	newSplitChunks?: boolean;
+	css?: boolean;
+}
+export interface IncrementalRebuildOptions {
+	make?: boolean;
+	emitAsset?: boolean;
+}
+export interface ExperimentsNormalized {
+	lazyCompilation?: boolean;
+	incrementalRebuild?: false | IncrementalRebuildOptions;
 	asyncWebAssembly?: boolean;
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
@@ -648,6 +650,16 @@ export type WatchOptions = watchpack.WatchOptions;
 export interface DevServer extends webpackDevServer.Configuration {
 	hot?: boolean;
 }
+
+///// IgnoreWarnings /////
+export type IgnoreWarningsPattern = (
+	| RegExp
+	| ((warning: Error, compilation: Compilation) => boolean)
+)[];
+export type IgnoreWarningsNormalized = ((
+	warning: Error,
+	compilation: Compilation
+) => boolean)[];
 
 ///// Builtins /////
 export type Builtins = oldBuiltins.Builtins;

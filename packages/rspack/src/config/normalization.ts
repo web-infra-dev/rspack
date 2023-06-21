@@ -18,6 +18,7 @@ import type {
 	RspackOptions,
 	RspackOptionsNormalized
 } from "./types";
+import { OptimizationRuntimeChunkConfig } from "./zod/optimization";
 
 export const getNormalizedRspackOptions = (
 	config: RspackOptions
@@ -159,6 +160,11 @@ export const getNormalizedRspackOptions = (
 				cloneObject,
 				{}
 			),
+			generator: keyedNestedConfig(
+				module.generator as Record<string, any>,
+				cloneObject,
+				{}
+			),
 			defaultRules: optionalNestedArray(module.defaultRules, r => [...r]),
 			rules: nestedArray(module.rules, r => getNormalizedRules(r))
 		})),
@@ -224,7 +230,11 @@ export const getNormalizedRspackOptions = (
 		}),
 		plugins: nestedArray(config.plugins, p => [...p]),
 		experiments: nestedConfig(config.experiments, experiments => ({
-			...experiments
+			...experiments,
+			incrementalRebuild: optionalNestedConfig(
+				experiments.incrementalRebuild,
+				options => (options === true ? {} : options)
+			)
 		})),
 		watch: config.watch,
 		watchOptions: cloneObject(config.watchOptions),
@@ -264,7 +274,10 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 		} else {
 			result[key] = {
 				import: Array.isArray(value.import) ? value.import : [value.import],
-				runtime: value.runtime
+				runtime: value.runtime,
+				publicPath: value.publicPath,
+				chunkLoading: value.chunkLoading,
+				asyncChunks: value.asyncChunks
 			};
 		}
 	}
@@ -272,7 +285,7 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 };
 
 const getNormalizedOptimizationRuntimeChunk = (
-	runtimeChunk?: OptimizationRuntimeChunk
+	runtimeChunk?: OptimizationRuntimeChunkConfig
 ): OptimizationRuntimeChunkNormalized | undefined => {
 	if (runtimeChunk === undefined) return undefined;
 	if (runtimeChunk === false) return false;
@@ -287,9 +300,10 @@ const getNormalizedOptimizationRuntimeChunk = (
 		};
 	}
 	const { name } = runtimeChunk;
-	return {
+	const opts: OptimizationRuntimeChunkNormalized = {
 		name: typeof name === "function" ? name : () => name
 	};
+	return opts;
 };
 
 const getNormalizedRules = (rules: RuleSetRules) => {

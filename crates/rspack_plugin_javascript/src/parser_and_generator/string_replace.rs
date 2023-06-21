@@ -5,7 +5,7 @@ use rspack_core::rspack_sources::{
 };
 use rspack_core::{
   AstOrSource, CodeReplaceSourceDependencyContext, GenerateContext, GenerationResult, Module,
-  ParseContext, ParseResult, ParserAndGenerator, SourceType,
+  ModuleAst, ParseContext, ParseResult, ParserAndGenerator, SourceType,
 };
 use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 
@@ -63,7 +63,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
       Err(e) => {
         return Ok(
           ParseResult {
-            ast_or_source: AstOrSource::Source(RawSource::from(source.to_string()).boxed()),
+            ast_or_source: RawSource::from(source.to_string()).boxed().into(),
             dependencies: vec![],
             presentational_dependencies: vec![],
             code_replace_source_dependencies: vec![],
@@ -96,7 +96,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
       Err(e) => {
         return Ok(
           ParseResult {
-            ast_or_source: AstOrSource::Source(RawSource::from(output.code.clone()).boxed()),
+            ast_or_source: RawSource::from(output.code.clone()).boxed().into(),
             dependencies: vec![],
             presentational_dependencies: vec![],
             code_replace_source_dependencies: vec![],
@@ -141,7 +141,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
 
     Ok(
       ParseResult {
-        ast_or_source: AstOrSource::Source(source),
+        ast_or_source: AstOrSource::new(Some(ModuleAst::JavaScript(scan_ast)), Some(source)),
         dependencies,
         presentational_dependencies,
         code_replace_source_dependencies,
@@ -194,11 +194,7 @@ impl ParserAndGenerator for JavaScriptStringReplaceParserAndGenerator {
       };
 
       Ok(GenerationResult {
-        ast_or_source: render_init_fragments(
-          source.boxed(),
-          &mut init_fragments.iter().collect::<Vec<_>>(),
-        )
-        .into(),
+        ast_or_source: render_init_fragments(source.boxed(), &mut init_fragments).into(),
       })
     } else {
       Err(internal_error!(

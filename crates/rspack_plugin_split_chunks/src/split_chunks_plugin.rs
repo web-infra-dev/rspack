@@ -262,7 +262,7 @@ impl SplitChunksPlugin {
         name,
         sizes: Default::default(),
         chunks: Default::default(),
-        _reuseable_chunks: Default::default(),
+        _reusable_chunks: Default::default(),
       });
     let old_size = info.modules.len();
     info.modules.insert(module.identifier());
@@ -617,7 +617,7 @@ impl Plugin for SplitChunksPlugin {
   #[allow(clippy::collapsible_else_if)]
   #[allow(unused)]
   async fn optimize_chunks(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::OptimizeChunksArgs<'_>,
   ) -> rspack_core::PluginOptimizeChunksOutput {

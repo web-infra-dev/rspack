@@ -1,6 +1,6 @@
 use rspack_core::{
-  module_id_expr, CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
+  module_id_expr, ChunkGroupOptions, CodeGeneratable, CodeGeneratableContext,
+  CodeGeneratableResult, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
   CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
   DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
@@ -13,8 +13,9 @@ pub struct ImportDependency {
   id: Option<DependencyId>,
   request: JsWord,
   span: Option<ErrorSpan>,
-  /// Used to store `webpackChunkName` in `import("/* webpackChunkName: "plugins/myModule" */")`
-  pub name: Option<String>,
+  /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
+  /// for example: `import(/* webpackChunkName: "my-chunk-name", webpackPrefetch: true */ './module')`
+  pub group_options: ChunkGroupOptions,
 }
 
 impl ImportDependency {
@@ -23,7 +24,7 @@ impl ImportDependency {
     end: u32,
     request: JsWord,
     span: Option<ErrorSpan>,
-    name: Option<String>,
+    group_options: ChunkGroupOptions,
   ) -> Self {
     Self {
       start,
@@ -31,7 +32,7 @@ impl ImportDependency {
       request,
       span,
       id: None,
-      name,
+      group_options,
     }
   }
 }
@@ -70,8 +71,8 @@ impl ModuleDependency for ImportDependency {
     Some(Box::new(self.clone()))
   }
 
-  fn chunk_name(&self) -> Option<&str> {
-    self.name.as_deref()
+  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+    Some(&self.group_options)
   }
 
   fn set_request(&mut self, request: String) {

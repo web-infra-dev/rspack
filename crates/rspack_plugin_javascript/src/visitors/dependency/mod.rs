@@ -19,8 +19,9 @@ mod url_scanner;
 mod util;
 pub use code_generation::*;
 use rspack_core::{
-  ast::javascript::Program, BuildInfo, BuildMeta, CodeReplaceSourceDependency, CompilerOptions,
-  Dependency, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
+  ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType,
+  CodeReplaceSourceDependency, CompilerOptions, Dependency, ModuleDependency, ModuleIdentifier,
+  ModuleType, ResourceData,
 };
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
@@ -138,6 +139,9 @@ pub fn scan_dependencies_with_string_replace(
   ));
 
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    // TODO webpack scan it at CommonJsExportsParserPlugin
+    // use `Dynamic` as workaround
+    build_meta.exports_type = BuildMetaExportsType::Dynamic;
     program.visit_with(&mut NewCommonJsScanner::new(
       &mut code_replace_source_dependencies,
     ));
@@ -176,6 +180,7 @@ pub fn scan_dependencies_with_string_replace(
       &mut dependencies,
       &mut code_replace_source_dependencies,
       &mut import_map,
+      module_identifier,
     ));
     program.visit_with(&mut HarmonyExportDependencyScanner::new(
       &mut dependencies,

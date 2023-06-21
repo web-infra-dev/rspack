@@ -38,7 +38,9 @@ pub use require_resolve_dependency::RequireResolveDependency;
 mod static_exports_dependency;
 pub use static_exports_dependency::*;
 
-use crate::{Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier};
+use crate::{
+  ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier,
+};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -275,7 +277,8 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn chunk_name(&self) -> Option<&str> {
+  // TODO: wired to place ChunkGroupOptions on dependency, should place on AsyncDependenciesBlock
+  fn group_options(&self) -> Option<&ChunkGroupOptions> {
     None
   }
 }
@@ -305,8 +308,8 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
     (**self).get_optional()
   }
 
-  fn chunk_name(&self) -> Option<&str> {
-    (**self).chunk_name()
+  fn group_options(&self) -> Option<&ChunkGroupOptions> {
+    (**self).group_options()
   }
 
   fn set_request(&mut self, request: String) {

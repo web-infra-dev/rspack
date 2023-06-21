@@ -88,6 +88,7 @@ export function output() {
 		trustedTypes: z.any().optional(),
 		hashDigest: z.any().optional(),
 		hashDigestLength: z.any().optional(),
-		library: z.any().optional()
+		library: z.any().optional(),
+		asyncChunks: z.boolean().optional()
 	});
 }

@@ -109,7 +109,9 @@ module.exports = [
 					type: "asset/resource",
 					generator: {
 						// should result in same hash as bundle2
-						publicPath: () => "/public/"
+						// TODO: function type is not supported for now
+						// publicPath: () => "/public/"
+						publicPath: "/public/"
 					}
 				}
 			]

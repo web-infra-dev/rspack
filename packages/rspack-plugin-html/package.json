@@ -1,6 +1,6 @@
 {
   "name": "@rspack/plugin-html",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "license": "MIT",
   "description": "HTML plugin for rspack",
   "main": "index.cjs",
@@ -10,6 +10,10 @@
     "dev": "tsc -w",
     "test": "jest --runInBand --verbose"
   },
+  "files": [
+    "index.cjs",
+    "dist"
+  ],
   "keywords": [
     "rspack",
     "html"

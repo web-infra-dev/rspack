@@ -451,7 +451,7 @@ impl Plugin for CopyPlugin {
   }
 
   async fn process_assets_stage_additional(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     mut args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {

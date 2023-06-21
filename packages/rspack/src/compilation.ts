@@ -11,7 +11,6 @@ import * as tapable from "tapable";
 import { Source } from "webpack-sources";
 
 import {
-	JsAsset,
 	JsAssetInfo,
 	JsChunk,
 	JsCompatSource,
@@ -44,6 +43,8 @@ import {
 	createFakeCompilationDependencies,
 	createFakeProcessAssetsHook
 } from "./util/fake";
+import { NormalizedJsModule, normalizeJsModule } from "./util/normalization";
+import MergeCaller from "./util/MergeCaller";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
@@ -90,6 +91,7 @@ export class Compilation {
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
 		succeedModule: tapable.SyncHook<[JsModule], undefined>;
 		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
+		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -125,7 +127,8 @@ export class Compilation {
 			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new tapable.SyncHook(["module"]),
-			stillValidModule: new tapable.SyncHook(["module"])
+			stillValidModule: new tapable.SyncHook(["module"]),
+			buildModule: new tapable.SyncHook(["module"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -587,43 +590,31 @@ export class Compilation {
 		);
 	}
 
-	get fileDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getFileDependencies(),
-			d => this.#inner.addFileDependencies(d)
-		);
-	}
+	fileDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getFileDependencies(),
+		d => this.#inner.addFileDependencies(d)
+	);
 
-	get contextDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getContextDependencies(),
-			d => this.#inner.addContextDependencies(d)
-		);
-	}
+	contextDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getContextDependencies(),
+		d => this.#inner.addContextDependencies(d)
+	);
 
-	get missingDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getMissingDependencies(),
-			d => this.#inner.addMissingDependencies(d)
-		);
-	}
+	missingDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getMissingDependencies(),
+		d => this.#inner.addMissingDependencies(d)
+	);
 
-	get buildDependencies() {
-		return createFakeCompilationDependencies(
-			this.#inner.getBuildDependencies(),
-			d => this.#inner.addBuildDependencies(d)
-		);
-	}
+	buildDependencies = createFakeCompilationDependencies(
+		() => this.#inner.getBuildDependencies(),
+		d => this.#inner.addBuildDependencies(d)
+	);
 
 	get modules() {
-		return this.getModules().map(item => {
-			return {
-				identifier: () => item.moduleIdentifier,
-				...item
-			};
-		});
+		return this.__internal__getModules().map(item => normalizeJsModule(item));
 	}
 
+	// FIXME: This is not aligned with Webpack.
 	get chunks() {
 		var stats = this.getStats().toJson({
 			all: false,
@@ -652,7 +643,7 @@ export class Compilation {
 	 * @internal
 	 */
 	__internal__getAssociatedModules(chunk: JsStatsChunk): any[] | undefined {
-		let modules = this.getModules();
+		let modules = this.__internal__getModules();
 		let moduleMap: Map<string, JsModule> = new Map();
 		for (let module of modules) {
 			moduleMap.set(module.moduleIdentifier, module);
@@ -692,10 +683,23 @@ export class Compilation {
 		return modules.get(identifier);
 	}
 
-	getModules(): JsModule[] {
+	/**
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getModules(): JsModule[] {
 		return this.#inner.getModules();
 	}
-	getChunks(): JsChunk[] {
+
+	/**
+	 *
+	 * Note: This is not a webpack public API, maybe removed in future.
+	 *
+	 * @internal
+	 */
+	__internal__getChunks(): JsChunk[] {
 		return this.#inner.getChunks();
 	}
 
@@ -718,6 +722,29 @@ export class Compilation {
 			plugins
 		);
 	}
+
+	_rebuildModuleCaller = new MergeCaller(
+		(args: Array<[string, (err: any, m: JsModule) => void]>) => {
+			this.#inner.rebuildModule(
+				args.map(item => item[0]),
+				function (err: any, modules: JsModule[]) {
+					for (const [id, callback] of args) {
+						const m = modules.find(item => item.moduleIdentifier === id);
+						if (m) {
+							callback(err, m);
+						} else {
+							callback(err || new Error("module no found"), null as any);
+						}
+					}
+				}
+			);
+		},
+		10
+	);
+	rebuildModule(m: JsModule, f: (err: any, m: JsModule) => void) {
+		this._rebuildModuleCaller.push([m.moduleIdentifier, f]);
+	}
+
 	/**
 	 * Get the `Source` of a given asset filename.
 	 *

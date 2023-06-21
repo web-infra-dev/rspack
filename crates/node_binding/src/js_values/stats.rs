@@ -100,7 +100,7 @@ impl From<rspack_core::StatsModule> for JsStatsModule {
       name: stats.name,
       size: stats.size,
       chunks: stats.chunks,
-      module_type: stats.module_type.to_string(),
+      module_type: stats.module_type.as_str().to_string(),
       identifier: stats.identifier.to_string(),
       id: stats.id,
       issuer: stats.issuer,

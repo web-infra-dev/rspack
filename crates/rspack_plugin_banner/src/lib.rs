@@ -148,7 +148,7 @@ impl BannerPlugin {
     Self { config, comment }
   }
 
-  fn update_source(&mut self, comment: String, old: BoxSource, footer: Option<bool>) -> BoxSource {
+  fn update_source(&self, comment: String, old: BoxSource, footer: Option<bool>) -> BoxSource {
     let old_source = old.to_owned();
 
     if let Some(footer) = footer && footer {
@@ -174,7 +174,7 @@ impl Plugin for BannerPlugin {
   }
 
   async fn process_assets_stage_additions(
-    &mut self,
+    &self,
     _ctx: rspack_core::PluginContext,
     args: rspack_core::ProcessAssetsArgs<'_>,
   ) -> rspack_core::PluginProcessAssetsOutput {

@@ -26,10 +26,7 @@ impl Plugin for ModuleChunkFormatPlugin {
     "ModuleChunkFormatPlugin"
   }
 
-  fn apply(
-    &mut self,
-    _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>,
-  ) -> Result<()> {
+  fn apply(&self, _ctx: rspack_core::PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     Ok(())
   }
 
@@ -180,8 +177,11 @@ impl Plugin for ModuleChunkFormatPlugin {
             RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
           ));
         }
+
+        let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+
         startup_source.push(format!(
-          "{}__webpack_exec__('{module_id}');",
+          "{}__webpack_exec__({module_id_expr});",
           if i + 1 == entries.len() {
             "var __webpack_exports__ = "
           } else {
@@ -196,8 +196,6 @@ impl Plugin for ModuleChunkFormatPlugin {
         .expect("should have last entry module");
       if let Some(s) = compilation
         .plugin_driver
-        .read()
-        .await
         .render_startup(RenderStartupArgs {
           compilation,
           chunk: &chunk.ukey,

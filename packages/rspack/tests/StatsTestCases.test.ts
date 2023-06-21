@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import util from "util";
-import { rspack, RspackOptions } from "../src";
+import { rspack, RspackOptions, cleverMerge } from "../src";
 import serializer from "jest-serializer-path";
 
 expect.addSnapshotSerializer(serializer);
@@ -38,11 +38,11 @@ describe("StatsTestCases", () => {
 					main: "./index"
 				},
 				output: {
-					path: outputPath,
-					filename: "bundle.js" // not working by now @Todo need fixed later
+					filename: "bundle.js"
 				},
-				...config // we may need to use deepMerge to handle config merge, but we may fix it until we need it
+				...config
 			};
+			options.output!.path = outputPath;
 			const stats = await util.promisify(rspack)(options);
 			if (!stats) return expect(false);
 			const statsOptions = options.stats ?? {
