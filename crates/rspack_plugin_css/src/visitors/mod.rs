@@ -105,8 +105,8 @@ impl VisitAstPath for Analyzer<'_> {
     // Wait for @supports
     // if !self.in_support_contdition {
     let specifier = u.value.as_ref().map(|box v| match v {
-      UrlValue::Str(s) => s.value.trim().to_string(),
-      UrlValue::Raw(r) => r.value.trim().to_string(),
+      UrlValue::Str(s) => s.value.to_string(),
+      UrlValue::Raw(r) => r.value.to_string(),
     });
     if let Some(specifier) = specifier && !specifier.is_empty(){
     let mut specifier = replace_module_request_prefix(specifier, self.diagnostics);
