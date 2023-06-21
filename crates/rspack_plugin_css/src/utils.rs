@@ -159,11 +159,10 @@ pub fn normalize_url(s: &str) -> String {
   let result = UNESCAPE.replace_all(&result, |caps: &Captures| {
     caps
       .get(0)
-      .map(|m| {
+      .and_then(|m| {
         let m = m.as_str();
-        dbg!(m);
         if m.len() > 2 {
-          if let Ok(r_u32) = u32::from_str_radix(&m[1..].trim(), 16) {
+          if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16) {
             if let Some(ch) = char::from_u32(r_u32) {
               return Some(format!("{}", ch));
             }
@@ -173,7 +172,6 @@ pub fn normalize_url(s: &str) -> String {
           Some(format!("{}", &m[1..2]))
         }
       })
-      .flatten()
       .unwrap_or(format!("{}", &caps[0]))
   });
 
@@ -186,5 +184,5 @@ pub fn normalize_url(s: &str) -> String {
     }
   }
 
-  return result.to_string();
+  result.to_string()
 }
