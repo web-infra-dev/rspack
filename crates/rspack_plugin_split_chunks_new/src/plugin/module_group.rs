@@ -69,13 +69,15 @@ impl SplitChunksPlugin {
           scope.spawn(async move {
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
             let is_match_the_test: bool = (cache_group.test)(module);
+            let is_match_the_type: bool = (cache_group.r#type)(module);
 
-            if !is_match_the_test {
+            if !(is_match_the_test && is_match_the_type) {
               tracing::trace!(
-                "Module({:?}) is ignored by CacheGroup({:?}). Reason: is_match_the_test({:?})",
+                "Module({:?}) is ignored by CacheGroup({:?}). Reason: !(is_match_the_test({:?}) && is_match_the_type({:?}))",
                 module.identifier(),
                 cache_group.key,
                 is_match_the_test,
+                is_match_the_type
               );
               return;
             }

@@ -10,7 +10,10 @@ use swc_core::{
   },
 };
 
-use crate::dependency::{CssImportDependency, CssUrlDependency};
+use crate::{
+  dependency::{CssImportDependency, CssUrlDependency},
+  utils::normalize_url,
+};
 
 static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~").expect("TODO:"));
 
@@ -27,6 +30,7 @@ pub fn analyze_dependencies(
     deps: Vec::new(),
     code_generation_dependencies,
     diagnostics,
+    // in_support_contdition: false,
   };
   ss.visit_with_path(&mut v, &mut Default::default());
 
@@ -38,6 +42,7 @@ struct Analyzer<'a> {
   deps: Vec<Box<dyn ModuleDependency>>,
   code_generation_dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
   diagnostics: &'a mut Vec<Diagnostic>,
+  // in_support_contdition: bool,
 }
 
 fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagnostic>) -> String {
@@ -80,26 +85,40 @@ impl VisitAstPath for Analyzer<'_> {
     }
   }
 
+  // Wait for @supports
+  // fn visit_supports_condition<'ast: 'r, 'r>(
+  //   &mut self,
+  //   n: &'ast swc_core::css::ast::SupportsCondition,
+  //   ast_path: &mut swc_core::css::visit::AstNodePath<'r>,
+  // ) {
+  //   self.in_support_contdition = true;
+  //   n.visit_children_with_path(self, ast_path);
+  //   self.in_support_contdition = false;
+  // }
+
   fn visit_url<'ast: 'r, 'r>(
     &mut self,
     u: &'ast Url,
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
     u.visit_children_with_path(self, ast_path);
-
+    // Wait for @supports
+    // if !self.in_support_contdition {
     let specifier = u.value.as_ref().map(|box v| match v {
       UrlValue::Str(s) => s.value.to_string(),
       UrlValue::Raw(r) => r.value.to_string(),
     });
-    if let Some(specifier) = specifier {
-      let specifier = replace_module_request_prefix(specifier, self.diagnostics);
-      let dep = Box::new(CssUrlDependency::new(
-        specifier,
-        Some(u.span.into()),
-        as_parent_path(ast_path),
-      ));
-      self.deps.push(dep.clone());
-      self.code_generation_dependencies.push(dep);
+    if let Some(specifier) = specifier && !specifier.is_empty(){
+    let mut specifier = replace_module_request_prefix(specifier, self.diagnostics);
+    specifier = normalize_url(&specifier);
+    let dep = Box::new(CssUrlDependency::new(
+      specifier,
+      Some(u.span.into()),
+      as_parent_path(ast_path),
+    ));
+    self.deps.push(dep.clone());
+    self.code_generation_dependencies.push(dep);
+  // }
     }
   }
 }

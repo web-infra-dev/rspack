@@ -2583,6 +2583,7 @@ dependencies = [
  "sugar_path",
  "swc_core",
  "tracing",
+ "urlencoding",
 ]
 
 [[package]]
