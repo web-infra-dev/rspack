@@ -1,8 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { PackageJson } from "type-fest";
 
-const readPackageUp = (cwd = process.cwd()): PackageJson | null => {
+const readPackageUp = (cwd = process.cwd()): { type?: "module" } | null => {
 	let currentDir = path.resolve(cwd);
 	let packageJsonPath = path.join(currentDir, "package.json");
 
