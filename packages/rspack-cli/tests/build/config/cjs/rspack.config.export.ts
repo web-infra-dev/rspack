@@ -1,6 +1,7 @@
 const path = require("path");
 
-export default {
+// @ts-ignore
+export = {
 	mode: "production",
 	entry: path.resolve(__dirname, "main.ts"),
 	output: {

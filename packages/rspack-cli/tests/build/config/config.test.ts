@@ -36,6 +36,18 @@ describe("rspack cli", () => {
 				readFile(resolve(cwd, "./dist/ts.bundle.js"), { encoding: "utf-8" })
 			).resolves.toMatch(/Main cjs file/);
 		});
+		it("should load config.export.ts file", async () => {
+			const { exitCode, stderr, stdout } = await run(cwd, [
+				"-c",
+				"rspack.config.export.ts"
+			]);
+			expect(stderr).toBeFalsy();
+			expect(stdout).toBeTruthy();
+			expect(exitCode).toBe(0);
+			expect(
+				readFile(resolve(cwd, "./dist/ts.bundle.js"), { encoding: "utf-8" })
+			).resolves.toMatch(/Main cjs file/);
+		});
 
 		it("should load config.cjs file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, [
@@ -66,13 +78,6 @@ describe("rspack cli", () => {
 
 	describe("should load esm config", () => {
 		const cwd = resolve(__dirname, "./esm");
-
-		const packageJsonPath = resolve(cwd, "./package.json");
-		beforeAll(() => {
-			// mock user's package.json type is module
-			writeFileSync(packageJsonPath, `{"type": "module"}`);
-		});
-		afterAll(() => unlinkSync(packageJsonPath));
 
 		it("should load default config.js file", async () => {
 			const { exitCode, stderr, stdout } = await run(cwd, []);
