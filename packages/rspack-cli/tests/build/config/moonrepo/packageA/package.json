@@ -1,0 +1,7 @@
+{
+  "name": "package-a",
+  "type":"module",
+  "dependencies": {
+    "test-deps": "1.0.0"
+  }
+}
