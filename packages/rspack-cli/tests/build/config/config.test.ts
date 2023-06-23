@@ -123,57 +123,6 @@ describe("rspack cli", () => {
 
 	describe("should load moonrepo config", () => {
 		const cwd = resolve(__dirname, "./moonrepo");
-
-		const packageJsonPath = resolve(cwd, "./package.json");
-		const packageADepsNodeModules = resolve(
-			cwd,
-			"./packageA/node_modules/test-deps"
-		);
-		const packageBDepsNodeModules = resolve(
-			cwd,
-			"./packageB/node_modules/test-deps"
-		);
-
-		beforeAll(() => {
-			// mock user's package.json type is module
-			writeFileSync(packageJsonPath, `{"type": "module"}`);
-			// mock packageA
-			mkdirSync(packageADepsNodeModules, { recursive: true });
-			writeFileSync(
-				join(packageADepsNodeModules, "./package.json"),
-				`{ "version": "1.0.0", "name" : "test-deps", "main" : "./index.mjs" }`
-			);
-			writeFileSync(
-				join(packageADepsNodeModules, "./index.mjs"),
-				`
-				import { readFileSync } from "node:fs";
-        import { join } from "node:path";
-				export default JSON.parse(readFileSync(join("${packageADepsNodeModules}", "./package.json")));
-				`
-			);
-
-			// mock packageB
-			mkdirSync(packageBDepsNodeModules, { recursive: true });
-			writeFileSync(
-				join(packageBDepsNodeModules, "./package.json"),
-				`{ "version": "2.0.0", "name" : "test-deps", "main" : "./index.mjs" }`
-			);
-			writeFileSync(
-				join(packageBDepsNodeModules, "./index.mjs"),
-				`
-				import { readFileSync } from "node:fs";
-        import { join } from "node:path";
-				export default JSON.parse(readFileSync(join("${packageBDepsNodeModules}", "./package.json")));
-				`
-			);
-		});
-
-		afterAll(() => {
-			unlinkSync(packageJsonPath);
-			rm(packageADepsNodeModules, { recursive: true, force: true });
-			rm(packageBDepsNodeModules, { recursive: true, force: true });
-		});
-
 		it("should load moonrepo config.ts file", async () => {
 			const { exitCode, stderr, stdout } = await run(
 				cwd,
