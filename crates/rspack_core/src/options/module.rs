@@ -7,7 +7,6 @@ use async_recursion::async_recursion;
 use derivative::Derivative;
 use futures::future::BoxFuture;
 use rspack_error::Result;
-use rspack_napi_shared::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -288,6 +287,15 @@ where
   }
   Ok(true)
 }
+pub struct FnUseCtx {
+  pub resource: Option<String>,
+  pub real_resource: Option<String>,
+  pub resource_query: Option<String>,
+  pub issuer: Option<String>,
+}
+
+// let func_use: Option<Box<impl Fn(FnUseCtx) -> Pin<Box<impl Future<Output = Result<Vec<Arc<dyn Loader<CompilerContext>>>, Error>>>>>>
+pub type FnUse = Box<dyn Fn(FnUseCtx) -> BoxFuture<'static, Result<Vec<BoxLoader>>> + Sync + Send>;
 
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
@@ -310,29 +318,29 @@ pub struct ModuleRule {
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   #[derivative(Debug(format_with = "fmt_use"))]
-  pub r#use: Vec<BoxLoader>,
-  pub use_tsfn: ThreadsafeFunction<u32, Vec<String>>,
-  pub parser: Option<AssetParserOptions>,
-  pub generator: Option<AssetGeneratorOptions>,
+  pub r#use: Option<ModuleRuleUse>,
+  pub parser: Option<ParserOptions>,
+  pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
   pub one_of: Option<Vec<ModuleRule>>,
   pub rules: Option<Vec<ModuleRule>>,
   pub enforce: ModuleRuleEnforce,
 }
 
+pub enum ModuleRuleUse {
+  Array(Vec<BoxLoader>),
+  Func(FnUse),
+}
+
 fn fmt_use(
-  r#use: &[BoxLoader],
+  r#use: &Option<ModuleRuleUse>,
   f: &mut std::fmt::Formatter,
 ) -> std::result::Result<(), std::fmt::Error> {
-  write!(
-    f,
-    "{}",
-    r#use
-      .iter()
-      .map(|l| l.identifier().to_string())
-      .collect::<Vec<_>>()
-      .join("!")
-  )
+  match r#use {
+    Some(ModuleRuleUse::Array(_)) => write!(f, "Array(...)"),
+    Some(ModuleRuleUse::Func(_)) => write!(f, "Fn(...)"),
+    None => write!(f, "None"),
+  }
 }
 
 #[derive(Debug, Default)]

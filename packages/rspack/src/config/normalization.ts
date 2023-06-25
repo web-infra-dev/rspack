@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { RuleSetRule, RuleSetRules } from "..";
 import type {
 	EntryStatic,
 	EntryStaticNormalized,
@@ -166,7 +165,7 @@ export const getNormalizedRspackOptions = (
 				{}
 			),
 			defaultRules: optionalNestedArray(module.defaultRules, r => [...r]),
-			rules: nestedArray(module.rules, r => getNormalizedRules(r))
+			rules: nestedArray(module.rules, r => [...r])
 		})),
 		target: config.target,
 		externals: config.externals,
@@ -304,16 +303,6 @@ const getNormalizedOptimizationRuntimeChunk = (
 		name: typeof name === "function" ? name : () => name
 	};
 	return opts;
-};
-
-const getNormalizedRules = (rules: RuleSetRules) => {
-	return rules.map(rule => {
-		if (rule === "...") return rule;
-		if (typeof rule.use === "function") {
-			rule.useTsfn = rule.use;
-		}
-		return rule;
-	});
 };
 
 const nestedConfig = <T, R>(value: T | undefined, fn: (value: T) => R) =>

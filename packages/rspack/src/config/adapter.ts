@@ -324,6 +324,17 @@ const getRawModuleRule = (
 			}
 		];
 	}
+	let fnUse;
+	if (typeof rule.use === "function") {
+		fnUse = (rawContext: any) => {
+			const context = {
+				...rawContext,
+				compiler: options.compiler
+			};
+			const uses = (rule.use as Function)(context);
+			return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+		};
+	}
 
 	return {
 		test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
@@ -352,6 +363,7 @@ const getRawModuleRule = (
 		mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
 		sideEffects: rule.sideEffects,
 		use: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
+		fnUse,
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")
