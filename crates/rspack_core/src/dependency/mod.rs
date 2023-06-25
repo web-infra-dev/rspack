@@ -1,42 +1,27 @@
 mod entry;
 mod span;
 pub use entry::*;
-pub use span::SpanExt;
-mod runtime_requirements_dependency;
 use rspack_util::ext::AsAny;
-pub use runtime_requirements_dependency::*;
-mod code_generatable;
+pub use span::SpanExt;
 mod runtime_template;
 pub use runtime_template::*;
-mod dependency_macro;
-pub use code_generatable::*;
+mod runtime_requirements_dependency;
+pub use runtime_requirements_dependency::RuntimeRequirementsDependency;
 mod context_element_dependency;
+mod dependency_macro;
 pub use context_element_dependency::*;
-mod common_js_require_context_dependency;
 mod const_dependency;
-mod import_context_dependency;
-pub use common_js_require_context_dependency::*;
-pub use const_dependency::ConstDependency;
-pub use import_context_dependency::*;
-mod dynamic_import;
-mod replace_const_dependency;
-pub use replace_const_dependency::ReplaceConstDependency;
-mod require_context_dependency;
-mod require_resolve_dependency;
 use std::{
   any::Any,
   borrow::Cow,
   fmt::{Debug, Display},
   hash::Hash,
 };
+
+pub use const_dependency::ConstDependency;
 mod code_generatable_dependency;
 pub use code_generatable_dependency::*;
 use dyn_clone::{clone_trait_object, DynClone};
-pub use dynamic_import::*;
-pub use require_context_dependency::RequireContextDependency;
-pub use require_resolve_dependency::RequireResolveDependency;
-mod static_exports_dependency;
-pub use static_exports_dependency::*;
 
 use crate::{
   ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier,
@@ -162,7 +147,7 @@ impl Display for DependencyCategory {
   }
 }
 
-pub trait Dependency: CodeGeneratable + AsAny + DynClone + Send + Sync + Debug {
+pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
   fn id(&self) -> Option<DependencyId> {
     None
   }
@@ -235,15 +220,6 @@ impl<T: ModuleDependency> ModuleDependencyExt for T {
   }
 }
 
-impl CodeGeneratable for Box<dyn Dependency> {
-  fn generate(
-    &self,
-    code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    (**self).generate(code_generatable_context)
-  }
-}
-
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     None
@@ -273,7 +249,7 @@ pub trait ModuleDependency: Dependency {
     false
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
+  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
     None
   }
 
@@ -315,6 +291,10 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
   fn set_request(&mut self, request: String) {
     (**self).set_request(request);
   }
+
+  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
+    (**self).as_code_generatable_dependency()
+  }
 }
 
 impl Dependency for Box<dyn ModuleDependency> {
@@ -335,15 +315,6 @@ impl Dependency for Box<dyn ModuleDependency> {
   }
   fn set_id(&mut self, id: Option<DependencyId>) {
     (**self).set_id(id)
-  }
-}
-
-impl CodeGeneratable for Box<dyn ModuleDependency> {
-  fn generate(
-    &self,
-    code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    (**self).generate(code_generatable_context)
   }
 }
 

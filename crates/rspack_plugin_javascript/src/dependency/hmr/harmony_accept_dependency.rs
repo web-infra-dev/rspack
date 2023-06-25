@@ -1,7 +1,6 @@
 use rspack_core::{
-  import_statement, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyType,
-  ModuleDependency, ModuleIdentifier,
+  import_statement, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  Dependency, DependencyCategory, DependencyType, ModuleDependency, ModuleIdentifier,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -32,13 +31,13 @@ impl HarmonyAcceptDependency {
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyAcceptDependency {
+impl CodeGeneratableDependency for HarmonyAcceptDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext { compilation, .. } = code_generatable_context;
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
     let dependencies = {
       let ids = compilation

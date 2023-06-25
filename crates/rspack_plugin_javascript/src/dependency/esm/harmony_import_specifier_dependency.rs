@@ -1,6 +1,5 @@
 use rspack_core::{
-  export_from_import, get_import_var, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, DependencyId,
+  export_from_import, get_import_var, CodeGeneratableContext, CodeGeneratableSource, DependencyId,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -35,8 +34,8 @@ impl HarmonyImportSpecifierDependency {
 
   pub fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
     id: &DependencyId,
     request: &str,
   ) {

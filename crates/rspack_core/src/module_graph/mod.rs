@@ -467,8 +467,8 @@ mod test {
   use rspack_sources::Source;
 
   use crate::{
-    BuildContext, BuildResult, CodeGeneratable, CodeGenerationResult, Compilation, Context,
-    Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
+    BuildContext, BuildResult, CodeGeneratableDependency, CodeGenerationResult, Compilation,
+    Context, Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
     ModuleIdentifier, ModuleType, SourceType,
   };
 

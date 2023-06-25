@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, InitFragment, InitFragmentStage, RuntimeGlobals,
+  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, InitFragment,
+  InitFragmentStage, RuntimeGlobals,
 };
 
 // Mark module `__esModule`.
@@ -8,13 +8,13 @@ use rspack_core::{
 #[derive(Debug)]
 pub struct HarmonyCompatibilityDependency;
 
-impl CodeReplaceSourceDependency for HarmonyCompatibilityDependency {
+impl CodeGeneratableDependency for HarmonyCompatibilityDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    _source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       runtime_requirements,
       init_fragments,
       compilation,

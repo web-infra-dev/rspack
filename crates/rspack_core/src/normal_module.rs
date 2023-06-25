@@ -26,11 +26,10 @@ use serde_json::json;
 
 use crate::{
   contextify, get_context, BoxLoader, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, CodeReplaceSourceDependency, Compilation, CompilerOptions, Context,
-  Dependency, GenerateContext, GeneratorOptions, LibIdentOptions,
-  LoaderRunnerPluginProcessResource, Module, ModuleAst, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
-  Resolve, SourceType,
+  CodeGeneratableDependency, CodeGenerationResult, Compilation, CompilerOptions, Context,
+  GenerateContext, GeneratorOptions, LibIdentOptions, LoaderRunnerPluginProcessResource, Module,
+  ModuleAst, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, ParseContext,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, SourceType,
 };
 
 bitflags! {
@@ -174,8 +173,7 @@ pub struct NormalModule {
   cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
 
   code_generation_dependencies: Option<Vec<Box<dyn ModuleDependency>>>,
-  presentational_dependencies: Option<Vec<Box<dyn Dependency>>>,
-  code_replace_source_dependencies: Option<Vec<Box<dyn CodeReplaceSourceDependency>>>,
+  presentational_dependencies: Option<Vec<Box<dyn CodeGeneratableDependency>>>,
 }
 
 #[derive(Debug)]
@@ -248,7 +246,6 @@ impl NormalModule {
       cached_source_sizes: DashMap::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      code_replace_source_dependencies: None,
     }
   }
 
@@ -385,7 +382,6 @@ impl Module for NormalModule {
         ast_or_source,
         dependencies,
         presentational_dependencies,
-        code_replace_source_dependencies,
       },
       ds,
     ) = self
@@ -411,7 +407,6 @@ impl Module for NormalModule {
     self.ast_or_source = NormalModuleAstOrSource::new_built(ast_or_source, &diagnostics);
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
-    self.code_replace_source_dependencies = Some(code_replace_source_dependencies);
 
     let mut hasher = RspackHash::from(&build_context.compiler_options.output);
     self.update_hash(&mut hasher);
@@ -517,18 +512,8 @@ impl Module for NormalModule {
     }
   }
 
-  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn Dependency>]> {
+  fn get_presentational_dependencies(&self) -> Option<&[Box<dyn CodeGeneratableDependency>]> {
     if let Some(deps) = self.presentational_dependencies.as_deref() && !deps.is_empty() {
-      Some(deps)
-    } else {
-      None
-    }
-  }
-
-  fn get_string_replace_generation_dependencies(
-    &self,
-  ) -> Option<&[Box<dyn CodeReplaceSourceDependency>]> {
-    if let Some(deps) = self.code_replace_source_dependencies.as_deref() && !deps.is_empty() {
       Some(deps)
     } else {
       None

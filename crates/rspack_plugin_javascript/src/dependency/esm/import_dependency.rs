@@ -1,8 +1,7 @@
 use rspack_core::{
-  module_namespace_promise, ChunkGroupOptions, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableResult, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency,
+  module_namespace_promise, ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -67,8 +66,8 @@ impl ModuleDependency for ImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
+    Some(Box::new(self))
   }
 
   fn group_options(&self) -> Option<&ChunkGroupOptions> {
@@ -80,20 +79,11 @@ impl ModuleDependency for ImportDependency {
   }
 }
 
-impl CodeGeneratable for ImportDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
-  }
-}
-
-impl CodeReplaceSourceDependency for ImportDependency {
+impl CodeGeneratableDependency for ImportDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
     let id: DependencyId = self.id().expect("should have dependency id");
     source.replace(

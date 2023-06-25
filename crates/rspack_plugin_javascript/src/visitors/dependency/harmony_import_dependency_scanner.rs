@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use rspack_core::{
-  CodeReplaceSourceDependency, DependencyType, ModuleDependency, ModuleIdentifier,
-  ReplaceConstDependency, SpanExt,
+  CodeGeneratableDependency, ConstDependency, DependencyType, ModuleDependency, ModuleIdentifier,
+  SpanExt,
 };
 use rspack_symbol::DEFAULT_JS_WORD;
 use rustc_hash::FxHashMap;
@@ -31,7 +31,7 @@ pub type Imports = IndexMap<(JsWord, DependencyType), (Span, Vec<(JsWord, Option
 
 pub struct HarmonyImportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   pub import_map: &'a mut ImportMap,
   pub imports: Imports,
   pub module_identifier: ModuleIdentifier,
@@ -40,13 +40,13 @@ pub struct HarmonyImportDependencyScanner<'a> {
 impl<'a> HarmonyImportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
     import_map: &'a mut ImportMap,
     module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       dependencies,
-      code_generable_dependencies,
+      presentational_dependencies,
       import_map,
       imports: Default::default(),
       module_identifier,
@@ -135,8 +135,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
         .insert(key, (import_decl.span, specifiers, false));
     }
     self
-      .code_generable_dependencies
-      .push(Box::new(ReplaceConstDependency::new(
+      .presentational_dependencies
+      .push(Box::new(ConstDependency::new(
         import_decl.span.real_lo(),
         import_decl.span.real_hi(),
         "".into(),
@@ -179,7 +179,7 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           }
         });
 
-      self.code_generable_dependencies.push(Box::new(
+      self.presentational_dependencies.push(Box::new(
         HarmonyExportImportedSpecifierDependency::new(
           src.value.clone(),
           ids,
@@ -195,8 +195,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           .insert(key, (named_export.span, specifiers, false));
       }
       self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
           named_export.span.real_lo(),
           named_export.span.real_hi(),
           "".into(),
@@ -213,8 +213,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
       self.imports.insert(key, (export_all.span, vec![], true));
     }
     self
-      .code_generable_dependencies
-      .push(Box::new(ReplaceConstDependency::new(
+      .presentational_dependencies
+      .push(Box::new(ConstDependency::new(
         export_all.span.real_lo(),
         export_all.span.real_hi(),
         "".into(),

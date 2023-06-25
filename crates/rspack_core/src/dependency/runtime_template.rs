@@ -1,19 +1,19 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  to_identifier, CodeReplaceSourceDependencyContext, Compilation, DependencyId, ExportsType,
-  InitFragment, InitFragmentStage, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
+  to_identifier, CodeGeneratableContext, Compilation, DependencyId, ExportsType, InitFragment,
+  InitFragmentStage, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
 };
 
 pub fn export_from_import(
-  code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+  code_generatable_context: &mut CodeGeneratableContext,
   default_interop: bool,
   import_var: String,
   mut export_name: Vec<JsWord>,
   id: &DependencyId,
   is_call: bool,
 ) -> String {
-  let CodeReplaceSourceDependencyContext {
+  let CodeGeneratableContext {
     runtime_requirements,
     compilation,
     init_fragments,
@@ -127,12 +127,12 @@ pub fn module_id(
 }
 
 pub fn import_statement(
-  code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+  code_generatable_context: &mut CodeGeneratableContext,
   id: &DependencyId,
   request: &str,
   update: bool, // whether a new variable should be created or the existing one updated
 ) -> (String, String) {
-  let CodeReplaceSourceDependencyContext {
+  let CodeGeneratableContext {
     runtime_requirements,
     compilation,
     module,
@@ -167,12 +167,12 @@ pub fn import_statement(
 }
 
 pub fn module_namespace_promise(
-  code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+  code_generatable_context: &mut CodeGeneratableContext,
   id: &DependencyId,
   request: &str,
   weak: bool,
 ) -> String {
-  let CodeReplaceSourceDependencyContext {
+  let CodeGeneratableContext {
     runtime_requirements,
     compilation,
     module,

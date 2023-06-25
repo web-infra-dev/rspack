@@ -1,6 +1,6 @@
 use rspack_core::{
-  CodeReplaceSourceDependency, ContextMode, ContextOptions, DependencyCategory, ModuleDependency,
-  ReplaceConstDependency, RuntimeGlobals, SpanExt,
+  CodeGeneratableDependency, ConstDependency, ContextMode, ContextOptions, DependencyCategory,
+  ModuleDependency, RuntimeGlobals, SpanExt,
 };
 use rspack_regex::RspackRegex;
 use swc_core::{
@@ -19,7 +19,7 @@ use crate::dependency::{
 
 pub struct CommonJsImportDependencyScanner<'a> {
   dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+  presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   unresolved_ctxt: &'a SyntaxContext,
   in_try: bool,
 }
@@ -27,12 +27,12 @@ pub struct CommonJsImportDependencyScanner<'a> {
 impl<'a> CommonJsImportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
     unresolved_ctxt: &'a SyntaxContext,
   ) -> Self {
     Self {
       dependencies,
-      code_generable_dependencies,
+      presentational_dependencies,
       unresolved_ctxt,
       in_try: false,
     }
@@ -61,8 +61,8 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       || expr_matcher::is_require_resolve_weak(expr)
     {
       self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
           value.into(),
@@ -135,8 +135,8 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
               }
             }
             self
-              .code_generable_dependencies
-              .push(Box::new(ReplaceConstDependency::new(
+              .presentational_dependencies
+              .push(Box::new(ConstDependency::new(
                 ident.span().real_lo(),
                 ident.span().real_hi(),
                 RuntimeGlobals::REQUIRE.name().into(),

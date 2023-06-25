@@ -42,7 +42,7 @@ impl SwcCssCompiler {
       .map(|stylesheet| stylesheet.with_diagnostic(vec![]))
   }
 
-  pub fn codegen(
+  pub fn _codegen(
     &self,
     cm: Arc<SourceMap>,
     ast: &Stylesheet,

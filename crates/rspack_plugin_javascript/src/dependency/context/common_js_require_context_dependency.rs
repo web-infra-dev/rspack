@@ -1,10 +1,8 @@
 use rspack_core::{
-  module_id_expr, normalize_context, CodeGeneratable, CodeGeneratableContext,
-  CodeGeneratableResult, CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_id_expr, normalize_context, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, ContextOptions, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
-use rspack_error::Result;
 
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireContextDependency {
@@ -68,8 +66,8 @@ impl ModuleDependency for CommonJsRequireContextDependency {
     Some(&self.options)
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
+    Some(Box::new(self))
   }
 
   fn set_request(&mut self, request: String) {
@@ -77,19 +75,13 @@ impl ModuleDependency for CommonJsRequireContextDependency {
   }
 }
 
-impl CodeGeneratable for CommonJsRequireContextDependency {
-  fn generate(&self, _context: &mut CodeGeneratableContext) -> Result<CodeGeneratableResult> {
-    todo!()
-  }
-}
-
-impl CodeReplaceSourceDependency for CommonJsRequireContextDependency {
+impl CodeGeneratableDependency for CommonJsRequireContextDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext { compilation, .. } = code_generatable_context;
+    let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
     let id: DependencyId = self.id().expect("should have dependency id");
 

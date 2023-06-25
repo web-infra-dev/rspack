@@ -1,9 +1,7 @@
 use rspack_core::{
-  get_import_var, import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratable,
-  CodeGeneratableContext, CodeGeneratableResult, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, InitFragment, InitFragmentStage,
-  ModuleDependency, RuntimeGlobals,
+  get_import_var, import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
+  CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
 };
 use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
@@ -44,11 +42,11 @@ impl HarmonyImportDependency {
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyImportDependency {
+impl CodeGeneratableDependency for HarmonyImportDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
@@ -124,7 +122,7 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
     let content: (String, String) =
       import_statement(code_generatable_context, &id, &self.request, false);
 
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       init_fragments,
       compilation,
       module,
@@ -216,20 +214,11 @@ impl ModuleDependency for HarmonyImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
+    Some(Box::new(self))
   }
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-}
-
-impl CodeGeneratable for HarmonyImportDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
   }
 }

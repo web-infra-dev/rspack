@@ -1,5 +1,5 @@
 use rspack_core::{
-  CodeReplaceSourceDependency, ModuleDependency, ModuleIdentifier, ReplaceConstDependency, SpanExt,
+  CodeGeneratableDependency, ConstDependency, ModuleDependency, ModuleIdentifier, SpanExt,
 };
 use rspack_symbol::DEFAULT_JS_WORD;
 use swc_core::{
@@ -23,7 +23,7 @@ use crate::dependency::{
 
 pub struct HarmonyExportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-  pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   pub import_map: &'a mut ImportMap,
   pub exports: Vec<(JsWord, JsWord)>,
   module_identifier: ModuleIdentifier,
@@ -32,13 +32,13 @@ pub struct HarmonyExportDependencyScanner<'a> {
 impl<'a> HarmonyExportDependencyScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
-    code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
     import_map: &'a mut ImportMap,
     module_identifier: ModuleIdentifier,
   ) -> Self {
     Self {
       dependencies,
-      code_generable_dependencies,
+      presentational_dependencies,
       import_map,
       exports: Default::default(),
       module_identifier,
@@ -53,7 +53,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
     program.visit_children_with(self);
     if !self.exports.is_empty() {
       self
-        .code_generable_dependencies
+        .presentational_dependencies
         .push(Box::new(HarmonyExportSpecifierDependency::new(
           std::mem::take(&mut self.exports),
         )));
@@ -75,7 +75,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       _ => {}
     }
     self
-      .code_generable_dependencies
+      .presentational_dependencies
       .push(Box::new(HarmonyExportHeaderDependency::new(
         export_decl.span().real_lo(),
       )));
@@ -95,7 +95,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
                 _ => unreachable!(),
               };
               if let Some(reference) = self.import_map.get(&orig.to_id()) {
-                self.code_generable_dependencies.push(Box::new(
+                self.presentational_dependencies.push(Box::new(
                   HarmonyExportImportedSpecifierDependency::new(
                     reference.0.clone(),
                     vec![(export, reference.1.clone())],
@@ -110,8 +110,8 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
           _ => unreachable!(),
         });
       self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
           named_export.span.real_lo(),
           named_export.span.real_hi(),
           "".into(),
@@ -126,7 +126,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
       .push((DEFAULT_JS_WORD.clone(), DEFAULT_EXPORT.into()));
 
     self
-      .code_generable_dependencies
+      .presentational_dependencies
       .push(Box::new(HarmonyExpressionHeaderDependency::new(
         export_default_expr.span().real_lo(),
         export_default_expr.expr.span().real_lo(),
@@ -151,7 +151,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
     ));
 
     self
-      .code_generable_dependencies
+      .presentational_dependencies
       .push(Box::new(HarmonyExpressionHeaderDependency::new(
         export_default_decl.span().real_lo(),
         export_default_decl.decl.span().real_lo(),

@@ -4,7 +4,6 @@ use std::hash::{Hash, Hasher};
 use dashmap::DashMap;
 use rspack_core::rspack_sources::{RawSource, Source, SourceExt};
 use rspack_core::DependencyType::WasmImport;
-// use rspack_core::StaticExportsDependency;
 use rspack_core::{
   AssetInfo, AstOrSource, BuildMetaExportsType, Compilation, Dependency, Filename, GenerateContext,
   GenerationResult, Module, ModuleDependency, ModuleIdentifier, NormalModule, ParseContext,
@@ -96,7 +95,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
         dependencies,
         presentational_dependencies: vec![],
         ast_or_source: source.into(),
-        code_replace_source_dependencies: vec![],
       }
       .with_diagnostic(diagnostic),
     )

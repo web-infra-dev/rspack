@@ -1,24 +1,19 @@
 #![allow(clippy::comparison_chain)]
-
 use std::sync::Arc;
 
 use indexmap::IndexMap;
 use preset_env_base::query::{Query, Targets};
+use rspack_core::ModuleDependency;
 use rspack_core::{
-  ast::css::Ast as CssAst,
-  rspack_sources::{
-    MapOptions, RawSource, Source, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
-  },
-  BuildMetaExportsType, GenerateContext, GenerationResult, Module, ModuleType, ParseContext,
-  ParseResult, ParserAndGenerator, SourceType,
+  rspack_sources::{RawSource, ReplaceSource, Source, SourceExt},
+  AstOrSource, BuildMetaExportsType, CodeGeneratableContext, GenerateContext, GenerationResult,
+  Module, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
 };
-use rspack_core::{ModuleAst, ModuleDependency};
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
-use swc_core::css::visit::VisitMutWithPath;
 use swc_core::{
   css::{
     modules::CssClassName,
@@ -29,12 +24,9 @@ use swc_core::{
   ecma::atoms::JsWord,
 };
 
-use crate::dependency::{
-  collect_dependency_code_generation_visitors, CssComposeDependency,
-  DependencyCodeGenerationVisitors, DependencyVisitor,
-};
+use crate::dependency::CssComposeDependency;
 use crate::plugin::CssConfig;
-use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
+use crate::swc_css_compiler::SWC_COMPILER;
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{pxtorem::px_to_rem::px_to_rem, visitors::analyze_dependencies};
 
@@ -190,8 +182,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       ParseResult {
         dependencies,
         presentational_dependencies: vec![],
-        ast_or_source: ModuleAst::Css(CssAst::new(stylesheet, cm)).into(),
-        code_replace_source_dependencies: vec![],
+        ast_or_source: AstOrSource::new(None, Some(source.clone())),
       }
       .with_diagnostic(diagnostic),
     )
@@ -206,76 +197,38 @@ impl ParserAndGenerator for CssParserAndGenerator {
   ) -> Result<rspack_core::GenerationResult> {
     let result = match generate_context.requested_source_type {
       SourceType::Css => {
-        let devtool = &generate_context.compilation.options.devtool;
-        let mut ast = ast_or_source
-          .to_owned()
-          .try_into_ast()
-          .expect("Expected AST for CSS generator, please file an issue.")
-          .try_into_css()
-          .expect("Expected CSS AST for CSS generation, please file an issue.");
-        let dependency_visitors =
-          collect_dependency_code_generation_visitors(module, generate_context)?;
-        let cm = ast.get_context().source_map.clone();
-        let stylesheet = ast.get_root_mut();
-        let DependencyCodeGenerationVisitors {
-          visitors,
-          root_visitors,
-          ..
-        } = dependency_visitors;
+        let mut source = ReplaceSource::new(ast_or_source.to_owned().try_into_source()?);
+        let compilation = generate_context.compilation;
+        let mut context = CodeGeneratableContext {
+          compilation,
+          module,
+          runtime_requirements: generate_context.runtime_requirements,
+          init_fragments: &mut vec![],
+        };
 
-        {
-          if !visitors.is_empty() {
-            stylesheet.visit_mut_with_path(
-              &mut DependencyVisitor::new(
-                visitors
-                  .iter()
-                  .map(|(ast_path, visitor)| (ast_path, &**visitor))
-                  .collect(),
-              ),
-              &mut Default::default(),
-            );
+        let mgm = compilation
+          .module_graph
+          .module_graph_module_by_identifier(&module.identifier())
+          .expect("should have module graph module");
+
+        mgm.dependencies.iter().for_each(|id| {
+          if let Some(dependency) = compilation
+            .module_graph
+            .dependency_by_id(id)
+            .expect("should have dependency")
+            .as_code_generatable_dependency()
+          {
+            dependency.apply(&mut source, &mut context)
           }
+        });
 
-          for (_, root_visitor) in root_visitors {
-            stylesheet.visit_mut_with(&mut root_visitor.create());
-          }
-        }
+        if let Some(dependencies) = module.get_presentational_dependencies() {
+          dependencies
+            .iter()
+            .for_each(|dependency| dependency.apply(&mut source, &mut context));
+        };
 
-        let (code, source_map) = SWC_COMPILER.codegen(
-          cm,
-          stylesheet,
-          SwcCssSourceMapGenConfig {
-            enable: devtool.source_map(),
-            inline_sources_content: !devtool.no_sources(),
-            emit_columns: !devtool.cheap(),
-          },
-        )?;
-        if let Some(source_map) = source_map {
-          let source = SourceMapSource::new(SourceMapSourceOptions {
-            value: code,
-            name: module.try_as_normal_module()?.user_request().to_string(),
-            source_map: SourceMap::from_slice(&source_map)
-              .map_err(|e| internal_error!(e.to_string()))?,
-            // Safety: original source exists in code generation
-            original_source: Some(
-              module
-                .original_source()
-                .expect("Failed to get original source, please file an issue.")
-                .source()
-                .to_string(),
-            ),
-            // Safety: original source exists in code generation
-            inner_source_map: module
-              .original_source()
-              .expect("Failed to get original source, please file an issue.")
-              .map(&MapOptions::default()),
-            remove_original_source: false,
-          })
-          .boxed();
-          Ok(source)
-        } else {
-          Ok(RawSource::from(code).boxed())
-        }
+        Ok(source.boxed())
       }
       SourceType::JavaScript => {
         let locals = if let Some(exports) = &self.exports {

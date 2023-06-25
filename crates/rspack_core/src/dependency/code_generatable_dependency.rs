@@ -4,19 +4,19 @@ use rspack_sources::{BoxSource, ReplaceSource};
 
 use crate::{Compilation, InitFragment, Module, RuntimeGlobals};
 
-pub struct CodeReplaceSourceDependencyContext<'a> {
+pub struct CodeGeneratableContext<'a> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
   pub runtime_requirements: &'a mut RuntimeGlobals,
   pub init_fragments: &'a mut Vec<InitFragment>,
 }
 
-pub type CodeReplaceSourceDependencyReplaceSource = ReplaceSource<BoxSource>;
+pub type CodeGeneratableSource = ReplaceSource<BoxSource>;
 
-pub trait CodeReplaceSourceDependency: Debug + Sync + Send {
+pub trait CodeGeneratableDependency: Debug + Sync + Send {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   );
 }

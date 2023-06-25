@@ -2,9 +2,8 @@ use std::collections::HashSet;
 
 use rspack_core::{
   export_from_import, get_exports_type, get_import_var, tree_shaking::visitor::SymbolRef,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, DependencyId, ExportsType, InitFragment,
-  InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
+  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, DependencyId,
+  ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
 use rspack_symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
@@ -34,11 +33,11 @@ impl HarmonyExportImportedSpecifierDependency {
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
+impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    _source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
@@ -119,7 +118,7 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
     }
 
     if !exports.is_empty() {
-      let CodeReplaceSourceDependencyContext {
+      let CodeGeneratableContext {
         runtime_requirements,
         init_fragments,
         compilation,
@@ -182,10 +181,10 @@ pub struct ExportMode {
 pub fn get_mode(
   name: Option<String>,
   ids: Vec<String>,
-  code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+  code_generatable_context: &mut CodeGeneratableContext,
   id: &DependencyId,
 ) -> ExportMode {
-  let CodeReplaceSourceDependencyContext {
+  let CodeGeneratableContext {
     compilation,
     module,
     ..

@@ -1,6 +1,6 @@
 use rspack_core::{
-  BoxModuleDependency, BuildMeta, CodeReplaceSourceDependency, ErrorSpan, ModuleDependency,
-  ModuleIdentifier, ReplaceConstDependency, RuntimeGlobals, SpanExt,
+  BoxModuleDependency, BuildMeta, CodeGeneratableDependency, ConstDependency, ErrorSpan,
+  ModuleDependency, ModuleIdentifier, RuntimeGlobals, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -15,14 +15,14 @@ use super::{expr_matcher, is_module_hot_accept_call, is_module_hot_decline_call}
 use crate::{
   dependency::{
     HarmonyAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
-    NewModuleHotAcceptDependency, NewModuleHotDeclineDependency,
+    ModuleHotAcceptDependency, ModuleHotDeclineDependency,
   },
   visitors::{is_import_meta_hot_accept_call, is_import_meta_hot_decline_call},
 };
 
 pub struct HotModuleReplacementScanner<'a> {
   pub dependencies: &'a mut Vec<BoxModuleDependency>,
-  pub code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   pub module_identifier: ModuleIdentifier,
   pub build_meta: &'a BuildMeta,
 }
@@ -32,13 +32,13 @@ type CreateDependency = fn(u32, u32, JsWord, Option<ErrorSpan>) -> BoxModuleDepe
 impl<'a> HotModuleReplacementScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxModuleDependency>,
-    code_generable_dependencies: &'a mut Vec<Box<dyn CodeReplaceSourceDependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
     module_identifier: ModuleIdentifier,
     build_meta: &'a BuildMeta,
   ) -> Self {
     Self {
       dependencies,
-      code_generable_dependencies,
+      presentational_dependencies,
       module_identifier,
       build_meta,
     }
@@ -93,7 +93,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
         .collect::<Vec<_>>();
       if let Some(callback_arg) = call_expr.args.get(1) {
         self
-          .code_generable_dependencies
+          .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
             callback_arg.span().real_lo(),
             callback_arg.span().real_hi(),
@@ -103,7 +103,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
           )));
       } else {
         self
-          .code_generable_dependencies
+          .presentational_dependencies
           .push(Box::new(HarmonyAcceptDependency::new(
             call_expr.span().real_hi() - 1,
             0,
@@ -124,8 +124,8 @@ impl<'a> Visit for HotModuleReplacementScanner<'a> {
   fn visit_expr(&mut self, expr: &Expr) {
     if expr_matcher::is_module_hot(expr) || expr_matcher::is_import_meta_webpack_hot(expr) {
       self
-        .code_generable_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
           "module.hot".into(), // TODO module_argument
@@ -138,13 +138,11 @@ impl<'a> Visit for HotModuleReplacementScanner<'a> {
   fn visit_call_expr(&mut self, call_expr: &CallExpr) {
     if is_module_hot_accept_call(call_expr) {
       self.collect_dependencies(call_expr, "accept", |start, end, request, span| {
-        Box::new(NewModuleHotAcceptDependency::new(start, end, request, span))
+        Box::new(ModuleHotAcceptDependency::new(start, end, request, span))
       });
     } else if is_module_hot_decline_call(call_expr) {
       self.collect_dependencies(call_expr, "decline", |start, end, request, span| {
-        Box::new(NewModuleHotDeclineDependency::new(
-          start, end, request, span,
-        ))
+        Box::new(ModuleHotDeclineDependency::new(start, end, request, span))
       });
     } else if is_import_meta_hot_accept_call(call_expr) {
       self.collect_dependencies(call_expr, "accept", |start, end, request, span| {
