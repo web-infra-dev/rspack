@@ -2,14 +2,15 @@ use std::hash::Hash;
 
 use async_trait::async_trait;
 use rspack_core::{
-  AdditionalChunkRuntimeRequirementsArgs, JsChunkHashArgs, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, JsChunkHashArgs, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, PluginJsChunkHashHookOutput,
   RuntimeGlobals, RuntimeModuleExt, SourceType,
 };
 use rspack_error::Result;
 
 use crate::runtime_module::{
-  AsyncRuntimeModule, CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
+  is_enabled_for_chunk, AsyncRuntimeModule, BaseUriRuntimeModule,
+  CompatGetDefaultExportRuntimeModule, CreateFakeNamespaceObjectRuntimeModule,
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
@@ -129,6 +130,11 @@ impl Plugin for RuntimePlugin {
       match runtime_requirement {
         RuntimeGlobals::ASYNC_MODULE => {
           compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
+        }
+        RuntimeGlobals::BASE_URI
+          if is_enabled_for_chunk(chunk, &ChunkLoading::False, &compilation) =>
+        {
+          compilation.add_runtime_module(chunk, BaseUriRuntimeModule::default().boxed());
         }
         RuntimeGlobals::ENSURE_CHUNK => {
           compilation.add_runtime_module(chunk, EnsureChunkRuntimeModule::new(true).boxed());

@@ -10,4 +10,5 @@ pub struct RawEntryDescription {
   pub chunk_loading: Option<String>,
   pub async_chunks: Option<bool>,
   pub public_path: Option<String>,
+  pub base_uri: Option<String>,
 }

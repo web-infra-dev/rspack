@@ -1,6 +1,6 @@
 use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt},
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
+  Chunk, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RUNTIME_MODULE_STAGE_ATTACH,
 };
 use rspack_identifier::Identifier;
 
@@ -23,6 +23,15 @@ impl JsonpChunkLoadingRuntimeModule {
       runtime_requirements,
     }
   }
+
+  fn generate_base_uri(&self, chunk: &Chunk, compilation: &Compilation) -> BoxSource {
+    let base_uri = chunk
+      .get_entry_options(&compilation.chunk_group_by_ukey)
+      .and_then(|options| options.base_uri.as_ref())
+      .and_then(|base_uri| serde_json::to_string(base_uri).ok())
+      .unwrap_or_else(|| format!("document.baseURI || self.location.href"));
+    RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
+  }
 }
 
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
@@ -39,13 +48,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     //   chunk_hash_js,
     // );
     let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+    let chunk = compilation
+      .chunk_by_ukey
+      .get(&self.chunk.expect("The chunk should be attached"))
+      .expect("should have chunk");
     let mut source = ConcatSource::default();
 
     if self.runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      source.add(RawSource::from(format!(
-        "{} = document.baseURI || self.location.href;\n",
-        RuntimeGlobals::BASE_URI
-      )))
+      source.add(self.generate_base_uri(chunk, compilation));
     }
 
     // object to store loaded and loading chunks

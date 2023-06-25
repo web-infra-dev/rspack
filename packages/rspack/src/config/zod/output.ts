@@ -10,6 +10,10 @@ function wasmLoadingType() {
 	return z.enum(["...", "fetch-streaming", "fetch", "async-node"]);
 }
 
+export function publicPath() {
+	return z.literal("auto").or(z.string());
+}
+
 function libraryType() {
 	return z.enum([
 		"...",
@@ -66,7 +70,7 @@ export function output() {
 		filename: z.string().optional(),
 		sourceMapFilename: z.string().optional(),
 		importFunctionName: z.string().optional(),
-		publicPath: z.string().optional(),
+		publicPath: publicPath().optional(),
 		uniqueName: z.string().optional(),
 		path: z.string().optional(),
 		crossOriginLoading: z

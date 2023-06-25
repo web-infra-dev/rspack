@@ -111,6 +111,7 @@ impl RawOptionsApply for RawOptions {
                 chunk_loading: desc.chunk_loading.as_deref().map(Into::into),
                 async_chunks: desc.async_chunks,
                 public_path: desc.public_path.clone().map(Into::into),
+                base_uri: desc.base_uri.clone(),
               },
             )
             .boxed(),
