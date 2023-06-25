@@ -2238,6 +2238,7 @@ dependencies = [
  "rspack_plugin_split_chunks",
  "rspack_plugin_split_chunks_new",
  "rspack_plugin_wasm",
+ "rspack_plugin_worker",
  "rspack_regex",
  "serde",
  "serde_json",
@@ -2833,6 +2834,21 @@ dependencies = [
  "serde_json",
  "sugar_path",
  "wasmparser",
+]
+
+[[package]]
+name = "rspack_plugin_worker"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dashmap",
+ "rayon",
+ "rspack_core",
+ "rspack_error",
+ "rspack_identifier",
+ "rspack_plugin_runtime",
+ "rspack_plugin_wasm",
+ "serde_json",
 ]
 
 [[package]]

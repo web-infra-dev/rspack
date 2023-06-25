@@ -12,6 +12,7 @@ mod node_stuff_scanner;
 mod require_context_scanner;
 mod url_scanner;
 mod util;
+mod worker_scanner;
 use rspack_core::{
   ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType, CodeGeneratableDependency,
   CompilerOptions, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
@@ -20,14 +21,17 @@ use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
 use self::{
-  api_scanner::ApiScanner, common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
-  common_js_scanner::CommonJsScanner, harmony_detection_scanner::HarmonyDetectionScanner,
+  api_scanner::ApiScanner,
+  common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
+  common_js_scanner::CommonJsScanner,
+  harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
   node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
   url_scanner::UrlScanner,
+  worker_scanner::{WorkerScanner, WorkerSyntaxScanner},
 };
 
 pub type ScanDependenciesResult = (
@@ -106,9 +110,20 @@ pub fn scan_dependencies(
       &mut import_map,
       module_identifier,
     ));
-    program.visit_with(&mut UrlScanner::new(&mut dependencies));
+    let mut worker_syntax_scanner =
+      WorkerSyntaxScanner::new(&["Worker", "SharedWorker", "Worker from worker_threads"]);
+    program.visit_with(&mut worker_syntax_scanner);
+    let mut worker_scanner = WorkerScanner::new(
+      &module_identifier,
+      &compiler_options.output,
+      worker_syntax_scanner,
+    );
+    program.visit_with(&mut worker_scanner);
+    dependencies.append(&mut worker_scanner.dependencies);
+    code_replace_source_dependencies.append(&mut worker_scanner.code_replace_source_dependencies);
+    program.visit_with(&mut UrlScanner::new(&mut dependencies, &worker_scanner));
     program.visit_with(&mut ImportMetaScanner::new(
-      &mut presentational_dependencies,
+      &mut code_replace_source_dependencies,
       resource_data,
       compiler_options,
     ));

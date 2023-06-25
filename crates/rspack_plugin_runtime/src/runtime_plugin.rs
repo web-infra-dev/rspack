@@ -39,12 +39,15 @@ impl Plugin for RuntimePlugin {
   ) -> PluginAdditionalChunkRuntimeRequirementsOutput {
     let compilation = &args.compilation;
     let chunk = args.chunk();
-    if !chunk
-      .get_all_async_chunks(&compilation.chunk_group_by_ukey)
-      .is_empty()
-      || args
+    if args
+      .runtime_requirements
+      .contains(RuntimeGlobals::ENSURE_CHUNK)
+      && (args
         .runtime_requirements
         .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+        || !chunk
+          .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+          .is_empty())
     {
       args
         .runtime_requirements
@@ -121,7 +124,7 @@ impl Plugin for RuntimePlugin {
           compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
         }
         RuntimeGlobals::BASE_URI
-          if is_enabled_for_chunk(chunk, &ChunkLoading::False, compilation) =>
+          if is_enabled_for_chunk(chunk, &ChunkLoading::Disable, compilation) =>
         {
           compilation.add_runtime_module(chunk, BaseUriRuntimeModule::default().boxed());
         }

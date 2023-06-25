@@ -191,7 +191,10 @@ function getRawCrossOriginLoading(
 }
 
 function getRawOutput(output: OutputNormalized): RawOptions["output"] {
+	const chunkLoading = output.chunkLoading!;
 	const wasmLoading = output.wasmLoading!;
+	const workerChunkLoading = output.workerChunkLoading!;
+	const workerWasmLoading = output.workerWasmLoading!;
 	return {
 		path: output.path!,
 		publicPath: output.publicPath!,
@@ -200,8 +203,7 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		filename: output.filename!,
 		chunkFormat: output.chunkFormat === false ? "false" : output.chunkFormat!,
 		chunkFilename: output.chunkFilename!,
-		chunkLoading:
-			output.chunkLoading === false ? "false" : output.chunkLoading!,
+		chunkLoading: chunkLoading === false ? "false" : chunkLoading,
 		crossOriginLoading: getRawCrossOriginLoading(output.crossOriginLoading!),
 		cssFilename: output.cssFilename!,
 		cssChunkFilename: output.cssChunkFilename!,
@@ -226,7 +228,12 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		hashDigest: output.hashDigest!,
 		hashDigestLength: output.hashDigestLength!,
 		hashSalt: output.hashSalt!,
-		asyncChunks: output.asyncChunks!
+		asyncChunks: output.asyncChunks!,
+		workerChunkLoading:
+			workerChunkLoading === false ? "false" : workerChunkLoading,
+		workerWasmLoading:
+			workerWasmLoading === false ? "false" : workerWasmLoading,
+		workerPublicPath: output.workerPublicPath!
 	};
 }
 

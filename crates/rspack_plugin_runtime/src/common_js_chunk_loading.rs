@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use rspack_core::ChunkLoading;
 use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
+use rspack_core::{ChunkLoading, ChunkLoadingType};
 use rspack_error::Result;
 
 use crate::runtime_module::RequireChunkLoadingRuntimeModule;
@@ -11,7 +11,15 @@ use crate::runtime_module::{is_enabled_for_chunk, ReadFileChunkLoadingRuntimeMod
 
 #[derive(Debug)]
 pub struct CommonJsChunkLoadingPlugin {
-  pub async_chunk_loading: bool,
+  async_chunk_loading: bool,
+}
+
+impl CommonJsChunkLoadingPlugin {
+  pub fn new(async_chunk_loading: bool) -> Self {
+    Self {
+      async_chunk_loading,
+    }
+  }
 }
 
 #[async_trait]
@@ -32,9 +40,9 @@ impl Plugin for CommonJsChunkLoadingPlugin {
     let compilation = &mut args.compilation;
     let chunk = args.chunk;
     let chunk_loading_value = if self.async_chunk_loading {
-      ChunkLoading::AsyncNode
+      ChunkLoading::Enable(ChunkLoadingType::AsyncNode)
     } else {
-      ChunkLoading::Require
+      ChunkLoading::Enable(ChunkLoadingType::Require)
     };
     let is_enabled_for_chunk = is_enabled_for_chunk(chunk, &chunk_loading_value, compilation);
     let runtime_requirements = &mut args.runtime_requirements;

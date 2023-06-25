@@ -792,6 +792,9 @@ export interface RawOutputOptions {
   hashDigestLength: number
   hashSalt?: string
   asyncChunks: boolean
+  workerChunkLoading: string
+  workerWasmLoading: string
+  workerPublicPath: string
 }
 
 export interface RawParserOptions {
