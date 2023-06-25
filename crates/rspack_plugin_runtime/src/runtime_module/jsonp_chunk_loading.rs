@@ -29,7 +29,7 @@ impl JsonpChunkLoadingRuntimeModule {
       .get_entry_options(&compilation.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
       .and_then(|base_uri| serde_json::to_string(base_uri).ok())
-      .unwrap_or_else(|| format!("document.baseURI || self.location.href"));
+      .unwrap_or_else(|| "document.baseURI || self.location.href".to_string());
     RawSource::from(format!("{} = {};\n", RuntimeGlobals::BASE_URI, base_uri)).boxed()
   }
 }
