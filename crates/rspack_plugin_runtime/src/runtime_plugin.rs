@@ -132,7 +132,7 @@ impl Plugin for RuntimePlugin {
           compilation.add_runtime_module(chunk, AsyncRuntimeModule::default().boxed());
         }
         RuntimeGlobals::BASE_URI
-          if is_enabled_for_chunk(chunk, &ChunkLoading::False, &compilation) =>
+          if is_enabled_for_chunk(chunk, &ChunkLoading::False, compilation) =>
         {
           compilation.add_runtime_module(chunk, BaseUriRuntimeModule::default().boxed());
         }
