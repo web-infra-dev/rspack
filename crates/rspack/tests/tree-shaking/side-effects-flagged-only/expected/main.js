@@ -1,41 +1,35 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "something", {
-    enumerable: true,
-    get: function() {
-        return _lib.default;
-    }
-});
-var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
-__webpack_require__("./src/a.js");
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'something': function() { return _lib__WEBPACK_IMPORTED_MODULE__["default"]; }});
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
+/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./src/a */"./src/a.js");
+
+
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-(0, _app.something)();
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+
+(0, _app__WEBPACK_IMPORTED_MODULE__["something"])();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
-function _default() {}
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+ const secret = "888";
+ const result = 20000;
+ const something = function() {};
+function __WEBPACK_DEFAULT_EXPORT__() {}
 },
 "./src/a.js": function (module, exports, __webpack_require__) {
-"use strict";
+'use strict';
+__webpack_require__.r(exports);
+var __WEBPACK_DEFAULT_EXPORT__ = (()=>{
+    console.log("");
+});
 },
 
 },function(__webpack_require__) {

@@ -19,6 +19,11 @@
   background: green;
 }
 @charset "utf-8";
+;
+;
+;
+;
+;
 body {
   background: red;
 }
@@ -31,6 +36,8 @@ body {
   background: green;
 }
 @charset "utf-8";
+;
+;
 body {
   background: yellow;
 }

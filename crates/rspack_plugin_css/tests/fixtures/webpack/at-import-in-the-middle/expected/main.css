@@ -5,6 +5,8 @@ body {
 .c {
   background: red;
 }
+;
+;
 .c {
   color: yellow;
 }
@@ -12,7 +14,9 @@ body {
 .b {
   background: red;
 }
+;
 .b {
   color: yellow;
 }
-
+;
+;

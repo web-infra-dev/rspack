@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 pub use dependency::*;
 use either::Either;
+use swc_core::common::comments::Comments;
 use xxhash_rust::xxh32::xxh32;
 mod clear_mark;
 
@@ -14,7 +15,7 @@ pub mod relay;
 pub mod swc_visitor;
 use rspack_core::{ast::javascript::Ast, CompilerOptions, ResourceData};
 use rspack_error::Result;
-use swc_core::common::{chain, comments::Comments};
+use swc_core::common::chain;
 use swc_core::ecma::parser::Syntax;
 use swc_core::ecma::transforms::base::pass::{noop, Optional};
 use swc_emotion::EmotionOptions;

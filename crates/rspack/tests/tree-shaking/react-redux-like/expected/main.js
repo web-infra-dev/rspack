@@ -1,67 +1,43 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    Provider: function() {
-        return _lib.default;
-    },
-    useSelector: function() {
-        return _selector.default;
-    }
-});
-var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
-var _selector = __webpack_require__.ir(__webpack_require__("./selector.js"));
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'Provider': function() { return _lib__WEBPACK_IMPORTED_MODULE__["default"]; }});
+__webpack_require__.d(exports, {'useSelector': function() { return _selector_js__WEBPACK_IMPORTED_MODULE__["default"]; }});
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
+/* harmony import */var _selector_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./selector.js */"./selector.js");
+
+
+
 },
 "./foo.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-__webpack_require__.es(__webpack_require__("./app.js"), exports);
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+__webpack_require__.es(_app__WEBPACK_IMPORTED_MODULE__, exports);
+
+function batch() {}
+
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _foo = __webpack_require__("./foo.js");
-_foo.Provider;
-_foo.useSelector;
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+
+_foo__WEBPACK_IMPORTED_MODULE__["Provider"];
+_foo__WEBPACK_IMPORTED_MODULE__["useSelector"];
 },
 "./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 function Provider() {}
-var _default = Provider;
+var __WEBPACK_DEFAULT_EXPORT__ = Provider;
 },
 "./selector.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return useSelector;
-    }
-});
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return useSelector; }});
 function useSelector() {
     return "";
 }

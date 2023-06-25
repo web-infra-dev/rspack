@@ -5,21 +5,28 @@ exports[`cases exported tests data imports 1`] = `
 /*
 - type: css
 */
-.red{color: red;}
+.red {
+  color: red;
+}
 /* #endregion "data:text/css,.red{color: red;}" */
 
 /* #region "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
 /*
 - type: css
 */
-.b{color: green}
+.b {
+  color: green;
+}
 /* #endregion "data:text/css;base64,LmJ7Y29sb3I6IGdyZWVufQ==" */
 
 /* #region "./a.css" */
 /*
 - type: css
 */
-.a { color: palegreen; };;;
+.a {
+  color: palegreen;
+}
+;;;
 
 /* #endregion "./a.css" */
 
@@ -31,24 +38,21 @@ exports[`cases exported tests data imports 1`] = `
   a: url(data:text/bad-base64;base64,abcd?#iefix);
   b: url(data:text/bad-base64;base64,    abcd?#iefix);
 }
-
 /* #endregion "./bad-base64.css" */
 
 /* #region "./index.css" */
 /*
 - type: css
 */
-; /* .b{color: green} */
 ;
 ;
-
+;
 .class {
   a: url(51f58feaaffdaad4.svg);
   b: url(51f58feaaffdaad4.svg);
   c: url(51f58feaaffdaad4);
   d: url(51f58feaaffdaad4);
 }
-
 /* #endregion "./index.css" */
 
 "

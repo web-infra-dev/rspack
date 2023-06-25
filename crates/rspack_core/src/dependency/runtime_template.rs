@@ -139,7 +139,7 @@ pub fn import_statement(
     ..
   } = code_generatable_context;
 
-  let module_id_expr = module_id(&compilation, id, request, false);
+  let module_id_expr = module_id(compilation, id, request, false);
 
   runtime_requirements.add(RuntimeGlobals::REQUIRE);
 
@@ -179,7 +179,7 @@ pub fn module_namespace_promise(
     ..
   } = code_generatable_context;
 
-  let module_id_expr = module_id(&compilation, id, request, weak);
+  let module_id_expr = module_id(compilation, id, request, weak);
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
 

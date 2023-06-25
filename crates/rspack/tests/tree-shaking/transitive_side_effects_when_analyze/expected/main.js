@@ -1,25 +1,20 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: function() {
-        return a;
-    }
-});
-__webpack_require__("./side-effects.js");
-const a = 3;
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return a; }});
+/* harmony import */var _side_effects_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./side-effects.js */"./side-effects.js");
+/* harmony import */var _side_effects_js__WEBPACK_IMPORTED_MODULE___default = /*#__PURE__*/__webpack_require__.n(_side_effects_js__WEBPACK_IMPORTED_MODULE__);
+
+
+ const a = 3;
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-_app.a;
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+
+_app__WEBPACK_IMPORTED_MODULE__["a"];
 },
 "./side-effects.js": function (module, exports, __webpack_require__) {
 console.log("side effect");

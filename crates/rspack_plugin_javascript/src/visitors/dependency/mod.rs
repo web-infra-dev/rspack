@@ -57,16 +57,17 @@ pub fn scan_dependencies(
     &mut presentational_dependencies,
   ));
 
+  // TODO it should enable at js/auto or js/dynamic, but builtins provider will inject require at esm
+  program.visit_with(&mut CommonJsImportDependencyScanner::new(
+    &mut dependencies,
+    &mut presentational_dependencies,
+    &unresolved_ctxt,
+  ));
   if module_type.is_js_auto() || module_type.is_js_dynamic() {
     // TODO webpack scan it at CommonJsExportsParserPlugin
     // use `Dynamic` as workaround
     build_meta.exports_type = BuildMetaExportsType::Dynamic;
     program.visit_with(&mut CommonJsScanner::new(&mut presentational_dependencies));
-    program.visit_with(&mut CommonJsImportDependencyScanner::new(
-      &mut dependencies,
-      &mut presentational_dependencies,
-      &unresolved_ctxt,
-    ));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
 
     if let Some(node_option) = &compiler_options.node {

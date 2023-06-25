@@ -391,6 +391,7 @@ impl Module for NormalModule {
         module_identifier: self.identifier(),
         module_parser_options: self.parser_options.as_ref(),
         module_type: &self.module_type,
+        module_user_request: &self.user_request,
         resource_data: &self.resource_data,
         compiler_options: build_context.compiler_options,
         additional_data: loader_result.additional_data,

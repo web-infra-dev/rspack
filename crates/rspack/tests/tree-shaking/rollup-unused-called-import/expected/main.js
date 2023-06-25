@@ -1,30 +1,30 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./dead.js": function (module, exports, __webpack_require__) {
-"use strict";
+'use strict';
+__webpack_require__.r(exports);
+function __WEBPACK_DEFAULT_EXPORT__() {
+    return "dead";
+}
 },
 "./foo.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
-__webpack_require__("./dead.js");
-function _default() {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+/* harmony import */var _dead__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./dead */"./dead.js");
+
+function __WEBPACK_DEFAULT_EXPORT__() {
     return "foo";
+}
+ function foodead() {
+    return "foo" + (0, _dead__WEBPACK_IMPORTED_MODULE__["default"])();
 }
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
-assert.equal((0, _foo.default)(), "foo");
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+
+assert.equal((0, _foo__WEBPACK_IMPORTED_MODULE__["default"])(), "foo");
 },
 
 },function(__webpack_require__) {

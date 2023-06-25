@@ -15,6 +15,7 @@ pub struct ParseContext<'a> {
   pub source: BoxSource,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
+  pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,

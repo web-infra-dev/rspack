@@ -1,7 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-;
+'use strict';
+__webpack_require__.r(exports);
+
 function test() {
     a;
 }

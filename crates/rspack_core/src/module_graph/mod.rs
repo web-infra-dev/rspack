@@ -467,9 +467,9 @@ mod test {
   use rspack_sources::Source;
 
   use crate::{
-    BuildContext, BuildResult, CodeGeneratableDependency, CodeGenerationResult, Compilation,
-    Context, Dependency, DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule,
-    ModuleIdentifier, ModuleType, SourceType,
+    BuildContext, BuildResult, CodeGenerationResult, Compilation, Context, Dependency,
+    DependencyId, Module, ModuleDependency, ModuleGraph, ModuleGraphModule, ModuleIdentifier,
+    ModuleType, SourceType,
   };
 
   // Define a detailed node type for `ModuleGraphModule`s
@@ -545,15 +545,6 @@ mod test {
 
         fn set_request(&mut self, request: String) {
           self.1 = request;
-        }
-      }
-
-      impl CodeGeneratable for $ident {
-        fn generate(
-          &self,
-          _code_generatable_context: &mut crate::CodeGeneratableContext,
-        ) -> Result<crate::CodeGeneratableResult> {
-          unreachable!()
         }
       }
     };

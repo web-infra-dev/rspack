@@ -1,67 +1,42 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./Layout.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return Layout;
-    }
-});
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return Layout; }});
 function Layout() {}
 },
 "./Something.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "something", {
-    enumerable: true,
-    get: function() {
-        return something;
-    }
-});
-function something() {}
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'something': function() { return something; }});
+ function something() {}
 },
 "./c.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "cccc", {
-    enumerable: true,
-    get: function() {
-        return cccc;
-    }
-});
-function cccc() {}
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'cccc': function() { return cccc; }});
+ function cccc() {}
 },
 "./export.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "cccc", {
-    enumerable: true,
-    get: function() {
-        return _c.cccc;
-    }
-});
-var _Layout = __webpack_require__.ir(__webpack_require__("./Layout.js"));
-var _Something = __webpack_require__("./Something.js");
-var _c = __webpack_require__("./c.js");
-var L = _Layout.default;
-L.something = _Something.something;
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'cccc': function() { return _c__WEBPACK_IMPORTED_MODULE__["cccc"]; }});
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Layout */"./Layout.js");
+/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./Something.js");
+/* harmony import */var _c__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./c */"./c.js");
+
+
+var L = _Layout__WEBPACK_IMPORTED_MODULE__["default"];
+L.something = _Something__WEBPACK_IMPORTED_MODULE__["something"];
+
+ var LL = L;
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _export = __webpack_require__("./export.js");
-(0, _export.cccc)();
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
+
+(0, _export__WEBPACK_IMPORTED_MODULE__["cccc"])();
 },
 
 },function(__webpack_require__) {

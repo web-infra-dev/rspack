@@ -1,40 +1,26 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./b.js?x": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: function() {
-        return a;
-    }
-});
-const a = 3;
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return a; }});
+ const a = 3;
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _bjsx = __webpack_require__("./b.jsx");
-var _bjsx1 = __webpack_require__("./b.js?x");
-_bjsx1.a;
-_bjsx.a;
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _b_jsx__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b.jsx */"./b.jsx");
+/* harmony import */var _b_js_x__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b.js?x */"./b.js?x");
+
+
+_b_js_x__WEBPACK_IMPORTED_MODULE__["a"];
+_b_jsx__WEBPACK_IMPORTED_MODULE__["a"];
 console.log("hello, world");
 },
 "./b.jsx": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: function() {
-        return a;
-    }
-});
-const a = 3;
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return a; }});
+ const a = 3;
 },
 
 },function(__webpack_require__) {

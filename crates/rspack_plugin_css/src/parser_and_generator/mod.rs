@@ -5,7 +5,10 @@ use indexmap::IndexMap;
 use preset_env_base::query::{Query, Targets};
 use rspack_core::ModuleDependency;
 use rspack_core::{
-  rspack_sources::{RawSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{
+    MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
+    SourceMapSourceOptions,
+  },
   AstOrSource, BuildMetaExportsType, CodeGeneratableContext, GenerateContext, GenerationResult,
   Module, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
 };
@@ -26,7 +29,7 @@ use swc_core::{
 
 use crate::dependency::CssComposeDependency;
 use crate::plugin::CssConfig;
-use crate::swc_css_compiler::SWC_COMPILER;
+use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{pxtorem::px_to_rem::px_to_rem, visitors::analyze_dependencies};
 
@@ -91,6 +94,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       source,
       additional_data,
       module_type,
+      module_user_request,
       resource_data,
       compiler_options,
       build_info,
@@ -104,6 +108,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let content = source.source().to_string();
     let css_modules = matches!(module_type, ModuleType::CssModule);
+    let filename = &resource_data
+      .resource_path
+      .relative(&compiler_options.context);
     let TWithDiagnosticArray {
       inner: mut stylesheet,
       mut diagnostic,
@@ -129,9 +136,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
 
     let locals = if css_modules {
-      let filename = &resource_data
-        .resource_path
-        .relative(&compiler_options.context);
       let result = swc_core::css::modules::compile(
         &mut stylesheet,
         ModulesTransformConfig::new(
@@ -146,9 +150,31 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } else {
       None
     };
+    let devtool = &compiler_options.devtool;
+
+    let (code, source_map) = SWC_COMPILER.codegen(
+      cm,
+      &stylesheet,
+      SwcCssSourceMapGenConfig {
+        enable: devtool.source_map(),
+        inline_sources_content: !devtool.no_sources(),
+        emit_columns: !devtool.cheap(),
+      },
+    )?;
+
+    let TWithDiagnosticArray {
+      inner: mut new_stylesheet_ast,
+      diagnostic: new_diagnostic,
+    } = SWC_COMPILER.parse_file(
+      Default::default(),
+      &parse_context.resource_data.resource_path.to_string_lossy(),
+      code.clone(),
+      Default::default(),
+    )?;
+    diagnostic.extend(new_diagnostic);
 
     let mut dependencies = analyze_dependencies(
-      &mut stylesheet,
+      &mut new_stylesheet_ast,
       code_generation_dependencies,
       &mut diagnostic,
     );
@@ -178,11 +204,28 @@ impl ParserAndGenerator for CssParserAndGenerator {
       diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));
     }
 
+    let new_source = if let Some(source_map) = source_map {
+      SourceMapSource::new(SourceMapSourceOptions {
+        value: code,
+        name: module_user_request,
+        source_map: SourceMap::from_slice(&source_map)
+          .map_err(|e| internal_error!(e.to_string()))?,
+        // Safety: original source exists in code generation
+        original_source: Some(source.source().to_string()),
+        // Safety: original source exists in code generation
+        inner_source_map: source.map(&MapOptions::default()),
+        remove_original_source: false,
+      })
+      .boxed()
+    } else {
+      RawSource::from(code).boxed()
+    };
+
     Ok(
       ParseResult {
         dependencies,
         presentational_dependencies: vec![],
-        ast_or_source: AstOrSource::new(None, Some(source.clone())),
+        ast_or_source: AstOrSource::new(None, Some(new_source)),
       }
       .with_diagnostic(diagnostic),
     )

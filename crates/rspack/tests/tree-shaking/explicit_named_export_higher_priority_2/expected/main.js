@@ -1,41 +1,31 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./bar.js": function (module, exports, __webpack_require__) {
-"use strict";
+'use strict';
+__webpack_require__.r(exports);
+ const a = 'bar';
 },
 "./baz.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: function() {
-        return a;
-    }
-});
-const a = 'baz';
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return a; }});
+ const a = 'baz';
 },
 "./foo.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "a", {
-    enumerable: true,
-    get: function() {
-        return _baz.a;
-    }
-});
-var _baz = __webpack_require__("./baz.js");
-__webpack_require__.es(__webpack_require__("./bar.js"), exports);
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'a': function() { return _baz__WEBPACK_IMPORTED_MODULE__["a"]; }});
+/* harmony import */var _baz__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./baz */"./baz.js");
+/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
+__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);
+
+
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _foo = __webpack_require__("./foo.js");
-console.log(_foo.a);
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+
+console.log(_foo__WEBPACK_IMPORTED_MODULE__["a"]);
 },
 
 },function(__webpack_require__) {

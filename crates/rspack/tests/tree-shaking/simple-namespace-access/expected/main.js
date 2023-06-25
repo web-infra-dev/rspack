@@ -1,58 +1,38 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _maths = __webpack_require__.ir(__webpack_require__("./maths.js"));
-console.log(_maths.xxx.test);
-console.log(_maths['square']);
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./maths.js */"./maths.js");
+/* TREE-SHAKING */ 
+console.log(_maths_js__WEBPACK_IMPORTED_MODULE__.xxx.test);
+console.log(_maths_js__WEBPACK_IMPORTED_MODULE__['square']);
 },
 "./maths.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    square: function() {
-        return square;
-    },
-    xxx: function() {
-        return _test;
-    }
-});
-var _test = __webpack_require__.ir(__webpack_require__("./test.js"));
-function square(x) {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE__; }});
+__webpack_require__.d(exports, {'square': function() { return square; }});
+/* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./test.js */"./test.js");
+// maths.js
+// This function isn't used anywhere, so
+// Rollup excludes it from the bundle...
+ function square(x) {
     return x * x;
 }
+// This function gets included
+ function cube(x) {
+    // rewrite this as `square( x ) * x`
+    // and see what happens!
+    return x * x * x;
+}
+
 },
 "./test.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    test: function() {
-        return test;
-    },
-    ccc: function() {
-        return ccc;
-    }
-});
-function test() {}
-function ccc() {}
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'test': function() { return test; }, 'ccc': function() { return ccc; }});
+ function test() {}
+ function ccc() {}
 },
 
 },function(__webpack_require__) {

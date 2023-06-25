@@ -1,37 +1,25 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "q", {
-    enumerable: true,
-    get: function() {
-        return _lib.question;
-    }
-});
-var _lib = __webpack_require__("./lib.js");
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'q': function() { return _lib__WEBPACK_IMPORTED_MODULE__["question"]; }});
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
+
+
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-_app.q;
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+
+_app__WEBPACK_IMPORTED_MODULE__["q"];
 },
 "./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "question", {
-    enumerable: true,
-    get: function() {
-        return question;
-    }
-});
-const question = "2";
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'question': function() { return question; }});
+ const answer = "1";
+ const question = "2";
 },
 
 },function(__webpack_require__) {

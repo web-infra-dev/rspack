@@ -1,39 +1,23 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./foo.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    default: function() {
-        return _default;
-    },
-    bar: function() {
-        return bar;
-    }
-});
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'bar': function() { return bar; }});
 var foo = function() {
     return 42;
 };
-var _default = foo;
-function bar() {
+var __WEBPACK_DEFAULT_EXPORT__ = foo;
+ function bar() {
     return contrivedExample(foo);
 }
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _foo = __webpack_require__.ir(__webpack_require__("./foo.js"));
-var answer = (0, _foo.default)();
-(0, _foo.bar)();
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+
+var answer = (0, _foo__WEBPACK_IMPORTED_MODULE__["default"])();
+var somethingElse = (0, _foo__WEBPACK_IMPORTED_MODULE__["bar"])();
 console.log(answer);
 },
 

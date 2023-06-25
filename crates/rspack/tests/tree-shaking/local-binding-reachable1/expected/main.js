@@ -1,44 +1,30 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./Layout.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "defaults", {
-    enumerable: true,
-    get: function() {
-        return defaults;
-    }
-});
-const defaults = {
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'defaults': function() { return defaults; }});
+ const defaults = {
     test: 1000
 };
 },
 "./export.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "Something", {
-    enumerable: true,
-    get: function() {
-        return Something;
-    }
-});
-var _Layout = __webpack_require__("./Layout.js");
-function callit() {
-    _Layout.defaults.test;
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'Something': function() { return Something; }});
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Layout */"./Layout.js");
+
+ function callit() {
+    _Layout__WEBPACK_IMPORTED_MODULE__["defaults"].test;
 }
-callit();
-var Something = 20000;
+ var Sider = callit();
+ var Something = 20000;
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _export = __webpack_require__("./export.js");
-(0, _export.Something)();
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
+
+(0, _export__WEBPACK_IMPORTED_MODULE__["Something"])();
 },
 
 },function(__webpack_require__) {

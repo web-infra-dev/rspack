@@ -1,55 +1,45 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./import-module.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "test", {
-    enumerable: true,
-    get: function() {
-        return test;
-    }
-});
-var _module = __webpack_require__.ir(__webpack_require__("./module.js"));
-function test() {
-    (0, _module.default)({
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'test': function() { return test; }});
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
+
+ function test() {
+    (0, _module__WEBPACK_IMPORTED_MODULE__["default"])({
         type: "inline"
     });
 }
 },
 "./index.js": function (module, exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
-    __webpack_require__("./import-module.js").test();
+    __webpack_require__(/* ./import-module */"./import-module.js").test();
     return Promise.all([
-        __webpack_require__.el("./some-module.js").then(__webpack_require__.bind(__webpack_require__, "./some-module.js")).then(__webpack_require__.ir),
-        __webpack_require__.el("./chunk.js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js")).then(__webpack_require__.ir)
+        __webpack_require__.el(/* ./some-module */"./some-module.js").then(__webpack_require__.bind(__webpack_require__, /* ./some-module */"./some-module.js")),
+        __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"))
     ]);
 });
 },
 "./module.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
-var _somemodule = __webpack_require__("./some-module.js");
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+/* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./some-module */"./some-module.js");
+
 function getType(obj) {
     return obj.type;
 }
+// Local functions
 function doSomethingWithBlock(obj) {
-    return _somemodule.Block.doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE__["Block"]).doSomething(obj);
 }
 function doSomethingWithInline(obj) {
-    return _somemodule.Inline.doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE__["Inline"]).doSomething(obj);
 }
 function doSomethingWithDocument(obj) {
-    return _somemodule.Document.doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE__["Document"]).doSomething(obj);
 }
+// Exported functions
 function doSomething(obj) {
     const type = getType(obj);
     switch(type){
@@ -63,30 +53,16 @@ function doSomething(obj) {
             throw new Error();
     }
 }
-var _default = doSomething;
+function useDocument(obj) {
+    return doSomethingWithDocument(obj);
+}
+
+var __WEBPACK_DEFAULT_EXPORT__ = doSomething;
 },
 "./some-module.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    Block: function() {
-        return Block;
-    },
-    Inline: function() {
-        return Inline;
-    },
-    Document: function() {
-        return Document;
-    }
-});
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'Block': function() { return Block; }, 'Inline': function() { return Inline; }, 'Document': function() { return Document; }});
 class Block {
     static doSomething() {}
 }
@@ -96,6 +72,7 @@ class Inline {
 class Document {
     static doSomething() {}
 }
+
 },
 
 },function(__webpack_require__) {

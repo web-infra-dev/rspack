@@ -1,34 +1,21 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["lib_js"], {
 "./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
-var _test = __webpack_require__.ir(__webpack_require__("./test.js"));
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+/* harmony import */var _test__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./test */"./test.js");
+
 function myanswer() {
-    _test.default;
+    _test__WEBPACK_IMPORTED_MODULE__["default"];
 }
-var _default = myanswer;
+var __WEBPACK_DEFAULT_EXPORT__ = myanswer;
 },
 "./test.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "default", {
-    enumerable: true,
-    get: function() {
-        return _default;
-    }
-});
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 function test() {}
-var _default = test;
+var __WEBPACK_DEFAULT_EXPORT__ = test;
 },
 
 }]);

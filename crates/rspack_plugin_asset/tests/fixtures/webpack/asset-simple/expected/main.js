@@ -1,12 +1,13 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _filepng = __webpack_require__.ir(__webpack_require__("./images/file.png"));
-var _filejpg = __webpack_require__.ir(__webpack_require__("./images/file.jpg"));
-var _filesvg = __webpack_require__.ir(__webpack_require__("./images/file.svg"));
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _images_file_png__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.png */"./images/file.png");
+/* harmony import */var _images_file_jpg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.jpg */"./images/file.jpg");
+/* harmony import */var _images_file_svg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.svg */"./images/file.svg");
+
+
+
 const container = document.createElement("div");
 Object.assign(container.style, {
     display: "flex",
@@ -26,9 +27,9 @@ function createImageElement(title, src) {
     container.appendChild(div);
 }
 [
-    _filepng.default,
-    _filejpg.default,
-    _filesvg.default
+    _images_file_png__WEBPACK_IMPORTED_MODULE__,
+    _images_file_jpg__WEBPACK_IMPORTED_MODULE__,
+    _images_file_svg__WEBPACK_IMPORTED_MODULE__
 ].forEach((src)=>{
     createImageElement(src.split(".").pop(), src);
 });

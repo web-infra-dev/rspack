@@ -1,10 +1,9 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _filesvg = __webpack_require__.ir(__webpack_require__("./images/file.svg"));
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _images_file_svg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.svg */"./images/file.svg");
+
 const container = document.createElement("div");
 Object.assign(container.style, {
     display: "flex",
@@ -24,7 +23,7 @@ function createImageElement(title, src) {
     container.appendChild(div);
 }
 [
-    _filesvg.default
+    _images_file_svg__WEBPACK_IMPORTED_MODULE__
 ].forEach((src)=>{
     createImageElement(src.split(".").pop(), src);
 });

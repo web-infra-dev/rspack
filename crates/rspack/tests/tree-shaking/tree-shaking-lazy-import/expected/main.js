@@ -1,25 +1,17 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./app.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "answer", {
-    enumerable: true,
-    get: function() {
-        return answer;
-    }
-});
-const answer = 30;
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'answer': function() { return answer; }});
+ const answer = 30;
 },
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _app = __webpack_require__("./app.js");
-const a = test(()=>__webpack_require__.el("./lib.js").then(__webpack_require__.bind(__webpack_require__, "./lib.js")).then(__webpack_require__.ir));
-(0, _app.answer)();
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+
+const a = test(()=>__webpack_require__.el(/* ./lib */"./lib.js").then(__webpack_require__.bind(__webpack_require__, /* ./lib */"./lib.js")));
+(0, _app__WEBPACK_IMPORTED_MODULE__["answer"])();
 a;
 },
 
