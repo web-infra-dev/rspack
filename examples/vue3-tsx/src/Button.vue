@@ -5,6 +5,6 @@ function Button() {
 </script>
 
 <template>
-	<h4>setip tsx</h4>
+	<h4>setup tsx</h4>
 	<Button></Button>
 </template>
