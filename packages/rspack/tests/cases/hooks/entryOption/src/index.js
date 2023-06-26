@@ -1,3 +1,4 @@
 import { answer } from "./answer";
-
-console.log(`index: ${answer}`);
+it("should compile successfully with entryOption", () => {
+	expect(answer).toBe(42);
+});

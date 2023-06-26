@@ -1,5 +1,19 @@
+const assert = require("assert").strict;
+
+class MyEntryOptionPlugin {
+	apply(compiler) {
+		compiler.hooks.entryOption.tap("MyEntryOptionPlugin", (context, entry) => {
+			assert(context === config.context, "Context is not equal.");
+			assert.deepStrictEqual(
+				entry,
+				config.entry,
+				"Entry is not strictly equal."
+			);
+		});
+	}
+}
+
 /** @type {import('@rspack/cli').Configuration} */
-const MyEntryOptionPlugin = require("./plugins/MyEntryOptionPlugin");
 const config = {
 	context: __dirname,
 	mode: "development",
