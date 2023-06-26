@@ -1,5 +1,6 @@
 import { FunctionalComponent, ref } from "vue";
 import vueLogo from "./assets/vue.svg";
+import Button from "./Button.vue";
 import "./App.css";
 
 export default {
@@ -28,6 +29,7 @@ export default {
 				<div class="card">
 					<CounterButton onClick={add} value={count.value} />
 				</div>
+				<Button></Button>
 			</div>
 		);
 	}
