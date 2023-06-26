@@ -147,8 +147,8 @@ pub fn run_before_pass(
           comments,
           syntax.typescript()
         ),
-        !resource_path.contains("@swc/helpers")
-          && !resource_path.contains("@swc\\helpers") // window path
+        (!resource_path.contains("@swc/helpers")
+        || !resource_path.contains("@swc\\helpers")) // window path
           && !resource_path.contains("tslib")
           && !resource_path.contains("core-js")
       ),
