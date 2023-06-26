@@ -40,7 +40,7 @@ module.exports = class RspackMinifyPlugin {
 				},
 				{
 					sourceMap: sourcemap,
-					...options
+					...this.options
 				}
 			);
 			return result;
