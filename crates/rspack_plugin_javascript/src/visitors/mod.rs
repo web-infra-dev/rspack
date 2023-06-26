@@ -147,8 +147,7 @@ pub fn run_before_pass(
           comments,
           syntax.typescript()
         ),
-        (!resource_path.contains("@swc/helpers")
-        || !resource_path.contains("@swc\\helpers")) // window path
+        !resource_path.contains("@swc/helpers")
           && !resource_path.contains("tslib")
           && !resource_path.contains("core-js")
       ),
@@ -157,6 +156,7 @@ pub fn run_before_pass(
       // The ordering of these two is important, `expr_simplifier` goes first and `dead_branch_remover` goes second.
       swc_visitor::expr_simplifier(unresolved_mark, Default::default()),
       swc_visitor::dead_branch_remover(unresolved_mark),
+      swc_visitor::hygiene(false, top_level_mark),
       swc_visitor::fixer(comments.map(|v| v as &dyn Comments)),
     );
     program.fold_with(&mut pass);
