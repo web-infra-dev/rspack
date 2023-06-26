@@ -49,7 +49,7 @@ function defaultClearTimeout() {
     try {
         if (typeof clearTimeout === "function") cachedClearTimeout = clearTimeout;
         else cachedClearTimeout = defaultClearTimeout;
-    } catch (e) {
+    } catch (e1) {
         cachedClearTimeout = defaultClearTimeout;
     }
 })();

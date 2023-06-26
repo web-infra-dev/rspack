@@ -19,8 +19,8 @@ setTimeout(()=>{
         container.innerHTML = `adddd333:${_lib__WEBPACK_IMPORTED_MODULE__["secret"]}:${_lib__WEBPACK_IMPORTED_MODULE__["myanswer"]}`;
     }
 }
-if (module.hot?.accept) module.hot.accept((module)=>{
-    console.log("xxx:", module);
+if (module.hot?.accept) module.hot.accept((module1)=>{
+    console.log("xxx:", module1);
 });
 },
 "./index.js": function (module, exports, __webpack_require__) {
