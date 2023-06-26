@@ -1,6 +1,6 @@
 import { getLastVersion } from "./version.mjs";
 import * as core from "@actions/core";
-import * as path from 'path'
+import * as path from "path";
 
 export async function publish_handler(mode, options) {
 	console.log("options:", options);
@@ -13,17 +13,17 @@ export async function publish_handler(mode, options) {
 
 		fs.writeFileSync(
 			npmrcPath,
-			`//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`
+			`//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`,
 		);
 	}
 	await $`pnpm publish -r ${options.dryRun ? "--dry-run" : ""} --tag ${
 		options.tag
 	} --no-git-checks`;
 	const version = await getLastVersion(root);
-	core.setOutput('version', version);
+	core.setOutput("version", version);
 	core.notice(`Version: ${version}`);
-  // write version to workspace directory
-  fs.writeFileSync(path.resolve(__dirname, "../..",  "version_output"), version)
+	// write version to workspace directory
+	fs.writeFileSync(path.resolve(__dirname, "../..", "version_output"), version);
 	/**
 	 * @Todo test stable release later
 	 */
