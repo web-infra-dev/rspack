@@ -49,6 +49,25 @@ const auxiliaryComment = z.string().or(
 	})
 );
 
+const libraryName = z
+	.string()
+	.or(z.string().array())
+	.or(
+		z.strictObject({
+			amd: z.string().optional(),
+			commonjs: z.string().optional(),
+			root: z.string().or(z.string().array()).optional()
+		})
+	);
+
+const libraryOptions = z.strictObject({
+	auxiliaryComment: auxiliaryComment.optional(),
+	export: z.string().array().or(z.string()).optional(),
+	name: libraryName.optional(),
+	type: libraryType().optional(),
+	umdNamedDefine: umdNamedDefine.optional()
+});
+
 export function output() {
 	return z.strictObject({
 		iife: z.boolean().optional(),
@@ -101,23 +120,7 @@ export function output() {
 			.optional(),
 		hashDigest: z.string().optional(),
 		hashDigestLength: z.number().optional(),
-		library: z
-			.strictObject({
-				auxiliaryComment: auxiliaryComment.optional(),
-				export: z.string().array().or(z.string()).optional(),
-				name: z
-					.string()
-					.or(z.string().array())
-					.or(
-						z.strictObject({
-							amd: z.string().optional(),
-							commonjs: z.string().optional(),
-							root: z.string().or(z.string().array()).optional()
-						})
-					),
-				type: libraryType().optional(),
-				umdNamedDefine: umdNamedDefine.optional()
-			})
-			.optional()
+		library: libraryName.or(libraryOptions).optional(),
+		asyncChunks: z.boolean().optional()
 	});
 }
