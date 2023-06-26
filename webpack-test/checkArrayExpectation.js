@@ -82,6 +82,10 @@ module.exports = function checkArrayExpectation(
 		}
 	}
 	if (fs.existsSync(path.join(testDirectory, `${filename}.js`))) {
+		if (fs.existsSync(path.join(testDirectory, `${filename}-sort.js`))) {
+			const sorter = require(path.join(testDirectory, `${filename}-sort.js`))
+			array = sorter(array)
+		}
 		const expectedFilename = path.join(testDirectory, `${filename}.js`);
 		const expected = require(expectedFilename);
 		const diff = diffItems(array, expected, kind);

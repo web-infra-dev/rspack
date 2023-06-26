@@ -30,11 +30,10 @@ modules.forEach(module => {
 			// the module doesn't include the env variable, an error is expected when requiring the variable
 			regex.push([
 				{compilerPath: new RegExp(`${module.name}`)},
-				new RegExp(`Can't resolve '${variable}'`),
+				new RegExp(`Failed to resolve ${variable}`),
 			]);
 		}
 	});
-	
 	if (module.allowedErrors) {
 		regex.push(...module.allowedErrors)
 	}
