@@ -1263,6 +1263,8 @@ impl<'a> ModuleRefAnalyze<'a> {
       .module_graph_module_by_identifier(&self.module_identifier)
       && let Some(FactoryMeta { side_effects: Some(side_effects) }) = &mgm.factory_meta
     {
+            dbg!(self.module_identifier);
+            dbg!(&mgm.factory_meta);
       return Some(SideEffectType::Configuration(*side_effects))
     }
     None
