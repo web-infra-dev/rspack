@@ -1,5 +1,6 @@
 import { getLastVersion } from "./version.mjs";
 import * as core from "@actions/core";
+import * as path from 'path'
 
 export async function publish_handler(mode, options) {
 	console.log("options:", options);
@@ -21,6 +22,8 @@ export async function publish_handler(mode, options) {
 	const version = await getLastVersion(root);
 	core.setOutput('version', version);
 	core.notice(`Version: ${version}`);
+  // write version to workspace directory
+  fs.writeFileSync(path.resolve(__dirname, "../..",  "version_output"), version)
 	/**
 	 * @Todo test stable release later
 	 */
