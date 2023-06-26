@@ -31,12 +31,14 @@ module.exports = class RspackMinifyPlugin {
 				minifyWhitespace: true
 			});
 		} else if (this.options.minifier === "terser") {
+			delete options.sourcemap;
 			const result = await minify(
 				{
 					[sourcefile]: code
 				},
 				{
-					sourceMap: sourcemap
+					sourceMap: sourcemap,
+					...options
 				}
 			);
 			return result;
