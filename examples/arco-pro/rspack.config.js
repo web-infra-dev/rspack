@@ -12,7 +12,7 @@ const config = {
 		webSocketServer: "sockjs",
 		historyApiFallback: true
 	},
-	mode: prod ? "production" : "development",
+	mode: "development",
 	devtool: false,
 	builtins: {
 		progress: {},
@@ -58,6 +58,7 @@ const config = {
 		filename: "[name].[contenthash].js"
 	},
 	optimization: {
+		minimize: false,
 		realContentHash: true,
 		splitChunks: {
 			cacheGroups: {

@@ -108,6 +108,14 @@ impl AstOrSource {
     }
   }
 
+  pub fn try_to_source(&self) -> Result<BoxSource> {
+    match &self.inner.1 {
+      Some(source) => Ok(source.clone()),
+      // TODO: change to user error
+      _ => Err(internal_error!("Failed to convert to source")),
+    }
+  }
+
   pub fn map<F, G>(self, f: F, g: G) -> Self
   where
     F: FnOnce(ModuleAst) -> ModuleAst,

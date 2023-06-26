@@ -153,7 +153,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       generate_context.requested_source_type,
       SourceType::JavaScript
     ) {
-      let mut source = ReplaceSource::new(ast_or_source.to_owned().try_into_source()?);
+      let mut source = ReplaceSource::new(ast_or_source.try_to_source()?);
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
       let mut context = CodeGeneratableContext {
