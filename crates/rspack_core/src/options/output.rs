@@ -47,6 +47,7 @@ pub struct OutputOptions {
   pub hash_digest: HashDigest,
   pub hash_digest_length: usize,
   pub hash_salt: HashSalt,
+  pub async_chunks: bool,
 }
 
 impl From<&OutputOptions> for RspackHash {

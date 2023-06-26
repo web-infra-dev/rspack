@@ -1,6 +1,6 @@
 "use strict";
 
-const EnvironmentPlugin = require("../../../../").EnvironmentPlugin;
+const EnvironmentPlugin = require("@rspack/core").EnvironmentPlugin;
 
 process.env.AAA = "aaa";
 process.env.BBB = "bbb";
@@ -10,7 +10,7 @@ process.env.FFF = "fff";
 process.env.GGG = "ggg";
 process.env.III = "";
 
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		name: "aaa",

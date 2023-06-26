@@ -124,4 +124,4 @@ class BannerPlugin {
 	}
 }
 
-module.exports = BannerPlugin;
+export { BannerPlugin };

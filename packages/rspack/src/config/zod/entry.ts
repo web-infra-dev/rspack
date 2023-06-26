@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { publicPath } from "./output";
 
 const entryItem = z
 	.string()
@@ -10,6 +11,8 @@ const entryDescription = z
 	.object({
 		import: entryItem,
 		runtime: z.literal(false).or(z.string().min(1)).optional(),
+		publicPath: publicPath().optional(),
+		baseUri: z.string().optional(),
 		chunkLoading: z
 			.literal(false)
 			.or(
@@ -18,6 +21,7 @@ const entryDescription = z
 					.or(z.string())
 					.optional()
 			),
+		asyncChunks: z.boolean().optional(),
 		wasmLoading: z
 			.literal(false)
 			.or(z.enum(["fetch-streaming", "fetch", "async-node"]))

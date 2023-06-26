@@ -438,6 +438,7 @@ impl TestConfig {
         hash_digest: c::HashDigest::Hex,
         hash_digest_length: 16,
         hash_salt: c::HashSalt::None,
+        async_chunks: true,
       },
       mode: c::Mode::from(self.mode),
       target: c::Target::new(&self.target).expect("Can't construct target"),
@@ -499,7 +500,9 @@ impl TestConfig {
             rspack_core::EntryOptions {
               runtime: Some("runtime".to_string()),
               chunk_loading: None,
+              async_chunks: Some(true),
               public_path: None,
+              base_uri: None,
             },
           )
           .boxed(),

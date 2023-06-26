@@ -275,7 +275,9 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				import: Array.isArray(value.import) ? value.import : [value.import],
 				runtime: value.runtime,
 				publicPath: value.publicPath,
-				chunkLoading: value.chunkLoading
+				baseUri: value.baseUri,
+				chunkLoading: value.chunkLoading,
+				asyncChunks: value.asyncChunks
 			};
 		}
 	}

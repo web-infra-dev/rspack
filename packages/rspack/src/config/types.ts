@@ -9,10 +9,10 @@
  */
 
 import watchpack from "watchpack";
-import webpackDevServer from "webpack-dev-server";
 import { Compiler } from "../compiler";
 import * as oldBuiltins from "./builtins";
 import { Compilation } from "..";
+import type * as webpackDevServer from "webpack-dev-server";
 import type { Options as RspackOptions } from "./zod/_rewrite";
 import type { OptimizationConfig as Optimization } from "./zod/optimization";
 export type { RspackOptions, Optimization };
@@ -85,7 +85,9 @@ export interface EntryDescription {
 	import: EntryItem;
 	runtime?: EntryRuntime;
 	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
 	publicPath?: PublicPath;
+	baseUri?: string;
 }
 
 export type EntryNormalized = EntryStaticNormalized;
@@ -96,7 +98,9 @@ export interface EntryDescriptionNormalized {
 	import?: string[];
 	runtime?: EntryRuntime;
 	chunkLoading?: ChunkLoading;
+	asyncChunks?: boolean;
 	publicPath?: PublicPath;
+	baseUri?: string;
 }
 
 ///// Output /////
@@ -137,6 +141,7 @@ export interface Output {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -251,6 +256,7 @@ export interface OutputNormalized {
 	hashDigestLength?: HashDigestLength;
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
+	asyncChunks?: boolean;
 }
 
 ///// Resolve /////

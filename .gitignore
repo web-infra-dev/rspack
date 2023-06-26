@@ -60,6 +60,7 @@ node_modules/
 !scripts/node_modules/
 !webpack-examples/*/node_modules
 !webpack-test/*/**/node_modules
+!packages/rspack-cli/tests/**/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
@@ -215,6 +216,7 @@ justfile
 /webpack-test/temp
 /webpack-test/ChangesAndRemovals
 /webpack-test/**/dev-defaults.webpack.lock
+!/webpack-test/**/target
 
 /webpack-examples/**/dist
 

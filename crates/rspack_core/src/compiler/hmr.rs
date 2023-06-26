@@ -173,7 +173,7 @@ where
         new_compilation.code_splitting_cache =
           std::mem::take(&mut self.compilation.code_splitting_cache);
 
-        self.compilation.has_module_import_export_change = false;
+        new_compilation.has_module_import_export_change = false;
         // remove prev build ast in modules
         fast_drop(
           new_compilation

@@ -125,8 +125,11 @@ function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
 		const chunkLoading = entry[key].chunkLoading;
 		raw[key] = {
 			import: entry[key].import!,
+			publicPath: entry[key].publicPath,
+			baseUri: entry[key].baseUri,
 			runtime: runtime === false ? undefined : runtime,
-			chunkLoading: chunkLoading === false ? "false" : chunkLoading
+			chunkLoading: chunkLoading === false ? "false" : chunkLoading,
+			asyncChunks: entry[key].asyncChunks
 		};
 	}
 	return raw;
@@ -221,7 +224,8 @@ function getRawOutput(output: OutputNormalized): RawOptions["output"] {
 		hashFunction: output.hashFunction!,
 		hashDigest: output.hashDigest!,
 		hashDigestLength: output.hashDigestLength!,
-		hashSalt: output.hashSalt!
+		hashSalt: output.hashSalt!,
+		asyncChunks: output.asyncChunks!
 	};
 }
 

@@ -11,7 +11,9 @@ pub struct EntryDescription {
   pub import: EntryItem,
   pub runtime: Option<String>,
   pub chunk_loading: Option<ChunkLoading>,
+  pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
+  pub base_uri: Option<String>,
 }
 
 #[derive(Debug)]
@@ -24,5 +26,7 @@ pub struct EntryData {
 pub struct EntryOptions {
   pub runtime: Option<String>,
   pub chunk_loading: Option<ChunkLoading>,
+  pub async_chunks: Option<bool>,
   pub public_path: Option<PublicPath>,
+  pub base_uri: Option<String>,
 }

@@ -66,6 +66,7 @@ async fn loader_test(actual: impl AsRef<Path>, expected: impl AsRef<Path>) {
           hash_digest: rspack_core::HashDigest::Hex,
           hash_digest_length: 16,
           hash_salt: rspack_core::HashSalt::None,
+          async_chunks: true,
         },
         target: rspack_core::Target::new(&vec![String::from("web")]).expect("TODO:"),
         resolve: rspack_core::Resolve::default(),

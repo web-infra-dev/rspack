@@ -1,11 +1,13 @@
 use async_trait::async_trait;
 use rspack_core::{
-  is_enabled_for_chunk, AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, Plugin,
+  AdditionalChunkRuntimeRequirementsArgs, ChunkLoading, Plugin,
   PluginAdditionalChunkRuntimeRequirementsOutput, PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 
-use crate::runtime_module::{ExportWebpackRequireRuntimeModule, ModuleChunkLoadingRuntimeModule};
+use crate::runtime_module::{
+  is_enabled_for_chunk, ExportWebpackRequireRuntimeModule, ModuleChunkLoadingRuntimeModule,
+};
 
 #[derive(Debug)]
 pub struct ModuleChunkLoadingPlugin;
