@@ -4,8 +4,8 @@ module.exports = {
 	module: {
 		rules: [
 			{
-				test: /\.svg$/,
-				type: "asset/resource"
+				test: /package/,
+				sideEffects: false
 			}
 		]
 	},
