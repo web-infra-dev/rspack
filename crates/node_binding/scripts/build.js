@@ -1,13 +1,20 @@
 const { spawn } = require("child_process");
 
+const CARGO_SAFELY_EXIT_CODE = 0;
+
 let release = process.argv.includes("--release");
-build().catch(err => {
+build().then((value) => {
+  // Regarding cargo's non-zero exit code as an error.
+  if (value !== CARGO_SAFELY_EXIT_CODE) {
+    process.exit(value)
+  }
+}).catch(err => {
 	console.error(err);
 	process.exit(1);
-});
+})
 
 async function build() {
-	await new Promise((resolve, reject) => {
+	return new Promise((resolve, reject) => {
 		let args = [
 			"build",
 			"--platform",
