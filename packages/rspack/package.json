@@ -7,7 +7,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -b ./tsconfig.lib.json",
     "prepare": "pnpm precompile-schema",
     "dev": "tsc -w",
     "test": "node --expose-gc --max-old-space-size=8192 --experimental-vm-modules ../../node_modules/jest-cli/bin/jest --runInBand --logHeapUsage",
