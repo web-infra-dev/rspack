@@ -662,7 +662,7 @@ impl RawOptionsApply for RawModuleRule {
         .transpose()?,
       resource: self.resource.map(|raw| raw.try_into()).transpose()?,
       description_data,
-      r#use: uses.transpose()?,
+      r#use: uses.transpose()?.unwrap_or_default(),
       r#type: module_type,
       parser: self.parser.map(|raw| raw.into()),
       generator: self.generator.map(|raw| raw.into()),

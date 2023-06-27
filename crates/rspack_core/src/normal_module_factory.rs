@@ -377,7 +377,7 @@ impl NormalModuleFactory {
 
       for rule in &resolved_module_rules {
         match &rule.r#use {
-          Some(ModuleRuleUse::Array(array_use)) => match rule.enforce {
+          ModuleRuleUse::Array(array_use) => match rule.enforce {
             ModuleRuleEnforce::Pre => {
               if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
                 pre_loaders.extend_from_slice(array_use);
@@ -394,7 +394,7 @@ impl NormalModuleFactory {
               }
             }
           },
-          Some(ModuleRuleUse::Func(func_use)) => {
+          ModuleRuleUse::Func(func_use) => {
             let context = FuncUseCtx {
               resource: Some(user_request.clone()),
               real_resource: Some(resource_data.resource.clone()),
@@ -404,9 +404,6 @@ impl NormalModuleFactory {
             let loaders = func_use(context).await?;
 
             normal_loaders.extend(loaders);
-          }
-          None => {
-            continue;
           }
         }
       }

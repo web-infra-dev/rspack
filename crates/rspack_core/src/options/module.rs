@@ -318,7 +318,7 @@ pub struct ModuleRule {
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
   #[derivative(Debug(format_with = "fmt_use"))]
-  pub r#use: Option<ModuleRuleUse>,
+  pub r#use: ModuleRuleUse,
   pub parser: Option<ParserOptions>,
   pub generator: Option<GeneratorOptions>,
   pub resolve: Option<Resolve>,
@@ -332,12 +332,18 @@ pub enum ModuleRuleUse {
   Func(FnUse),
 }
 
+impl Default for ModuleRuleUse {
+  fn default() -> Self {
+    Self::Array(vec![])
+  }
+}
+
 fn fmt_use(
-  r#use: &Option<ModuleRuleUse>,
+  r#use: &ModuleRuleUse,
   f: &mut std::fmt::Formatter,
 ) -> std::result::Result<(), std::fmt::Error> {
   match r#use {
-    Some(ModuleRuleUse::Array(array_use)) => write!(
+    ModuleRuleUse::Array(array_use) => write!(
       f,
       "{}",
       array_use
@@ -346,8 +352,7 @@ fn fmt_use(
         .collect::<Vec<_>>()
         .join("!")
     ),
-    Some(ModuleRuleUse::Func(_)) => write!(f, "Fn(...)"),
-    None => write!(f, "None"),
+    ModuleRuleUse::Func(_) => write!(f, "Fn(...)"),
   }
 }
 
