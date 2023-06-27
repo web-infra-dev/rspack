@@ -21,10 +21,8 @@ import {
 	MultiStats
 } from "@rspack/core";
 import { normalizeEnv } from "./utils/options";
-import {
-	loadRspackConfig,
-	findFileWithSupportedExtensions
-} from "./utils/loadConfig";
+import { loadRspackConfig } from "./utils/loadConfig";
+import findConfig from "./utils/findConfig";
 import { Mode } from "@rspack/core/src/config";
 import { RspackPluginInstance, RspackPluginFunction } from "@rspack/core";
 import path from "path";
@@ -131,8 +129,7 @@ export class RspackCLI {
 			} else if (!item.entry) {
 				const defaultEntryBase = path.resolve(process.cwd(), defaultEntry);
 				const defaultEntryPath =
-					findFileWithSupportedExtensions(defaultEntryBase) ||
-					defaultEntryBase + ".js"; // default entry is js
+					findConfig(defaultEntryBase) || defaultEntryBase + ".js"; // default entry is js
 				item.entry = {
 					main: defaultEntryPath
 				};

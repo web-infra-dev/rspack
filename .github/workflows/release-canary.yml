@@ -49,3 +49,12 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
           COMMENT: ${{ toJson(github.event.comment) }}
+
+      - name: Write a new comment
+        uses: peter-evans/create-or-update-comment@v3
+        continue-on-error: true
+        with:
+          issue-number: ${{ github.event.issue.number }}
+
+          body-path: 'version_output'
+              

@@ -88,6 +88,7 @@ export interface EntryDescription {
 	chunkLoading?: ChunkLoading;
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
+	baseUri?: string;
 }
 
 export type EntryNormalized = EntryStaticNormalized;
@@ -100,6 +101,7 @@ export interface EntryDescriptionNormalized {
 	chunkLoading?: ChunkLoading;
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
+	baseUri?: string;
 }
 
 ///// Output /////

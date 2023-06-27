@@ -1,6 +1,6 @@
 const webpack = require("../../../../");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		bundle0: "./index.js",

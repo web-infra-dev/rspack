@@ -1,5 +1,5 @@
 const IgnorePlugin = require("../../../../").IgnorePlugin;
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		a: "./intentionally-missing-module.js",

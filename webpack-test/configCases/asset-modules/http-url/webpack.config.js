@@ -6,7 +6,7 @@ const {
 const ServerPlugin = require("./server");
 
 const serverPlugin = new ServerPlugin(9990);
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 const base = {
 	mode: "development",
 	module: {

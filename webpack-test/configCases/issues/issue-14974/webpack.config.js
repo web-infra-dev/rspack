@@ -1,6 +1,6 @@
 const { HotModuleReplacementPlugin } = require("../../../../");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	devtool: false,
 	experiments: { topLevelAwait: true },

@@ -38,6 +38,7 @@ swc_core = { workspace = true, features = [
   "css_minifier",
 ] }
 tracing = { workspace = true }
+urlencoding = "2.1.2"
 
 [dev-dependencies]
 hrx-parser     = "0.1.1"

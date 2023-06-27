@@ -537,7 +537,9 @@ impl NormalModuleFactory {
     let mut side_effect_res = None;
     // side_effects from module rule has higher priority
     module_rules.iter().for_each(|rule| {
-      side_effect_res = rule.side_effects;
+      if rule.side_effects.is_some() {
+        side_effect_res = rule.side_effects;
+      }
     });
     if side_effect_res.is_some() {
       return side_effect_res;

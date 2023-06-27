@@ -1,4 +1,4 @@
-/** @type {(variant: boolean) => import("../../../../").Configuration} */
+/** @type {(variant: boolean) => import("@rspack/core").Configuration} */
 const config = o => ({
 	externals: {
 		"module-fs": o ? "module fs" : "module fs/promises",

@@ -51,7 +51,7 @@ jobs:
     name: Labeling for releasing
     runs-on: ubuntu-latest
     steps:
-      - uses: github/issue-labeler@v2.5 #May not be the latest version
+      - uses: github/issue-labeler@v3.1 #May not be the latest version
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           configuration-path: .github/pr-labeler.yml

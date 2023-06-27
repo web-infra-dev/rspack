@@ -371,12 +371,6 @@ export interface JsStatsWarning {
   formatted: string
 }
 
-export interface NodeFS {
-  writeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-}
-
 export interface PathData {
   filename?: string
   hash?: string
@@ -541,6 +535,7 @@ export interface RawEntryDescription {
   chunkLoading?: string
   asyncChunks?: boolean
   publicPath?: string
+  baseUri?: string
 }
 
 export interface RawExperiments {
@@ -947,13 +942,5 @@ export interface RawStyleConfig {
 
 export interface RawTrustedTypes {
   policyName?: string
-}
-
-export interface ThreadsafeNodeFS {
-  writeFile: (...args: any[]) => any
-  removeFile: (...args: any[]) => any
-  mkdir: (...args: any[]) => any
-  mkdirp: (...args: any[]) => any
-  removeDirAll: (...args: any[]) => any
 }
 

@@ -1,5 +1,5 @@
 use swc_core::{
-  common::pass::AstNodePath,
+  common::{pass::AstNodePath, SyntaxContext},
   ecma::{
     ast::{CallExpr, Expr, MemberExpr},
     visit::{AstParentKind, AstParentNodeRef},
@@ -205,4 +205,13 @@ fn test() {
     args: vec![],
     type_args: None
   }));
+}
+
+pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: &SyntaxContext) -> bool {
+  if let Expr::Member(member) = expr {
+    if let Expr::Ident(ident) = &*member.obj {
+      return ident.span.ctxt == *unresolved_ctxt;
+    };
+  }
+  false
 }

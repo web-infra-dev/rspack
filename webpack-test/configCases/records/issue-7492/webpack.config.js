@@ -1,6 +1,6 @@
 var path = require("path");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: "./index",
 	recordsInputPath: path.resolve(__dirname, "records.json"),

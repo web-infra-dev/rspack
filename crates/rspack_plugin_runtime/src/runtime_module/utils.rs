@@ -1,5 +1,5 @@
 use rspack_core::{
-  get_js_chunk_filename_template, Chunk, ChunkUkey, Compilation, PathData, SourceType,
+  get_js_chunk_filename_template, Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, SourceType,
 };
 use rustc_hash::FxHashSet as HashSet;
 
@@ -142,6 +142,20 @@ pub fn get_output_dir(chunk: &Chunk, compilation: &Compilation, enforce_relative
     compilation.options.output.path.display().to_string(),
     enforce_relative,
   )
+}
+
+pub fn is_enabled_for_chunk(
+  chunk_ukey: &ChunkUkey,
+  expected: &ChunkLoading,
+  compilation: &Compilation,
+) -> bool {
+  let chunk_loading = compilation
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
+    .and_then(|options| options.chunk_loading.as_ref())
+    .unwrap_or(&compilation.options.output.chunk_loading);
+  chunk_loading == expected
 }
 
 #[test]

@@ -1,6 +1,6 @@
 const Compiler = require("../../../../").Compiler;
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	optimization: {
 		minimize: true,

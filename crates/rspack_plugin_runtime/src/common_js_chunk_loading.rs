@@ -1,13 +1,13 @@
 use async_trait::async_trait;
-use rspack_core::{is_enabled_for_chunk, ChunkLoading};
+use rspack_core::ChunkLoading;
 use rspack_core::{
   AdditionalChunkRuntimeRequirementsArgs, Plugin, PluginAdditionalChunkRuntimeRequirementsOutput,
   PluginContext, RuntimeGlobals, RuntimeModuleExt,
 };
 use rspack_error::Result;
 
-use crate::runtime_module::ReadFileChunkLoadingRuntimeModule;
 use crate::runtime_module::RequireChunkLoadingRuntimeModule;
+use crate::runtime_module::{is_enabled_for_chunk, ReadFileChunkLoadingRuntimeModule};
 
 #[derive(Debug)]
 pub struct CommonJsChunkLoadingPlugin {

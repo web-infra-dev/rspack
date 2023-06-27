@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const readDir = require("../enabled/readdir");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
 		clean: true
