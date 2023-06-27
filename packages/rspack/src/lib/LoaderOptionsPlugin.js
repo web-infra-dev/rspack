@@ -62,4 +62,4 @@ class LoaderOptionsPlugin {
 	}
 }
 
-module.exports = LoaderOptionsPlugin;
+export { LoaderOptionsPlugin };

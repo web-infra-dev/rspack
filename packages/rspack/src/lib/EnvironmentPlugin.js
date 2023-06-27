@@ -64,4 +64,4 @@ class EnvironmentPlugin {
 	}
 }
 
-module.exports = EnvironmentPlugin;
+export { EnvironmentPlugin };
