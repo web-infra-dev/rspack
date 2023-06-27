@@ -14,6 +14,7 @@ use derive_builder::Builder;
 use glob::glob;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use similar::{Change, TextDiff};
 
 use crate::{
   helper::{cp, is_detail, is_mute, make_relative_from},
@@ -350,8 +351,11 @@ impl Rst {
 
           let actual_buf = fs::read(actual_dir.as_path()).expect("TODO:");
           let actual_str = String::from_utf8_lossy(&actual_buf);
-
-          if expected_str != actual_str {
+          // ignore newline diff for ci
+          let diff = TextDiff::from_lines(&expected_str, &actual_str)
+            .iter_all_changes()
+            .any(|change| !change.missing_newline());
+          if diff {
             let diff = FileDiff {
               expected_path: expected_dir.clone(),
               actual_path: actual_dir.clone(),
