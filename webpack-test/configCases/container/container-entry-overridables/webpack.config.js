@@ -1,7 +1,7 @@
 const { ContainerPlugin } = require("../../../../").container;
 const { ConsumeSharedPlugin } = require("../../../../").sharing;
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
 		new ContainerPlugin({

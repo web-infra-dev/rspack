@@ -1,7 +1,7 @@
 const svgToMiniDataURI = require("mini-svg-data-uri");
 const mimeTypes = require("mime-types");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "development",
 	module: {

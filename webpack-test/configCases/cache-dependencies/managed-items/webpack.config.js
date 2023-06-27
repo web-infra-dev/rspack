@@ -1,6 +1,6 @@
 const path = require("path");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	snapshot: {
 		managedPaths: [path.resolve(__dirname, "node_modules")]

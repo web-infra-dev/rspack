@@ -1,7 +1,7 @@
 const Compilation = require("../../../../").Compilation;
 const Source = require("webpack-sources").Source;
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
 		compiler => {

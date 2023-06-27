@@ -9,7 +9,7 @@ const base = {
 	target: "web"
 };
 
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{ ...base, output: { ...base.output, filename: "[name]-0.js" } },
 	{ ...base, output: { ...base.output, filename: "[name]-1.js" } }

@@ -1,6 +1,6 @@
 var webpack = require("../../../../");
 var TerserPlugin = require("terser-webpack-plugin");
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	node: {
 		__dirname: false,

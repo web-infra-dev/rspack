@@ -1,7 +1,7 @@
 const path = require("path");
 const webpack = require("../../../../");
 const data = require("./data");
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	externals: {
 		data: "commonjs " + path.resolve(__dirname, "data.js")
