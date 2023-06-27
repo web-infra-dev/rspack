@@ -11,7 +11,7 @@ use swc_core::quote;
 
 use super::{
   as_parent_path, expr_matcher, is_require_resolve_call, is_require_resolve_weak_call,
-  is_unresolved_require_member_expr,
+  is_unresolved_member_object_ident,
 };
 
 pub struct CommonJsScanner<'a> {
@@ -114,7 +114,7 @@ impl VisitAstPath for CommonJsScanner<'_> {
     ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
   ) {
     if let Callee::Expr(expr) = &node.callee {
-      if is_unresolved_require_member_expr(expr, self.unresolved_ctxt) {
+      if is_unresolved_member_object_ident(expr, self.unresolved_ctxt) {
         if is_require_resolve_call(node) {
           return self.add_require_resolve(node, ast_path, false);
         }

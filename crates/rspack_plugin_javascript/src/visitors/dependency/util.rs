@@ -207,7 +207,7 @@ fn test() {
   }));
 }
 
-pub fn is_unresolved_require_member_expr(expr: &Expr, unresolved_ctxt: &SyntaxContext) -> bool {
+pub fn is_unresolved_member_object_ident(expr: &Expr, unresolved_ctxt: &SyntaxContext) -> bool {
   if let Expr::Member(member) = expr {
     if let Expr::Ident(ident) = &*member.obj {
       return ident.span.ctxt == *unresolved_ctxt;

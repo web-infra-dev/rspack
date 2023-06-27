@@ -12,7 +12,7 @@ use swc_core::{
   },
 };
 
-use super::{expr_matcher, is_unresolved_require_member_expr, scanner::scanner_context_module};
+use super::{expr_matcher, is_unresolved_member_object_ident, scanner::scanner_context_module};
 use crate::dependency::{
   CommonJsRequireContextDependency, CommonJsRequireDependency, RequireResolveDependency,
 };
@@ -142,7 +142,7 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
           }
         }
       }
-      if is_unresolved_require_member_expr(expr, self.unresolved_ctxt) {
+      if is_unresolved_member_object_ident(expr, self.unresolved_ctxt) {
         if expr_matcher::is_require_resolve(expr) {
           self.add_require_resolve(call_expr, false);
           return;
