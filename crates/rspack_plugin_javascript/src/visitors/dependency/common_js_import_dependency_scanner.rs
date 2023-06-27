@@ -12,8 +12,9 @@ use swc_core::{
   },
 };
 
-use super::{context_helper::scanner_context_module, expr_matcher};
-use super::{expr_matcher, is_unresolved_member_object_ident, scanner::scanner_context_module};
+use super::{
+  context_helper::scanner_context_module, expr_matcher, is_unresolved_member_object_ident,
+};
 use crate::dependency::{
   CommonJsRequireContextDependency, CommonJsRequireDependency, RequireResolveDependency,
 };

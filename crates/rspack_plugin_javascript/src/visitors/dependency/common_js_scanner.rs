@@ -1,13 +1,6 @@
 use rspack_core::{CodeGeneratableDependency, RuntimeGlobals, RuntimeRequirementsDependency};
-use swc_core::common::pass::AstNodePath;
-use swc_core::ecma::ast::{CallExpr, Expr, Lit};
-use swc_core::ecma::visit::fields::IfStmtField;
-use swc_core::ecma::visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath};
-use swc_core::ecma::{
-  ast::Expr,
-  visit::{noop_visit_type, Visit, VisitWith},
-};
-use swc_core::quote;
+use swc_core::ecma::ast::Expr;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
 use super::expr_matcher;
 
