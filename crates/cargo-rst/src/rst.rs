@@ -14,7 +14,7 @@ use derive_builder::Builder;
 use glob::glob;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use similar::{Change, TextDiff};
+use similar::TextDiff;
 
 use crate::{
   helper::{cp, is_detail, is_mute, make_relative_from},
