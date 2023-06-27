@@ -90,7 +90,9 @@ impl Visit for NodeStuffScanner<'_> {
               .push(Box::new(ConstDependency::new(
                 ident.span.real_lo(),
                 ident.span.real_hi(),
-                format!(r#"'{filename}'"#).into(),
+                serde_json::to_string(&filename)
+                  .expect("should render filename")
+                  .into(),
                 None,
               )));
           }

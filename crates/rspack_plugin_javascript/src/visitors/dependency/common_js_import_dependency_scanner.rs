@@ -23,6 +23,7 @@ pub struct CommonJsImportDependencyScanner<'a> {
   presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   unresolved_ctxt: &'a SyntaxContext,
   in_try: bool,
+  in_if: bool,
 }
 
 impl<'a> CommonJsImportDependencyScanner<'a> {
@@ -36,6 +37,7 @@ impl<'a> CommonJsImportDependencyScanner<'a> {
       presentational_dependencies,
       unresolved_ctxt,
       in_try: false,
+      in_if: false,
     }
   }
 
@@ -186,16 +188,15 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
 
   fn visit_if_stmt(&mut self, if_stmt: &IfStmt) {
     self.replace_require_resolve(&if_stmt.test, "true");
-    if let Expr::Bin(bin) = &*if_stmt.test {
-      self.replace_require_resolve(&bin.left, "true");
-      self.replace_require_resolve(&bin.right, "true");
-    }
+    self.in_if = true;
     if_stmt.visit_children_with(self);
+    self.in_if = false;
   }
 
   fn visit_bin_expr(&mut self, bin_expr: &BinExpr) {
-    self.replace_require_resolve(&bin_expr.left, "undefined");
-    self.replace_require_resolve(&bin_expr.right, "undefined");
+    let value = if self.in_if { "true" } else { "undefined" };
+    self.replace_require_resolve(&bin_expr.left, value);
+    self.replace_require_resolve(&bin_expr.right, value);
     bin_expr.visit_children_with(self);
   }
 }
