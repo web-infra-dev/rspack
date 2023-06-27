@@ -14,7 +14,9 @@ import {
 	RawAssetGeneratorDataUrl,
 	RawAssetInlineGeneratorOptions,
 	RawAssetResourceGeneratorOptions,
-	RawIncrementalRebuild
+	RawIncrementalRebuild,
+	RawModuleRuleUses,
+	RawFuncUseCtx
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../compiler";
@@ -326,12 +328,15 @@ const getRawModuleRule = (
 	}
 	let funcUse;
 	if (typeof rule.use === "function") {
-		funcUse = (rawContext: any) => {
+		funcUse = (rawContext: RawFuncUseCtx) => {
 			const context = {
 				...rawContext,
 				compiler: options.compiler
 			};
-			const uses = (rule.use as Function)(context);
+			const uses = (
+				rule.use as Exclude<RawModuleRuleUses["funcUse"], undefined>
+			)(context);
+
 			return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
 		};
 	}
@@ -365,7 +370,14 @@ const getRawModuleRule = (
 		use:
 			typeof rule.use === "function"
 				? { type: "function", funcUse }
-				: createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
+				: {
+						type: "array",
+						arrayUse: createRawModuleRuleUses(
+							rule.use ?? [],
+							`${path}.use`,
+							options
+						)
+				  },
 		type: rule.type,
 		parser: rule.parser
 			? getRawParserOptions(rule.parser, rule.type ?? "javascript/auto")

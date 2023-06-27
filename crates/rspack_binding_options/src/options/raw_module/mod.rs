@@ -10,7 +10,7 @@ use napi_derive::napi;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
   AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, FnUseCtx, GeneratorOptions,
+  AssetResourceGeneratorOptions, BoxLoader, DescriptionData, FuncUseCtx, GeneratorOptions,
   GeneratorOptionsByModuleType, ModuleOptions, ModuleRule, ModuleRuleEnforce, ModuleRuleUse,
   ModuleType, ParserOptions, ParserOptionsByModuleType,
 };
@@ -508,15 +508,15 @@ pub struct RawModuleOptions {
 #[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[napi(object)]
-pub struct RawFnUseCtx {
+pub struct RawFuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
   pub resource_query: Option<String>,
   pub issuer: Option<String>,
 }
 
-impl From<FnUseCtx> for RawFnUseCtx {
-  fn from(value: FnUseCtx) -> Self {
+impl From<FuncUseCtx> for RawFuncUseCtx {
+  fn from(value: FuncUseCtx) -> Self {
     Self {
       resource: value.resource,
       real_resource: value.real_resource,
@@ -566,7 +566,7 @@ impl RawOptionsApply for RawModuleRule {
               "should have a func_matcher when RawRuleSetCondition.type is \"function\""
             )
           })?;
-          let func_use: ThreadsafeFunction<RawFnUseCtx, Vec<RawModuleRuleUse>> =
+          let func_use: ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>> =
           NAPI_ENV.with(|env| -> anyhow::Result<_> {
             let env = env.borrow().expect("Failed to get env with external");
             let func_use = rspack_binding_macros::js_fn_into_theadsafe_fn!(func_use, &Env::from(env));
@@ -574,7 +574,7 @@ impl RawOptionsApply for RawModuleRule {
           })?;
           let func_use = Arc::new(func_use);
           let loader_runner = Arc::new(loader_runner.clone());
-          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(move |ctx: FnUseCtx| {
+          Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Func(Box::new(move |ctx: FuncUseCtx| {
             let func_use = func_use.clone();
             let loader_runner = Arc::clone(&loader_runner);
             Box::pin(async move {

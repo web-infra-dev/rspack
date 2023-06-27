@@ -107,8 +107,12 @@ const config = {
 			{
 				test: /\.png$/,
 				exclude: /\h.png$/,
-				use: [
-					{
+				use: ({ resource, realResource, resourceQuery, compiler, issuer }) => {
+					console.log('resource', resource)
+					console.log('issuer',issuer)
+					console.log('realResource', realResource);
+					console.log('resourceQuery', resourceQuery);
+					return [{
 						loader: "file-loader"
 					},
 					{
@@ -118,9 +122,9 @@ const config = {
 								enabled: true
 							}
 						}
-					}
-				]
-			}
+					}]
+				}
+}
 		]
 	}
 };

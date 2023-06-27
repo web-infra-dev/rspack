@@ -13,12 +13,12 @@ use crate::{
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
   BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
-  FactoryMeta, FnUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -395,7 +395,7 @@ impl NormalModuleFactory {
             }
           },
           Some(ModuleRuleUse::Func(func_use)) => {
-            let context = FnUseCtx {
+            let context = FuncUseCtx {
               resource: Some(user_request.clone()),
               real_resource: Some(resource_data.resource.clone()),
               issuer: self.context.issuer.clone(),

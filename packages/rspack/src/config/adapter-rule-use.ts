@@ -1,9 +1,4 @@
-import {
-	JsAssetInfo,
-	RawModuleRuleUse,
-	RawModuleRuleUses,
-	RawOptions
-} from "@rspack/binding";
+import { JsAssetInfo, RawModuleRuleUse, RawOptions } from "@rspack/binding";
 import assert from "assert";
 import { ResolveRequest } from "enhanced-resolve";
 
@@ -202,7 +197,7 @@ export function createRawModuleRuleUses(
 	uses: RuleSetUseItem | RuleSetUseItem[],
 	path: string,
 	options: ComposeJsUseOptions
-): RawModuleRuleUses {
+): RawModuleRuleUse[] {
 	const normalizeRuleSetUseItem = (
 		item: RuleSetUseItem
 	): RuleSetLoaderWithOptions =>
@@ -210,10 +205,7 @@ export function createRawModuleRuleUses(
 	const allUses = Array.isArray(uses)
 		? [...uses].map(normalizeRuleSetUseItem)
 		: [normalizeRuleSetUseItem(uses)];
-	return {
-		type: "array",
-		arrayUse: createRawModuleRuleUsesImpl(allUses, path, options)
-	};
+	return createRawModuleRuleUsesImpl(allUses, path, options);
 }
 
 function createRawModuleRuleUsesImpl(

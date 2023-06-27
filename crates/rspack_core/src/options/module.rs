@@ -287,15 +287,15 @@ where
   }
   Ok(true)
 }
-pub struct FnUseCtx {
+pub struct FuncUseCtx {
   pub resource: Option<String>,
   pub real_resource: Option<String>,
   pub resource_query: Option<String>,
   pub issuer: Option<String>,
 }
 
-// let func_use: Option<Box<impl Fn(FnUseCtx) -> Pin<Box<impl Future<Output = Result<Vec<Arc<dyn Loader<CompilerContext>>>, Error>>>>>>
-pub type FnUse = Box<dyn Fn(FnUseCtx) -> BoxFuture<'static, Result<Vec<BoxLoader>>> + Sync + Send>;
+pub type FnUse =
+  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<BoxLoader>>> + Sync + Send>;
 
 #[derive(Derivative, Default)]
 #[derivative(Debug)]
@@ -337,7 +337,15 @@ fn fmt_use(
   f: &mut std::fmt::Formatter,
 ) -> std::result::Result<(), std::fmt::Error> {
   match r#use {
-    Some(ModuleRuleUse::Array(_)) => write!(f, "Array(...)"),
+    Some(ModuleRuleUse::Array(array_use)) => write!(
+      f,
+      "{}",
+      array_use
+        .iter()
+        .map(|l| l.identifier().to_string())
+        .collect::<Vec<_>>()
+        .join("!")
+    ),
     Some(ModuleRuleUse::Func(_)) => write!(f, "Fn(...)"),
     None => write!(f, "None"),
   }

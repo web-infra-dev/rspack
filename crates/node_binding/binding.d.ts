@@ -594,7 +594,7 @@ export interface RawFallbackCacheGroupOptions {
   maxInitialSize?: number
 }
 
-export interface RawFnUseCtx {
+export interface RawFuncUseCtx {
   resource?: string
   realResource?: string
   resourceQuery?: string
