@@ -1,6 +1,7 @@
 mod api_scanner;
 mod common_js_import_dependency_scanner;
 mod common_js_scanner;
+mod context_helper;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
 mod harmony_import_dependency_scanner;
@@ -9,7 +10,6 @@ mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
 mod require_context_scanner;
-mod scanner;
 mod url_scanner;
 mod util;
 use rspack_core::{

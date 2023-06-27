@@ -90,7 +90,7 @@ impl Visit for NodeStuffScanner<'_> {
               .push(Box::new(ConstDependency::new(
                 ident.span.real_lo(),
                 ident.span.real_hi(),
-                format!("'{filename}'").into(),
+                format!(r#"'{filename}'"#).into(),
                 None,
               )));
           }

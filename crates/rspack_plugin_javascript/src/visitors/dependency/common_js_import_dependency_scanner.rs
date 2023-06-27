@@ -6,12 +6,13 @@ use rspack_regex::RspackRegex;
 use swc_core::{
   common::{Spanned, SyntaxContext},
   ecma::{
-    ast::{AssignExpr, CallExpr, Callee, Expr, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
+    ast::{BinExpr, CallExpr, Callee, Expr, IfStmt, Lit, TryStmt, UnaryExpr, UnaryOp},
     atoms::JsWord,
     visit::{noop_visit_type, Visit, VisitWith},
   },
 };
 
+use super::{context_helper::scanner_context_module, expr_matcher};
 use super::{expr_matcher, is_unresolved_member_object_ident, scanner::scanner_context_module};
 use crate::dependency::{
   CommonJsRequireContextDependency, CommonJsRequireDependency, RequireResolveDependency,
@@ -166,7 +167,19 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
       ..
     } = unary_expr
     {
-      self.replace_require_resolve(expr, "'function'");
+      if expr_matcher::is_require(expr)
+        || expr_matcher::is_require_resolve(expr)
+        || expr_matcher::is_require_resolve_weak(expr)
+      {
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            unary_expr.span().real_lo(),
+            unary_expr.span().real_hi(),
+            "'function'".into(),
+            None,
+          )));
+      }
     }
     unary_expr.visit_children_with(self);
   }
@@ -180,11 +193,9 @@ impl Visit for CommonJsImportDependencyScanner<'_> {
     if_stmt.visit_children_with(self);
   }
 
-  fn visit_assign_expr(&mut self, assign_expr: &AssignExpr) {
-    if let Expr::Bin(bin) = &*assign_expr.right {
-      self.replace_require_resolve(&bin.left, "undefined");
-      self.replace_require_resolve(&bin.right, "undefined");
-    }
-    assign_expr.visit_children_with(self);
+  fn visit_bin_expr(&mut self, bin_expr: &BinExpr) {
+    self.replace_require_resolve(&bin_expr.left, "undefined");
+    self.replace_require_resolve(&bin_expr.right, "undefined");
+    bin_expr.visit_children_with(self);
   }
 }
