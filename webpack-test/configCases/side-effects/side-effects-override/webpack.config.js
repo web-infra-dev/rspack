@@ -1,5 +1,5 @@
 const path = require("path");
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	mode: "production",
 	module: {

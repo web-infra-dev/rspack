@@ -1,5 +1,5 @@
 const webpack = require("../../../../");
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	target: "web",
 	// plugin that intercepts __webpack_require__

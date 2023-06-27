@@ -4,7 +4,7 @@ const entry = {
 	"../entry": "./index.js"
 };
 
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		target: "async-node",

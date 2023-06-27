@@ -1,7 +1,7 @@
 const webpack = require("../../../../");
 const path = require("path");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	module: {
 		rules: [
