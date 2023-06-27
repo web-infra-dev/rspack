@@ -22,7 +22,7 @@ __webpack_require__.d(exports, {'a': function() { return a; }});
     return 42;
 }
  function b() {
-    return value;
+    return /* unused */undefined;
 }
 },
 

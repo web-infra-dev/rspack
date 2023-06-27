@@ -38,7 +38,13 @@ impl HarmonyImportSpecifierDependency {
     code_generatable_context: &mut CodeGeneratableContext,
     id: &DependencyId,
     request: &str,
+    used: bool,
   ) {
+    if !used {
+      source.replace(self.start, self.end, "/* unused */undefined", None);
+      return;
+    }
+
     let import_var = get_import_var(request);
 
     let export_expr = export_from_import(

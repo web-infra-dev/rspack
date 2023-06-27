@@ -60,6 +60,15 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
       .include_module_ids
       .contains(&ref_mgm.module_identifier)
     {
+      self.refs.iter().for_each(|dep| {
+        dep.apply(
+          source,
+          code_generatable_context,
+          &id,
+          self.request.as_ref(),
+          false,
+        )
+      });
       return;
     }
 
@@ -110,14 +119,28 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
           .side_effects_free_modules
           .contains(&ref_mgm.module_identifier)
       {
+        self.refs.iter().for_each(|dep| {
+          dep.apply(
+            source,
+            code_generatable_context,
+            &id,
+            self.request.as_ref(),
+            false,
+          )
+        });
         return;
       }
     }
 
-    self
-      .refs
-      .iter()
-      .for_each(|dep| dep.apply(source, code_generatable_context, &id, self.request.as_ref()));
+    self.refs.iter().for_each(|dep| {
+      dep.apply(
+        source,
+        code_generatable_context,
+        &id,
+        self.request.as_ref(),
+        true,
+      )
+    });
 
     let content: (String, String) =
       import_statement(code_generatable_context, &id, &self.request, false);
