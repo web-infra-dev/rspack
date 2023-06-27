@@ -380,17 +380,17 @@ impl NormalModuleFactory {
           Some(ModuleRuleUse::Array(array_use)) => match rule.enforce {
             ModuleRuleEnforce::Pre => {
               if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
-                pre_loaders.extend_from_slice(&array_use);
+                pre_loaders.extend_from_slice(array_use);
               }
             }
             ModuleRuleEnforce::Normal => {
               if !no_auto_loaders && !no_pre_auto_loaders {
-                normal_loaders.extend_from_slice(&array_use);
+                normal_loaders.extend_from_slice(array_use);
               }
             }
             ModuleRuleEnforce::Post => {
               if !no_pre_post_auto_loaders {
-                post_loaders.extend_from_slice(&array_use);
+                post_loaders.extend_from_slice(array_use);
               }
             }
           },
