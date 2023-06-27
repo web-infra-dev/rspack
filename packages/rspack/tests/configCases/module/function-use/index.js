@@ -10,6 +10,5 @@ it("functional use works", () => {
 it("resourceQuery should match correctly", () => {
 	require("./index.less?test");
 	const css = fs.readFileSync(path.resolve(__dirname, "main.css"), "utf-8");
-	console.log(css);
 	expect(css.includes("background-color: red")).toBe(true);
 });
