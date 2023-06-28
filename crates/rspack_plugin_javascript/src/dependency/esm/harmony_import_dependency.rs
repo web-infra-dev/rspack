@@ -85,7 +85,7 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
             if imported == "namespace" {
               return true;
             }
-            if imported == "default" {
+            if imported == "default" && matches!(self.dependency_type, DependencyType::EsmImport) {
               return compilation.used_symbol_ref.contains(&SymbolRef::Indirect(
                 IndirectTopLevelSymbol {
                   src: ref_mgm.module_identifier,
