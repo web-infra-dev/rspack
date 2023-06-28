@@ -61,7 +61,7 @@ impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
               Some(i.id())
             }
             SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-              // IndirectType::Import(_, _) => Some(i.indirect_id()),
+              IndirectType::Import(_, _) => Some(i.indirect_id()),
               IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
               _ => None,
             },
