@@ -32,17 +32,17 @@ const config = {
 				type: "ts"
 			},
 			{
-				test: /\.less/,
+				test: /\.less$/,
 				use: ["vue-style-loader", "css-loader", "less-loader"],
 				type: "javascript/auto"
 			},
 			{
-				test: /\.css/,
+				test: /\.css$/,
 				use: ["vue-style-loader", "css-loader"],
 				type: "javascript/auto"
 			},
 			{
-				test: /\.svg/,
+				test: /\.svg$/,
 				type: "asset/resource"
 			}
 		]
