@@ -3,7 +3,7 @@ const entry = {
 	"..//weird-names2-out////entry": "./index.js"
 };
 
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		target: "async-node",

@@ -1,4 +1,4 @@
-/** @type {function(): import("../../../../").Configuration} */
+/** @type {function(): import("@rspack/core").Configuration} */
 module.exports = (env, { srcPath }) => ({
 	mode: "development",
 	cache: {

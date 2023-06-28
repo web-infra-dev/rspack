@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.1.8",
   "scripts": {
-    "test": "jest"
+    "test": "playwright test",
+    "test:CI": "CI=1 npm run test"
   },
   "repository": {
     "type": "git",
@@ -11,11 +12,13 @@
     "directory": "packages/playground"
   },
   "devDependencies": {
-    "playwright-chromium": "1.33.0",
+    "@playwright/test": "1.35.0",
     "fs-extra": "11.1.1",
     "@types/fs-extra": "11.0.1",
     "@rspack/dev-server": "workspace:*",
     "@rspack/core": "workspace:*",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "ws": "8.8.1"
   }
 }

@@ -1,7 +1,7 @@
 const memfs = require("memfs");
 const fs = require("fs");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
 		compiler => {

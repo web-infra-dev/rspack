@@ -1,6 +1,6 @@
 const { SplitChunksPlugin } = require("../../../../").optimize;
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		vendor: ["./a"],

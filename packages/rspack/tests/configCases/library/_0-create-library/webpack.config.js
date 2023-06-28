@@ -1,5 +1,5 @@
 const path = require("path");
-/** @type {function(any, any): import("../../../../").Configuration[]} */
+/** @type {function(any, any): import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
 	{
 		output: {

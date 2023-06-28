@@ -1,6 +1,6 @@
 const MiniCssPlugin = require("mini-css-extract-plugin");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		a: "./a.js",

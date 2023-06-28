@@ -1,6 +1,6 @@
 const { DefinePlugin } = require("../../../../");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	node: {
 		global: true

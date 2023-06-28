@@ -1,7 +1,7 @@
 /** @typedef {import("../../../../").Compilation} Compilation */
 /** @typedef {import("../../../../").Module} Module */
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	entry: {
 		entry1: "./entry1",

@@ -818,33 +818,23 @@ importers:
 
   packages/playground:
     specifiers:
+      '@playwright/test': 1.35.0
       '@rspack/core': workspace:*
       '@rspack/dev-server': workspace:*
       '@types/fs-extra': 11.0.1
       fs-extra: 11.1.1
-      playwright-chromium: 1.33.0
+      react: ^18.2.0
+      react-dom: ^18.2.0
       ws: 8.8.1
     devDependencies:
+      '@playwright/test': 1.35.0
       '@rspack/core': link:../rspack
       '@rspack/dev-server': link:../rspack-dev-server
       '@types/fs-extra': 11.0.1
       fs-extra: 11.1.1
-      playwright-chromium: 1.33.0
-      ws: 8.8.1
-
-  packages/playground/fixtures/cross-origin-loading:
-    specifiers: {}
-
-  packages/playground/fixtures/import-empty-css-file:
-    specifiers: {}
-
-  packages/playground/fixtures/react:
-    specifiers:
-      react: ^18.2.0
-      react-dom: ^18.2.0
-    dependencies:
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
+      ws: 8.8.1
 
   packages/postcss-loader:
     specifiers:
@@ -7602,6 +7592,17 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@playwright/test/1.35.0:
+    resolution: {integrity: sha512-6qXdd5edCBynOwsz1YcNfgX8tNWeuS9fxy5o59D0rvHXxRtjXRebB4gE4vFVfEMXl/z8zTnAzfOs7aQDEs8G4Q==}
+    engines: {node: '>=16'}
+    hasBin: true
+    dependencies:
+      '@types/node': 18.15.11
+      playwright-core: 1.35.0
+    optionalDependencies:
+      fsevents: 2.3.2
+    dev: true
 
   /@pmmmwh/react-refresh-webpack-plugin/0.5.10:
     resolution: {integrity: sha512-j0Ya0hCFZPd4x40qLzbhGsh9TMtdb+CJQiso+WxLOPNasohq9cc5SNUcwsZaRH6++Xh91Xkm/xHCkuIiIu0LUA==}
@@ -22221,18 +22222,9 @@ packages:
       find-up: 5.0.0
     dev: true
 
-  /playwright-chromium/1.33.0:
-    resolution: {integrity: sha512-aG2IqRp7Q6vRltZFT+N2stWwDUH2fEUTOTv8RxSKMK5QmIQQoNL9nJvNMIJ3yLuin8+coaa3mhJXjjUheo0+/A==}
-    engines: {node: '>=14'}
-    hasBin: true
-    requiresBuild: true
-    dependencies:
-      playwright-core: 1.33.0
-    dev: true
-
-  /playwright-core/1.33.0:
-    resolution: {integrity: sha512-aizyPE1Cj62vAECdph1iaMILpT0WUDCq3E6rW6I+dleSbBoGbktvJtzS6VHkZ4DKNEOG9qJpiom/ZxO+S15LAw==}
-    engines: {node: '>=14'}
+  /playwright-core/1.35.0:
+    resolution: {integrity: sha512-muMXyPmIx/2DPrCHOD1H1ePT01o7OdKxKj2ebmCAYvqhUy+Y1bpal7B0rdoxros7YrXI294JT/DWw2LqyiqTPA==}
+    engines: {node: '>=16'}
     hasBin: true
     dev: true
 
@@ -23287,7 +23279,6 @@ packages:
       loose-envify: 1.4.0
       react: 18.2.0
       scheduler: 0.23.0
-    dev: false
 
   /react-element-to-jsx-string/15.0.0_sfoxds7t5ydpegc3knd667wn6m:
     resolution: {integrity: sha512-UDg4lXB6BzlobN60P8fHWVPX3Kyw8ORrTeBtClmIlGdkOOE+GYQSFvmEU5iLLpwp/6v42DINwNcwOhOLfQ//FQ==}
@@ -23507,7 +23498,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
-    dev: false
 
   /reactcss/1.2.3_react@17.0.2:
     resolution: {integrity: sha512-KiwVUcFu1RErkI97ywr8nvx8dNOpT03rbnma0SSalTYjkrPYaEajR4a/MRt6DZ46K6arDRbWMNHF+xH7G7n/8A==}
@@ -24384,7 +24374,6 @@ packages:
     resolution: {integrity: sha512-CtuThmgHNg7zIZWAXi3AsyIzA3n4xx7aNyjwC2VJldO2LMVDhFK+63xGqq6CsJH4rTAt6/M+N4GhZiDYPx9eUw==}
     dependencies:
       loose-envify: 1.4.0
-    dev: false
 
   /schema-utils/1.0.0:
     resolution: {integrity: sha512-i27Mic4KovM/lnGsy8whRCHhc7VicJajAjTrYg11K9zfZXnYIt4k5F+kZkwjnrhKzLic/HLU4j11mjsz2G/75g==}

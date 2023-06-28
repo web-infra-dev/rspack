@@ -4,7 +4,7 @@ const webpack = require("../../../../");
 const { RawSource } = require("webpack-sources");
 const readDir = require("../enabled/readdir");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
 		clean: true
