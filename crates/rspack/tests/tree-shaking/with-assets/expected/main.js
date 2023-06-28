@@ -8,12 +8,12 @@ __webpack_require__.d(exports, {'a': function() { return a; }});
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.js */"./a.js");
-/* harmony import */var _a_svg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.svg */"./a.svg");
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
+/* harmony import */var _a_svg__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./a.svg */"./a.svg");
 
 
-_a_js__WEBPACK_IMPORTED_MODULE__["a"];
-_a_svg__WEBPACK_IMPORTED_MODULE__;
+_a_js__WEBPACK_IMPORTED_MODULE_0_["a"];
+_a_svg__WEBPACK_IMPORTED_MODULE_1_;
 },
 "./a.svg": function (module, exports, __webpack_require__) {
 module.exports = "data:image/svg+xml;base64,";},

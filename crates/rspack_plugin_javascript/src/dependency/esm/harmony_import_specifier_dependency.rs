@@ -1,5 +1,5 @@
 use rspack_core::{
-  export_from_import, get_import_var, CodeGeneratableContext, CodeGeneratableSource, DependencyId,
+  export_from_import, CodeGeneratableContext, CodeGeneratableSource, DependencyId,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -45,7 +45,10 @@ impl HarmonyImportSpecifierDependency {
       return;
     }
 
-    let import_var = get_import_var(request);
+    let import_var = code_generatable_context
+      .compilation
+      .module_graph
+      .get_import_var(&code_generatable_context.module.identifier(), request);
 
     let export_expr = export_from_import(
       code_generatable_context,

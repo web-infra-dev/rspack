@@ -3,10 +3,10 @@
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'test': function() { return test; }});
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
 
  function test() {
-    (0, _module__WEBPACK_IMPORTED_MODULE__["default"])({
+    (0, _module__WEBPACK_IMPORTED_MODULE_0_["default"])({
         type: "inline"
     });
 }
@@ -24,20 +24,20 @@ it("should generate correct code when pure expressions are in dead branches", ()
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
-/* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./some-module */"./some-module.js");
+/* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./some-module */"./some-module.js");
 
 function getType(obj) {
     return obj.type;
 }
 // Local functions
 function doSomethingWithBlock(obj) {
-    return (0, _some_module__WEBPACK_IMPORTED_MODULE__["Block"]).doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0_["Block"]).doSomething(obj);
 }
 function doSomethingWithInline(obj) {
-    return (0, _some_module__WEBPACK_IMPORTED_MODULE__["Inline"]).doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0_["Inline"]).doSomething(obj);
 }
 function doSomethingWithDocument(obj) {
-    return (0, _some_module__WEBPACK_IMPORTED_MODULE__["Document"]).doSomething(obj);
+    return (0, _some_module__WEBPACK_IMPORTED_MODULE_0_["Document"]).doSomething(obj);
 }
 // Exported functions
 function doSomething(obj) {

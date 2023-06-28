@@ -2,10 +2,10 @@
 "./import-module.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
 
-expect(_module__WEBPACK_IMPORTED_MODULE__["ok"]).toBe(true);
-expect(_module__WEBPACK_IMPORTED_MODULE__["ok2"]).toBe(true);
+expect(_module__WEBPACK_IMPORTED_MODULE_0_["ok"]).toBe(true);
+expect(_module__WEBPACK_IMPORTED_MODULE_0_["ok2"]).toBe(true);
 },
 "./index.js": function (module, exports, __webpack_require__) {
 it("should not threat globals as pure", ()=>{

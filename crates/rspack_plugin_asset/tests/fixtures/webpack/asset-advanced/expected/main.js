@@ -2,7 +2,7 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _images_file_svg__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./images/file.svg */"./images/file.svg");
+/* harmony import */var _images_file_svg__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./images/file.svg */"./images/file.svg");
 
 const container = document.createElement("div");
 Object.assign(container.style, {
@@ -23,7 +23,7 @@ function createImageElement(title, src) {
     container.appendChild(div);
 }
 [
-    _images_file_svg__WEBPACK_IMPORTED_MODULE__
+    _images_file_svg__WEBPACK_IMPORTED_MODULE_0_
 ].forEach((src)=>{
     createImageElement(src.split(".").pop(), src);
 });

@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  export_from_import, get_exports_type, get_import_var, tree_shaking::visitor::SymbolRef,
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, DependencyId,
-  ExportsType, InitFragment, InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
+  export_from_import, get_exports_type, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
+  CodeGeneratableDependency, CodeGeneratableSource, DependencyId, ExportsType, InitFragment,
+  InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
 use rspack_symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
@@ -57,7 +57,9 @@ impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
       .id()
       .expect("should have dependency id");
 
-    let import_var = get_import_var(&self.request);
+    let import_var = compilation
+      .module_graph
+      .get_import_var(&module.identifier(), &self.request);
 
     let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
       let set = compilation

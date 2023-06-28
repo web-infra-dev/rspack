@@ -11,9 +11,12 @@ mod connection;
 pub use connection::{ConnectionId, ModuleGraphConnection};
 
 use crate::{
-  BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta, DependencyId, Module,
-  ModuleGraphModule, ModuleIdentifier,
+  to_identifier, BoxModule, BoxModuleDependency, BuildDependency, BuildInfo, BuildMeta,
+  DependencyId, Module, ModuleGraphModule, ModuleIdentifier,
 };
+
+// TODO Here request can be used JsWord
+pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
@@ -38,6 +41,8 @@ pub struct ModuleGraph {
 
   /// Module graph connections table index for `ConnectionId`
   connections_map: HashMap<ModuleGraphConnection, ConnectionId>,
+
+  import_var_map: IdentifierMap<ImportVarMap>,
 }
 
 impl ModuleGraph {
@@ -455,6 +460,35 @@ impl ModuleGraph {
     }
 
     false
+  }
+
+  pub fn set_dependency_import_var(&mut self, module_identifier: ModuleIdentifier, request: &str) {
+    if self.import_var_map.get(&module_identifier).is_none() {
+      self
+        .import_var_map
+        .insert(module_identifier, Default::default());
+    }
+    if let Some(module_var_map) = self.import_var_map.get_mut(&module_identifier) {
+      module_var_map.insert(
+        request.to_string(),
+        format!(
+          "{}__WEBPACK_IMPORTED_MODULE_{}_",
+          to_identifier(&request),
+          module_var_map.len()
+        ),
+      );
+    }
+  }
+
+  pub fn get_import_var(&self, module_identifier: &ModuleIdentifier, request: &str) -> &str {
+    self
+      .import_var_map
+      .get(module_identifier)
+      .expect("should have module import var")
+      .get(request)
+      .expect(&format!(
+        "should have import var for {module_identifier} {request}"
+      ))
   }
 }
 

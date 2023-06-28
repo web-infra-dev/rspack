@@ -2,7 +2,7 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./lib */"./lib.js");
 // import assert from "assert";
 // import { equal } from "assert";
 
@@ -207,8 +207,8 @@ assert.deepStrictEqual(USELESS, {
 });
 assert.deepStrictEqual({}.DO_NOT_CONVERTED5, undefined);
 assert.deepStrictEqual({}.DO_NOT_CONVERTED6, undefined);
-assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE__["DO_NOT_CONVERTED7"], 402);
-assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE__["default"], 401);
+assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_1_["DO_NOT_CONVERTED7"], 402);
+assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_1_["default"], 401);
 assert.deepStrictEqual(DO_NOT_CONVERTED9, 403);
 assert.deepStrictEqual(lib.DO_NOT_CONVERTED9, 403);
 try {

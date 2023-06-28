@@ -8,17 +8,17 @@ __webpack_require__.r(exports);
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'a': function() { return a; }});
-/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
-__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./bar */"./bar.js");
+__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_0_, exports);
  const a = 'foo';
 
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-console.log(_foo__WEBPACK_IMPORTED_MODULE__["a"]);
+console.log(_foo__WEBPACK_IMPORTED_MODULE_0_["a"]);
 },
 
 },function(__webpack_require__) {

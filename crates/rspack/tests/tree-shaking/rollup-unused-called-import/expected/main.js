@@ -10,21 +10,21 @@ function __WEBPACK_DEFAULT_EXPORT__() {
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
-/* harmony import */var _dead__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./dead */"./dead.js");
+/* harmony import */var _dead__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dead */"./dead.js");
 
 function __WEBPACK_DEFAULT_EXPORT__() {
     return "foo";
 }
  function foodead() {
-    return "foo" + (0, _dead__WEBPACK_IMPORTED_MODULE__["default"])();
+    return "foo" + (0, _dead__WEBPACK_IMPORTED_MODULE_0_["default"])();
 }
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-assert.equal((0, _foo__WEBPACK_IMPORTED_MODULE__["default"])(), "foo");
+assert.equal((0, _foo__WEBPACK_IMPORTED_MODULE_0_["default"])(), "foo");
 },
 
 },function(__webpack_require__) {

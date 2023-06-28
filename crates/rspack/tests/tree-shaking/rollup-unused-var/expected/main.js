@@ -11,9 +11,9 @@ var baz = bar || foo;
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo.js */"./foo.js");
+/* harmony import */var _foo_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo.js */"./foo.js");
 
-console.log(_foo_js__WEBPACK_IMPORTED_MODULE__["foo"]);
+console.log(_foo_js__WEBPACK_IMPORTED_MODULE_0_["foo"]);
 },
 
 },function(__webpack_require__) {

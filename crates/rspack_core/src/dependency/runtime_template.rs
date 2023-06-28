@@ -1,14 +1,14 @@
 use swc_core::ecma::atoms::JsWord;
 
 use crate::{
-  to_identifier, CodeGeneratableContext, Compilation, DependencyId, ExportsType, InitFragment,
-  InitFragmentStage, ModuleGraph, ModuleIdentifier, RuntimeGlobals,
+  CodeGeneratableContext, Compilation, DependencyId, ExportsType, InitFragment, InitFragmentStage,
+  ModuleGraph, ModuleIdentifier, RuntimeGlobals,
 };
 
 pub fn export_from_import(
   code_generatable_context: &mut CodeGeneratableContext,
   default_interop: bool,
-  import_var: String,
+  import_var: &str,
   mut export_name: Vec<JsWord>,
   id: &DependencyId,
   is_call: bool,
@@ -63,7 +63,7 @@ pub fn export_from_import(
     }
     access
   } else {
-    import_var
+    import_var.to_string()
   }
 }
 
@@ -93,12 +93,6 @@ fn property_access(o: &Vec<JsWord>, mut start: usize) -> String {
     start += 1;
   }
   str
-}
-
-pub fn get_import_var(user_request: &str) -> String {
-  // avoid './a' and '../a' generate different identifier
-  let request = user_request.replace("..", "$");
-  format!("{}__WEBPACK_IMPORTED_MODULE__", to_identifier(&request))
 }
 
 pub fn module_id_expr(request: &str, module_id: &str) -> String {
@@ -143,7 +137,9 @@ pub fn import_statement(
 
   runtime_requirements.add(RuntimeGlobals::REQUIRE);
 
-  let import_var = get_import_var(request);
+  let import_var = compilation
+    .module_graph
+    .get_import_var(&module.identifier(), request);
 
   let opt_declaration = if update { "" } else { "var " };
 

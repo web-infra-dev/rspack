@@ -3,10 +3,10 @@
 __webpack_require__.a(module, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _v128_wasm__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./v128.wasm */"./v128.wasm");
-var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_v128_wasm__WEBPACK_IMPORTED_MODULE__]);
-([_v128_wasm__WEBPACK_IMPORTED_MODULE__] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);
-console.log(_v128_wasm__WEBPACK_IMPORTED_MODULE__["default"].x);
+/* harmony import */var _v128_wasm__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./v128.wasm */"./v128.wasm");
+var __webpack_async_dependencies__ = __webpack_handle_async_dependencies__([_v128_wasm__WEBPACK_IMPORTED_MODULE_0_]);
+([_v128_wasm__WEBPACK_IMPORTED_MODULE_0_] = __webpack_async_dependencies__.then ? (await __webpack_async_dependencies__)() : __webpack_async_dependencies__);
+console.log(_v128_wasm__WEBPACK_IMPORTED_MODULE_0_["default"].x);
 
 __webpack_async_result__();
 } catch(e) { __webpack_async_result__(e); } });},

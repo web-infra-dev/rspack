@@ -8,10 +8,10 @@ __webpack_require__.d(exports, {'answer': function() { return answer; }});
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./app */"./app.js");
 
 const a = test(()=>__webpack_require__.el(/* ./lib */"./lib.js").then(__webpack_require__.bind(__webpack_require__, /* ./lib */"./lib.js")));
-(0, _app__WEBPACK_IMPORTED_MODULE__["answer"])();
+(0, _app__WEBPACK_IMPORTED_MODULE_1_["answer"])();
 a;
 },
 

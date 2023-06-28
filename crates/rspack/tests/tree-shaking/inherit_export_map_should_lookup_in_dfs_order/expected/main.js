@@ -15,10 +15,10 @@ __webpack_require__.r(exports);
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'a': function() { return a; }});
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
-__webpack_require__.es(_foo__WEBPACK_IMPORTED_MODULE__, exports);
-/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./bar */"./bar.js");
-__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
+__webpack_require__.es(_foo__WEBPACK_IMPORTED_MODULE_0_, exports);
+/* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./bar */"./bar.js");
+__webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_1_, exports);
 
 
  const a = 3;
@@ -27,8 +27,8 @@ __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE__, exports);
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'b': function() { return b; }});
-/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a.js */"./a.js");
-__webpack_require__.es(_a_js__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
+__webpack_require__.es(_a_js__WEBPACK_IMPORTED_MODULE_0_, exports);
 
  const a = 'foo';
  const b = 'foo';
@@ -36,12 +36,12 @@ __webpack_require__.es(_a_js__WEBPACK_IMPORTED_MODULE__, exports);
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./c.js */"./c.js");
+/* harmony import */var _c_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c.js */"./c.js");
 // require("./c.js");
 
-_c_js__WEBPACK_IMPORTED_MODULE__["a"];
-_c_js__WEBPACK_IMPORTED_MODULE__["b"];
-_c_js__WEBPACK_IMPORTED_MODULE__["c"];
+_c_js__WEBPACK_IMPORTED_MODULE_0_["a"];
+_c_js__WEBPACK_IMPORTED_MODULE_0_["b"];
+_c_js__WEBPACK_IMPORTED_MODULE_0_["c"];
 },
 
 },function(__webpack_require__) {

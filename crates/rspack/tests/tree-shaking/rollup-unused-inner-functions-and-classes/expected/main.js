@@ -2,10 +2,10 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./stuff */"./stuff.js");
+/* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./stuff */"./stuff.js");
 
-(0, _stuff__WEBPACK_IMPORTED_MODULE__["bar"])();
-var f = (0, _stuff__WEBPACK_IMPORTED_MODULE__["baz"])();
+(0, _stuff__WEBPACK_IMPORTED_MODULE_0_["bar"])();
+var f = (0, _stuff__WEBPACK_IMPORTED_MODULE_0_["baz"])();
 f();
 function getClass() {
     class MyClass {

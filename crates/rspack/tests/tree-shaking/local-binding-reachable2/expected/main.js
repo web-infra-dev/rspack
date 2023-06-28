@@ -11,10 +11,10 @@ __webpack_require__.d(exports, {'defaults': function() { return defaults; }});
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'Something': function() { return Something; }});
-/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Layout */"./Layout.js");
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
 
 class Test {
-    test = _Layout__WEBPACK_IMPORTED_MODULE__["defaults"].test + 20000;
+    test = _Layout__WEBPACK_IMPORTED_MODULE_0_["defaults"].test + 20000;
 }
  var Sider = new Test();
  var Something = 333;
@@ -22,9 +22,9 @@ class Test {
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE__["Something"])();
+(0, _export__WEBPACK_IMPORTED_MODULE_0_["Something"])();
 },
 
 },function(__webpack_require__) {

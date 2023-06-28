@@ -2,10 +2,10 @@
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'Provider': function() { return _lib__WEBPACK_IMPORTED_MODULE__["default"]; }});
-__webpack_require__.d(exports, {'useSelector': function() { return _selector_js__WEBPACK_IMPORTED_MODULE__["default"]; }});
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
-/* harmony import */var _selector_js__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./selector.js */"./selector.js");
+__webpack_require__.d(exports, {'Provider': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["default"]; }});
+__webpack_require__.d(exports, {'useSelector': function() { return _selector_js__WEBPACK_IMPORTED_MODULE_1_["default"]; }});
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+/* harmony import */var _selector_js__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./selector.js */"./selector.js");
 
 
 
@@ -13,8 +13,8 @@ __webpack_require__.d(exports, {'useSelector': function() { return _selector_js_
 "./foo.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
-__webpack_require__.es(_app__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
+__webpack_require__.es(_app__WEBPACK_IMPORTED_MODULE_0_, exports);
 
 function batch() {}
 
@@ -22,10 +22,10 @@ function batch() {}
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-_foo__WEBPACK_IMPORTED_MODULE__["Provider"];
-_foo__WEBPACK_IMPORTED_MODULE__["useSelector"];
+_foo__WEBPACK_IMPORTED_MODULE_0_["Provider"];
+_foo__WEBPACK_IMPORTED_MODULE_0_["useSelector"];
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

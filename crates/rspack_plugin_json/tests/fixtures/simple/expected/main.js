@@ -2,9 +2,9 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _json_json__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./json.json */"./json.json");
+/* harmony import */var _json_json__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./json.json */"./json.json");
 
-console.log(_json_json__WEBPACK_IMPORTED_MODULE__);
+console.log(_json_json__WEBPACK_IMPORTED_MODULE_0_);
 },
 "./json.json": function (module, exports, __webpack_require__) {
 module.exports = {

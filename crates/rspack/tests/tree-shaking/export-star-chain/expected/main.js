@@ -2,8 +2,8 @@
 "./Layout.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./something */"./something/index.js");
-__webpack_require__.es(_something__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _something__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./something */"./something/index.js");
+__webpack_require__.es(_something__WEBPACK_IMPORTED_MODULE_0_, exports);
 
 
 },
@@ -22,19 +22,19 @@ __webpack_require__.d(exports, {'blue': function() { return blue; }});
 "./colors/c.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _result__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./result */"./colors/result.js");
-__webpack_require__.es(_result__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _result__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./result */"./colors/result.js");
+__webpack_require__.es(_result__WEBPACK_IMPORTED_MODULE_0_, exports);
 
 },
 "./colors/index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./a */"./colors/a.js");
-__webpack_require__.es(_a__WEBPACK_IMPORTED_MODULE__, exports);
-/* harmony import */var _b__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./b */"./colors/b.js");
-__webpack_require__.es(_b__WEBPACK_IMPORTED_MODULE__, exports);
-/* harmony import */var _c__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./c */"./colors/c.js");
-__webpack_require__.es(_c__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./colors/a.js");
+__webpack_require__.es(_a__WEBPACK_IMPORTED_MODULE_0_, exports);
+/* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./colors/b.js");
+__webpack_require__.es(_b__WEBPACK_IMPORTED_MODULE_1_, exports);
+/* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./colors/c.js");
+__webpack_require__.es(_c__WEBPACK_IMPORTED_MODULE_2_, exports);
 
 
 
@@ -48,17 +48,17 @@ __webpack_require__.d(exports, {'result': function() { return result; }});
 "./export.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Layout */"./Layout.js");
-__webpack_require__.es(_Layout__WEBPACK_IMPORTED_MODULE__, exports);
+/* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
+__webpack_require__.es(_Layout__WEBPACK_IMPORTED_MODULE_0_, exports);
 
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
 
-_export__WEBPACK_IMPORTED_MODULE__["Colors"];
-_export__WEBPACK_IMPORTED_MODULE__["Something"];
+_export__WEBPACK_IMPORTED_MODULE_0_["Colors"];
+_export__WEBPACK_IMPORTED_MODULE_0_["Something"];
 },
 "./something/Something.js": function (module, exports, __webpack_require__) {
 'use strict';
@@ -70,10 +70,10 @@ __webpack_require__.d(exports, {'Something': function() { return Something; }});
 "./something/index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'Colors': function() { return $_colors_index__WEBPACK_IMPORTED_MODULE__; }});
-/* harmony import */var $_colors_index__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ../colors/index */"./colors/index.js");
-/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./something/Something.js");
-__webpack_require__.es(_Something__WEBPACK_IMPORTED_MODULE__, exports);
+__webpack_require__.d(exports, {'Colors': function() { return _colors_index__WEBPACK_IMPORTED_MODULE_0_; }});
+/* harmony import */var _colors_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../colors/index */"./colors/index.js");
+/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./something/Something.js");
+__webpack_require__.es(_Something__WEBPACK_IMPORTED_MODULE_1_, exports);
 
 
 

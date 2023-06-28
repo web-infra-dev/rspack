@@ -9,20 +9,20 @@ __webpack_require__.d(exports, {'something': function() { return something; }});
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return a; }});
-/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./Something.js");
+/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
 
 
 var a = function test() {
-    _Something__WEBPACK_IMPORTED_MODULE__["something"];
+    _Something__WEBPACK_IMPORTED_MODULE_1_["something"];
 };
 
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
 
-_export__WEBPACK_IMPORTED_MODULE__["default"];
+_export__WEBPACK_IMPORTED_MODULE_0_["default"];
 },
 
 },function(__webpack_require__) {

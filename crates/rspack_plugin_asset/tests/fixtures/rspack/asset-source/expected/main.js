@@ -2,9 +2,9 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _data_txt__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./data.txt */"./data.txt");
+/* harmony import */var _data_txt__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./data.txt */"./data.txt");
 
-console.log(_data_txt__WEBPACK_IMPORTED_MODULE__);
+console.log(_data_txt__WEBPACK_IMPORTED_MODULE_0_);
 },
 "./data.txt": function (module, exports, __webpack_require__) {
 module.exports = "- Isn't Rspack a gamechanging bundler?\n  - Hella yeah!";},

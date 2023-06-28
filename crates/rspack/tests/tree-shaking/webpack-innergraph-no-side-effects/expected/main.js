@@ -8,9 +8,9 @@ it("should be able to load package without side effects where modules are unused
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'test': function() { return test; }});
-/* harmony import */var _package__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./package */"./package/index.js");
+/* harmony import */var _package__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./package */"./package/index.js");
 
-var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE__["a"];
+var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_["a"];
  function test() {}
 },
 "./package/index.js": function (module, exports, __webpack_require__) {

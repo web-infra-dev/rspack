@@ -1,5 +1,5 @@
 use rspack_core::{
-  get_import_var, import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
+  import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
   CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
   DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
 };
@@ -157,7 +157,9 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
       .module_graph
       .module_identifier_by_dependency_id(&id)
       .expect("should have dependency referenced module");
-    let import_var = get_import_var(&self.request);
+    let import_var = compilation
+      .module_graph
+      .get_import_var(&module.identifier(), &self.request);
     if compilation.module_graph.is_async(ref_module) {
       init_fragments.push(InitFragment::new(
         content.0,

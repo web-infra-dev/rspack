@@ -3,10 +3,10 @@
 'use strict';
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
-/* harmony import */var _test__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./test */"./test.js");
+/* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test */"./test.js");
 
 function myanswer() {
-    _test__WEBPACK_IMPORTED_MODULE__["default"];
+    _test__WEBPACK_IMPORTED_MODULE_0_["default"];
 }
 var __WEBPACK_DEFAULT_EXPORT__ = myanswer;
 },

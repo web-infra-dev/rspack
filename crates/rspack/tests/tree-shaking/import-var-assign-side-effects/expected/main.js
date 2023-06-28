@@ -9,8 +9,8 @@ class Something {
 "./export.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE__["default"]; }});
-/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./Something */"./Something.js");
+__webpack_require__.d(exports, {'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE_1_["default"]; }});
+/* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
 
 
 
@@ -18,9 +18,9 @@ __webpack_require__.d(exports, {'Sider': function() { return _Something__WEBPACK
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _export__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./export */"./export.js");
+/* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
 
-(0, _export__WEBPACK_IMPORTED_MODULE__["Sider"])();
+(0, _export__WEBPACK_IMPORTED_MODULE_0_["Sider"])();
 },
 
 },function(__webpack_require__) {

@@ -18,10 +18,10 @@ exports.test = 30;
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE___default = /*#__PURE__*/__webpack_require__.n(_foo__WEBPACK_IMPORTED_MODULE__);
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_foo__WEBPACK_IMPORTED_MODULE_0_);
 
-_foo__WEBPACK_IMPORTED_MODULE___default();
+_foo__WEBPACK_IMPORTED_MODULE_0__default();
 },
 
 },function(__webpack_require__) {

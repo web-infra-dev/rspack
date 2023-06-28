@@ -14,10 +14,10 @@ var __WEBPACK_DEFAULT_EXPORT__ = foo;
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-var answer = (0, _foo__WEBPACK_IMPORTED_MODULE__["default"])();
-var somethingElse = (0, _foo__WEBPACK_IMPORTED_MODULE__["bar"])();
+var answer = (0, _foo__WEBPACK_IMPORTED_MODULE_0_["default"])();
+var somethingElse = (0, _foo__WEBPACK_IMPORTED_MODULE_0_["bar"])();
 console.log(answer);
 },
 

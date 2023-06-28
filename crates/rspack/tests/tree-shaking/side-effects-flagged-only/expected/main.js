@@ -2,18 +2,18 @@
 "./app.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-__webpack_require__.d(exports, {'something': function() { return _lib__WEBPACK_IMPORTED_MODULE__["default"]; }});
-/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./lib */"./lib.js");
-/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./src/a */"./src/a.js");
+__webpack_require__.d(exports, {'something': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["default"]; }});
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
+/* harmony import */var _src_a__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./src/a */"./src/a.js");
 
 
 },
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _app__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./app */"./app.js");
+/* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
-(0, _app__WEBPACK_IMPORTED_MODULE__["something"])();
+(0, _app__WEBPACK_IMPORTED_MODULE_0_["something"])();
 },
 "./lib.js": function (module, exports, __webpack_require__) {
 'use strict';

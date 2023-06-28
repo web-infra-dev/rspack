@@ -2,36 +2,36 @@
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _module__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./module */"./module.js");
+/* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
 
 it("should be able to handle circular referenced", ()=>{
-    expect((0, _module__WEBPACK_IMPORTED_MODULE__["x"])()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["y"],
-        _module__WEBPACK_IMPORTED_MODULE__["z"]
+    expect((0, _module__WEBPACK_IMPORTED_MODULE_0_["x"])()).toEqual([
+        _module__WEBPACK_IMPORTED_MODULE_0_["y"],
+        _module__WEBPACK_IMPORTED_MODULE_0_["z"]
     ]);
-    const [_a, b, c, d] = (0, _module__WEBPACK_IMPORTED_MODULE__["a"])();
+    const [_a, b, c, d] = (0, _module__WEBPACK_IMPORTED_MODULE_0_["a"])();
     expect(b()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        _module__WEBPACK_IMPORTED_MODULE_0_["a"],
         b,
         c,
         d
     ]);
     expect(c()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        _module__WEBPACK_IMPORTED_MODULE_0_["a"],
         b,
         c,
         d
     ]);
     expect(d()).toEqual([
-        _module__WEBPACK_IMPORTED_MODULE__["a"],
+        _module__WEBPACK_IMPORTED_MODULE_0_["a"],
         b,
         c,
         d
     ]);
-    const [f2, f4] = (0, _module__WEBPACK_IMPORTED_MODULE__["f3"])();
+    const [f2, f4] = (0, _module__WEBPACK_IMPORTED_MODULE_0_["f3"])();
     const [f1, _f3] = f2();
-    expect(_f3).toBe(_module__WEBPACK_IMPORTED_MODULE__["f3"]);
-    expect((0, _module__WEBPACK_IMPORTED_MODULE__["f3"])()).toEqual(f1());
+    expect(_f3).toBe(_module__WEBPACK_IMPORTED_MODULE_0_["f3"]);
+    expect((0, _module__WEBPACK_IMPORTED_MODULE_0_["f3"])()).toEqual(f1());
     expect(f2()).toEqual(f4());
 });
 },

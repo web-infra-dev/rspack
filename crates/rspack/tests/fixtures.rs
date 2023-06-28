@@ -4,7 +4,7 @@ use rspack_testing::test_fixture;
 use rspack_tracing::enable_tracing_by_env;
 use testing_macros::fixture;
 
-#[fixture("tests/fixtures/*")]
+#[fixture("tests/fixtures/static-import")]
 fn rspack(fixture_path: PathBuf) {
   enable_tracing_by_env();
   test_fixture(&fixture_path);

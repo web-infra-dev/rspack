@@ -17,9 +17,9 @@ Foo.prototype = {
 "./index.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE__ = __webpack_require__(/* ./foo */"./foo.js");
+/* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
-var foo = new _foo__WEBPACK_IMPORTED_MODULE__["default"]();
+var foo = new _foo__WEBPACK_IMPORTED_MODULE_0_["default"]();
 },
 
 },function(__webpack_require__) {
