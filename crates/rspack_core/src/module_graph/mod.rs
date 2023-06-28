@@ -473,7 +473,7 @@ impl ModuleGraph {
         request.to_string(),
         format!(
           "{}__WEBPACK_IMPORTED_MODULE_{}_",
-          to_identifier(&request),
+          to_identifier(request),
           module_var_map.len()
         ),
       );
@@ -486,9 +486,7 @@ impl ModuleGraph {
       .get(module_identifier)
       .expect("should have module import var")
       .get(request)
-      .expect(&format!(
-        "should have import var for {module_identifier} {request}"
-      ))
+      .unwrap_or_else(|| panic!("should have import var for {module_identifier} {request}"))
   }
 }
 
