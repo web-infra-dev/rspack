@@ -1,4 +1,4 @@
-var webpack = require("../../../../");
+var webpack = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
