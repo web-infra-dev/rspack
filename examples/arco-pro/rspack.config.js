@@ -12,7 +12,7 @@ const config = {
 		webSocketServer: "sockjs",
 		historyApiFallback: true
 	},
-	mode: prod ? "production": "development",
+	mode: prod ? "production" : "development",
 	devtool: false,
 	builtins: {
 		progress: {},
