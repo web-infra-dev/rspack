@@ -1,8 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["custom.d.ts", "./scripts", "./fixtures"],
+  "include": ["custom.d.ts", "./scripts", "./fixtures", "./cases", "./utils"],
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "ts-node": {
     "transpileOnly": true
