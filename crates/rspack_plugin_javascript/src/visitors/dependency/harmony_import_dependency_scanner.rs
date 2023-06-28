@@ -24,10 +24,10 @@ pub type ImportMap = FxHashMap<
 
 use crate::dependency::{
   HarmonyExportImportedSpecifierDependency, HarmonyImportDependency,
-  HarmonyImportSpecifierDependency,
+  HarmonyImportSpecifierDependency, Specifier,
 };
 
-pub type Imports = IndexMap<(JsWord, DependencyType), (Span, Vec<(JsWord, Option<JsWord>)>, bool)>;
+pub type Imports = IndexMap<(JsWord, DependencyType), (Span, Vec<Specifier>, bool)>;
 
 pub struct HarmonyImportDependencyScanner<'a> {
   pub dependencies: &'a mut Vec<Box<dyn ModuleDependency>>,
@@ -102,7 +102,8 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
             }),
           ),
         );
-        specifiers.push((
+
+        specifiers.push(Specifier::Named(
           n.local.sym.clone(),
           match &n.imported {
             Some(ModuleExportName::Ident(ident)) => Some(ident.sym.clone()),
@@ -115,14 +116,14 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           (d.local.sym.clone(), d.local.span.ctxt),
           (import_decl.src.value.clone(), Some(DEFAULT_JS_WORD.clone())),
         );
-        specifiers.push((d.local.sym.clone(), Some(DEFAULT_JS_WORD.clone())));
+        specifiers.push(Specifier::Default(d.local.sym.clone()));
       }
       ImportSpecifier::Namespace(n) => {
         self.import_map.insert(
           (n.local.sym.clone(), n.local.span.ctxt),
           (import_decl.src.value.clone(), None),
         );
-        specifiers.push((n.local.sym.clone(), Some("namespace".into())));
+        specifiers.push(Specifier::Namespace(n.local.sym.clone()));
       }
     });
 
@@ -155,10 +156,12 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
           ExportSpecifier::Namespace(n) => {
             if let ModuleExportName::Ident(export) = &n.name {
               ids.push((export.sym.clone(), None));
-              specifiers.push((export.sym.clone(), Some("namespace".into())));
+              specifiers.push(Specifier::Namespace(export.sym.clone()));
             }
           }
-          ExportSpecifier::Default(_) => unreachable!(),
+          ExportSpecifier::Default(_) => {
+            unreachable!()
+          }
           ExportSpecifier::Named(named) => {
             if let ModuleExportName::Ident(orig) = &named.orig {
               let exported = match &named.exported {
@@ -167,14 +170,14 @@ impl Visit for HarmonyImportDependencyScanner<'_> {
                 _ => unreachable!(),
               };
               ids.push((exported, Some(orig.sym.clone())));
-              specifiers.push((
+              specifiers.push(Specifier::Named(
                 orig.sym.clone(),
                 match &named.exported {
                   Some(ModuleExportName::Ident(export)) => Some(export.sym.clone()),
                   None => None,
                   _ => unreachable!(),
                 },
-              ))
+              ));
             }
           }
         });

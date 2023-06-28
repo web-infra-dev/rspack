@@ -9,6 +9,13 @@ use swc_core::ecma::atoms::JsWord;
 use super::HarmonyImportSpecifierDependency;
 
 #[derive(Debug, Clone)]
+pub enum Specifier {
+  Namespace(JsWord),
+  Default(JsWord),
+  Named(JsWord, Option<JsWord>),
+}
+
+#[derive(Debug, Clone)]
 pub struct HarmonyImportDependency {
   // pub start: u32,
   // pub end: u32,
@@ -16,7 +23,7 @@ pub struct HarmonyImportDependency {
   pub id: Option<DependencyId>,
   pub span: Option<ErrorSpan>,
   pub refs: Vec<HarmonyImportSpecifierDependency>,
-  pub specifiers: Vec<(JsWord, Option<JsWord>)>,
+  pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
 }
@@ -26,7 +33,7 @@ impl HarmonyImportDependency {
     request: JsWord,
     span: Option<ErrorSpan>,
     refs: Vec<HarmonyImportSpecifierDependency>,
-    specifiers: Vec<(JsWord, Option<JsWord>)>,
+    specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
@@ -76,41 +83,45 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
       let specifiers = self
         .specifiers
         .iter()
-        .filter(|(local, imported)| {
-          if !ref_mgm.module_type.is_js_like() {
+        .filter(|specifier| {
+          let is_import = matches!(self.dependency_type, DependencyType::EsmImport);
+          if is_import && !ref_mgm.module_type.is_js_like() {
             return true;
           }
 
-          if let Some(imported) = imported {
-            if imported == "namespace" {
-              return true;
+          match specifier {
+            Specifier::Namespace(_) => true,
+            Specifier::Default(local) => {
+              if is_import {
+                compilation
+                  .used_symbol_ref
+                  .contains(&SymbolRef::Indirect(IndirectTopLevelSymbol {
+                    src: ref_mgm.module_identifier,
+                    ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
+                    importer: module.identifier(),
+                  }))
+              } else {
+                unreachable!("`export v from ''` is a unrecoverable syntax error")
+              }
             }
-            if imported == "default" && matches!(self.dependency_type, DependencyType::EsmImport) {
-              return compilation.used_symbol_ref.contains(&SymbolRef::Indirect(
-                IndirectTopLevelSymbol {
+            Specifier::Named(local, imported) => {
+              let symbol = if matches!(self.dependency_type, DependencyType::EsmImport) {
+                SymbolRef::Indirect(IndirectTopLevelSymbol {
                   src: ref_mgm.module_identifier,
-                  ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
+                  ty: rspack_symbol::IndirectType::Import(local.clone(), imported.clone()),
                   importer: module.identifier(),
-                },
-              ));
+                })
+              } else {
+                SymbolRef::Indirect(IndirectTopLevelSymbol {
+                  src: module.identifier(),
+                  ty: rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone()),
+                  importer: module.identifier(),
+                })
+              };
+
+              compilation.used_symbol_ref.contains(&symbol)
             }
           }
-
-          let symbol = if matches!(self.dependency_type, DependencyType::EsmImport) {
-            SymbolRef::Indirect(IndirectTopLevelSymbol {
-              src: ref_mgm.module_identifier,
-              ty: rspack_symbol::IndirectType::Import(local.clone(), imported.clone()),
-              importer: module.identifier(),
-            })
-          } else {
-            SymbolRef::Indirect(IndirectTopLevelSymbol {
-              src: module.identifier(),
-              ty: rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone()),
-              importer: module.identifier(),
-            })
-          };
-
-          compilation.used_symbol_ref.contains(&symbol)
         })
         .collect::<Vec<_>>();
 
