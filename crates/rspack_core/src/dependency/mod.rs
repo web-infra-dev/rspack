@@ -249,7 +249,7 @@ pub trait ModuleDependency: Dependency {
     false
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
     None
   }
 
@@ -292,7 +292,7 @@ impl ModuleDependency for Box<dyn ModuleDependency> {
     (**self).set_request(request);
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
     (**self).as_code_generatable_dependency()
   }
 }

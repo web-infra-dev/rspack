@@ -88,8 +88,8 @@ impl ModuleDependency for CssUrlDependency {
     self.request = request;
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
-    Some(Box::new(self))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
   }
 }
 

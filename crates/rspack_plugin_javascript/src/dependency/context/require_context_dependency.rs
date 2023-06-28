@@ -58,8 +58,8 @@ impl ModuleDependency for RequireContextDependency {
     Some(&self.options)
   }
 
-  fn as_code_generatable_dependency(&self) -> Option<Box<&dyn CodeGeneratableDependency>> {
-    Some(Box::new(self))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
