@@ -10,10 +10,7 @@ module.exports = {
 			{
 				template: "./src/index.html"
 			}
-		],
-		define: {
-			"process.env.NODE_ENV": JSON.stringify("development")
-		}
+		]
 	},
 	output: {
 		crossOriginLoading: "anonymous"
