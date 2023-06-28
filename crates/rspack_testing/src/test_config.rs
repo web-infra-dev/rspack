@@ -355,7 +355,7 @@ impl TestConfig {
             c::RuleSetCondition::Regexp(RspackRegex::new(&matcher).expect("should be valid regex"))
           }
         }),
-        r#use: Some(c::ModuleRuleUse::Array(
+        r#use: c::ModuleRuleUse::Array(
           rule
             .r#use
             .into_iter()
@@ -379,7 +379,7 @@ impl TestConfig {
               _ => panic!("should give a right loader"),
             })
             .collect::<Vec<BoxLoader>>(),
-        )),
+        ),
         side_effects: rule.side_effect,
         r#type: rule
           .r#type
