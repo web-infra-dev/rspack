@@ -118,10 +118,16 @@ export const rspackFixtures: Fixtures<
 				if (!rspack) {
 					const port = 8000 + workerIndex;
 					rspack = new Rspack(projectDir, function (config) {
+						// rewrite port
 						if (!config.devServer) {
 							config.devServer = {};
 						}
 						config.devServer.port = port;
+
+						// set default context
+						if (!config.context) {
+							config.context = projectDir;
+						}
 
 						return handleRspackConfig(config);
 					});
