@@ -36,7 +36,7 @@ const config = {
 				type: "css"
 			},
 			{
-				test: /\.svg/,
+				test: /\.svg$/,
 				type: "asset/resource"
 			}
 		]
