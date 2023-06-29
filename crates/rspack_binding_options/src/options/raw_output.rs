@@ -176,6 +176,7 @@ impl RawOptionsApply for RawOutputOptions {
         wasm_loading_type.as_str().into(),
       ));
     }
+    dbg!(&self.hash_digest_length);
 
     Ok(OutputOptions {
       path: self.path.into(),

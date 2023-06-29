@@ -352,6 +352,7 @@ impl Filename {
         .into_owned();
     }
     if let Some(hash) = options.hash {
+      dbg!(&hash);
       for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
         template = reg
           .replace_all(&template, |caps: &Captures| {

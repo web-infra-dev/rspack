@@ -9,7 +9,8 @@
     "build": "rspack build"
   },
   "devDependencies": {
-    "@rspack/cli": "workspace:*"
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
   },
   "sideEffects": false,
   "keywords": [],

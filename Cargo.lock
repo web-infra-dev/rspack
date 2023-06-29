@@ -1356,6 +1356,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "md4"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7da5ac363534dce5fabf69949225e174fbf111a498bf0ff794c8ea1fba9f3dda"
+dependencies = [
+ "digest",
+]
+
+[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2375,6 +2384,7 @@ name = "rspack_hash"
 version = "0.1.0"
 dependencies = [
  "data-encoding",
+ "md4",
  "once_cell",
  "rspack_util",
  "smol_str",
@@ -2722,19 +2732,6 @@ dependencies = [
  "rspack_error",
  "rspack_identifier",
  "serde_json",
-]
-
-[[package]]
-name = "rspack_plugin_manifest"
-version = "0.1.0"
-dependencies = [
- "async-recursion",
- "async-trait",
- "rspack_core",
- "rspack_error",
- "rspack_regex",
- "rspack_testing",
- "testing_macros",
 ]
 
 [[package]]
