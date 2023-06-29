@@ -64,36 +64,36 @@ chatWorker.port.onmessage = event => {
 
 /// FIBONACCI without worker ///
 
-fib1.addEventListener("change", async () => {
-	try {
-		const value = parseInt(fib1.value, 10);
-		const { fibonacci } = await import("./fibonacci");
-		const result = fibonacci(value);
-		output1.innerText = `fib(${value}) = ${result}`;
-	} catch (e) {
-		output1.innerText = e.message;
-	}
-});
+// fib1.addEventListener("change", async () => {
+// 	try {
+// 		const value = parseInt(fib1.value, 10);
+// 		const { fibonacci } = await import("./fibonacci");
+// 		const result = fibonacci(value);
+// 		output1.innerText = `fib(${value}) = ${result}`;
+// 	} catch (e) {
+// 		output1.innerText = e.message;
+// 	}
+// });
 
-/// FIBONACCI with worker ///
+// /// FIBONACCI with worker ///
 
-const fibWorker = new Worker(
-	new URL("./fib-worker.js", import.meta.url), 
-	{
-		name: "fibonacci",
-		type: "module"
-	}
-);
+// const fibWorker = new Worker(
+// 	new URL("./fib-worker.js", import.meta.url), 
+// 	{
+// 		name: "fibonacci",
+// 		type: "module"
+// 	}
+// );
 
-fib2.addEventListener("change", () => {
-	try {
-		const value = parseInt(fib2.value, 10);
-		fibWorker.postMessage(`${value}`);
-	} catch (e) {
-		output2.innerText = e.message;
-	}
-});
+// fib2.addEventListener("change", () => {
+// 	try {
+// 		const value = parseInt(fib2.value, 10);
+// 		fibWorker.postMessage(`${value}`);
+// 	} catch (e) {
+// 		output2.innerText = e.message;
+// 	}
+// });
 
-fibWorker.onmessage = event => {
-	output2.innerText = event.data;
-};
+// fibWorker.onmessage = event => {
+// 	output2.innerText = event.data;
+// };

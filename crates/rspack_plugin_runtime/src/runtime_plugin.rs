@@ -41,11 +41,11 @@ impl Plugin for RuntimePlugin {
     let chunk = args.chunk();
     if args
       .runtime_requirements
-      .contains(RuntimeGlobals::ENSURE_CHUNK)
-      && (args
+      .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+      || (args
         .runtime_requirements
-        .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
-        || !chunk
+        .contains(RuntimeGlobals::ENSURE_CHUNK)
+        && !chunk
           .get_all_async_chunks(&compilation.chunk_group_by_ukey)
           .is_empty())
     {
