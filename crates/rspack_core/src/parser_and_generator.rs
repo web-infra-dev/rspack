@@ -5,9 +5,9 @@ use rspack_loader_runner::ResourceData;
 use rspack_sources::BoxSource;
 
 use crate::{
-  AstOrSource, BuildInfo, BuildMeta, CodeGenerationData, CodeReplaceSourceDependency, Compilation,
-  CompilerOptions, Dependency, GenerationResult, GeneratorOptions, Module, ModuleDependency,
-  ModuleIdentifier, ModuleType, ParserOptions, RuntimeGlobals, SourceType,
+  AstOrSource, BuildInfo, BuildMeta, CodeGeneratableDependency, CodeGenerationData, Compilation,
+  CompilerOptions, GenerationResult, GeneratorOptions, Module, ModuleDependency, ModuleIdentifier,
+  ModuleType, ParserOptions, RuntimeGlobals, SourceType,
 };
 
 #[derive(Debug)]
@@ -15,6 +15,7 @@ pub struct ParseContext<'a> {
   pub source: BoxSource,
   pub module_identifier: ModuleIdentifier,
   pub module_type: &'a ModuleType,
+  pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
@@ -27,8 +28,7 @@ pub struct ParseContext<'a> {
 #[derive(Debug)]
 pub struct ParseResult {
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
-  pub presentational_dependencies: Vec<Box<dyn Dependency>>,
-  pub code_replace_source_dependencies: Vec<Box<dyn CodeReplaceSourceDependency>>,
+  pub presentational_dependencies: Vec<Box<dyn CodeGeneratableDependency>>,
   pub ast_or_source: AstOrSource,
 }
 

@@ -1,6 +1,5 @@
 use rspack_core::{
-  CodeGeneratable, CodeGeneratableContext, CodeGeneratableResult, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
@@ -52,14 +51,5 @@ impl ModuleDependency for CssComposeDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-}
-
-impl CodeGeneratable for CssComposeDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    Ok(CodeGeneratableResult::default())
   }
 }

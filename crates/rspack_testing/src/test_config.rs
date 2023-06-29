@@ -503,6 +503,7 @@ impl TestConfig {
               async_chunks: Some(true),
               public_path: None,
               base_uri: None,
+              filename: None,
             },
           )
           .boxed(),

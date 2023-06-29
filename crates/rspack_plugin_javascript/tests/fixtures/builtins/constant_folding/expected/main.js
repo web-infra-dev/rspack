@@ -2,7 +2,7 @@
 "./development.js": function (module, exports, __webpack_require__) {
 },
 "./index.js": function (module, exports, __webpack_require__) {
-__webpack_require__("./development.js");
+__webpack_require__(/* ./development */"./development.js");
 },
 
 },function(__webpack_require__) {

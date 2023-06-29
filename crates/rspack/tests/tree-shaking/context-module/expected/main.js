@@ -1,29 +1,15 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./child/child/index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "value", {
-    enumerable: true,
-    get: function() {
-        return value;
-    }
-});
-const value = "dynamic";
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'value': function() { return value; }});
+ const value = "dynamic";
 },
 "./child/index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-Object.defineProperty(exports, "value", {
-    enumerable: true,
-    get: function() {
-        return value;
-    }
-});
-const value = "dynamic";
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'value': function() { return value; }});
+ const value = "dynamic";
 },
 "./child Sync  recursive ^\\.\\/.*\\.js$": function (module, exports, __webpack_require__) {
 var map = {"./child/index.js": "./child/child/index.js","./index.js": "./child/index.js",};
@@ -53,7 +39,7 @@ webpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
       },
 "./index.js": function (module, exports, __webpack_require__) {
 let a = "index";
-__webpack_require__("./child Sync  recursive ^\\.\\/.*\\.js$")(`./child/${a}.js`.replace("./child/", "./"));
+__webpack_require__(/* ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
 },
 
 },function(__webpack_require__) {

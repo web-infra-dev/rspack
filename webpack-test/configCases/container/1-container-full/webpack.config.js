@@ -20,7 +20,7 @@ const commonMF = {
 	shared: ["react"]
 };
 
-/** @type {import("../../../../").Configuration[]} */
+/** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
 	{
 		...common,

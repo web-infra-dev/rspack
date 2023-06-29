@@ -1,6 +1,6 @@
 const { ProvideSharedPlugin } = require("../../../../").sharing;
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	output: {
 		filename: "[name].js"

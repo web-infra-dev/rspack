@@ -1,6 +1,6 @@
 var DefinePlugin = require("../../../../").DefinePlugin;
 const Module = require("../../../../").Module;
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
 		new DefinePlugin({

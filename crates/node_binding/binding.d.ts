@@ -542,6 +542,7 @@ export interface RawEntryDescription {
   asyncChunks?: boolean
   publicPath?: string
   baseUri?: string
+  filename?: string
 }
 
 export interface RawExperiments {

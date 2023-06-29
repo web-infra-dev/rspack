@@ -21,7 +21,6 @@ use swc_config::config_types::BoolOrDataConfig;
 use swc_ecma_minifier::option::terser::TerserCompressorOptions;
 
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
-// use crate::parser_and_generator::JavaScriptStringReplaceParserAndGenerator;
 use crate::{JsMinifyOptions, JsPlugin};
 
 #[async_trait]
@@ -32,10 +31,6 @@ impl Plugin for JsPlugin {
   fn apply(&self, ctx: PluginContext<&mut rspack_core::ApplyContext>) -> Result<()> {
     let create_parser_and_generator =
       move || Box::new(JavaScriptParserAndGenerator::new()) as Box<dyn ParserAndGenerator>;
-
-    // let create_parser_and_generator = move || {
-    //   Box::new(JavaScriptStringReplaceParserAndGenerator::new()) as Box<dyn ParserAndGenerator>
-    // };
 
     ctx
       .context
@@ -230,6 +225,12 @@ impl Plugin for JsPlugin {
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
     let minify_options = &compilation.options.builtins.minify_options;
+    let is_module = compilation
+      .options
+      .output
+      .library
+      .as_ref()
+      .is_some_and(|library| library.library_type == "module");
 
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
@@ -263,6 +264,7 @@ impl Plugin for JsPlugin {
               source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
               emit_source_map_columns,
+              module: is_module,
               ..Default::default()
             };
             let output = match crate::ast::minify(&js_minify_options, input, filename, &all_extracted_comments, extract_comments_option) {

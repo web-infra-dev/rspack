@@ -96,7 +96,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         presentational_dependencies: vec![],
         dependencies: vec![],
         ast_or_source: box_source.into(),
-        code_replace_source_dependencies: vec![],
       }
       .with_diagnostic(diagnostics),
     )

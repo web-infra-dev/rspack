@@ -349,7 +349,7 @@ export const describeCases = config => {
 								} else {
 									if (jsonStats.errors!.length > 0) {
 										console.log(
-											`case: ${testName}\nerrors:\n`,
+											`case: ${category.name} ${testName}\nerrors:\n`,
 											`${jsonStats.errors!.map(x => x.message).join("\n")}`
 										);
 									}

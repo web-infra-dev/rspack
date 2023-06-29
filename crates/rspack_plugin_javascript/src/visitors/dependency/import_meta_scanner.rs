@@ -1,13 +1,14 @@
-use rspack_core::{CompilerOptions, ConstDependency, Dependency, ResourceData};
-use swc_core::common::pass::AstNodePath;
-use swc_core::common::DUMMY_SP;
-use swc_core::ecma::ast::{Expr, Lit, Str, UnaryExpr, UnaryOp};
-use swc_core::ecma::visit::{AstParentNodeRef, VisitAstPath, VisitWithPath};
-use swc_core::quote;
+use rspack_core::{
+  CodeGeneratableDependency, CompilerOptions, ConstDependency, ResourceData, SpanExt,
+};
+use swc_core::common::Spanned;
+use swc_core::ecma::ast::{Expr, Ident, NewExpr, UnaryExpr, UnaryOp};
+use swc_core::ecma::atoms::js_word;
+use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 use url::Url;
 
 use super::{
-  as_parent_path, expr_matcher, is_member_expr_starts_with_import_meta,
+  expr_matcher, is_member_expr_starts_with_import_meta,
   is_member_expr_starts_with_import_meta_webpack_hot,
 };
 
@@ -18,14 +19,14 @@ use super::{
 // - evaluate expression. eg `import.meta.env && import.meta.env.xx` should be `false`
 // - add warning for `import.meta`
 pub struct ImportMetaScanner<'a> {
-  pub presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
+  pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
   pub compiler_options: &'a CompilerOptions,
   pub resource_data: &'a ResourceData,
 }
 
 impl<'a> ImportMetaScanner<'a> {
   pub fn new(
-    presentational_dependencies: &'a mut Vec<Box<dyn Dependency>>,
+    presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
     resource_data: &'a ResourceData,
     compiler_options: &'a CompilerOptions,
   ) -> Self {
@@ -35,84 +36,102 @@ impl<'a> ImportMetaScanner<'a> {
       compiler_options,
     }
   }
-
-  fn add_presentational_dependency(&mut self, dependency: Box<dyn Dependency>) {
-    self.presentational_dependencies.push(dependency);
-  }
 }
 
-impl VisitAstPath for ImportMetaScanner<'_> {
-  fn visit_expr<'ast: 'r, 'r>(
-    &mut self,
-    expr: &'ast Expr,
-    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
-  ) {
-    // Deal with `typeof import.meta.url` and ``typeof import.meta.xxx`
-    if let Expr::Unary(UnaryExpr {
+impl Visit for ImportMetaScanner<'_> {
+  noop_visit_type!();
+
+  fn visit_unary_expr(&mut self, unary_expr: &UnaryExpr) {
+    if let UnaryExpr {
       op: UnaryOp::TypeOf,
       arg: box expr,
       ..
-    }) = expr
+    } = unary_expr
     {
-      // typeof import.meta
       if expr_matcher::is_import_meta(expr) {
-        self.add_presentational_dependency(Box::new(ConstDependency::new(
-          quote!("'object'" as Expr),
-          None,
-          as_parent_path(ast_path),
-        )));
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            unary_expr.span().real_lo(),
+            unary_expr.span().real_hi(),
+            "'object'".into(),
+            None,
+          )));
       } else if expr_matcher::is_import_meta_url(expr) {
-        // typeof import.meta.url
-        self.add_presentational_dependency(Box::new(ConstDependency::new(
-          quote!("'string'" as Expr),
-          None,
-          as_parent_path(ast_path),
-        )));
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            unary_expr.span().real_lo(),
+            unary_expr.span().real_hi(),
+            "'string'".into(),
+            None,
+          )));
       } else if is_member_expr_starts_with_import_meta(expr) {
-        // typeof import.meta.xxx
-        self.add_presentational_dependency(Box::new(ConstDependency::new(
-          quote!("undefined" as Expr),
-          None,
-          as_parent_path(ast_path),
-        )));
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            unary_expr.span().real_lo(),
+            unary_expr.span().real_hi(),
+            "'undefined'".into(),
+            None,
+          )));
       }
     } else {
-      // Deal with `import.meta` and `import.meta.xxx`
-
-      // exclude import.meta.webpackHot
-      if is_member_expr_starts_with_import_meta_webpack_hot(expr) {
-        return;
-      }
-
-      // import.meta
-      if expr_matcher::is_import_meta(expr) {
-        // TODO(underfin): add warning
-        self.add_presentational_dependency(Box::new(ConstDependency::new(
-          quote!("({})" as Expr),
-          None,
-          as_parent_path(ast_path),
-        )));
-      } else if expr_matcher::is_import_meta_url(expr) {
-        // import.meta.url
-        let url = Url::from_file_path(&self.resource_data.resource).expect("should be a path");
-        self.add_presentational_dependency(Box::new(ConstDependency::new(
-          Expr::Lit(Lit::Str(Str {
-            span: DUMMY_SP,
-            value: format!("'{}'", url.as_str()).into(),
-            raw: Some(format!("'{}'", url.as_str()).into()),
-          })),
-          None,
-          as_parent_path(ast_path),
-        )));
-      } else if is_member_expr_starts_with_import_meta(expr) {
-        // import.meta.xxx
-        self.add_presentational_dependency(Box::new(ConstDependency::new(
-          quote!("undefined" as Expr),
-          None,
-          as_parent_path(ast_path),
-        )));
-      }
+      unary_expr.visit_children_with(self);
     }
-    expr.visit_children_with_path(self, ast_path);
+  }
+
+  fn visit_expr(&mut self, expr: &Expr) {
+    // exclude import.meta.webpackHot
+    if is_member_expr_starts_with_import_meta_webpack_hot(expr) {
+      return;
+    }
+
+    // import.meta
+    if expr_matcher::is_import_meta(expr) {
+      // TODO(underfin): add warning
+      self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+          "({})".into(),
+          None,
+        )));
+    } else if expr_matcher::is_import_meta_url(expr) {
+      // import.meta.url
+      let url = Url::from_file_path(&self.resource_data.resource).expect("should be a path");
+      self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+          format!("'{url}'").into(),
+          None,
+        )));
+    } else if is_member_expr_starts_with_import_meta(expr) {
+      self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          expr.span().real_lo(),
+          expr.span().real_hi(),
+          "undefined".into(),
+          None,
+        )));
+    } else {
+      expr.visit_children_with(self);
+    }
+  }
+
+  fn visit_new_expr(&mut self, new_expr: &NewExpr) {
+    // exclude new URL("", import.meta.url)
+    if let Expr::Ident(Ident {
+      sym: js_word!("URL"),
+      ..
+    }) = &*new_expr.callee
+    {
+      return;
+    }
+    new_expr.visit_children_with(self);
   }
 }

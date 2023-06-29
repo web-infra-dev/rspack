@@ -11,4 +11,5 @@ pub struct RawEntryDescription {
   pub async_chunks: Option<bool>,
   pub public_path: Option<String>,
   pub base_uri: Option<String>,
+  pub filename: Option<String>,
 }

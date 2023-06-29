@@ -6,8 +6,6 @@ use swc_core::ecma::atoms::JsWordStaticSet;
 bitflags! {
   pub struct RuntimeGlobals: u64 {
 
-    const INTEROP_REQUIRE = 1 << 0;
-
     const EXPORT_STAR = 1 << 1;
     /**
      * rspack
@@ -238,7 +236,6 @@ impl RuntimeGlobals {
   pub fn name(&self) -> &'static str {
     use RuntimeGlobals as R;
     match *self {
-      R::INTEROP_REQUIRE => "ir",
       R::EXPORT_STAR => "es",
       R::LOAD_CHUNK_WITH_MODULE => "__webpack_require__.el",
       R::MODULE => "module",

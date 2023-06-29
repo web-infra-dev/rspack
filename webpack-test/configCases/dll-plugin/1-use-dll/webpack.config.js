@@ -1,6 +1,6 @@
 var webpack = require("../../../../");
 
-/** @type {import("../../../../").Configuration} */
+/** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	optimization: {
 		moduleIds: "named"

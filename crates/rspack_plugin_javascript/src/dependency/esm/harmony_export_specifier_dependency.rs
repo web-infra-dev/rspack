@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  tree_shaking::visitor::SymbolRef, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, InitFragment,
-  InitFragmentStage, RuntimeGlobals,
+  tree_shaking::visitor::SymbolRef, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, InitFragment, InitFragmentStage, RuntimeGlobals,
 };
 use rspack_symbol::{IndirectType, SymbolType, DEFAULT_JS_WORD};
 use swc_core::ecma::atoms::JsWord;
@@ -20,13 +19,13 @@ impl HarmonyExportSpecifierDependency {
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
+impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    _source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       runtime_requirements,
       init_fragments,
       compilation,
@@ -62,7 +61,7 @@ impl CodeReplaceSourceDependency for HarmonyExportSpecifierDependency {
               Some(i.id())
             }
             SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-              // IndirectType::Import(_, _) => Some(i.indirect_id()),
+              IndirectType::Import(_, _) => Some(i.indirect_id()),
               IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
               _ => None,
             },
