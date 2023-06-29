@@ -2725,6 +2725,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rspack_plugin_manifest"
+version = "0.1.0"
+dependencies = [
+ "async-recursion",
+ "async-trait",
+ "rspack_core",
+ "rspack_error",
+ "rspack_regex",
+ "rspack_testing",
+ "testing_macros",
+]
+
+[[package]]
 name = "rspack_plugin_progress"
 version = "0.1.0"
 dependencies = [

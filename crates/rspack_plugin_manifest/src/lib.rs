@@ -173,7 +173,42 @@ impl Plugin for BannerPlugin {
     "banner-rspack-plugin"
   }
 
-  async fn emit(&self, _compilation: &mut Compilation) -> Result<()> {
+  async fn process_assets_stage_additions(
+    &self,
+    _ctx: rspack_core::PluginContext,
+    args: rspack_core::ProcessAssetsArgs<'_>,
+  ) -> rspack_core::PluginProcessAssetsOutput {
+    let compilation = args.compilation;
+    let mut chunk_files = vec![];
+
+    // filter file
+    for chunk in compilation.chunk_by_ukey.values() {
+      let can_be_initial = chunk.can_be_initial(&compilation.chunk_group_by_ukey);
+
+      if let Some(entry_only) = self.config.entry_only && entry_only && !can_be_initial {
+        continue;
+      }
+
+      for file in &chunk.files {
+        let is_match = match_object(&self.config, file).await.unwrap_or(false);
+
+        if !is_match {
+          continue;
+        }
+        chunk_files.push(file.clone());
+      }
+    }
+
+    // add comment to the matched file
+    for file in chunk_files {
+      // todo: support placeholder, such as [fullhash]、[chunkhash]
+      let comment = self.comment.to_owned();
+      let _res = compilation.update_asset(file.as_str(), |old, info| {
+        let new = self.update_source(comment, old, self.config.footer);
+        Ok((new, info))
+      });
+    }
+
     Ok(())
   }
 }
