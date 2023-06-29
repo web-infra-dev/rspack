@@ -392,7 +392,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         if eliminator.could_be_skipped() {
           continue;
         } else {
-          // dbg!(&eliminator);
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -421,6 +420,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             }
           }
         }
+        dbg!(&reachable_dependency_identifier);
 
         let mgm = self
           .compilation
@@ -714,6 +714,11 @@ impl<'a> CodeSizeOptimizer<'a> {
         ty: StarSymbolKind::ReExportAll,
         module_ident,
         ..
+      })
+      | SymbolRef::Star(StarSymbol {
+        ty: StarSymbolKind::ReExportAllAs,
+        module_ident,
+        ..
       }) => {
         merge_used_export_type(
           used_export_module_identifiers,
@@ -823,6 +828,7 @@ impl<'a> CodeSizeOptimizer<'a> {
                       }
                     }
                     Entry::Vacant(vac) => {
+                      dbg!(&inherit_extend_graph);
                       for path in algo::all_simple_paths::<Vec<_>, _>(
                         &inherit_extend_graph,
                         indirect_symbol.src,
@@ -833,7 +839,6 @@ impl<'a> CodeSizeOptimizer<'a> {
                         let mut from = current_symbol_ref.clone();
                         let mut star_chain_start_end_pair = (from.clone(), from.clone());
                         for i in 0..path.len() - 1 {
-                          // dbg!(&path);
                           let star_symbol = StarSymbol::new(
                             path[i + 1],
                             Default::default(),
@@ -1263,14 +1268,14 @@ async fn par_analyze_module(compilation: &mut Compilation) -> IdentifierMap<Opti
           AssetModule::new(*module_identifier).analyze(compilation)
         };
 
-        dbg_matches!(
-          &module_identifier.as_str(),
-          &optimize_analyze_result.reachable_import_of_export,
-          &optimize_analyze_result.used_symbol_refs,
-          &optimize_analyze_result.export_map,
-          &optimize_analyze_result.import_map,
-          &optimize_analyze_result.side_effects
-        );
+        // dbg_matches!(
+        //   &module_identifier.as_str(),
+        //   &optimize_analyze_result.reachable_import_of_export,
+        //   &optimize_analyze_result.used_symbol_refs,
+        //   &optimize_analyze_result.export_map,
+        //   &optimize_analyze_result.import_map,
+        //   &optimize_analyze_result.side_effects
+        // );
 
         Some((*module_identifier, optimize_analyze_result))
       })
