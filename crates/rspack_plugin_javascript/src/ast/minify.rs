@@ -102,7 +102,6 @@ pub fn minify(
         // top_level defaults to true if module is true
 
         // https://github.com/swc-project/swc/issues/2254
-
         if opts.module {
           if let Some(opts) = &mut min_opts.compress {
             if opts.top_level.is_none() {
@@ -127,7 +126,7 @@ pub fn minify(
             import_assertions: true,
             ..Default::default()
           }),
-          IsModule::Bool(false),
+          IsModule::Bool(opts.module),
           Some(&comments),
         )
         .map_err(|errs| {
