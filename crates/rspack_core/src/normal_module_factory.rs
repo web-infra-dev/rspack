@@ -396,8 +396,8 @@ impl NormalModuleFactory {
           },
           ModuleRuleUse::Func(func_use) => {
             let context = FuncUseCtx {
-              resource: Some(user_request.clone()),
-              real_resource: Some(resource_data.resource.clone()),
+              resource: Some(resource_data.resource.clone()),
+              real_resource: Some(user_request.clone()),
               issuer: self.context.issuer.clone(),
               resource_query: resource_data.resource_query.clone(),
             };
