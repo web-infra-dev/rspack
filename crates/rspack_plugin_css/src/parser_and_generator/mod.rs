@@ -12,9 +12,7 @@ use rspack_core::{
   AstOrSource, BuildMetaExportsType, CodeGeneratableContext, GenerateContext, GenerationResult,
   Module, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
 };
-use rspack_error::{
-  internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
-};
+use rspack_error::{internal_error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 use swc_core::{
@@ -39,16 +37,9 @@ pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
 pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
   &[SourceType::JavaScript];
 
-/// Compat for @rspack/postcss-loader css modules
-#[derive(serde::Deserialize)]
-struct RspackPostcssModules {
-  rspack_postcss_modules: String,
-}
-
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub config: CssConfig,
-  pub meta: Option<String>,
   pub exports: Option<IndexMap<JsWord, Vec<CssClassName>>>,
 }
 
@@ -76,14 +67,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
   fn size(&self, module: &dyn Module, source_type: &SourceType) -> f64 {
     match source_type {
-      SourceType::JavaScript => {
-        // meta + `module.exports = ...`
-        self
-          .meta
-          .as_ref()
-          .map(|item| item.len() as f64 + 17.0)
-          .unwrap_or(0.0)
-      }
+      SourceType::JavaScript => 42.0,
       SourceType::Css => module.original_source().map_or(0, |source| source.size()) as f64,
       _ => unreachable!(),
     }
@@ -92,7 +76,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
   fn parse(&mut self, parse_context: ParseContext) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
       source,
-      additional_data,
       module_type,
       module_user_request,
       resource_data,
@@ -197,12 +180,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       dependencies
     };
 
-    self.meta = additional_data.and_then(|data| if data.is_empty() { None } else { Some(data) });
     self.exports = locals;
-
-    if self.exports.is_some() && let Some(meta) = &self.meta && serde_json::from_str::<RspackPostcssModules>(meta).is_ok() {
-      diagnostic.push(Diagnostic::warn("CSS Modules".to_string(), format!("file: {} is using `postcss.modules` and `builtins.css.modules` to process css modules at the same time, rspack will use `builtins.css.modules`'s result.", resource_data.resource_path.display()), 0, 0));
-    }
 
     let new_source = if let Some(source_map) = source_map {
       SourceMapSource::new(SourceMapSourceOptions {
@@ -281,11 +259,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             generate_context.compilation,
             &self.config.modules.locals_convention,
           )?
-        } else if let Some(meta) = &self.meta
-          && let Ok(meta) = serde_json::from_str::<RspackPostcssModules>(meta)
-        {
-          format!("module.exports = {};\n", meta.rspack_postcss_modules)
-        } else if generate_context.compilation.options.dev_server.hot  {
+        } else if generate_context.compilation.options.dev_server.hot {
           "module.hot.accept();".to_string()
         } else {
           "".to_string()

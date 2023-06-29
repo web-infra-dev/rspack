@@ -119,7 +119,6 @@ impl Plugin for CssPlugin {
     let builder = move || {
       Box::new(CssParserAndGenerator {
         config: config.clone(),
-        meta: None,
         exports: None,
       }) as Box<dyn ParserAndGenerator>
     };
