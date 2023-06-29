@@ -28,8 +28,10 @@ use self::{
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
-  import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
+  import_meta_scanner::ImportMetaScanner,
+  import_scanner::ImportScanner,
+  node_stuff_scanner::NodeStuffScanner,
+  require_context_scanner::RequireContextScanner,
   url_scanner::UrlScanner,
   worker_scanner::{WorkerScanner, WorkerSyntaxScanner},
 };
@@ -120,10 +122,10 @@ pub fn scan_dependencies(
     );
     program.visit_with(&mut worker_scanner);
     dependencies.append(&mut worker_scanner.dependencies);
-    code_replace_source_dependencies.append(&mut worker_scanner.code_replace_source_dependencies);
+    presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
     program.visit_with(&mut UrlScanner::new(&mut dependencies, &worker_scanner));
     program.visit_with(&mut ImportMetaScanner::new(
-      &mut code_replace_source_dependencies,
+      &mut presentational_dependencies,
       resource_data,
       compiler_options,
     ));

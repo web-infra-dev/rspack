@@ -53,7 +53,7 @@ impl Visit for UrlScanner<'_> {
       return;
     }
     if let Some((start, end, request)) = match_new_url(new_expr) {
-      self.dependencies.push(Box::new(NewURLDependency::new(
+      self.dependencies.push(Box::new(URLDependency::new(
         start,
         end,
         request.into(),

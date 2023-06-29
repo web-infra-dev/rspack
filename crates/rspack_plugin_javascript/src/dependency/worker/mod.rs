@@ -1,8 +1,6 @@
 use rspack_core::{
-  module_id, module_id_expr, ChunkGroupOptions, ChunkLoading, CodeGeneratable,
-  CodeGeneratableContext, CodeGeneratableResult, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, EntryOptions, ErrorSpan, ModuleDependency,
+  ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
   RuntimeGlobals,
 };
 
@@ -68,8 +66,8 @@ impl ModuleDependency for WorkerDependency {
     self.span.as_ref()
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
@@ -81,22 +79,13 @@ impl ModuleDependency for WorkerDependency {
   }
 }
 
-impl CodeGeneratable for WorkerDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
-  }
-}
-
-impl CodeReplaceSourceDependency for WorkerDependency {
+impl CodeGeneratableDependency for WorkerDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       compilation,
       runtime_requirements,
       ..

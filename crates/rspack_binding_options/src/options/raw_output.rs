@@ -1,8 +1,7 @@
 use napi_derive::napi;
-use rspack_core::ChunkLoading;
 use rspack_core::{
   to_identifier, BoxPlugin, CrossOriginLoading, LibraryAuxiliaryComment, LibraryName,
-  LibraryOptions, OutputOptions, PluginExt, TrustedTypes, WasmLoading,
+  LibraryOptions, OutputOptions, PluginExt, TrustedTypes,
 };
 use rspack_error::internal_error;
 use serde::Deserialize;

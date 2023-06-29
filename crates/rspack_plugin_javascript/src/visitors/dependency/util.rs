@@ -2,7 +2,6 @@ use swc_core::{
   common::{pass::AstNodePath, SyntaxContext},
   ecma::{
     ast::{CallExpr, Expr, MemberExpr},
-    utils::member_expr,
     visit::{AstParentKind, AstParentNodeRef},
   },
 };

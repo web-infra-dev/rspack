@@ -744,10 +744,10 @@ const getResolveDefaults = ({
 			url: {
 				preferRelative: true
 			},
-			// worker: {
-			// 	...esmDeps(),
-			// 	preferRelative: true
-			// },
+			worker: {
+				...esmDeps(),
+				preferRelative: true
+			},
 			commonjs: cjsDeps(),
 			// amd: cjsDeps(),
 			// for backward-compat: loadModule

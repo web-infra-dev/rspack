@@ -3,8 +3,8 @@ use std::hash::Hash;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_core::{
-  ChunkGroupOptions, CodeReplaceSourceDependency, EntryOptions, ModuleDependency, ModuleIdentifier,
-  OutputOptions, ReplaceConstDependency, SpanExt,
+  ChunkGroupOptions, CodeGeneratableDependency, ConstDependency, EntryOptions, ModuleDependency,
+  ModuleIdentifier, OutputOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
@@ -98,7 +98,7 @@ impl Visit for WorkerSyntaxScanner<'_> {
 
 // TODO: should created by WorkerPlugin
 pub struct WorkerScanner<'a> {
-  pub code_replace_source_dependencies: Vec<Box<dyn CodeReplaceSourceDependency>>,
+  pub presentational_dependencies: Vec<Box<dyn CodeGeneratableDependency>>,
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
   index: usize,
   module_identifier: &'a ModuleIdentifier,
@@ -114,7 +114,7 @@ impl<'a> WorkerScanner<'a> {
     syntax_scanner: WorkerSyntaxScanner,
   ) -> Self {
     Self {
-      code_replace_source_dependencies: Vec::new(),
+      presentational_dependencies: Vec::new(),
       dependencies: Vec::new(),
       index: 0,
       module_identifier,
@@ -159,16 +159,16 @@ impl<'a> WorkerScanner<'a> {
     )));
     if let Some(range) = range {
       self
-        .code_replace_source_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
           range.0,
           range.0,
           "Object.assign({}, ".into(),
           None,
         )));
       self
-        .code_replace_source_dependencies
-        .push(Box::new(ReplaceConstDependency::new(
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
           range.1,
           range.1,
           format!(
@@ -198,7 +198,7 @@ impl<'a> WorkerScanner<'a> {
         range: (start, end),
         value: request,
       };
-      let options = args.get(1).map(|arg2| parse_new_worker_options(arg2));
+      let options = args.get(1).map(parse_new_worker_options);
       Some((path, options))
     } else {
       None
