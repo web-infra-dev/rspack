@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicPath } from "./output";
+import { filename, publicPath } from "./output";
 
 const entryItem = z
 	.string()
@@ -25,7 +25,8 @@ const entryDescription = z
 		wasmLoading: z
 			.literal(false)
 			.or(z.enum(["fetch-streaming", "fetch", "async-node"]))
-			.optional()
+			.optional(),
+		filename: filename().optional()
 	})
 	.strict();
 

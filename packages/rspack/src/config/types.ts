@@ -81,6 +81,7 @@ export type ChunkLoadingType =
 export interface EntryObject {
 	[k: string]: EntryItem | EntryDescription;
 }
+export type EntryFilename = FilenameTemplate;
 export interface EntryDescription {
 	import: EntryItem;
 	runtime?: EntryRuntime;
@@ -88,6 +89,7 @@ export interface EntryDescription {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
+	filename?: EntryFilename;
 }
 
 export type EntryNormalized = EntryStaticNormalized;
@@ -101,6 +103,7 @@ export interface EntryDescriptionNormalized {
 	asyncChunks?: boolean;
 	publicPath?: PublicPath;
 	baseUri?: string;
+	filename?: EntryFilename;
 }
 
 ///// Output /////

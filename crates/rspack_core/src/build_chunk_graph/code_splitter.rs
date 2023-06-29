@@ -58,6 +58,9 @@ impl<'me> CodeSplitter<'me> {
         &mut compilation.chunk_by_ukey,
         &mut compilation.named_chunks,
       );
+      if let Some(filename) = &entry_data.options.filename {
+        chunk.filename_template = Some(filename.clone());
+      }
       chunk.chunk_reasons.push(format!("Entrypoint({name})",));
       self
         .remove_parent_modules_context
@@ -439,6 +442,9 @@ impl<'me> CodeSplitter<'me> {
         .insert(*module_identifier, chunk.ukey);
 
       let mut chunk_group = if let Some(group_options) = group_options && let Some(entry_options) = &group_options.entry_options {
+        if let Some(filename) = &entry_options.filename {
+          chunk.filename_template = Some(filename.clone());
+        }
         chunk.chunk_reasons.push(format!("AsyncEntrypoint({module_identifier})"));
         self
           .remove_parent_modules_context

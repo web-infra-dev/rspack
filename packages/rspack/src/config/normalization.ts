@@ -277,7 +277,8 @@ const getNormalizedEntryStatic = (entry: EntryStatic) => {
 				publicPath: value.publicPath,
 				baseUri: value.baseUri,
 				chunkLoading: value.chunkLoading,
-				asyncChunks: value.asyncChunks
+				asyncChunks: value.asyncChunks,
+				filename: value.filename
 			};
 		}
 	}
