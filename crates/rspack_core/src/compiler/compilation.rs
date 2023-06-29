@@ -1294,7 +1294,6 @@ impl Compilation {
   }
 
   pub fn get_hash(&self) -> Option<&str> {
-    // dbg!(&self.options.output.hash_digest_length);
     self
       .hash
       .as_ref()

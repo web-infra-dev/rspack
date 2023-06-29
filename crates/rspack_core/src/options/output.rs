@@ -55,6 +55,8 @@ pub struct OutputOptions {
 
 impl From<&OutputOptions> for RspackHash {
   fn from(value: &OutputOptions) -> Self {
+    dbg!(&value.hash_function);
+    dbg!(&value.hash_salt);
     Self::with_salt(&value.hash_function, &value.hash_salt)
   }
 }

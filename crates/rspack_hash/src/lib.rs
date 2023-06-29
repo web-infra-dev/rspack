@@ -72,7 +72,7 @@ impl RspackHash {
   pub fn new(function: &HashFunction) -> Self {
     match function {
       HashFunction::Xxhash64 => Self::Xxhash64(xxh3::Xxh3::new()),
-      HashFunction::MD4 => todo!(),
+      HashFunction::MD4 => Self::MD4(md4::Md4::new()),
     }
   }
 
@@ -84,8 +84,8 @@ impl RspackHash {
 
   pub fn digest(self, digest: &HashDigest) -> RspackHashDigest {
     let inner = match self {
-      RspackHash::Xxhash64(hasher) => hasher.finish(),
-      RspackHash::MD4(_) => todo!(),
+      RspackHash::Xxhash64(hasher) => hasher.finish().to_le_bytes().to_vec(),
+      RspackHash::MD4(hash) => hash.finalize().to_vec(),
     };
     RspackHashDigest::new(inner, digest)
   }
@@ -121,14 +121,14 @@ impl Hasher for RspackHash {
 
 #[derive(Debug, Clone, Eq)]
 pub struct RspackHashDigest {
-  inner: u64,
+  inner: Vec<u8>,
   encoded: SmolStr,
 }
 
 impl RspackHashDigest {
-  pub fn new(inner: u64, digest: &HashDigest) -> Self {
+  pub fn new(inner: Vec<u8>, digest: &HashDigest) -> Self {
     let encoded = match digest {
-      HashDigest::Hex => HEXLOWER_PERMISSIVE.encode(&inner.to_le_bytes()).into(),
+      HashDigest::Hex => HEXLOWER_PERMISSIVE.encode(&inner).into(),
     };
     Self { inner, encoded }
   }

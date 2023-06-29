@@ -420,7 +420,7 @@ const applyOutputDefaults = (
 		"publicPath",
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
-	D(output, "hashFunction", "xxhash64");
+	D(output, "hashFunction", "md4");
 	D(output, "hashDigest", "hex");
 	D(output, "hashDigestLength", 20);
 	D(output, "strictModuleErrorHandling", false);
