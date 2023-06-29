@@ -112,6 +112,7 @@ impl RawOptionsApply for RawOptions {
                 async_chunks: desc.async_chunks,
                 public_path: desc.public_path.clone().map(Into::into),
                 base_uri: desc.base_uri.clone(),
+                filename: desc.filename.clone().map(Into::into),
               },
             )
             .boxed(),
