@@ -1,6 +1,5 @@
 use rspack_core::{
-  export_from_import, get_import_var, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, DependencyId,
+  export_from_import, CodeGeneratableContext, CodeGeneratableSource, DependencyId,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -10,7 +9,8 @@ pub struct HarmonyImportSpecifierDependency {
   start: u32,
   end: u32,
   // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-  ids: Option<JsWord>,
+  ids: Vec<JsWord>,
+  is_call: bool,
 }
 
 impl HarmonyImportSpecifierDependency {
@@ -19,7 +19,8 @@ impl HarmonyImportSpecifierDependency {
     start: u32,
     end: u32,
     // harmony_harmony_import_dependency: &'a HarmonyImportDependency,
-    ids: Option<JsWord>,
+    ids: Vec<JsWord>,
+    is_call: bool,
   ) -> Self {
     Self {
       shorthand,
@@ -27,29 +28,35 @@ impl HarmonyImportSpecifierDependency {
       end,
       // harmony_harmony_import_dependency,
       ids,
+      is_call,
     }
   }
 
   pub fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
     id: &DependencyId,
     request: &str,
+    used: bool,
   ) {
-    let import_var = get_import_var(request);
+    if !used {
+      source.replace(self.start, self.end, "/* unused */undefined", None);
+      return;
+    }
+
+    let import_var = code_generatable_context
+      .compilation
+      .module_graph
+      .get_import_var(&code_generatable_context.module.identifier(), request);
 
     let export_expr = export_from_import(
       code_generatable_context,
       true,
       import_var,
-      self
-        .ids
-        .as_ref()
-        .map(|i| vec![i.clone()])
-        .unwrap_or_default(),
+      self.ids.clone(),
       id,
-      false,
+      self.is_call,
     );
     if self.shorthand {
       source.insert(self.end, format!(": {export_expr}").as_str(), None);

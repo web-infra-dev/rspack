@@ -4,8 +4,8 @@ const fs = require("fs");
 it("should not shake the url import", () => {
 	a();
 	const file = fs.readFileSync(__filename).toString();
-	// 3 = 1 time(for module id) + 1 time(referenced in another module) + 1 time(in assertion)
-	expect(countSubstringOccurrences(file, "a.wasm")).toBe(3);
+	// 3 = 1 time(for module id) + 2 time(referenced in another module + comment) + 1 time(in assertion)
+	expect(countSubstringOccurrences(file, "a.wasm")).toBe(4);
 });
 
 function countSubstringOccurrences(string, substring) {

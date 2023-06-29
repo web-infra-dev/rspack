@@ -1,6 +1,6 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-__webpack_require__("./resources Sync  recursive ^\\.\\/pre_.*\\.js$")(`./resources/pre_${i + 1}.js`.replace("./resources/", "./"));
+__webpack_require__(/* ./resources */"./resources Sync  recursive ^\\.\\/pre_.*\\.js$")((`./resources/pre_${i + 1}.js`).replace('./resources/', './'));
 },
 "./resources/pre_a.js": function (module, exports, __webpack_require__) {
 console.log('a');

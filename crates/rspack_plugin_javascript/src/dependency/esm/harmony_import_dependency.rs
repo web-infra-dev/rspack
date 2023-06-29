@@ -1,14 +1,19 @@
 use rspack_core::{
-  get_import_var, import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratable,
-  CodeGeneratableContext, CodeGeneratableResult, CodeReplaceSourceDependency,
-  CodeReplaceSourceDependencyContext, CodeReplaceSourceDependencyReplaceSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, InitFragment, InitFragmentStage,
-  ModuleDependency, RuntimeGlobals,
+  import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
+  CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
 };
 use rspack_symbol::IndirectTopLevelSymbol;
 use swc_core::ecma::atoms::JsWord;
 
 use super::HarmonyImportSpecifierDependency;
+
+#[derive(Debug, Clone)]
+pub enum Specifier {
+  Namespace(JsWord),
+  Default(JsWord),
+  Named(JsWord, Option<JsWord>),
+}
 
 #[derive(Debug, Clone)]
 pub struct HarmonyImportDependency {
@@ -18,7 +23,7 @@ pub struct HarmonyImportDependency {
   pub id: Option<DependencyId>,
   pub span: Option<ErrorSpan>,
   pub refs: Vec<HarmonyImportSpecifierDependency>,
-  pub specifiers: Vec<(JsWord, Option<JsWord>)>,
+  pub specifiers: Vec<Specifier>,
   pub dependency_type: DependencyType,
   pub export_all: bool,
 }
@@ -28,7 +33,7 @@ impl HarmonyImportDependency {
     request: JsWord,
     span: Option<ErrorSpan>,
     refs: Vec<HarmonyImportSpecifierDependency>,
-    specifiers: Vec<(JsWord, Option<JsWord>)>,
+    specifiers: Vec<Specifier>,
     dependency_type: DependencyType,
     export_all: bool,
   ) -> Self {
@@ -44,11 +49,11 @@ impl HarmonyImportDependency {
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyImportDependency {
+impl CodeGeneratableDependency for HarmonyImportDependency {
   fn apply(
     &self,
-    source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
@@ -62,6 +67,15 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
       .include_module_ids
       .contains(&ref_mgm.module_identifier)
     {
+      self.refs.iter().for_each(|dep| {
+        dep.apply(
+          source,
+          code_generatable_context,
+          &id,
+          self.request.as_ref(),
+          false,
+        )
+      });
       return;
     }
 
@@ -69,41 +83,45 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
       let specifiers = self
         .specifiers
         .iter()
-        .filter(|(local, imported)| {
-          if !ref_mgm.module_type.is_js_like() {
+        .filter(|specifier| {
+          let is_import = matches!(self.dependency_type, DependencyType::EsmImport);
+          if is_import && !ref_mgm.module_type.is_js_like() {
             return true;
           }
 
-          if let Some(imported) = imported {
-            if imported == "namespace" {
-              return true;
+          match specifier {
+            Specifier::Namespace(_) => true,
+            Specifier::Default(local) => {
+              if is_import {
+                compilation
+                  .used_symbol_ref
+                  .contains(&SymbolRef::Indirect(IndirectTopLevelSymbol {
+                    src: ref_mgm.module_identifier,
+                    ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
+                    importer: module.identifier(),
+                  }))
+              } else {
+                unreachable!("`export v from ''` is a unrecoverable syntax error")
+              }
             }
-            if imported == "default" {
-              return compilation.used_symbol_ref.contains(&SymbolRef::Indirect(
-                IndirectTopLevelSymbol {
+            Specifier::Named(local, imported) => {
+              let symbol = if matches!(self.dependency_type, DependencyType::EsmImport) {
+                SymbolRef::Indirect(IndirectTopLevelSymbol {
                   src: ref_mgm.module_identifier,
-                  ty: rspack_symbol::IndirectType::ImportDefault(local.clone()),
+                  ty: rspack_symbol::IndirectType::Import(local.clone(), imported.clone()),
                   importer: module.identifier(),
-                },
-              ));
+                })
+              } else {
+                SymbolRef::Indirect(IndirectTopLevelSymbol {
+                  src: module.identifier(),
+                  ty: rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone()),
+                  importer: module.identifier(),
+                })
+              };
+
+              compilation.used_symbol_ref.contains(&symbol)
             }
           }
-
-          let symbol = if matches!(self.dependency_type, DependencyType::EsmImport) {
-            SymbolRef::Indirect(IndirectTopLevelSymbol {
-              src: ref_mgm.module_identifier,
-              ty: rspack_symbol::IndirectType::Import(local.clone(), imported.clone()),
-              importer: module.identifier(),
-            })
-          } else {
-            SymbolRef::Indirect(IndirectTopLevelSymbol {
-              src: module.identifier(),
-              ty: rspack_symbol::IndirectType::ReExport(local.clone(), imported.clone()),
-              importer: module.identifier(),
-            })
-          };
-
-          compilation.used_symbol_ref.contains(&symbol)
         })
         .collect::<Vec<_>>();
 
@@ -112,19 +130,33 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
           .side_effects_free_modules
           .contains(&ref_mgm.module_identifier)
       {
+        self.refs.iter().for_each(|dep| {
+          dep.apply(
+            source,
+            code_generatable_context,
+            &id,
+            self.request.as_ref(),
+            false,
+          )
+        });
         return;
       }
     }
 
-    self
-      .refs
-      .iter()
-      .for_each(|dep| dep.apply(source, code_generatable_context, &id, self.request.as_ref()));
+    self.refs.iter().for_each(|dep| {
+      dep.apply(
+        source,
+        code_generatable_context,
+        &id,
+        self.request.as_ref(),
+        true,
+      )
+    });
 
     let content: (String, String) =
       import_statement(code_generatable_context, &id, &self.request, false);
 
-    let CodeReplaceSourceDependencyContext {
+    let CodeGeneratableContext {
       init_fragments,
       compilation,
       module,
@@ -136,7 +168,9 @@ impl CodeReplaceSourceDependency for HarmonyImportDependency {
       .module_graph
       .module_identifier_by_dependency_id(&id)
       .expect("should have dependency referenced module");
-    let import_var = get_import_var(&self.request);
+    let import_var = compilation
+      .module_graph
+      .get_import_var(&module.identifier(), &self.request);
     if compilation.module_graph.is_async(ref_module) {
       init_fragments.push(InitFragment::new(
         content.0,
@@ -216,20 +250,11 @@ impl ModuleDependency for HarmonyImportDependency {
     self.span.as_ref()
   }
 
-  fn as_code_replace_source_dependency(&self) -> Option<Box<dyn CodeReplaceSourceDependency>> {
-    Some(Box::new(self.clone()))
+  fn as_code_generatable_dependency(&self) -> Option<&dyn CodeGeneratableDependency> {
+    Some(self)
   }
 
   fn set_request(&mut self, request: String) {
     self.request = request.into();
-  }
-}
-
-impl CodeGeneratable for HarmonyImportDependency {
-  fn generate(
-    &self,
-    _code_generatable_context: &mut CodeGeneratableContext,
-  ) -> rspack_error::Result<CodeGeneratableResult> {
-    todo!()
   }
 }

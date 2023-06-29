@@ -3,7 +3,7 @@
 class a {
 }
 function A() {
-    return React.createElement("div", null, "123");
+    return /*#__PURE__*/ React.createElement("div", null, "123");
 }
 const b = {
     a: 123

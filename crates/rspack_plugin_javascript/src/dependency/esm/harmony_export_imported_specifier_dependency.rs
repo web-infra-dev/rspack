@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
 use rspack_core::{
-  export_from_import, get_exports_type, get_import_var, tree_shaking::visitor::SymbolRef,
-  CodeReplaceSourceDependency, CodeReplaceSourceDependencyContext,
-  CodeReplaceSourceDependencyReplaceSource, DependencyId, ExportsType, InitFragment,
+  export_from_import, get_exports_type, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
+  CodeGeneratableDependency, CodeGeneratableSource, DependencyId, ExportsType, InitFragment,
   InitFragmentStage, ModuleIdentifier, RuntimeGlobals,
 };
 use rspack_symbol::{IndirectType, StarSymbolKind, SymbolType, DEFAULT_JS_WORD};
@@ -34,11 +33,11 @@ impl HarmonyExportImportedSpecifierDependency {
   }
 }
 
-impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
+impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
   fn apply(
     &self,
-    _source: &mut CodeReplaceSourceDependencyReplaceSource,
-    code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+    _source: &mut CodeGeneratableSource,
+    code_generatable_context: &mut CodeGeneratableContext,
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
@@ -58,7 +57,9 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
       .id()
       .expect("should have dependency id");
 
-    let import_var = get_import_var(&self.request);
+    let import_var = compilation
+      .module_graph
+      .get_import_var(&module.identifier(), &self.request);
 
     let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
       let set = compilation
@@ -83,7 +84,7 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
             Some(i.id())
           }
           SymbolRef::Indirect(i) if i.src == module.identifier() => match i.ty {
-            // IndirectType::Import(_, _) => Some(i.id()),
+            IndirectType::Import(_, _) => Some(i.indirect_id()),
             IndirectType::ImportDefault(_) => Some(&DEFAULT_JS_WORD),
             _ => None,
           },
@@ -119,7 +120,7 @@ impl CodeReplaceSourceDependency for HarmonyExportImportedSpecifierDependency {
     }
 
     if !exports.is_empty() {
-      let CodeReplaceSourceDependencyContext {
+      let CodeGeneratableContext {
         runtime_requirements,
         init_fragments,
         compilation,
@@ -182,10 +183,10 @@ pub struct ExportMode {
 pub fn get_mode(
   name: Option<String>,
   ids: Vec<String>,
-  code_generatable_context: &mut CodeReplaceSourceDependencyContext,
+  code_generatable_context: &mut CodeGeneratableContext,
   id: &DependencyId,
 ) -> ExportMode {
-  let CodeReplaceSourceDependencyContext {
+  let CodeGeneratableContext {
     compilation,
     module,
     ..
