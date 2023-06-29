@@ -420,7 +420,6 @@ impl<'a> CodeSizeOptimizer<'a> {
             }
           }
         }
-        dbg!(&reachable_dependency_identifier);
 
         let mgm = self
           .compilation
@@ -828,7 +827,6 @@ impl<'a> CodeSizeOptimizer<'a> {
                       }
                     }
                     Entry::Vacant(vac) => {
-                      dbg!(&inherit_extend_graph);
                       for path in algo::all_simple_paths::<Vec<_>, _>(
                         &inherit_extend_graph,
                         indirect_symbol.src,
