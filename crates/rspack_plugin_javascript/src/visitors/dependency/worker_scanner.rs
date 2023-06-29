@@ -154,6 +154,7 @@ impl<'a> WorkerScanner<'a> {
           async_chunks: None,
           public_path: None,
           base_uri: None,
+          filename: None,
         }),
       },
     )));
