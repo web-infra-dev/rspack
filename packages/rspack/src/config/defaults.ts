@@ -579,9 +579,9 @@ const applyOutputDefaults = (
 		if (output.wasmLoading) {
 			enabledWasmLoadingTypes.add(output.wasmLoading);
 		}
-		// if (output.workerWasmLoading) {
-		// 	enabledWasmLoadingTypes.add(output.workerWasmLoading);
-		// }
+		if (output.workerWasmLoading) {
+			enabledWasmLoadingTypes.add(output.workerWasmLoading);
+		}
 		// forEachEntry(desc => {
 		// 	if (desc.wasmLoading) {
 		// 		enabledWasmLoadingTypes.add(desc.wasmLoading);
