@@ -5,7 +5,6 @@ use std::{
 
 use petgraph::{
   algo,
-  dot::Dot,
   prelude::{DiGraphMap, GraphMap},
   stable_graph::NodeIndex,
   visit::{Bfs, Dfs, EdgeRef},
@@ -33,10 +32,8 @@ use super::{
   BailoutFlag, ModuleUsedType, OptimizeDependencyResult, SideEffectType,
 };
 use crate::{
-  contextify, dbg_matches, join_string_component,
-  tree_shaking::{symbol_graph::generate_debug_symbol_graph, utils::ConvertModulePath},
-  Compilation, DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType,
-  NormalModuleAstOrSource,
+  contextify, join_string_component, tree_shaking::utils::ConvertModulePath, Compilation,
+  DependencyType, ModuleGraph, ModuleIdentifier, ModuleSyntax, ModuleType, NormalModuleAstOrSource,
 };
 
 pub struct CodeSizeOptimizer<'a> {
