@@ -2,9 +2,11 @@
 
 # https://help.github.com/en/articles/about-code-owners
 
-# Default to project owner
+# Rspack Project Owner is @hardfist
 
-- @hardfist
+# Default to project manager
+
+* @Boshen
 
 # Ignore lock files
 
@@ -13,57 +15,67 @@ pnpm-lock.yaml
 
 # Infra
 
+/.github/workflows @Boshen
 /benchcases @IWANABETHATGUY
-/.github/workflows @IWANABETHATGUY @h-a-n-a
 /scripts @Boshen @hyf0
 
 # Examples
 
-/examples @hardfist
+/examples @web-infra-dev/rspack-dx @web-infra-dev/rspack-ux
 
 # Webpack Tests
 
-/webpack-test @IWANABETHATGUY
+/webpack-test @web-infra-dev/rspack-dx @web-infra-dev/rspack-ux
 
 # Crates in alphabetical order
 
 /crates/bench @IWANABETHATGUY
-/crates/cargo-rst @JSerFeng
+/crates/cargo-rst @IWANABETHATGUY
 /crates/loader_runner @h-a-n-a
 /crates/node_binding @h-a-n-a
 /crates/rspack @h-a-n-a
 /crates/rspack_ast_viewer @h-a-n-a
 /crates/rspack_base64 @h-a-n-a
 /crates/rspack_binding_macros @h-a-n-a
-/crates/rspack_binding_options @h-a-n-a
+/crates/rspack_binding_options @web-infra-dev/rspack-dx
 /crates/rspack_build @Boshen
-/crates/rspack_core/src/build_chunk_graph @hyf0
-/crates/rspack_core/src/tree_shaking @IWANABETHATGUY
-/crates/rspack_core @h-a-n-a @hyf0
+/crates/rspack_core @web-infra-dev/rspack-ux
 /crates/rspack_database @hyf0
-/crates/rspack_error @IWANABETHATGUY @ahabhgk @h-a-n-a
+/crates/rspack_error @web-infra-dev/rspack-dx
 /crates/rspack_fs @h-a-n-a
 /crates/rspack_fs_node @h-a-n-a
 /crates/rspack_futures @h-a-n-a
 /crates/rspack_identifier @h-a-n-a
 /crates/rspack_ids @hyf0
-/crates/rspack_loader_sass @ahabhgk
 /crates/rspack_napi_shared @h-a-n-a
-/crates/rspack_plugin_asset @ahabhgk @h-a-n-a
-/crates/rspack_plugin_copy @JSerFeng
-/crates/rspack_plugin_css @ahabhgk
-/crates/rspack_plugin_dev_friendly_split_chunks @hyf0
-/crates/rspack_plugin_devtool @ahabhgk
-/crates/rspack_plugin_externals @ahabhgk @h-a-n-a
-/crates/rspack_plugin_html @ahabhgk
-/crates/rspack_plugin_javascript @ahabhgk @h-a-n-a
-/crates/rspack_plugin_json @ahabhgk @h-a-n-a
-/crates/rspack_plugin_library @underfin
-/crates/rspack_plugin_progress @underfin
-/crates/rspack_plugin_remove_empty_chunks @hyf0
-/crates/rspack_plugin_runtime @underfin
-/crates/rspack_plugin_split_chunks @hyf0 @h-a-n-a
-/crates/rspack_plugin_wasm @ahabhgk @h-a-n-a
+
+# Loaders
+
+/crates/rspack_loader_sass @web-infra-dev/rspack-dx
+/crates/rspack_loader_swc @web-infra-dev/rspack-dx
+
+# Plugins
+
+/crates/rspack_plugin_asset @web-infra-dev/rspack-dx
+/crates/rspack_plugin_banner @web-infra-dev/rspack-dx
+/crates/rspack_plugin_copy @web-infra-dev/rspack-dx
+/crates/rspack_plugin_css @web-infra-dev/rspack-ux
+/crates/rspack_plugin_dev_friendly_split_chunks @web-infra-dev/rspack-ux
+/crates/rspack_plugin_devtool @web-infra-dev/rspack-dx
+/crates/rspack_plugin_entry @web-infra-dev/rspack-dx
+/crates/rspack_plugin_externals @web-infra-dev/rspack-dx
+/crates/rspack_plugin_html @web-infra-dev/rspack-dx
+/crates/rspack_plugin_javascript @web-infra-dev/rspack-dx
+/crates/rspack_plugin_json @web-infra-dev/rspack-dx
+/crates/rspack_plugin_library @web-infra-dev/rspack-dx
+/crates/rspack_plugin_progress @web-infra-dev/rspack-dx
+/crates/rspack_plugin_real_content_hash @web-infra-dev/rspack-ux
+/crates/rspack_plugin_remove_empty_chunks @web-infra-dev/rspack-ux
+/crates/rspack_plugin_runtime @web-infra-dev/rspack-ux
+/crates/rspack_plugin_schemes @web-infra-dev/rspack-dx
+/crates/rspack_plugin_split_chunks @web-infra-dev/rspack-ux
+/crates/rspack_plugin_split_chunks_new @web-infra-dev/rspack-ux
+/crates/rspack_plugin_wasm @web-infra-dev/rspack-dx
 /crates/rspack_regex @IWANABETHATGUY
 /crates/rspack_symbol @IWANABETHATGUY
 /crates/rspack_testing @ahabhgk
@@ -72,13 +84,13 @@ pnpm-lock.yaml
 
 # Packages in alphabetical order
 
-/packages/create-rspack @hardfist
-/packages/postcss-loader @ahabhgk
-/packages/rspack @hardfist
-/packages/rspack-cli
-/packages/rspack-dev-client
-/packages/rspack-dev-middleware
-/packages/rspack-dev-server
-/packages/rspack-plugin-html @ahabhgk
-/packages/rspack-plugin-minify @hardfist
-/packages/rspack-plugin-node-polyfill
+/packages/create-rspack @web-infra-dev/rspack-dx
+/packages/postcss-loader @web-infra-dev/rspack-ux
+/packages/rspack @web-infra-dev/rspack-dx
+/packages/rspack-cli @web-infra-dev/rspack-dx
+/packages/rspack-dev-client @web-infra-dev/rspack-dx
+/packages/rspack-dev-middleware @web-infra-dev/rspack-dx
+/packages/rspack-dev-server @web-infra-dev/rspack-dx
+/packages/rspack-plugin-html @web-infra-dev/rspack-dx
+/packages/rspack-plugin-minify @web-infra-dev/rspack-ux
+/packages/rspack-plugin-node-polyfill @web-infra-dev/rspack-ux
