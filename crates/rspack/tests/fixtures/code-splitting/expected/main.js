@@ -1,8 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
 console.log('hello, world');
-__webpack_require__.el("./a.js").then(__webpack_require__.bind(__webpack_require__, "./a.js")).then(__webpack_require__.ir);
-__webpack_require__.el("./b.js").then(__webpack_require__.bind(__webpack_require__, "./b.js")).then(__webpack_require__.ir);
+__webpack_require__.el(/* ./a */"./a.js").then(__webpack_require__.t.bind(__webpack_require__, /* ./a */"./a.js", 21));
+__webpack_require__.el(/* ./b */"./b.js").then(__webpack_require__.t.bind(__webpack_require__, /* ./b */"./b.js", 21));
 },
 
 },function(__webpack_require__) {

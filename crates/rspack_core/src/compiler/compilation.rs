@@ -615,6 +615,9 @@ impl Compilation {
 
               let mut dep_ids = vec![];
               for dependency in build_result.dependencies {
+                self
+                  .module_graph
+                  .set_dependency_import_var(module.identifier(), dependency.request());
                 let dep_id = self.module_graph.add_dependency(dependency);
                 dep_ids.push(dep_id);
               }

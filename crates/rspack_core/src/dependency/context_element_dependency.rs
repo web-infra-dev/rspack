@@ -1,8 +1,6 @@
-use rspack_error::Result;
-
 use crate::{
-  CodeGeneratable, CodeGeneratableResult, Context, ContextMode, ContextOptions, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ModuleDependency,
+  Context, ContextMode, ContextOptions, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ModuleDependency,
 };
 
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
@@ -64,14 +62,5 @@ impl ModuleDependency for ContextElementDependency {
 
   fn set_request(&mut self, request: String) {
     self.request = request;
-  }
-}
-
-impl CodeGeneratable for ContextElementDependency {
-  fn generate(
-    &self,
-    _context: &mut crate::CodeGeneratableContext,
-  ) -> Result<CodeGeneratableResult> {
-    Ok(CodeGeneratableResult::default())
   }
 }

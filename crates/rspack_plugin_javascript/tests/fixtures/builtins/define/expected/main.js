@@ -1,16 +1,20 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
 "./index.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-var _lib = __webpack_require__.ir(__webpack_require__("./lib.js"));
-const lib = __webpack_require__("./lib.js");
-const { DO_NOT_CONVERTED9  } = __webpack_require__("./lib.js");
+'use strict';
+__webpack_require__.r(exports);
+/* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./lib */"./lib.js");
+// import assert from "assert";
+// import { equal } from "assert";
+
+const lib = __webpack_require__(/* ./lib */"./lib.js");
+const { DO_NOT_CONVERTED9  } = __webpack_require__(/* ./lib */"./lib.js");
 equal(true, true);
+// require("assert").deepStrictEqual(FALSE, false);
 assert.deepStrictEqual(5, 5);
 assert.deepStrictEqual(null, null);
 assert.deepStrictEqual(undefined, undefined);
+// assert.equal(FUNCTION(5), 6);
+// assert.equal(typeof FUNCTION, "function");
 assert.deepStrictEqual(100.05, 100.05);
 assert.deepStrictEqual(0, 0);
 let ZERO_OBJ = {
@@ -152,7 +156,7 @@ assert.deepStrictEqual(301, 301);
 assert.deepStrictEqual("302", "302");
 assert.deepStrictEqual(303, 303);
 assert.deepStrictEqual(304, 304);
-assert.deepStrictEqual(303..P4, undefined);
+assert.deepStrictEqual(303..P4, undefined); // "303.P4"
 try {
     error_count += 1;
     P4.P1;
@@ -203,8 +207,8 @@ assert.deepStrictEqual(USELESS, {
 });
 assert.deepStrictEqual({}.DO_NOT_CONVERTED5, undefined);
 assert.deepStrictEqual({}.DO_NOT_CONVERTED6, undefined);
-assert.deepStrictEqual(_lib.DO_NOT_CONVERTED7, 402);
-assert.deepStrictEqual(_lib.default, 401);
+assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_1_["DO_NOT_CONVERTED7"], 402);
+assert.deepStrictEqual(_lib__WEBPACK_IMPORTED_MODULE_1_["default"], 401);
 assert.deepStrictEqual(DO_NOT_CONVERTED9, 403);
 assert.deepStrictEqual(lib.DO_NOT_CONVERTED9, 403);
 try {
@@ -213,6 +217,20 @@ try {
     error_count += 1;
 } catch (err5) {}
 assert.deepStrictEqual(error_count, 6);
+// try {
+//   error_count += 1;
+//   SHOULD_CONVERTED = 205; // syntax error
+//   error_count += 1;
+// } catch (err) {
+// }
+// deepStrictEqual(error_count, 6);
+// try {
+//   error_count += 1;
+//   SHOULD_CONVERTED = SHOULD_CONVERTED = 205; // syntax error
+//   error_count += 1;
+// } catch (err) {
+// }
+// deepStrictEqual(error_count, 7);
 try {
     error_count += 1;
     aa = 205;
@@ -227,33 +245,19 @@ try {
     error_count += 1;
 } catch (err7) {}
 assert.deepStrictEqual(error_count, 8);
-console.log(console.log(console.log));
+// just make sure `MemberExpr` fold success.
+console.log(console.log(console.log)); // TODO: recursive
+ // assert.equal(wurst, unde);
+ // assert.equal(suppe, wurst);
 },
 "./lib.js": function (module, exports, __webpack_require__) {
-"use strict";
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-function _export(target, all) {
-    for(var name in all)Object.defineProperty(target, name, {
-        enumerable: true,
-        get: all[name]
-    });
-}
-_export(exports, {
-    default: function() {
-        return _default;
-    },
-    DO_NOT_CONVERTED7: function() {
-        return DO_NOT_CONVERTED7;
-    },
-    DO_NOT_CONVERTED9: function() {
-        return DO_NOT_CONVERTED9;
-    }
-});
+'use strict';
+__webpack_require__.r(exports);
+__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'DO_NOT_CONVERTED7': function() { return DO_NOT_CONVERTED7; }, 'DO_NOT_CONVERTED9': function() { return DO_NOT_CONVERTED9; }});
 const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
-var _default = 401;
+var __WEBPACK_DEFAULT_EXPORT__ = 401; // DO_NOT_CONVERTED8
+
 },
 
 },function(__webpack_require__) {

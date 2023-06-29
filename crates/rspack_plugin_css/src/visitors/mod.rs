@@ -1,14 +1,9 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::ModuleDependency;
+use rspack_core::{ModuleDependency, SpanExt};
 use rspack_error::{Diagnostic, DiagnosticKind};
-use swc_core::{
-  common::pass::AstNodePath,
-  css::{
-    ast::{ImportHref, ImportPrelude, Stylesheet, Url, UrlValue},
-    visit::{AstParentKind, AstParentNodeRef, VisitAstPath, VisitWithPath},
-  },
-};
+use swc_core::css::ast::{ImportHref, ImportPrelude, Stylesheet, Url, UrlValue};
+use swc_core::css::visit::{Visit, VisitWith};
 
 use crate::{
   dependency::{CssImportDependency, CssUrlDependency},
@@ -16,10 +11,6 @@ use crate::{
 };
 
 static IS_MODULE_REQUEST: Lazy<Regex> = Lazy::new(|| Regex::new(r"^~").expect("TODO:"));
-
-pub fn as_parent_path(ast_path: &AstNodePath<AstParentNodeRef<'_>>) -> Vec<AstParentKind> {
-  ast_path.iter().map(|n| n.kind()).collect()
-}
 
 pub fn analyze_dependencies(
   ss: &mut Stylesheet,
@@ -32,7 +23,7 @@ pub fn analyze_dependencies(
     diagnostics,
     // in_support_contdition: false,
   };
-  ss.visit_with_path(&mut v, &mut Default::default());
+  ss.visit_with(&mut v);
 
   v.deps
 }
@@ -62,12 +53,8 @@ fn replace_module_request_prefix(specifier: String, diagnostics: &mut Vec<Diagno
   }
 }
 
-impl VisitAstPath for Analyzer<'_> {
-  fn visit_import_prelude<'ast: 'r, 'r>(
-    &mut self,
-    n: &'ast ImportPrelude,
-    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
-  ) {
+impl Visit for Analyzer<'_> {
+  fn visit_import_prelude(&mut self, n: &ImportPrelude) {
     let specifier = match &*n.href {
       ImportHref::Url(u) => u.value.as_ref().map(|box s| match s {
         UrlValue::Str(s) => s.value.to_string(),
@@ -80,7 +67,8 @@ impl VisitAstPath for Analyzer<'_> {
       self.deps.push(Box::new(CssImportDependency::new(
         specifier,
         Some(n.span.into()),
-        as_parent_path(ast_path),
+        n.span.real_lo(),
+        n.span.real_hi(),
       )));
     }
   }
@@ -96,12 +84,8 @@ impl VisitAstPath for Analyzer<'_> {
   //   self.in_support_contdition = false;
   // }
 
-  fn visit_url<'ast: 'r, 'r>(
-    &mut self,
-    u: &'ast Url,
-    ast_path: &mut AstNodePath<AstParentNodeRef<'r>>,
-  ) {
-    u.visit_children_with_path(self, ast_path);
+  fn visit_url(&mut self, u: &Url) {
+    u.visit_children_with(self);
     // Wait for @supports
     // if !self.in_support_contdition {
     let specifier = u.value.as_ref().map(|box v| match v {
@@ -114,7 +98,8 @@ impl VisitAstPath for Analyzer<'_> {
     let dep = Box::new(CssUrlDependency::new(
       specifier,
       Some(u.span.into()),
-      as_parent_path(ast_path),
+      u.span.real_lo(),
+      u.span.real_hi()
     ));
     self.deps.push(dep.clone());
     self.code_generation_dependencies.push(dep);

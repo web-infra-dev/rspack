@@ -63,17 +63,6 @@ impl Plugin for RuntimePlugin {
     let chunk = args.chunk;
     let runtime_requirements = &mut args.runtime_requirements;
 
-    if runtime_requirements.contains(RuntimeGlobals::INTEROP_REQUIRE) {
-      compilation.add_runtime_module(
-        chunk,
-        NormalRuntimeModule::new(
-          RuntimeGlobals::INTEROP_REQUIRE,
-          include_str!("runtime/common/_interop_require.js"),
-        )
-        .boxed(),
-      )
-    }
-
     if runtime_requirements.contains(RuntimeGlobals::EXPORT_STAR) {
       compilation.add_runtime_module(
         chunk,
