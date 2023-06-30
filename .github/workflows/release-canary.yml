@@ -5,7 +5,7 @@ name: Release Canary
 on:
   push:
     branches:
-      release-canary
+      - canary
   issue_comment:
     types: [created]
 
