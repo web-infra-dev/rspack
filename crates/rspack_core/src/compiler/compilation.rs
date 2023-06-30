@@ -39,7 +39,8 @@ use crate::{
   FactorizeQueue, FactorizeTask, FactorizeTaskResult, Filename, Module, ModuleGraph,
   ModuleIdentifier, ModuleType, PathData, ProcessAssetsArgs, ProcessDependenciesQueue,
   ProcessDependenciesResult, ProcessDependenciesTask, RenderManifestArgs, Resolve, ResolverFactory,
-  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, Stats, TaskResult, WorkerTask,
+  RuntimeGlobals, RuntimeModule, RuntimeSpec, SharedPluginDriver, SourceType, Stats, TaskResult,
+  WorkerTask,
 };
 use crate::{tree_shaking::visitor::OptimizeAnalyzeResult, Context};
 
@@ -1178,6 +1179,24 @@ impl Compilation {
         hash.hash(&mut compilation_hasher);
       });
     self.hash = Some(compilation_hasher.digest(&self.options.output.hash_digest));
+
+    // here omit re-create full hash runtime module hash, only update compilation hash to runtime chunk content hash
+    self.chunk_by_ukey.values_mut().for_each(|chunk| {
+      if runtime_chunk_ukeys.contains(&chunk.ukey) {
+        if let Some(chunk_hash) = &mut chunk.hash {
+          let mut hasher = RspackHash::from(&self.options.output);
+          chunk_hash.hash(&mut hasher);
+          self.hash.hash(&mut hasher);
+          *chunk_hash = hasher.digest(&self.options.output.hash_digest);
+        }
+        if let Some(content_hash) = chunk.content_hash.get_mut(&SourceType::JavaScript) {
+          let mut hasher = RspackHash::from(&self.options.output);
+          content_hash.hash(&mut hasher);
+          self.hash.hash(&mut hasher);
+          *content_hash = hasher.digest(&self.options.output.hash_digest);
+        }
+      }
+    });
     Ok(())
   }
 
