@@ -1,4 +1,5 @@
 mod api_scanner;
+mod common_js_export_scanner;
 mod common_js_import_dependency_scanner;
 mod common_js_scanner;
 mod context_helper;
@@ -22,6 +23,7 @@ pub use util::*;
 
 use self::{
   api_scanner::ApiScanner,
+  common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
   common_js_scanner::CommonJsScanner,
   harmony_detection_scanner::HarmonyDetectionScanner,
@@ -75,7 +77,12 @@ pub fn scan_dependencies(
     build_meta.exports_type = BuildMetaExportsType::Dynamic;
     program.visit_with(&mut CommonJsScanner::new(&mut presentational_dependencies));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
-
+    program.visit_with(&mut CommonJsExportDependencyScanner::new(
+      &mut presentational_dependencies,
+      &unresolved_ctxt,
+      build_meta,
+      *module_type,
+    ));
     if let Some(node_option) = &compiler_options.node {
       program.visit_with(&mut NodeStuffScanner::new(
         &mut presentational_dependencies,

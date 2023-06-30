@@ -5,6 +5,7 @@ use swc_core::ecma::atoms::JsWordStaticSet;
 
 bitflags! {
   pub struct RuntimeGlobals: u64 {
+    const REQUIRE_SCOPE = 1 << 0;
 
     const EXPORT_STAR = 1 << 1;
     /**
@@ -210,6 +211,10 @@ bitflags! {
     const COMPAT_GET_DEFAULT_EXPORT = 1 << 45;
 
     const CREATE_FAKE_NAMESPACE_OBJECT = 1 << 46;
+
+    const NODE_MODULE_DECORATOR = 1 << 47;
+
+    const HARMONY_MODULE_DECORATOR = 1 << 48;
   }
 }
 
@@ -236,6 +241,7 @@ impl RuntimeGlobals {
   pub fn name(&self) -> &'static str {
     use RuntimeGlobals as R;
     match *self {
+      R::REQUIRE_SCOPE => "__webpack_require__.*",
       R::EXPORT_STAR => "es",
       R::LOAD_CHUNK_WITH_MODULE => "__webpack_require__.el",
       R::MODULE => "module",
@@ -282,6 +288,8 @@ impl RuntimeGlobals {
       R::EXPORTS => "__webpack_exports__",
       R::COMPAT_GET_DEFAULT_EXPORT => "__webpack_require__.n",
       R::CREATE_FAKE_NAMESPACE_OBJECT => "__webpack_require__.t",
+      R::HARMONY_MODULE_DECORATOR => "__webpack_require__.hmd",
+      R::NODE_MODULE_DECORATOR => "__webpack_require__.nmd",
       r => panic!(
         "Unexpected flag `{r:?}`. RuntimeGlobals should only be printed for one single flag."
       ),

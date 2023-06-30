@@ -14,8 +14,9 @@ use crate::runtime_module::{
   CreateScriptUrlRuntimeModule, DefinePropertyGettersRuntimeModule, EnsureChunkRuntimeModule,
   GetChunkFilenameRuntimeModule, GetChunkUpdateFilenameRuntimeModule, GetFullHashRuntimeModule,
   GetMainFilenameRuntimeModule, GetTrustedTypesPolicyRuntimeModule, GlobalRuntimeModule,
-  HasOwnPropertyRuntimeModule, LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule,
-  MakeNamespaceObjectRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
+  HarmonyModuleDecoratorRuntimeModule, HasOwnPropertyRuntimeModule,
+  LoadChunkWithModuleRuntimeModule, LoadScriptRuntimeModule, MakeNamespaceObjectRuntimeModule,
+  NodeModuleDecoratorRuntimeModule, NormalRuntimeModule, OnChunkLoadedRuntimeModule,
   PublicPathRuntimeModule,
 };
 
@@ -118,6 +119,12 @@ impl Plugin for RuntimePlugin {
       runtime_requirements.insert(RuntimeGlobals::HAS_OWN_PROPERTY);
     }
 
+    if runtime_requirements.contains(RuntimeGlobals::HARMONY_MODULE_DECORATOR)
+      || runtime_requirements.contains(RuntimeGlobals::NODE_MODULE_DECORATOR)
+    {
+      runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
+    }
+
     for runtime_requirement in runtime_requirements.iter() {
       match runtime_requirement {
         RuntimeGlobals::ASYNC_MODULE => {
@@ -210,6 +217,13 @@ impl Plugin for RuntimePlugin {
           chunk,
           CompatGetDefaultExportRuntimeModule::default().boxed(),
         ),
+        RuntimeGlobals::HARMONY_MODULE_DECORATOR => compilation.add_runtime_module(
+          chunk,
+          HarmonyModuleDecoratorRuntimeModule::default().boxed(),
+        ),
+        RuntimeGlobals::NODE_MODULE_DECORATOR => {
+          compilation.add_runtime_module(chunk, NodeModuleDecoratorRuntimeModule::default().boxed())
+        }
         _ => {}
       }
     }
