@@ -485,6 +485,30 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
+	F(output, "workerChunkLoading", () => {
+		if (tp) {
+			switch (output.chunkFormat) {
+				case "array-push":
+					if (tp.importScriptsInWorker) return "import-scripts";
+					break;
+				case "commonjs":
+					if (tp.require) return "require";
+					if (tp.nodeBuiltins) return "async-node";
+					break;
+				case "module":
+					if (tp.dynamicImportInWorker) return "import";
+					break;
+			}
+			if (
+				tp.require === null ||
+				tp.nodeBuiltins === null ||
+				tp.importScriptsInWorker === null
+			) {
+				return "universal";
+			}
+		}
+		return false;
+	});
 	F(output, "wasmLoading", () => {
 		if (tp) {
 			if (tp.fetchWasm) return "fetch";
@@ -496,6 +520,7 @@ const applyOutputDefaults = (
 		}
 		return false;
 	});
+	F(output, "workerWasmLoading", () => output.wasmLoading);
 	F(output, "globalObject", () => {
 		if (tp) {
 			if (tp.global) return "global";
@@ -506,6 +531,7 @@ const applyOutputDefaults = (
 	D(output, "importFunctionName", "import");
 	F(output, "clean", () => !!output.clean);
 	D(output, "crossOriginLoading", false);
+	D(output, "workerPublicPath", "");
 	F(output, "sourceMapFilename", () => {
 		return "[file].map";
 	});
@@ -538,9 +564,9 @@ const applyOutputDefaults = (
 		if (output.chunkLoading) {
 			enabledChunkLoadingTypes.add(output.chunkLoading);
 		}
-		// if (output.workerChunkLoading) {
-		// 	enabledChunkLoadingTypes.add(output.workerChunkLoading);
-		// }
+		if (output.workerChunkLoading) {
+			enabledChunkLoadingTypes.add(output.workerChunkLoading);
+		}
 		forEachEntry(desc => {
 			if (desc.chunkLoading) {
 				enabledChunkLoadingTypes.add(desc.chunkLoading);
@@ -553,9 +579,9 @@ const applyOutputDefaults = (
 		if (output.wasmLoading) {
 			enabledWasmLoadingTypes.add(output.wasmLoading);
 		}
-		// if (output.workerWasmLoading) {
-		// 	enabledWasmLoadingTypes.add(output.workerWasmLoading);
-		// }
+		if (output.workerWasmLoading) {
+			enabledWasmLoadingTypes.add(output.workerWasmLoading);
+		}
 		// forEachEntry(desc => {
 		// 	if (desc.wasmLoading) {
 		// 		enabledWasmLoadingTypes.add(desc.wasmLoading);
@@ -718,10 +744,10 @@ const getResolveDefaults = ({
 			url: {
 				preferRelative: true
 			},
-			// worker: {
-			// 	...esmDeps(),
-			// 	preferRelative: true
-			// },
+			worker: {
+				...esmDeps(),
+				preferRelative: true
+			},
 			commonjs: cjsDeps(),
 			// amd: cjsDeps(),
 			// for backward-compat: loadModule

@@ -208,6 +208,7 @@ impl ChunkGroupKind {
   }
 }
 
+// TODO: split ChunkGroupOptions and EntryOptions, put options on kind
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,

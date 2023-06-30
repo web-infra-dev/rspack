@@ -82,7 +82,7 @@ impl<'me> CodeSplitter<'me> {
               .chunk_loading
               .as_ref()
               .unwrap_or(&compilation.options.output.chunk_loading),
-            ChunkLoading::False
+            ChunkLoading::Disable
           ),
           async_chunks: options
             .async_chunks
@@ -454,13 +454,19 @@ impl<'me> CodeSplitter<'me> {
           RuntimeSpec::from_iter([entry_options.runtime.as_deref().expect("should have runtime for AsyncEntrypoint").into()]),
           group_options.to_owned(),
           ChunkGroupInfo {
-            chunk_loading: entry_options.chunk_loading.as_ref().map(|x| !matches!(x, ChunkLoading::False)).unwrap_or(item_chunk_group.info.chunk_loading),
+            chunk_loading: entry_options.chunk_loading.as_ref().map(|x| !matches!(x, ChunkLoading::Disable)).unwrap_or(item_chunk_group.info.chunk_loading),
             async_chunks: entry_options.async_chunks.unwrap_or(item_chunk_group.info.async_chunks),
           },
         );
         entrypoint.set_runtime_chunk(chunk.ukey);
         entrypoint.set_entry_point_chunk(chunk.ukey);
         self.compilation.async_entrypoints.push(entrypoint.ukey);
+        self.compilation.chunk_graph.add_module(*module_identifier);
+        self.compilation.chunk_graph.connect_chunk_and_entry_module(
+          chunk.ukey,
+          *module_identifier,
+          entrypoint.ukey,
+        );
         entrypoint
       } else {
         chunk

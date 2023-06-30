@@ -570,6 +570,7 @@ describe("snapshots", () => {
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",
+		-       "import-scripts",
 		+       "require",
 		@@ ... @@
 		-       "fetch",
@@ -584,8 +585,19 @@ describe("snapshots", () => {
 		-     "wasmLoading": "fetch",
 		+     "wasmLoading": "async-node",
 		@@ ... @@
+		-     "workerChunkLoading": "import-scripts",
+		+     "workerChunkLoading": "require",
+		@@ ... @@
+		-     "workerWasmLoading": "fetch",
+		+     "workerWasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
 		@@ ... @@
 		-         "browserField": true,
 		+         "browserField": false,
@@ -624,7 +636,6 @@ describe("snapshots", () => {
 		+     "chunkLoading": "import-scripts",
 		@@ ... @@
 		-       "jsonp",
-		+       "import-scripts",
 		@@ ... @@
 		+       "worker",
 		@@ ... @@
@@ -661,6 +672,7 @@ describe("snapshots", () => {
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",
+		-       "import-scripts",
 		+       "require",
 		@@ ... @@
 		-       "fetch",
@@ -675,8 +687,19 @@ describe("snapshots", () => {
 		-     "wasmLoading": "fetch",
 		+     "wasmLoading": "async-node",
 		@@ ... @@
+		-     "workerChunkLoading": "import-scripts",
+		+     "workerChunkLoading": "require",
+		@@ ... @@
+		-     "workerWasmLoading": "fetch",
+		+     "workerWasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
 		@@ ... @@
 		-         "browserField": true,
 		+         "browserField": false,
@@ -734,6 +757,7 @@ describe("snapshots", () => {
 		+     "chunkLoading": "require",
 		@@ ... @@
 		-       "jsonp",
+		-       "import-scripts",
 		+       "require",
 		@@ ... @@
 		-       "fetch",
@@ -748,8 +772,19 @@ describe("snapshots", () => {
 		-     "wasmLoading": "fetch",
 		+     "wasmLoading": "async-node",
 		@@ ... @@
+		-     "workerChunkLoading": "import-scripts",
+		+     "workerChunkLoading": "require",
+		@@ ... @@
+		-     "workerWasmLoading": "fetch",
+		+     "workerWasmLoading": "async-node",
+		@@ ... @@
 		-     "browserField": true,
 		+     "browserField": false,
+		@@ ... @@
+		-         "browserField": true,
+		+         "browserField": false,
+		@@ ... @@
+		-           "browser",
 		@@ ... @@
 		-         "browserField": true,
 		+         "browserField": false,

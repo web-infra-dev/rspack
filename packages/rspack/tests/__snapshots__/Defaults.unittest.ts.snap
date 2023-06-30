@@ -256,6 +256,7 @@ exports[`snapshots should have the correct base config 1`] = `
     "cssFilename": "[name].css",
     "enabledChunkLoadingTypes": [
       "jsonp",
+      "import-scripts",
     ],
     "enabledLibraryTypes": [],
     "enabledWasmLoadingTypes": [
@@ -281,6 +282,9 @@ exports[`snapshots should have the correct base config 1`] = `
     "uniqueName": "@rspack/core",
     "wasmLoading": "fetch",
     "webassemblyModuleFilename": "[hash].module.wasm",
+    "workerChunkLoading": "import-scripts",
+    "workerPublicPath": "",
+    "workerWasmLoading": "fetch",
   },
   "plugins": [],
   "resolve": {
@@ -372,6 +376,28 @@ exports[`snapshots should have the correct base config 1`] = `
           "module",
           "...",
         ],
+      },
+      "worker": {
+        "browserField": true,
+        "conditionNames": [
+          "import",
+          "module",
+          "...",
+        ],
+        "extensions": [
+          ".js",
+          ".json",
+          ".wasm",
+          ".tsx",
+          ".ts",
+          ".jsx",
+        ],
+        "mainFields": [
+          "browser",
+          "module",
+          "...",
+        ],
+        "preferRelative": true,
       },
     },
     "conditionNames": [
