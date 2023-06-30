@@ -145,6 +145,9 @@ export interface Output {
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
 	asyncChunks?: boolean;
+	workerChunkLoading?: ChunkLoading;
+	workerWasmLoading?: WasmLoading;
+	workerPublicPath?: WorkerPublicPath;
 }
 export type Path = string;
 export type PublicPath = "auto" | RawPublicPath;
@@ -226,6 +229,7 @@ export type HashDigest = string;
 export type HashDigestLength = number;
 export type HashFunction = string;
 export type HashSalt = string;
+export type WorkerPublicPath = string;
 export interface OutputNormalized {
 	path?: Path;
 	clean?: Clean;
@@ -260,6 +264,9 @@ export interface OutputNormalized {
 	hashFunction?: HashFunction;
 	hashSalt?: HashSalt;
 	asyncChunks?: boolean;
+	workerChunkLoading?: ChunkLoading;
+	workerWasmLoading?: WasmLoading;
+	workerPublicPath?: WorkerPublicPath;
 }
 
 ///// Resolve /////

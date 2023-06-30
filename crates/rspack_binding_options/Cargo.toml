@@ -34,6 +34,7 @@ rspack_plugin_schemes                   = { path = "../rspack_plugin_schemes" }
 rspack_plugin_split_chunks              = { path = "../rspack_plugin_split_chunks" }
 rspack_plugin_split_chunks_new          = { path = "../rspack_plugin_split_chunks_new" }
 rspack_plugin_wasm                      = { path = "../rspack_plugin_wasm" }
+rspack_plugin_worker                    = { path = "../rspack_plugin_worker" }
 rspack_regex                            = { path = "../rspack_regex" }
 
 anyhow            = { workspace = true, features = ["backtrace"] }
