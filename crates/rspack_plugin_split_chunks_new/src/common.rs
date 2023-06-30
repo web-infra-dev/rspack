@@ -7,7 +7,9 @@ use std::{
 
 use derivative::Derivative;
 use futures_util::FutureExt;
+use napi::{Either, JsString};
 use rspack_core::{Chunk, ChunkGroupByUkey, Module, SourceType};
+use rspack_napi_shared::JsRegExp;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 pub type ChunkFilter = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>;
@@ -54,7 +56,7 @@ pub fn create_module_filter_from_rspack_regex(re: rspack_regex::RspackRegex) -> 
   })
 }
 
-pub fn create_module_filter(re: Option<String>) -> ModuleFilter {
+pub fn create_module_filter(re: Option<Either<JsString, JsRegExp>>) -> ModuleFilter {
   re.map(|test| {
     let re =
       rspack_regex::RspackRegex::new(&test).unwrap_or_else(|_| panic!("Invalid regex: {}", &test));

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { string, z } from "zod";
 
 function chunks() {
 	return z.enum(["initial", "async", "all"]).or(z.instanceof(RegExp));
@@ -19,7 +19,7 @@ const sharedCacheGroupConfigPart = {
 };
 
 const cacheGroupOptions = z.strictObject({
-	test: z.instanceof(RegExp).optional(),
+	test: z.instanceof(RegExp).or(z.string()).optional(),
 	priority: z.number().optional(),
 	enforce: z.boolean().optional(),
 	reuseExistingChunk: z.boolean().optional(),
