@@ -370,3 +370,165 @@ impl From<usize> for DependencyId {
     Self(id)
   }
 }
+
+pub mod needs_refactor {
+  use once_cell::sync::Lazy;
+  use regex::Regex;
+  use swc_core::{
+    common::{EqIgnoreSpan, Spanned, DUMMY_SP},
+    ecma::{
+      ast::{
+        Expr, ExprOrSpread, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp, MetaPropExpr,
+        MetaPropKind, ModuleExportName, NewExpr,
+      },
+      atoms::{js_word, JsWord},
+      visit::Visit,
+    },
+  };
+
+  use crate::SpanExt;
+
+  pub fn match_new_url(new_expr: &NewExpr) -> Option<(u32, u32, String)> {
+    fn is_import_meta_url(expr: &Expr) -> bool {
+      static IMPORT_META: Lazy<Expr> = Lazy::new(|| {
+        Expr::Member(MemberExpr {
+          span: DUMMY_SP,
+          obj: Box::new(Expr::MetaProp(MetaPropExpr {
+            span: DUMMY_SP,
+            kind: MetaPropKind::ImportMeta,
+          })),
+          prop: MemberProp::Ident(Ident {
+            span: DUMMY_SP,
+            sym: "url".into(),
+            optional: false,
+          }),
+        })
+      });
+      Ident::within_ignored_ctxt(|| expr.eq_ignore_span(&IMPORT_META))
+    }
+
+    if matches!(&*new_expr.callee, Expr::Ident(Ident { sym: js_word!("URL"), .. }))
+    && let Some(args) = &new_expr.args
+    && let (Some(first), Some(second)) = (args.first(), args.get(1))
+    && let (
+      ExprOrSpread { spread: None, expr: box Expr::Lit(Lit::Str(path)) },
+      ExprOrSpread { spread: None, expr: box expr },
+    ) = (first, second) && is_import_meta_url(expr) {
+      return Some((path.span.real_lo(), expr.span().real_hi(), path.value.to_string()))
+    }
+    None
+  }
+
+  static WORKER_FROM_REGEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
+
+  #[derive(Debug, Default)]
+  pub struct WorkerSyntaxList(Vec<WorkerSyntax>);
+
+  impl WorkerSyntaxList {
+    pub fn push(&mut self, syntax: WorkerSyntax) {
+      self.0.push(syntax);
+    }
+
+    fn find_worker_syntax(&self, ident: &Ident) -> Option<&WorkerSyntax> {
+      self.0.iter().find(|s| match s {
+        WorkerSyntax::New(name) => match name {
+          WorkerName::Global(n) => n == &ident.sym,
+          WorkerName::Var(id) => *id == ident.to_id(),
+        },
+      })
+    }
+
+    pub fn match_new_worker(&self, new_expr: &NewExpr) -> bool {
+      matches!(&*new_expr.callee, Expr::Ident(ident) if self.find_worker_syntax(ident).is_some())
+    }
+  }
+
+  impl Extend<WorkerSyntax> for WorkerSyntaxList {
+    fn extend<T: IntoIterator<Item = WorkerSyntax>>(&mut self, iter: T) {
+      self.0.extend(iter);
+    }
+  }
+
+  impl From<WorkerSyntaxScanner<'_>> for WorkerSyntaxList {
+    fn from(value: WorkerSyntaxScanner) -> Self {
+      value.result
+    }
+  }
+
+  #[derive(Debug, PartialEq, Eq)]
+  pub enum WorkerSyntax {
+    New(WorkerName),
+    // Call(WorkerName),
+  }
+
+  #[derive(Debug, PartialEq, Eq)]
+  pub enum WorkerName {
+    Global(JsWord),
+    Var(Id),
+  }
+
+  pub struct WorkerSyntaxScanner<'a> {
+    result: WorkerSyntaxList,
+    caps: Vec<(&'a str, &'a str)>,
+  }
+
+  impl<'a> WorkerSyntaxScanner<'a> {
+    pub fn new() -> Self {
+      let syntax = &["Worker", "SharedWorker", "Worker from worker_threads"];
+      let mut result = WorkerSyntaxList::default();
+      let mut caps = Vec::new();
+      for s in syntax {
+        if let Some(captures) = WORKER_FROM_REGEX.captures(s)
+        && let Some(ids) = captures.get(1)
+        && let Some(source) = captures.get(3) {
+          caps.push((ids.as_str(), source.as_str()));
+        } else {
+          result.push(WorkerSyntax::New(WorkerName::Global(JsWord::from(*s))))
+        }
+      }
+      Self { result, caps }
+    }
+  }
+
+  impl Visit for WorkerSyntaxScanner<'_> {
+    fn visit_import_decl(&mut self, decl: &ImportDecl) {
+      let source = &*decl.src.value;
+      let found = self
+        .caps
+        .iter()
+        .filter(|cap| cap.1 == source)
+        .flat_map(|cap| {
+          if cap.0 == "default" {
+            decl
+              .specifiers
+              .iter()
+              .filter_map(|spec| spec.as_default())
+              .map(|spec| spec.local.to_id())
+              .collect::<Vec<Id>>()
+          } else {
+            decl
+              .specifiers
+              .iter()
+              .filter_map(|spec| {
+                spec.as_named().filter(|named| {
+                  named
+                    .imported
+                    .as_ref()
+                    .map(|name| match name {
+                      ModuleExportName::Ident(s) => &s.sym,
+                      ModuleExportName::Str(s) => &s.value,
+                    })
+                    .filter(|s| *s == cap.0)
+                    .is_some()
+                })
+              })
+              .map(|spec| spec.local.to_id())
+              .collect::<Vec<Id>>()
+          }
+        })
+        .map(|pair| WorkerSyntax::New(WorkerName::Var(pair)));
+      self.result.extend(found);
+    }
+  }
+}

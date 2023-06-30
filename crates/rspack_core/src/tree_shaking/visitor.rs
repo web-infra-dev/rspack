@@ -27,6 +27,7 @@ use super::{
   utils::{get_dynamic_import_string_literal, get_require_literal},
   BailoutFlag,
 };
+use crate::needs_refactor::WorkerSyntaxList;
 use crate::{
   CompilerOptions, Dependency, DependencyType, FactoryMeta, ModuleGraph, ModuleIdentifier,
   ModuleSyntax,
@@ -144,6 +145,7 @@ pub(crate) struct ModuleRefAnalyze<'a> {
   pub(crate) has_side_effects_stmt: bool,
   unresolved_ctxt: SyntaxContext,
   pub(crate) potential_top_level_mark: HashSet<Mark>,
+  worker_syntax_list: &'a WorkerSyntaxList,
 }
 
 impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
@@ -184,6 +186,7 @@ impl<'a> std::fmt::Debug for ModuleRefAnalyze<'a> {
       .field("unresolved_ctxt", &self.unresolved_ctxt)
       .field("potential_top_mark", &self.potential_top_level_mark)
       .field("comments", &"...")
+      .field("worker_syntax_list", self.worker_syntax_list)
       .finish()
   }
 }
@@ -209,6 +212,7 @@ impl<'a> ModuleRefAnalyze<'a> {
     dep_to_module_identifier: &'a ModuleGraph,
     options: &'a Arc<CompilerOptions>,
     _comments: Option<&'a SwcComments>,
+    worker_syntax_list: &'a WorkerSyntaxList,
   ) -> Self {
     Self {
       top_level_mark: mark_info.top_level_mark,
@@ -233,6 +237,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       has_side_effects_stmt: false,
       unresolved_ctxt: SyntaxContext::empty(),
       potential_top_level_mark: HashSet::from_iter([mark_info.top_level_mark]),
+      worker_syntax_list,
     }
   }
 
@@ -607,42 +612,20 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
   }
 
   fn visit_new_expr(&mut self, new_expr: &NewExpr) {
-    if let Expr::Ident(Ident {
-      sym: js_word!("URL"),
-      ..
-    }) = &*new_expr.callee
-    {
-      if let Some(args) = &new_expr.args {
-        if let [ExprOrSpread {
-          spread: None,
-          expr: box Expr::Lit(Lit::Str(path)),
-        }, ExprOrSpread {
-          spread: None,
-          expr:
-            box Expr::Member(MemberExpr {
-              obj:
-                box Expr::MetaProp(MetaPropExpr {
-                  kind: MetaPropKind::ImportMeta,
-                  ..
-                }),
-              prop:
-                MemberProp::Ident(Ident {
-                  sym: js_word!("url"),
-                  ..
-                }),
-              ..
-            }),
-        }] = &args[..]
-        {
-          let src = Part::Url(path.value.clone());
-          match self.current_body_owner_symbol_ext {
-            Some(ref body_owner_symbol_ext) => {
-              self.add_reference(body_owner_symbol_ext.clone(), src, false);
-            }
-            None => {
-              self.used_id_set.insert(src);
-            }
-          }
+    if self.worker_syntax_list.match_new_worker(new_expr) && let Some(args) = &new_expr.args {
+      for arg in args.iter().skip(1) {
+        arg.visit_with(self);
+      }
+      return;
+    }
+    if let Some((_, _, request)) = crate::needs_refactor::match_new_url(new_expr) {
+      let src = Part::Url(request.into());
+      match self.current_body_owner_symbol_ext {
+        Some(ref body_owner_symbol_ext) => {
+          self.add_reference(body_owner_symbol_ext.clone(), src, false);
+        }
+        None => {
+          self.used_id_set.insert(src);
         }
       }
     }
