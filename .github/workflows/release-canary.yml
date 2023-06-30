@@ -1,4 +1,5 @@
-# Release Canary by commention with "!canary"
+# Release Canary by comment with "!canary"
+
 name: Release Canary
 
 on:
@@ -7,37 +8,45 @@ on:
 
 jobs:
   build:
-    name: Release Canary
+    name: Build Canary
     if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false # Build and test everything so we can look at all the errors
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: ${{ matrix.target }}
+      profile: 'debug'
+      test: false
+
+  release:
+    name: Release Canary
     steps:
-      - name: Checkout Repo
+      - name: Checkout Branch
         uses: actions/checkout@v3
-        with:
-          # This makes Actions fetch only one branch to release
-          fetch-depth: 1
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Pnpm Cache
         uses: ./.github/actions/pnpm-cache
 
-      - name: Install Rust
-        run: rustup show
-
-      - uses: goto-bus-stop/setup-zig@v2
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
         with:
-          version: 0.10.1
+          path: artifacts
 
-      - name: Setup target
-        run: |
-          rustup target add aarch64-apple-darwin
-          rustup target add x86_64-apple-darwin
-          rustup target add x86_64-unknown-linux-gnu
+      - name: Build node packages
+        run: pnpm run build:js
 
-      - name: Build
-        run: |
-          set -e
-          USE_ZIG=1 pnpm -w build:cli:release:all
+      - name: Move artifacts
+        run: node scripts/build-npm.cjs
+
+      - name: Show binding packages
+        run: ls -R npm
+
+      - name: Resolve dependencies for bindings
+        run: pnpm install --no-frozen-lockfile
 
       - name: Release
         run: |
@@ -57,4 +66,3 @@ jobs:
           issue-number: ${{ github.event.issue.number }}
 
           body-path: 'version_output'
-              
