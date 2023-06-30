@@ -168,7 +168,7 @@ jobs:
   e2e:
     name: E2E Testing
     needs: [select, build]
-    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test == 'true'
+    if: inputs.target == 'x86_64-unknown-linux-gnu' && inputs.test
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.35.0-jammy
@@ -194,7 +194,7 @@ jobs:
 
   test:
     needs: [select, build]
-    if: inputs.test == 'true'
+    if: inputs.test
     runs-on: ${{ needs.select.outputs.host }}
     timeout-minutes: 30
     strategy:
