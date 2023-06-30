@@ -27,6 +27,8 @@ jobs:
 
   release:
     name: Release Canary
+    runs-on: ubuntu-latest
+    needs: build
     steps:
       - name: Checkout Branch
         uses: actions/checkout@v3
