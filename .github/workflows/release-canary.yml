@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     name: Build Canary
-    # if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '!canary')
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -62,7 +62,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           PULL_REQUEST_NUMBER: ${{ github.event.issue.number }}
-          # COMMENT: ${{ toJson(github.event.comment) }}
+          COMMENT: ${{ toJson(github.event.comment) }}
 
       - name: Write a new comment
         uses: peter-evans/create-or-update-comment@v3
