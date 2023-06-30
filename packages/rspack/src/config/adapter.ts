@@ -129,7 +129,8 @@ function getRawEntry(entry: EntryNormalized): RawOptions["entry"] {
 			baseUri: entry[key].baseUri,
 			runtime: runtime === false ? undefined : runtime,
 			chunkLoading: chunkLoading === false ? "false" : chunkLoading,
-			asyncChunks: entry[key].asyncChunks
+			asyncChunks: entry[key].asyncChunks,
+			filename: entry[key].filename
 		};
 	}
 	return raw;

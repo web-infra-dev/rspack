@@ -23,6 +23,24 @@ export function builtins() {
 				);
 				return true;
 			})
+			.optional(),
+		html: z
+			.object({
+				title: z.string().optional(),
+				filename: z.string().optional(),
+				template: z.string().optional(),
+				templateParameters: z.record(z.string()).optional(),
+				inject: z.enum(["head", "body"]).optional(),
+				publicPathz: z.string().optional(),
+				scriptLoading: z.enum(["blocking", "defer", "module"]).optional(),
+				chunks: z.string().array().optional(),
+				excludedChunks: z.string().array().optional(),
+				sri: z.enum(["sha256", "sha384", "sha512"]).optional(),
+				minify: z.boolean().optional(),
+				favicon: z.string().optional(),
+				meta: z.record(z.string().or(z.record(z.string()))).optional()
+			})
+			.array()
 			.optional()
 	});
 }

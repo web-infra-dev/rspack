@@ -14,6 +14,10 @@ export function publicPath() {
 	return z.literal("auto").or(z.string());
 }
 
+export function filename() {
+	return z.string();
+}
+
 function libraryType() {
 	return z.enum([
 		"...",
@@ -87,7 +91,7 @@ export function output() {
 		hotUpdateMainFilename: z.string().optional(),
 		webassemblyModuleFilename: z.string().optional(),
 		hashSalt: z.string().optional(),
-		filename: z.string().optional(),
+		filename: filename().optional(),
 		sourceMapFilename: z.string().optional(),
 		importFunctionName: z.string().optional(),
 		publicPath: publicPath().optional(),

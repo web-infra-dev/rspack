@@ -225,6 +225,12 @@ impl Plugin for JsPlugin {
   ) -> PluginProcessAssetsOutput {
     let compilation = args.compilation;
     let minify_options = &compilation.options.builtins.minify_options;
+    let is_module = compilation
+      .options
+      .output
+      .library
+      .as_ref()
+      .is_some_and(|library| library.library_type == "module");
 
     if let Some(minify_options) = minify_options {
       let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
@@ -258,6 +264,7 @@ impl Plugin for JsPlugin {
               source_map: BoolOrDataConfig::from_bool(input_source_map.is_some()),
               inline_sources_content: true, // Using true so original_source can be None in SourceMapSource
               emit_source_map_columns,
+              module: is_module,
               ..Default::default()
             };
             let output = match crate::ast::minify(&js_minify_options, input, filename, &all_extracted_comments, extract_comments_option) {
