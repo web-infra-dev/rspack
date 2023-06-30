@@ -3,9 +3,6 @@
 name: Release Canary
 
 on:
-  push:
-    branches:
-      - canary
   issue_comment:
     types: [created]
 
