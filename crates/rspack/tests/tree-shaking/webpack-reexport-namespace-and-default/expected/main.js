@@ -56,7 +56,7 @@ var __WEBPACK_DEFAULT_EXPORT__ = 1;
 __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'exportDefaultUsed': function() { return exportDefaultUsed; }});
 
-function __WEBPACK_DEFAULT_EXPORT__() {
+function __WEBPACK_DEFAULT_EXPORT__(){
     return /* unused */undefined;
 }
 

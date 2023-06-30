@@ -131,7 +131,7 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         export_default_expr.span().real_lo(),
         export_default_expr.expr.span().real_lo(),
         false,
-        false,
+        None,
       )));
   }
 
@@ -156,7 +156,12 @@ impl Visit for HarmonyExportDependencyScanner<'_> {
         export_default_decl.span().real_lo(),
         export_default_decl.decl.span().real_lo(),
         ident.is_some(),
-        matches!(&export_default_decl.decl, DefaultDecl::Fn(_)),
+        if let DefaultDecl::Fn(f) = &export_default_decl.decl && f.ident.is_none() {
+          let first_parmas = f.function.params.get(0).map(|first| first.span.real_lo());
+          Some((f.function.is_async, f.function.is_generator, f.function.body.span().real_lo(), first_parmas))
+        } else {
+          None
+        },
       )));
   }
 }

@@ -2,7 +2,7 @@
 "./dead.js": function (module, exports, __webpack_require__) {
 'use strict';
 __webpack_require__.r(exports);
-function __WEBPACK_DEFAULT_EXPORT__() {
+function __WEBPACK_DEFAULT_EXPORT__(){
     return "dead";
 }
 },
@@ -12,7 +12,7 @@ __webpack_require__.r(exports);
 __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 /* harmony import */var _dead__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dead */"./dead.js");
 
-function __WEBPACK_DEFAULT_EXPORT__() {
+function __WEBPACK_DEFAULT_EXPORT__(){
     return "foo";
 }
  function foodead() {
