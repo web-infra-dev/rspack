@@ -4,16 +4,19 @@ pub const DEFAULT_EXPORT: &str = "__WEBPACK_DEFAULT_EXPORT__";
 // pub const NAMESPACE_OBJECT_EXPORT: &'static str = "__WEBPACK_NAMESPACE_OBJECT__";
 
 #[derive(Debug)]
+pub struct AnonymousFunctionRangeInfo {
+  pub is_async: bool,
+  pub is_generator: bool,
+  pub body_start: u32,
+  pub first_parmas_start: Option<u32>,
+}
+
+#[derive(Debug)]
 pub struct HarmonyExpressionHeaderDependency {
   pub start: u32,
   pub end: u32,
   pub declaration: bool,
-  pub function: Option<(
-    bool,        /* is_async */
-    bool,        /* is_generator */
-    u32,         /* body start */
-    Option<u32>, /* first parmas start */
-  )>,
+  pub function: Option<AnonymousFunctionRangeInfo>,
 }
 
 impl HarmonyExpressionHeaderDependency {
@@ -21,7 +24,7 @@ impl HarmonyExpressionHeaderDependency {
     start: u32,
     end: u32,
     declaration: bool,
-    function: Option<(bool, bool, u32, Option<u32>)>,
+    function: Option<AnonymousFunctionRangeInfo>,
   ) -> Self {
     Self {
       start,
@@ -40,7 +43,13 @@ impl CodeGeneratableDependency for HarmonyExpressionHeaderDependency {
   ) {
     if self.declaration {
       source.replace(self.start, self.end, "", None);
-    } else if let Some((is_async, is_generator, body_start, first_parmas_start)) = &self.function {
+    } else if let Some(AnonymousFunctionRangeInfo {
+      is_async,
+      is_generator,
+      body_start,
+      first_parmas_start,
+    }) = &self.function
+    {
       // hoist anonymous function
       let prefix = format!(
         "{}function{} {DEFAULT_EXPORT}",
