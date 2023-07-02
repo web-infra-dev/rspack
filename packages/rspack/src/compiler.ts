@@ -13,6 +13,7 @@ import path from "path";
 import * as tapable from "tapable";
 import { Callback, SyncBailHook, SyncHook } from "tapable";
 import type { WatchOptions } from "watchpack";
+import { ModuleFilenameHelpers } from "webpack";
 import {
 	EntryNormalized,
 	OutputNormalized,
@@ -191,7 +192,8 @@ class Compiler {
 				// get LazySet() {
 				// 	return require("./util/LazySet");
 				// }
-			}
+			},
+			ModuleFilenameHelpers
 		};
 		this.root = this;
 		this.ruleSet = new RuleSetCompiler();

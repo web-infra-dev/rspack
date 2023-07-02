@@ -6,8 +6,8 @@
 "use strict";
 
 /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("./StatsPrinter")} StatsPrinter */
-/** @typedef {import("./StatsPrinter").StatsPrinterContext} StatsPrinterContext */
+/** @typedef {import("../StatsPrinter")} StatsPrinter */
+/** @typedef {import("../StatsPrinter").StatsPrinterContext} StatsPrinterContext */
 
 const DATA_URI_CONTENT_LENGTH = 16;
 
@@ -1185,7 +1185,7 @@ const AVAILABLE_FORMATS = {
 		(oversize ? yellow : green)(filename),
 	formatFlag: flag => `[${flag}]`,
 	formatLayer: layer => `(in ${layer})`,
-	formatSize: require("../SizeFormatHelpers").formatSize,
+	formatSize: require("./SizeFormatHelpers").formatSize,
 	formatDateTime: (dateTime, { bold }) => {
 		const d = new Date(dateTime);
 		const x = twoDigit;
