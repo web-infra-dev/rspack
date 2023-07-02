@@ -31,6 +31,7 @@ import MultiStats from "./multiStats";
 import assert from "assert";
 import { asArray, isNil } from "./util";
 import IgnoreWarningsPlugin from "./lib/ignoreWarningsPlugin";
+import DefaultStatsPrinterPlugin from "./lib/DefaultStatsPrinterPlugin";
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
 	const compilers = options.map(createCompiler);
@@ -59,6 +60,8 @@ function createCompiler(userOptions: RspackOptions): Compiler {
 	new NodeEnvironmentPlugin({
 		infrastructureLogging: options.infrastructureLogging
 	}).apply(compiler);
+
+	new DefaultStatsPrinterPlugin().apply(compiler);
 
 	const logger = compiler.getInfrastructureLogger("config");
 	logger.debug(

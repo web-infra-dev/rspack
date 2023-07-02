@@ -37,6 +37,7 @@ import { LogType, Logger } from "./logging/Logger";
 import { NormalModule } from "./normalModule";
 import { NormalModuleFactory } from "./normalModuleFactory";
 import { Stats, normalizeStatsPreset } from "./stats";
+import StatsPrinter from "./statsPrinter";
 import { concatErrorMsgAndStack, isJsStatsError, toJsAssetInfo } from "./util";
 import { createRawFromSource, createSourceFromRaw } from "./util/createSource";
 import {
@@ -92,6 +93,7 @@ export class Compilation {
 		succeedModule: tapable.SyncHook<[JsModule], undefined>;
 		stillValidModule: tapable.SyncHook<[JsModule], undefined>;
 		buildModule: tapable.SyncHook<[NormalizedJsModule]>;
+		statsPrinter: tapable.SyncHook<[StatsPrinter, StatsValue], undefined>;
 	};
 	options: RspackOptionsNormalized;
 	outputOptions: OutputNormalized;
@@ -106,6 +108,7 @@ export class Compilation {
 	normalModuleFactory?: NormalModuleFactory;
 	children: Compilation[] = [];
 	contextModuleFactory?: ContextModuleFactory;
+	statsPrinter?: StatsPrinter;
 
 	constructor(compiler: Compiler, inner: JsCompilation) {
 		this.name = undefined;
@@ -128,7 +131,8 @@ export class Compilation {
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
 			succeedModule: new tapable.SyncHook(["module"]),
 			stillValidModule: new tapable.SyncHook(["module"]),
-			buildModule: new tapable.SyncHook(["module"])
+			buildModule: new tapable.SyncHook(["module"]),
+			statsPrinter: new tapable.SyncHook(["statsPrinter", "options"])
 		};
 		this.compiler = compiler;
 		this.resolverFactory = compiler.resolverFactory;
@@ -277,6 +281,12 @@ export class Compilation {
 		);
 
 		return options;
+	}
+
+	createStatsPrinter(options: StatsValue) {
+		const statsPrinter = new StatsPrinter();
+		this.hooks.statsPrinter.call(statsPrinter, options);
+		return statsPrinter;
 	}
 
 	/**
