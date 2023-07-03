@@ -2683,6 +2683,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_identifier",
+ "rspack_plugin_javascript_shared",
  "rspack_regex",
  "rspack_symbol",
  "rspack_testing",
@@ -2699,6 +2700,13 @@ dependencies = [
  "tokio",
  "url",
  "xxhash-rust",
+]
+
+[[package]]
+name = "rspack_plugin_javascript_shared"
+version = "0.0.1"
+dependencies = [
+ "swc_core",
 ]
 
 [[package]]

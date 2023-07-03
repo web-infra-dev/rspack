@@ -1,25 +1,16 @@
 use rspack_core::{CodeGeneratableDependency, RuntimeGlobals, RuntimeRequirementsDependency};
+use rspack_plugin_javascript_shared::JsAstVisitorHook;
 use swc_core::ecma::ast::Expr;
-use swc_core::ecma::visit::{noop_visit_type, Visit, VisitWith};
 
-use super::expr_matcher;
+use crate::visitors::expr_matcher;
 
-pub struct CommonJsScanner<'a> {
-  presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
+#[derive(Default)]
+pub struct CommonJsScanner {
+  pub(crate) presentational_dependencies: Vec<Box<dyn CodeGeneratableDependency>>,
 }
 
-impl<'a> CommonJsScanner<'a> {
-  pub fn new(presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>) -> Self {
-    Self {
-      presentational_dependencies,
-    }
-  }
-}
-
-impl Visit for CommonJsScanner<'_> {
-  noop_visit_type!();
-
-  fn visit_expr(&mut self, expr: &Expr) {
+impl JsAstVisitorHook for CommonJsScanner {
+  fn visit_expr(&mut self, expr: &Expr) -> bool {
     if expr_matcher::is_module_id(expr) {
       self
         .presentational_dependencies
@@ -34,6 +25,6 @@ impl Visit for CommonJsScanner<'_> {
           RuntimeGlobals::MODULE_LOADED,
         )));
     }
-    expr.visit_children_with(self);
+    false
   }
 }
