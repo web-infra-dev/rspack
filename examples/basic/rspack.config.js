@@ -4,7 +4,7 @@ const config = {
 	context: __dirname,
 	mode: "development",
 	entry: {
-		main: "./src/index.js",
+		"dist/banner": "./src/index.js",
 	},
 	builtins: {
 		html: [

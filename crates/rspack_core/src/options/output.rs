@@ -318,8 +318,8 @@ impl Filename {
         if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
           template = template.replace(BASE_PLACEHOLDER, &base);
         }
-        if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-          template = template.replace(NAME_PLACEHOLDER, &name);
+        if file.with_extension("").to_string_lossy() != file.to_string_lossy() {
+          template = template.replace(NAME_PLACEHOLDER, &file.with_extension("").to_string_lossy());
         }
         template = template.replace(
           PATH_PLACEHOLDER,
@@ -352,7 +352,6 @@ impl Filename {
         .into_owned();
     }
     if let Some(hash) = options.hash {
-      dbg!(&hash);
       for reg in [&HASH_PLACEHOLDER, &FULL_HASH_PLACEHOLDER] {
         template = reg
           .replace_all(&template, |caps: &Captures| {
@@ -376,6 +375,7 @@ impl Filename {
         template = template.replace(NAME_PLACEHOLDER, name);
       }
     }
+
     if let Some(id) = &options.id {
       template = template.replace(ID_PLACEHOLDER, id);
     } else if let Some(module) = options.module {
@@ -389,6 +389,7 @@ impl Filename {
     if let Some(url) = options.url {
       template = template.replace(URL_PLACEHOLDER, url);
     }
+
     template
   }
 }
