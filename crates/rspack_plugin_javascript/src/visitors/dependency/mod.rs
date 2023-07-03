@@ -1,7 +1,6 @@
 mod api_scanner;
 mod common_js_export_scanner;
 mod common_js_import_dependency_scanner;
-mod common_js_scanner;
 mod context_helper;
 mod harmony_detection_scanner;
 mod harmony_export_dependency_scanner;
@@ -18,19 +17,24 @@ use rspack_core::{
   ast::javascript::Program, BuildInfo, BuildMeta, BuildMetaExportsType, CodeGeneratableDependency,
   CompilerOptions, ModuleDependency, ModuleIdentifier, ModuleType, ResourceData,
 };
+use rspack_plugin_javascript_shared::{JsParserHookDriver, JsParserPlugin, JsParserPluginContext};
 use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
 use self::{
   api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
-  common_js_scanner::CommonJsScanner, harmony_detection_scanner::HarmonyDetectionScanner,
+  harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
   node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
   url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+};
+use crate::js_parser_plugins::{
+  commonjs_plugin::CommonJsPlugin,
+  require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin,
 };
 
 pub type ScanDependenciesResult = (
@@ -49,6 +53,8 @@ pub fn scan_dependencies(
   build_meta: &mut BuildMeta,
   module_identifier: ModuleIdentifier,
 ) -> ScanDependenciesResult {
+  let mut js_parser_hook_driver = JsParserHookDriver::default();
+
   let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
   let mut presentational_dependencies: Vec<Box<dyn CodeGeneratableDependency>> = vec![];
   let unresolved_ctxt = SyntaxContext::empty().apply_mark(unresolved_mark);
@@ -70,7 +76,22 @@ pub fn scan_dependencies(
     // TODO webpack scan it at CommonJsExportsParserPlugin
     // use `Dynamic` as workaround
     build_meta.exports_type = BuildMetaExportsType::Dynamic;
-    program.visit_with(&mut CommonJsScanner::new(&mut presentational_dependencies));
+
+    let apply_ctx = &mut JsParserPluginContext {
+      parser: &mut js_parser_hook_driver,
+    };
+
+    CommonJsPlugin.apply(apply_ctx);
+
+    RequireContextDependencyParserPlugin.apply(apply_ctx);
+
+    program.visit_with(&mut js_parser_hook_driver);
+
+    let js_parser_context = js_parser_hook_driver.into_context();
+
+    presentational_dependencies.extend(js_parser_context.presentational_dependencies);
+    dependencies.extend(js_parser_context.dependencies);
+
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut presentational_dependencies,

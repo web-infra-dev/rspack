@@ -5,6 +5,7 @@ pub(crate) mod dependency;
 mod plugin;
 pub use plugin::*;
 mod ast;
+pub(crate) mod js_parser_plugins;
 pub(crate) mod parser_and_generator;
 pub mod runtime;
 pub mod utils;
