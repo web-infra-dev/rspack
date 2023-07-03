@@ -22,20 +22,15 @@ use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
 use self::{
-  api_scanner::ApiScanner,
-  common_js_export_scanner::CommonJsExportDependencyScanner,
+  api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
-  common_js_scanner::CommonJsScanner,
-  harmony_detection_scanner::HarmonyDetectionScanner,
+  common_js_scanner::CommonJsScanner, harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
-  import_meta_scanner::ImportMetaScanner,
-  import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner,
-  require_context_scanner::RequireContextScanner,
-  url_scanner::UrlScanner,
-  worker_scanner::{WorkerScanner, WorkerSyntaxScanner},
+  import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
+  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
+  url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
 
 pub type ScanDependenciesResult = (
@@ -119,18 +114,20 @@ pub fn scan_dependencies(
       &mut import_map,
       module_identifier,
     ));
-    let mut worker_syntax_scanner =
-      WorkerSyntaxScanner::new(&["Worker", "SharedWorker", "Worker from worker_threads"]);
+    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
+      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+    );
     program.visit_with(&mut worker_syntax_scanner);
+    let worker_syntax_list = &worker_syntax_scanner.into();
     let mut worker_scanner = WorkerScanner::new(
       &module_identifier,
       &compiler_options.output,
-      worker_syntax_scanner,
+      worker_syntax_list,
     );
     program.visit_with(&mut worker_scanner);
     dependencies.append(&mut worker_scanner.dependencies);
     presentational_dependencies.append(&mut worker_scanner.presentational_dependencies);
-    program.visit_with(&mut UrlScanner::new(&mut dependencies, &worker_scanner));
+    program.visit_with(&mut UrlScanner::new(&mut dependencies, worker_syntax_list));
     program.visit_with(&mut ImportMetaScanner::new(
       &mut presentational_dependencies,
       resource_data,
