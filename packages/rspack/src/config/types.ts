@@ -647,6 +647,7 @@ export interface ExperimentsNormalized {
 	outputModule?: boolean;
 	newSplitChunks?: boolean;
 	css?: boolean;
+	futureDefaults?: boolean;
 }
 
 ///// Watch /////

@@ -161,7 +161,6 @@ impl RawOptionsApply for RawOutputOptions {
     plugins: &mut Vec<BoxPlugin>,
     _: &JsLoaderRunner,
   ) -> Result<OutputOptions, rspack_error::Error> {
-    dbg!(&self.hash_function);
     self.apply_chunk_format_plugin(plugins)?;
     if let Some(chunk_loading_types) = self.enabled_chunk_loading_types.as_ref() {
       for chunk_loading_type in chunk_loading_types {

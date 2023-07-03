@@ -70,6 +70,7 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 
+	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
 	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
@@ -92,7 +93,7 @@ export const applyRspackOptionsDefaults = (
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
 		entry: options.entry,
-		futureDefaults: false
+		futureDefaults
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {

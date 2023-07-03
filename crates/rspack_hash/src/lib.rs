@@ -19,7 +19,7 @@ impl From<&str> for HashFunction {
     match value {
       "xxhash64" => HashFunction::Xxhash64,
       "md4" => HashFunction::MD4,
-      _ => unimplemented!(),
+      _ => unimplemented!("{}", value),
     }
   }
 }
