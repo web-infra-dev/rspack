@@ -55,7 +55,7 @@ impl From<Option<String>> for HashSalt {
 
 #[derive(Clone)]
 pub enum RspackHash {
-  Xxhash64(xxh3::Xxh3),
+  Xxhash64(Box<xxh3::Xxh3>),
   MD4(md4::Md4),
 }
 
@@ -71,7 +71,7 @@ impl fmt::Debug for RspackHash {
 impl RspackHash {
   pub fn new(function: &HashFunction) -> Self {
     match function {
-      HashFunction::Xxhash64 => Self::Xxhash64(xxh3::Xxh3::new()),
+      HashFunction::Xxhash64 => Self::Xxhash64(Box::new(xxh3::Xxh3::new())),
       HashFunction::MD4 => Self::MD4(md4::Md4::new()),
     }
   }
