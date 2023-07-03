@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_id_expr, normalize_context, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  create_dependency_id, module_id_expr, normalize_context, CodeGeneratableContext,
+  CodeGeneratableDependency, CodeGeneratableSource, ContextOptions, Dependency, DependencyCategory,
+  DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ pub struct ImportContextDependency {
   callee_start: u32,
   callee_end: u32,
   args_end: u32,
-  pub id: Option<DependencyId>,
+  pub id: DependencyId,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
 }
@@ -28,18 +28,16 @@ impl ImportContextDependency {
       args_end,
       options,
       span,
-      id: None,
+      id: create_dependency_id(),
     }
   }
 }
 
 impl Dependency for ImportContextDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
   }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -83,7 +81,7 @@ impl CodeGeneratableDependency for ImportContextDependency {
   ) {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
 
     let module_id = compilation
       .module_graph

@@ -62,12 +62,7 @@ impl CodeGeneratableDependency for HarmonyAcceptDependency {
         .iter()
         .find(|d| d.request() == &dep.0 && d.category() == &dep.1 && d.dependency_type() == &dep.2)
       {
-        let stmts = import_statement(
-          code_generatable_context,
-          &dep.id().expect("should have dependency"),
-          dep.request(),
-          true,
-        );
+        let stmts = import_statement(code_generatable_context, &dep.id(), dep.request(), true);
         content.push_str(stmts.0.as_str());
         content.push_str(stmts.1.as_str());
       }

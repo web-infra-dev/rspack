@@ -1,12 +1,13 @@
 use rspack_core::{
-  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  create_dependency_id, module_id, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
 use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct ModuleHotDeclineDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   start: u32,
   end: u32,
@@ -19,7 +20,7 @@ pub struct ModuleHotDeclineDependency {
 impl ModuleHotDeclineDependency {
   pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: None,
+      id: create_dependency_id(),
       request,
       category: &DependencyCategory::CommonJS,
       dependency_type: &DependencyType::ModuleHotDecline,
@@ -31,11 +32,8 @@ impl ModuleHotDeclineDependency {
 }
 
 impl Dependency for ModuleHotDeclineDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -75,7 +73,7 @@ impl CodeGeneratableDependency for ModuleHotDeclineDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
 
     source.replace(
       self.start,

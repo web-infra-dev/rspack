@@ -1,7 +1,9 @@
-use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::path::PathBuf;
+use std::sync::atomic::Ordering::SeqCst;
+use std::{borrow::Cow, sync::atomic::AtomicUsize};
 
+use once_cell::sync::Lazy;
 use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
@@ -18,6 +20,13 @@ use crate::{
 // TODO Here request can be used JsWord
 pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
 
+pub static DEPENDENCY_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+
+pub fn create_dependency_id() -> DependencyId {
+  DEPENDENCY_ID.fetch_add(1, SeqCst);
+  DEPENDENCY_ID.load(SeqCst).into()
+}
+
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
   dependency_id_to_module_identifier: HashMap<DependencyId, ModuleIdentifier>,
@@ -33,7 +42,7 @@ pub struct ModuleGraph {
 
   /// Dependencies indexed by `DependencyId`
   /// None means the dependency has been removed
-  dependencies: Vec<Option<BoxModuleDependency>>,
+  dependencies: HashMap<DependencyId, BoxModuleDependency>,
 
   /// Dependencies indexed by `ConnectionId`
   /// None means the connection has been removed
@@ -74,23 +83,16 @@ impl ModuleGraph {
     }
   }
 
-  pub fn add_dependency(&mut self, mut dependency: BoxModuleDependency) -> DependencyId {
-    if let Some(dependency_id) = dependency.id() {
-      return dependency_id;
-    }
-    let new_dependency_id = self.dependencies.len();
-    let new_dependency_id = DependencyId::from(new_dependency_id);
-    dependency.set_id(Some(new_dependency_id));
-    self.dependencies.push(Some(dependency));
-    new_dependency_id
+  pub fn add_dependency(&mut self, dependency: BoxModuleDependency) {
+    self.dependencies.insert(dependency.id(), dependency);
   }
 
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxModuleDependency> {
-    self.dependencies[**dependency_id].as_ref()
+    self.dependencies.get(dependency_id)
   }
 
   fn remove_dependency(&mut self, dependency_id: &DependencyId) {
-    self.dependencies[**dependency_id] = None;
+    self.dependencies.remove(dependency_id);
   }
 
   /// Uniquely identify a module by its dependency
@@ -596,7 +598,8 @@ mod test {
     to: &ModuleIdentifier,
     dep: Box<dyn ModuleDependency>,
   ) -> DependencyId {
-    let dependency_id = mg.add_dependency(dep);
+    let dependency_id = dep.id();
+    mg.add_dependency(dep);
     mg.dependency_id_to_module_identifier
       .insert(dependency_id, *to);
     if let Some(p_id) = from && let Some(mgm) = mg.module_graph_module_by_identifier_mut(p_id) {

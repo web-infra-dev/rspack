@@ -1,14 +1,14 @@
 use rspack_core::{
-  ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
-  RuntimeGlobals,
+  create_dependency_id, ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
 pub struct WorkerDependency {
   start: u32,
   end: u32,
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
   group_options: ChunkGroupOptions,
@@ -27,7 +27,7 @@ impl WorkerDependency {
     Self {
       start,
       end,
-      id: None,
+      id: create_dependency_id(),
       request,
       span,
       group_options,
@@ -37,11 +37,8 @@ impl WorkerDependency {
 }
 
 impl Dependency for WorkerDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -90,7 +87,7 @@ impl CodeGeneratableDependency for WorkerDependency {
       runtime_requirements,
       ..
     } = code_generatable_context;
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
     let chunk_id = compilation
       .module_graph
       .module_identifier_by_dependency_id(&id)

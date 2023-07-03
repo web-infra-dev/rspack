@@ -1,6 +1,7 @@
 use rspack_core::{
-  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  create_dependency_id, module_id, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency, RuntimeGlobals,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -8,7 +9,7 @@ use swc_core::ecma::atoms::JsWord;
 pub struct URLDependency {
   start: u32,
   end: u32,
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
 }
@@ -18,7 +19,7 @@ impl URLDependency {
     Self {
       start,
       end,
-      id: None,
+      id: create_dependency_id(),
       request,
       span,
     }
@@ -26,11 +27,8 @@ impl URLDependency {
 }
 
 impl Dependency for URLDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -75,7 +73,7 @@ impl CodeGeneratableDependency for URLDependency {
       runtime_requirements,
       ..
     } = code_generatable_context;
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
 
     runtime_requirements.insert(RuntimeGlobals::BASE_URI);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);

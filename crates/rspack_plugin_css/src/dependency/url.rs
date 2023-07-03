@@ -1,5 +1,5 @@
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  create_dependency_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier, PublicPath,
 };
@@ -8,7 +8,7 @@ use crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER;
 
 #[derive(Debug, Clone)]
 pub struct CssUrlDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
   start: u32,
@@ -22,7 +22,7 @@ impl CssUrlDependency {
       span,
       start,
       end,
-      id: None,
+      id: create_dependency_id(),
     }
   }
 
@@ -55,11 +55,8 @@ impl CssUrlDependency {
 }
 
 impl Dependency for CssUrlDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -100,10 +97,9 @@ impl CodeGeneratableDependency for CssUrlDependency {
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
-    if let Some(id) = self.id()
-      && let Some(mgm) = compilation
+    if let Some(mgm) = compilation
         .module_graph
-        .module_graph_module_by_dependency_id(&id)
+        .module_graph_module_by_dependency_id(&self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
       source.replace(self.start, self.end, format!("url({target_url})").as_str(), None);

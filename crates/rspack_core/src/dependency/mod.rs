@@ -155,10 +155,9 @@ impl Display for DependencyCategory {
 }
 
 pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
-  fn id(&self) -> Option<DependencyId> {
-    None
+  fn id(&self) -> DependencyId {
+    0.into()
   }
-  fn set_id(&mut self, _id: Option<DependencyId>) {}
 
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
@@ -203,11 +202,11 @@ impl ModuleDependencyExt for dyn ModuleDependency + '_ {
     (ModuleIdentifier, String, DependencyCategory),
     ModuleIdentifier,
   ) {
-    let parent = module_graph.parent_module_by_dependency_id(&self.id().expect("should have dependency id")).expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
+    let parent = module_graph.parent_module_by_dependency_id(&self.id()).expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
     (
       (parent, module_id, *self.category()),
       *module_graph
-        .module_identifier_by_dependency_id(&self.id().expect("should have dependency"))
+        .module_identifier_by_dependency_id(&self.id())
         .expect("Failed to resolve module graph module"),
     )
   }
@@ -317,11 +316,8 @@ impl Dependency for Box<dyn ModuleDependency> {
     (**self).get_context()
   }
 
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     (**self).id()
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    (**self).set_id(id)
   }
 }
 

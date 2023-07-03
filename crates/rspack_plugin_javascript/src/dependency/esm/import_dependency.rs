@@ -1,7 +1,7 @@
 use rspack_core::{
-  module_namespace_promise, ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency,
+  create_dependency_id, module_namespace_promise, ChunkGroupOptions, CodeGeneratableContext,
+  CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, ModuleDependency,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::JsWord;
 pub struct ImportDependency {
   start: u32,
   end: u32,
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
   /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
@@ -30,18 +30,15 @@ impl ImportDependency {
       end,
       request,
       span,
-      id: None,
+      id: create_dependency_id(),
       group_options,
     }
   }
 }
 
 impl Dependency for ImportDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -85,7 +82,7 @@ impl CodeGeneratableDependency for ImportDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
     source.replace(
       self.start,
       self.end,

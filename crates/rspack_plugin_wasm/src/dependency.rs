@@ -1,12 +1,13 @@
 use rspack_core::{
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  create_dependency_id, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
 
 use crate::WasmNode;
 
 #[derive(Debug, Clone)]
 pub struct WasmImportDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   name: String,
   request: String,
   // only_direct_import: bool,
@@ -19,7 +20,7 @@ pub struct WasmImportDependency {
 impl WasmImportDependency {
   pub fn new(request: String, name: String, desc: WasmNode) -> Self {
     Self {
-      id: None,
+      id: create_dependency_id(),
       name,
       request,
       desc,
@@ -33,11 +34,8 @@ impl WasmImportDependency {
 }
 
 impl Dependency for WasmImportDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {

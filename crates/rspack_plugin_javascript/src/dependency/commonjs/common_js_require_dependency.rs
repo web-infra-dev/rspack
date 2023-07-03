@@ -1,13 +1,14 @@
 use rspack_core::{
-  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  create_dependency_id, module_id, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency, RuntimeGlobals,
 };
 use swc_core::ecma::atoms::JsWord;
 
 // Webpack RequireHeaderDependency + CommonJsRequireDependency
 #[derive(Debug, Clone)]
 pub struct CommonJsRequireDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   optional: bool,
   start: u32,
@@ -24,7 +25,7 @@ impl CommonJsRequireDependency {
     optional: bool,
   ) -> Self {
     Self {
-      id: None,
+      id: create_dependency_id(),
       request,
       optional,
       start,
@@ -35,11 +36,8 @@ impl CommonJsRequireDependency {
 }
 
 impl Dependency for CommonJsRequireDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -89,7 +87,7 @@ impl CodeGeneratableDependency for CommonJsRequireDependency {
       ..
     } = code_generatable_context;
 
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
 
     runtime_requirements.add(RuntimeGlobals::REQUIRE);
     source.replace(

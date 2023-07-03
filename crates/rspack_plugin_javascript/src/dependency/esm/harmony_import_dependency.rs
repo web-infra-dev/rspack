@@ -1,5 +1,5 @@
 use rspack_core::{
-  import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
+  create_dependency_id, import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
   CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
   DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
 };
@@ -20,7 +20,7 @@ pub struct HarmonyImportDependency {
   // pub start: u32,
   // pub end: u32,
   pub request: JsWord,
-  pub id: Option<DependencyId>,
+  pub id: DependencyId,
   pub span: Option<ErrorSpan>,
   pub refs: Vec<HarmonyImportSpecifierDependency>,
   pub specifiers: Vec<Specifier>,
@@ -40,7 +40,7 @@ impl HarmonyImportDependency {
     Self {
       request,
       span,
-      id: None,
+      id: create_dependency_id(),
       refs,
       specifiers,
       dependency_type,
@@ -57,7 +57,7 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
 
     let ref_mgm = compilation
       .module_graph
@@ -221,11 +221,8 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
 }
 
 impl Dependency for HarmonyImportDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {

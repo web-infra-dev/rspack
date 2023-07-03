@@ -54,8 +54,7 @@ impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
       })
       .find(|d| d.request() == &self.request)
       .expect("should have dependency")
-      .id()
-      .expect("should have dependency id");
+      .id();
 
     let import_var = compilation
       .module_graph

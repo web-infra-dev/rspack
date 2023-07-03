@@ -1,14 +1,14 @@
 use rspack_core::{
-  module_id_expr, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
-  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency, RuntimeGlobals,
+  create_dependency_id, module_id_expr, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, ContextOptions, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
 pub struct RequireContextDependency {
   start: u32,
   end: u32,
-  pub id: Option<DependencyId>,
+  pub id: DependencyId,
   pub options: ContextOptions,
   span: Option<ErrorSpan>,
 }
@@ -20,18 +20,16 @@ impl RequireContextDependency {
       end,
       options,
       span,
-      id: None,
+      id: create_dependency_id(),
     }
   }
 }
 
 impl Dependency for RequireContextDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
   }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
+
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -75,7 +73,7 @@ impl CodeGeneratableDependency for RequireContextDependency {
   ) {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
-    let id: DependencyId = self.id().expect("should have dependency id");
+    let id: DependencyId = self.id();
 
     let module_id = compilation
       .module_graph

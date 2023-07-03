@@ -1,16 +1,20 @@
 use crate::{
-  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  create_dependency_id, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct EntryDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
 }
 
 impl EntryDependency {
   pub fn new(request: String) -> Self {
-    Self { request, id: None }
+    Self {
+      request,
+      id: create_dependency_id(),
+    }
   }
 }
 
@@ -23,12 +27,8 @@ impl Dependency for EntryDependency {
     &DependencyType::Entry
   }
 
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 }
 

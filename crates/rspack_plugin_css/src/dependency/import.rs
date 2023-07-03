@@ -1,11 +1,11 @@
 use rspack_core::{
-  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  create_dependency_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
 pub struct CssImportDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
   start: u32,
@@ -15,7 +15,7 @@ pub struct CssImportDependency {
 impl CssImportDependency {
   pub fn new(request: String, span: Option<ErrorSpan>, start: u32, end: u32) -> Self {
     Self {
-      id: None,
+      id: create_dependency_id(),
       request,
       span,
       start,
@@ -25,11 +25,8 @@ impl CssImportDependency {
 }
 
 impl Dependency for CssImportDependency {
-  fn id(&self) -> Option<DependencyId> {
+  fn id(&self) -> DependencyId {
     self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
   }
 
   fn category(&self) -> &DependencyCategory {
