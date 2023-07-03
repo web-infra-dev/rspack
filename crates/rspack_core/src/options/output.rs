@@ -318,9 +318,7 @@ impl Filename {
         if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
           template = template.replace(BASE_PLACEHOLDER, &base);
         }
-        if file.with_extension("").to_string_lossy() != file.to_string_lossy() {
-          template = template.replace(NAME_PLACEHOLDER, &file.with_extension("").to_string_lossy());
-        }
+        template = template.replace(NAME_PLACEHOLDER, &file.with_extension("").to_string_lossy());
         template = template.replace(
           PATH_PLACEHOLDER,
           &file
