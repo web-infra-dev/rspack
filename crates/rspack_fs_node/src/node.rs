@@ -30,6 +30,7 @@ impl Drop for JsFunctionRef {
 #[napi(object, js_name = "NodeFS")]
 pub struct NodeFS {
   pub write_file: JsFunction,
+  pub remove_file: JsFunction,
   pub mkdir: JsFunction,
   pub mkdirp: JsFunction,
 }

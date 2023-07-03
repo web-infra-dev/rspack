@@ -56,7 +56,7 @@ class Rspack {
 			if (tries === maxTries - 1) {
 				throw new Error("outof max retry time");
 			}
-			await sleep(100);
+			await sleep(200);
 		}
 	}
 }
