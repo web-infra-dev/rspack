@@ -486,9 +486,11 @@ pub mod needs_refactor {
     caps: Vec<(&'a str, &'a str)>,
   }
 
+  pub const DEFAULT_WORKER_SYNTAX: &[&str] =
+    &["Worker", "SharedWorker", "Worker from worker_threads"];
+
   impl<'a> WorkerSyntaxScanner<'a> {
-    pub fn new() -> Self {
-      let syntax = &["Worker", "SharedWorker", "Worker from worker_threads"];
+    pub fn new(syntax: &'a [&'a str]) -> Self {
       let mut result = WorkerSyntaxList::default();
       let mut caps = Vec::new();
       for s in syntax {
@@ -530,7 +532,7 @@ pub mod needs_refactor {
                       ModuleExportName::Ident(s) => &s.sym,
                       ModuleExportName::Str(s) => &s.value,
                     };
-                    &*s == cap.0
+                    s == cap.0
                   } else {
                     &*named.local.sym == cap.0
                   }

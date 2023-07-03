@@ -2,7 +2,7 @@ use super::{
   analyzer::OptimizeAnalyzer,
   visitor::{MarkInfo, ModuleRefAnalyze, OptimizeAnalyzeResult},
 };
-use crate::{ast::javascript::Ast, needs_refactor::WorkerSyntaxScanner, ModuleIdentifier};
+use crate::{ast::javascript::Ast, ModuleIdentifier};
 
 pub struct JsModule<'a> {
   ast: &'a Ast,
@@ -23,7 +23,9 @@ impl<'a> OptimizeAnalyzer for JsModule<'a> {
     self.ast.visit(|program, context| {
       let top_level_mark = context.top_level_mark;
       let unresolved_mark = context.unresolved_mark;
-      let mut worker_syntax_scanner = WorkerSyntaxScanner::new();
+      let mut worker_syntax_scanner = crate::needs_refactor::WorkerSyntaxScanner::new(
+        crate::needs_refactor::DEFAULT_WORKER_SYNTAX,
+      );
       program.visit_with(&mut worker_syntax_scanner);
       let worker_syntax_list = &worker_syntax_scanner.into();
 

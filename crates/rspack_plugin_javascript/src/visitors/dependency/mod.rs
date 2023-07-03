@@ -22,11 +22,9 @@ use swc_core::common::{comments::Comments, Mark, SyntaxContext};
 pub use util::*;
 
 use self::{
-  api_scanner::ApiScanner,
-  common_js_export_scanner::CommonJsExportDependencyScanner,
+  api_scanner::ApiScanner, common_js_export_scanner::CommonJsExportDependencyScanner,
   common_js_import_dependency_scanner::CommonJsImportDependencyScanner,
-  common_js_scanner::CommonJsScanner,
-  harmony_detection_scanner::HarmonyDetectionScanner,
+  common_js_scanner::CommonJsScanner, harmony_detection_scanner::HarmonyDetectionScanner,
   harmony_export_dependency_scanner::HarmonyExportDependencyScanner,
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
@@ -116,7 +114,9 @@ pub fn scan_dependencies(
       &mut import_map,
       module_identifier,
     ));
-    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new();
+    let mut worker_syntax_scanner = rspack_core::needs_refactor::WorkerSyntaxScanner::new(
+      rspack_core::needs_refactor::DEFAULT_WORKER_SYNTAX,
+    );
     program.visit_with(&mut worker_syntax_scanner);
     let worker_syntax_list = &worker_syntax_scanner.into();
     let mut worker_scanner = WorkerScanner::new(
