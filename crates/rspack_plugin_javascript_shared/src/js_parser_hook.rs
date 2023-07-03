@@ -101,7 +101,7 @@ macro_rules! register_hooks {
 // 1. Find the missing hook at https://rustdoc.swc.rs/swc_ecma_visit/trait.Visit.html
 // 2. Let's take `fn visit_expr(&mut self, n: &Expr)` as an example.
 // 3. Copy the name and Ast node type of the method and use a tuple to combine them.
-// 4. We will get a `(visit_expr, ast::Expr)`, then add it in the following postion.
+// 4. We will get a `(visit_expr, ast::Expr)`, then add it in the following position.
 // 5. Don't forget to add the comma.
 register_hooks!(pub trait JsParserHook {
     (visit_expr, ast::Expr),
