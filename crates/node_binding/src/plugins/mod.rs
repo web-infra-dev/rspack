@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 pub use loader::JsLoaderResolver;
 use napi::{Env, Result};
-use rspack_binding_macros::js_fn_into_theadsafe_fn;
+use rspack_binding_macros::js_fn_into_threadsafe_fn;
 use rspack_core::{
   ChunkAssetArgs, NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs,
   PluginNormalModuleFactoryAfterResolveOutput, PluginNormalModuleFactoryBeforeResolveOutput,
@@ -611,60 +611,60 @@ impl JsHooksAdapter {
     } = js_hooks;
 
     let process_assets_stage_additional_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_additional, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_additional, env);
     let process_assets_stage_pre_process_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_pre_process, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_pre_process, env);
     let process_assets_stage_additions_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_additions, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_additions, env);
     let process_assets_stage_none_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_none, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_none, env);
     let process_assets_stage_optimize_inline_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_optimize_inline, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_inline, env);
     let process_assets_stage_summarize_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_summarize, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_summarize, env);
     let process_assets_stage_optimize_hash_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_optimize_hash, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_optimize_hash, env);
     let process_assets_stage_report_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(process_assets_stage_report, env);
-    let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(emit, env);
+      js_fn_into_threadsafe_fn!(process_assets_stage_report, env);
+    let emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(emit, env);
     let asset_emitted_tsfn: ThreadsafeFunction<JsAssetEmittedArgs, ()> =
-      js_fn_into_theadsafe_fn!(asset_emitted, env);
-    let after_emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(after_emit, env);
+      js_fn_into_threadsafe_fn!(asset_emitted, env);
+    let after_emit_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(after_emit, env);
     let this_compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_theadsafe_fn!(this_compilation, env);
+      js_fn_into_threadsafe_fn!(this_compilation, env);
     let compilation_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_theadsafe_fn!(compilation, env);
-    let make_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_theadsafe_fn!(make, env);
+      js_fn_into_threadsafe_fn!(compilation, env);
+    let make_tsfn: ThreadsafeFunction<(), ()> = js_fn_into_threadsafe_fn!(make, env);
     let optimize_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_theadsafe_fn!(optimize_modules, env);
+      js_fn_into_threadsafe_fn!(optimize_modules, env);
     let optimize_chunk_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_theadsafe_fn!(optimize_chunk_module, env);
+      js_fn_into_threadsafe_fn!(optimize_chunk_module, env);
     let before_compile_tsfn: ThreadsafeFunction<(), ()> =
-      js_fn_into_theadsafe_fn!(before_compile, env);
+      js_fn_into_threadsafe_fn!(before_compile, env);
     let after_compile_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_theadsafe_fn!(after_compile, env);
+      js_fn_into_threadsafe_fn!(after_compile, env);
     let finish_make_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_theadsafe_fn!(finish_make, env);
+      js_fn_into_threadsafe_fn!(finish_make, env);
     let build_module_tsfn: ThreadsafeFunction<JsModule, ()> =
-      js_fn_into_theadsafe_fn!(build_module, env);
+      js_fn_into_threadsafe_fn!(build_module, env);
     let finish_modules_tsfn: ThreadsafeFunction<JsCompilation, ()> =
-      js_fn_into_theadsafe_fn!(finish_modules, env);
+      js_fn_into_threadsafe_fn!(finish_modules, env);
     let context_module_before_resolve: ThreadsafeFunction<BeforeResolveData, Option<bool>> =
-      js_fn_into_theadsafe_fn!(context_module_before_resolve, env);
+      js_fn_into_threadsafe_fn!(context_module_before_resolve, env);
     let before_resolve: ThreadsafeFunction<BeforeResolveData, (Option<bool>, BeforeResolveData)> =
-      js_fn_into_theadsafe_fn!(before_resolve, env);
+      js_fn_into_threadsafe_fn!(before_resolve, env);
     let after_resolve: ThreadsafeFunction<AfterResolveData, Option<bool>> =
-      js_fn_into_theadsafe_fn!(after_resolve, env);
+      js_fn_into_threadsafe_fn!(after_resolve, env);
     let normal_module_factory_resolve_for_scheme: ThreadsafeFunction<
       JsResolveForSchemeInput,
       JsResolveForSchemeResult,
-    > = js_fn_into_theadsafe_fn!(normal_module_factory_resolve_for_scheme, env);
+    > = js_fn_into_threadsafe_fn!(normal_module_factory_resolve_for_scheme, env);
     let chunk_asset_tsfn: ThreadsafeFunction<JsChunkAssetArgs, ()> =
-      js_fn_into_theadsafe_fn!(chunk_asset, env);
+      js_fn_into_threadsafe_fn!(chunk_asset, env);
     let succeed_module_tsfn: ThreadsafeFunction<JsModule, ()> =
-      js_fn_into_theadsafe_fn!(succeed_module, env);
+      js_fn_into_threadsafe_fn!(succeed_module, env);
     let still_valid_module_tsfn: ThreadsafeFunction<JsModule, ()> =
-      js_fn_into_theadsafe_fn!(still_valid_module, env);
+      js_fn_into_threadsafe_fn!(still_valid_module, env);
 
     Ok(JsHooksAdapter {
       disabled_hooks,

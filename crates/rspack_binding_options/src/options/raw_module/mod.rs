@@ -189,7 +189,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
               .borrow()
               .expect("Failed to get env, did you forget to call it from node?");
             let func_matcher =
-              rspack_binding_macros::js_fn_into_theadsafe_fn!(func_matcher, &Env::from(env));
+              rspack_binding_macros::js_fn_into_threadsafe_fn!(func_matcher, &Env::from(env));
             Ok(func_matcher)
           })?;
         let func_matcher = Arc::new(func_matcher);

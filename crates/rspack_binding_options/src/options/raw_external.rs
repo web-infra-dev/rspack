@@ -146,7 +146,7 @@ impl TryFrom<RawExternalItem> for ExternalItem {
           NAPI_ENV.with(|env| -> anyhow::Result<_> {
             let env = env.borrow().expect("Failed to get env with external");
             let fn_payload =
-              rspack_binding_macros::js_fn_into_theadsafe_fn!(fn_payload, &Env::from(env));
+              rspack_binding_macros::js_fn_into_threadsafe_fn!(fn_payload, &Env::from(env));
             Ok(fn_payload)
           })?;
         let fn_payload = Arc::new(fn_payload);
