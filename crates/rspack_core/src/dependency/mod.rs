@@ -371,6 +371,7 @@ impl From<usize> for DependencyId {
   }
 }
 
+// should move to rspack_plugin_javascript
 pub mod needs_refactor {
   use once_cell::sync::Lazy;
   use regex::Regex;
