@@ -84,6 +84,16 @@ mod node_test {
     pub async fn mkdirp(&self, file: String) {
       self.writable_fs.create_dir_all(file).await.unwrap();
     }
+
+    #[napi]
+    pub async fn remove_file(&self, file: String) {
+      self.writable_fs.remove_file(file).await.unwrap();
+    }
+
+    #[napi]
+    pub async fn remove_dir_all(&self, file: String) {
+      self.writable_fs.remove_dir_all(file).await.unwrap();
+    }
   }
 }
 

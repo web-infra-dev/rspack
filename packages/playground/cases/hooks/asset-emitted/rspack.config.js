@@ -9,6 +9,7 @@ module.exports = {
 			}
 		]
 	},
+	output: { clean: true },
 	experiments: {
 		incrementalRebuild: {
 			emitAsset: true
