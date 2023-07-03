@@ -121,7 +121,6 @@ impl Hasher for RspackHash {
 
 #[derive(Debug, Clone, Eq)]
 pub struct RspackHashDigest {
-  inner: Vec<u8>,
   encoded: SmolStr,
 }
 
@@ -130,7 +129,7 @@ impl RspackHashDigest {
     let encoded = match digest {
       HashDigest::Hex => HEXLOWER_PERMISSIVE.encode(&inner).into(),
     };
-    Self { inner, encoded }
+    Self { encoded }
   }
 
   pub fn encoded(&self) -> &str {
@@ -145,12 +144,12 @@ impl RspackHashDigest {
 
 impl Hash for RspackHashDigest {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.inner.hash(state);
+    self.encoded.hash(state);
   }
 }
 
 impl PartialEq for RspackHashDigest {
   fn eq(&self, other: &Self) -> bool {
-    self.inner == other.inner
+    self.encoded == other.encoded
   }
 }

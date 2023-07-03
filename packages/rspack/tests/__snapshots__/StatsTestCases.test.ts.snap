@@ -146,7 +146,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "16fa4300699569d79a1e",
+  "hash": "fa0d2be4b15a8d605e20",
   "modules": [
     {
       "assets": [],
@@ -222,7 +222,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: 16fa4300699569d79a1e
+"Hash: fa0d2be4b15a8d605e20
              Asset       Size      Chunks             Chunk Names
       main.xxxx.js   1.08 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  138 bytes  dynamic_js  [emitted]  
@@ -320,7 +320,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "08b21aef769ebc77a6b9",
+  "hash": "1043f57af226b2cb314e",
   "modules": [
     {
       "assets": [],
@@ -365,7 +365,7 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"Hash: 08b21aef769ebc77a6b9
+"Hash: 1043f57af226b2cb314e
     Asset      Size  Chunks             Chunk Names
 bundle.js  8.89 KiB    main  [emitted]  main
 Entrypoint main = bundle.js
@@ -1519,7 +1519,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "a222f83c186be33e421f",
+  "hash": "dcc658bd9acfdf8b6d80",
   "modules": [
     {
       "assets": [],
@@ -1595,7 +1595,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: a222f83c186be33e421f
+"Hash: dcc658bd9acfdf8b6d80
 PublicPath: auto
     Asset       Size  Chunks             Chunk Names
 bundle.js  725 bytes    main  [emitted]  main
@@ -1738,7 +1738,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "0de26347ed207220dc28",
+  "hash": "1aa81816e49404883689",
   "modules": [
     {
       "assets": [],
@@ -1814,7 +1814,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: 0de26347ed207220dc28
+"Hash: 1aa81816e49404883689
     Asset       Size  Chunks             Chunk Names
 bundle.js  741 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
@@ -1913,7 +1913,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "92d930c0b0d5dcc31977",
+  "hash": "7acea8aecd3f65613689",
   "modules": [
     {
       "assets": [],
@@ -1958,7 +1958,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"Hash: 92d930c0b0d5dcc31977
+"Hash: 7acea8aecd3f65613689
     Asset       Size  Chunks             Chunk Names
 bundle.js  589 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
