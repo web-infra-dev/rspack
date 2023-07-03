@@ -183,11 +183,10 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut visited_symbol_ref,
       &mut errors,
     );
-
     // let debug_graph = generate_debug_symbol_graph(
     //   &self.symbol_graph,
     //   &self.compilation.module_graph,
-    //   &self.compilation.options.context.as_ref().to_str().unwrap(),
+    //   &self.compilation.options.context.as_str().to_owned(),
     // );
     // println!("{:?}", Dot::new(&debug_graph));
     self.check_symbol_query();
@@ -390,7 +389,6 @@ impl<'a> CodeSizeOptimizer<'a> {
         if eliminator.could_be_skipped() {
           continue;
         } else {
-          // dbg!(&eliminator);
         }
 
         let mut reachable_dependency_identifier = IdentifierSet::default();
@@ -712,6 +710,11 @@ impl<'a> CodeSizeOptimizer<'a> {
         ty: StarSymbolKind::ReExportAll,
         module_ident,
         ..
+      })
+      | SymbolRef::Star(StarSymbol {
+        ty: StarSymbolKind::ReExportAllAs,
+        module_ident,
+        ..
       }) => {
         merge_used_export_type(
           used_export_module_identifiers,
@@ -831,7 +834,6 @@ impl<'a> CodeSizeOptimizer<'a> {
                         let mut from = current_symbol_ref.clone();
                         let mut star_chain_start_end_pair = (from.clone(), from.clone());
                         for i in 0..path.len() - 1 {
-                          // dbg!(&path);
                           let star_symbol = StarSymbol::new(
                             path[i + 1],
                             Default::default(),
