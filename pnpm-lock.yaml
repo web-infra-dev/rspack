@@ -406,6 +406,7 @@ importers:
       react: 18.0.0
       react-dom: 18.0.0
       react-refresh: 0.13.0
+      typescript: ^5.1.6
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
       monaco-editor: 0.39.0
@@ -415,6 +416,7 @@ importers:
     devDependencies:
       '@types/react': 18.2.6
       '@types/react-dom': 18.2.4
+      typescript: 5.1.6
 
   examples/multi-entry:
     specifiers:
@@ -26634,6 +26636,12 @@ packages:
     resolution: {integrity: sha512-XH627E9vkeqhlZFQuL+UsyAXEnibT0kWR2FWONlr4sTjvxyJYnyefgrkyECLzM5NenmKzRAy2rR/OlYLA1HkZw==}
     engines: {node: '>=14.17'}
     hasBin: true
+
+  /typescript/5.1.6:
+    resolution: {integrity: sha512-zaWCozRZ6DLEWAWFrVDz1H6FVXzUSfTy5FUMWsQlU8Ym5JP9eO4xkTIROFCQvhQf61z6O/G6ugw3SgAnvvm+HA==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+    dev: true
 
   /ua-parser-js/0.7.33:
     resolution: {integrity: sha512-s8ax/CeZdK9R/56Sui0WM6y9OFREJarMRHqLB2EwkovemBxNQ+Bqu8GAsUnVcXKgphb++ghr/B2BZx4mahujPw==}
