@@ -6,8 +6,8 @@
 "use strict";
 
 /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("../StatsPrinter")} StatsPrinter */
-/** @typedef {import("../StatsPrinter").StatsPrinterContext} StatsPrinterContext */
+/** @typedef {import("./StatsPrinter")} StatsPrinter */
+/** @typedef {import("./StatsPrinter").StatsPrinterContext} StatsPrinterContext */
 
 const DATA_URI_CONTENT_LENGTH = 16;
 
@@ -63,140 +63,148 @@ const moreCount = (list, count) => {
 
 /** @type {Record<string, (thing: any, context: StatsPrinterContext, printer: StatsPrinter) => string | void>} */
 const SIMPLE_PRINTERS = {
-	"compilation.summary!": (
-		_,
-		{
-			type,
-			bold,
-			green,
-			red,
-			yellow,
-			formatDateTime,
-			formatTime,
-			compilation: {
-				name,
-				hash,
-				version,
-				time,
-				builtAt,
-				errorsCount,
-				warningsCount
-			}
-		}
-	) => {
-		const root = type === "compilation.summary!";
-		const warningsMessage =
-			warningsCount > 0
-				? yellow(
-						`${warningsCount} ${plural(warningsCount, "warning", "warnings")}`
-				  )
-				: "";
-		const errorsMessage =
-			errorsCount > 0
-				? red(`${errorsCount} ${plural(errorsCount, "error", "errors")}`)
-				: "";
-		const timeMessage = root && time ? ` in ${formatTime(time)}` : "";
-		const hashMessage = hash ? ` (${hash})` : "";
-		const builtAtMessage =
-			root && builtAt ? `${formatDateTime(builtAt)}: ` : "";
-		const versionMessage = root && version ? `webpack ${version}` : "";
-		const nameMessage =
-			root && name
-				? bold(name)
-				: name
-				? `Child ${bold(name)}`
-				: root
-				? ""
-				: "Child";
-		const subjectMessage =
-			nameMessage && versionMessage
-				? `${nameMessage} (${versionMessage})`
-				: versionMessage || nameMessage || "webpack";
-		let statusMessage;
-		if (errorsMessage && warningsMessage) {
-			statusMessage = `compiled with ${errorsMessage} and ${warningsMessage}`;
-		} else if (errorsMessage) {
-			statusMessage = `compiled with ${errorsMessage}`;
-		} else if (warningsMessage) {
-			statusMessage = `compiled with ${warningsMessage}`;
-		} else if (errorsCount === 0 && warningsCount === 0) {
-			statusMessage = `compiled ${green("successfully")}`;
-		} else {
-			statusMessage = `compiled`;
-		}
-		if (
-			builtAtMessage ||
-			versionMessage ||
-			errorsMessage ||
-			warningsMessage ||
-			(errorsCount === 0 && warningsCount === 0) ||
-			timeMessage ||
-			hashMessage
-		)
-			return `${builtAtMessage}${subjectMessage} ${statusMessage}${timeMessage}${hashMessage}`;
-	},
-	"compilation.filteredWarningDetailsCount": count =>
-		count
-			? `${count} ${plural(
-					count,
-					"warning has",
-					"warnings have"
-			  )} detailed information that is not shown.\nUse 'stats.errorDetails: true' resp. '--stats-error-details' to show it.`
-			: undefined,
-	"compilation.filteredErrorDetailsCount": (count, { yellow }) =>
-		count
-			? yellow(
-					`${count} ${plural(
-						count,
-						"error has",
-						"errors have"
-					)} detailed information that is not shown.\nUse 'stats.errorDetails: true' resp. '--stats-error-details' to show it.`
-			  )
-			: undefined,
+	// "compilation.summary!": (
+	// 	_,
+	// 	{
+	// 		type,
+	// 		bold,
+	// 		green,
+	// 		red,
+	// 		yellow,
+	// 		formatDateTime,
+	// 		formatTime,
+	// 		compilation: {
+	// 			name,
+	// 			hash,
+	// 			version,
+	// 			time,
+	// 			builtAt,
+	// 			errorsCount,
+	// 			warningsCount
+	// 		}
+	// 	}
+	// ) => {
+	// 	const root = type === "compilation.summary!";
+	// 	const warningsMessage =
+	// 		warningsCount > 0
+	// 			? yellow(
+	// 					`${warningsCount} ${plural(warningsCount, "warning", "warnings")}`
+	// 			  )
+	// 			: "";
+	// 	const errorsMessage =
+	// 		errorsCount > 0
+	// 			? red(`${errorsCount} ${plural(errorsCount, "error", "errors")}`)
+	// 			: "";
+	// 	const timeMessage = root && time ? ` in ${formatTime(time)}` : "";
+	// 	const hashMessage = hash ? ` (${hash})` : "";
+	// 	const builtAtMessage =
+	// 		root && builtAt ? `${formatDateTime(builtAt)}: ` : "";
+	// 	const versionMessage = root && version ? `webpack ${version}` : "";
+	// 	const nameMessage =
+	// 		root && name
+	// 			? bold(name)
+	// 			: name
+	// 			? `Child ${bold(name)}`
+	// 			: root
+	// 			? ""
+	// 			: "Child";
+	// 	const subjectMessage =
+	// 		nameMessage && versionMessage
+	// 			? `${nameMessage} (${versionMessage})`
+	// 			: versionMessage || nameMessage || "webpack";
+	// 	let statusMessage;
+	// 	if (errorsMessage && warningsMessage) {
+	// 		statusMessage = `compiled with ${errorsMessage} and ${warningsMessage}`;
+	// 	} else if (errorsMessage) {
+	// 		statusMessage = `compiled with ${errorsMessage}`;
+	// 	} else if (warningsMessage) {
+	// 		statusMessage = `compiled with ${warningsMessage}`;
+	// 	} else if (errorsCount === 0 && warningsCount === 0) {
+	// 		statusMessage = `compiled ${green("successfully")}`;
+	// 	} else {
+	// 		statusMessage = `compiled`;
+	// 	}
+	// 	if (
+	// 		builtAtMessage ||
+	// 		versionMessage ||
+	// 		errorsMessage ||
+	// 		warningsMessage ||
+	// 		(errorsCount === 0 && warningsCount === 0) ||
+	// 		timeMessage ||
+	// 		hashMessage
+	// 	)
+	// 		return `${builtAtMessage}${subjectMessage} ${statusMessage}${timeMessage}${hashMessage}`;
+	// },
+	// "compilation.filteredWarningDetailsCount": count =>
+	// 	count
+	// 		? `${count} ${plural(
+	// 				count,
+	// 				"warning has",
+	// 				"warnings have"
+	// 		  )} detailed information that is not shown.\nUse 'stats.errorDetails: true' resp. '--stats-error-details' to show it.`
+	// 		: undefined,
+	// "compilation.filteredErrorDetailsCount": (count, { yellow }) =>
+	// 	count
+	// 		? yellow(
+	// 				`${count} ${plural(
+	// 					count,
+	// 					"error has",
+	// 					"errors have"
+	// 				)} detailed information that is not shown.\nUse 'stats.errorDetails: true' resp. '--stats-error-details' to show it.`
+	// 		  )
+	// 		: undefined,
+	"compilation.hash": (hash, { bold }) =>
+		hash ? `Hash: ${bold(hash)}\n` : undefined,
+	"compilation.version": (version, { bold }) =>
+		version ? `Version: ${bold(version)}\n` : undefined,
+	"compilation.time": (time, { bold, formatTime }) =>
+		time ? `Time: ${bold(formatTime(time))}ms\n` : undefined,
+	"compilation.builtAt": (builtAt, { bold, formatDateTime }) =>
+		builtAt ? `Built at: ${bold(formatDateTime(builtAt))}\n` : undefined,
 	"compilation.env": (env, { bold }) =>
 		env
 			? `Environment (--env): ${bold(JSON.stringify(env, null, 2))}`
 			: undefined,
 	"compilation.publicPath": (publicPath, { bold }) =>
-		`PublicPath: ${bold(publicPath || "(none)")}`,
-	"compilation.entrypoints": (entrypoints, context, printer) =>
-		Array.isArray(entrypoints)
-			? undefined
-			: printer.print(context.type, Object.values(entrypoints), {
-					...context,
-					chunkGroupKind: "Entrypoint"
-			  }),
-	"compilation.namedChunkGroups": (namedChunkGroups, context, printer) => {
-		if (!Array.isArray(namedChunkGroups)) {
-			const {
-				compilation: { entrypoints }
-			} = context;
-			let chunkGroups = Object.values(namedChunkGroups);
-			if (entrypoints) {
-				chunkGroups = chunkGroups.filter(
-					group =>
-						!Object.prototype.hasOwnProperty.call(entrypoints, group.name)
-				);
-			}
-			return printer.print(context.type, chunkGroups, {
-				...context,
-				chunkGroupKind: "Chunk Group"
-			});
-		}
-	},
-	"compilation.assetsByChunkName": () => "",
+		`PublicPath: ${bold(publicPath)}`,
+	// "compilation.entrypoints": (entrypoints, context, printer) =>
+	// 	Array.isArray(entrypoints)
+	// 		? undefined
+	// 		: printer.print(context.type, Object.values(entrypoints), {
+	// 				...context,
+	// 				chunkGroupKind: "Entrypoint"
+	// 		  }),
+	// "compilation.namedChunkGroups": (namedChunkGroups, context, printer) => {
+	// 	if (!Array.isArray(namedChunkGroups)) {
+	// 		const {
+	// 			compilation: { entrypoints }
+	// 		} = context;
+	// 		let chunkGroups = Object.values(namedChunkGroups);
+	// 		if (entrypoints) {
+	// 			chunkGroups = chunkGroups.filter(
+	// 				group =>
+	// 					!Object.prototype.hasOwnProperty.call(entrypoints, group.name)
+	// 			);
+	// 		}
+	// 		return printer.print(context.type, chunkGroups, {
+	// 			...context,
+	// 			chunkGroupKind: "Chunk Group"
+	// 		});
+	// 	}
+	// },
+	// "compilation.assetsByChunkName": () => "",
 
-	"compilation.filteredModules": (
-		filteredModules,
-		{ compilation: { modules } }
-	) =>
-		filteredModules > 0
-			? `${moreCount(modules, filteredModules)} ${plural(
-					filteredModules,
-					"module",
-					"modules"
-			  )}`
-			: undefined,
+	// "compilation.filteredModules": (
+	// 	filteredModules,
+	// 	{ compilation: { modules } }
+	// ) =>
+	// 	filteredModules > 0
+	// 		? `${moreCount(modules, filteredModules)} ${plural(
+	// 				filteredModules,
+	// 				"module",
+	// 				"modules"
+	// 		  )}`
+	// 		: undefined,
 	"compilation.filteredAssets": (filteredAssets, { compilation: { assets } }) =>
 		filteredAssets > 0
 			? `${moreCount(assets, filteredAssets)} ${plural(
@@ -1187,68 +1195,69 @@ const AVAILABLE_FORMATS = {
 	formatLayer: layer => `(in ${layer})`,
 	formatSize: require("./SizeFormatHelpers").formatSize,
 	formatDateTime: (dateTime, { bold }) => {
-		const d = new Date(dateTime);
-		const x = twoDigit;
-		const date = `${d.getFullYear()}-${x(d.getMonth() + 1)}-${x(d.getDate())}`;
-		const time = `${x(d.getHours())}:${x(d.getMinutes())}:${x(d.getSeconds())}`;
-		return `${date} ${bold(time)}`;
-	},
-	formatTime: (
-		time,
-		{ timeReference, bold, green, yellow, red },
-		boldQuantity
-	) => {
-		const unit = " ms";
-		if (timeReference && time !== timeReference) {
-			const times = [
-				timeReference / 2,
-				timeReference / 4,
-				timeReference / 8,
-				timeReference / 16
-			];
-			if (time < times[3]) return `${time}${unit}`;
-			else if (time < times[2]) return bold(`${time}${unit}`);
-			else if (time < times[1]) return green(`${time}${unit}`);
-			else if (time < times[0]) return yellow(`${time}${unit}`);
-			else return red(`${time}${unit}`);
-		} else {
-			return `${boldQuantity ? bold(time) : time}${unit}`;
+		const builtAtDate = new Date(dateTime);
+		let timeZone = undefined;
+		try {
+			builtAtDate.toLocaleTimeString();
+		} catch (err) {
+			// Force UTC if runtime timezone is unsupported
+			timeZone = "UTC";
 		}
+		const date = builtAtDate.toLocaleDateString(undefined, {
+			day: "2-digit",
+			month: "2-digit",
+			year: "numeric",
+			timeZone
+		});
+		const time = builtAtDate.toLocaleTimeString(undefined, { timeZone });
+		return `${date} ${bold(time)}}`;
 	},
-	formatError: (message, { green, yellow, red }) => {
-		if (message.includes("\u001b[")) return message;
-		const highlights = [
-			{ regExp: /(Did you mean .+)/g, format: green },
-			{
-				regExp: /(Set 'mode' option to 'development' or 'production')/g,
-				format: green
-			},
-			{ regExp: /(\(module has no exports\))/g, format: red },
-			{ regExp: /\(possible exports: (.+)\)/g, format: green },
-			{ regExp: /(?:^|\n)(.* doesn't exist)/g, format: red },
-			{ regExp: /('\w+' option has not been set)/g, format: red },
-			{
-				regExp: /(Emitted value instead of an instance of Error)/g,
-				format: yellow
-			},
-			{ regExp: /(Used? .+ instead)/gi, format: yellow },
-			{ regExp: /\b(deprecated|must|required)\b/g, format: yellow },
-			{
-				regExp: /\b(BREAKING CHANGE)\b/gi,
-				format: red
-			},
-			{
-				regExp:
-					/\b(error|failed|unexpected|invalid|not found|not supported|not available|not possible|not implemented|doesn't support|conflict|conflicting|not existing|duplicate)\b/gi,
-				format: red
-			}
-		];
-		for (const { regExp, format } of highlights) {
-			message = message.replace(regExp, (match, content) => {
-				return match.replace(content, format(content));
-			});
+	formatTime: (time, { bold, green, yellow, red }) => {
+		let times = [800, 400, 200, 100];
+		if (time) {
+			times = [time / 2, time / 4, time / 8, time / 16];
 		}
-		return message;
+		if (time < times[3]) return `${time}ms`;
+		else if (time < times[2]) return bold(`${time}ms`);
+		else if (time < times[1]) return green(`${time}ms`);
+		else if (time < times[0]) return yellow(`${time}ms`);
+		else return red(`${time}ms`);
+	},
+	formatError: e => {
+		// if (message.includes("\u001b[")) return message;
+		// const highlights = [
+		// 	{ regExp: /(Did you mean .+)/g, format: green },
+		// 	{
+		// 		regExp: /(Set 'mode' option to 'development' or 'production')/g,
+		// 		format: green
+		// 	},
+		// 	{ regExp: /(\(module has no exports\))/g, format: red },
+		// 	{ regExp: /\(possible exports: (.+)\)/g, format: green },
+		// 	{ regExp: /(?:^|\n)(.* doesn't exist)/g, format: red },
+		// 	{ regExp: /('\w+' option has not been set)/g, format: red },
+		// 	{
+		// 		regExp: /(Emitted value instead of an instance of Error)/g,
+		// 		format: yellow
+		// 	},
+		// 	{ regExp: /(Used? .+ instead)/gi, format: yellow },
+		// 	{ regExp: /\b(deprecated|must|required)\b/g, format: yellow },
+		// 	{
+		// 		regExp: /\b(BREAKING CHANGE)\b/gi,
+		// 		format: red
+		// 	},
+		// 	{
+		// 		regExp:
+		// 			/\b(error|failed|unexpected|invalid|not found|not supported|not available|not possible|not implemented|doesn't support|conflict|conflicting|not existing|duplicate)\b/gi,
+		// 		format: red
+		// 	}
+		// ];
+		// for (const { regExp, format } of highlights) {
+		// 	message = message.replace(regExp, (match, content) => {
+		// 		return match.replace(content, format(content));
+		// 	});
+		// }
+		// return message;
+		return e.formatted;
 	}
 };
 

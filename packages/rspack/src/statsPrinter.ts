@@ -1,7 +1,6 @@
 import {
 	JsStatsAsset,
 	JsStatsChunk,
-	JsStatsError,
 	JsStatsChunkGroup,
 	JsStatsModule,
 	JsStatsModuleReason
@@ -41,17 +40,12 @@ interface PrintedElement {
 	content: string;
 }
 
-const formatError = (e: JsStatsError) => {
-	return e.formatted;
-};
-
 export default class StatsPrinter {
 	hooks;
 	private _levelHookCache: Map<HookMap<any>, Map<string, any[]>>;
 	private _inPrint: boolean;
 	constructor() {
 		this.hooks = Object.freeze({
-			/** @type {HookMap<SyncBailHook<[string[], StatsPrinterContext], true>>} */
 			sortElements: new HookMap(
 				() =>
 					new SyncBailHook<[string[], StatsPrinterContext], undefined>([
@@ -59,7 +53,6 @@ export default class StatsPrinter {
 						"context"
 					])
 			),
-			/** @type {HookMap<SyncBailHook<[PrintedElement[], StatsPrinterContext], string>>} */
 			printElements: new HookMap(
 				() =>
 					new SyncBailHook<[PrintedElement[], StatsPrinterContext], undefined>([
@@ -74,7 +67,6 @@ export default class StatsPrinter {
 						"context"
 					])
 			),
-			/** @type {HookMap<SyncBailHook<[any, StatsPrinterContext], string>>} */
 			getItemName: new HookMap(
 				() =>
 					new SyncBailHook<[any, StatsPrinterContext], string>([
@@ -82,7 +74,6 @@ export default class StatsPrinter {
 						"context"
 					])
 			),
-			/** @type {HookMap<SyncBailHook<[string[], StatsPrinterContext], string>>} */
 			printItems: new HookMap(
 				() =>
 					new SyncBailHook<[string[], StatsPrinterContext], string>([
@@ -90,7 +81,6 @@ export default class StatsPrinter {
 						"context"
 					])
 			),
-			/** @type {HookMap<SyncBailHook<[{}, StatsPrinterContext], string>>} */
 			print: new HookMap(
 				() =>
 					new SyncBailHook<[{}, StatsPrinterContext], string>([
@@ -98,7 +88,6 @@ export default class StatsPrinter {
 						"context"
 					])
 			),
-			/** @type {HookMap<SyncWaterfallHook<[string, StatsPrinterContext]>>} */
 			result: new HookMap(
 				() =>
 					new SyncWaterfallHook<[string, StatsPrinterContext]>([
@@ -107,22 +96,12 @@ export default class StatsPrinter {
 					])
 			)
 		});
-		/** @type {Map<HookMap<Hook>, Map<string, Hook[]>>} */
 		this._levelHookCache = new Map();
 		this._inPrint = false;
 	}
 
-	/**
-	 * get all level hooks
-	 * @private
-	 * @template {Hook} T
-	 * @param {HookMap<T>} hookMap HookMap
-	 * @param {string} type type
-	 * @returns {T[]} hooks
-	 */
-	_getAllLevelHooks(hookMap: HookMap<any>, type: any) {
-		let cache =
-			/** @type {Map<string, T[]>} */ this._levelHookCache.get(hookMap);
+	_getAllLevelHooks<T>(hookMap: HookMap<T>, type: string): T[] {
+		let cache: Map<string, T[]> | undefined = this._levelHookCache.get(hookMap);
 		if (cache === undefined) {
 			cache = new Map();
 			this._levelHookCache.set(hookMap, cache);
@@ -131,8 +110,7 @@ export default class StatsPrinter {
 		if (cacheEntry !== undefined) {
 			return cacheEntry;
 		}
-		/** @type {T[]} */
-		const hooks = [];
+		const hooks: T[] = [];
 		const typeParts = type.split(".");
 		for (let i = 0; i < typeParts.length; i++) {
 			const hook = hookMap.get(typeParts.slice(i).join("."));
@@ -155,16 +133,6 @@ export default class StatsPrinter {
 		}
 	}
 
-	/**
-	 * Run `fn` for each level
-	 * @private
-	 * @template T
-	 * @param {HookMap<SyncWaterfallHook<T>>} hookMap HookMap
-	 * @param {string} type type
-	 * @param {AsArray<T>[0]} data data
-	 * @param {(hook: SyncWaterfallHook<T>, data: AsArray<T>[0]) => AsArray<T>[0]} fn function
-	 * @returns {AsArray<T>[0]} result of `fn`
-	 */
 	_forEachLevelWaterfall<T>(
 		hookMap: HookMap<SyncWaterfallHook<T>>,
 		type: string,
@@ -177,12 +145,6 @@ export default class StatsPrinter {
 		return data;
 	}
 
-	/**
-	 * @param {string} type The type
-	 * @param {Object} object Object to print
-	 * @param {Object=} baseContext The base context
-	 * @returns {string} printed result
-	 */
 	print(type: string, object: Object, baseContext: Object): string {
 		if (this._inPrint) {
 			return this._print(type, object, baseContext);
@@ -197,13 +159,6 @@ export default class StatsPrinter {
 		}
 	}
 
-	/**
-	 * @private
-	 * @param {string} type type
-	 * @param {Object} object object
-	 * @param {Object=} baseContext context
-	 * @returns {string} printed result
-	 */
 	_print(type: string, object: any, baseContext: any) {
 		const context = {
 			...baseContext,
