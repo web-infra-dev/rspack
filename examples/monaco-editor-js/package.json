@@ -1,14 +1,15 @@
 {
-  "name": "example-worker",
+  "name": "example-monaco-editor-js",
   "version": "1.0.0",
   "private": true,
-  "main": "example.js",
+  "main": "index.js",
   "scripts": {
     "dev": "rspack serve",
     "build": "rspack build"
   },
   "license": "MIT",
   "dependencies": {
-    "@rspack/cli": "workspace:*"
+    "@rspack/cli": "workspace:*",
+    "monaco-editor": "^0.39.0"
   }
 }

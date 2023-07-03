@@ -389,6 +389,35 @@ importers:
       url-loader: 4.1.1
       yaml-loader: 0.8.0
 
+  examples/monaco-editor-js:
+    specifiers:
+      '@rspack/cli': workspace:*
+      monaco-editor: ^0.39.0
+    dependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      monaco-editor: 0.39.0
+
+  examples/monaco-editor-ts-react:
+    specifiers:
+      '@rspack/cli': workspace:*
+      '@types/react': ^18.0.25
+      '@types/react-dom': ^18.0.8
+      monaco-editor: ^0.39.0
+      react: 18.0.0
+      react-dom: 18.0.0
+      react-refresh: 0.13.0
+      typescript: ^5.1.6
+    dependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+      monaco-editor: 0.39.0
+      react: 18.0.0
+      react-dom: 18.0.0_react@18.0.0
+      react-refresh: 0.13.0
+    devDependencies:
+      '@types/react': 18.2.6
+      '@types/react-dom': 18.2.4
+      typescript: 5.1.6
+
   examples/multi-entry:
     specifiers:
       '@rspack/cli': workspace:*
@@ -799,11 +828,8 @@ importers:
   examples/worker:
     specifiers:
       '@rspack/cli': workspace:*
-      serve: 14.1.2
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
-    devDependencies:
-      serve: 14.1.2
 
   npm/darwin-arm64:
     specifiers: {}
@@ -21015,6 +21041,10 @@ packages:
       commander: 9.4.0
     dev: false
 
+  /monaco-editor/0.39.0:
+    resolution: {integrity: sha512-zhbZ2Nx93tLR8aJmL2zI1mhJpsl87HMebNBM6R8z4pLfs8pj604pIVIVwyF1TivcfNtIPpMXL+nb3DsBmE/x6Q==}
+    dev: false
+
   /move-concurrently/1.0.1:
     resolution: {integrity: sha512-hdrFxZOycD/g6A6SoI2bB5NA/5NEqD0569+S47WZhPvm46sD50ZHdYaFmnua5lndde9rCHGjmfK7Z8BuCt/PcQ==}
     dependencies:
@@ -26606,6 +26636,12 @@ packages:
     resolution: {integrity: sha512-XH627E9vkeqhlZFQuL+UsyAXEnibT0kWR2FWONlr4sTjvxyJYnyefgrkyECLzM5NenmKzRAy2rR/OlYLA1HkZw==}
     engines: {node: '>=14.17'}
     hasBin: true
+
+  /typescript/5.1.6:
+    resolution: {integrity: sha512-zaWCozRZ6DLEWAWFrVDz1H6FVXzUSfTy5FUMWsQlU8Ym5JP9eO4xkTIROFCQvhQf61z6O/G6ugw3SgAnvvm+HA==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+    dev: true
 
   /ua-parser-js/0.7.33:
     resolution: {integrity: sha512-s8ax/CeZdK9R/56Sui0WM6y9OFREJarMRHqLB2EwkovemBxNQ+Bqu8GAsUnVcXKgphb++ghr/B2BZx4mahujPw==}
