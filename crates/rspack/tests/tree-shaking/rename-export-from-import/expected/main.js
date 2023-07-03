@@ -1,23 +1,23 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": function (module, exports, __webpack_require__) {
+"./app.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'q': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["question"]; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'q': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["question"]; }});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
 
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
 _app__WEBPACK_IMPORTED_MODULE_0_["q"];
 },
-"./lib.js": function (module, exports, __webpack_require__) {
+"./lib.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'question': function() { return question; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'question': function() { return question; }});
  const answer = "1";
  const question = "2";
 },

@@ -1,7 +1,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./inner */"./inner.js");
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./module */"./module.js");
 
@@ -14,10 +14,10 @@ it("export should be unused when only unused functions use it", ()=>{
     return __webpack_require__.el(/* ./chunk */"./chunk.js").then(__webpack_require__.bind(__webpack_require__, /* ./chunk */"./chunk.js"));
 });
 },
-"./inner.js": function (module, exports, __webpack_require__) {
+"./inner.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'A': function() { return A; }, 'B': function() { return B; }, 'exportAUsed': function() { return exportAUsed; }, 'exportBUsed': function() { return exportBUsed; }, 'exportCUsed': function() { return exportCUsed; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'A': function() { return A; }, 'B': function() { return B; }, 'exportAUsed': function() { return exportAUsed; }, 'exportBUsed': function() { return exportBUsed; }, 'exportCUsed': function() { return exportCUsed; }});
  function A(s) {
     return s + "A";
 }
@@ -31,10 +31,10 @@ __webpack_require__.d(exports, {'A': function() { return A; }, 'B': function() {
  const exportBUsed = __webpack_exports_info__.B.used;
  const exportCUsed = __webpack_exports_info__.C.used;
 },
-"./module.js": function (module, exports, __webpack_require__) {
+"./module.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'y': function() { return y; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'y': function() { return y; }});
 /* harmony import */var _inner__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./inner */"./inner.js");
 
 function x(type) {

@@ -1,8 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'_': function() { return _async_to_generator; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'_': function() { return _async_to_generator; }});
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
     try {
         var info = gen[key](arg);
@@ -31,17 +31,17 @@ function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
 }
 
 },
-"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'_': function() { return tslib__WEBPACK_IMPORTED_MODULE_0_["__generator"]; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'_': function() { return tslib__WEBPACK_IMPORTED_MODULE_0_["__generator"]; }});
 /* harmony import */var tslib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* tslib */"../../../../../node_modules/tslib/tslib.es6.js");
 
 },
-"../../../../../node_modules/tslib/tslib.es6.js": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/tslib/tslib.es6.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'__generator': function() { return __generator; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'__generator': function() { return __generator; }});
 /******************************************************************************
 Copyright (c) Microsoft Corporation.
 
@@ -469,10 +469,10 @@ var __setModuleDefault = Object.create ? function(o, v) {
     return typeof state === "function" ? receiver === state : state.has(receiver);
 }
 },
-"./index.ts": function (module, exports, __webpack_require__) {
+"./index.ts": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'test': function() { return test; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'test': function() { return test; }});
 /* harmony import */var _swc_helpers_async_to_generator__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* @swc/helpers/_/_async_to_generator */"../../../../../node_modules/@swc/helpers/esm/_async_to_generator.js");
 /* harmony import */var _swc_helpers_ts_generator__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* @swc/helpers/_/_ts_generator */"../../../../../node_modules/@swc/helpers/esm/_ts_generator.js");
 

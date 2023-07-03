@@ -1,7 +1,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _data_txt__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./data.txt */"./data.txt");
 
 console.log(_data_txt__WEBPACK_IMPORTED_MODULE_0_);

@@ -32,19 +32,19 @@ var Response = function() {
 var result = test();
 module.exports = result;
 },
-"../../../../../node_modules/@swc/helpers/esm/_class_call_check.js": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/@swc/helpers/esm/_class_call_check.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'_class_call_check': function() { return _class_call_check; }, '_': function() { return _class_call_check; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'_class_call_check': function() { return _class_call_check; }, '_': function() { return _class_call_check; }});
  function _class_call_check(instance, Constructor) {
     if (!(instance instanceof Constructor)) throw new TypeError("Cannot call a class as a function");
 }
 
 },
-"../../../../../node_modules/@swc/helpers/esm/_create_class.js": function (module, exports, __webpack_require__) {
+"../../../../../node_modules/@swc/helpers/esm/_create_class.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'_create_class': function() { return _create_class; }, '_': function() { return _create_class; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'_create_class': function() { return _create_class; }, '_': function() { return _create_class; }});
 function _defineProperties(target, props) {
     for(var i = 0; i < props.length; i++){
         var descriptor = props[i];

@@ -1,9 +1,9 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"../node_modules/pmodule/b.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/b.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_["z"]; }});
-__webpack_require__.d(exports, {'x': function() { return x; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'z': function() { return _c__WEBPACK_IMPORTED_MODULE_0_["z"]; }});
+__webpack_require__.d(__webpack_exports__, {'x': function() { return x; }});
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./c */"../node_modules/pmodule/c.js");
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
 var x = "x";
@@ -13,21 +13,21 @@ var y = "y";
 
 (0, _tracker__WEBPACK_IMPORTED_MODULE_1_["track"])("b.js");
 },
-"../node_modules/pmodule/c.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/c.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'z': function() { return z; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'z': function() { return z; }});
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
 var z = "z";
 
 
 (0, _tracker__WEBPACK_IMPORTED_MODULE_0_["track"])("c.js");
 },
-"../node_modules/pmodule/index.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["x"]; }, 'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["z"]; }});
-__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'x': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["x"]; }, 'z': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["z"]; }});
+__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"../node_modules/pmodule/b.js");
 /* harmony import */var _tracker__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./tracker */"../node_modules/pmodule/tracker.js");
 
@@ -36,10 +36,10 @@ __webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT
 (0, _tracker__WEBPACK_IMPORTED_MODULE_2_["track"])("index.js");
 var __WEBPACK_DEFAULT_EXPORT__ = "def";
 },
-"../node_modules/pmodule/tracker.js": function (module, exports, __webpack_require__) {
+"../node_modules/pmodule/tracker.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'track': function() { return track; }, 'log': function() { return log; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'track': function() { return track; }, 'log': function() { return log; }});
  function track(file) {
     log.push(file);
     log.sort();
@@ -49,9 +49,9 @@ __webpack_require__.d(exports, {'track': function() { return track; }, 'log': fu
     log.length = 0;
 }
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var pmodule_tracker__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* pmodule/tracker */"../node_modules/pmodule/tracker.js");
 /* harmony import */var pmodule__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* pmodule */"../node_modules/pmodule/index.js");
 

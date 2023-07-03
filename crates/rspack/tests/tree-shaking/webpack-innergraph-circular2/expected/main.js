@@ -1,7 +1,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
 
 it("should be able to handle circular referenced", ()=>{
@@ -35,10 +35,10 @@ it("should be able to handle circular referenced", ()=>{
     expect(f2()).toEqual(f4());
 });
 },
-"./module.js": function (module, exports, __webpack_require__) {
+"./module.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'x': function() { return x; }, 'y': function() { return y; }, 'z': function() { return z; }, 'a': function() { return a; }, 'f3': function() { return f3; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'x': function() { return x; }, 'y': function() { return y; }, 'z': function() { return z; }, 'a': function() { return a; }, 'f3': function() { return f3; }});
 function x() {
     return [
         y,
