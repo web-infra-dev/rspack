@@ -1,8 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": function (module, exports, __webpack_require__) {
+"./app.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'app': function() { return app; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'app': function() { return app; }});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
  var app = function() {
@@ -14,17 +14,17 @@ __webpack_require__.d(exports, {'app': function() { return app; }});
  var app4 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_["something"])('app4'), app5 = 10000;
  var app3 = (0, _lib__WEBPACK_IMPORTED_MODULE_0_["something"])('app3');
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
 (0, _app__WEBPACK_IMPORTED_MODULE_0_["app"])();
 },
-"./lib.js": function (module, exports, __webpack_require__) {
+"./lib.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'result': function() { return result; }, 'something': function() { return something; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'result': function() { return result; }, 'something': function() { return something; }});
  const secret = "888";
  const result = 20000;
  const something = function() {};

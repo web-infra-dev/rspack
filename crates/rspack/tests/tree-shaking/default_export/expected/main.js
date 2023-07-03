@@ -1,14 +1,14 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./answer.js": function (module, exports, __webpack_require__) {
+"./answer.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'answer': function() { return answer; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'answer': function() { return answer; }});
  const answer = 103330; // export default answer;
 },
-"./app.js": function (module, exports, __webpack_require__) {
+"./app.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'render': function() { return render; }, 'default': function() { return result; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'render': function() { return render; }, 'default': function() { return result; }});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
  function render() {
@@ -19,17 +19,17 @@ __webpack_require__.d(exports, {'render': function() { return render; }, 'defaul
 }
 function result() {}
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
 (0, _app__WEBPACK_IMPORTED_MODULE_0_["render"])(_app__WEBPACK_IMPORTED_MODULE_0_["default"]);
 },
-"./lib.js": function (module, exports, __webpack_require__) {
+"./lib.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'secret': function() { return secret; }, 'myanswer': function() { return myanswer; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'secret': function() { return secret; }, 'myanswer': function() { return myanswer; }});
 /* harmony import */var _answer__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./answer */"./answer.js");
 
  const secret = "888";

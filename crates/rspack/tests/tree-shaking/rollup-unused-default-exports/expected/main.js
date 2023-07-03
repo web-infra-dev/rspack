@@ -1,8 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./foo.js": function (module, exports, __webpack_require__) {
+"./foo.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'foo': function() { return foo; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'foo': function() { return foo; }});
  var foo = {
     value: 1
 };
@@ -12,9 +12,9 @@ function mutate(obj) {
 }
 var __WEBPACK_DEFAULT_EXPORT__ = mutate(foo);
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 
 assert.equal(_foo__WEBPACK_IMPORTED_MODULE_0_["foo"].value, 2);
