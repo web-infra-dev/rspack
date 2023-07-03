@@ -99,7 +99,7 @@ describe("Stats", () => {
 		  },
 		  "errors": [],
 		  "errorsCount": 0,
-		  "hash": "b2bcaeacb44d7d8a",
+		  "hash": "a43db56f33e8932de2d5",
 		  "modules": [
 		    {
 		      "assets": [],
@@ -143,7 +143,7 @@ describe("Stats", () => {
 		}
 	`);
 		expect(stats?.toString(statsOptions)).toMatchInlineSnapshot(`
-		"Hash: b2bcaeacb44d7d8a
+		"Hash: a43db56f33e8932de2d5
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  215 bytes    main  [emitted]  main
@@ -175,7 +175,7 @@ describe("Stats", () => {
 		});
 		expect(stats?.toString({ timings: false }).replace(/\\/g, "/"))
 			.toMatchInlineSnapshot(`
-		"Hash: 4940cf0938772f33
+		"Hash: 6fd7d5c82061cf58f77e
 		PublicPath: auto
 		  Asset       Size  Chunks             Chunk Names
 		main.js  419 bytes    main  [emitted]  main
