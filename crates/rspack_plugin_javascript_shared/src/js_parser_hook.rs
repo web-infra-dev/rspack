@@ -14,8 +14,8 @@ pub struct JsParserContext {
   pub dependencies: Vec<Box<dyn ModuleDependency>>,
 }
 
-/// The reason why we introduce [JsAstVisitor] instead of using `swc_core::ecma_visit::Visit` is
-/// we want do finish all work in a single visit pass.
+/// The reason why we introduce [JsParserHookDriver] instead of using plain `swc_core::ecma_visit::Visit` is
+/// we want to finish all work in a single visit pass.
 #[derive(Default)]
 pub struct JsParserHookDriver {
   hooks: HashMap<StaticStr, Vec<Box<dyn JsParserHook>>>,
@@ -23,7 +23,7 @@ pub struct JsParserHookDriver {
 }
 
 impl JsParserHookDriver {
-  pub fn with_key(&mut self, key: impl Into<StaticStr>, hook: Box<dyn JsParserHook>) {
+  pub fn register_with_key(&mut self, key: impl Into<StaticStr>, hook: Box<dyn JsParserHook>) {
     let key = key.into();
     self.hooks.entry(key).or_default().push(hook);
   }
@@ -31,6 +31,12 @@ impl JsParserHookDriver {
   pub fn into_context(self) -> JsParserContext {
     self.context
   }
+}
+
+pub enum Control {
+  // Skip subsequent subscribers
+  Skip,
+  Continue,
 }
 
 /// This macro is used to help of reducing boilerplate code of adding
@@ -71,8 +77,8 @@ macro_rules! register_hooks {
   ) => {
     pub trait JsParserHook {
       $(
-        fn $name(&mut self, _ctx: &mut JsParserContext,_node: &$node) -> bool {
-          false
+        fn $name(&mut self, _ctx: &mut JsParserContext,_node: &$node) -> Control {
+          Control::Continue
         }
       )*
     }
@@ -82,7 +88,7 @@ macro_rules! register_hooks {
         fn $name(&mut self, node: &$node) {
           self.hooks.values_mut().for_each(|hooks| {
             // Bailout if any hook returns `true`
-            hooks.iter_mut().any(|hook| hook.$name(&mut self.context, node));
+            hooks.iter_mut().any(|hook| matches!(hook.$name(&mut self.context, node), Control::Skip));
           });
           node.visit_children_with(self)
         }
@@ -103,60 +109,52 @@ register_hooks!(pub trait JsParserHook {
     (visit_call_expr, ast::CallExpr),
 });
 
-// #[test]
-// fn example_basic() {
-//   use swc_core::common::util::take::Take;
+#[test]
+fn example_basic() {
+  use std::sync::{atomic::AtomicUsize, Arc};
 
-//   let ast = ast::Module {
-//     body: vec![ast::ModuleItem::Stmt(ast::Stmt::Expr(ast::ExprStmt {
-//       ..ast::ExprStmt {
-//         span: Default::default(),
-//         expr: Box::new(ast::Expr::Array(ast::ArrayLit::dummy())),
-//       }
-//     }))],
-//     ..ast::Module::dummy()
-//   };
+  use swc_core::common::util::take::Take;
 
-//   #[derive(Default)]
-//   struct Hook {
-//     pub called: bool,
-//   }
-//   #[derive(Default)]
-//   struct Hook2 {
-//     pub called: bool,
-//   }
-//   #[derive(Default)]
-//   struct HookShouldBeSkipped {
-//     pub called: bool,
-//   }
-//   impl JsParserHook for Hook {
-//     fn visit_expr(&mut self, _node: &ast::Expr) -> bool {
-//       self.called = true;
-//       false
-//     }
-//   }
-//   impl JsParserHook for Hook2 {
-//     fn visit_expr(&mut self, _node: &ast::Expr) -> bool {
-//       self.called = true;
-//       true
-//     }
-//   }
-//   impl JsParserHook for HookShouldBeSkipped {
-//     fn visit_expr(&mut self, _node: &ast::Expr) -> bool {
-//       self.called = true;
-//       false
-//     }
-//   }
+  let ast = ast::Module {
+    body: vec![ast::ModuleItem::Stmt(ast::Stmt::Expr(ast::ExprStmt {
+      ..ast::ExprStmt {
+        span: Default::default(),
+        expr: Box::new(ast::Expr::Array(ast::ArrayLit::dummy())),
+      }
+    }))],
+    ..ast::Module::dummy()
+  };
 
-//   let mut ast_visitor = JsAstVisitor::default();
-//   let mut hook = Hook::default();
-//   let mut hook2 = Hook2::default();
-//   let mut hook_should_skipped = HookShouldBeSkipped::default();
-//   ast_visitor.tap("test", Box::new(hook));
-//   ast_visitor.tap("test", Box::new(hook2));
-//   ast_visitor.tap("test", Box::new(hook_should_skipped));
-//   ast.visit_with(&mut ast_visitor);
-//   // assert!(hook.called);
-//   // assert!(hook2.called);
-//   // assert!(!hook_should_skipped.called);
-// }
+  #[derive(Default)]
+  struct Hook {
+    pub count: Arc<AtomicUsize>,
+  }
+
+  impl JsParserHook for Hook {
+    fn visit_expr(&mut self, _ctx: &mut JsParserContext, _node: &ast::Expr) -> Control {
+      let prev = self.count.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+      if prev < 1 {
+        Control::Continue
+      } else {
+        Control::Skip
+      }
+    }
+  }
+
+  let count = Arc::new(AtomicUsize::new(0));
+  let hook1 = Hook {
+    count: count.clone(),
+  };
+  let hook2 = Hook {
+    count: count.clone(),
+  };
+  let hook3 = Hook {
+    count: count.clone(),
+  };
+  let mut driver = JsParserHookDriver::default();
+  driver.register_with_key("test", Box::new(hook1));
+  driver.register_with_key("test", Box::new(hook2));
+  driver.register_with_key("test", Box::new(hook3));
+  ast.visit_with(&mut driver);
+  assert_eq!(count.load(std::sync::atomic::Ordering::SeqCst), 2);
+}

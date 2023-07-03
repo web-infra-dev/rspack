@@ -29,7 +29,7 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rspack_database = { path = "../rspack_database", features = ["rayon"] }
 rspack_error = { path = "../rspack_error" }
-rspack_fs = { path = "../rspack_fs", features = ["async"] }
+rspack_fs = { path = "../rspack_fs", features = ["async", "rspack-error"] }
 rspack_futures = { path = "../rspack_futures" }
 rspack_hash = { path = "../rspack_hash" }
 rspack_identifier = { path = "../rspack_identifier" }
@@ -48,6 +48,7 @@ swc_core = { workspace = true, features = [
   "__visit",
   "__utils",
   "__ecma_transforms",
+  "ecma_preset_env",
   "ecma_ast",
   "ecma_codegen",
   "ecma_quote",

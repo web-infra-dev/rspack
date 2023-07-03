@@ -1,5 +1,5 @@
 use rspack_core::{ContextMode, ContextOptions, DependencyCategory, SpanExt};
-use rspack_plugin_javascript_shared::{JsParserHook, JsParserPlugin};
+use rspack_plugin_javascript_shared::{Control, JsParserHook, JsParserPlugin};
 use rspack_regex::RspackRegex;
 use swc_core::ecma::ast;
 
@@ -16,7 +16,7 @@ impl JsParserPlugin for RequireContextDependencyParserPlugin {
         &mut self,
         ctx: &mut rspack_plugin_javascript_shared::JsParserContext,
         node: &swc_core::ecma::ast::CallExpr,
-      ) -> bool {
+      ) -> Control {
         if is_require_context_call(node) && !node.args.is_empty() {
           if let Some(ast::Lit::Str(str)) = node.args.get(0).and_then(|x| x.expr.as_lit()) {
             let recursive =
@@ -74,12 +74,12 @@ impl JsParserPlugin for RequireContextDependencyParserPlugin {
           }
         }
 
-        false
+        Control::Skip
       }
     }
 
     ctx
       .parser
-      .with_key("require.context", Box::new(RequireContextHandler))
+      .register_with_key("require.context", Box::new(RequireContextHandler))
   }
 }
