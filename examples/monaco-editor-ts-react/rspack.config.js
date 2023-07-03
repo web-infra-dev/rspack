@@ -9,7 +9,6 @@ module.exports = {
 		'html.worker': 'monaco-editor/esm/vs/language/html/html.worker',
 		'ts.worker': 'monaco-editor/esm/vs/language/typescript/ts.worker'
 	},
-	devtool: 'source-map',
 	devServer: {
 		hot: true,
 	},

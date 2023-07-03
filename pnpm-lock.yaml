@@ -389,7 +389,7 @@ importers:
       url-loader: 4.1.1
       yaml-loader: 0.8.0
 
-  examples/monaco-editor-esm:
+  examples/monaco-editor-js:
     specifiers:
       '@rspack/cli': workspace:*
       monaco-editor: ^0.39.0
@@ -402,11 +402,13 @@ importers:
       '@rspack/cli': workspace:*
       '@types/react': ^18.0.25
       '@types/react-dom': ^18.0.8
+      monaco-editor: ^0.39.0
       react: 18.0.0
       react-dom: 18.0.0
       react-refresh: 0.13.0
     dependencies:
       '@rspack/cli': link:../../packages/rspack-cli
+      monaco-editor: 0.39.0
       react: 18.0.0
       react-dom: 18.0.0_react@18.0.0
       react-refresh: 0.13.0
