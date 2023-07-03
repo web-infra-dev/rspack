@@ -78,6 +78,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
             },
           ],
           "size": 32,
+          "source": "export const value = "dynamic";
+",
           "type": "module",
         },
       ],
@@ -117,6 +119,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
             },
           ],
           "size": 38,
+          "source": "import("./dynamic").then(console.log);",
           "type": "module",
         },
       ],
@@ -165,6 +168,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         },
       ],
       "size": 38,
+      "source": "import("./dynamic").then(console.log);",
       "type": "module",
     },
     {
@@ -196,6 +200,8 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
         },
       ],
       "size": 32,
+      "source": "export const value = "dynamic";
+",
       "type": "module",
     },
   ],
@@ -291,6 +297,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
             },
           ],
           "size": 25,
+          "source": "console.log("index.js");
+",
           "type": "module",
         },
       ],
@@ -339,6 +347,8 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
         },
       ],
       "size": 25,
+      "source": "console.log("index.js");
+",
       "type": "module",
     },
   ],
@@ -1452,6 +1462,9 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
             },
           ],
           "size": 51,
+          "source": "import { a } from "cycle-alias/a";
+console.log(a);
+",
           "type": "module",
         },
         {
@@ -1543,6 +1556,9 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
         },
       ],
       "size": 51,
+      "source": "import { a } from "cycle-alias/a";
+console.log(a);
+",
       "type": "module",
     },
     {
@@ -1676,6 +1692,9 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
             },
           ],
           "size": 39,
+          "source": "import a from "pkg-a";
+console.log(a);
+",
           "type": "module",
         },
         {
@@ -1762,6 +1781,9 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
         },
       ],
       "size": 39,
+      "source": "import a from "pkg-a";
+console.log(a);
+",
       "type": "module",
     },
     {
@@ -1890,6 +1912,8 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
             },
           ],
           "size": 26,
+          "source": "export const answer = 42;
+",
           "type": "module",
         },
       ],
@@ -1938,6 +1962,8 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
         },
       ],
       "size": 26,
+      "source": "export const answer = 42;
+",
       "type": "module",
     },
   ],

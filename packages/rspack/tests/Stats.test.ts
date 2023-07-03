@@ -75,6 +75,9 @@ describe("Stats", () => {
 		            },
 		          ],
 		          "size": 55,
+		          "source": "module.exports = function a() {
+			return "This is a";
+		};",
 		          "type": "module",
 		        },
 		      ],
@@ -123,6 +126,9 @@ describe("Stats", () => {
 		        },
 		      ],
 		      "size": 55,
+		      "source": "module.exports = function a() {
+			return "This is a";
+		};",
 		      "type": "module",
 		    },
 		  ],

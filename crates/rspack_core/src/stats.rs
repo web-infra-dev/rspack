@@ -127,13 +127,14 @@ impl Stats<'_> {
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
+    source: bool,
   ) -> Result<Vec<StatsModule>> {
     let mut modules: Vec<StatsModule> = self
       .compilation
       .module_graph
       .modules()
       .values()
-      .map(|module| self.get_module(module, reasons, module_assets, nested_modules))
+      .map(|module| self.get_module(module, reasons, module_assets, nested_modules, source))
       .collect::<Result<_>>()?;
     Self::sort_modules(&mut modules);
     Ok(modules)
@@ -146,6 +147,7 @@ impl Stats<'_> {
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
+    source: bool,
   ) -> Result<Vec<StatsChunk>> {
     let mut chunks: Vec<StatsChunk> = self
       .compilation
@@ -161,7 +163,7 @@ impl Stats<'_> {
             .get_chunk_modules(&c.ukey, &self.compilation.module_graph);
           let mut chunk_modules = chunk_modules
             .into_iter()
-            .map(|m| self.get_module(m, reasons, module_assets, nested_modules))
+            .map(|m| self.get_module(m, reasons, module_assets, nested_modules, source))
             .collect::<Result<Vec<_>>>()?;
           Self::sort_modules(&mut chunk_modules);
           Some(chunk_modules)
@@ -309,6 +311,7 @@ impl Stats<'_> {
     reasons: bool,
     module_assets: bool,
     nested_modules: bool,
+    source: bool,
   ) -> Result<StatsModule> {
     let identifier = module.identifier();
     let mgm = self
@@ -418,6 +421,13 @@ impl Stats<'_> {
       reasons,
       assets,
       modules,
+      source: source
+        .then(|| {
+          module
+            .original_source()
+            .map(|source| source.source().to_string())
+        })
+        .flatten(),
     })
   }
 
@@ -528,6 +538,7 @@ pub struct StatsModule {
   pub reasons: Option<Vec<StatsModuleReason>>,
   pub assets: Option<Vec<String>>,
   pub modules: Option<Vec<StatsModule>>,
+  pub source: Option<String>,
 }
 
 #[derive(Debug)]

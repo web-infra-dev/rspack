@@ -77,16 +77,19 @@ export class Stats {
 				options.chunkRelations!,
 				options.reasons!,
 				options.moduleAssets!,
-				options.nestedModules!
+				options.nestedModules!,
+				options.source!
 			);
 		}
 		if (options.modules) {
 			obj.modules = this.#inner.getModules(
 				options.reasons!,
 				options.moduleAssets!,
-				options.nestedModules!
+				options.nestedModules!,
+				options.source!
 			);
 		}
+
 		if (options.entrypoints) {
 			obj.entrypoints = this.#inner
 				.getEntrypoints()

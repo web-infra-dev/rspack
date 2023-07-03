@@ -1,5 +1,5 @@
 export default function () {
-	console.info("hell world");
+	console.info("hello world");
 }
 
 export const add = (a, b) => {

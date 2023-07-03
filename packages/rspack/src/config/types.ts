@@ -610,6 +610,7 @@ export interface StatsOptions {
 	builtAt?: boolean;
 	moduleAssets?: boolean;
 	nestedModules?: boolean;
+	source?: boolean;
 }
 
 export type OptimizationRuntimeChunk =

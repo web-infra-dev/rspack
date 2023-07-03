@@ -279,6 +279,7 @@ export class Compilation {
 			options.nestedModules,
 			!context.forToString
 		);
+		options.source = optionOrLocalFallback(options.source, false);
 
 		return options;
 	}

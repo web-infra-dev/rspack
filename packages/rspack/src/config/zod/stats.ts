@@ -28,7 +28,8 @@ export function stats() {
 				chunkRelations: z.boolean().optional(),
 				timings: z.boolean().optional(),
 				builtAt: z.boolean().optional(),
-				nestedModules: z.boolean().optional()
+				nestedModules: z.boolean().optional(),
+				source: z.boolean().optional()
 			})
 		);
 }
