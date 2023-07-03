@@ -176,6 +176,7 @@ impl RawOptionsApply for RawOutputOptions {
         wasm_loading_type.as_str().into(),
       ));
     }
+
     Ok(OutputOptions {
       path: self.path.into(),
       clean: self.clean,
