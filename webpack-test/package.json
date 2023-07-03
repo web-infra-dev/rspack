@@ -42,7 +42,6 @@
     "pug-loader": "^2.4.0",
     "react-relay": "^14.1.0",
     "rimraf": "3.0.2",
-    "rspack-manifest-plugin": "5.0.0-alpha0",
     "sass": "^1.56.2",
     "sass-loader": "^13.2.0",
     "sinon": "14.0.0",
