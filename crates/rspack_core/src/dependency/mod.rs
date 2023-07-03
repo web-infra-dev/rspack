@@ -375,7 +375,7 @@ pub mod needs_refactor {
   use once_cell::sync::Lazy;
   use regex::Regex;
   use swc_core::{
-    common::{EqIgnoreSpan, Spanned, DUMMY_SP},
+    common::{EqIgnoreSpan, Spanned, SyntaxContext, DUMMY_SP},
     ecma::{
       ast::{
         Expr, ExprOrSpread, Id, Ident, ImportDecl, Lit, MemberExpr, MemberProp, MetaPropExpr,
@@ -423,20 +423,22 @@ pub mod needs_refactor {
     Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
 
   #[derive(Debug, Default)]
-  pub struct WorkerSyntaxList(Vec<WorkerSyntax>);
+  pub struct WorkerSyntaxList {
+    variables: Vec<WorkerSyntax>,
+    globals: Vec<WorkerSyntax>,
+  }
 
   impl WorkerSyntaxList {
     pub fn push(&mut self, syntax: WorkerSyntax) {
-      self.0.push(syntax);
+      if syntax.ctxt.is_some() {
+        self.variables.push(syntax);
+      } else {
+        self.globals.push(syntax);
+      }
     }
 
     fn find_worker_syntax(&self, ident: &Ident) -> Option<&WorkerSyntax> {
-      self.0.iter().find(|s| match s {
-        WorkerSyntax::New(name) => match name {
-          WorkerName::Global(n) => n == &ident.sym,
-          WorkerName::Var(id) => *id == ident.to_id(),
-        },
-      })
+      (self.variables.iter().chain(self.globals.iter())).find(|s| s.matches(ident))
     }
 
     pub fn match_new_worker(&self, new_expr: &NewExpr) -> bool {
@@ -446,7 +448,9 @@ pub mod needs_refactor {
 
   impl Extend<WorkerSyntax> for WorkerSyntaxList {
     fn extend<T: IntoIterator<Item = WorkerSyntax>>(&mut self, iter: T) {
-      self.0.extend(iter);
+      for i in iter {
+        self.push(i);
+      }
     }
   }
 
@@ -457,15 +461,24 @@ pub mod needs_refactor {
   }
 
   #[derive(Debug, PartialEq, Eq)]
-  pub enum WorkerSyntax {
-    New(WorkerName),
-    // Call(WorkerName),
+  pub struct WorkerSyntax {
+    word: JsWord,
+    ctxt: Option<SyntaxContext>,
   }
 
-  #[derive(Debug, PartialEq, Eq)]
-  pub enum WorkerName {
-    Global(JsWord),
-    Var(Id),
+  impl WorkerSyntax {
+    pub fn new(word: JsWord, ctxt: Option<SyntaxContext>) -> Self {
+      Self { word, ctxt }
+    }
+
+    pub fn matches(&self, ident: &Ident) -> bool {
+      if let Some(ctxt) = self.ctxt {
+        let (word, id_ctxt) = ident.to_id();
+        word == self.word && id_ctxt == ctxt
+      } else {
+        self.word == ident.sym
+      }
+    }
   }
 
   pub struct WorkerSyntaxScanner<'a> {
@@ -484,7 +497,7 @@ pub mod needs_refactor {
         && let Some(source) = captures.get(3) {
           caps.push((ids.as_str(), source.as_str()));
         } else {
-          result.push(WorkerSyntax::New(WorkerName::Global(JsWord::from(*s))))
+          result.push(WorkerSyntax::new(JsWord::from(*s), None))
         }
       }
       Self { result, caps }
@@ -512,22 +525,22 @@ pub mod needs_refactor {
               .iter()
               .filter_map(|spec| {
                 spec.as_named().filter(|named| {
-                  named
-                    .imported
-                    .as_ref()
-                    .map(|name| match name {
+                  if let Some(imported) = &named.imported {
+                    let s = match imported {
                       ModuleExportName::Ident(s) => &s.sym,
                       ModuleExportName::Str(s) => &s.value,
-                    })
-                    .filter(|s| *s == cap.0)
-                    .is_some()
+                    };
+                    &*s == cap.0
+                  } else {
+                    &*named.local.sym == cap.0
+                  }
                 })
               })
               .map(|spec| spec.local.to_id())
               .collect::<Vec<Id>>()
           }
         })
-        .map(|pair| WorkerSyntax::New(WorkerName::Var(pair)));
+        .map(|pair| WorkerSyntax::new(pair.0, Some(pair.1)));
       self.result.extend(found);
     }
   }
