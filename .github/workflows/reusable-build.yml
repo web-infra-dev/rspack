@@ -85,6 +85,15 @@ jobs:
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
 
+      # Compile dependencies with optimization to make tests run faster
+      - name: Add optimization to debug profile
+        if: inputs.profile == 'debug'
+        shell: bash
+        run: |
+          echo '[profile.dev.package."*"]' >> Cargo.toml
+          echo 'opt-level = 3' >> Cargo.toml
+          echo 'codegen-units = 1' >> Cargo.toml
+
       # Linux
 
       - name: Build x86_64-unknown-linux-gnu in Docker
@@ -196,7 +205,7 @@ jobs:
     needs: [select, build]
     if: inputs.test
     runs-on: ${{ needs.select.outputs.host }}
-    timeout-minutes: 60
+    timeout-minutes: 30
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -226,21 +235,21 @@ jobs:
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
-        timeout-minutes: 30 # Tests should finish within 30 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: pnpm run test:ci
 
       ### x86_64-apple-darwin
 
       - name: Test x86_64-apple-darwin
-        timeout-minutes: 30 # Tests should finish within 30 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: pnpm run test:ci
 
       ### x86_64-pc-windows-msvc
 
       - name: Test x86_64-pc-windows-msvc
-        timeout-minutes: 30 # Tests should finish within 30 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 
