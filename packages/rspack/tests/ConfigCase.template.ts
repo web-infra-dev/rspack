@@ -66,7 +66,6 @@ export const describeCases = config => {
 		afterEach(() => {
 			stderr.restore();
 		});
-		jest.setTimeout(20000);
 
 		for (const category of categories) {
 			// eslint-disable-next-line no-loop-func
