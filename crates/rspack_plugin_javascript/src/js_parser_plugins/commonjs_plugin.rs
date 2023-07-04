@@ -41,6 +41,6 @@ impl JsParserPlugin for CommonJsPlugin {
 
     ctx
       .parser
-      .register_with_key("module.loaded", Box::new(ModuleIdHandler));
+      .register_with_key("module.loaded", Box::new(ModuleLoadedHandler));
   }
 }
