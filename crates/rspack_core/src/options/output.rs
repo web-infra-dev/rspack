@@ -315,14 +315,7 @@ impl Filename {
             .map(|p| format!(".{}", p.to_string_lossy()))
             .unwrap_or_default(),
         );
-        // if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
-        //   template = template.replace(BASE_PLACEHOLDER, &base);
-        // }
         template = template.replace(NAME_PLACEHOLDER, &file.with_extension("").to_string_lossy());
-        // dbg!(&template);
-        // if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-        //   template = template.replace(NAME_PLACEHOLDER, &name);
-        // }
         template = template.replace(
           PATH_PLACEHOLDER,
           &file
