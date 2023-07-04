@@ -267,45 +267,91 @@ const SIMPLE_PRINTERS = {
 		}
 	},
 
-	"assetsTh!": (_, { bold }) => {
-		return `${bold("Asset")} ${bold("Size")} ${bold("Chunks")} ${bold(
-			"Chunk Names"
-		)}`;
+	"compilation.assetsTh!": (_, { bold, compilation }) => {
+		if (compilation.assets && compilation.assets.length > 0) {
+			return `${bold("Asset")}|${bold("Size")}|${bold("Chunks")}|${bold(
+				"Chunk Names"
+			)}`;
+		}
 	},
-	"asset.type": type => type,
-	"asset.name": (name, { formatFilename, asset: { isOverSizeLimit } }) =>
-		formatFilename(name, isOverSizeLimit),
+	// "asset.type": type => type,
+	"asset.name": (name, { yellow, green, isOverSizeLimit, assetsTable }) => {
+		if (name.length > assetsTable[0].colSize) {
+			assetsTable[0].colSize = name.length;
+		}
+		return isOverSizeLimit ? yellow(name) : green(name);
+	},
 	"asset.size": (
 		size,
-		{ asset: { isOverSizeLimit }, yellow, green, formatSize }
-	) => (isOverSizeLimit ? yellow(formatSize(size)) : formatSize(size)),
-	"asset.emitted": (emitted, { green, formatFlag }) =>
-		emitted ? green(formatFlag("emitted")) : undefined,
-	"asset.comparedForEmit": (comparedForEmit, { yellow, formatFlag }) =>
-		comparedForEmit ? yellow(formatFlag("compared for emit")) : undefined,
-	"asset.cached": (cached, { green, formatFlag }) =>
-		cached ? green(formatFlag("cached")) : undefined,
-	"asset.isOverSizeLimit": (isOverSizeLimit, { yellow, formatFlag }) =>
-		isOverSizeLimit ? yellow(formatFlag("big")) : undefined,
-
+		{ yellow, formatSize, assetsTable, isOverSizeLimit }
+	) => {
+		const text = formatSize(size);
+		if (text.length > assetsTable[1].colSize) {
+			assetsTable[1].colSize = text.length;
+		}
+		return isOverSizeLimit ? yellow(text) : text;
+	},
+	"asset.emitted": (
+		emitted,
+		{ green, formatFlag, _index, assetsStatusLen }
+	) => {
+		if (!emitted) {
+			assetsStatusLen[_index] = 0;
+		} else {
+		}
+		emitted ? green(formatFlag("emitted")) : undefined;
+	},
+	// "asset.comparedForEmit": (comparedForEmit, { yellow, formatFlag }) =>
+	// 	comparedForEmit ? yellow(formatFlag("compared for emit")) : undefined,
+	// "asset.cached": (cached, { green, formatFlag }) =>
+	// 	cached ? green(formatFlag("cached")) : undefined,
+	"asset.isOverSizeLimit": (
+		isOverSizeLimit,
+		{ assetsTable, yellow, formatFlag }
+	) => {
+		const text = formatFlag("big");
+		if (text.length > assetsTable[4].colSize) {
+			assetsTable[4].colSize = text.length;
+		}
+		isOverSizeLimit ? yellow(formatFlag("big")) : undefined;
+	},
 	"asset.info.immutable": (immutable, { green, formatFlag }) =>
-		immutable ? green(formatFlag("immutable")) : undefined,
-	"asset.info.javascriptModule": (javascriptModule, { formatFlag }) =>
-		javascriptModule ? formatFlag("javascript module") : undefined,
-	"asset.info.sourceFilename": (sourceFilename, { formatFlag }) =>
-		sourceFilename
-			? formatFlag(
-					sourceFilename === true
-						? "from source file"
-						: `from: ${sourceFilename}`
-			  )
-			: undefined,
+		immutable && inSummary ? green(formatFlag("immutable")) : undefined,
+	// "asset.info.javascriptModule": (javascriptModule, { formatFlag }) =>
+	// 	javascriptModule ? formatFlag("javascript module") : undefined,
+	// "asset.info.sourceFilename": (sourceFilename, { formatFlag }) =>
+	// 	sourceFilename
+	// 		? formatFlag(
+	// 				sourceFilename === true
+	// 					? "from source file"
+	// 					: `from: ${sourceFilename}`
+	// 		  )
+	// 		: undefined,
 	"asset.info.development": (development, { green, formatFlag }) =>
-		development ? green(formatFlag("dev")) : undefined,
+		development && inSummary ? green(formatFlag("dev")) : undefined,
 	"asset.info.hotModuleReplacement": (
 		hotModuleReplacement,
 		{ green, formatFlag }
 	) => (hotModuleReplacement ? green(formatFlag("hmr")) : undefined),
+	"asset.summary!": (_, context, printer) => {
+		const assetsTable = context.assetsTable;
+		const asset = context.assets[context["_index"]];
+		const emittedText = asset.emitted
+			? printer.print("asset.emitted", asset.emitted, {
+					...context,
+					inSummary: true
+			  })
+			: "";
+		const infoText = printer.print("asset.info", asset.info, {
+			...context,
+			inSummary: true
+		});
+		const text = `${emittedText}${infoText}`;
+		if (text.length > assetsTable[3].colSize) {
+			assetsTable[3].colSize = text.length;
+		}
+		return `${emittedText}${infoText}`;
+	},
 	"asset.separator!": () => "\n",
 	"asset.filteredRelated": (filteredRelated, { asset: { related } }) =>
 		filteredRelated > 0
@@ -745,24 +791,25 @@ const PREFERRED_ORDERS = {
 		"needAdditionalPass"
 	],
 	asset: [
-		"type",
+		// "type",
 		"name",
 		"size",
-		"chunks",
-		"auxiliaryChunks",
-		"emitted",
-		"comparedForEmit",
-		"cached",
-		"info",
+		// "chunks",
+		// "auxiliaryChunks",
+		// "emitted",
+		// "comparedForEmit",
+		// "cached",
+		"summary!",
+		// "info",
 		"isOverSizeLimit",
-		"chunkNames",
-		"auxiliaryChunkNames",
-		"chunkIdHints",
-		"auxiliaryChunkIdHints",
-		"related",
-		"filteredRelated",
-		"children",
-		"filteredChildren"
+		"chunkNames"
+		// "auxiliaryChunkNames",
+		// "chunkIdHints",
+		// "auxiliaryChunkIdHints",
+		// "related",
+		// "filteredRelated",
+		// "children",
+		// "filteredChildren"
 	],
 	"asset.info": [
 		"immutable",
@@ -1349,6 +1396,15 @@ class DefaultStatsPrinterPlugin {
 									AVAILABLE_FORMATS[format](content, context, ...args);
 							}
 							context.timeReference = compilation.time;
+							const assetsTable = [
+								{ value: "Asset", colSize: 0, align: "right" },
+								{ value: "Size", colSize: 0, align: "right" },
+								{ value: "Chunks", colSize: 0, align: "right" },
+								{ value: " ", colSize: 0, align: "left", indexedSize: [] },
+								{ value: " ", colSize: 0, align: "left" },
+								{ value: "Chunk Names", colSize: 0, align: "left" }
+							];
+							context.assetsTable = assetsTable;
 						});
 
 					for (const key of Object.keys(SIMPLE_PRINTERS)) {
