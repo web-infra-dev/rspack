@@ -173,12 +173,11 @@ impl ModuleGraphModule {
   }
 
   pub fn get_exports_argument(&self) -> &str {
-    "exports"
-    // self
-    //   .build_meta
-    //   .as_ref()
-    //   .map(|m| m.exports_argument)
-    //   .unwrap_or("exports")
+    self
+      .build_meta
+      .as_ref()
+      .map(|m| m.exports_argument)
+      .unwrap_or("exports")
   }
 
   pub fn get_module_argument(&self) -> &str {

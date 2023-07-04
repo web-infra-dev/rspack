@@ -1,8 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./a.js": function (module, exports, __webpack_require__) {
+"./a.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
 __webpack_require__.el(/* ./bar */"./bar.js").then(__webpack_require__.bind(__webpack_require__, /* ./bar */"./bar.js")).then((mod)=>{
     console.log(mod);
 });
@@ -15,9 +15,9 @@ exports.test = 30;
     module.exports = res;
 } // export default function () {}
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_foo__WEBPACK_IMPORTED_MODULE_0_);
 

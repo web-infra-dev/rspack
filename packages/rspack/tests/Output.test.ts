@@ -4,7 +4,6 @@ import { Compiler, getNormalizedRspackOptions, rspack } from "../src";
 const path = require("path");
 
 describe("Output", () => {
-	jest.setTimeout(20000);
 	function compile(entry: string, options, callback) {
 		const noOutputPath = !options.output || !options.output.path;
 

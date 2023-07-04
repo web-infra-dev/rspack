@@ -8,10 +8,10 @@ exports["default"] = void 0;
 /* eslint-disable no-template-curly-in-string */ var _default = {};
 exports["default"] = _default;
 },
-"./antd/index.ts": function (module, exports, __webpack_require__) {
+"./antd/index.ts": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'locales': function() { return locales; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'locales': function() { return locales; }});
 /* harmony import */var _locale_zh__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../locale_zh */"./locale_zh.ts");
 
 const locales = {
@@ -19,19 +19,19 @@ const locales = {
 };
 
 },
-"./index.ts": function (module, exports, __webpack_require__) {
+"./index.ts": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'test': function() { return test; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'test': function() { return test; }});
 /* harmony import */var _antd_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./antd/index */"./antd/index.ts");
 
 _antd_index__WEBPACK_IMPORTED_MODULE_0_["locales"].zh_CN;
  function test() {}
 },
-"./locale_zh.ts": function (module, exports, __webpack_require__) {
+"./locale_zh.ts": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./zh_locale */"./zh_locale.js");
 /* harmony import */var _zh_locale__WEBPACK_IMPORTED_MODULE_0__default = /*#__PURE__*/__webpack_require__.n(_zh_locale__WEBPACK_IMPORTED_MODULE_0_);
 

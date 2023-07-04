@@ -41,7 +41,7 @@ macro_rules! call_js_function_with_napi_objects {
 // The creation of callback `this_compilation` is placed before the callback `compilation` because we want the JS hooks `this_compilation` to be called before the JS hooks `compilation`.
 
 #[macro_export]
-macro_rules! js_fn_into_theadsafe_fn {
+macro_rules! js_fn_into_threadsafe_fn {
   ($js_cb:ident, $env:expr) => {{
     use napi::NapiRaw;
     use rspack_napi_shared::threadsafe_function::ThreadsafeFunction;

@@ -108,13 +108,13 @@ impl Fold for ReactHmrFolder {
       return program;
     }
 
-    let rumtime_stmts = RUNTIME_CODE_AST.body.clone();
+    let runtime_stmts = RUNTIME_CODE_AST.body.clone();
 
     match program {
       Program::Module(ref mut m) => m
         .body
-        .extend(rumtime_stmts.into_iter().map(ModuleItem::Stmt)),
-      Program::Script(ref mut s) => s.body.extend(rumtime_stmts),
+        .extend(runtime_stmts.into_iter().map(ModuleItem::Stmt)),
+      Program::Script(ref mut s) => s.body.extend(runtime_stmts),
     };
 
     program

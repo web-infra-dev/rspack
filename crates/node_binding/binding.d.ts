@@ -373,6 +373,7 @@ export interface JsStatsWarning {
 
 export interface NodeFS {
   writeFile: (...args: any[]) => any
+  removeFile: (...args: any[]) => any
   mkdir: (...args: any[]) => any
   mkdirp: (...args: any[]) => any
 }

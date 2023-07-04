@@ -4,19 +4,19 @@ it("should be able to load package without side effects where modules are unused
     __webpack_require__(/* ./module */"./module.js");
 });
 },
-"./module.js": function (module, exports, __webpack_require__) {
+"./module.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'test': function() { return test; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'test': function() { return test; }});
 /* harmony import */var _package__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./package */"./package/index.js");
 
 var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_["a"];
  function test() {}
 },
-"./package/index.js": function (module, exports, __webpack_require__) {
+"./package/index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'a': function() { return a; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
 
  function a() {
     return 42;

@@ -56,7 +56,7 @@ class Rspack {
 			if (tries === maxTries - 1) {
 				throw new Error("outof max retry time");
 			}
-			await sleep(50);
+			await sleep(200);
 		}
 	}
 }
@@ -118,10 +118,29 @@ export const rspackFixtures: Fixtures<
 				if (!rspack) {
 					const port = 8000 + workerIndex;
 					rspack = new Rspack(projectDir, function (config) {
+						// rewrite port
 						if (!config.devServer) {
 							config.devServer = {};
 						}
 						config.devServer.port = port;
+
+						// set default context
+						if (!config.context) {
+							config.context = projectDir;
+						}
+
+						// set default define
+						if (!config.builtins) {
+							config.builtins = {};
+						}
+						config.builtins.define = Object.assign(
+							{
+								"process.env.NODE_ENV": JSON.stringify(
+									config.mode || "development"
+								)
+							},
+							config.builtins.define
+						);
 
 						return handleRspackConfig(config);
 					});

@@ -1,25 +1,25 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./app.js": function (module, exports, __webpack_require__) {
+"./app.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
-__webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0_, exports);
+__webpack_require__.es(_lib__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 
  // export {
  //   result as test
  // }
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _app__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./app */"./app.js");
 
 (0, _app__WEBPACK_IMPORTED_MODULE_0_["something"])(); // a;
 },
-"./lib.js": function (module, exports, __webpack_require__) {
+"./lib.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'something': function() { return something; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'something': function() { return something; }});
  const secret = "888";
  const result = 20000;
  const something = function() {};

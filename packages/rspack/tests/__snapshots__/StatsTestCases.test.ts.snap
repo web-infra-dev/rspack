@@ -146,7 +146,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "c323b86ee3052ab3",
+  "hash": "7c1bd6e394346901",
   "modules": [
     {
       "assets": [],
@@ -222,7 +222,7 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: c323b86ee3052ab3
+"Hash: 7c1bd6e394346901
              Asset       Size      Chunks             Chunk Names
       main.xxxx.js   1.08 KiB        main  [emitted]  main
 dynamic_js.xxxx.js  138 bytes  dynamic_js  [emitted]  
@@ -1519,7 +1519,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
     },
   ],
   "errorsCount": 1,
-  "hash": "9f9dba5b4f2795cf",
+  "hash": "8fe47154440917b9",
   "modules": [
     {
       "assets": [],
@@ -1595,7 +1595,7 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: 9f9dba5b4f2795cf
+"Hash: 8fe47154440917b9
 PublicPath: auto
     Asset       Size  Chunks             Chunk Names
 bundle.js  725 bytes    main  [emitted]  main
@@ -1738,7 +1738,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
     },
   ],
   "errorsCount": 1,
-  "hash": "9a82bf4fca1bd6e7",
+  "hash": "2c0e25edbb585e88",
   "modules": [
     {
       "assets": [],
@@ -1814,7 +1814,7 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: 9a82bf4fca1bd6e7
+"Hash: 2c0e25edbb585e88
     Asset       Size  Chunks             Chunk Names
 bundle.js  741 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
@@ -1913,7 +1913,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
   },
   "errors": [],
   "errorsCount": 0,
-  "hash": "c3fe901c7c8d84a1",
+  "hash": "a0f78436a53490b7",
   "modules": [
     {
       "assets": [],
@@ -1958,7 +1958,7 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"Hash: c3fe901c7c8d84a1
+"Hash: a0f78436a53490b7
     Asset       Size  Chunks             Chunk Names
 bundle.js  589 bytes    main  [emitted]  main
 Entrypoint main = bundle.js

@@ -1,26 +1,26 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./Layout.js": function (module, exports, __webpack_require__) {
+"./Layout.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'default': function() { return Layout; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'default': function() { return Layout; }});
 function Layout() {}
 },
-"./Something.js": function (module, exports, __webpack_require__) {
+"./Something.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'something': function() { return something; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'something': function() { return something; }});
  function something() {}
 },
-"./c.js": function (module, exports, __webpack_require__) {
+"./c.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'cccc': function() { return cccc; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'cccc': function() { return cccc; }});
  function cccc() {}
 },
-"./export.js": function (module, exports, __webpack_require__) {
+"./export.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'cccc': function() { return _c__WEBPACK_IMPORTED_MODULE_2_["cccc"]; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'cccc': function() { return _c__WEBPACK_IMPORTED_MODULE_2_["cccc"]; }});
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
 /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
 /* harmony import */var _c__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./c */"./c.js");
@@ -31,9 +31,9 @@ L.something = _Something__WEBPACK_IMPORTED_MODULE_1_["something"];
 
  var LL = L;
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _export__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./export */"./export.js");
 
 (0, _export__WEBPACK_IMPORTED_MODULE_0_["cccc"])();
