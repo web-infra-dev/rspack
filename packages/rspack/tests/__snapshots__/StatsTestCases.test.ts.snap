@@ -2001,7 +2001,7 @@ chunk {main} bundle.js (main) [entry]
 rspack compiled successfully (cc09525e55ecef0acf29)"
 `;
 
-exports[`StatsTestCases should print correct stats for simple-more-info 1`] = `
+exports[`StatsTestCases should print correct stats for simple-module-source 1`] = `
 {
   "assets": [
     {
@@ -2026,7 +2026,6 @@ exports[`StatsTestCases should print correct stats for simple-more-info 1`] = `
       "bundle.js",
     ],
   },
-  "builtAt": 1688441537444,
   "chunks": [
     {
       "children": [],
@@ -2043,7 +2042,7 @@ exports[`StatsTestCases should print correct stats for simple-more-info 1`] = `
             "main",
           ],
           "id": "10",
-          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-more-info/index.js",
+          "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
           "issuerPath": [],
           "moduleType": "javascript/auto",
           "name": "./index.js",
@@ -2092,7 +2091,7 @@ exports[`StatsTestCases should print correct stats for simple-more-info 1`] = `
         "main",
       ],
       "id": "10",
-      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-more-info/index.js",
+      "identifier": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/index.js",
       "issuerPath": [],
       "moduleType": "javascript/auto",
       "name": "./index.js",
@@ -2122,22 +2121,19 @@ exports[`StatsTestCases should print correct stats for simple-more-info 1`] = `
       "name": "main",
     },
   },
-  "outputPath": "<PROJECT_ROOT>/tests/statsCases/simple-more-info/dist",
+  "outputPath": "<PROJECT_ROOT>/tests/statsCases/simple-module-source/dist",
   "publicPath": "",
-  "time": 9,
   "warnings": [],
   "warningsCount": 0,
 }
 `;
 
-exports[`StatsTestCases should print correct stats for simple-more-info 2`] = `
+exports[`StatsTestCases should print correct stats for simple-module-source 2`] = `
 "Hash: 52f710bdda1f0ee4
-Time: 9ms
     Asset       Size  Chunks             Chunk Names
 bundle.js  174 bytes    main  [emitted]  main
 Entrypoint main = bundle.js
-[10] ./index.js 1 bytes {main}
-    entry ./index "
+[10] ./index.js 1 bytes {main}"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
