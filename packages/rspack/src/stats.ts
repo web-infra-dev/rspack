@@ -167,7 +167,6 @@ export class Stats {
 		});
 		const useColors = optionsOrFallback(options.colors, false);
 		const data: any = this.toJson(options, true);
-		console.log(data);
 
 		const statsPrinter = this.compilation.createStatsPrinter(options);
 		const result = statsPrinter.print("compilation", data, {});

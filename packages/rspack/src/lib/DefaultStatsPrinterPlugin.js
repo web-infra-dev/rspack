@@ -5,9 +5,11 @@
 
 "use strict";
 
+const SizeFormatHelpers = require("./SizeFormatHelpers");
+
 /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("./StatsPrinter")} StatsPrinter */
-/** @typedef {import("./StatsPrinter").StatsPrinterContext} StatsPrinterContext */
+/** @typedef {import("../StatsPrinter")} StatsPrinter */
+/** @typedef {import("../StatsPrinter").StatsPrinterContext} StatsPrinterContext */
 
 const DATA_URI_CONTENT_LENGTH = 16;
 
@@ -154,44 +156,44 @@ const SIMPLE_PRINTERS = {
 	// 		  )
 	// 		: undefined,
 	"compilation.hash": (hash, { bold }) =>
-		hash ? `Hash: ${bold(hash)}\n` : undefined,
+		hash ? `Hash: ${bold(hash)}` : undefined,
 	"compilation.version": (version, { bold }) =>
-		version ? `Version: ${bold(version)}\n` : undefined,
-	"compilation.time": (time, { bold, formatTime }) =>
-		time ? `Time: ${bold(formatTime(time))}ms\n` : undefined,
+		version ? `Version: ${bold(version)}` : undefined,
+	"compilation.time": (time, { bold }) =>
+		time ? `Time: ${bold(time)}ms` : undefined,
 	"compilation.builtAt": (builtAt, { bold, formatDateTime }) =>
-		builtAt ? `Built at: ${bold(formatDateTime(builtAt))}\n` : undefined,
+		builtAt ? `Built at: ${bold(formatDateTime(builtAt))}` : undefined,
 	"compilation.env": (env, { bold }) =>
 		env
 			? `Environment (--env): ${bold(JSON.stringify(env, null, 2))}`
 			: undefined,
 	"compilation.publicPath": (publicPath, { bold }) =>
 		`PublicPath: ${bold(publicPath)}`,
-	// "compilation.entrypoints": (entrypoints, context, printer) =>
-	// 	Array.isArray(entrypoints)
-	// 		? undefined
-	// 		: printer.print(context.type, Object.values(entrypoints), {
-	// 				...context,
-	// 				chunkGroupKind: "Entrypoint"
-	// 		  }),
-	// "compilation.namedChunkGroups": (namedChunkGroups, context, printer) => {
-	// 	if (!Array.isArray(namedChunkGroups)) {
-	// 		const {
-	// 			compilation: { entrypoints }
-	// 		} = context;
-	// 		let chunkGroups = Object.values(namedChunkGroups);
-	// 		if (entrypoints) {
-	// 			chunkGroups = chunkGroups.filter(
-	// 				group =>
-	// 					!Object.prototype.hasOwnProperty.call(entrypoints, group.name)
-	// 			);
-	// 		}
-	// 		return printer.print(context.type, chunkGroups, {
-	// 			...context,
-	// 			chunkGroupKind: "Chunk Group"
-	// 		});
-	// 	}
-	// },
+	"compilation.entrypoints": (entrypoints, context, printer) =>
+		Array.isArray(entrypoints)
+			? undefined
+			: printer.print(context.type, Object.values(entrypoints), {
+					...context,
+					chunkGroupKind: "Entrypoint"
+			  }),
+	"compilation.namedChunkGroups": (namedChunkGroups, context, printer) => {
+		if (!Array.isArray(namedChunkGroups)) {
+			const {
+				compilation: { entrypoints }
+			} = context;
+			let chunkGroups = Object.values(namedChunkGroups);
+			if (entrypoints) {
+				chunkGroups = chunkGroups.filter(
+					group =>
+						!Object.prototype.hasOwnProperty.call(entrypoints, group.name)
+				);
+			}
+			return printer.print(context.type, chunkGroups, {
+				...context,
+				chunkGroupKind: "Chunk Group"
+			});
+		}
+	},
 	// "compilation.assetsByChunkName": () => "",
 
 	// "compilation.filteredModules": (
@@ -207,20 +209,18 @@ const SIMPLE_PRINTERS = {
 	// 		: undefined,
 	"compilation.filteredAssets": (filteredAssets, { compilation: { assets } }) =>
 		filteredAssets > 0
-			? `${moreCount(assets, filteredAssets)} ${plural(
-					filteredAssets,
-					"asset",
-					"assets"
-			  )}`
+			? ` ${moreCount(assets, filteredAssets)}${
+					filteredAssets.length > 0 ? " hidden" : ""
+			  }${filteredAssets === 1 ? " asset" : " assets"}`
 			: undefined,
-	"compilation.logging": (logging, context, printer) =>
-		Array.isArray(logging)
-			? undefined
-			: printer.print(
-					context.type,
-					Object.entries(logging).map(([name, value]) => ({ ...value, name })),
-					context
-			  ),
+	// "compilation.logging": (logging, context, printer) =>
+	// 	Array.isArray(logging)
+	// 		? undefined
+	// 		: printer.print(
+	// 				context.type,
+	// 				Object.entries(logging).map(([name, value]) => ({ ...value, name })),
+	// 				context
+	// 		  ),
 	"compilation.warningsInChildren!": (_, { yellow, compilation }) => {
 		if (
 			!compilation.children &&
@@ -267,6 +267,11 @@ const SIMPLE_PRINTERS = {
 		}
 	},
 
+	"assetsTh!": (_, { bold }) => {
+		return `${bold("Asset")} ${bold("Size")} ${bold("Chunks")} ${bold(
+			"Chunk Names"
+		)}`;
+	},
 	"asset.type": type => type,
 	"asset.name": (name, { formatFilename, asset: { isOverSizeLimit } }) =>
 		formatFilename(name, isOverSizeLimit),
@@ -329,33 +334,33 @@ const SIMPLE_PRINTERS = {
 		isValidId(id) ? formatModuleId(id) : undefined,
 	"module.name": (name, { bold }) => {
 		const [prefix, resource] = getModuleName(name);
-		return `${prefix || ""}${bold(resource || "")}`;
+		return `[${prefix || ""}${bold(resource || "")}]`;
 	},
 	"module.identifier": identifier => undefined,
 	"module.layer": (layer, { formatLayer }) =>
 		layer ? formatLayer(layer) : undefined,
-	"module.sizes": printSizes,
+	"module.size": size => SizeFormatHelpers.formatSize(size),
 	"module.chunks[]": (id, { formatChunkId }) => formatChunkId(id),
 	"module.depth": (depth, { formatFlag }) =>
-		depth !== null ? formatFlag(`depth ${depth}`) : undefined,
+		typeof depth === "number" ? formatFlag(`depth ${depth}`) : undefined,
 	"module.cacheable": (cacheable, { formatFlag, red }) =>
 		cacheable === false ? red(formatFlag("not cacheable")) : undefined,
-	"module.orphan": (orphan, { formatFlag, yellow }) =>
-		orphan ? yellow(formatFlag("orphan")) : undefined,
-	"module.runtime": (runtime, { formatFlag, yellow }) =>
-		runtime ? yellow(formatFlag("runtime")) : undefined,
+	// "module.orphan": (orphan, { formatFlag, yellow }) =>
+	// 	orphan ? yellow(formatFlag("orphan")) : undefined,
+	// "module.runtime": (runtime, { formatFlag, yellow }) =>
+	// 	runtime ? yellow(formatFlag("runtime")) : undefined,
 	"module.optional": (optional, { formatFlag, yellow }) =>
 		optional ? yellow(formatFlag("optional")) : undefined,
-	"module.dependent": (dependent, { formatFlag, cyan }) =>
-		dependent ? cyan(formatFlag("dependent")) : undefined,
-	"module.built": (built, { formatFlag, yellow }) =>
-		built ? yellow(formatFlag("built")) : undefined,
-	"module.codeGenerated": (codeGenerated, { formatFlag, yellow }) =>
-		codeGenerated ? yellow(formatFlag("code generated")) : undefined,
-	"module.buildTimeExecuted": (buildTimeExecuted, { formatFlag, green }) =>
-		buildTimeExecuted ? green(formatFlag("build time executed")) : undefined,
-	"module.cached": (cached, { formatFlag, green }) =>
-		cached ? green(formatFlag("cached")) : undefined,
+	// "module.dependent": (dependent, { formatFlag, cyan }) =>
+	// 	dependent ? cyan(formatFlag("dependent")) : undefined,
+	"module.built": (built, { formatFlag, green }) =>
+		built ? green(formatFlag("built")) : undefined,
+	// "module.codeGenerated": (codeGenerated, { formatFlag, yellow }) =>
+	// 	codeGenerated ? yellow(formatFlag("code generated")) : undefined,
+	// "module.buildTimeExecuted": (buildTimeExecuted, { formatFlag, green }) =>
+	// 	buildTimeExecuted ? green(formatFlag("build time executed")) : undefined,
+	// "module.cached": (cached, { formatFlag, green }) =>
+	// 	cached ? green(formatFlag("cached")) : undefined,
 	"module.assets": (assets, { formatFlag, magenta }) =>
 		assets && assets.length
 			? magenta(
@@ -364,18 +369,16 @@ const SIMPLE_PRINTERS = {
 					)
 			  )
 			: undefined,
+	"module.prefetched": (prefetched, { magenta, formatFlag }) =>
+		prefetched ? magenta(formatFlag("prefetched")) : undefined,
 	"module.warnings": (warnings, { formatFlag, yellow }) =>
-		warnings === true
-			? yellow(formatFlag("warnings"))
-			: warnings
+		warnings
 			? yellow(
 					formatFlag(`${warnings} ${plural(warnings, "warning", "warnings")}`)
 			  )
 			: undefined,
 	"module.errors": (errors, { formatFlag, red }) =>
-		errors === true
-			? red(formatFlag("errors"))
-			: errors
+		errors
 			? red(formatFlag(`${errors} ${plural(errors, "error", "errors")}`))
 			: undefined,
 	"module.providedExports": (providedExports, { formatFlag, cyan }) => {
@@ -438,31 +441,32 @@ const SIMPLE_PRINTERS = {
 			: undefined,
 	"module.separator!": () => "\n",
 
-	"moduleIssuer.id": (id, { formatModuleId }) => formatModuleId(id),
+	"moduleIssuer.id": (id, { formatFlag, compilation: { module } }) =>
+		formatFlag(id),
 	"moduleIssuer.profile.total": (value, { formatTime }) => formatTime(value),
 
 	"moduleReason.type": type => type,
-	"moduleReason.userRequest": (userRequest, { cyan }) =>
-		cyan(getResourceName(userRequest)),
-	"moduleReason.moduleId": (moduleId, { formatModuleId }) =>
-		isValidId(moduleId) ? formatModuleId(moduleId) : undefined,
+	"moduleReason.userRequest": (userRequest, { cyan }) => cyan(userRequest),
+	"moduleReason.moduleId": (moduleId, { formatFlag }) =>
+		// isValidId(moduleId) ? formatModuleId(moduleId) : undefined,
+		formatFlag(moduleId),
 	"moduleReason.module": (module, { magenta }) => magenta(module),
 	"moduleReason.loc": loc => loc,
 	"moduleReason.explanation": (explanation, { cyan }) => cyan(explanation),
-	"moduleReason.active": (active, { formatFlag }) =>
-		active ? undefined : formatFlag("inactive"),
-	"moduleReason.resolvedModule": (module, { magenta }) => magenta(module),
-	"moduleReason.filteredChildren": (
-		filteredChildren,
-		{ moduleReason: { children } }
-	) =>
-		filteredChildren > 0
-			? `${moreCount(children, filteredChildren)} ${plural(
-					filteredChildren,
-					"reason",
-					"reasons"
-			  )}`
-			: undefined,
+	// "moduleReason.active": (active, { formatFlag }) =>
+	// 	active ? undefined : formatFlag("inactive"),
+	// "moduleReason.resolvedModule": (module, { magenta }) => magenta(module),
+	// "moduleReason.filteredChildren": (
+	// 	filteredChildren,
+	// 	{ moduleReason: { children } }
+	// ) =>
+	// 	filteredChildren > 0
+	// 		? `${moreCount(children, filteredChildren)} ${plural(
+	// 				filteredChildren,
+	// 				"reason",
+	// 				"reasons"
+	// 		  )}`
+	// 		: undefined,
 
 	"module.profile.total": (value, { formatTime }) => formatTime(value),
 	"module.profile.resolving": (value, { formatTime }) =>
@@ -485,61 +489,67 @@ const SIMPLE_PRINTERS = {
 	"chunkGroup.name": (name, { bold }) => bold(name),
 	"chunkGroup.isOverSizeLimit": (isOverSizeLimit, { formatFlag, yellow }) =>
 		isOverSizeLimit ? yellow(formatFlag("big")) : undefined,
-	"chunkGroup.assetsSize": (size, { formatSize }) =>
-		size ? formatSize(size) : undefined,
-	"chunkGroup.auxiliaryAssetsSize": (size, { formatSize }) =>
-		size ? `(${formatSize(size)})` : undefined,
-	"chunkGroup.filteredAssets": (n, { chunkGroup: { assets } }) =>
-		n > 0
-			? `${moreCount(assets, n)} ${plural(n, "asset", "assets")}`
-			: undefined,
-	"chunkGroup.filteredAuxiliaryAssets": (
-		n,
-		{ chunkGroup: { auxiliaryAssets } }
-	) =>
-		n > 0
-			? `${moreCount(auxiliaryAssets, n)} auxiliary ${plural(
-					n,
-					"asset",
-					"assets"
-			  )}`
-			: undefined,
+	// "chunkGroup.assetsSize": (size, { formatSize }) =>
+	// 	size ? formatSize(size) : undefined,
+	// "chunkGroup.auxiliaryAssetsSize": (size, { formatSize }) =>
+	// 	size ? `(${formatSize(size)})` : undefined,
+	// "chunkGroup.filteredAssets": (n, { chunkGroup: { assets } }) =>
+	// 	n > 0
+	// 		? `${moreCount(assets, n)} ${plural(n, "asset", "assets")}`
+	// 		: undefined,
+	// "chunkGroup.filteredAuxiliaryAssets": (
+	// 	n,
+	// 	{ chunkGroup: { auxiliaryAssets } }
+	// ) =>
+	// 	n > 0
+	// 		? `${moreCount(auxiliaryAssets, n)} auxiliary ${plural(
+	// 				n,
+	// 				"asset",
+	// 				"assets"
+	// 		  )}`
+	// 		: undefined,
 	"chunkGroup.is!": () => "=",
 	"chunkGroupAsset.name": (asset, { green }) => green(asset),
-	"chunkGroupAsset.size": (size, { formatSize, chunkGroup }) =>
-		chunkGroup.assets.length > 1 ||
-		(chunkGroup.auxiliaryAssets && chunkGroup.auxiliaryAssets.length > 0)
-			? formatSize(size)
-			: undefined,
-	"chunkGroup.children": (children, context, printer) =>
-		Array.isArray(children)
-			? undefined
-			: printer.print(
-					context.type,
-					Object.keys(children).map(key => ({
-						type: key,
-						children: children[key]
-					})),
-					context
-			  ),
-	"chunkGroupChildGroup.type": type => `${type}:`,
-	"chunkGroupChild.assets[]": (file, { formatFilename }) =>
-		formatFilename(file),
-	"chunkGroupChild.chunks[]": (id, { formatChunkId }) => formatChunkId(id),
-	"chunkGroupChild.name": name => (name ? `(name: ${name})` : undefined),
-
-	"chunk.id": (id, { formatChunkId }) => formatChunkId(id),
-	"chunk.files[]": (file, { formatFilename }) => formatFilename(file),
-	"chunk.names[]": name => name,
+	// "chunkGroupAsset.size": (size, { formatSize, chunkGroup }) =>
+	// 	chunkGroup.assets.length > 1 ||
+	// 	(chunkGroup.auxiliaryAssets && chunkGroup.auxiliaryAssets.length > 0)
+	// 		? formatSize(size)
+	// 		: undefined,
+	// "chunkGroup.children": (children, context, printer) =>
+	// 	Array.isArray(children)
+	// 		? undefined
+	// 		: printer.print(
+	// 				context.type,
+	// 				Object.keys(children).map(key => ({
+	// 					type: key,
+	// 					children: children[key]
+	// 				})),
+	// 				context
+	// 		  ),
+	// "chunkGroupChildGroup.type": type => `${type}:`,
+	// "chunkGroupChild.assets[]": (file, { formatFilename }) =>
+	// 	formatFilename(file),
+	// "chunkGroupChild.chunks[]": (id, { formatChunkId }) => formatChunkId(id),
+	// "chunkGroupChild.name": name => (name ? `(name: ${name})` : undefined),
+	"chunk.id": id => {
+		let buf = "";
+		if (chunk.id < 1000) buf += " ";
+		if (chunk.id < 100) buf += " ";
+		if (chunk.id < 10) buf += " ";
+		return (buf += `{${yellow(id)}}`);
+	},
+	"chunk.files[]": (file, { green }) => green(file.join(", ")),
+	"chunk.names[]": names =>
+		names.length ? `(${names.join(", ")})` : undefined,
 	"chunk.idHints[]": name => name,
 	"chunk.runtime[]": name => name,
 	"chunk.sizes": (sizes, context) => printSizes(sizes, context),
-	"chunk.parents[]": (parents, context) =>
-		context.formatChunkId(parents, "parent"),
-	"chunk.siblings[]": (siblings, context) =>
-		context.formatChunkId(siblings, "sibling"),
-	"chunk.children[]": (children, context) =>
-		context.formatChunkId(children, "child"),
+	// "chunk.parents[]": (parents, context) =>
+	// 	context.formatChunkId(parents, "parent"),
+	// "chunk.siblings[]": (siblings, context) =>
+	// 	context.formatChunkId(siblings, "sibling"),
+	// "chunk.children[]": (children, context) =>
+	// 	context.formatChunkId(children, "child"),
 	"chunk.childrenByOrder": (childrenByOrder, context, printer) =>
 		Array.isArray(childrenByOrder)
 			? undefined
@@ -573,9 +583,10 @@ const SIMPLE_PRINTERS = {
 			: undefined,
 	"chunk.separator!": () => "\n",
 
+	"chunkOrigin.reasons": reasons =>
+		reasons.length ? yellow(reasons.join(" ")) : undefined,
 	"chunkOrigin.request": request => request,
-	"chunkOrigin.moduleId": (moduleId, { formatModuleId }) =>
-		isValidId(moduleId) ? formatModuleId(moduleId) : undefined,
+	"chunkOrigin.moduleId": (moduleId, { formatFlag }) => formatFlag(moduleId),
 	"chunkOrigin.moduleName": (moduleName, { bold }) => bold(moduleName),
 	"chunkOrigin.loc": loc => loc,
 
@@ -714,6 +725,7 @@ const PREFERRED_ORDERS = {
 		"builtAt",
 		"env",
 		"publicPath",
+		"assetsTh!",
 		"assets",
 		"filteredAssets",
 		"entrypoints",
@@ -782,7 +794,7 @@ const PREFERRED_ORDERS = {
 		"identifier",
 		"id",
 		"layer",
-		"sizes",
+		"size",
 		"chunks",
 		"depth",
 		"cacheable",
@@ -800,12 +812,17 @@ const PREFERRED_ORDERS = {
 		"children",
 		"filteredChildren",
 		"providedExports",
+		"separator!",
 		"usedExports",
+		"separator!",
 		"optimizationBailout",
+		"separator!",
 		"reasons",
+		"separator!",
 		"filteredReasons",
 		"issuerPath",
 		"profile",
+		"separator!",
 		"modules",
 		"filteredModules"
 	],
@@ -1218,10 +1235,10 @@ const AVAILABLE_FORMATS = {
 			times = [time / 2, time / 4, time / 8, time / 16];
 		}
 		if (time < times[3]) return `${time}ms`;
-		else if (time < times[2]) return bold(`${time}ms`);
-		else if (time < times[1]) return green(`${time}ms`);
-		else if (time < times[0]) return yellow(`${time}ms`);
-		else return red(`${time}ms`);
+		else if (time < times[2]) return `${bold(time)}ms`;
+		else if (time < times[1]) return `${green(time)}ms`;
+		else if (time < times[0]) return `${yellow(time)}ms`;
+		else return `${red(time)}ms`;
 	},
 	formatError: e => {
 		// if (message.includes("\u001b[")) return message;
