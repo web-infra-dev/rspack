@@ -1,4 +1,5 @@
 const { spawn, spawnSync } = require("node:child_process");
+const path = require("node:path");
 const ls = spawn("node", ["-v"]);
 
 ls.stdout.on("data", data => {
@@ -25,9 +26,16 @@ ls.stderr.on("data", data => {
 function build() {
 	return new Promise((resolve, reject) => {
 		try {
-			const { status, error, stderr } = spawnSync("npx", ["rspack", "build"], {
-				stdio: "inherit"
-			});
+			const { status, error, stderr } = spawnSync(
+				"node",
+				[
+					path.resolve(__dirname, "../node_modules/@rspack/cli/bin/rspack"),
+					"build"
+				],
+				{
+					stdio: "inherit"
+				}
+			);
 			if (status !== 0) {
 				reject(stderr?.toString() || error);
 				return;
