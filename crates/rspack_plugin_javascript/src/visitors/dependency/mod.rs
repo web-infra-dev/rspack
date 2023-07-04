@@ -9,7 +9,6 @@ mod hot_module_replacement_scanner;
 mod import_meta_scanner;
 mod import_scanner;
 mod node_stuff_scanner;
-mod require_context_scanner;
 mod url_scanner;
 mod util;
 mod worker_scanner;
@@ -29,8 +28,7 @@ use self::{
   harmony_import_dependency_scanner::HarmonyImportDependencyScanner,
   hot_module_replacement_scanner::HotModuleReplacementScanner,
   import_meta_scanner::ImportMetaScanner, import_scanner::ImportScanner,
-  node_stuff_scanner::NodeStuffScanner, require_context_scanner::RequireContextScanner,
-  url_scanner::UrlScanner, worker_scanner::WorkerScanner,
+  node_stuff_scanner::NodeStuffScanner, url_scanner::UrlScanner, worker_scanner::WorkerScanner,
 };
 use crate::js_parser_plugins::{
   commonjs_plugin::CommonJsPlugin,
@@ -92,7 +90,6 @@ pub fn scan_dependencies(
     presentational_dependencies.extend(js_parser_context.presentational_dependencies);
     dependencies.extend(js_parser_context.dependencies);
 
-    program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut presentational_dependencies,
       &unresolved_ctxt,
