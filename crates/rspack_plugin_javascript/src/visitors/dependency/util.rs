@@ -74,16 +74,7 @@ pub(crate) mod expr_matcher {
     is_import_meta_webpack_hot_decline: "import.meta.webpackHot.decline",
     is_import_meta_url: "import.meta.url",
     is_import_meta: "import.meta",
-    is_navigator_service_worker_register: "navigator.serviceWorker.register",
   });
-}
-
-pub fn is_navigator_service_worker_register_call(node: &CallExpr) -> bool {
-  node
-    .callee
-    .as_expr()
-    .map(|expr| expr_matcher::is_navigator_service_worker_register(expr))
-    .unwrap_or_default()
 }
 
 pub fn is_require_context_call(node: &CallExpr) -> bool {

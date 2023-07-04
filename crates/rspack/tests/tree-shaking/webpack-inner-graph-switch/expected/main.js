@@ -1,8 +1,8 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./import-module.js": function (module, exports, __webpack_require__) {
+"./import-module.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'test': function() { return test; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'test': function() { return test; }});
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
 
  function test() {
@@ -20,10 +20,10 @@ it("should generate correct code when pure expressions are in dead branches", ()
     ]);
 });
 },
-"./module.js": function (module, exports, __webpack_require__) {
+"./module.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
 /* harmony import */var _some_module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./some-module */"./some-module.js");
 
 function getType(obj) {
@@ -59,10 +59,10 @@ function useDocument(obj) {
 
 var __WEBPACK_DEFAULT_EXPORT__ = doSomething;
 },
-"./some-module.js": function (module, exports, __webpack_require__) {
+"./some-module.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'Block': function() { return Block; }, 'Inline': function() { return Inline; }, 'Document': function() { return Document; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'Block': function() { return Block; }, 'Inline': function() { return Inline; }, 'Document': function() { return Document; }});
 class Block {
     static doSomething() {}
 }

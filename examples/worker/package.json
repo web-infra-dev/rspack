@@ -5,14 +5,10 @@
   "main": "example.js",
   "scripts": {
     "dev": "rspack serve",
-    "build": "rspack build",
-    "start": "serve"
+    "build": "rspack build"
   },
   "license": "MIT",
   "dependencies": {
     "@rspack/cli": "workspace:*"
-  },
-  "devDependencies": {
-    "serve": "14.1.2"
   }
 }

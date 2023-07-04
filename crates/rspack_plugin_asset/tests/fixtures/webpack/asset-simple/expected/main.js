@@ -1,7 +1,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _images_file_png__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./images/file.png */"./images/file.png");
 /* harmony import */var _images_file_jpg__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./images/file.jpg */"./images/file.jpg");
 /* harmony import */var _images_file_svg__WEBPACK_IMPORTED_MODULE_2_ = __webpack_require__(/* ./images/file.svg */"./images/file.svg");

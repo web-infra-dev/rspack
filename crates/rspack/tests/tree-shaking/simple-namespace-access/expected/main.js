@@ -1,17 +1,17 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _maths_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./maths.js */"./maths.js");
 /* TREE-SHAKING */ 
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_.xxx.test);
 console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_['square']);
 },
-"./maths.js": function (module, exports, __webpack_require__) {
+"./maths.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; }});
-__webpack_require__.d(exports, {'square': function() { return square; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; }});
+__webpack_require__.d(__webpack_exports__, {'square': function() { return square; }});
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test.js */"./test.js");
 // maths.js
 // This function isn't used anywhere, so
@@ -27,10 +27,10 @@ __webpack_require__.d(exports, {'square': function() { return square; }});
 }
 
 },
-"./test.js": function (module, exports, __webpack_require__) {
+"./test.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'test': function() { return test; }, 'ccc': function() { return ccc; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'test': function() { return test; }, 'ccc': function() { return ccc; }});
  function test() {}
  function ccc() {}
 },

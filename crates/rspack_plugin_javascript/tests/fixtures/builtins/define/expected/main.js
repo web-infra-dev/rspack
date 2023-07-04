@@ -1,7 +1,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./lib */"./lib.js");
 // import assert from "assert";
 // import { equal } from "assert";
@@ -250,10 +250,10 @@ console.log(console.log(console.log)); // TODO: recursive
  // assert.equal(wurst, unde);
  // assert.equal(suppe, wurst);
 },
-"./lib.js": function (module, exports, __webpack_require__) {
+"./lib.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'DO_NOT_CONVERTED7': function() { return DO_NOT_CONVERTED7; }, 'DO_NOT_CONVERTED9': function() { return DO_NOT_CONVERTED9; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'DO_NOT_CONVERTED7': function() { return DO_NOT_CONVERTED7; }, 'DO_NOT_CONVERTED9': function() { return DO_NOT_CONVERTED9; }});
 const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
 var __WEBPACK_DEFAULT_EXPORT__ = 401; // DO_NOT_CONVERTED8

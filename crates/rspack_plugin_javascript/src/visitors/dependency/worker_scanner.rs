@@ -1,100 +1,18 @@
 use std::hash::Hash;
 
-use once_cell::sync::Lazy;
-use regex::Regex;
 use rspack_core::{
   ChunkGroupOptions, CodeGeneratableDependency, ConstDependency, EntryOptions, ModuleDependency,
   ModuleIdentifier, OutputOptions, SpanExt,
 };
 use rspack_hash::RspackHash;
 use swc_core::common::Spanned;
-use swc_core::ecma::ast::{Id, ImportDecl, ModuleExportName, ObjectLit};
-use swc_core::ecma::atoms::JsWord;
+use swc_core::ecma::ast::ObjectLit;
 use swc_core::ecma::{
-  ast::{Expr, ExprOrSpread, Ident, Lit, NewExpr},
+  ast::{Expr, ExprOrSpread, Lit, NewExpr},
   visit::{noop_visit_type, Visit, VisitWith},
 };
 
-use super::url_scanner::match_new_url;
 use crate::dependency::WorkerDependency;
-
-static WORKER_FROM_REGEX: Lazy<Regex> =
-  Lazy::new(|| Regex::new(r"^(.+?)(\(\))?\s+from\s+(.+)$").expect("invalid regex"));
-
-#[derive(Debug, PartialEq, Eq)]
-enum WorkerSyntax {
-  New(WorkerName),
-  // Call(WorkerName),
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum WorkerName {
-  Global(JsWord),
-  Var(Id),
-}
-
-pub struct WorkerSyntaxScanner<'a> {
-  result: Vec<WorkerSyntax>,
-  caps: Vec<(&'a str, &'a str)>,
-}
-
-impl<'a> WorkerSyntaxScanner<'a> {
-  pub fn new(syntax: &'a [&'a str]) -> Self {
-    let mut result = Vec::new();
-    let mut caps = Vec::new();
-    for s in syntax {
-      if let Some(captures) = WORKER_FROM_REGEX.captures(s)
-      && let Some(ids) = captures.get(1)
-      && let Some(source) = captures.get(3) {
-        caps.push((ids.as_str(), source.as_str()));
-      } else {
-        result.push(WorkerSyntax::New(WorkerName::Global(JsWord::from(*s))))
-      }
-    }
-    Self { result, caps }
-  }
-}
-
-impl Visit for WorkerSyntaxScanner<'_> {
-  fn visit_import_decl(&mut self, decl: &ImportDecl) {
-    let source = &*decl.src.value;
-    let found = self
-      .caps
-      .iter()
-      .filter(|cap| cap.1 == source)
-      .flat_map(|cap| {
-        if cap.0 == "default" {
-          decl
-            .specifiers
-            .iter()
-            .filter_map(|spec| spec.as_default())
-            .map(|spec| spec.local.to_id())
-            .collect::<Vec<Id>>()
-        } else {
-          decl
-            .specifiers
-            .iter()
-            .filter_map(|spec| {
-              spec.as_named().filter(|named| {
-                named
-                  .imported
-                  .as_ref()
-                  .map(|name| match name {
-                    ModuleExportName::Ident(s) => &s.sym,
-                    ModuleExportName::Str(s) => &s.value,
-                  })
-                  .filter(|s| *s == cap.0)
-                  .is_some()
-              })
-            })
-            .map(|spec| spec.local.to_id())
-            .collect::<Vec<Id>>()
-        }
-      })
-      .map(|pair| WorkerSyntax::New(WorkerName::Var(pair)));
-    self.result.extend(found);
-  }
-}
 
 // TODO: should created by WorkerPlugin
 pub struct WorkerScanner<'a> {
@@ -103,7 +21,7 @@ pub struct WorkerScanner<'a> {
   index: usize,
   module_identifier: &'a ModuleIdentifier,
   output_options: &'a OutputOptions,
-  syntax: Vec<WorkerSyntax>,
+  syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
 }
 
 // new Worker(new URL("./foo.worker.js", import.meta.url));
@@ -111,7 +29,7 @@ impl<'a> WorkerScanner<'a> {
   pub fn new(
     module_identifier: &'a ModuleIdentifier,
     output_options: &'a OutputOptions,
-    syntax_scanner: WorkerSyntaxScanner,
+    syntax_list: &'a rspack_core::needs_refactor::WorkerSyntaxList,
   ) -> Self {
     Self {
       presentational_dependencies: Vec::new(),
@@ -119,7 +37,7 @@ impl<'a> WorkerScanner<'a> {
       index: 0,
       module_identifier,
       output_options,
-      syntax: syntax_scanner.result,
+      syntax_list,
     }
   }
 
@@ -190,11 +108,11 @@ impl<'a> WorkerScanner<'a> {
     &self,
     new_expr: &NewExpr,
   ) -> Option<(ParsedNewWorkerPath, Option<ParsedNewWorkerOptions>)> {
-    if self.match_new_worker(new_expr)
+    if self.syntax_list.match_new_worker(new_expr)
     && let Some(args) = &new_expr.args
     && let Some(expr_or_spread) = args.first()
     && let ExprOrSpread { spread: None, expr: box Expr::New(new_url_expr) } = expr_or_spread
-    && let Some((start, end, request)) = match_new_url(new_url_expr) {
+    && let Some((start, end, request)) = rspack_core::needs_refactor::match_new_url(new_url_expr) {
       let path = ParsedNewWorkerPath {
         range: (start, end),
         value: request,
@@ -204,19 +122,6 @@ impl<'a> WorkerScanner<'a> {
     } else {
       None
     }
-  }
-
-  fn find_worker_syntax(&self, ident: &Ident) -> Option<&WorkerSyntax> {
-    self.syntax.iter().find(|s| match s {
-      WorkerSyntax::New(name) => match name {
-        WorkerName::Global(n) => n == &ident.sym,
-        WorkerName::Var(id) => *id == ident.to_id(),
-      },
-    })
-  }
-
-  pub fn match_new_worker(&self, new_expr: &NewExpr) -> bool {
-    matches!(&*new_expr.callee, Expr::Ident(ident) if self.find_worker_syntax(ident).is_some())
   }
 }
 

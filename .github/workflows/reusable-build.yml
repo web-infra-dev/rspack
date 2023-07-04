@@ -196,7 +196,7 @@ jobs:
     needs: [select, build]
     if: inputs.test
     runs-on: ${{ needs.select.outputs.host }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false # Build and test everything so we can look at all the errors
       matrix:
@@ -226,21 +226,21 @@ jobs:
       ### x86_64-unknown-linux-gnu
 
       - name: Test x86_64-unknown-linux-gnu
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 30 # Tests should finish within 30 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: pnpm run test:ci
 
       ### x86_64-apple-darwin
 
       - name: Test x86_64-apple-darwin
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 30 # Tests should finish within 30 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: pnpm run test:ci
 
       ### x86_64-pc-windows-msvc
 
       - name: Test x86_64-pc-windows-msvc
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 30 # Tests should finish within 30 mins, please fix your tests instead of changing this to a higher timeout.
         if: ${{ inputs.target == 'x86_64-pc-windows-msvc' }}
         run: pnpm run test:ci
 

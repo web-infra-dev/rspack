@@ -1,7 +1,7 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./stuff */"./stuff.js");
 
 (0, _stuff__WEBPACK_IMPORTED_MODULE_0_["bar"])();
@@ -18,10 +18,10 @@ class UnusedClass {
 }
 console.log(getClass().name);
 },
-"./stuff.js": function (module, exports, __webpack_require__) {
+"./stuff.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'bar': function() { return bar; }, 'baz': function() { return Baz; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'bar': function() { return bar; }, 'baz': function() { return Baz; }});
  function foo() {
     console.log("outer foo");
 }

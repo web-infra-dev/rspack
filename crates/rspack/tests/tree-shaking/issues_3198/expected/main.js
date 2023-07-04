@@ -1,15 +1,15 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
+__webpack_require__.r(__webpack_exports__);
 /* harmony import */var _test__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test */"./test.js");
 
 _test__WEBPACK_IMPORTED_MODULE_0_["obj"]['test'] = 1;
 },
-"./test.js": function (module, exports, __webpack_require__) {
+"./test.js": function (module, __webpack_exports__, __webpack_require__) {
 'use strict';
-__webpack_require__.r(exports);
-__webpack_require__.d(exports, {'obj': function() { return obj; }});
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {'obj': function() { return obj; }});
  const obj = {};
 },
 
