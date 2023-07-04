@@ -2,7 +2,7 @@ use std::{
   collections::hash_map::DefaultHasher,
   fs,
   hash::{Hash, Hasher},
-  path::Path,
+  path::{Path, PathBuf},
 };
 
 use anyhow::Context;
@@ -190,6 +190,8 @@ impl Plugin for HtmlPlugin {
 
     if let Some(favicon) = &self.config.favicon {
       let url = parse_to_url(favicon);
+      let favicon_file_path = PathBuf::from(config.get_relative_path(compilation, favicon));
+
       let resolved_favicon = AsRef::<Path>::as_ref(&compilation.options.context).join(url.path());
       let content = fs::read(resolved_favicon).context(format!(
         "failed to read `{}` from `{}`",
@@ -197,7 +199,7 @@ impl Plugin for HtmlPlugin {
         &compilation.options.context
       ))?;
       compilation.emit_asset(
-        favicon.clone(),
+        favicon_file_path.to_string_lossy().to_string(),
         CompilationAsset::from(RawSource::from(content).boxed()),
       );
     }

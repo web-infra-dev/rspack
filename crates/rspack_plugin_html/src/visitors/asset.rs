@@ -1,3 +1,6 @@
+use std::io::{self, Write};
+use std::path::PathBuf;
+
 use itertools::Itertools;
 use rspack_core::Compilation;
 use swc_core::{common::DUMMY_SP, ecma::atoms::JsWord};
@@ -155,10 +158,16 @@ impl VisitMut for AssetWriter<'_, '_> {
 
         // add favicon
         if let Some(favicon) = &self.config.favicon {
-          let favicon_path = format!(
-            "{}{favicon}",
-            self.config.get_public_path(self.compilation, favicon)
-          );
+          let favicon_relative_path =
+            PathBuf::from(self.config.get_relative_path(self.compilation, favicon));
+
+          let mut favicon_path = PathBuf::from(self.config.get_public_path(
+            self.compilation,
+            favicon_relative_path.to_string_lossy().to_string().as_str(),
+          ));
+
+          favicon_path.push(favicon_relative_path);
+
           n.children.push(Child::Element(Element {
             tag_name: JsWord::from("link"),
             children: vec![],
@@ -181,7 +190,7 @@ impl VisitMut for AssetWriter<'_, '_> {
                 prefix: None,
                 name: "href".into(),
                 raw_name: None,
-                value: Some(favicon_path.into()),
+                value: Some(favicon_path.to_string_lossy().to_string().into()),
                 raw_value: None,
               },
             ],
