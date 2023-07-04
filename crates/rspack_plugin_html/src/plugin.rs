@@ -61,10 +61,11 @@ impl Plugin for HtmlPlugin {
     let compilation = args.compilation;
 
     let parser = HtmlCompiler::new(config);
-    let (content, url) = if let Some(content) = &config.template_content {
+    let (content, url, normalized_template_name) = if let Some(content) = &config.template_content {
       (
         content.clone(),
         parse_to_url("template_content.html").path().to_string(),
+        "template_content.html".to_string(),
       )
     } else if let Some(template) = &config.template {
       // TODO: support loader query form
@@ -76,11 +77,16 @@ impl Plugin for HtmlPlugin {
         resolved_template.display(),
         &compilation.options.context
       ))?;
-      (content, resolved_template.to_string_lossy().to_string())
+      (
+        content,
+        resolved_template.to_string_lossy().to_string(),
+        template.clone(),
+      )
     } else {
       (
         default_template().to_owned(),
         parse_to_url("default.html").path().to_string(),
+        "default.html".to_string(),
       )
     };
 
@@ -179,9 +185,17 @@ impl Plugin for HtmlPlugin {
     let source = parser.codegen(&mut current_ast)?;
     let hash = hash_for_ast_or_source(&source);
     let html_file_name = Filename::from(config.filename.clone());
+    // Use the same filename as template
+    let output_path = compilation
+      .options
+      .output
+      .path
+      .join(normalized_template_name);
     let (output_path, asset_info) = compilation.get_path_with_info(
       &html_file_name,
-      PathData::default().filename(&url).content_hash(&hash),
+      PathData::default()
+        .filename(&output_path.to_string_lossy())
+        .content_hash(&hash),
     );
     compilation.emit_asset(
       output_path,
