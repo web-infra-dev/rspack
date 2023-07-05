@@ -70,6 +70,7 @@ export const applyRspackOptionsDefaults = (
 	F(options, "devtool", () => false as const);
 	D(options, "watch", false);
 
+	const futureDefaults = options.experiments.futureDefaults ?? false;
 	F(options, "cache", () => development);
 
 	applyExperimentsDefaults(options.experiments, { cache: options.cache! });
@@ -91,7 +92,8 @@ export const applyRspackOptionsDefaults = (
 			(Array.isArray(target) &&
 				target.some(target => target.startsWith("browserslist"))),
 		outputModule: options.experiments.outputModule,
-		entry: options.entry
+		entry: options.entry,
+		futureDefaults
 	});
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -350,13 +352,15 @@ const applyOutputDefaults = (
 		outputModule,
 		targetProperties: tp,
 		isAffectedByBrowserslist,
-		entry
+		entry,
+		futureDefaults
 	}: {
 		context: Context;
 		outputModule?: boolean;
 		targetProperties: any;
 		isAffectedByBrowserslist: boolean;
 		entry: EntryNormalized;
+		futureDefaults: boolean;
 	}
 ) => {
 	F(output, "uniqueName", () => {
@@ -420,9 +424,10 @@ const applyOutputDefaults = (
 		"publicPath",
 		tp && (tp.document || tp.importScripts) ? "auto" : ""
 	);
-	D(output, "hashFunction", "xxhash64");
+
+	D(output, "hashFunction", futureDefaults ? "xxhash64" : "md4");
 	D(output, "hashDigest", "hex");
-	D(output, "hashDigestLength", 16);
+	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
 	D(output, "strictModuleErrorHandling", false);
 	if (output.library) {
 		F(output.library, "type", () => (output.module ? "module" : "var"));

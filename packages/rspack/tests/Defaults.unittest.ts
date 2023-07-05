@@ -1099,6 +1099,11 @@ describe("snapshots", () => {
 
 			@@ ... @@
 			+     "futureDefaults": true,
+			@@ ... @@
+			-     "hashDigestLength": 20,
+			-     "hashFunction": "md4",
+			+     "hashDigestLength": 16,
+			+     "hashFunction": "xxhash64",
 		`)
 	);
 
@@ -1129,8 +1134,7 @@ describe("snapshots", () => {
 			-             },
 			-             "test": /\\.module\\.css$/i,
 			-             "type": "css/module",
-			-           },
-			-           Object {
+			@@ ... @@
 			-             "resolve": Object {
 			-               "fullySpecified": true,
 			-               "preferRelative": true,
@@ -1154,6 +1158,13 @@ describe("snapshots", () => {
 			-           "preferRelative": true,
 			-         },
 			-         "type": "css",
+			-       },
+			-       Object {
+			@@ ... @@
+			-     "hashDigestLength": 20,
+			-     "hashFunction": "md4",
+			+     "hashDigestLength": 16,
+			+     "hashFunction": "xxhash64",
 		`)
 	);
 });

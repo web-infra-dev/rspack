@@ -318,9 +318,7 @@ impl Filename {
         if let Some(base) = file.file_name().map(|p| p.to_string_lossy()) {
           template = template.replace(BASE_PLACEHOLDER, &base);
         }
-        if let Some(name) = file.file_stem().map(|p| p.to_string_lossy()) {
-          template = template.replace(NAME_PLACEHOLDER, &name);
-        }
+        template = template.replace(NAME_PLACEHOLDER, &file.with_extension("").to_string_lossy());
         template = template.replace(
           PATH_PLACEHOLDER,
           &file
@@ -375,6 +373,7 @@ impl Filename {
         template = template.replace(NAME_PLACEHOLDER, name);
       }
     }
+
     if let Some(id) = &options.id {
       template = template.replace(ID_PLACEHOLDER, id);
     } else if let Some(module) = options.module {
@@ -388,6 +387,7 @@ impl Filename {
     if let Some(url) = options.url {
       template = template.replace(URL_PLACEHOLDER, url);
     }
+
     template
   }
 }
