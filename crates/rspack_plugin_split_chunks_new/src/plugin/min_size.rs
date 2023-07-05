@@ -90,7 +90,7 @@ impl SplitChunksPlugin {
         }
 
         if Self::remove_min_size_violating_modules(
-          &module_group_key,
+          module_group_key,
           compilation,
           module_group,
           cache_group,
