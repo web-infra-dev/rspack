@@ -87,7 +87,7 @@ function $RefreshReg$(type, id) {
   __webpack_modules__.$ReactRefreshRuntime$.register(type, __webpack_module__.id+ "_" + id);
 }
 Promise.resolve().then(function(){
-  __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, module.hot);
+  __webpack_modules__.$ReactRefreshRuntime$.refresh(__webpack_module__.id, __webpack_module__.hot);
 })
 "#;
 
