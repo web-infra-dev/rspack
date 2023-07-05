@@ -14,14 +14,18 @@ _b_js__WEBPACK_IMPORTED_MODULE_0_["d"];
 "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'d': function() { return d; }});
+__webpack_require__.d(__webpack_exports__, {
+  'd': function() { return d; }
+});
  const d = 3;
  const c = 100;
 },
 "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'ccc': function() { return ccc; }});
+__webpack_require__.d(__webpack_exports__, {
+  'ccc': function() { return ccc; }
+});
  const ccc = 30;
 },
 "./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

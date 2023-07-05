@@ -7,7 +7,9 @@ __webpack_require__.r(__webpack_exports__);
 "./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; }
+});
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./bar */"./bar.js");
 __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
  const a = 'foo';

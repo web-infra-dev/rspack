@@ -10,8 +10,12 @@ console.log(_maths_js__WEBPACK_IMPORTED_MODULE_0_['square']);
 "./maths.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; }});
-__webpack_require__.d(__webpack_exports__, {'square': function() { return square; }});
+__webpack_require__.d(__webpack_exports__, {
+  'xxx': function() { return _test_js__WEBPACK_IMPORTED_MODULE_0_; }
+});
+__webpack_require__.d(__webpack_exports__, {
+  'square': function() { return square; }
+});
 /* harmony import */var _test_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./test.js */"./test.js");
 // maths.js
 // This function isn't used anywhere, so
@@ -30,7 +34,10 @@ __webpack_require__.d(__webpack_exports__, {'square': function() { return square
 "./test.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'test': function() { return test; }, 'ccc': function() { return ccc; }});
+__webpack_require__.d(__webpack_exports__, {
+  'test': function() { return test; },
+  'ccc': function() { return ccc; }
+});
  function test() {}
  function ccc() {}
 },

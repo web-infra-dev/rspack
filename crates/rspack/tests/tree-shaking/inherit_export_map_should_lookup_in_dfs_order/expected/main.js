@@ -2,7 +2,9 @@
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'c': function() { return c; }});
+__webpack_require__.d(__webpack_exports__, {
+  'c': function() { return c; }
+});
  const c = 'a';
 },
 "./bar.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -14,7 +16,9 @@ __webpack_require__.r(__webpack_exports__);
 "./c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; }
+});
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 __webpack_require__.es(_foo__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./bar */"./bar.js");
@@ -26,7 +30,9 @@ __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
 "./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'b': function() { return b; }});
+__webpack_require__.d(__webpack_exports__, {
+  'b': function() { return b; }
+});
 /* harmony import */var _a_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a.js */"./a.js");
 __webpack_require__.es(_a_js__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 

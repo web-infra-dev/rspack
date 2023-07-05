@@ -19,7 +19,9 @@ __webpack_require__.r(__webpack_exports__);
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'something': function() { return something; }});
+__webpack_require__.d(__webpack_exports__, {
+  'something': function() { return something; }
+});
  const secret = "888";
  const result = 20000;
  const something = function() {};

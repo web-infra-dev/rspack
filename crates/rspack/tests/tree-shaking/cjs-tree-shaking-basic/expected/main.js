@@ -2,14 +2,18 @@
 "./answer.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'answer': function() { return answer; }});
+__webpack_require__.d(__webpack_exports__, {
+  'answer': function() { return answer; }
+});
 
  const answer = 42;
 },
 "./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'myanswer': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]; }});
+__webpack_require__.d(__webpack_exports__, {
+  'myanswer': function() { return _lib__WEBPACK_IMPORTED_MODULE_0_["myanswer"]; }
+});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
 },
@@ -24,7 +28,9 @@ __webpack_require__(/* ./answer */"./answer.js");
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'myanswer': function() { return myanswer; }});
+__webpack_require__.d(__webpack_exports__, {
+  'myanswer': function() { return myanswer; }
+});
  const myanswer = 'anyser';
 },
 

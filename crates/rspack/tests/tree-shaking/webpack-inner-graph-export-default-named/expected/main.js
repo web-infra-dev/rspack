@@ -2,7 +2,9 @@
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'default': function() { return abc; }});
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return abc; }
+});
 /* harmony import */var _dep_a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?a */"./dep.js?a");
 
 function abc() {
@@ -31,7 +33,9 @@ abc();
 "./d.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'default': function() { return def; }});
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return def; }
+});
 /* harmony import */var _dep_d__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dep?d */"./dep.js?d");
 
 class def {
@@ -43,42 +47,58 @@ class def {
 "./dep.js?a": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(__webpack_exports__, {
+  'x': function() { return x; },
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?b": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?c": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(__webpack_exports__, {
+  'x': function() { return x; },
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?d": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(__webpack_exports__, {
+  'x': function() { return x; },
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?e": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },
 "./dep.js?f": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'x': function() { return x; }, 'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(__webpack_exports__, {
+  'x': function() { return x; },
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
  const x = "x";
 var __WEBPACK_DEFAULT_EXPORT__ = __webpack_exports_info__.x.used;
 },

@@ -9,7 +9,9 @@ _test__WEBPACK_IMPORTED_MODULE_0_["obj"]['test'] = 1;
 "./test.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'obj': function() { return obj; }});
+__webpack_require__.d(__webpack_exports__, {
+  'obj': function() { return obj; }
+});
  const obj = {};
 },
 

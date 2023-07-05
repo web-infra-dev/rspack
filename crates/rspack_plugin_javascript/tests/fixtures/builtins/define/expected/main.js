@@ -253,7 +253,11 @@ console.log(console.log(console.log)); // TODO: recursive
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'DO_NOT_CONVERTED7': function() { return DO_NOT_CONVERTED7; }, 'DO_NOT_CONVERTED9': function() { return DO_NOT_CONVERTED9; }});
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; },
+  'DO_NOT_CONVERTED7': function() { return DO_NOT_CONVERTED7; },
+  'DO_NOT_CONVERTED9': function() { return DO_NOT_CONVERTED9; }
+});
 const DO_NOT_CONVERTED7 = 402;
 const DO_NOT_CONVERTED9 = 403;
 var __WEBPACK_DEFAULT_EXPORT__ = 401; // DO_NOT_CONVERTED8

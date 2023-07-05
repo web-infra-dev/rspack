@@ -2,7 +2,9 @@
 "./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'foo': function() { return foo; }});
+__webpack_require__.d(__webpack_exports__, {
+  'foo': function() { return foo; }
+});
 var foo = "lol";
 var bar = "wut";
 var baz = bar || foo;
