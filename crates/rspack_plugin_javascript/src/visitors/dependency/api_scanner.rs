@@ -168,6 +168,7 @@ impl Visit for ApiScanner<'_> {
           expr.span().real_hi(),
           Some("id"),
         )));
+      return;
     }
     expr.visit_children_with(self);
   }
