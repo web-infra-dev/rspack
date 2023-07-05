@@ -356,7 +356,7 @@ impl ChunkGraph {
       let chunk_group = chunk_group_by_ukey
         .get(chunk_group_ukey)
         .expect("should have chunk group");
-      if chunk_group.is_initial() {
+      if chunk_group.kind.is_entrypoint() {
         let entry_point_chunk = chunk_group.get_entry_point_chunk();
         let cgc = self.get_chunk_graph_chunk(&entry_point_chunk);
         for (_, chunk_group_ukey) in cgc.entry_modules.iter() {

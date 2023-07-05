@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"sourceMap": true,
-		"module": "commonjs",
+		"module": "ES2020",
 		"moduleResolution": "node",
 		"strict": true,
 		"target": "ES6",
