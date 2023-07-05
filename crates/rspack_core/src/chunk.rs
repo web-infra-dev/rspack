@@ -1,4 +1,4 @@
-use std::{fmt::Debug, hash::Hash};
+use std::{fmt::Debug, hash::Hash, sync::Arc};
 
 use rspack_database::DatabaseItem;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -34,6 +34,7 @@ pub struct Chunk {
   pub runtime: RuntimeSpec,
   pub kind: ChunkKind,
   pub hash: Option<RspackHashDigest>,
+  pub rendered_hash: Option<Arc<str>>,
   pub content_hash: ChunkContentHash,
   pub chunk_reasons: Vec<String>,
 }
@@ -59,6 +60,7 @@ impl Chunk {
       runtime: HashSet::default(),
       kind,
       hash: None,
+      rendered_hash: None,
       content_hash: HashMap::default(),
       chunk_reasons: Default::default(),
     }

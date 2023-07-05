@@ -372,6 +372,19 @@ impl Filename {
       if let Some(name) = chunk.name_for_filename_template() {
         template = template.replace(NAME_PLACEHOLDER, name);
       }
+      if let Some(d) = chunk.rendered_hash.as_ref() {
+        template = CHUNK_HASH_PLACEHOLDER
+          .replace_all(&template, |caps: &Captures| {
+            let hash = &**d;
+            let hash = &hash[..hash_len(hash, caps)];
+            if let Some(asset_info) = asset_info.as_mut() {
+              asset_info.set_immutable(true);
+              asset_info.set_chunk_hash(hash.to_owned());
+            }
+            hash
+          })
+          .into_owned();
+      }
     }
 
     if let Some(id) = &options.id {
