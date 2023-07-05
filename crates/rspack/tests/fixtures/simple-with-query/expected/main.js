@@ -1,11 +1,11 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./b.js?x": function (module, __webpack_exports__, __webpack_require__) {
+"./b.js?x": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
  const a = 3;
 },
-"./index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _b_jsx__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.jsx */"./b.jsx");
@@ -16,7 +16,7 @@ _b_js_x__WEBPACK_IMPORTED_MODULE_1_["a"];
 _b_jsx__WEBPACK_IMPORTED_MODULE_0_["a"];
 console.log("hello, world");
 },
-"./b.jsx": function (module, __webpack_exports__, __webpack_require__) {
+"./b.jsx": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});

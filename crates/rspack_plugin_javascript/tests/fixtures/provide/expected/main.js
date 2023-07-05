@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 // var process = {};
 var process = __webpack_require__(/* ./process.js */"./process.js");
 var name = __webpack_require__(/* ./name.js */"./name.js");
@@ -13,7 +13,7 @@ function a() {
     };
 }
 },
-"./name.js": function (module, __webpack_exports__, __webpack_require__) {
+"./name.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});

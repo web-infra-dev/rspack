@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./a.js": function (module, __webpack_exports__, __webpack_require__) {
+"./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
@@ -7,7 +7,7 @@ __webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
     a: ''
 };
 },
-"./b.js": function (module, __webpack_exports__, __webpack_require__) {
+"./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'b': function() { return b; }});
@@ -15,7 +15,7 @@ __webpack_require__.d(__webpack_exports__, {'b': function() { return b; }});
     b: ""
 };
 },
-"./enum-old.js": function (module, __webpack_exports__, __webpack_require__) {
+"./enum-old.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_["a"]; }});
@@ -25,21 +25,21 @@ __webpack_require__.d(__webpack_exports__, {'b': function() { return _b__WEBPACK
 
 
 },
-"./enum.js": function (module, __webpack_exports__, __webpack_require__) {
+"./enum.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _enum_old__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./enum-old */"./enum-old.js");
 __webpack_require__.es(_enum_old__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 
 },
-"./index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
 console.log(_lib__WEBPACK_IMPORTED_MODULE_0_["getDocPermissionTextSendMe"]);
 },
-"./lib.js": function (module, __webpack_exports__, __webpack_require__) {
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }});

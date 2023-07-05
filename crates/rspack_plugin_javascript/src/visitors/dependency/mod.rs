@@ -70,7 +70,10 @@ pub fn scan_dependencies(
     // TODO webpack scan it at CommonJsExportsParserPlugin
     // use `Dynamic` as workaround
     build_meta.exports_type = BuildMetaExportsType::Dynamic;
-    program.visit_with(&mut CommonJsScanner::new(&mut presentational_dependencies));
+    program.visit_with(&mut CommonJsScanner::new(
+      &mut presentational_dependencies,
+      &unresolved_ctxt,
+    ));
     program.visit_with(&mut RequireContextScanner::new(&mut dependencies));
     program.visit_with(&mut CommonJsExportDependencyScanner::new(
       &mut presentational_dependencies,

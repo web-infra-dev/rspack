@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _stuff__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./stuff */"./stuff.js");
@@ -18,7 +18,7 @@ class UnusedClass {
 }
 console.log(getClass().name);
 },
-"./stuff.js": function (module, __webpack_exports__, __webpack_require__) {
+"./stuff.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'bar': function() { return bar; }, 'baz': function() { return Baz; }});

@@ -1,10 +1,10 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 it("should be able to load package without side effects where modules are unused", ()=>{
     __webpack_require__(/* ./module */"./module.js");
 });
 },
-"./module.js": function (module, __webpack_exports__, __webpack_require__) {
+"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }, 'test': function() { return test; }});
@@ -13,7 +13,7 @@ __webpack_require__.d(__webpack_exports__, {'default': function() { return __WEB
 var __WEBPACK_DEFAULT_EXPORT__ = _package__WEBPACK_IMPORTED_MODULE_0_["a"];
  function test() {}
 },
-"./package/index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./package/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});

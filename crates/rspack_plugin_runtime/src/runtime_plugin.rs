@@ -122,6 +122,7 @@ impl Plugin for RuntimePlugin {
     if runtime_requirements.contains(RuntimeGlobals::HARMONY_MODULE_DECORATOR)
       || runtime_requirements.contains(RuntimeGlobals::NODE_MODULE_DECORATOR)
     {
+      runtime_requirements.insert(RuntimeGlobals::MODULE);
       runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
     }
 

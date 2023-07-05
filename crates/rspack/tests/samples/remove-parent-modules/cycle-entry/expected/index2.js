@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["index2"], {
-"./index2.js": function (module, __webpack_exports__, __webpack_require__) {
+"./index2.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _shared__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./shared */"./shared.js");
@@ -8,7 +8,7 @@ __webpack_require__.el(/* ./index */"./index.js").then(__webpack_require__.bind(
 
 console.log('index2');
 },
-"./shared.js": function (module, exports, __webpack_require__) {
+"./shared.js": function (__unused_webpack_module, exports, __webpack_require__) {
 console.log('shared');
 },
 

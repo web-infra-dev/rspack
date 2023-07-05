@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./import-module.js": function (module, __webpack_exports__, __webpack_require__) {
+"./import-module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'test': function() { return test; }});
@@ -11,7 +11,7 @@ __webpack_require__.d(__webpack_exports__, {'test': function() { return test; }}
     });
 }
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 it("should generate correct code when pure expressions are in dead branches", ()=>{
     __webpack_require__(/* ./import-module */"./import-module.js").test();
     return Promise.all([
@@ -20,7 +20,7 @@ it("should generate correct code when pure expressions are in dead branches", ()
     ]);
 });
 },
-"./module.js": function (module, __webpack_exports__, __webpack_require__) {
+"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
@@ -59,7 +59,7 @@ function useDocument(obj) {
 
 var __WEBPACK_DEFAULT_EXPORT__ = doSomething;
 },
-"./some-module.js": function (module, __webpack_exports__, __webpack_require__) {
+"./some-module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'Block': function() { return Block; }, 'Inline': function() { return Inline; }, 'Document': function() { return Document; }});

@@ -399,6 +399,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           unreachable!()
         };
 
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::MODULE);
+
         Ok(GenerationResult {
           ast_or_source: RawSource::from(format!(r#"module.exports = {exported_content};"#))
             .boxed()

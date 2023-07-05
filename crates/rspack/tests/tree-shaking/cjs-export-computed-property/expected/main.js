@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./zh_locale.js": function (module, exports, __webpack_require__) {
+"./zh_locale.js": function (__unused_webpack_module, exports, __webpack_require__) {
 "use strict";
 Object.defineProperty(exports, "__esModule", {
     value: true
@@ -8,7 +8,7 @@ exports["default"] = void 0;
 /* eslint-disable no-template-curly-in-string */ var _default = {};
 exports["default"] = _default;
 },
-"./antd/index.ts": function (module, __webpack_exports__, __webpack_require__) {
+"./antd/index.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'locales': function() { return locales; }});
@@ -19,7 +19,7 @@ const locales = {
 };
 
 },
-"./index.ts": function (module, __webpack_exports__, __webpack_require__) {
+"./index.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'test': function() { return test; }});
@@ -28,7 +28,7 @@ __webpack_require__.d(__webpack_exports__, {'test': function() { return test; }}
 _antd_index__WEBPACK_IMPORTED_MODULE_0_["locales"].zh_CN;
  function test() {}
 },
-"./locale_zh.ts": function (module, __webpack_exports__, __webpack_require__) {
+"./locale_zh.ts": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});

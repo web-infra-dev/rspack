@@ -1,11 +1,11 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./package/autogen/a.js": function (module, __webpack_exports__, __webpack_require__) {
+"./package/autogen/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
  function a() {}
 },
-"./package/autogen/index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./package/autogen/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_; }});
@@ -14,14 +14,14 @@ __webpack_require__.d(__webpack_exports__, {'a': function() { return _a__WEBPACK
 
 
 },
-"./package/src/index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./package/src/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _autogen_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../autogen/index */"./package/autogen/index.js");
 __webpack_require__.es(_autogen_index__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 
 },
-"./src/index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./src/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _package_src_index_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../package/src/index.js */"./package/src/index.js");
