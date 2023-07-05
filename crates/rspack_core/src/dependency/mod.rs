@@ -132,7 +132,9 @@ impl From<&str> for DependencyCategory {
       "wasm" => Self::Wasm,
       "css-import" => Self::CssImport,
       "css-compose" => Self::CssCompose,
-      _ => Self::Unknown,
+      "worker" => Self::Worker,
+      "unknown" => Self::Unknown,
+      _ => unimplemented!("DependencyCategory {}", value),
     }
   }
 }
