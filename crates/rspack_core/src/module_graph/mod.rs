@@ -1,6 +1,6 @@
 use std::collections::hash_map::Entry;
 use std::path::PathBuf;
-use std::sync::atomic::Ordering::SeqCst;
+use std::sync::atomic::Ordering::Relaxed;
 use std::{borrow::Cow, sync::atomic::AtomicUsize};
 
 use once_cell::sync::Lazy;
@@ -23,8 +23,7 @@ pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
 pub static DEPENDENCY_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
 
 pub fn create_dependency_id() -> DependencyId {
-  DEPENDENCY_ID.fetch_add(1, SeqCst);
-  DEPENDENCY_ID.load(SeqCst).into()
+  DEPENDENCY_ID.fetch_add(1, Relaxed).into()
 }
 
 #[derive(Debug, Default)]
@@ -84,6 +83,9 @@ impl ModuleGraph {
   }
 
   pub fn add_dependency(&mut self, dependency: BoxModuleDependency) {
+    if self.dependencies.contains_key(&dependency.id()) {
+      panic!("dependency.id already used")
+    }
     self.dependencies.insert(dependency.id(), dependency);
   }
 
