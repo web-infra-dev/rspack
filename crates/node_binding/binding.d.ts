@@ -133,6 +133,9 @@ export interface JsAssetInfo {
   /**
    * the value(s) of the full hash used for this asset
    * the value(s) of the chunk hash used for this asset
+   */
+  chunkHash: Array<string>
+  /**
    * the value(s) of the module hash used for this asset
    * the value(s) of the content hash used for this asset
    */

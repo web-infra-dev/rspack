@@ -1131,6 +1131,25 @@ impl Compilation {
     let mut compilation_hasher = RspackHash::from(&self.options.output);
     let runtime_chunk_ukeys = self.get_chunk_graph_entries();
 
+    fn try_process_chunk_hash_results(
+      compilation: &mut Compilation,
+      chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>>,
+    ) -> Result<()> {
+      for hash_result in chunk_hash_results {
+        let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
+        if let Some(chunk) = compilation.chunk_by_ukey.get_mut(&chunk_ukey) {
+          chunk.rendered_hash = Some(
+            chunk_hash
+              .rendered(compilation.options.output.hash_digest_length)
+              .into(),
+          );
+          chunk.hash = Some(chunk_hash);
+          chunk.content_hash = content_hash;
+        }
+      }
+      Ok(())
+    }
+
     let other_chunk_hash_results: Vec<Result<(ChunkUkey, (RspackHashDigest, ChunkContentHash))>> =
       self
         .chunk_by_ukey
@@ -1142,13 +1161,8 @@ impl Compilation {
         })
         .collect::<FuturesResults<_>>()
         .into_inner();
-    for hash_result in other_chunk_hash_results {
-      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
-      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
-        chunk.hash = Some(chunk_hash);
-        chunk.content_hash = content_hash;
-      }
-    }
+
+    try_process_chunk_hash_results(self, other_chunk_hash_results)?;
 
     // runtime chunks should be hashed after all other chunks
     self.create_runtime_module_hash();
@@ -1162,13 +1176,7 @@ impl Compilation {
         })
         .collect::<FuturesResults<_>>()
         .into_inner();
-    for hash_result in runtime_chunk_hash_results {
-      let (chunk_ukey, (chunk_hash, content_hash)) = hash_result?;
-      if let Some(chunk) = self.chunk_by_ukey.get_mut(&chunk_ukey) {
-        chunk.hash = Some(chunk_hash);
-        chunk.content_hash = content_hash;
-      }
-    }
+    try_process_chunk_hash_results(self, runtime_chunk_hash_results)?;
 
     self
       .chunk_by_ukey
@@ -1188,6 +1196,11 @@ impl Compilation {
           chunk_hash.hash(&mut hasher);
           self.hash.hash(&mut hasher);
           *chunk_hash = hasher.digest(&self.options.output.hash_digest);
+          chunk.rendered_hash = Some(
+            chunk_hash
+              .rendered(self.options.output.hash_digest_length)
+              .into(),
+          );
         }
         if let Some(content_hash) = chunk.content_hash.get_mut(&SourceType::JavaScript) {
           let mut hasher = RspackHash::from(&self.options.output);
@@ -1388,7 +1401,7 @@ pub struct AssetInfo {
   /// the value(s) of the full hash used for this asset
   // pub full_hash:
   /// the value(s) of the chunk hash used for this asset
-  // pub chunk_hash:
+  pub chunk_hash: HashSet<String>,
   /// the value(s) of the module hash used for this asset
   // pub module_hash:
   /// the value(s) of the content hash used for this asset
@@ -1443,6 +1456,10 @@ impl AssetInfo {
 
   pub fn set_content_hash(&mut self, v: String) {
     self.content_hash.insert(v);
+  }
+
+  pub fn set_chunk_hash(&mut self, v: String) {
+    self.chunk_hash.insert(v);
   }
 
   pub fn set_immutable(&mut self, v: bool) {
