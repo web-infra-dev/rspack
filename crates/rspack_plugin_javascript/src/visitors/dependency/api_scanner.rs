@@ -1,5 +1,6 @@
 use rspack_core::{
-  CodeGeneratableDependency, ConstDependency, ResourceData, RuntimeGlobals, SpanExt,
+  CodeGeneratableDependency, ConstDependency, ResourceData, RuntimeGlobals,
+  RuntimeRequirementsDependency, SpanExt,
 };
 use swc_core::{
   common::{Spanned, SyntaxContext},
@@ -10,9 +11,11 @@ use swc_core::{
 };
 
 use super::expr_matcher;
+use crate::dependency::ModuleArgumentDependency;
 pub const WEBPACK_HASH: &str = "__webpack_hash__";
 pub const WEBPACK_PUBLIC_PATH: &str = "__webpack_public_path__";
 pub const WEBPACK_MODULES: &str = "__webpack_modules__";
+pub const WEBPACK_MODULE: &str = "__webpack_module__";
 pub const WEBPACK_RESOURCE_QUERY: &str = "__resourceQuery";
 pub const WEBPACK_CHUNK_LOAD: &str = "__webpack_chunk_load__";
 
@@ -129,6 +132,15 @@ impl Visit for ApiScanner<'_> {
             Some(RuntimeGlobals::ENSURE_CHUNK),
           )));
       }
+      WEBPACK_MODULE => {
+        self
+          .presentational_dependencies
+          .push(Box::new(ModuleArgumentDependency::new(
+            ident.span.real_lo(),
+            ident.span.real_hi(),
+            None,
+          )));
+      }
       _ => {}
     }
   }
@@ -146,12 +158,17 @@ impl Visit for ApiScanner<'_> {
     } else if expr_matcher::is_webpack_module_id(expr) {
       self
         .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
+        .push(Box::new(RuntimeRequirementsDependency::new(
+          RuntimeGlobals::MODULE_ID,
+        )));
+      self
+        .presentational_dependencies
+        .push(Box::new(ModuleArgumentDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
-          "module.id".into(), // todo module_arguments
-          Some(RuntimeGlobals::MODULE_ID),
+          Some("id"),
         )));
+      return;
     }
     expr.visit_children_with(self);
   }

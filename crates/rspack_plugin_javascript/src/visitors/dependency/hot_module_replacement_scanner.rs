@@ -1,6 +1,6 @@
 use rspack_core::{
-  BoxModuleDependency, BuildMeta, CodeGeneratableDependency, ConstDependency, ErrorSpan,
-  ModuleDependency, ModuleIdentifier, RuntimeGlobals, SpanExt,
+  BoxModuleDependency, BuildMeta, CodeGeneratableDependency, ErrorSpan, ModuleDependency,
+  ModuleIdentifier, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -15,7 +15,7 @@ use super::{expr_matcher, is_module_hot_accept_call, is_module_hot_decline_call}
 use crate::{
   dependency::{
     HarmonyAcceptDependency, ImportMetaHotAcceptDependency, ImportMetaHotDeclineDependency,
-    ModuleHotAcceptDependency, ModuleHotDeclineDependency,
+    ModuleArgumentDependency, ModuleHotAcceptDependency, ModuleHotDeclineDependency,
   },
   visitors::{is_import_meta_hot_accept_call, is_import_meta_hot_decline_call},
 };
@@ -125,11 +125,10 @@ impl<'a> Visit for HotModuleReplacementScanner<'a> {
     if expr_matcher::is_module_hot(expr) || expr_matcher::is_import_meta_webpack_hot(expr) {
       self
         .presentational_dependencies
-        .push(Box::new(ConstDependency::new(
+        .push(Box::new(ModuleArgumentDependency::new(
           expr.span().real_lo(),
           expr.span().real_hi(),
-          "module.hot".into(), // TODO module_argument
-          Some(RuntimeGlobals::MODULE),
+          Some("hot"),
         )));
     }
     expr.visit_children_with(self);
