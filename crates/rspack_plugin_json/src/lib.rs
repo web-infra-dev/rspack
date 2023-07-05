@@ -4,7 +4,7 @@ use json::Error::{
 use rspack_core::{
   rspack_sources::{RawSource, Source, SourceExt},
   BuildMetaDefaultObject, BuildMetaExportsType, GenerateContext, Module, ParserAndGenerator,
-  Plugin, SourceType,
+  Plugin, RuntimeGlobals, SourceType,
 };
 use rspack_error::{
   internal_error, DiagnosticKind, Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
@@ -110,19 +110,24 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     generate_context: &mut GenerateContext,
   ) -> Result<rspack_core::GenerationResult> {
     match generate_context.requested_source_type {
-      SourceType::JavaScript => Ok(rspack_core::GenerationResult {
-        ast_or_source: RawSource::from(format!(
-          r#"module.exports = {};"#,
-          utils::escape_json(
-            &ast_or_source
-              .as_source()
-              .expect("Expected source for JSON generator, please file an issue.")
-              .source()
-          )
-        ))
-        .boxed()
-        .into(),
-      }),
+      SourceType::JavaScript => {
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::MODULE);
+        Ok(rspack_core::GenerationResult {
+          ast_or_source: RawSource::from(format!(
+            r#"module.exports = {};"#,
+            utils::escape_json(
+              &ast_or_source
+                .as_source()
+                .expect("Expected source for JSON generator, please file an issue.")
+                .source()
+            )
+          ))
+          .boxed()
+          .into(),
+        })
+      }
       _ => Err(internal_error!(format!(
         "Unsupported source type {:?} for plugin Json",
         generate_context.requested_source_type,

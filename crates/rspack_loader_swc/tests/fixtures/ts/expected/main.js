@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.tsx": function (module, exports, __webpack_require__) {
+"./index.tsx": function (__unused_webpack_module, exports, __webpack_require__) {
 class a {
 }
 function A() {

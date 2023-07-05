@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["lib_js"], {
-"./lib.js": function (module, __webpack_exports__, __webpack_require__) {
+"./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
@@ -10,7 +10,7 @@ function myanswer() {
 }
 var __WEBPACK_DEFAULT_EXPORT__ = myanswer;
 },
-"./test.js": function (module, __webpack_exports__, __webpack_require__) {
+"./test.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});

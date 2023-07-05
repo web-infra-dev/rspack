@@ -40,6 +40,7 @@ impl Module for LazyCompilationProxyModule {
   fn code_generation(&self, compilation: &Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     cgr.runtime_requirements.insert(RuntimeGlobals::LOAD_SCRIPT);
+    cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
     cgr.add(
       SourceType::JavaScript,
       AstOrSource::new(

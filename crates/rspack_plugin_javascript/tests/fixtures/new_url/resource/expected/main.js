@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 const imgSrc = new URL(/* asset import */__webpack_require__(/* ./react.svg */"./react.svg"), __webpack_require__.b);
 const imgSrc2 = __webpack_require__(/* ./vue.svg */"./vue.svg");
 const img = new Image();

@@ -1,11 +1,11 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./child/child/index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./child/child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'value': function() { return value; }});
  const value = "dynamic";
 },
-"./child/index.js": function (module, __webpack_exports__, __webpack_require__) {
+"./child/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'value': function() { return value; }});
@@ -37,7 +37,7 @@ webpackContext.id = '"./child Sync  recursive ^\\.\\/.*\\.js$"';
       webpackContext.resolve = webpackContextResolve;
       module.exports = webpackContext;
       },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 let a = "index";
 __webpack_require__(/* ./child */"./child Sync  recursive ^\\.\\/.*\\.js$")((`./child/${a}.js`).replace('./child/', './'));
 },

@@ -194,6 +194,7 @@ impl ExternalModule {
       // TODO "script"
       _ => "".to_string(),
     };
+    runtime_requirements.insert(RuntimeGlobals::MODULE);
     (
       RawSource::from(source).boxed(),
       chunk_init_fragments,

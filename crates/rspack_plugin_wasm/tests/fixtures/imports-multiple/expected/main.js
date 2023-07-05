@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 (async function() {
     return __webpack_require__.el(/* ./module */"./module.js").then(__webpack_require__.bind(__webpack_require__, /* ./module */"./module.js")).then(function(mod) {
         if (mod.result !== 42) throw new Error('panic');

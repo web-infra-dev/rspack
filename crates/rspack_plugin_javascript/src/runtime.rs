@@ -108,11 +108,18 @@ pub fn render_chunk_modules(
 fn render_module(
   source: BoxSource,
   mgm: &ModuleGraphModule,
-  _runtime_requirements: Option<&RuntimeGlobals>,
+  runtime_requirements: Option<&RuntimeGlobals>,
   module_id: &str,
 ) -> Result<BoxSource> {
-  // TODO unused module_argument and exports_argument
-  let module_argument = mgm.get_module_argument();
+  // TODO unused exports_argument
+  let module_argument = {
+    let module_argument = mgm.get_module_argument();
+    if let Some(runtime_requirements) = runtime_requirements && runtime_requirements.contains(RuntimeGlobals::MODULE) {
+      module_argument.to_string()
+    } else {
+     format!("__unused_webpack_{module_argument}")
+    }
+  };
   let exports_argument = mgm.get_exports_argument();
   let mut sources = ConcatSource::new([
     RawSource::from(serde_json::to_string(module_id).map_err(|e| internal_error!(e.to_string()))?),

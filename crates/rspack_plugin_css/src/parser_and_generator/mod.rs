@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 use preset_env_base::query::{Query, Targets};
-use rspack_core::ModuleDependency;
 use rspack_core::{
   rspack_sources::{
     MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -12,6 +11,7 @@ use rspack_core::{
   AstOrSource, BuildMetaExportsType, CodeGeneratableContext, GenerateContext, GenerationResult,
   Module, ModuleType, ParseContext, ParseResult, ParserAndGenerator, SourceType,
 };
+use rspack_core::{ModuleDependency, RuntimeGlobals};
 use rspack_error::{
   internal_error, Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray,
 };
@@ -290,6 +290,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
         } else {
           "".to_string()
         };
+        generate_context
+          .runtime_requirements
+          .insert(RuntimeGlobals::MODULE);
         Ok(RawSource::from(locals).boxed())
       }
       _ => Err(internal_error!(

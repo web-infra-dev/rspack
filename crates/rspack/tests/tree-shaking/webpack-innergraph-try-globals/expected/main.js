@@ -1,5 +1,5 @@
 (self['webpackChunkwebpack'] = self['webpackChunkwebpack'] || []).push([["main"], {
-"./import-module.js": function (module, __webpack_exports__, __webpack_require__) {
+"./import-module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 /* harmony import */var _module__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./module */"./module.js");
@@ -7,12 +7,12 @@ __webpack_require__.r(__webpack_exports__);
 expect(_module__WEBPACK_IMPORTED_MODULE_0_["ok"]).toBe(true);
 expect(_module__WEBPACK_IMPORTED_MODULE_0_["ok2"]).toBe(true);
 },
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 it("should not threat globals as pure", ()=>{
     __webpack_require__(/* ./import-module */"./import-module.js");
 });
 },
-"./module.js": function (module, __webpack_exports__, __webpack_require__) {
+"./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {'ok': function() { return ok; }, 'ok2': function() { return ok2; }});

@@ -21,7 +21,7 @@ webpackAsyncContext.keys = function() {
 };
 webpackAsyncContext.id = "./child Lazy  recursive ^\.\/.*\.js$";
 module.exports = webpackAsyncContext;},
-"./index.js": function (module, exports, __webpack_require__) {
+"./index.js": function (__unused_webpack_module, exports, __webpack_require__) {
 const request = 'a';
 __webpack_require__.el(/* ./child/a.js */"./child/a.js").then(__webpack_require__.bind(__webpack_require__, /* ./child/a.js */"./child/a.js")).then(({ a  })=>console.log("Literal", a));
 __webpack_require__.el(/* ./child/b.js */"./child/b.js").then(__webpack_require__.bind(__webpack_require__, /* ./child/b.js */"./child/b.js")).then(({ b  })=>console.log("Template Literal", b));
