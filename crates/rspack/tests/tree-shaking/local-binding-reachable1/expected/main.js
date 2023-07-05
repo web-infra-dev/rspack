@@ -2,7 +2,9 @@
 "./Layout.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'defaults': function() { return defaults; }});
+__webpack_require__.d(__webpack_exports__, {
+  'defaults': function() { return defaults; }
+});
  const defaults = {
     test: 1000
 };
@@ -10,7 +12,9 @@ __webpack_require__.d(__webpack_exports__, {'defaults': function() { return defa
 "./export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'Something': function() { return Something; }});
+__webpack_require__.d(__webpack_exports__, {
+  'Something': function() { return Something; }
+});
 /* harmony import */var _Layout__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./Layout */"./Layout.js");
 
  function callit() {

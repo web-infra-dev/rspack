@@ -2,7 +2,9 @@
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; }
+});
 /* harmony import */var _b_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./b.js */"./b.js");
 
  class Test {
@@ -21,7 +23,9 @@ class Result {
 "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'bb': function() { return bb; }});
+__webpack_require__.d(__webpack_exports__, {
+  'bb': function() { return bb; }
+});
  const bb = 2;
  const cc = 3;
 },

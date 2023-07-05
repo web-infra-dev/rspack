@@ -2,7 +2,9 @@
 "./bar.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'bar': function() { return _foo__WEBPACK_IMPORTED_MODULE_0_; }});
+__webpack_require__.d(__webpack_exports__, {
+  'bar': function() { return _foo__WEBPACK_IMPORTED_MODULE_0_; }
+});
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 /* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./result */"./result.js");
 __webpack_require__.es(_result__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);
@@ -13,7 +15,10 @@ __webpack_require__.es(_result__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__)
 "./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }, 'foo': function() { return foo; }});
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; },
+  'foo': function() { return foo; }
+});
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./bar */"./bar.js");
 __webpack_require__.es(_bar__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 /* harmony import */var _result__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./result */"./result.js");
@@ -34,7 +39,9 @@ _foo__WEBPACK_IMPORTED_MODULE_0_["bar"].a;
 "./result.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'c': function() { return c; }});
+__webpack_require__.d(__webpack_exports__, {
+  'c': function() { return c; }
+});
 /* harmony import */var _foo__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./foo */"./foo.js");
 __webpack_require__.es(_foo__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports__);
 /* harmony import */var _bar__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./bar */"./bar.js");

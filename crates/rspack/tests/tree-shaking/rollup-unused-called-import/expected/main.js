@@ -9,7 +9,9 @@ function __WEBPACK_DEFAULT_EXPORT__(){
 "./foo.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }});
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return __WEBPACK_DEFAULT_EXPORT__; }
+});
 /* harmony import */var _dead__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./dead */"./dead.js");
 
 function __WEBPACK_DEFAULT_EXPORT__(){

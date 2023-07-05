@@ -104,11 +104,11 @@ impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
 
 pub fn format_exports(exports: &[(JsWord, JsWord)]) -> String {
   format!(
-    "{{{}}}",
+    "{{\n  {}\n}}",
     exports
       .iter()
       .map(|s| format!("'{}': function() {{ return {}; }}", s.0, s.1))
       .collect::<Vec<_>>()
-      .join(", ")
+      .join(",\n  ")
   )
 }

@@ -2,7 +2,9 @@
 "./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'b': function() { return b; }});
+__webpack_require__.d(__webpack_exports__, {
+  'b': function() { return b; }
+});
 
 var __WEBPACK_DEFAULT_EXPORT__ = /* unused */undefined;
  const b = 1;

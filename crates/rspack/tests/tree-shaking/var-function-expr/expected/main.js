@@ -2,7 +2,9 @@
 "./app.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'app': function() { return app; }});
+__webpack_require__.d(__webpack_exports__, {
+  'app': function() { return app; }
+});
 /* harmony import */var _lib__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./lib */"./lib.js");
 
  var app = function() {
@@ -24,7 +26,10 @@ __webpack_require__.r(__webpack_exports__);
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'result': function() { return result; }, 'something': function() { return something; }});
+__webpack_require__.d(__webpack_exports__, {
+  'result': function() { return result; },
+  'something': function() { return something; }
+});
  const secret = "888";
  const result = 20000;
  const something = function() {};

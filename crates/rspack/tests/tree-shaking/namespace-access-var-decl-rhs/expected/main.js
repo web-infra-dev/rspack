@@ -2,7 +2,9 @@
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; }
+});
  const a = {
     a: ''
 };
@@ -10,7 +12,9 @@ __webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
 "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'b': function() { return b; }});
+__webpack_require__.d(__webpack_exports__, {
+  'b': function() { return b; }
+});
  const b = {
     b: ""
 };
@@ -18,8 +22,12 @@ __webpack_require__.d(__webpack_exports__, {'b': function() { return b; }});
 "./enum-old.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_["a"]; }});
-__webpack_require__.d(__webpack_exports__, {'b': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["b"]; }});
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return _a__WEBPACK_IMPORTED_MODULE_0_["a"]; }
+});
+__webpack_require__.d(__webpack_exports__, {
+  'b': function() { return _b__WEBPACK_IMPORTED_MODULE_1_["b"]; }
+});
 /* harmony import */var _a__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./a */"./a.js");
 /* harmony import */var _b__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./b */"./b.js");
 
@@ -42,7 +50,9 @@ console.log(_lib__WEBPACK_IMPORTED_MODULE_0_["getDocPermissionTextSendMe"]);
 "./lib.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }});
+__webpack_require__.d(__webpack_exports__, {
+  'getDocPermissionTextSendMe': function() { return getDocPermissionTextSendMe; }
+});
 /* harmony import */var _enum_js__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ./enum.js */"./enum.js");
 
 function Record() {}

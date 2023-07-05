@@ -2,14 +2,18 @@
 "./Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'default': function() { return Something; }});
+__webpack_require__.d(__webpack_exports__, {
+  'default': function() { return Something; }
+});
 class Something {
 }
 },
 "./export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE_1_["default"]; }});
+__webpack_require__.d(__webpack_exports__, {
+  'Sider': function() { return _Something__WEBPACK_IMPORTED_MODULE_1_["default"]; }
+});
 /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./Something.js");
 
 

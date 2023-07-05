@@ -2,7 +2,9 @@
 "./a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'a': function() { return a; }});
+__webpack_require__.d(__webpack_exports__, {
+  'a': function() { return a; }
+});
  const a = 3;
 },
 "./b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {

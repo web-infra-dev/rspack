@@ -10,13 +10,17 @@ __webpack_require__.es(_something__WEBPACK_IMPORTED_MODULE_0_, __webpack_exports
 "./colors/a.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'red': function() { return red; }});
+__webpack_require__.d(__webpack_exports__, {
+  'red': function() { return red; }
+});
  const red = 'red';
 },
 "./colors/b.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'blue': function() { return blue; }});
+__webpack_require__.d(__webpack_exports__, {
+  'blue': function() { return blue; }
+});
  const blue = 'blue';
 },
 "./colors/c.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -42,7 +46,9 @@ __webpack_require__.es(_c__WEBPACK_IMPORTED_MODULE_2_, __webpack_exports__);
 "./colors/result.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'result': function() { return result; }});
+__webpack_require__.d(__webpack_exports__, {
+  'result': function() { return result; }
+});
  const result = 'ssss';
 },
 "./export.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
@@ -63,14 +69,18 @@ _export__WEBPACK_IMPORTED_MODULE_0_["Something"];
 "./something/Something.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'Something': function() { return Something; }});
+__webpack_require__.d(__webpack_exports__, {
+  'Something': function() { return Something; }
+});
  class Something {
 }
 },
 "./something/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'Colors': function() { return _colors_index__WEBPACK_IMPORTED_MODULE_0_; }});
+__webpack_require__.d(__webpack_exports__, {
+  'Colors': function() { return _colors_index__WEBPACK_IMPORTED_MODULE_0_; }
+});
 /* harmony import */var _colors_index__WEBPACK_IMPORTED_MODULE_0_ = __webpack_require__(/* ../colors/index */"./colors/index.js");
 /* harmony import */var _Something__WEBPACK_IMPORTED_MODULE_1_ = __webpack_require__(/* ./Something */"./something/Something.js");
 __webpack_require__.es(_Something__WEBPACK_IMPORTED_MODULE_1_, __webpack_exports__);

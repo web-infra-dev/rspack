@@ -38,7 +38,13 @@ it("should be able to handle circular referenced", ()=>{
 "./module.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {'x': function() { return x; }, 'y': function() { return y; }, 'z': function() { return z; }, 'a': function() { return a; }, 'f3': function() { return f3; }});
+__webpack_require__.d(__webpack_exports__, {
+  'x': function() { return x; },
+  'y': function() { return y; },
+  'z': function() { return z; },
+  'a': function() { return a; },
+  'f3': function() { return f3; }
+});
 function x() {
     return [
         y,
