@@ -1,0 +1,16 @@
+[package]
+description = "babel-plugin-import rewritten in Rust"
+edition     = "2021"
+license     = "MIT"
+name        = "swc_plugin_import"
+version     = "0.1.5"
+
+[dependencies]
+handlebars = "4.3.3"
+regex      = { workspace = true }
+rustc-hash = { workspace = true }
+serde      = { workspace = true }
+swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit"] }
+
+[dev-dependencies]
+# test_plugins = { path = "../test_plugins" }

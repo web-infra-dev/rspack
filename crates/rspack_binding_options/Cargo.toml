@@ -48,6 +48,6 @@ napi-derive       = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true }
 swc_core          = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
-swc_plugin_import = { workspace = true }
+swc_plugin_import = { path = "../swc_plugin_import" }
 tokio             = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing           = { workspace = true }

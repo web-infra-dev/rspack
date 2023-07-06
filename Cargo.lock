@@ -4394,9 +4394,7 @@ dependencies = [
 
 [[package]]
 name = "swc_plugin_import"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a1e28011697cf5bab340ab7689860d1eb8fb8035e97d89b999c2a8d3758dc79"
+version = "0.1.5"
 dependencies = [
  "handlebars",
  "regex",

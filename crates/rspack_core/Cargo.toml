@@ -71,7 +71,7 @@ swc_core = { workspace = true, features = [
 swc_emotion = { workspace = true }
 swc_error_reporters = { workspace = true }
 swc_node_comments = { workspace = true }
-swc_plugin_import = { workspace = true }
+swc_plugin_import = { path = "../swc_plugin_import" }
 tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "parking_lot"] }
 tracing = { workspace = true }
 url = { workspace = true }

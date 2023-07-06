@@ -62,7 +62,6 @@ swc_error_reporters = { version = "=0.15.10" }
 swc_html            = { version = "=0.124.16" }
 swc_html_minifier   = { version = "=0.121.16" }
 swc_node_comments   = { version = "=0.18.10" }
-swc_plugin_import   = { version = "=0.1.7" }
 tikv-jemallocator   = { version = "=0.4.3", features = ["disable_initial_exec_tls"] }
 
 [profile.dev]

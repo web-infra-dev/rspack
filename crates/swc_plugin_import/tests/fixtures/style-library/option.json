@@ -1,0 +1,10 @@
+{
+  "extensions": {
+    "pluginImport": [
+      {
+        "libraryName": "foo",
+        "styleLibraryDirectory": "css"
+      }
+    ]
+  }
+}
