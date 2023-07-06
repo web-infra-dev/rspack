@@ -84,6 +84,9 @@ impl ConvertModulePath for SymbolRef {
       },
       SymbolRef::Usage(vec, src) => SymbolRef::Usage(
         vec,
+      SymbolRef::Usage(binding, member_chain, src) => SymbolRef::Usage(
+        binding,
+        member_chain,
         src.convert_module_identifier_to_module_path(module_graph),
       ),
     }
