@@ -1,6 +1,8 @@
+use std::env;
 use std::path::PathBuf;
 
 use itertools::Itertools;
+use regex::Regex;
 use rspack_core::Compilation;
 use swc_core::{common::DUMMY_SP, ecma::atoms::JsWord};
 use swc_html::ast::{Attribute, Child, Element, Namespace, Text};
@@ -167,6 +169,15 @@ impl VisitMut for AssetWriter<'_, '_> {
 
           favicon_path.push(favicon_relative_path);
 
+          let mut favicon_link_path = favicon_path.to_string_lossy().to_string();
+
+          if env::consts::OS == "windows" {
+            favicon_link_path = Regex::new(r"[/\\]")
+              .unwrap()
+              .replace_all(favicon_link_path.as_str(), "/")
+              .to_string();
+          }
+
           n.children.push(Child::Element(Element {
             tag_name: JsWord::from("link"),
             children: vec![],
@@ -189,7 +200,7 @@ impl VisitMut for AssetWriter<'_, '_> {
                 prefix: None,
                 name: "href".into(),
                 raw_name: None,
-                value: Some(favicon_path.to_string_lossy().to_string().into()),
+                value: Some(favicon_link_path.into()),
                 raw_value: None,
               },
             ],

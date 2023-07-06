@@ -2650,6 +2650,7 @@ dependencies = [
  "dojang",
  "itertools",
  "rayon",
+ "regex",
  "rspack_base64",
  "rspack_core",
  "rspack_error",
