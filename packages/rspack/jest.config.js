@@ -9,7 +9,7 @@ const config = {
 		"<rootDir>/tests/copyPlugin/*.test.js",
 		"<rootDir>/tests/WatchSuspend.test.js"
 	],
-	testTimeout: 10000000,
+	testTimeout: process.env.CI ? 120000 : 30000,
 	cache: false,
 	transform: {
 		"^.+\\.tsx?$": [
