@@ -528,6 +528,98 @@ impl<'a> CodeSizeOptimizer<'a> {
     include_module_ids
   }
 
+  fn rec(
+    graph: &SymbolGraph,
+    visited_symbol_node_index: &mut HashSet<NodeIndex>,
+    path: &Vec<JsWord>,
+    path_index: usize,
+    cur: NodeIndex,
+    reachable_node_index: &mut HashSet<NodeIndex>,
+  ) {
+    if visited_symbol_node_index.contains(&cur) {
+      return;
+    }
+    let symbol = graph.get_symbol(&cur).expect("Should get related symbol");
+    visited_symbol_node_index.insert(cur);
+    if path.len() > 0 {
+      let name = &path[path_index];
+      let is_match = match symbol {
+        SymbolRef::Declaration(symbol) => &symbol.id().atom == name,
+        SymbolRef::Indirect(indirect) => indirect.indirect_id() == name,
+        SymbolRef::Star(star_symbol) => star_symbol.binding() == name,
+        SymbolRef::Usage(_, _, _) => return,
+        SymbolRef::Url { .. } => return,
+      };
+      if !is_match {
+        for neighbor in graph
+          .graph
+          .neighbors_directed(cur, petgraph::Direction::Outgoing)
+        {
+          reachable_node_index.insert(neighbor);
+          Self::rec(
+            graph,
+            visited_symbol_node_index,
+            &vec![],
+            0,
+            neighbor,
+            reachable_node_index,
+          );
+        }
+      } else {
+        for neighbor in graph
+          .graph
+          .neighbors_directed(cur, petgraph::Direction::Outgoing)
+        {
+          Self::rec(
+            graph,
+            visited_symbol_node_index,
+            &new_path,
+            path_index + 1,
+            neighbor,
+            reachable_node_index,
+          );
+        }
+      }
+    } else {
+      match symbol {
+        SymbolRef::Declaration(_) | SymbolRef::Indirect(_) | SymbolRef::Star(_) => {
+          for neighbor in graph
+            .graph
+            .neighbors_directed(cur, petgraph::Direction::Outgoing)
+          {
+            Self::rec(
+              graph,
+              visited_symbol_node_index,
+              path,
+              path_index,
+              neighbor,
+              reachable_node_index,
+            );
+          }
+        }
+        SymbolRef::Usage(local, member_chain, _) => {
+          let mut new_path = vec![local.atom.clone()];
+          new_path.extend_from_slice(member_chain);
+          for neighbor in graph
+            .graph
+            .neighbors_directed(cur, petgraph::Direction::Outgoing)
+          {
+            Self::rec(
+              graph,
+              visited_symbol_node_index,
+              &new_path,
+              0,
+              neighbor,
+              reachable_node_index,
+            );
+          }
+        }
+        // do nothing since we don't interested
+        SymbolRef::Url { .. } => {}
+      }
+    }
+    visited_symbol_node_index.remove(&cur);
+  }
   fn get_side_effects_free_modules(
     &self,
     mut side_effect_map: IdentifierMap<SideEffectType>,
