@@ -944,8 +944,6 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
         }
       }
-      // TODO: Do we need to consider such scenario ?
-      // obj[`test`] use a template literal but actually is a pure string lit
       // obj['prop']
       (
         Expr::Ident(obj),
