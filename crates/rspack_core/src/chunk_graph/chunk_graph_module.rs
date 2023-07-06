@@ -91,7 +91,7 @@ impl ChunkGraph {
 
     if let Some(runtime_requirements_map) = &mut cgm.runtime_requirements {
       if let Some(value) = runtime_requirements_map.get_mut(runtime) {
-        value.add(runtime_requirements);
+        value.insert(runtime_requirements);
       } else {
         runtime_requirements_map.set(runtime.clone(), runtime_requirements);
       }

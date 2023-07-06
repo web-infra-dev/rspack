@@ -89,7 +89,7 @@ impl Module for RawModule {
   fn code_generation(&self, compilation: &crate::Compilation) -> Result<CodeGenerationResult> {
     let mut cgr = CodeGenerationResult::default();
     let ast_or_source: AstOrSource = self.source.clone().into();
-    cgr.runtime_requirements.add(self.runtime_requirements);
+    cgr.runtime_requirements.insert(self.runtime_requirements);
     cgr.add(SourceType::JavaScript, ast_or_source);
     cgr.set_hash(
       &compilation.options.output.hash_function,

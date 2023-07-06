@@ -18,7 +18,7 @@ impl CodeGeneratableDependency for RuntimeRequirementsDependency {
   ) {
     code_generatable_context
       .runtime_requirements
-      .add(self.runtime_requirements);
+      .insert(self.runtime_requirements);
   }
 }
 

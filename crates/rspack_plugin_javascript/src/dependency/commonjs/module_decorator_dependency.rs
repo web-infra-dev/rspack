@@ -28,10 +28,10 @@ impl CodeGeneratableDependency for ModuleDecoratorDependency {
       ..
     } = code_generatable_context;
 
-    runtime_requirements.add(RuntimeGlobals::MODULE_LOADED);
-    runtime_requirements.add(RuntimeGlobals::MODULE_ID);
-    runtime_requirements.add(RuntimeGlobals::MODULE);
-    runtime_requirements.add(self.decorator);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_LOADED);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_ID);
+    runtime_requirements.insert(RuntimeGlobals::MODULE);
+    runtime_requirements.insert(self.decorator);
 
     let module_argument = compilation
       .module_graph

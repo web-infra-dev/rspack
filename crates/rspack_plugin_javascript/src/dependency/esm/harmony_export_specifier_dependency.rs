@@ -37,7 +37,7 @@ impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
       .module_graph_module_by_identifier(&module.identifier())
       .expect("should have mgm")
       .get_exports_argument();
-    runtime_requirements.add(RuntimeGlobals::EXPORTS);
+    runtime_requirements.insert(RuntimeGlobals::EXPORTS);
 
     if !self.exports.is_empty() {
       let used_exports = if compilation.options.builtins.tree_shaking.is_true() {
@@ -84,7 +84,7 @@ impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
         })
         .collect::<Vec<_>>();
       if !exports.is_empty() {
-        runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+        runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
         init_fragments.push(InitFragment::new(
           format!(
             "{}({exports_argument}, {});\n",

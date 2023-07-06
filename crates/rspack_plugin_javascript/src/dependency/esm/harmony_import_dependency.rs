@@ -196,7 +196,7 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
       ));
     }
     if self.export_all {
-      runtime_requirements.add(RuntimeGlobals::EXPORT_STAR);
+      runtime_requirements.insert(RuntimeGlobals::EXPORT_STAR);
       let exports_argument = compilation
         .module_graph
         .module_graph_module_by_identifier(&module.identifier())

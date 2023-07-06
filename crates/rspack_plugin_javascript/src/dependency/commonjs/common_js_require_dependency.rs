@@ -86,7 +86,7 @@ impl CodeGeneratableDependency for CommonJsRequireDependency {
       ..
     } = code_generatable_context;
 
-    runtime_requirements.add(RuntimeGlobals::REQUIRE);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
     source.replace(
       self.start,
       self.end,
