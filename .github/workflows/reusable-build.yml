@@ -147,11 +147,6 @@ jobs:
         run: RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # Mac
-      - uses: goto-bus-stop/setup-zig@v2
-        if: ${{ contains(inputs.target, 'apple') }}
-        with:
-          version: 0.10.1
-
       - name: Build x86_64-apple-darwin
         if: ${{ inputs.target == 'x86_64-apple-darwin' }}
         run: |
