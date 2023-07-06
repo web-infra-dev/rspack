@@ -142,7 +142,6 @@ pub fn scan_dependencies(
     program.visit_with(&mut HotModuleReplacementScanner::new(
       &mut dependencies,
       &mut presentational_dependencies,
-      module_identifier,
       build_meta,
     ));
   }

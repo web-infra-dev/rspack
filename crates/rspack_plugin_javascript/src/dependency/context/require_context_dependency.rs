@@ -1,7 +1,7 @@
 use rspack_core::{
-  create_dependency_id, module_id_expr, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, ContextOptions, Dependency, DependencyCategory, DependencyId,
-  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_id_expr, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
+  ModuleDependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
@@ -20,16 +20,12 @@ impl RequireContextDependency {
       end,
       options,
       span,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
     }
   }
 }
 
 impl Dependency for RequireContextDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -40,6 +36,10 @@ impl Dependency for RequireContextDependency {
 }
 
 impl ModuleDependency for RequireContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -73,11 +73,9 @@ impl CodeGeneratableDependency for RequireContextDependency {
   ) {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
-    let id: DependencyId = self.id();
-
     let module_id = compilation
       .module_graph
-      .module_graph_module_by_dependency_id(&id)
+      .module_graph_module_by_dependency_id(&self.id)
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
 

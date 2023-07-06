@@ -1,6 +1,10 @@
 mod entry;
 mod span;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::Relaxed;
+
 pub use entry::*;
+use once_cell::sync::Lazy;
 use rspack_util::ext::AsAny;
 pub use span::SpanExt;
 mod runtime_template;
@@ -23,9 +27,7 @@ mod code_generatable_dependency;
 pub use code_generatable_dependency::*;
 use dyn_clone::{clone_trait_object, DynClone};
 
-use crate::{
-  ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan, ModuleGraph, ModuleIdentifier,
-};
+use crate::{ChunkGroupOptions, Context, ContextMode, ContextOptions, ErrorSpan};
 
 // Used to describe dependencies' types, see webpack's `type` getter in `Dependency`
 // Note: This is almost the same with the old `ResolveKind`
@@ -155,10 +157,6 @@ impl Display for DependencyCategory {
 }
 
 pub trait Dependency: AsAny + DynClone + Send + Sync + Debug {
-  fn id(&self) -> DependencyId {
-    0.into()
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Unknown
   }
@@ -182,50 +180,6 @@ impl Dependency for Box<dyn Dependency> {
   }
 }
 
-pub trait ModuleDependencyExt {
-  fn decl_mapping(
-    &self,
-    module_graph: &ModuleGraph,
-    module_id: String,
-  ) -> (
-    (ModuleIdentifier, String, DependencyCategory),
-    ModuleIdentifier,
-  );
-}
-
-impl ModuleDependencyExt for dyn ModuleDependency + '_ {
-  fn decl_mapping(
-    &self,
-    module_graph: &ModuleGraph,
-    module_id: String,
-  ) -> (
-    (ModuleIdentifier, String, DependencyCategory),
-    ModuleIdentifier,
-  ) {
-    let parent = module_graph.parent_module_by_dependency_id(&self.id()).expect("Dependency does not have a parent module identifier. Maybe you are calling this in an `EntryDependency`?");
-    (
-      (parent, module_id, *self.category()),
-      *module_graph
-        .module_identifier_by_dependency_id(&self.id())
-        .expect("Failed to resolve module graph module"),
-    )
-  }
-}
-
-impl<T: ModuleDependency> ModuleDependencyExt for T {
-  fn decl_mapping(
-    &self,
-    module_graph: &ModuleGraph,
-    module_id: String,
-  ) -> (
-    (ModuleIdentifier, String, DependencyCategory),
-    ModuleIdentifier,
-  ) {
-    let this = self as &dyn ModuleDependency;
-    this.decl_mapping(module_graph, module_id)
-  }
-}
-
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
     None
@@ -239,6 +193,7 @@ impl<T: ModuleDependency> AsModuleDependency for T {
 }
 
 pub trait ModuleDependency: Dependency {
+  fn id(&self) -> &DependencyId;
   fn request(&self) -> &str;
   fn user_request(&self) -> &str;
   fn span(&self) -> Option<&ErrorSpan>;
@@ -266,6 +221,10 @@ pub trait ModuleDependency: Dependency {
 }
 
 impl ModuleDependency for Box<dyn ModuleDependency> {
+  fn id(&self) -> &DependencyId {
+    (**self).id()
+  }
+
   fn request(&self) -> &str {
     (**self).request()
   }
@@ -315,10 +274,6 @@ impl Dependency for Box<dyn ModuleDependency> {
   fn get_context(&self) -> Option<&Context> {
     (**self).get_context()
   }
-
-  fn id(&self) -> DependencyId {
-    (**self).id()
-  }
 }
 
 impl dyn Dependency + '_ {
@@ -354,6 +309,19 @@ pub fn is_async_dependency(dep: &BoxModuleDependency) -> bool {
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct DependencyId(usize);
+
+pub static DEPENDENCY_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
+
+impl DependencyId {
+  pub fn new() -> Self {
+    Self(DEPENDENCY_ID.fetch_add(1, Relaxed))
+  }
+}
+impl Default for DependencyId {
+  fn default() -> Self {
+    Self::new()
+  }
+}
 
 impl std::ops::Deref for DependencyId {
   type Target = usize;

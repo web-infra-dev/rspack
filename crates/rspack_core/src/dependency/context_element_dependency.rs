@@ -15,10 +15,6 @@ pub struct ContextElementDependency {
 }
 
 impl Dependency for ContextElementDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &self.category
   }
@@ -33,6 +29,10 @@ impl Dependency for ContextElementDependency {
 }
 
 impl ModuleDependency for ContextElementDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }

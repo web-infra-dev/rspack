@@ -1,7 +1,6 @@
 use rspack_core::{
-  create_dependency_id, module_id, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency,
+  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -20,7 +19,7 @@ pub struct ModuleHotAcceptDependency {
 impl ModuleHotAcceptDependency {
   pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: create_dependency_id(),
+      id: DependencyId::new(),
       request,
       category: &DependencyCategory::CommonJS,
       dependency_type: &DependencyType::ModuleHotAccept,
@@ -32,10 +31,6 @@ impl ModuleHotAcceptDependency {
 }
 
 impl Dependency for ModuleHotAcceptDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     self.category
   }
@@ -46,6 +41,10 @@ impl Dependency for ModuleHotAcceptDependency {
 }
 
 impl ModuleDependency for ModuleHotAcceptDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -73,14 +72,12 @@ impl CodeGeneratableDependency for ModuleHotAcceptDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id();
-
     source.replace(
       self.start,
       self.end,
       module_id(
         code_generatable_context.compilation,
-        &id,
+        &self.id,
         &self.request,
         false,
       )

@@ -1,7 +1,7 @@
 use rspack_core::{
-  create_dependency_id, module_id_expr, normalize_context, CodeGeneratableContext,
-  CodeGeneratableDependency, CodeGeneratableSource, ContextOptions, Dependency, DependencyCategory,
-  DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
+  module_id_expr, normalize_context, CodeGeneratableContext, CodeGeneratableDependency,
+  CodeGeneratableSource, ContextOptions, Dependency, DependencyCategory, DependencyId,
+  DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
@@ -28,16 +28,12 @@ impl ImportContextDependency {
       args_end,
       options,
       span,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
     }
   }
 }
 
 impl Dependency for ImportContextDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -48,6 +44,10 @@ impl Dependency for ImportContextDependency {
 }
 
 impl ModuleDependency for ImportContextDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -81,11 +81,9 @@ impl CodeGeneratableDependency for ImportContextDependency {
   ) {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
 
-    let id: DependencyId = self.id();
-
     let module_id = compilation
       .module_graph
-      .module_graph_module_by_dependency_id(&id)
+      .module_graph_module_by_dependency_id(&self.id)
       .map(|m| m.id(&compilation.chunk_graph))
       .expect("should have dependency id");
 

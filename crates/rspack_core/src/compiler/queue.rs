@@ -52,7 +52,11 @@ pub struct FactorizeTaskResult {
 #[async_trait::async_trait]
 impl WorkerTask for FactorizeTask {
   async fn run(self) -> Result<TaskResult> {
-    let dependencies = self.dependencies.iter().map(|d| d.id()).collect::<Vec<_>>();
+    let dependencies = self
+      .dependencies
+      .iter()
+      .map(|d| *d.id())
+      .collect::<Vec<_>>();
     let dependency = &self.dependencies[0];
 
     let context = if let Some(context) = dependency.get_context() {

@@ -1,9 +1,7 @@
+use std::borrow::Cow;
 use std::collections::hash_map::Entry;
 use std::path::PathBuf;
-use std::sync::atomic::Ordering::Relaxed;
-use std::{borrow::Cow, sync::atomic::AtomicUsize};
 
-use once_cell::sync::Lazy;
 use rspack_error::{internal_error, Result};
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
@@ -19,12 +17,6 @@ use crate::{
 
 // TODO Here request can be used JsWord
 pub type ImportVarMap = HashMap<String /* request */, String /* import_var */>;
-
-pub static DEPENDENCY_ID: Lazy<AtomicUsize> = Lazy::new(|| AtomicUsize::new(0));
-
-pub fn create_dependency_id() -> DependencyId {
-  DEPENDENCY_ID.fetch_add(1, Relaxed).into()
-}
 
 #[derive(Debug, Default)]
 pub struct ModuleGraph {
@@ -83,10 +75,7 @@ impl ModuleGraph {
   }
 
   pub fn add_dependency(&mut self, dependency: BoxModuleDependency) {
-    if self.dependencies.contains_key(&dependency.id()) {
-      panic!("dependency.id already used")
-    }
-    self.dependencies.insert(dependency.id(), dependency);
+    self.dependencies.insert(*dependency.id(), dependency);
   }
 
   pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> Option<&BoxModuleDependency> {
@@ -560,13 +549,17 @@ mod test {
 
   // Define a detailed edge type for `ModuleGraphConnection`s, tuple contains the parent module identifier and the child module specifier
   #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-  struct Edge(Option<ModuleIdentifier>, String);
+  struct Edge(Option<ModuleIdentifier>, String, DependencyId);
 
   macro_rules! impl_noop_trait_dep_type {
     ($ident:ident) => {
       impl Dependency for $ident {}
 
       impl ModuleDependency for $ident {
+        fn id(&self) -> &DependencyId {
+          &self.2
+        }
+
         fn request(&self) -> &str {
           &*self.1
         }
@@ -600,7 +593,7 @@ mod test {
     to: &ModuleIdentifier,
     dep: Box<dyn ModuleDependency>,
   ) -> DependencyId {
-    let dependency_id = dep.id();
+    let dependency_id = *dep.id();
     mg.add_dependency(dep);
     mg.dependency_id_to_module_identifier
       .insert(dependency_id, *to);
@@ -632,10 +625,10 @@ mod test {
 
   macro_rules! edge {
     ($from:literal, $to:expr) => {
-      Edge(Some($from.into()), $to.into())
+      Edge(Some($from.into()), $to.into(), DependencyId::new())
     };
     ($from:expr, $to:expr) => {
-      Edge($from, $to.into())
+      Edge($from, $to.into(), DependencyId::new())
     };
   }
 

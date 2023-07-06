@@ -1,7 +1,6 @@
 use rspack_core::{
-  create_dependency_id, module_id, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency, RuntimeGlobals,
+  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -25,7 +24,7 @@ impl CommonJsRequireDependency {
     optional: bool,
   ) -> Self {
     Self {
-      id: create_dependency_id(),
+      id: DependencyId::new(),
       request,
       optional,
       start,
@@ -36,10 +35,6 @@ impl CommonJsRequireDependency {
 }
 
 impl Dependency for CommonJsRequireDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -50,6 +45,10 @@ impl Dependency for CommonJsRequireDependency {
 }
 
 impl ModuleDependency for CommonJsRequireDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -87,8 +86,6 @@ impl CodeGeneratableDependency for CommonJsRequireDependency {
       ..
     } = code_generatable_context;
 
-    let id: DependencyId = self.id();
-
     runtime_requirements.add(RuntimeGlobals::REQUIRE);
     source.replace(
       self.start,
@@ -96,7 +93,7 @@ impl CodeGeneratableDependency for CommonJsRequireDependency {
       format!(
         "{}({})",
         RuntimeGlobals::REQUIRE,
-        module_id(compilation, &id, &self.request, false).as_str()
+        module_id(compilation, &self.id, &self.request, false).as_str()
       )
       .as_str(),
       None,

@@ -619,7 +619,7 @@ impl Compilation {
                 self
                   .module_graph
                   .set_dependency_import_var(module.identifier(), dependency.request());
-                dep_ids.push(dependency.id());
+                dep_ids.push(*dependency.id());
                 self.module_graph.add_dependency(dependency);
               }
 

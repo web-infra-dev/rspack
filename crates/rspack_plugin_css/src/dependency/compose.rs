@@ -1,6 +1,5 @@
 use rspack_core::{
-  create_dependency_id, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Clone)]
@@ -13,7 +12,7 @@ pub struct CssComposeDependency {
 impl CssComposeDependency {
   pub fn new(request: String, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: create_dependency_id(),
+      id: DependencyId::new(),
       request,
       span,
     }
@@ -21,10 +20,6 @@ impl CssComposeDependency {
 }
 
 impl Dependency for CssComposeDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CssCompose
   }
@@ -35,6 +30,10 @@ impl Dependency for CssComposeDependency {
 }
 
 impl ModuleDependency for CssComposeDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }

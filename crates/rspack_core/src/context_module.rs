@@ -16,10 +16,10 @@ use rspack_sources::{BoxSource, ConcatSource, RawSource, SourceExt};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  contextify, create_dependency_id, stringify_map, AstOrSource, BoxModuleDependency, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation,
-  ContextElementDependency, DependencyCategory, DependencyType, GenerationResult, LibIdentOptions,
-  Module, ModuleType, Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
+  DependencyCategory, DependencyId, DependencyType, GenerationResult, LibIdentOptions, Module,
+  ModuleType, Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
   SourceType,
 };
 
@@ -434,7 +434,7 @@ impl ContextModule {
             requests.iter().for_each(|r| {
               if options.context_options.reg_exp.test(&r.request) {
                 dependencies.push(Box::new(ContextElementDependency {
-                  id: create_dependency_id(),
+                  id: DependencyId::new(),
                   request: format!(
                     "{}{}{}",
                     r.request,

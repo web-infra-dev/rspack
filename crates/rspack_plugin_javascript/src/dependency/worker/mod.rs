@@ -1,7 +1,7 @@
 use rspack_core::{
-  create_dependency_id, ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency, RuntimeGlobals,
+  ChunkGroupOptions, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
+  RuntimeGlobals,
 };
 
 #[derive(Debug, Clone)]
@@ -27,7 +27,7 @@ impl WorkerDependency {
     Self {
       start,
       end,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
       request,
       span,
       group_options,
@@ -37,10 +37,6 @@ impl WorkerDependency {
 }
 
 impl Dependency for WorkerDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Worker
   }
@@ -51,6 +47,10 @@ impl Dependency for WorkerDependency {
 }
 
 impl ModuleDependency for WorkerDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -87,10 +87,9 @@ impl CodeGeneratableDependency for WorkerDependency {
       runtime_requirements,
       ..
     } = code_generatable_context;
-    let id: DependencyId = self.id();
     let chunk_id = compilation
       .module_graph
-      .module_identifier_by_dependency_id(&id)
+      .module_identifier_by_dependency_id(&self.id)
       .map(|module| {
         compilation
           .chunk_graph

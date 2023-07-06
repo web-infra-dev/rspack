@@ -1,7 +1,6 @@
 use rspack_core::{
-  create_dependency_id, module_id, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency,
+  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -26,16 +25,12 @@ impl ImportMetaHotDeclineDependency {
       category: &DependencyCategory::Esm,
       dependency_type: &DependencyType::ImportMetaHotDecline,
       span,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
     }
   }
 }
 
 impl Dependency for ImportMetaHotDeclineDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     self.category
   }
@@ -46,6 +41,10 @@ impl Dependency for ImportMetaHotDeclineDependency {
 }
 
 impl ModuleDependency for ImportMetaHotDeclineDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -73,14 +72,12 @@ impl CodeGeneratableDependency for ImportMetaHotDeclineDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id();
-
     source.replace(
       self.start,
       self.end,
       module_id(
         code_generatable_context.compilation,
-        &id,
+        &self.id,
         &self.request,
         false,
       )

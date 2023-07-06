@@ -1,5 +1,5 @@
 use rspack_core::{
-  create_dependency_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
+  CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource,
   CodeGenerationDataFilename, CodeGenerationDataUrl, Compilation, Dependency, DependencyCategory,
   DependencyId, DependencyType, ErrorSpan, ModuleDependency, ModuleIdentifier, PublicPath,
 };
@@ -22,7 +22,7 @@ impl CssUrlDependency {
       span,
       start,
       end,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
     }
   }
 
@@ -55,10 +55,6 @@ impl CssUrlDependency {
 }
 
 impl Dependency for CssUrlDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -69,6 +65,10 @@ impl Dependency for CssUrlDependency {
 }
 
 impl ModuleDependency for CssUrlDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -99,7 +99,7 @@ impl CodeGeneratableDependency for CssUrlDependency {
     let CodeGeneratableContext { compilation, .. } = code_generatable_context;
     if let Some(mgm) = compilation
         .module_graph
-        .module_graph_module_by_dependency_id(&self.id())
+        .module_graph_module_by_dependency_id(self.id())
       && let Some(target_url) = self.get_target_url(&mgm.module_identifier, compilation)
     {
       source.replace(self.start, self.end, format!("url({target_url})").as_str(), None);

@@ -1,7 +1,6 @@
 use rspack_core::{
-  create_dependency_id, module_id, CodeGeneratableContext, CodeGeneratableDependency,
-  CodeGeneratableSource, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency, RuntimeGlobals,
+  module_id, CodeGeneratableContext, CodeGeneratableDependency, CodeGeneratableSource, Dependency,
+  DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency, RuntimeGlobals,
 };
 use swc_core::ecma::atoms::JsWord;
 
@@ -19,7 +18,7 @@ impl URLDependency {
     Self {
       start,
       end,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
       request,
       span,
     }
@@ -27,10 +26,6 @@ impl URLDependency {
 }
 
 impl Dependency for URLDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Url
   }
@@ -41,6 +36,10 @@ impl Dependency for URLDependency {
 }
 
 impl ModuleDependency for URLDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -73,7 +72,6 @@ impl CodeGeneratableDependency for URLDependency {
       runtime_requirements,
       ..
     } = code_generatable_context;
-    let id: DependencyId = self.id();
 
     runtime_requirements.insert(RuntimeGlobals::BASE_URI);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -84,7 +82,7 @@ impl CodeGeneratableDependency for URLDependency {
       format!(
         "/* asset import */{}({}), {}",
         RuntimeGlobals::REQUIRE,
-        module_id(compilation, &id, &self.request, false),
+        module_id(compilation, &self.id, &self.request, false),
         RuntimeGlobals::BASE_URI
       )
       .as_str(),

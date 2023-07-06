@@ -1,6 +1,5 @@
 use crate::{
-  create_dependency_id, Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan,
-  ModuleDependency,
+  Dependency, DependencyCategory, DependencyId, DependencyType, ErrorSpan, ModuleDependency,
 };
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
@@ -13,7 +12,7 @@ impl EntryDependency {
   pub fn new(request: String) -> Self {
     Self {
       request,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
     }
   }
 }
@@ -26,13 +25,13 @@ impl Dependency for EntryDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::Entry
   }
-
-  fn id(&self) -> DependencyId {
-    self.id
-  }
 }
 
 impl ModuleDependency for EntryDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }

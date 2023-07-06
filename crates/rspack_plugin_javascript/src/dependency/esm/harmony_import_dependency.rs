@@ -1,5 +1,5 @@
 use rspack_core::{
-  create_dependency_id, import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
+  import_statement, tree_shaking::visitor::SymbolRef, CodeGeneratableContext,
   CodeGeneratableDependency, CodeGeneratableSource, Dependency, DependencyCategory, DependencyId,
   DependencyType, ErrorSpan, InitFragment, InitFragmentStage, ModuleDependency, RuntimeGlobals,
 };
@@ -40,7 +40,7 @@ impl HarmonyImportDependency {
     Self {
       request,
       span,
-      id: create_dependency_id(),
+      id: DependencyId::new(),
       refs,
       specifiers,
       dependency_type,
@@ -57,11 +57,10 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
   ) {
     let compilation = &code_generatable_context.compilation;
     let module = &code_generatable_context.module;
-    let id: DependencyId = self.id();
 
     let ref_mgm = compilation
       .module_graph
-      .module_graph_module_by_dependency_id(&id)
+      .module_graph_module_by_dependency_id(&self.id)
       .expect("should have ref module");
     if !compilation
       .include_module_ids
@@ -71,7 +70,7 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
         dep.apply(
           source,
           code_generatable_context,
-          &id,
+          &self.id,
           self.request.as_ref(),
           false,
         )
@@ -134,7 +133,7 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
           dep.apply(
             source,
             code_generatable_context,
-            &id,
+            &self.id,
             self.request.as_ref(),
             false,
           )
@@ -147,14 +146,14 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
       dep.apply(
         source,
         code_generatable_context,
-        &id,
+        &self.id,
         self.request.as_ref(),
         true,
       )
     });
 
     let content: (String, String) =
-      import_statement(code_generatable_context, &id, &self.request, false);
+      import_statement(code_generatable_context, &self.id, &self.request, false);
 
     let CodeGeneratableContext {
       init_fragments,
@@ -166,7 +165,7 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
 
     let ref_module = compilation
       .module_graph
-      .module_identifier_by_dependency_id(&id)
+      .module_identifier_by_dependency_id(&self.id)
       .expect("should have dependency referenced module");
     let import_var = compilation
       .module_graph
@@ -221,10 +220,6 @@ impl CodeGeneratableDependency for HarmonyImportDependency {
 }
 
 impl Dependency for HarmonyImportDependency {
-  fn id(&self) -> DependencyId {
-    self.id
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -235,6 +230,10 @@ impl Dependency for HarmonyImportDependency {
 }
 
 impl ModuleDependency for HarmonyImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }

@@ -111,7 +111,7 @@ impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
             true,
             import_var.clone(),
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
-            &dependency_id,
+            dependency_id,
             false,
           )),
         ));

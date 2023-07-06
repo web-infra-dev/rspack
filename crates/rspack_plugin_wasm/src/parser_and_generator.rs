@@ -158,7 +158,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             .map(|dep| {
               (
                 dep,
-                module_graph.module_graph_module_by_dependency_id(&dep.id()),
+                module_graph.module_graph_module_by_dependency_id(dep.id()),
               )
             })
             .for_each(|(dep, mgm)| {
