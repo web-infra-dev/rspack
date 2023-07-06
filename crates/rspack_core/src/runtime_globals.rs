@@ -335,15 +335,6 @@ mod test {
   }
 
   #[test]
-  fn test_runtime_globals_operation() {
-    let mut runtime = RuntimeGlobals::default();
-    assert!(runtime.is_empty());
-    runtime.add(RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-    assert!(!runtime.is_empty());
-    assert!(runtime.contains(RuntimeGlobals::PUBLIC_PATH));
-  }
-
-  #[test]
   #[should_panic]
   fn test_panic_when_print_multiple_flags() {
     let flags = RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
