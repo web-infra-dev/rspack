@@ -251,7 +251,7 @@ impl<'a> CodeSizeOptimizer<'a> {
             continue;
           }
           SymbolRef::Url { .. } => continue,
-          SymbolRef::Usage(_, _) => continue,
+          SymbolRef::Usage(_, _, _) => continue,
         }
         let index = self
           .symbol_graph
@@ -728,6 +728,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       }
       _ => {}
     };
+    // dbg!(&current_symbol_ref);
     match current_symbol_ref {
       SymbolRef::Declaration(ref symbol) => {
         let module_result = analyze_map.get(&symbol.src()).expect("TODO:");
@@ -1086,7 +1087,24 @@ impl<'a> CodeSizeOptimizer<'a> {
         // }
       }
       SymbolRef::Url { .. } => {}
-      SymbolRef::Usage(_, _) => todo!(),
+      SymbolRef::Usage(ref binding, ref member_chain, ref src) => {
+        let analyze_result = analyze_map.get(&src).expect("TODO:");
+        // Assume the module name is app.js
+        // ```js
+        // import {myanswer, secret} from './lib'
+        // export {myanswer as m, secret as s}
+        // ```
+        // In such scenario there are two `myanswer` binding would create
+        // one for `app.js`, one for `lib.js`
+        // the binding in `app.js` used for shake the `export {xxx}`
+        // In other words, we need two binding for supporting indirect redirect.
+        if let Some(import_symbol_ref) = analyze_result.import_map.get(&binding) {
+          self
+            .symbol_graph
+            .add_edge(&current_symbol_ref, import_symbol_ref);
+          symbol_queue.push_back(import_symbol_ref.clone());
+        }
+      }
     }
   }
   #[allow(clippy::too_many_arguments)]

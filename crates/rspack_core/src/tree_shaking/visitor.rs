@@ -38,7 +38,7 @@ pub enum SymbolRef {
   Declaration(Symbol),
   Indirect(IndirectTopLevelSymbol),
   Star(StarSymbol),
-  Usage(Vec<JsWord>, ModuleIdentifier),
+  Usage(BetterId, Vec<JsWord>, ModuleIdentifier),
   Url {
     importer: ModuleIdentifier,
     src: ModuleIdentifier,
@@ -52,7 +52,7 @@ impl SymbolRef {
       SymbolRef::Indirect(i) => i.src(),
       SymbolRef::Star(s) => s.src(),
       SymbolRef::Url { src, .. } => *src,
-      SymbolRef::Usage(_, src) => *src,
+      SymbolRef::Usage(_, _, src) => *src,
     }
   }
 
@@ -62,7 +62,7 @@ impl SymbolRef {
       SymbolRef::Indirect(i) => i.importer,
       SymbolRef::Star(s) => s.module_ident(),
       SymbolRef::Url { importer, .. } => *importer,
-      SymbolRef::Usage(_, src) => *src,
+      SymbolRef::Usage(_, _, src) => *src,
     }
   }
   /// Returns `true` if the symbol ref is [`Direct`].
@@ -331,13 +331,19 @@ impl<'a> ModuleRefAnalyze<'a> {
         }
         Part::MemberExpr { object, property } => {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
-            SymbolRef::Indirect(_) => {
-              SymbolRef::Usage(vec![object, property], self.module_identifier)
-            }
-            SymbolRef::Star(_) => SymbolRef::Usage(vec![object, property], self.module_identifier),
+            SymbolRef::Indirect(_) => SymbolRef::Usage(
+              object.clone(),
+              vec![property.clone()],
+              self.module_identifier,
+            ),
+            SymbolRef::Star(_) => SymbolRef::Usage(
+              object.clone(),
+              vec![property.clone()],
+              self.module_identifier,
+            ),
             SymbolRef::Declaration(_) => unreachable!(),
             SymbolRef::Url { .. } => unreachable!(),
-            SymbolRef::Usage(_, _) => unreachable!(),
+            SymbolRef::Usage(..) => unreachable!(),
           })
         }
         Part::Url(src) => {
@@ -409,7 +415,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
         SymbolRef::Url { .. } => {}
-        SymbolRef::Usage(_, _) => todo!(),
+        SymbolRef::Usage(..) => {}
       }
     }
     // Any var declaration has reference a symbol from other module, it is marked as used
@@ -446,17 +452,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           }
           ref_list
             .iter()
-            .flat_map(|ref_id| {
+            .flat_map(|ref_part| {
               // Only used id imported from other module would generate a side effects.
-              let id = match ref_id {
+              let id = match ref_part {
                 Part::Id(ref id) => id,
                 Part::MemberExpr { object, property } => match self.import_map.get(object) {
-                  Some(SymbolRef::Star(uri)) => {
-                    return HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                      uri.src(),
+                  Some(_) => {
+                    return HashSet::from_iter([SymbolRef::Usage(
+                      object.clone(),
+                      vec![property.clone()],
                       self.module_identifier,
-                      IndirectType::Import(property.clone(), None),
-                    ))]);
+                    )]);
                   }
                   _ => object,
                 },
@@ -491,17 +497,17 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // Or constructed. The init of var decl will evaluate except rhs is function expr or arrow expr.
         ref_list
           .iter()
-          .flat_map(|ref_id| {
+          .flat_map(|ref_part| {
             // Only used id imported from other module would generate a side effects.
-            let id = match ref_id {
+            let id = match ref_part {
               Part::Id(ref id) => id,
               Part::MemberExpr { object, property } => match self.import_map.get(object) {
-                Some(SymbolRef::Star(uri)) => {
-                  return HashSet::from_iter([SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                    uri.src(),
+                Some(_) => {
+                  return HashSet::from_iter([SymbolRef::Usage(
+                    object.clone(),
+                    vec![property.clone()],
                     self.module_identifier,
-                    IndirectType::Import(property.clone(), None),
-                  ))]);
+                  )]);
                 }
                 _ => object,
               },
@@ -534,14 +540,12 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
           self.used_symbol_ref.extend(reachable_import);
         }
         Part::MemberExpr { object, property } => match self.import_map.get(object) {
-          Some(SymbolRef::Star(uri)) => {
-            self
-              .used_symbol_ref
-              .insert(SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-                uri.src(),
-                self.module_identifier,
-                IndirectType::Import(property.clone(), None),
-              )));
+          Some(_) => {
+            self.used_symbol_ref.insert(SymbolRef::Usage(
+              object.clone(),
+              vec![property.clone()],
+              self.module_identifier,
+            ));
           }
           _ => {
             let reachable_import = self.get_all_import_or_export(object.clone(), true);
@@ -1557,7 +1561,7 @@ impl<'a> ModuleRefAnalyze<'a> {
 #[derive(Debug, Default)]
 #[allow(unused)]
 pub struct OptimizeAnalyzeResult {
-  top_level_mark: Mark,
+  pub top_level_mark: Mark,
   unresolved_mark: Mark,
   pub module_identifier: ModuleIdentifier,
   pub export_map: HashMap<JsWord, SymbolRef>,

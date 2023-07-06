@@ -3,9 +3,11 @@
 'use strict';
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
-  'a': function() { return a; }
+  'a': function() { return a; },
+  'dddd': function() { return dddd; }
 });
  function a() {}
+ function dddd() {}
 },
 "./package/autogen/index.js": function (__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 'use strict';
