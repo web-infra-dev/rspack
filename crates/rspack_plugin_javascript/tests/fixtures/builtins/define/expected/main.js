@@ -7,7 +7,7 @@ __webpack_require__.r(__webpack_exports__);
 // import { equal } from "assert";
 
 const lib = __webpack_require__(/* ./lib */"./lib.js");
-const { DO_NOT_CONVERTED9  } = __webpack_require__(/* ./lib */"./lib.js");
+const { DO_NOT_CONVERTED9 } = __webpack_require__(/* ./lib */"./lib.js");
 equal(true, true);
 // require("assert").deepStrictEqual(FALSE, false);
 assert.deepStrictEqual(5, 5);
@@ -168,11 +168,11 @@ assert.deepStrictEqual("302".P3, undefined);
 assert.deepStrictEqual("302".P4, undefined);
 const DO_NOT_CONVERTED = 201;
 assert.deepStrictEqual(DO_NOT_CONVERTED, 201);
-let { DO_NOT_CONVERTED2  } = {
+let { DO_NOT_CONVERTED2 } = {
     DO_NOT_CONVERTED2: 202
 };
 assert.deepStrictEqual(DO_NOT_CONVERTED2, 202);
-const { c: DO_NOT_CONVERTED3  } = {
+const { c: DO_NOT_CONVERTED3 } = {
     c: 203
 };
 assert.deepStrictEqual(DO_NOT_CONVERTED3, 203);
