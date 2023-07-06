@@ -45,7 +45,7 @@ impl CodeGeneratableDependency for HarmonyExportSpecifierDependency {
           .used_symbol_ref
           .iter()
           .filter_map(|item| match item {
-            SymbolRef::Direct(d) if d.src() == module.identifier() => {
+            SymbolRef::Declaration(d) if d.src() == module.identifier() => {
               if *d.ty() == SymbolType::Temp {
                 if let Some(key) = self
                   .exports

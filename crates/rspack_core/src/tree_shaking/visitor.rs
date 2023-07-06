@@ -35,10 +35,10 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SymbolRef {
-  Direct(Symbol),
+  Declaration(Symbol),
   Indirect(IndirectTopLevelSymbol),
-  /// uri
   Star(StarSymbol),
+  Usage(Vec<JsWord>, ModuleIdentifier),
   Url {
     importer: ModuleIdentifier,
     src: ModuleIdentifier,
@@ -48,19 +48,21 @@ pub enum SymbolRef {
 impl SymbolRef {
   pub fn src(&self) -> ModuleIdentifier {
     match self {
-      SymbolRef::Direct(d) => d.src(),
+      SymbolRef::Declaration(d) => d.src(),
       SymbolRef::Indirect(i) => i.src(),
       SymbolRef::Star(s) => s.src(),
       SymbolRef::Url { src, .. } => *src,
+      SymbolRef::Usage(_, src) => *src,
     }
   }
 
   pub fn importer(&self) -> ModuleIdentifier {
     match self {
-      SymbolRef::Direct(d) => d.src(),
+      SymbolRef::Declaration(d) => d.src(),
       SymbolRef::Indirect(i) => i.importer,
       SymbolRef::Star(s) => s.module_ident(),
       SymbolRef::Url { importer, .. } => *importer,
+      SymbolRef::Usage(_, src) => *src,
     }
   }
   /// Returns `true` if the symbol ref is [`Direct`].
@@ -68,7 +70,7 @@ impl SymbolRef {
   /// [`Direct`]: SymbolRef::Direct
   #[must_use]
   pub fn is_direct(&self) -> bool {
-    matches!(self, Self::Direct(..))
+    matches!(self, Self::Declaration(..))
   }
 
   /// Returns `true` if the symbol ref is [`Indirect`].
@@ -286,26 +288,26 @@ impl<'a> ModuleRefAnalyze<'a> {
   /// reachable import and export(defined in the same module)
   /// in rest of scenario we only count binding imported from other module.
   pub fn get_all_import_or_export(&self, start: BetterId, only_import: bool) -> HashSet<SymbolRef> {
-    let mut seen: HashSet<Part> = HashSet::default();
+    let mut visited: HashSet<Part> = HashSet::default();
     let mut q: VecDeque<Part> = VecDeque::from_iter([Part::Id(start)]);
     while let Some(cur) = q.pop_front() {
-      if seen.contains(&cur) {
+      if visited.contains(&cur) {
         continue;
       }
       let id = match cur.get_id() {
         Some(id) => id,
         None => {
-          seen.insert(cur);
+          visited.insert(cur);
           continue;
         }
       };
       if let Some(ref_list) = self.maybe_lazy_reference_map.get(&id.clone().into()) {
         q.extend(ref_list.clone());
       }
-      seen.insert(cur);
+      visited.insert(cur);
     }
     // dbg!(&start, &seen, &self.reference_map);
-    return seen
+    return visited
       .iter()
       .filter_map(|part| match part {
         Part::Id(id) => {
@@ -314,7 +316,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               None
             } else {
               match self.export_map.get(&id.atom) {
-                Some(sym_ref @ SymbolRef::Direct(sym)) => {
+                Some(sym_ref @ SymbolRef::Declaration(sym)) => {
                   if sym.id() == id {
                     Some(sym_ref.clone())
                   } else {
@@ -329,13 +331,13 @@ impl<'a> ModuleRefAnalyze<'a> {
         }
         Part::MemberExpr { object, property } => {
           self.import_map.get(object).map(|sym_ref| match sym_ref {
-            SymbolRef::Direct(_) | SymbolRef::Indirect(_) => sym_ref.clone(),
-            SymbolRef::Star(uri) => SymbolRef::Indirect(IndirectTopLevelSymbol::new(
-              uri.src(),
-              self.module_identifier,
-              IndirectType::Import(property.clone(), None),
-            )),
+            SymbolRef::Indirect(_) => {
+              SymbolRef::Usage(vec![object, property], self.module_identifier)
+            }
+            SymbolRef::Star(_) => SymbolRef::Usage(vec![object, property], self.module_identifier),
+            SymbolRef::Declaration(_) => unreachable!(),
             SymbolRef::Url { .. } => unreachable!(),
+            SymbolRef::Usage(_, _) => unreachable!(),
           })
         }
         Part::Url(src) => {
@@ -389,7 +391,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
     for (key, symbol) in self.export_map.iter() {
       match symbol {
         // At this time uri of symbol will always equal to `self.module_identifier`
-        SymbolRef::Direct(symbol) => {
+        SymbolRef::Declaration(symbol) => {
           let reachable_import_and_export =
             self.get_all_import_or_export(symbol.id().clone(), true);
           if key != &symbol.id().atom {
@@ -407,6 +409,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
         // be calculated in the module where it is defined
         SymbolRef::Indirect(_) | SymbolRef::Star(_) => {}
         SymbolRef::Url { .. } => {}
+        SymbolRef::Usage(_, _) => todo!(),
       }
     }
     // Any var declaration has reference a symbol from other module, it is marked as used
@@ -701,7 +704,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               class.visit_with(self);
               self.add_export(
                 class.ident.sym.clone(),
-                SymbolRef::Direct(Symbol::new(
+                SymbolRef::Declaration(Symbol::new(
                   self.module_identifier,
                   class.ident.to_id().into(),
                   SymbolType::Define,
@@ -712,7 +715,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
               function.visit_with(self);
               self.add_export(
                 function.ident.sym.clone(),
-                SymbolRef::Direct(Symbol::new(
+                SymbolRef::Declaration(Symbol::new(
                   self.module_identifier,
                   function.ident.to_id().into(),
                   SymbolType::Define,
@@ -776,7 +779,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
 
     self.add_export(
       default_ident.atom.clone(),
-      SymbolRef::Direct(Symbol::new(
+      SymbolRef::Declaration(Symbol::new(
         self.module_identifier,
         default_ident.clone(),
         SymbolType::Define,
@@ -939,7 +942,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let default_ident = self.generate_default_ident();
       self.add_export(
         default_ident.sym.clone(),
-        SymbolRef::Direct(Symbol::new(
+        SymbolRef::Declaration(Symbol::new(
           self.module_identifier,
           default_ident.to_id().into(),
           SymbolType::Define,
@@ -1043,7 +1046,7 @@ impl<'a> Visit for ModuleRefAnalyze<'a> {
       let default_ident = self.generate_default_ident();
       self.add_export(
         default_ident.sym.clone(),
-        SymbolRef::Direct(Symbol::new(
+        SymbolRef::Declaration(Symbol::new(
           self.module_identifier,
           default_ident.to_id().into(),
           SymbolType::Define,
@@ -1168,7 +1171,7 @@ impl<'a> ModuleRefAnalyze<'a> {
       if is_export && lhs.ctxt.outer() == self.top_level_mark {
         self.add_export(
           lhs.atom.clone(),
-          SymbolRef::Direct(Symbol::new(
+          SymbolRef::Declaration(Symbol::new(
             self.module_identifier,
             lhs.clone(),
             SymbolType::Define,
@@ -1205,7 +1208,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               if is_export && lhs.ctxt.outer() == self.top_level_mark {
                 self.add_export(
                   lhs.atom.clone(),
-                  SymbolRef::Direct(Symbol::new(
+                  SymbolRef::Declaration(Symbol::new(
                     self.module_identifier,
                     lhs.clone(),
                     SymbolType::Define,
@@ -1511,7 +1514,7 @@ impl<'a> ModuleRefAnalyze<'a> {
               None => id.atom.clone(),
             };
             let symbol_ref =
-              SymbolRef::Direct(Symbol::new(self.module_identifier, id, SymbolType::Temp));
+              SymbolRef::Declaration(Symbol::new(self.module_identifier, id, SymbolType::Temp));
 
             self.add_export(exported_atom, symbol_ref);
           }

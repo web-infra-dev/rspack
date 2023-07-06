@@ -66,11 +66,11 @@ impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
         .used_symbol_ref
         .iter()
         .filter_map(|item| match item {
-          SymbolRef::Direct(d) if d.src() == module.identifier() => {
-            if *d.ty() == SymbolType::Temp {
+          SymbolRef::Declaration(decl) if decl.src() == module.identifier() => {
+            if *decl.ty() == SymbolType::Temp {
               if let Some(key) = &self.ids.iter().find(|e| {
                 if let Some(v) = &e.1 {
-                  v == &d.id().atom && e.0 != d.id().atom
+                  v == &decl.id().atom && e.0 != decl.id().atom
                 } else {
                   false
                 }
@@ -78,7 +78,7 @@ impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
                 return Some(&key.0);
               }
             }
-            Some(&d.id().atom)
+            Some(&decl.id().atom)
           }
           SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
             Some(i.id())
