@@ -171,7 +171,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       &mut errors,
     );
 
-    // All lazy imported module will be treadted as entry module, which means
+    // All lazy imported module will be treated as entry module, which means
     // Its export symbol will be marked as used
     // let mut bailout_entry_module_identifiers = IdentifierSet::default();
     self.mark_bailout_module(
@@ -242,7 +242,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     let get_node_index_from_serde_symbol = |serde_symbol: &SerdeSymbol| {
       for symbol_ref in self.symbol_graph.symbol_refs() {
         match symbol_ref {
-          SymbolRef::Direct(direct) => {
+          SymbolRef::Declaration(direct) => {
             if direct.id().atom != serde_symbol.id || !direct.src().contains(&serde_symbol.uri) {
               continue;
             }
@@ -251,6 +251,8 @@ impl<'a> CodeSizeOptimizer<'a> {
             continue;
           }
           SymbolRef::Url { .. } | SymbolRef::Worker { .. } => continue,
+          SymbolRef::Url { .. } => continue,
+          SymbolRef::Usage(_, _) => continue,
         }
         let index = self
           .symbol_graph
@@ -681,7 +683,7 @@ impl<'a> CodeSizeOptimizer<'a> {
     // bailout module will skipping tree-shaking anyway
     // let is_bailout_module_identifier = self.bailout_modules.contains_key(&current_symbol_ref.src());
     match &current_symbol_ref {
-      SymbolRef::Direct(symbol) => {
+      SymbolRef::Declaration(symbol) => {
         merge_used_export_type(
           used_export_module_identifiers,
           symbol.src(),
@@ -732,7 +734,7 @@ impl<'a> CodeSizeOptimizer<'a> {
       _ => {}
     };
     match current_symbol_ref {
-      SymbolRef::Direct(ref symbol) => {
+      SymbolRef::Declaration(ref symbol) => {
         let module_result = analyze_map.get(&symbol.src()).expect("TODO:");
         if let Some(set) = module_result
           .reachable_import_of_export
@@ -890,7 +892,7 @@ impl<'a> CodeSizeOptimizer<'a> {
               0 => {
                 self.symbol_graph.add_edge(
                   &current_symbol_ref,
-                  &SymbolRef::Direct(Symbol::new(
+                  &SymbolRef::Declaration(Symbol::new(
                     module_result.module_identifier,
                     BetterId {
                       ctxt: SyntaxContext::empty(),
@@ -1039,6 +1041,8 @@ impl<'a> CodeSizeOptimizer<'a> {
         }
       }
       SymbolRef::Url { .. } | SymbolRef::Worker { .. } => {}
+      SymbolRef::Url { .. } => {}
+      SymbolRef::Usage(_, _) => todo!(),
     }
   }
   #[allow(clippy::too_many_arguments)]

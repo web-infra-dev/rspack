@@ -123,8 +123,8 @@ pub fn generate_debug_symbol_graph(
 
 pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
   match symbol_ref {
-    SymbolRef::Direct(direct) => SymbolRef::Direct(Symbol::new(
-      direct.src().as_str().into(),
+    SymbolRef::Declaration(direct) => SymbolRef::Declaration(Symbol::new(
+      contextify(context, direct.src().as_str()).into(),
       direct.id().clone(),
       *direct.ty(),
       Some(direct.exported().clone()),
@@ -148,5 +148,6 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
       importer: importer.as_str().into(),
       src: src.as_str().into(),
     },
+    SymbolRef::Usage(_, _) => todo!(),
   }
 }

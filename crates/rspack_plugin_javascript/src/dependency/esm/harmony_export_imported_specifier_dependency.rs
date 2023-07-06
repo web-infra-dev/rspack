@@ -65,8 +65,8 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
         .used_symbol_ref
         .iter()
         .filter_map(|item| match item {
-          SymbolRef::Direct(d) if d.src() == module.identifier() => {
-            if *d.ty() == SymbolType::Temp {
+          SymbolRef::Declaration(decl) if decl.src() == module.identifier() => {
+            if *decl.ty() == SymbolType::Temp {
               if let Some(key) = &self.ids.iter().find(|e| {
                 if e.1.is_some() {
                   e.0 == *d.exported()
@@ -77,7 +77,7 @@ impl DependencyTemplate for HarmonyExportImportedSpecifierDependency {
                 return Some(&key.0);
               }
             }
-            Some(&d.id().atom)
+            Some(&decl.id().atom)
           }
           SymbolRef::Indirect(i) if i.importer == module.identifier() && i.is_reexport() => {
             Some(i.id())
