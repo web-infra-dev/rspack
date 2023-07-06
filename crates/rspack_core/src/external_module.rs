@@ -180,7 +180,7 @@ impl ExternalModule {
               InitFragmentStage::STAGE_HARMONY_IMPORTS,
               None,
             ));
-          runtime_requirements.add(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+          runtime_requirements.insert(RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
           format!(
             r#"var x = y => {{ var x = {{}}; {}(x, y); return x; }}
             var y = x => () => x
@@ -311,7 +311,7 @@ impl Module for ExternalModule {
           GenerationResult::from(AstOrSource::from(source)),
         );
         cgr.chunk_init_fragments = chunk_init_fragments;
-        cgr.runtime_requirements.add(runtime_requirements);
+        cgr.runtime_requirements.insert(runtime_requirements);
         cgr.set_hash(
           &compilation.options.output.hash_function,
           &compilation.options.output.hash_digest,

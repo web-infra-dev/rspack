@@ -43,7 +43,7 @@ pub fn export_from_import(
           return "/* __esModule */true".to_string();
         }
       } else if matches!(exports_type, ExportsType::DefaultOnly | ExportsType::DefaultWithNamed) {
-        runtime_requirements.add(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+        runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
         init_fragments.push(InitFragment::new(
           format!(
             "var {import_var}_namespace_cache;\n",
@@ -135,7 +135,7 @@ pub fn import_statement(
 
   let module_id_expr = module_id(compilation, id, request, false);
 
-  runtime_requirements.add(RuntimeGlobals::REQUIRE);
+  runtime_requirements.insert(RuntimeGlobals::REQUIRE);
 
   let import_var = compilation
     .module_graph
@@ -150,7 +150,7 @@ pub fn import_statement(
 
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
   if matches!(exports_type, ExportsType::Dynamic) {
-    runtime_requirements.add(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+    runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
     return (
       import_content,
       format!(
@@ -180,7 +180,7 @@ pub fn module_namespace_promise(
   let exports_type = get_exports_type(&compilation.module_graph, id, &module.identifier());
 
   let header = if weak {
-    runtime_requirements.add(RuntimeGlobals::MODULE_FACTORIES);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
     Some(format!(
       "if(!{}[{module_id_expr}]) {{\n {} \n}}",
       RuntimeGlobals::MODULE_FACTORIES,
@@ -199,7 +199,7 @@ pub fn module_namespace_promise(
           module_raw(compilation, runtime_requirements, id, request, weak)
         )
       } else {
-        runtime_requirements.add(RuntimeGlobals::REQUIRE);
+        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         appending =
           format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
       }
@@ -211,7 +211,7 @@ pub fn module_namespace_promise(
       if matches!(exports_type, ExportsType::DefaultWithNamed) {
         fake_type |= 2;
       }
-      runtime_requirements.add(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
       if compilation.module_graph.is_async(&module.identifier()) {
         if let Some(header) = header {
           appending = format!(
@@ -219,7 +219,7 @@ pub fn module_namespace_promise(
             module_raw(compilation, runtime_requirements, id, request, weak)
           )
         } else {
-          runtime_requirements.add(RuntimeGlobals::REQUIRE);
+          runtime_requirements.insert(RuntimeGlobals::REQUIRE);
           appending =
             format!(".then(__webpack_require__.bind(__webpack_require__, {module_id_expr}))");
         }
@@ -273,7 +273,7 @@ pub fn module_raw(
   if let Some(module_identifier) = compilation.module_graph.module_identifier_by_dependency_id(id)
         && let Some(module_id) = compilation.chunk_graph.get_module_id(*module_identifier)
   {
-    runtime_requirements.add(RuntimeGlobals::REQUIRE);
+    runtime_requirements.insert(RuntimeGlobals::REQUIRE);
      format!(
       "{}({})",
       RuntimeGlobals::REQUIRE,

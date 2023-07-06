@@ -1068,7 +1068,7 @@ impl Compilation {
           .chunk_graph
           .get_module_runtime_requirements(module.identifier(), &chunk.runtime)
         {
-          set.add(*runtime_requirements);
+          set.insert(*runtime_requirements);
         }
       }
       chunk_requirements.insert(*chunk_ukey, set);
@@ -1101,7 +1101,7 @@ impl Compilation {
         .iter()
       {
         let runtime_requirements = self.chunk_graph.get_chunk_runtime_requirements(chunk_ukey);
-        set.add(*runtime_requirements);
+        set.insert(*runtime_requirements);
       }
 
       plugin_driver.additional_tree_runtime_requirements(

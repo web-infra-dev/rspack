@@ -219,7 +219,7 @@ impl ChunkGraph {
     runtime_requirements: RuntimeGlobals,
   ) {
     let cgc = self.get_chunk_graph_chunk_mut(*chunk_ukey);
-    cgc.runtime_requirements.add(runtime_requirements);
+    cgc.runtime_requirements.insert(runtime_requirements);
   }
 
   pub fn add_tree_runtime_requirements(

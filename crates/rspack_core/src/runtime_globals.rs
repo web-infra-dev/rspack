@@ -232,12 +232,6 @@ impl Default for RuntimeGlobals {
 }
 
 impl RuntimeGlobals {
-  /// a self-mutating method of `union`, union any flags present in either self or other
-  /// It is used as a compatible function of HashSet's extend.
-  pub fn add(&mut self, other: RuntimeGlobals) {
-    *self |= other;
-  }
-
   pub fn name(&self) -> &'static str {
     use RuntimeGlobals as R;
     match *self {
@@ -338,15 +332,6 @@ mod test {
     assert_eq!(format!("{flags}"), "__webpack_require__.p");
     let flags = RuntimeGlobals::GET_CHUNK_CSS_FILENAME;
     assert_eq!(format!("{flags}"), "__webpack_require__.k");
-  }
-
-  #[test]
-  fn test_runtime_globals_operation() {
-    let mut runtime = RuntimeGlobals::default();
-    assert!(runtime.is_empty());
-    runtime.add(RuntimeGlobals::PUBLIC_PATH | RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
-    assert!(!runtime.is_empty());
-    assert!(runtime.contains(RuntimeGlobals::PUBLIC_PATH));
   }
 
   #[test]

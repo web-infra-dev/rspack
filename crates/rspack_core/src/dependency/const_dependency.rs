@@ -37,7 +37,7 @@ impl CodeGeneratableDependency for ConstDependency {
     if let Some(runtime_requirements) = &self.runtime_requirements {
       code_generatable_context
         .runtime_requirements
-        .add(*runtime_requirements);
+        .insert(*runtime_requirements);
     }
     source.replace(self.start, self.end, self.content.as_ref(), None);
   }
