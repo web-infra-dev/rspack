@@ -43,6 +43,12 @@ export class Stats {
 		if (options.hash) {
 			obj.hash = this.#inner.getHash();
 		}
+		if (options.version) {
+			const version = require("../package.json").version;
+			obj.version = version;
+			obj.rspackVersion = version;
+		}
+
 		if (options.timings) {
 			obj.time = this.compilation.endTime! - this.compilation.startTime!;
 		}

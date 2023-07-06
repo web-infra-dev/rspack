@@ -263,6 +263,7 @@ export class Compilation {
 		options.warnings = optionOrLocalFallback(options.warnings, true);
 		options.warningsCount = optionOrLocalFallback(options.warningsCount, true);
 		options.hash = optionOrLocalFallback(options.hash, true);
+		options.version = optionOrLocalFallback(options.version, true);
 		options.publicPath = optionOrLocalFallback(options.publicPath, true);
 		options.outputPath = optionOrLocalFallback(
 			options.outputPath,

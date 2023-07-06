@@ -582,27 +582,8 @@ const SIMPLE_PRINTERS: Record<
 	"chunkOrigin.moduleName": (moduleName, { bold }) => bold(moduleName),
 	"chunkOrigin.loc": loc => loc,
 
-	"error.compilerPath": (compilerPath, { bold }) =>
-		compilerPath ? bold(`(${compilerPath})`) : undefined,
-	"error.chunkId": (chunkId, { formatChunkId }) =>
-		isValidId(chunkId) ? formatChunkId(chunkId) : undefined,
-	"error.chunkEntry": (chunkEntry, { formatFlag }) =>
-		chunkEntry ? formatFlag("entry") : undefined,
-	"error.chunkInitial": (chunkInitial, { formatFlag }) =>
-		chunkInitial ? formatFlag("initial") : undefined,
-	"error.file": (file, { bold }) => bold(file),
-	"error.moduleName": (moduleName, { bold }) => {
-		return moduleName.includes("!")
-			? `${bold(moduleName.replace(/^(\s|\S)*!/, ""))} (${moduleName})`
-			: `${bold(moduleName)}`;
-	},
-	"error.loc": (loc, { green }) => green(loc),
-	"error.message": (message, { bold, formatError }) =>
-		message.includes("\u001b[") ? message : bold(formatError(message)),
-	"error.details": (details, { formatError }) => formatError(details),
-	"error.stack": stack => stack,
-	"error.moduleTrace": moduleTrace => undefined,
-	"error.separator!": () => "\n",
+	// Error was already formatted on the native.
+	error: error => error.formatted,
 
 	"loggingEntry(error).loggingEntry.message": (message, { red }) =>
 		mapLines(message, x => `<e> ${red(x)}`),

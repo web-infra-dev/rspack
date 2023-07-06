@@ -222,21 +222,21 @@ exports[`StatsTestCases should print correct stats for filename 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for filename 2`] = `
-"Hash: 516ee9d006cdd371c32a
-             Asset       Size      Chunks             Chunk Names
-      main.xxxx.js   1.08 KiB        main  [emitted]  main
-dynamic_js.xxxx.js  138 bytes  dynamic_js  [emitted]  
-Entrypoint main = main.xxxx.js
-chunk {dynamic_js} dynamic_js.xxxx.js 32 bytes
- [426] ./dynamic.js 32 bytes {dynamic_js}
-     dynamic import ./dynamic [10]
-chunk {main} main.xxxx.js (main) 38 bytes [entry]
- [10] ./index.js 38 bytes {main}
-     entry ./index 
-[10] ./index.js 38 bytes {main}
-    entry ./index 
-[426] ./dynamic.js 32 bytes {dynamic_js}
-    dynamic import ./dynamic [10]"
+"PublicPath: (none)
+asset main.xxxx.js 1.08 KiB {main} [emitted] (name: main)
+asset dynamic_js.xxxx.js 138 bytes {dynamic_js} [emitted]
+Entrypoint main 1.08 KiB = main.xxxx.js
+chunk {dynamic_js} dynamic_js.xxxx.js <{main}>
+  ./dynamic.js [426] {dynamic_js}
+    dynamic import ./dynamic [10]
+chunk {main} main.xxxx.js (main) >{dynamic_js}< [entry]
+  ./index.js [10] {main}
+    entry ./index
+./index.js [10] {main}
+  entry ./index
+./dynamic.js [426] {dynamic_js}
+  dynamic import ./dynamic [10]
+rspack compiled successfully (516ee9d006cdd371c32a)"
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 1`] = `
@@ -365,15 +365,15 @@ exports[`StatsTestCases should print correct stats for hot+production 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for hot+production 2`] = `
-"Hash: 1043f57af226b2cb314e
-    Asset      Size  Chunks             Chunk Names
-bundle.js  8.89 KiB    main  [emitted]  main
-Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 25 bytes [entry]
- [10] ./index.js 25 bytes {main}
-     entry ./index.js 
-[10] ./index.js 25 bytes {main}
-    entry ./index.js "
+"PublicPath: (none)
+asset bundle.js 8.89 KiB {main} [emitted] (name: main)
+Entrypoint main 8.89 KiB = bundle.js
+chunk {main} bundle.js (main) [entry]
+  ./index.js [10] {main}
+    entry ./index.js
+./index.js [10] {main}
+  entry ./index.js
+rspack compiled successfully (1043f57af226b2cb314e)"
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 1`] = `
@@ -409,8 +409,7 @@ exports[`StatsTestCases should print correct stats for identifier-let-strict-mod
 `;
 
 exports[`StatsTestCases should print correct stats for identifier-let-strict-mode 2`] = `
-"
-error[javascript]: JavaScript parsing error
+"error[javascript]: JavaScript parsing error
   ┌─ tests/statsCases/identifier-let-strict-mode/index.js:1:5
   │
 1 │ let let = let;
@@ -424,7 +423,9 @@ error[javascript]: JavaScript parsing error
 1 │ let let = let;
   │           ^^^ \`let\` cannot be used as an identifier in strict mode
 
-"
+
+
+rspack compiled with 2 errors"
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
@@ -567,12 +568,12 @@ exports[`StatsTestCases should print correct stats for ignore-plugin 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for ignore-plugin 2`] = `
-"[10] ./index.js 103 bytes {main}
-[208] ./locals/en.js 30 bytes {main}
-[665] <PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh (missing) 160 bytes {main}
-[136] <PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js (missing) 160 bytes {main}
-[239] <PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing) 160 bytes {main}
-[941] <PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals" } 160 bytes {main}"
+"./index.js [10] {main}
+./locals/en.js [208] {main}
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh (missing) [665] {main}
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals/./zh.js (missing) [136] {main}
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/./globalIndex.js (missing) [239] {main}
+<PROJECT_ROOT>/tests/statsCases/ignore-plugin/locals|None|None|ContextOptions { mode: Sync, recursive: true, reg_exp: RspackRegex { algo: Regress(Regex { cr: CompiledRegex { insns: [StartOfLine, ByteSeq2([46, 47]), Loop1CharBody { min_iters: 0, max_iters: 18446744073709551615, greedy: true }, MatchAnyExceptLineTerminator, EndOfLine, Goal], brackets: [], start_pred: Arbitrary, loops: 0, groups: 0, named_group_indices: {}, flags: Flags { icase: false, multiline: false, dot_all: false, no_opt: false, unicode: false } } }) }, reg_str: "^//.///.*$", include: None, exclude: None, category: CommonJS, request: "./locals" } [941] {main}"
 `;
 
 exports[`StatsTestCases should print correct stats for issue-3558 1`] = `
@@ -584,7 +585,7 @@ exports[`StatsTestCases should print correct stats for issue-3558 1`] = `
 }
 `;
 
-exports[`StatsTestCases should print correct stats for issue-3558 2`] = `""`;
+exports[`StatsTestCases should print correct stats for issue-3558 2`] = `"rspack compiled successfully"`;
 
 exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 1`] = `
 {
@@ -595,7 +596,7 @@ exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 1`]
 }
 `;
 
-exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 2`] = `""`;
+exports[`StatsTestCases should print correct stats for legacy-ie-css-warning 2`] = `"rspack compiled successfully"`;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 1`] = `
 {
@@ -613,9 +614,10 @@ exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin
 `;
 
 exports[`StatsTestCases should print correct stats for loader-builtin-swc-plugin-warn 2`] = `
-"
-Experimental plugins are not currently supported.
-"
+"Experimental plugins are not currently supported.
+
+
+rspack compiled with 1 warning"
 `;
 
 exports[`StatsTestCases should print correct stats for minify-error-recovery 1`] = `
@@ -640,14 +642,15 @@ exports[`StatsTestCases should print correct stats for minify-error-recovery 1`]
 `;
 
 exports[`StatsTestCases should print correct stats for minify-error-recovery 2`] = `
-"
-error[javascript]: JavaScript parsing error
+"error[javascript]: JavaScript parsing error
   ┌─ bundle.js:1:9
   │
 1 │ const a {}
   │         ^ Expected a semicolon
 
-"
+
+
+rspack compiled with 1 error"
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
@@ -699,8 +702,8 @@ exports[`StatsTestCases should print correct stats for named-chunk-group 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for named-chunk-group 2`] = `
-"Entrypoint main = bundle.js
-Chunk Group cimanyd = cimanyd.bundle.js"
+"Entrypoint main 1.05 KiB = bundle.js
+Chunk Group cimanyd 135 bytes = cimanyd.bundle.js"
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
@@ -725,14 +728,15 @@ exports[`StatsTestCases should print correct stats for normal-errors 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for normal-errors 2`] = `
-"
-error[internal]: Resolve error
+"error[internal]: Resolve error
   ┌─ tests/statsCases/normal-errors/index.js:1:1
   │
 1 │ import "not-exist";
   │ ^^^^^^^^^^^^^^^^^^^ Failed to resolve not-exist in <PROJECT_ROOT>/tests/statsCases/normal-errors/index.js
 
-"
+
+
+rspack compiled with 1 error"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 1`] = `
@@ -872,12 +876,12 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk 2`] = `
-"Entrypoint e1 = e1~runtime.js e1.js
-Entrypoint e2 = e2~runtime.js e2.js
-chunk {e1} e1.js (e1) 27 bytes [entry]
-chunk {e1~runtime} e1~runtime.js (e1~runtime) 0 bytes [initial]
-chunk {e2} e2.js (e2) 27 bytes [entry]
-chunk {e2~runtime} e2~runtime.js (e2~runtime) 0 bytes [initial]"
+"Entrypoint e1 2.78 KiB = e1~runtime.js 2.4 KiB e1.js 392 bytes
+Entrypoint e2 2.78 KiB = e2~runtime.js 2.4 KiB e2.js 392 bytes
+chunk {e1} e1.js (e1) [entry]
+chunk {e1~runtime} e1~runtime.js (e1~runtime) [initial]
+chunk {e2} e2.js (e2) [entry]
+chunk {e2~runtime} e2~runtime.js (e2~runtime) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 1`] = `
@@ -1017,12 +1021,12 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-multiple 2`] = `
-"Entrypoint e1 = runtime~e1.js e1.js
-Entrypoint e2 = runtime~e2.js e2.js
-chunk {e1} e1.js (e1) 27 bytes [entry]
-chunk {e2} e2.js (e2) 27 bytes [entry]
-chunk {runtime~e1} runtime~e1.js (runtime~e1) 0 bytes [initial]
-chunk {runtime~e2} runtime~e2.js (runtime~e2) 0 bytes [initial]"
+"Entrypoint e1 2.78 KiB = runtime~e1.js 2.4 KiB e1.js 386 bytes
+Entrypoint e2 2.78 KiB = runtime~e2.js 2.4 KiB e2.js 386 bytes
+chunk {e1} e1.js (e1) [entry]
+chunk {e2} e2.js (e2) [entry]
+chunk {runtime~e1} runtime~e1.js (runtime~e1) [initial]
+chunk {runtime~e2} runtime~e2.js (runtime~e2) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 1`] = `
@@ -1149,11 +1153,11 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-single 2`] = `
-"Entrypoint e1 = runtime.js e1.js
-Entrypoint e2 = runtime.js e2.js
-chunk {e1} e1.js (e1) 27 bytes [entry]
-chunk {e2} e2.js (e2) 27 bytes [entry]
-chunk {runtime} runtime.js (runtime) 0 bytes [initial]"
+"Entrypoint e1 2.78 KiB = runtime.js 2.4 KiB e1.js 389 bytes
+Entrypoint e2 2.78 KiB = runtime.js 2.4 KiB e2.js 389 bytes
+chunk {e1} e1.js (e1) [entry]
+chunk {e2} e2.js (e2) [entry]
+chunk {runtime} runtime.js (runtime) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 1`] = `
@@ -1293,12 +1297,12 @@ exports[`StatsTestCases should print correct stats for optimization-runtime-chun
 `;
 
 exports[`StatsTestCases should print correct stats for optimization-runtime-chunk-true 2`] = `
-"Entrypoint e1 = runtime~e1.js e1.js
-Entrypoint e2 = runtime~e2.js e2.js
-chunk {e1} e1.js (e1) 27 bytes [entry]
-chunk {e2} e2.js (e2) 27 bytes [entry]
-chunk {runtime~e1} runtime~e1.js (runtime~e1) 0 bytes [initial]
-chunk {runtime~e2} runtime~e2.js (runtime~e2) 0 bytes [initial]"
+"Entrypoint e1 2.78 KiB = runtime~e1.js 2.4 KiB e1.js 386 bytes
+Entrypoint e2 2.78 KiB = runtime~e2.js 2.4 KiB e2.js 386 bytes
+chunk {e1} e1.js (e1) [entry]
+chunk {e2} e2.js (e2) [entry]
+chunk {runtime~e1} runtime~e1.js (runtime~e1) [initial]
+chunk {runtime~e2} runtime~e2.js (runtime~e2) [initial]"
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 1`] = `
@@ -1323,14 +1327,15 @@ exports[`StatsTestCases should print correct stats for parse-error 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for parse-error 2`] = `
-"
-error[javascript]: JavaScript parsing error
+"error[javascript]: JavaScript parsing error
   ┌─ tests/statsCases/parse-error/b.js:6:8
   │
 6 │ parser )
   │        ^ Expected ';', '}' or <eof>
 
-"
+
+
+rspack compiled with 1 error"
 `;
 
 exports[`StatsTestCases should print correct stats for reasons 1`] = `
@@ -1389,10 +1394,10 @@ exports[`StatsTestCases should print correct stats for reasons 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for reasons 2`] = `
-"[847] ./a.js 55 bytes {main}
-    cjs require ./a [10]
-[10] ./index.js 44 bytes {main}
-    entry ./index "
+"./a.js [847] {main}
+  cjs require ./a [10]
+./index.js [10] {main}
+  entry ./index"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
@@ -1595,20 +1600,18 @@ exports[`StatsTestCases should print correct stats for resolve-overflow 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-overflow 2`] = `
-"Hash: 8c57c81df978e4e4fb32
-PublicPath: auto
-    Asset       Size  Chunks             Chunk Names
-bundle.js  725 bytes    main  [emitted]  main
-Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 211 bytes [entry]
- [10] ./index.js 51 bytes {main}
-     entry ./index 
- [280] <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) 160 bytes {main}
-     esm import cycle-alias/a [10]
-[10] ./index.js 51 bytes {main}
-    entry ./index 
-[280] <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) 160 bytes {main}
+"PublicPath: auto
+asset bundle.js 725 bytes {main} [emitted] (name: main)
+Entrypoint main 725 bytes = bundle.js
+chunk {main} bundle.js (main) [entry]
+  ./index.js [10] {main}
+    entry ./index
+  <PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
     esm import cycle-alias/a [10]
+./index.js [10] {main}
+  entry ./index
+<PROJECT_ROOT>/tests/statsCases/resolve-overflow/cycle-alias/a (missing) [280] {main}
+  esm import cycle-alias/a [10]
 
 error[internal]: Resolve error
   ┌─ tests/statsCases/resolve-overflow/index.js:1:1
@@ -1616,7 +1619,9 @@ error[internal]: Resolve error
 1 │ import { a } from "cycle-alias/a";
   │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Can't resolve "cycle-alias/a" in <PROJECT_ROOT>/tests/statsCases/resolve-overflow/index.js , maybe it had cycle alias
 
-"
+
+
+rspack compiled with 1 error (8c57c81df978e4e4fb32)"
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 1`] = `
@@ -1814,22 +1819,23 @@ exports[`StatsTestCases should print correct stats for resolve-unexpected-export
 `;
 
 exports[`StatsTestCases should print correct stats for resolve-unexpected-exports-in-pkg 2`] = `
-"Hash: ba15915609ddb99bd40d
-    Asset       Size  Chunks             Chunk Names
-bundle.js  741 bytes    main  [emitted]  main
-Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 199 bytes [entry]
- [10] ./index.js 39 bytes {main}
-     entry ./index 
- [788] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) 160 bytes {main}
-     esm import pkg-a [10]
-[10] ./index.js 39 bytes {main}
-    entry ./index 
-[788] <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) 160 bytes {main}
+"PublicPath: (none)
+asset bundle.js 741 bytes {main} [emitted] (name: main)
+Entrypoint main 741 bytes = bundle.js
+chunk {main} bundle.js (main) [entry]
+  ./index.js [10] {main}
+    entry ./index
+  <PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
     esm import pkg-a [10]
+./index.js [10] {main}
+  entry ./index
+<PROJECT_ROOT>/tests/statsCases/resolve-unexpected-exports-in-pkg/pkg-a (missing) [788] {main}
+  esm import pkg-a [10]
 
 Export should be relative path and start with "./", but got ../../index.js
-"
+
+
+rspack compiled with 1 error (ba15915609ddb99bd40d)"
 `;
 
 exports[`StatsTestCases should print correct stats for simple 1`] = `
@@ -1958,15 +1964,15 @@ exports[`StatsTestCases should print correct stats for simple 1`] = `
 `;
 
 exports[`StatsTestCases should print correct stats for simple 2`] = `
-"Hash: 609719dbdc6f7f412d8a
-    Asset       Size  Chunks             Chunk Names
-bundle.js  589 bytes    main  [emitted]  main
-Entrypoint main = bundle.js
-chunk {main} bundle.js (main) 26 bytes [entry]
- [10] ./index.js 26 bytes {main}
-     entry ./index 
-[10] ./index.js 26 bytes {main}
-    entry ./index "
+"PublicPath: (none)
+asset bundle.js 589 bytes {main} [emitted] (name: main)
+Entrypoint main 589 bytes = bundle.js
+chunk {main} bundle.js (main) [entry]
+  ./index.js [10] {main}
+    entry ./index
+./index.js [10] {main}
+  entry ./index
+rspack compiled successfully (609719dbdc6f7f412d8a)"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 1`] = `
@@ -1992,8 +1998,7 @@ exports[`StatsTestCases should print correct stats for try-require--module 1`] =
 `;
 
 exports[`StatsTestCases should print correct stats for try-require--module 2`] = `
-"
-warning[internal]: Resolve error
+"warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require--module/index.js:2:5
   │  
 2 │       require('./missing-module')
@@ -2001,7 +2006,9 @@ warning[internal]: Resolve error
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require--module/index.js
 
-"
+
+
+rspack compiled with 1 warning"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 1`] = `
@@ -2027,8 +2034,7 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-modul
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-module 2`] = `
-"
-warning[internal]: Resolve error
+"warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require-resolve-module/index.js:2:5
   │  
 2 │       require.resolve('./missing-module')
@@ -2036,7 +2042,9 @@ warning[internal]: Resolve error
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-module/index.js
 
-"
+
+
+rspack compiled with 1 warning"
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 1`] = `
@@ -2062,8 +2070,7 @@ exports[`StatsTestCases should print correct stats for try-require-resolve-weak-
 `;
 
 exports[`StatsTestCases should print correct stats for try-require-resolve-weak-module 2`] = `
-"
-warning[internal]: Resolve error
+"warning[internal]: Resolve error
   ┌─ tests/statsCases/try-require-resolve-weak-module/index.js:2:5
   │  
 2 │       require.resolveWeak('./missing-module')
@@ -2071,5 +2078,7 @@ warning[internal]: Resolve error
 3 │ │ } catch (e) {
   │ ╰──^ Failed to resolve ./missing-module in <PROJECT_ROOT>/tests/statsCases/try-require-resolve-weak-module/index.js
 
-"
+
+
+rspack compiled with 1 warning"
 `;
