@@ -619,8 +619,8 @@ impl Compilation {
                 self
                   .module_graph
                   .set_dependency_import_var(module.identifier(), dependency.request());
-                let dep_id = self.module_graph.add_dependency(dependency);
-                dep_ids.push(dep_id);
+                dep_ids.push(*dependency.id());
+                self.module_graph.add_dependency(dependency);
               }
 
               {

@@ -4,13 +4,16 @@ use crate::{
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct EntryDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
 }
 
 impl EntryDependency {
   pub fn new(request: String) -> Self {
-    Self { request, id: None }
+    Self {
+      request,
+      id: DependencyId::new(),
+    }
   }
 }
 
@@ -22,17 +25,13 @@ impl Dependency for EntryDependency {
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::Entry
   }
-
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
 }
 
 impl ModuleDependency for EntryDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }

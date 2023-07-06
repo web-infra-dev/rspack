@@ -1542,7 +1542,7 @@ impl<'a> ModuleRefAnalyze<'a> {
           if dep.request() == src && dependency_type == dep.dependency_type() {
             self
               .module_graph
-              .module_graph_module_by_dependency_id(&dep.id().expect("should have id"))
+              .module_graph_module_by_dependency_id(dep.id())
               .map(|module| &module.module_identifier)
           } else {
             None

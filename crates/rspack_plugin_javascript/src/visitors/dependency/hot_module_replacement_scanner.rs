@@ -1,6 +1,5 @@
 use rspack_core::{
-  BoxModuleDependency, BuildMeta, CodeGeneratableDependency, ErrorSpan, ModuleDependency,
-  ModuleIdentifier, SpanExt,
+  BoxModuleDependency, BuildMeta, CodeGeneratableDependency, ErrorSpan, ModuleDependency, SpanExt,
 };
 use swc_core::{
   common::Spanned,
@@ -23,7 +22,6 @@ use crate::{
 pub struct HotModuleReplacementScanner<'a> {
   pub dependencies: &'a mut Vec<BoxModuleDependency>,
   pub presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
-  pub module_identifier: ModuleIdentifier,
   pub build_meta: &'a BuildMeta,
 }
 
@@ -33,13 +31,11 @@ impl<'a> HotModuleReplacementScanner<'a> {
   pub fn new(
     dependencies: &'a mut Vec<BoxModuleDependency>,
     presentational_dependencies: &'a mut Vec<Box<dyn CodeGeneratableDependency>>,
-    module_identifier: ModuleIdentifier,
     build_meta: &'a BuildMeta,
   ) -> Self {
     Self {
       dependencies,
       presentational_dependencies,
-      module_identifier,
       build_meta,
     }
   }
@@ -50,12 +46,12 @@ impl<'a> HotModuleReplacementScanner<'a> {
     kind: &str,
     create_dependency: CreateDependency,
   ) {
-    let mut deps = vec![];
+    let mut dependencies: Vec<Box<dyn ModuleDependency>> = vec![];
 
     if let Some(first_arg) = call_expr.args.get(0) {
       match &*first_arg.expr {
         Expr::Lit(Lit::Str(s)) => {
-          deps.push(create_dependency(
+          dependencies.push(create_dependency(
             s.span.real_lo(),
             s.span.real_hi(),
             s.value.clone(),
@@ -66,7 +62,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
           array_lit.elems.iter().for_each(|e| {
             if let Some(expr) = e {
               if let Expr::Lit(Lit::Str(s)) = &*expr.expr {
-                deps.push(create_dependency(
+                dependencies.push(create_dependency(
                   s.span.real_lo(),
                   s.span.real_hi(),
                   s.value.clone(),
@@ -81,16 +77,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
     }
 
     if self.build_meta.esm && kind == "accept" && !call_expr.args.is_empty() {
-      let ref_deps = deps
-        .iter()
-        .map(|dep| {
-          (
-            dep.request().into(),
-            *dep.category(),
-            dep.dependency_type().clone(),
-          )
-        })
-        .collect::<Vec<_>>();
+      let dependency_ids = dependencies.iter().map(|dep| *dep.id()).collect::<Vec<_>>();
       if let Some(callback_arg) = call_expr.args.get(1) {
         self
           .presentational_dependencies
@@ -98,8 +85,7 @@ impl<'a> HotModuleReplacementScanner<'a> {
             callback_arg.span().real_lo(),
             callback_arg.span().real_hi(),
             true,
-            self.module_identifier,
-            ref_deps,
+            dependency_ids,
           )));
       } else {
         self
@@ -108,13 +94,12 @@ impl<'a> HotModuleReplacementScanner<'a> {
             call_expr.span().real_hi() - 1,
             0,
             false,
-            self.module_identifier,
-            ref_deps,
+            dependency_ids,
           )));
       }
     }
 
-    self.dependencies.extend(deps);
+    self.dependencies.extend(dependencies);
   }
 }
 

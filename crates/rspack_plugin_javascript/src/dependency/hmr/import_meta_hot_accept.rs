@@ -6,7 +6,7 @@ use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct ImportMetaHotAcceptDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   start: u32,
   end: u32,
@@ -25,19 +25,12 @@ impl ImportMetaHotAcceptDependency {
       category: &DependencyCategory::Esm,
       dependency_type: &DependencyType::ImportMetaHotAccept,
       span,
-      id: None,
+      id: DependencyId::new(),
     }
   }
 }
 
 impl Dependency for ImportMetaHotAcceptDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     self.category
   }
@@ -48,6 +41,10 @@ impl Dependency for ImportMetaHotAcceptDependency {
 }
 
 impl ModuleDependency for ImportMetaHotAcceptDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -75,14 +72,12 @@ impl CodeGeneratableDependency for ImportMetaHotAcceptDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
-
     source.replace(
       self.start,
       self.end,
       module_id(
         code_generatable_context.compilation,
-        &id,
+        &self.id,
         &self.request,
         false,
       )

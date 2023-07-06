@@ -9,7 +9,7 @@ use swc_core::ecma::atoms::JsWord;
 pub struct ImportDependency {
   start: u32,
   end: u32,
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   span: Option<ErrorSpan>,
   /// This is used to implement `webpackChunkName`, `webpackPrefetch` etc.
@@ -30,20 +30,13 @@ impl ImportDependency {
       end,
       request,
       span,
-      id: None,
+      id: DependencyId::new(),
       group_options,
     }
   }
 }
 
 impl Dependency for ImportDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
   }
@@ -54,6 +47,10 @@ impl Dependency for ImportDependency {
 }
 
 impl ModuleDependency for ImportDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -85,11 +82,10 @@ impl CodeGeneratableDependency for ImportDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
     source.replace(
       self.start,
       self.end,
-      module_namespace_promise(code_generatable_context, &id, &self.request, false).as_str(),
+      module_namespace_promise(code_generatable_context, &self.id, &self.request, false).as_str(),
       None,
     );
   }

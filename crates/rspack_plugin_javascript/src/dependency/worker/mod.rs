@@ -8,7 +8,7 @@ use rspack_core::{
 pub struct WorkerDependency {
   start: u32,
   end: u32,
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: String,
   span: Option<ErrorSpan>,
   group_options: ChunkGroupOptions,
@@ -27,7 +27,7 @@ impl WorkerDependency {
     Self {
       start,
       end,
-      id: None,
+      id: DependencyId::new(),
       request,
       span,
       group_options,
@@ -37,13 +37,6 @@ impl WorkerDependency {
 }
 
 impl Dependency for WorkerDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Worker
   }
@@ -54,6 +47,10 @@ impl Dependency for WorkerDependency {
 }
 
 impl ModuleDependency for WorkerDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -90,10 +87,9 @@ impl CodeGeneratableDependency for WorkerDependency {
       runtime_requirements,
       ..
     } = code_generatable_context;
-    let id: DependencyId = self.id().expect("should have dependency id");
     let chunk_id = compilation
       .module_graph
-      .module_identifier_by_dependency_id(&id)
+      .module_identifier_by_dependency_id(&self.id)
       .map(|module| {
         compilation
           .chunk_graph

@@ -6,7 +6,7 @@ use swc_core::ecma::atoms::JsWord;
 
 #[derive(Debug, Clone)]
 pub struct ModuleHotDeclineDependency {
-  id: Option<DependencyId>,
+  id: DependencyId,
   request: JsWord,
   start: u32,
   end: u32,
@@ -19,7 +19,7 @@ pub struct ModuleHotDeclineDependency {
 impl ModuleHotDeclineDependency {
   pub fn new(start: u32, end: u32, request: JsWord, span: Option<ErrorSpan>) -> Self {
     Self {
-      id: None,
+      id: DependencyId::new(),
       request,
       category: &DependencyCategory::CommonJS,
       dependency_type: &DependencyType::ModuleHotDecline,
@@ -31,13 +31,6 @@ impl ModuleHotDeclineDependency {
 }
 
 impl Dependency for ModuleHotDeclineDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
-
   fn category(&self) -> &DependencyCategory {
     self.category
   }
@@ -48,6 +41,10 @@ impl Dependency for ModuleHotDeclineDependency {
 }
 
 impl ModuleDependency for ModuleHotDeclineDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -75,14 +72,12 @@ impl CodeGeneratableDependency for ModuleHotDeclineDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
-
     source.replace(
       self.start,
       self.end,
       module_id(
         code_generatable_context.compilation,
-        &id,
+        &self.id,
         &self.request,
         false,
       )

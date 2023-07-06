@@ -54,8 +54,7 @@ impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
       })
       .find(|d| d.request() == &self.request)
       .expect("should have dependency")
-      .id()
-      .expect("should have dependency id");
+      .id();
 
     let import_var = compilation
       .module_graph
@@ -112,7 +111,7 @@ impl CodeGeneratableDependency for HarmonyExportImportedSpecifierDependency {
             true,
             import_var.clone(),
             id.1.clone().map(|i| vec![i]).unwrap_or_default(),
-            &dependency_id,
+            dependency_id,
             false,
           )),
         ));

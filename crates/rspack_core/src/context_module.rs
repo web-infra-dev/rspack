@@ -18,8 +18,9 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   contextify, stringify_map, AstOrSource, BoxModuleDependency, BuildContext, BuildInfo, BuildMeta,
   BuildResult, ChunkGraph, CodeGenerationResult, Compilation, ContextElementDependency,
-  DependencyCategory, DependencyType, GenerationResult, LibIdentOptions, Module, ModuleType,
-  Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, SourceType,
+  DependencyCategory, DependencyId, DependencyType, GenerationResult, LibIdentOptions, Module,
+  ModuleType, Resolve, ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals,
+  SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -433,7 +434,7 @@ impl ContextModule {
             requests.iter().for_each(|r| {
               if options.context_options.reg_exp.test(&r.request) {
                 dependencies.push(Box::new(ContextElementDependency {
-                  id: None,
+                  id: DependencyId::new(),
                   request: format!(
                     "{}{}{}",
                     r.request,

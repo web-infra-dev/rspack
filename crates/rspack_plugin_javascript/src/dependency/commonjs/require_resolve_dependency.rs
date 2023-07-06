@@ -8,7 +8,7 @@ use rspack_core::{
 pub struct RequireResolveDependency {
   pub start: u32,
   pub end: u32,
-  pub id: Option<DependencyId>,
+  pub id: DependencyId,
   pub request: String,
   pub weak: bool,
   span: ErrorSpan,
@@ -30,19 +30,13 @@ impl RequireResolveDependency {
       request,
       weak,
       span,
-      id: None,
+      id: DependencyId::new(),
       optional,
     }
   }
 }
 
 impl Dependency for RequireResolveDependency {
-  fn id(&self) -> Option<DependencyId> {
-    self.id
-  }
-  fn set_id(&mut self, id: Option<DependencyId>) {
-    self.id = id;
-  }
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::CommonJS
   }
@@ -53,6 +47,10 @@ impl Dependency for RequireResolveDependency {
 }
 
 impl ModuleDependency for RequireResolveDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
   fn request(&self) -> &str {
     &self.request
   }
@@ -92,14 +90,12 @@ impl CodeGeneratableDependency for RequireResolveDependency {
     source: &mut CodeGeneratableSource,
     code_generatable_context: &mut CodeGeneratableContext,
   ) {
-    let id: DependencyId = self.id().expect("should have dependency id");
-
     source.replace(
       self.start,
       self.end,
       module_id(
         code_generatable_context.compilation,
-        &id,
+        &self.id,
         &self.request,
         self.weak,
       )
