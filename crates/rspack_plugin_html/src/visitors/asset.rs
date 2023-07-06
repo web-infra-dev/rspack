@@ -172,10 +172,8 @@ impl VisitMut for AssetWriter<'_, '_> {
           let mut favicon_link_path = favicon_path.to_string_lossy().to_string();
 
           if env::consts::OS == "windows" {
-            favicon_link_path = Regex::new(r"[/\\]")
-              .unwrap()
-              .replace_all(favicon_link_path.as_str(), "/")
-              .to_string();
+            let reg = Regex::new(r"[/\\]").expect("Invalid RegExp");
+            favicon_link_path = reg.replace_all(favicon_link_path.as_str(), "/").to_string();
           }
 
           n.children.push(Child::Element(Element {
