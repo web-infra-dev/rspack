@@ -149,5 +149,10 @@ pub fn simplify_symbol_ref(symbol_ref: &SymbolRef) -> SymbolRef {
       src: src.as_str().into(),
     },
     SymbolRef::Usage(_, _) => todo!(),
+    SymbolRef::Usage(binding, member_chain, src) => SymbolRef::Usage(
+      binding.clone(),
+      member_chain.clone(),
+      contextify(context, src.as_str()).into(),
+    ),
   }
 }
