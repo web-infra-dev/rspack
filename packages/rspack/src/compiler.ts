@@ -31,6 +31,7 @@ import { createThreadsafeNodeFSFromRaw } from "./fileSystem";
 import Cache from "./lib/Cache";
 import { makePathsRelative } from "./util/identifier";
 import CacheFacade from "./lib/CacheFacade";
+import ModuleFilenameHelpers from "./lib/ModuleFilenameHelpers";
 import { runLoader } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./normalModuleFactory";
@@ -165,6 +166,7 @@ class Compiler {
 				return require("../package.json").version;
 			},
 			WebpackError: Error,
+			ModuleFilenameHelpers,
 			node: {
 				NodeTargetPlugin,
 				NodeTemplatePlugin

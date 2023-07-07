@@ -81,7 +81,7 @@ const SIMPLE_PRINTERS: Record<
 			compilation: {
 				name,
 				hash,
-				version,
+				rspackVersion,
 				time,
 				builtAt,
 				errorsCount,
@@ -104,7 +104,8 @@ const SIMPLE_PRINTERS: Record<
 		const hashMessage = hash ? ` (${hash})` : "";
 		const builtAtMessage =
 			root && builtAt ? `${formatDateTime(builtAt)}: ` : "";
-		const versionMessage = root && version ? `rspack ${version}` : "";
+		const versionMessage =
+			root && rspackVersion ? `rspack ${rspackVersion}` : "";
 		const nameMessage =
 			root && name
 				? bold(name)
@@ -694,7 +695,7 @@ const PREFERRED_ORDERS: Record<string, string[]> = {
 	compilation: [
 		"name",
 		"hash",
-		"version",
+		"rspackVersion",
 		"time",
 		"builtAt",
 		"env",

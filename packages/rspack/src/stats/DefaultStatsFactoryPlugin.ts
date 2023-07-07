@@ -17,7 +17,12 @@ export type StatsModuleReason = binding.JsStatsModuleReason &
 	Record<string, any>;
 
 export type KnownStatsCompilation = {
+	/**
+	 * webpack version.
+	 * this is a hack to be compatible with plugin which detect webpack's version
+	 */
 	version?: string;
+	/** rspack version */
 	rspackVersion?: string;
 	name?: string;
 	hash?: string;

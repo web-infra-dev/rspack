@@ -44,8 +44,8 @@ export class Stats {
 			obj.hash = this.#inner.getHash();
 		}
 		if (options.version) {
-			const version = require("../package.json").version;
-			obj.version = version;
+			const { version, webpackVersion } = require("../package.json");
+			obj.version = webpackVersion;
 			obj.rspackVersion = version;
 		}
 
