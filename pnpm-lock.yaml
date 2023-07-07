@@ -628,6 +628,12 @@ importers:
       solid-js: 1.6.9
       solid-refresh: 0.5.2_solid-js@1.6.9
 
+  examples/stats:
+    specifiers:
+      '@rspack/cli': workspace:*
+    devDependencies:
+      '@rspack/cli': link:../../packages/rspack-cli
+
   examples/styled-components:
     specifiers:
       '@rspack/cli': workspace:*

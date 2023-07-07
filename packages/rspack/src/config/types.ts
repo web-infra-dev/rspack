@@ -600,6 +600,7 @@ export interface StatsOptions {
 	errorsCount?: boolean;
 	colors?: boolean;
 	hash?: boolean;
+	version?: boolean;
 	reasons?: boolean;
 	publicPath?: boolean;
 	outputPath?: boolean;
