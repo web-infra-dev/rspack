@@ -42,5 +42,5 @@ urlencoding = "2.1.2"
 
 [dev-dependencies]
 hrx-parser     = "0.1.1"
-insta          = "1.29.0"
+insta          = "1.30.0"
 rspack_testing = { path = "../rspack_testing" }

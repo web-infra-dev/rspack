@@ -48,5 +48,5 @@ swc_emotion = { workspace = true }
 swc_node_comments = { workspace = true }
 swc_plugin_import = { path = "../swc_plugin_import" }
 tokio = { workspace = true, features = ["rt"] }
-url = "2.3.1"
+url = "2.4.0"
 xxhash-rust = { version = "0.8.6", features = ["xxh32"] }

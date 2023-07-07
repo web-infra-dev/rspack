@@ -7,7 +7,7 @@ version    = "0.1.0"
 
 
 [dependencies]
-data-encoding = { version = "2.3.3" }
+data-encoding = { version = "2.4.0" }
 md4           = "0.10.2"
 once_cell     = { workspace = true }
 rspack_util   = { path = "../rspack_util" }

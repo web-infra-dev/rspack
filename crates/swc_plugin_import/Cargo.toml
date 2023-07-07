@@ -6,7 +6,7 @@ name        = "swc_plugin_import"
 version     = "0.1.5"
 
 [dependencies]
-handlebars = "4.3.3"
+handlebars = "4.3.7"
 regex      = { workspace = true }
 rustc-hash = { workspace = true }
 serde      = { workspace = true }
