@@ -1,2 +1,2 @@
 import * as a from "./answer";
-a.answer;
+a.result
