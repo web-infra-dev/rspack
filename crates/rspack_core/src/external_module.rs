@@ -319,6 +319,7 @@ impl Module for ExternalModule {
         );
       }
     };
+    cgr.runtime_requirements.insert(RuntimeGlobals::MODULE);
     Ok(cgr)
   }
 
