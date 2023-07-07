@@ -129,7 +129,10 @@ impl Plugin for CssPlugin {
       .register_parser_and_generator_builder(ModuleType::Css, Box::new(builder.clone()));
     ctx
       .context
-      .register_parser_and_generator_builder(ModuleType::CssModule, Box::new(builder));
+      .register_parser_and_generator_builder(ModuleType::CssModule, Box::new(builder.clone()));
+    ctx
+      .context
+      .register_parser_and_generator_builder(ModuleType::CssAuto, Box::new(builder));
 
     Ok(())
   }

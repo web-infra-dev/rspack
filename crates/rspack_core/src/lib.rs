@@ -89,6 +89,7 @@ pub enum ModuleType {
   Json,
   Css,
   CssModule,
+  CssAuto,
   Js,
   JsDynamic,
   JsEsm,
@@ -107,7 +108,7 @@ pub enum ModuleType {
 
 impl ModuleType {
   pub fn is_css_like(&self) -> bool {
-    matches!(self, Self::Css | Self::CssModule)
+    matches!(self, Self::Css | Self::CssModule | Self::CssAuto)
   }
 
   pub fn is_js_like(&self) -> bool {
@@ -170,6 +171,7 @@ impl ModuleType {
 
       ModuleType::Css => "css",
       ModuleType::CssModule => "css/module",
+      ModuleType::CssAuto => "css/auto",
 
       ModuleType::Json => "json",
 
@@ -210,6 +212,7 @@ impl TryFrom<&str> for ModuleType {
 
       "css" => Ok(Self::Css),
       "css/module" => Ok(Self::CssModule),
+      "css/auto" => Ok(Self::CssAuto),
 
       "json" => Ok(Self::Json),
 

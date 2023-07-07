@@ -1,0 +1,13 @@
+{
+  "module": {
+    "rules": [
+      {
+        "test": {
+          "type": "regexp",
+          "matcher": "\\.css$"
+        },
+        "type": "css/auto"
+      }
+    ]
+  }
+}

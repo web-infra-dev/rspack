@@ -1,5 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`configCases builtins css-auto exported tests css/auto can handle css module correctly 1`] = `
+{
+  "style": "index-module-css__style",
+}
+`;
+
 exports[`configCases builtins css-modules-composes exported tests css modules composes 1`] = `
 {
   "simple-bar": "index-css__simple-bar imported-simple-css__imported-simple",
