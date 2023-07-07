@@ -93,7 +93,7 @@ pub fn run_before_pass(
         should_transform_by_react
       ),
       Optional::new(
-        swc_visitor::fold_react_refresh(),
+        swc_visitor::fold_react_refresh(unresolved_mark),
         should_transform_by_react && options.builtins.react.refresh.is_some()
       ),
       either!(

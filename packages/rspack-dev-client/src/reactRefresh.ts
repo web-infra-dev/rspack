@@ -24,7 +24,7 @@ function refresh(moduleId, webpackHot) {
 globalThis.$RefreshSig$ = RefreshRuntime.createSignatureFunctionForTransform;
 
 // @ts-ignored
-__webpack_modules__.$ReactRefreshRuntime$ = {
+module.exports = {
 	refresh,
 	register: RefreshRuntime.register,
 	createSignatureFunctionForTransform:

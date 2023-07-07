@@ -1,4 +1,3 @@
-use std::path::Path;
 use std::sync::Arc;
 
 use rspack_core::{ast::javascript::Ast, ModuleType};
@@ -11,7 +10,7 @@ use swc_core::ecma::parser::{
 };
 use swc_node_comments::SwcComments;
 
-use crate::utils::{ecma_parse_error_to_rspack_error, syntax_by_module_type};
+use crate::utils::ecma_parse_error_to_rspack_error;
 use crate::IsModule;
 
 fn module_type_to_is_module(value: &ModuleType) -> IsModule {
@@ -88,29 +87,6 @@ pub fn parse(
     Some(&comments),
   ) {
     Ok(program) => Ok(Ast::new(program, cm, Some(comments))),
-    Err(errs) => Err(Error::BatchErrors(
-      errs
-        .into_iter()
-        .map(|err| ecma_parse_error_to_rspack_error(err, &fm, module_type))
-        .collect::<Vec<_>>(),
-    )),
-  }
-}
-
-pub fn parse_js_code(js_code: String, module_type: &ModuleType) -> Result<Program, Error> {
-  let filename = "".to_string();
-  let syntax = syntax_by_module_type(Path::new(&filename), module_type, false);
-  let cm: Arc<swc_core::common::SourceMap> = Default::default();
-  let fm = cm.new_source_file(FileName::Custom(filename), js_code);
-
-  match parse_js(
-    fm.clone(),
-    ast::EsVersion::Es2022,
-    syntax,
-    module_type_to_is_module(module_type),
-    None,
-  ) {
-    Ok(program) => Ok(program),
     Err(errs) => Err(Error::BatchErrors(
       errs
         .into_iter()
