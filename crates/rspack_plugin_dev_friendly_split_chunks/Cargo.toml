@@ -13,5 +13,3 @@ dashmap           = { workspace = true }
 rayon             = { workspace = true }
 rspack_core       = { path = "../rspack_core" }
 rspack_identifier = { path = "../rspack_identifier" }
-rspack_util       = { path = "../rspack_util" }
-rustc-hash        = { workspace = true }

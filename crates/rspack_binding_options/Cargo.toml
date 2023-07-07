@@ -42,7 +42,6 @@ async-trait       = { workspace = true }
 better_scoped_tls = { workspace = true }
 derivative        = { workspace = true }
 glob              = { workspace = true }
-indexmap          = { workspace = true }
 napi              = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow"] }
 napi-derive       = { workspace = true }
 serde             = { workspace = true, features = ["derive"] }

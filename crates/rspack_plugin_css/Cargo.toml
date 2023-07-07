@@ -11,9 +11,7 @@ async-trait = { workspace = true }
 bitflags = { workspace = true }
 heck = "0.4.1"
 indexmap = { workspace = true }
-itertools = { workspace = true }
 once_cell = { workspace = true }
-paste = { workspace = true }
 preset_env_base = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
