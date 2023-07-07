@@ -1,5 +1,6 @@
 #![feature(get_mut_unchecked)]
 mod helpers;
+mod react_refresh;
 pub use helpers::*;
 mod lazy_compilation;
 pub use lazy_compilation::LazyCompilationPlugin;
