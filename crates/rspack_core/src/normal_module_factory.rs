@@ -13,12 +13,12 @@ use crate::{
   module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
   tree_shaking::visitor::{get_side_effects_from_package_json, SideEffects},
   BoxLoader, CompilerOptions, Dependency, DependencyCategory, DependencyType, FactorizeArgs,
-  FactoryMeta, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleRule,
-  ModuleRuleEnforce, ModuleType, NormalModule, NormalModuleAfterResolveArgs,
-  NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve, ResolveArgs, ResolveError,
-  ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory, ResourceData,
-  ResourceParsedData, SharedPluginDriver,
+  FactoryMeta, FuncUseCtx, GeneratorOptions, MissingModule, ModuleArgs, ModuleDependency,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
+  ModuleRule, ModuleRuleEnforce, ModuleRuleUse, ModuleType, NormalModule,
+  NormalModuleAfterResolveArgs, NormalModuleBeforeResolveArgs, ParserOptions, RawModule, Resolve,
+  ResolveArgs, ResolveError, ResolveOptionsWithDependencyType, ResolveResult, ResolverFactory,
+  ResourceData, ResourceParsedData, SharedPluginDriver,
 };
 
 #[derive(Debug)]
@@ -376,21 +376,34 @@ impl NormalModuleFactory {
       let mut normal_loaders: Vec<BoxLoader> = vec![];
 
       for rule in &resolved_module_rules {
-        match rule.enforce {
-          ModuleRuleEnforce::Pre => {
-            if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
-              pre_loaders.extend_from_slice(&rule.r#use);
+        match &rule.r#use {
+          ModuleRuleUse::Array(array_use) => match rule.enforce {
+            ModuleRuleEnforce::Pre => {
+              if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
+                pre_loaders.extend_from_slice(array_use);
+              }
             }
-          }
-          ModuleRuleEnforce::Normal => {
-            if !no_auto_loaders && !no_pre_auto_loaders {
-              normal_loaders.extend_from_slice(&rule.r#use);
+            ModuleRuleEnforce::Normal => {
+              if !no_auto_loaders && !no_pre_auto_loaders {
+                normal_loaders.extend_from_slice(array_use);
+              }
             }
-          }
-          ModuleRuleEnforce::Post => {
-            if !no_pre_post_auto_loaders {
-              post_loaders.extend_from_slice(&rule.r#use);
+            ModuleRuleEnforce::Post => {
+              if !no_pre_post_auto_loaders {
+                post_loaders.extend_from_slice(array_use);
+              }
             }
+          },
+          ModuleRuleUse::Func(func_use) => {
+            let context = FuncUseCtx {
+              resource: Some(resource_data.resource.clone()),
+              real_resource: Some(user_request.clone()),
+              issuer: self.context.issuer.clone(),
+              resource_query: resource_data.resource_query.clone(),
+            };
+            let loaders = func_use(context).await?;
+
+            normal_loaders.extend(loaders);
           }
         }
       }

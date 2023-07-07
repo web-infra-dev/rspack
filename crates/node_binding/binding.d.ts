@@ -600,6 +600,13 @@ export interface RawFallbackCacheGroupOptions {
   maxInitialSize?: number
 }
 
+export interface RawFuncUseCtx {
+  resource?: string
+  realResource?: string
+  resourceQuery?: string
+  issuer?: string
+}
+
 export interface RawGeneratorOptions {
   type: "asset" | "asset/inline" | "asset/resource" | "unknown"
   asset?: RawAssetGeneratorOptions
@@ -687,7 +694,7 @@ export interface RawModuleRule {
   resourceFragment?: RawRuleSetCondition
   descriptionData?: Record<string, RawRuleSetCondition>
   sideEffects?: boolean
-  use?: Array<RawModuleRuleUse>
+  use?: RawModuleRuleUses
   type?: string
   parser?: RawParserOptions
   generator?: RawGeneratorOptions
@@ -717,6 +724,12 @@ export interface RawModuleRuleUse {
   jsLoader?: JsLoader
   builtinLoader?: string
   options?: string
+}
+
+export interface RawModuleRuleUses {
+  type: "array" | "function"
+  arrayUse?: Array<RawModuleRuleUse>
+  funcUse?: (...args: any[]) => any
 }
 
 export interface RawNodeOption {

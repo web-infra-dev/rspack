@@ -194,7 +194,7 @@ export type LoaderDefinition<
 };
 
 export function createRawModuleRuleUses(
-	uses: RuleSetUse,
+	uses: RuleSetUseItem | RuleSetUseItem[],
 	path: string,
 	options: ComposeJsUseOptions
 ): RawModuleRuleUse[] {
