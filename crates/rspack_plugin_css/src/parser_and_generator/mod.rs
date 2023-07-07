@@ -2,7 +2,9 @@
 use std::sync::Arc;
 
 use indexmap::IndexMap;
+use once_cell::sync::Lazy;
 use preset_env_base::query::{Query, Targets};
+use regex::Regex;
 use rspack_core::{
   rspack_sources::{
     MapOptions, RawSource, ReplaceSource, Source, SourceExt, SourceMap, SourceMapSource,
@@ -32,6 +34,9 @@ use crate::plugin::CssConfig;
 use crate::swc_css_compiler::{SwcCssSourceMapGenConfig, SWC_COMPILER};
 use crate::utils::{css_modules_exports_to_string, ModulesTransformConfig};
 use crate::{pxtorem::px_to_rem::px_to_rem, visitors::analyze_dependencies};
+
+static REGEX_IS_MODULES: Lazy<Regex> =
+  Lazy::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
 
 pub(crate) static CSS_MODULE_SOURCE_TYPE_LIST: &[SourceType; 2] =
   &[SourceType::JavaScript, SourceType::Css];
@@ -107,16 +112,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
     build_meta.exports_type = BuildMetaExportsType::Default;
     let cm: Arc<swc_core::common::SourceMap> = Default::default();
     let content = source.source().to_string();
-    let css_modules = matches!(module_type, ModuleType::CssModule);
+    let resource_path = &parse_context.resource_data.resource_path;
     let filename = &resource_data
       .resource_path
       .relative(&compiler_options.context);
+    let css_modules = match module_type {
+      ModuleType::CssModule => true,
+      ModuleType::CssAuto => {
+        REGEX_IS_MODULES.is_match(resource_path.to_string_lossy().to_string().as_str())
+      }
+      _ => false,
+    };
     let TWithDiagnosticArray {
       inner: mut stylesheet,
       mut diagnostic,
     } = SWC_COMPILER.parse_file(
       cm.clone(),
-      &parse_context.resource_data.resource_path.to_string_lossy(),
+      &resource_path.to_string_lossy(),
       content,
       ParserConfig {
         css_modules,
