@@ -569,7 +569,7 @@ impl RawOptionsApply for RawModuleRule {
           let func_use: ThreadsafeFunction<RawFuncUseCtx, Vec<RawModuleRuleUse>> =
           NAPI_ENV.with(|env| -> anyhow::Result<_> {
             let env = env.borrow().expect("Failed to get env with external");
-            let func_use = rspack_binding_macros::js_fn_into_theadsafe_fn!(func_use, &Env::from(env));
+            let func_use = rspack_binding_macros::js_fn_into_threadsafe_fn!(func_use, &Env::from(env));
             Ok(func_use)
           })?;
           let func_use = Arc::new(func_use);
