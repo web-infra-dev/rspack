@@ -3,7 +3,6 @@
 exports[`normalize options snapshot additional entires should added 1`] = `
 {
   "main": [
-    "<prefix>/rspack-dev-client/dist/reactRefresh.js",
     "<prefix>/webpack/hot/dev-server.js",
     "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/./placeholder.js",
@@ -128,7 +127,6 @@ exports[`normalize options snapshot port string 1`] = `
 exports[`normalize options snapshot react-refresh client added when react/refresh enabled 1`] = `
 {
   "main": [
-    "<prefix>/rspack-dev-client/dist/reactRefresh.js",
     "<prefix>/webpack/hot/dev-server.js",
     "<prefix>/webpack-dev-server/client/index.js?protocol=ws%3A&hostname=0.0.0.0&&pathname=%2Fws&logging=info&overlay=true&reconnect=10&hot=true&live-reload=true",
     "<prefix>/./placeholder.js",
